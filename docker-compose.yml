@@ -74,25 +74,23 @@ services:
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
 
-  # Application Angular (Frontend) 
+  # Application Angular (Frontend) - Mode développement  
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: node:18-alpine
     container_name: outil_pg_frontend
+    working_dir: /app
     volumes:
-      - static_files:/usr/local/apache2/htdocs/static
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-4200}:4200"
+    command: npm run start:docker
     depends_on:
       - web
     networks:
       - outil_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    environment:
+      - NODE_ENV=development
 
 
 volumes:

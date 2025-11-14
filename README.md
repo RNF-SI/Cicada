@@ -30,7 +30,7 @@ Application web pour la gestion des plans de gestion d'espaces naturels dévelop
    ```
 
 4. **Accéder à l'application**
-   - Frontend Angular : http://localhost:80
+   - Frontend Angular : http://localhost:4200
    - Backend Django API : http://localhost:8000
    - Interface d'administration : http://localhost:8000/admin
 
@@ -99,7 +99,7 @@ docker-compose --profile full up
 ### Services Docker
 
 - **web** : Application Django backend (port 8000)
-- **frontend** : Application Angular avec Apache (port 80)
+- **frontend** : Application Angular en mode développement (port 4200)
 - **db** : PostgreSQL 15 avec PostGIS (port 5432)
 - **redis** : Cache et broker Celery (port 6379)
 - **celery** : Worker Celery (optionnel)
@@ -115,7 +115,6 @@ outil_plan_de_gestion/
 ├── frontend/             # Application Angular
 │   └── Dockerfile
 ├── docker/              # Configuration Docker
-│   ├── apache/          # Configuration Apache
 │   └── postgres/        # Scripts d'initialisation PostgreSQL
 ├── docker-compose.yml   # Configuration des services
 ├── .env.example        # Variables d'environnement exemple
@@ -132,7 +131,7 @@ Pour plus de détails sur le développement, consultez :
 
 - **Backend** : Django 5.0+, Django REST Framework, PostgreSQL, PostGIS, Redis
 - **Frontend** : Angular 19+, TypeScript 5+, Angular Material, Leaflet
-- **Infrastructure** : Docker, Apache
+- **Infrastructure** : Docker
 
 ## 🤝 Contribution
 
