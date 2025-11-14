@@ -1,0 +1,14 @@
+# Requirements Django minimales pour tester Docker
+Django>=5.0.0
+djangorestframework>=3.14.0
+psycopg[binary]>=3.1.0
+django-cors-headers>=4.3.0
+celery>=5.3.0
+redis>=5.0.0
+
+# PostGIS
+GDAL>=3.4.0
+Pillow>=10.0.0
+
+# Variables d'environnement
+python-decouple>=3.8

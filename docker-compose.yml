@@ -1,0 +1,113 @@
+services:
+  # Base de données PostgreSQL avec PostGIS
+  db:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: outil_pg_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-outil_plan_gestion}
+      POSTGRES_USER: ${POSTGRES_USER:-outil_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outil_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - outil_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outil_user} -d ${POSTGRES_DB:-outil_plan_gestion}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: outil_pg_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - outil_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Django (Backend)
+  web:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: outil_pg_web
+    environment:
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
+      - DATABASE_URL=postgis://${POSTGRES_USER:-outil_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-outil_plan_gestion}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
+      - static_files:/app/static
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - outil_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # Application Angular (Frontend) 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: outil_pg_frontend
+    volumes:
+      - static_files:/usr/local/apache2/htdocs/static
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - web
+    networks:
+      - outil_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_files:
+    driver: local
+  static_files:
+    driver: local
+
+networks:
+  outil_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

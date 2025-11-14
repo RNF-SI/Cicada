@@ -1,0 +1,42 @@
+# Dockerfile pour l'application Angular frontend
+
+# Stage 1: Build de l'application Angular
+FROM node:18-alpine AS builder
+
+# Métadonnées
+LABEL maintainer="CEN/RNF"
+LABEL description="Frontend Angular pour Outil Plan de Gestion"
+
+# Répertoire de travail
+WORKDIR /app
+
+# Copie des fichiers de dépendances
+COPY package*.json ./
+
+# Installation des dépendances
+RUN npm ci --only=production
+
+# Copie du code source
+COPY . .
+
+# Build de l'application en mode production
+RUN npm run build --prod
+
+# Stage 2: Serveur Apache pour servir l'application
+FROM httpd:2.4-alpine
+
+# Installation des modules Apache nécessaires
+RUN apk add --no-cache apache2-mod-rewrite
+
+# Copie de la configuration Apache personnalisée
+COPY docker/apache/httpd.conf /usr/local/apache2/conf/httpd.conf
+COPY docker/apache/.htaccess /usr/local/apache2/htdocs/
+
+# Copie des fichiers buildés depuis le stage précédent
+COPY --from=builder /app/dist/outil-plan-gestion/ /usr/local/apache2/htdocs/
+
+# Port d'exposition
+EXPOSE 80
+
+# Commande par défaut
+CMD ["httpd-foreground"]
