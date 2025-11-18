@@ -1,6 +1,15 @@
-# Outil Plan de Gestion
+# 🌿 Outil Plan de Gestion
 
-Application web pour la gestion des plans de gestion d'espaces naturels développée pour le CEN (Conservatoire d'Espaces Naturels) et RNF (Réserves Naturelles de France).
+Application web de gestion des plans de gestion d'espaces naturels développée pour le **CEN** (Conservatoire d'Espaces Naturels) et **RNF** (Réserves Naturelles de France).
+
+## 🎯 Objectif
+
+Centraliser et standardiser la gestion des plans de gestion des aires protégées françaises avec :
+- Gestion des utilisateurs et organismes gestionnaires
+- Référencement des sites naturels avec cartographie
+- CRUD des plans de gestion multi-sites  
+- API publique pour l'interopérabilité
+- Interface moderne et intuitive
 
 ## 🚀 Installation et lancement rapide
 
@@ -30,76 +39,44 @@ Application web pour la gestion des plans de gestion d'espaces naturels dévelop
    ```
 
 4. **Accéder à l'application**
-   - Frontend Angular : http://localhost:4200
    - Backend Django API : http://localhost:8000
-   - Interface d'administration : http://localhost:8000/admin
+   - Interface d'administration : http://localhost:8000/admin (login: `admin` / `admin`)
+   - Frontend Angular : http://localhost:4200 *(à venir)*
 
-### Commandes Docker utiles
-
-#### Développement
+### Commandes essentielles
 
 ```bash
-# Lancer tous les services
-docker-compose up
-
-# Lancer en arrière-plan
+# Démarrer l'application
 docker-compose up -d
 
-# Arrêter tous les services
+# Arrêter l'application  
 docker-compose down
-
-# Rebuild des images après modifications
-docker-compose build
 
 # Voir les logs
 docker-compose logs -f
 
-# Logs d'un service spécifique
-docker-compose logs -f web
-```
-
-#### Gestion de la base de données
-
-```bash
-# Accéder au shell Django
-docker-compose exec web python manage.py shell
-
-# Exécuter les migrations
-docker-compose exec web python manage.py migrate
-
-# Créer un superutilisateur
-docker-compose exec web python manage.py createsuperuser
-
-# Accéder à PostgreSQL
-docker-compose exec db psql -U outil_user -d outil_plan_gestion
-```
-
-#### Services de développement (optionnels)
-
-```bash
-# Lancer avec Adminer (interface PostgreSQL) et MailHog
-docker-compose --profile dev-tools up
-
-# Adminer sera disponible sur http://localhost:8080
-# MailHog sur http://localhost:8025
-```
-
-#### Celery (pour V1)
-
-```bash
-# Lancer avec Celery
-docker-compose --profile celery up
-
-# Ou pour tout lancer
-docker-compose --profile full up
+# Reconstruire après modifications
+docker-compose build
 ```
 
 ## 🏗️ Architecture
 
+### État actuel du projet
+
+✅ **Implémenté :**
+- Modèles de données Django (Users, Organisations, Sites, Nomenclatures)  
+- Interface d'administration Django complète
+- Base de données PostgreSQL avec PostGIS
+- Support Docker avec migrations automatiques
+
+🔄 **En cours :**
+- API REST Django (prochaine étape)
+- Interface Angular (à venir)
+
 ### Services Docker
 
 - **web** : Application Django backend (port 8000)
-- **frontend** : Application Angular en mode développement (port 4200)
+- **frontend** : Application Angular en mode développement (port 4200) *(à venir)*
 - **db** : PostgreSQL 15 avec PostGIS (port 5432)
 - **redis** : Cache et broker Celery (port 6379)
 - **celery** : Worker Celery (optionnel)
@@ -121,17 +98,25 @@ outil_plan_de_gestion/
 └── README.md
 ```
 
-## 🔧 Développement
+## ⚡ Démarrage rapide
 
-Pour plus de détails sur le développement, consultez :
-- `CLAUDE.md` - Guide pour Claude Code
-- `claude.md` - Spécifications détaillées du projet
+1. **Cloner :** `git clone https://github.com/RNF-SI/outil_plan_de_gestion.git`
+2. **Lancer :** `docker-compose up -d`  
+3. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
 
-### Technologies
+L'interface d'administration permet de gérer utilisateurs, organismes, sites et nomenclatures avec des données de test pré-chargées.
 
-- **Backend** : Django 5.0+, Django REST Framework, PostgreSQL, PostGIS, Redis
-- **Frontend** : Angular 19+, TypeScript 5+, Angular Material, Leaflet
-- **Infrastructure** : Docker
+## 📖 Documentation
+
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guide technique complet pour développeurs
+- **[CLAUDE.md](CLAUDE.md)** - Guide pour Claude Code
+- **[claude.md](claude.md)** - Spécifications détaillées du projet
+
+## 🛠️ Technologies
+
+- **Backend** : Django 5.0+, PostgreSQL + PostGIS, Redis
+- **Frontend** : Angular 19+ *(à venir)*
+- **Infrastructure** : Docker & Docker Compose
 
 ## 🤝 Contribution
 

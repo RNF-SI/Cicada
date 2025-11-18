@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Outil Plan de Gestion** - Web application for managing conservation area management plans, developed for CEN (Conservatoire d'Espaces Naturels) and RNF (Réserves Naturelles de France).
 
-- **Current Status**: Greenfield project - specifications defined, implementation not started
+- **Current Status**: Models implemented, Django admin configured
 - **Architecture Documentation**: See `claude.md` for detailed specifications
 - **Repository**: https://github.com/RNF-SI/outil_plan_de_gestion
 
@@ -24,41 +24,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Development Commands
 
-### Initial Project Setup (To Be Implemented)
+### Project Setup (Current Implementation)
 
 ```bash
-# Backend setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-
-# Frontend setup
-cd frontend
-npm install
-npm run build
-
-# Docker setup
+# Docker setup (recommended)
 docker-compose up -d
+
+# The setup includes:
+# - PostgreSQL with PostGIS
+# - Redis for caching
+# - Django backend with migrations applied
+# - Static files collection
+# - Test data creation
 ```
 
 ### Development
 
 ```bash
-# Backend
-cd backend && python manage.py runserver
-
-# Frontend  
-cd frontend && ng serve
+# Backend (via Docker)
+docker-compose exec web python manage.py runserver
 
 # Database migrations
-python manage.py makemigrations
-python manage.py migrate
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py migrate
 
-# Create new Django app
-python manage.py startapp <app_name>
+# Create superuser
+docker-compose exec web python create_superuser.py
+
+# Create test data
+docker-compose exec web python create_test_data.py
+
+# Access Django shell
+docker-compose exec web python manage.py shell
 ```
 
 ### Testing
@@ -156,5 +153,143 @@ Angular application with:
 4. **Testing**: Minimum 80% backend, 70% frontend coverage
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
+
+## Django Administration Interface
+
+### Access
+- **URL**: http://localhost:8000/admin/
+- **Login**: `admin` / `admin` (superuser)
+
+### Features Implemented
+
+#### Models Management
+- **Users (Role)**: Complete user management with custom forms
+  - Email-based authentication
+  - Organization assignment
+  - Staff/superuser permissions
+  - User-Site relationships inline
+
+- **Organizations (BibOrganismes)**: 
+  - CRUD operations for managing organizations
+  - Hierarchical structure support (parent organizations)
+  - Contact information management
+
+- **Sites**: 
+  - Geospatial support with interactive maps (PostGIS)
+  - Site classification (RNN, RNR, PNR, ENS, etc.)
+  - Surface area and geographic coordinates
+  - Organization-Site relationships inline
+
+- **Nomenclatures**: 
+  - Reference data management
+  - Hierarchical nomenclatures support
+  - Type-based classification
+
+#### Advanced Features
+- **Autocomplete fields** for Foreign Keys
+- **Inline editing** for relationships
+- **Geographic interface** with maps for site geometry
+- **Search and filtering** optimized for each model
+- **Custom forms** for user creation/modification
+
+### Test Data Available
+- **3 Organizations**: RNF, CEN Auvergne-Rhône-Alpes, DREAL
+- **3 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux
+- **5 Site Types**: RNN, RNR, PNR, ENS nomenclatures
+- **3 Users**: Admin + 2 test users
+
+## Django Development Guide
+
+### Understanding Migrations
+
+Django migrations track database schema changes automatically:
+
+```bash
+# 1. Modify models.py (add/remove/change fields)
+# 2. Generate migration file
+docker-compose exec web python manage.py makemigrations
+
+# 3. Apply changes to database
+docker-compose exec web python manage.py migrate
+```
+
+**Migration Structure:**
+- Each app has its own `migrations/` folder
+- `apps/users/migrations/` → User, Site, Organization models
+- `apps/core/migrations/` → Nomenclature models
+- Dependencies between apps are managed automatically
+
+**Example Workflow:**
+1. Add field to `Site` model in `apps/users/models.py`
+2. Run `makemigrations` → creates `0003_site_new_field.py`
+3. Run `migrate` → adds column to database
+4. Update `admin.py` to show new field (optional)
+
+### Django Admin System
+
+The admin interface is automatically generated from your models with minimal setup:
+
+**Basic Registration:**
+```python
+# In admin.py - Basic interface
+from django.contrib import admin
+from .models import Site
+
+admin.site.register(Site)  # Instant CRUD interface!
+```
+
+**Advanced Customization:**
+```python
+# Custom admin with enhanced features
+@admin.register(Site)
+class SiteAdmin(admin.ModelAdmin):
+    list_display = ('nom_site', 'surf_off', 'active')  # Columns
+    list_filter = ('active', 'marin')                  # Filters
+    search_fields = ('nom_site', 'id_local')          # Search
+```
+
+### Key Files Structure
+
+**`admin.py`** - Admin interface customization
+- Form layouts and validation
+- List display configuration
+- Search and filtering options
+- Inline editing for relationships
+
+**`apps.py`** - App configuration
+```python
+class UsersConfig(AppConfig):
+    name = 'apps.users'           # Python import path
+    verbose_name = 'Utilisateurs' # Admin display name
+    # Can include initialization logic in ready() method
+```
+
+**`models.py`** - Database structure
+- Model definitions become database tables
+- Field changes trigger migration generation
+- Relationships define foreign keys
+
+**`migrations/`** - Database version control
+- Auto-generated when models change
+- Applied in sequence to update database
+- Should never be edited manually
+
+### Development Best Practices
+
+**Model Changes:**
+1. Always backup database before major migrations
+2. Test migrations on development data first
+3. Use `--fake` only when you know what you're doing
+
+**Admin Customization:**
+1. Start with basic `admin.site.register(Model)`
+2. Add custom `ModelAdmin` class when needed
+3. Use `readonly_fields` for calculated fields
+4. Leverage `autocomplete_fields` for better UX
+
+**Apps Organization:**
+- Keep related models in the same app
+- Use `core` app for shared models (like nomenclatures)
+- Each app should have a clear, single responsibility
 
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.
