@@ -24,8 +24,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
     'rest_framework',
     'corsheaders',
+    # Apps locales
+    'apps.core',
+    'apps.users',
 ]
 
 MIDDLEWARE = [
@@ -86,6 +90,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# User model personnalisé
+AUTH_USER_MODEL = 'users.Role'
 
 # REST Framework
 REST_FRAMEWORK = {
