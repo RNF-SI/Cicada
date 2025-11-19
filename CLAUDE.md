@@ -327,6 +327,13 @@ class UsersConfig(AppConfig):
 - Use `core` app for shared models (like nomenclatures)
 - Each app should have a clear, single responsibility
 
+**Permissions System:**
+- **4 role levels**: utilisateur → referent → admin_og → super_admin
+- **10 custom permissions** + Django standard (add/change/view/delete)
+- **Permission check methods**: `user.is_super_admin()`, `user.can_manage_site(site)`
+- **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
+- **Decorators**: `@require_super_admin`, `@require_admin_organisme`
+
 **Permissions Testing:**
 - Always run `docker-compose exec web python test_permissions.py` after changes
 - Test API endpoints with `docker-compose exec web python test_permissions_api.py`

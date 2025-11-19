@@ -270,6 +270,25 @@ ROLE_CHOICES = [
 | **Référent** | CRUD sites assignés | Sites spécifiques |
 | **Utilisateur** | Lecture seule | Données visibles |
 
+### Types de permissions
+
+**Django standard :** `{action}_{model}` (add_role, change_site, view_organisme, delete_user)
+
+**Personnalisées métier :**
+
+| Permission | Description | Qui l'a |
+|------------|-------------|---------|
+| `view_all_users` | Voir tous les utilisateurs | Super Admin |
+| `manage_organisme_users` | Gérer users de son organisme | Admin Organisme+ |
+| `view_all_organismes` | Voir tous les organismes | Super Admin |
+| `manage_own_organisme` | Gérer son organisme | Admin Organisme+ |
+| `view_all_sites` | Voir tous les sites | Super Admin |
+| `manage_organisme_sites` | Gérer sites de son organisme | Admin Organisme+ |
+| `manage_assigned_sites` | Gérer sites assignés | Référent+ |
+| `access_admin_interface` | Accès interface admin | Référent+ |
+| `export_data` | Exporter des données | Référent+ |
+| `import_data` | Importer des données | Admin Organisme+ |
+
 ### Groupes Django automatiques
 
 ```bash
@@ -358,6 +377,33 @@ GET /api/users/sites/<id>/                 # Vérifie accès site
 # Informations utilisateur
 GET /api/users/permissions/               # Infos permissions user
 ```
+
+### Référence rapide développeurs
+
+**Vérifier permission dans le code :**
+```python
+# Méthodes du modèle Role
+user.is_super_admin()                    # True/False
+user.can_manage_organisme(organisme)     # True/False  
+user.can_manage_site(site)               # True/False
+
+# Permissions Django standard
+user.has_perm('users.add_role')          # True/False
+user.has_perm('users.export_data')       # True/False
+
+# Dans les vues DRF
+@permission_classes([IsSuperAdmin])
+@require_admin_organisme  # Décorateur
+
+# Dans les templates
+{% if perms.users.add_site %}...{% endif %}
+```
+
+**Permissions par groupe :**
+- **Super Admin** : 30 permissions (toutes)
+- **Admin Organisme** : 19 permissions (son organisme)  
+- **Référent** : 9 permissions (sites assignés)
+- **Utilisateur** : 5 permissions (lecture seule)
 
 ### Sécurité intégrée
 
