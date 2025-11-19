@@ -1,6 +1,7 @@
 # Core Django
 Django==5.0.8
 djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
 psycopg[binary]==3.1.19
 django-cors-headers==4.3.1
 

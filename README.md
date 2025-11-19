@@ -66,11 +66,13 @@ docker-compose build
 ✅ **Implémenté :**
 - Modèles de données Django (Users, Organisations, Sites, Nomenclatures)  
 - Interface d'administration Django complète
+- Authentification JWT complète avec API REST
 - Base de données PostgreSQL avec PostGIS
 - Support Docker avec migrations automatiques
 
 🔄 **En cours :**
-- API REST Django (prochaine étape)
+- Système de rôles et permissions (prochaine étape)
+- API REST CRUD utilisateurs et organismes
 - Interface Angular (à venir)
 
 ### Services Docker
@@ -105,6 +107,20 @@ outil_plan_de_gestion/
 3. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
 
 L'interface d'administration permet de gérer utilisateurs, organismes, sites et nomenclatures avec des données de test pré-chargées.
+
+### 🔗 API REST
+
+L'API d'authentification JWT est opérationnelle :
+- **Login :** `POST /api/auth/login/` avec email/password
+- **Token refresh :** `POST /api/auth/refresh/`  
+- **User info :** `GET /api/auth/me/`
+
+Test avec curl :
+```bash
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin"}'
+```
 
 ## 📖 Documentation
 

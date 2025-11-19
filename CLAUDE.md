@@ -198,6 +198,39 @@ Angular application with:
 - **5 Site Types**: RNN, RNR, PNR, ENS nomenclatures
 - **3 Users**: Admin + 2 test users
 
+### Authentication System (JWT)
+
+JWT authentication is fully implemented and operational:
+
+**Endpoints:**
+- `POST /api/auth/login/` - Login with email/password → JWT tokens
+- `POST /api/auth/refresh/` - Refresh access token
+- `POST /api/auth/logout/` - Logout (blacklist refresh token)
+- `GET /api/auth/me/` - Get current user info
+- `GET /api/auth/health/` - Public health check
+
+**Configuration:**
+- Access tokens: 60 minutes lifetime
+- Refresh tokens: 7 days with rotation
+- Email-based authentication (not username)
+- All API endpoints protected by default
+
+**Test credentials:**
+- `admin` / `admin` (superuser)
+- `marie.dupont@rnf.fr` / `password123` (user with organization)
+
+**Example usage:**
+```bash
+# Login
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin"}'
+
+# Use token
+curl -X GET http://localhost:8000/api/auth/me/ \
+  -H "Authorization: Bearer {access_token}"
+```
+
 ## Django Development Guide
 
 ### Understanding Migrations

@@ -128,6 +128,123 @@ docker-compose exec web python manage.py test
 docker-compose exec web pytest --cov=apps --cov-report=html
 ```
 
+## 🔐 Authentification JWT
+
+### Configuration
+
+L'application utilise **JWT (JSON Web Tokens)** pour l'authentification API :
+
+```python
+# Configuration dans settings/base.py
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),     # Token d'accès : 1h
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),       # Token refresh : 7 jours
+    'ROTATE_REFRESH_TOKENS': True,                     # Rotation automatique
+    'BLACKLIST_AFTER_ROTATION': True,                  # Blacklist ancien token
+    'USER_ID_FIELD': 'id_role',                        # Champ ID utilisateur
+}
+```
+
+### Endpoints d'authentification
+
+```bash
+# Connexion (email + password → tokens JWT)
+POST /api/auth/login/
+Content-Type: application/json
+{"email": "admin", "password": "admin"}
+
+# Réponse
+{
+  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": 4,
+    "email": "admin",
+    "nom": "admin",
+    "is_staff": true,
+    "organisme": null
+  }
+}
+```
+
+```bash
+# Renouvellement du token d'accès
+POST /api/auth/refresh/
+Content-Type: application/json
+{"refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."}
+```
+
+```bash
+# Informations utilisateur connecté
+GET /api/auth/me/
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+```bash
+# Déconnexion (blacklist du refresh token)
+POST /api/auth/logout/
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+Content-Type: application/json
+{"refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."}
+```
+
+### Usage dans le code
+
+**Vues protégées par défaut :**
+```python
+# Toutes les vues API sont protégées par défaut
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(['GET'])
+def protected_view(request):
+    # request.user est automatiquement disponible
+    user = request.user
+    return Response({'user_id': user.id_role})
+```
+
+**Vues publiques :**
+```python
+from rest_framework.decorators import api_view, permission_classes
+
+@api_view(['GET'])
+@permission_classes([])  # Aucune permission requise
+def public_view(request):
+    return Response({'status': 'public'})
+```
+
+**Test avec script automatisé :**
+```bash
+# Script de test complet de l'API JWT
+docker-compose exec web python test_auth_api.py
+```
+
+**Test avec curl :**
+```bash
+# 1. Obtenir un token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin"}' \
+  | jq -r '.access')
+
+# 2. Utiliser le token
+curl -X GET http://localhost:8000/api/auth/me/ \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Gestion des erreurs
+
+```json
+# Token expiré (401)
+{"detail": "Given token not valid for any token type", "code": "token_not_valid"}
+
+# Token manquant (401)  
+{"detail": "Authentication credentials were not provided."}
+
+# Identifiants incorrects (401)
+{"detail": "No active account found with the given credentials"}
+```
+
 ## 🎯 Concepts Django clés
 
 ### Migrations
