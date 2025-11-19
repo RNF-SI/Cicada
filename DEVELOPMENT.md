@@ -245,6 +245,214 @@ curl -X GET http://localhost:8000/api/auth/me/ \
 {"detail": "No active account found with the given credentials"}
 ```
 
+## 🔐 Système de rôles et permissions
+
+### Configuration
+
+L'application utilise un **système de rôles hiérarchiques** avec des permissions granulaires :
+
+```python
+# 4 niveaux de rôles dans le modèle Role
+ROLE_CHOICES = [
+    ('utilisateur', 'Utilisateur'),      # Lecture seule
+    ('referent', 'Référent'),           # Gestion sites assignés
+    ('admin_og', 'Administrateur OG'),   # Gestion organisme
+    ('super_admin', 'Super Admin'),      # Accès total
+]
+```
+
+### Rôles et permissions
+
+| Rôle | Permissions | Scope |
+|------|-------------|-------|
+| **Super Admin** | Toutes permissions | Global |
+| **Admin Organisme** | CRUD organisme + sites + utilisateurs | Son organisme |
+| **Référent** | CRUD sites assignés | Sites spécifiques |
+| **Utilisateur** | Lecture seule | Données visibles |
+
+### Groupes Django automatiques
+
+```bash
+# Commande pour créer/synchroniser les permissions
+docker-compose exec web python manage.py create_permissions
+
+# Groupes créés automatiquement :
+# - Super Administrateurs (30 permissions)
+# - Administrateurs Organisme (19 permissions)  
+# - Référents (9 permissions)
+# - Utilisateurs (5 permissions)
+```
+
+### Usage dans les vues API
+
+**Permissions DRF (classes) :**
+```python
+from apps.users.permissions import IsSuperAdmin, IsAdminOrganisme
+
+@api_view(['GET'])
+@permission_classes([IsSuperAdmin])
+def admin_only_view(request):
+    return Response({'message': 'Accès admin OK'})
+```
+
+**Décorateurs (fonctions) :**
+```python
+from apps.users.decorators import require_admin_organisme
+
+@api_view(['GET'])
+@require_admin_organisme
+def admin_view(request):
+    return Response({'message': 'Accès admin OK'})
+```
+
+**Vérifications dans le modèle :**
+```python
+# Sur un objet Role
+user.is_super_admin()           # True/False
+user.can_manage_organisme(org)  # True/False  
+user.can_manage_site(site)      # True/False
+```
+
+### Middleware de sécurité
+
+**3 middleware personnalisés actifs :**
+
+1. **SecurityHeadersMiddleware** : Ajoute headers sécurité (anti-XSS, etc.)
+2. **PermissionMiddleware** : Ajoute headers d'info utilisateur
+3. **AuditMiddleware** : Log des actions importantes
+
+```bash
+# Headers automatiques dans les réponses API :
+X-User-Role: super_admin
+X-User-Organisme: 1
+X-User-Permissions: {"is_super_admin": true, ...}
+```
+
+### Test du système
+
+```bash
+# Test complet des permissions
+docker-compose exec web python test_permissions.py
+
+# Test des API de permissions
+docker-compose exec web python test_permissions_api.py
+```
+
+### Endpoints de test disponibles
+
+```bash
+# Permissions DRF
+GET /api/users/test/super-admin/           # Super admin seulement
+GET /api/users/test/admin-organisme/       # Admin organisme+
+GET /api/users/test/referent/              # Référent+
+
+# Décorateurs
+GET /api/users/test/decorator-super-admin/
+GET /api/users/test/decorator-admin-organisme/
+GET /api/users/test/decorator-referent/
+
+# Permissions d'objet
+GET /api/users/organismes/<id>/            # Vérifie accès organisme
+GET /api/users/sites/<id>/                 # Vérifie accès site
+
+# Informations utilisateur
+GET /api/users/permissions/               # Infos permissions user
+```
+
+### Sécurité intégrée
+
+**Protection automatique :**
+- Toutes les API protégées par défaut (sauf `/api/auth/`)
+- Vérification compte actif (`user.active = True`)
+- Headers de sécurité sur toutes les réponses
+- Audit automatique des actions CRUD
+
+**Gestion des erreurs :**
+```json
+# Accès refusé (403)
+{"error": "Permissions Super Administrateur requises"}
+
+# Compte désactivé (403)  
+{"error": "Compte utilisateur désactivé", "code": "account_disabled"}
+
+# Organisme non autorisé (403)
+{"error": "Accès non autorisé à cet organisme"}
+```
+
+## 🛡️ Middleware Django
+
+### Qu'est-ce qu'un middleware ?
+
+Un **middleware** est un composant qui s'exécute entre la requête HTTP et la réponse, permettant de traiter/modifier les données à différents moments du cycle de vie d'une requête.
+
+```
+Requête HTTP → MW1 → MW2 → MW3 → Vue Django → MW3 → MW2 → MW1 → Réponse HTTP
+```
+
+### Rôle des middleware
+
+**Traitement global :** Actions qui s'appliquent à **toutes** les requêtes
+- **Sécurité :** Authentification, CORS, protection CSRF
+- **Logging/Audit :** Enregistrer qui fait quoi et quand  
+- **Headers :** Ajouter des en-têtes de sécurité
+- **Performance :** Cache, compression, monitoring
+
+### Middleware personnalisés du projet
+
+**1. SecurityHeadersMiddleware :**
+```python
+# Ajoute des en-têtes de sécurité à toutes les réponses
+response['X-Content-Type-Options'] = 'nosniff'  # Anti-XSS
+response['X-Frame-Options'] = 'DENY'            # Anti-iframe  
+response['X-XSS-Protection'] = '1; mode=block'  # Protection XSS
+```
+
+**2. PermissionMiddleware :**
+```python
+# Ajoute des informations utilisateur dans les en-têtes
+response['X-User-Role'] = request.user.role_level
+response['X-User-Organisme'] = str(request.user.id_organisme.id_organisme)
+response['X-User-Permissions'] = json.dumps({
+    'is_super_admin': request.user.is_super_admin(),
+    'is_admin_organisme': request.user.is_admin_organisme(),
+})
+```
+
+**3. AuditMiddleware :**
+```python
+# Enregistre les actions importantes pour l'audit
+request.audit_info = {
+    'user_id': request.user.id_role,
+    'action': request.method,  # POST, PUT, DELETE
+    'path': request.path,      # /api/users/123/
+    'timestamp': datetime.now()
+}
+```
+
+### Middleware vs Décorateurs
+
+| Middleware | Décorateurs |
+|------------|-------------|
+| **Toutes** les vues automatiquement | Vue par vue manuellement |
+| Configuration centrale | Répétition de code |
+| Ordre d'exécution fixe | Flexibilité fine |
+| Headers globaux | Logique spécifique |
+| Performance globale | Performance ciblée |
+
+**Exemple concret :**
+```python
+# ✅ Middleware : Headers de sécurité sur TOUTES les réponses
+class SecurityHeadersMiddleware:
+    def process_response(self, request, response):
+        response['X-Frame-Options'] = 'DENY'  # Toutes les réponses !
+        return response
+
+# ✅ Décorateur : Permission spécifique à UNE vue
+@require_super_admin
+def delete_all_users(request):  # Une seule vue
+    return Response({'deleted': 'all'})
+```
+
 ## 🎯 Concepts Django clés
 
 ### Migrations
@@ -347,15 +555,16 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 
 ### V0 (MVP en cours)
 - ✅ Modèles de données et admin
-- 🔄 **API REST Django** (prochaine étape)
-- ⏳ Authentification JWT
+- ✅ Authentification JWT
+- ✅ Système de rôles et permissions
+- 🔄 **API REST CRUD** (prochaine étape)
 - ⏳ Interface Angular basique
 
 ### V1 
-- Permissions avancées par rôle
 - Workflow de validation
 - Exports PDF
 - Géolocalisation avancée
+- Plans de gestion multi-sites
 
 ## 📚 Ressources
 

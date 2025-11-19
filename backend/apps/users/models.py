@@ -43,6 +43,14 @@ class Role(AbstractUser):
     Utilise l'email comme identifiant unique au lieu du username.
     """
     
+    # Niveaux de permission/rôles
+    ROLE_CHOICES = [
+        ('utilisateur', 'Utilisateur'),
+        ('referent', 'Référent'),
+        ('admin_og', 'Administrateur Organisme'),
+        ('super_admin', 'Super Administrateur'),
+    ]
+    
     # Désactiver username d'AbstractUser
     username = None
     
@@ -69,6 +77,12 @@ class Role(AbstractUser):
     )
     remarques = models.TextField(null=True, blank=True)
     active = models.BooleanField(default=True, verbose_name="Actif")
+    role_level = models.CharField(
+        "Niveau de rôle",
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='utilisateur'
+    )
     champs_addi = models.TextField("Champs additionnels", null=True, blank=True)
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
@@ -94,6 +108,48 @@ class Role(AbstractUser):
     def get_short_name(self):
         """Retourne le prénom ou l'email."""
         return self.prenom_role or self.email
+    
+    def is_super_admin(self):
+        """Vérifie si l'utilisateur est Super Administrateur."""
+        return self.role_level == 'super_admin' or self.is_superuser
+    
+    def is_admin_organisme(self):
+        """Vérifie si l'utilisateur est Administrateur d'organisme."""
+        return self.role_level in ['admin_og', 'super_admin'] or self.is_superuser
+    
+    def is_referent(self):
+        """Vérifie si l'utilisateur est au moins Référent."""
+        return self.role_level in ['referent', 'admin_og', 'super_admin'] or self.is_superuser
+    
+    def can_manage_organisme(self, organisme):
+        """Vérifie si l'utilisateur peut gérer un organisme donné."""
+        if self.is_super_admin():
+            return True
+        if self.is_admin_organisme() and self.id_organisme == organisme:
+            return True
+        return False
+    
+    def can_manage_site(self, site):
+        """Vérifie si l'utilisateur peut gérer un site donné."""
+        if self.is_super_admin():
+            return True
+        
+        # Vérifier si référent du site
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=self, id_site=site)
+            if cor_role_site.referent and cor_role_site.referent_valid:
+                return True
+        except CorRoleSite.DoesNotExist:
+            pass
+        
+        # Vérifier si admin organisme gestionnaire
+        if self.is_admin_organisme() and self.id_organisme:
+            site_organismes = CorOgSite.objects.filter(id_site=site)
+            for cor_og_site in site_organismes:
+                if cor_og_site.uuid_og.id_organisme == self.id_organisme.id_organisme:
+                    return True
+        
+        return False
 
     class Meta:
         db_table = 't_roles'

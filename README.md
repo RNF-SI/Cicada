@@ -67,12 +67,13 @@ docker-compose build
 - Modèles de données Django (Users, Organisations, Sites, Nomenclatures)  
 - Interface d'administration Django complète
 - Authentification JWT complète avec API REST
+- Système de rôles et permissions hiérarchiques
+- Middleware de sécurité et audit intégré
 - Base de données PostgreSQL avec PostGIS
 - Support Docker avec migrations automatiques
 
 🔄 **En cours :**
-- Système de rôles et permissions (prochaine étape)
-- API REST CRUD utilisateurs et organismes
+- API REST CRUD utilisateurs et organismes (prochaine étape)
 - Interface Angular (à venir)
 
 ### Services Docker

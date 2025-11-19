@@ -91,11 +91,11 @@ npm run format
 
 The backend follows a modular architecture with distinct Django apps:
 
-- **authentication**: JWT auth, permissions, user onboarding workflow
-- **users**: User management, organizations (bib_organismes), role-based access
-- **plans**: Management plans CRUD, multi-site support, file attachments
-- **api**: Public API endpoints with token auth
-- **core**: Shared utilities, base models, common middleware
+- **authentication**: JWT auth with djangorestframework-simplejwt, login/logout/refresh endpoints
+- **users**: User management, organizations (bib_organismes), role-based permissions system
+- **plans**: Management plans CRUD, multi-site support, file attachments *(à venir)*
+- **api**: Public API endpoints with token auth *(à venir)*
+- **core**: Shared utilities, base models (nomenclatures), common middleware
 
 ### Database Schema Design
 
@@ -126,10 +126,12 @@ Angular application with:
 
 ### Authentication & Permissions
 
-- **User Roles**: Super Admin > Organization Admin > Referent > User
-- **Permission Model**: Role-based with organization-scoped access
-- **Onboarding Flow**: New users require organization admin approval
-- **API Auth**: JWT tokens for internal, token-based for public API
+- **User Roles**: Super Admin > Admin Organisme > Référent > Utilisateur
+- **Permission Model**: Role-based with hierarchical access and Django groups
+- **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
+- **Security Middleware**: 3 custom middleware for headers, permissions, and audit
+- **API Protection**: All endpoints protected by default except `/api/auth/`
+- **Permissions Classes**: Custom DRF permissions + decorators for granular control
 
 ### Geospatial Handling
 
@@ -324,5 +326,17 @@ class UsersConfig(AppConfig):
 - Keep related models in the same app
 - Use `core` app for shared models (like nomenclatures)
 - Each app should have a clear, single responsibility
+
+**Permissions Testing:**
+- Always run `docker-compose exec web python test_permissions.py` after changes
+- Test API endpoints with `docker-compose exec web python test_permissions_api.py`
+- Use `/api/users/permissions/` to debug user permissions
+- Validate middleware headers in browser developer tools
+
+**Security Best Practices:**
+- All middleware are order-dependent in `settings/base.py`
+- Custom permissions inherit from `BasePermission` 
+- Decorators provide function-based permission checks
+- Object-level permissions via model methods (`can_manage_organisme()`)
 
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.

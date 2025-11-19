@@ -18,7 +18,7 @@ class RoleCreationForm(forms.ModelForm):
 
     class Meta:
         model = Role
-        fields = ('email', 'nom_role', 'prenom_role')
+        fields = ('email', 'nom_role', 'prenom_role', 'role_level')
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -42,7 +42,7 @@ class RoleChangeForm(forms.ModelForm):
 
     class Meta:
         model = Role
-        fields = ('email', 'password', 'nom_role', 'prenom_role', 'is_active', 'is_staff')
+        fields = ('email', 'password', 'nom_role', 'prenom_role', 'role_level', 'is_active', 'is_staff')
 
     def clean_password(self):
         return self.initial["password"]
@@ -70,10 +70,10 @@ class RoleAdmin(BaseUserAdmin):
     add_form = RoleCreationForm
     
     list_display = (
-        'email', 'nom_role', 'prenom_role', 'id_organisme', 
+        'email', 'nom_role', 'prenom_role', 'role_level', 'id_organisme', 
         'is_active', 'is_staff', 'date_insert'
     )
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'groupe', 'id_organisme')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'role_level', 'groupe', 'id_organisme')
     search_fields = ('email', 'nom_role', 'prenom_role')
     ordering = ('email',)
     filter_horizontal = ()
@@ -87,7 +87,7 @@ class RoleAdmin(BaseUserAdmin):
             'fields': ('id_organisme', 'groupe')
         }),
         ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'role_level', 'groups', 'user_permissions'),
         }),
         ('Métadonnées', {
             'fields': ('remarques', 'champs_addi'),
@@ -102,7 +102,7 @@ class RoleAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'nom_role', 'prenom_role', 'password1', 'password2'),
+            'fields': ('email', 'nom_role', 'prenom_role', 'role_level', 'password1', 'password2'),
         }),
     )
     
