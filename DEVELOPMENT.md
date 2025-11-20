@@ -261,6 +261,42 @@ L'API REST pour la gestion des utilisateurs est complètement opérationnelle :
 
 **Documentation complète :** Voir `backend/API_USERS_GUIDE.md`
 
+## 🏢 API REST Organismes et Sites
+
+### Endpoints disponibles
+
+L'API REST pour la gestion des organismes et sites avec support GeoJSON est opérationnelle :
+
+**Organismes :**
+- `GET /api/users/organismes/` : Liste paginée avec filtres
+- `GET /api/users/organismes/{id}/` : Détail complet avec relations
+- `POST /api/users/organismes/` : Création avec validation
+- `PATCH /api/users/organismes/{id}/` : Modification sécurisée
+- `POST /api/users/organismes/{id}/assign_site/` : Assignation site
+- `POST /api/users/organismes/{id}/bulk_assign_sites/` : Assignation en masse
+
+**Sites :**
+- `GET /api/users/sites/` : Liste paginée avec filtres géospatiaux
+- `GET /api/users/sites/{id}/` : Détail complet avec géométries
+- `GET /api/users/sites/{id}/geojson/` : Format GeoJSON Feature
+- `GET /api/users/sites/geojson_list/` : FeatureCollection GeoJSON
+- `POST /api/users/sites/` : Création avec support GeoJSON
+- `POST /api/users/sites/{id}/assign_user/` : Assignation utilisateur
+
+### Fonctionnalités avancées
+
+**Support GeoJSON :** Import/Export automatique PostGIS ↔ GeoJSON
+
+**Relations :** Gestion complète organismes ↔ sites ↔ utilisateurs
+
+**Bulk operations :** Assignations en masse avec gestion des permissions
+
+**Nested routes :** `/organismes/{id}/sites/` pour navigation hiérarchique
+
+**Filtres géospatiaux :** Surface, géométries, localisation
+
+**Documentation complète :** Voir `backend/API_ORGANISMES_SITES_GUIDE.md`
+
 ### Test rapide
 
 ```bash
@@ -273,12 +309,16 @@ TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login/ \
 curl -X GET http://localhost:8000/api/users/ \
   -H "Authorization: Bearer $TOKEN" | jq
 
-# 3. Profil utilisateur connecté
-curl -X GET http://localhost:8000/api/users/me/ \
+# 3. Lister organismes
+curl -X GET http://localhost:8000/api/users/organismes/ \
   -H "Authorization: Bearer $TOKEN" | jq
 
-# 4. Statistiques
-curl -X GET http://localhost:8000/api/users/stats/ \
+# 4. Lister sites avec GeoJSON
+curl -X GET http://localhost:8000/api/users/sites/geojson_list/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 5. Statistiques
+curl -X GET http://localhost:8000/api/users/sites/stats/ \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
@@ -654,7 +694,8 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 - ✅ Authentification JWT
 - ✅ Système de rôles et permissions  
 - ✅ API REST Utilisateurs (complète)
-- 🔄 **API REST Organismes et Sites** (prochaine étape)
+- ✅ **API REST Organismes et Sites** (avec support GeoJSON)
+- 🔄 **Plans de gestion** (prochaine étape)
 - ⏳ Interface Angular basique
 
 ### V1 

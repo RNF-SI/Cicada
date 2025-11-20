@@ -352,4 +352,11 @@ class UsersConfig(AppConfig):
 - Role-based permissions and automatic data filtering
 - Comprehensive documentation in `backend/API_USERS_GUIDE.md`
 
+**API REST Organismes and Sites:**
+- Complete REST API for organizations and sites management
+- GeoJSON support for PostGIS geometries (import/export)
+- Nested routes `/organismes/{id}/sites/` and bulk operations
+- Advanced geospatial filtering and search capabilities
+- Comprehensive documentation in `backend/API_ORGANISMES_SITES_GUIDE.md`
+
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.

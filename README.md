@@ -116,13 +116,23 @@ L'API d'authentification JWT est opérationnelle :
 - **Token refresh :** `POST /api/auth/refresh/`  
 - **User info :** `GET /api/auth/me/`
 
-L'API REST des utilisateurs est disponible :
+L'API REST complète est disponible :
+
+**Utilisateurs :**
 - **Liste :** `GET /api/users/` (pagination, filtres, recherche)
 - **Détail :** `GET /api/users/{id}/` 
 - **CRUD :** POST, PUT/PATCH, DELETE avec permissions
 - **Actions :** changement mot de passe, assignation sites, statistiques
 
-**Documentation complète :** [API_USERS_GUIDE.md](backend/API_USERS_GUIDE.md)
+**Organismes et Sites :**
+- **Organismes :** `GET /api/users/organismes/` avec hiérarchie et relations
+- **Sites :** `GET /api/users/sites/` avec support GeoJSON complet
+- **GeoJSON :** `/sites/geojson_list/` pour cartes interactives
+- **Relations :** Assignations organismes ↔ sites ↔ utilisateurs
+
+**Documentation complète :** 
+- [API_USERS_GUIDE.md](backend/API_USERS_GUIDE.md)
+- [API_ORGANISMES_SITES_GUIDE.md](backend/API_ORGANISMES_SITES_GUIDE.md)
 
 Test avec curl :
 ```bash
