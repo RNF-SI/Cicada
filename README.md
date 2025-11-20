@@ -124,15 +124,21 @@ L'API REST complète est disponible :
 - **CRUD :** POST, PUT/PATCH, DELETE avec permissions
 - **Actions :** changement mot de passe, assignation sites, statistiques
 
+**Plans de Gestion :**
+- **Plans :** `GET /api/plans/plans/` avec filtres avancés et GeoJSON
+- **Fichiers :** `POST /api/plans/fichiers/` upload et téléchargement sécurisé
+- **Actions :** Assignation sites/référents, statistiques, exports
+
 **Organismes et Sites :**
 - **Organismes :** `GET /api/users/organismes/` avec hiérarchie et relations
 - **Sites :** `GET /api/users/sites/` avec support GeoJSON complet
 - **GeoJSON :** `/sites/geojson_list/` pour cartes interactives
 - **Relations :** Assignations organismes ↔ sites ↔ utilisateurs
 
-**Documentation complète :** 
-- [API_USERS_GUIDE.md](backend/API_USERS_GUIDE.md)
-- [API_ORGANISMES_SITES_GUIDE.md](backend/API_ORGANISMES_SITES_GUIDE.md)
+**Documentation API complète :** 
+- **[API_PLANS_GUIDE.md](docs/API_PLANS_GUIDE.md)** - Guide API Plans de Gestion
+- **[API_USERS_GUIDE.md](docs/API_USERS_GUIDE.md)** - Guide API Utilisateurs
+- **[API_ORGANISMES_SITES_GUIDE.md](docs/API_ORGANISMES_SITES_GUIDE.md)** - Guide API Organismes/Sites
 
 Test avec curl :
 ```bash
@@ -143,6 +149,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 
 ## 📖 Documentation
 
+- **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guide technique complet pour développeurs
 - **[CLAUDE.md](CLAUDE.md)** - Guide pour Claude Code
 - **[claude.md](claude.md)** - Spécifications détaillées du projet

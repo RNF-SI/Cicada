@@ -388,7 +388,7 @@ L'API REST pour la gestion des utilisateurs est complètement opérationnelle :
 
 **Sécurité :** Permissions granulaires, filtrage automatique selon rôle
 
-**Documentation complète :** Voir `backend/API_USERS_GUIDE.md`
+**Documentation complète :** Voir `docs/API_USERS_GUIDE.md`
 
 ## 🏢 API REST Organismes et Sites
 
@@ -424,7 +424,7 @@ L'API REST pour la gestion des organismes et sites avec support GeoJSON est opé
 
 **Filtres géospatiaux :** Surface, géométries, localisation
 
-**Documentation complète :** Voir `backend/API_ORGANISMES_SITES_GUIDE.md`
+**Documentation complète :** Voir `docs/API_ORGANISMES_SITES_GUIDE.md`
 
 ### Test rapide
 
@@ -448,6 +448,92 @@ curl -X GET http://localhost:8000/api/users/sites/geojson_list/ \
 
 # 5. Statistiques
 curl -X GET http://localhost:8000/api/users/sites/stats/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 6. Plans de Gestion
+curl -X GET http://localhost:8000/api/plans/plans/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 7. Statistiques plans
+curl -X GET http://localhost:8000/api/plans/plans/stats/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+## 📋 API REST Plans de Gestion
+
+### Endpoints disponibles
+
+L'API REST pour la gestion des Plans de Gestion est complètement opérationnelle :
+
+**Plans de Gestion :**
+- **Liste :** `GET /api/plans/plans/` (pagination, filtres, recherche)
+- **Détail :** `GET /api/plans/plans/{id}/` avec relations complètes
+- **CRUD :** POST, PUT/PATCH, DELETE avec permissions granulaires
+- **GeoJSON :** `/plans/geojson_list/` pour cartes interactives
+- **Statistiques :** `/plans/stats/` pour tableaux de bord
+
+**Fichiers de Plans :**
+- **Upload :** `POST /api/plans/fichiers/` avec validation sécurisée
+- **Téléchargement :** `GET /api/plans/fichiers/{id}/download/`
+- **Métadonnées :** Gestion complète titre, description, auteur, visibilité
+- **Types :** Support documents, images, cartes, rapports
+
+**Actions spécialisées :**
+- **Assignation sites :** `POST /api/plans/plans/{id}/assign_site/`
+- **Assignation référents :** `POST /api/plans/plans/{id}/assign_referent/`
+- **Actions en masse :** `POST /api/plans/bulk_assign_sites/`
+- **Export GeoJSON :** `GET /api/plans/export_geojson/`
+
+### Fonctionnalités avancées
+
+**Filtrage et recherche :**
+- 25+ filtres disponibles (statut, période, géographie, organismes)
+- Recherche textuelle multi-champs (nom, commentaire, rédacteur)
+- Filtres géospatiaux et par relations
+- Pagination optimisée (20 items/page)
+
+**Permissions granulaires :**
+- **Super Admin :** Accès total à tous les plans
+- **Admin Organisme :** Plans des sites de son organisme
+- **Référent :** Plans des sites assignés + plans dont il est référent
+- **Utilisateur :** Plans publics validés uniquement
+
+**Formats et exports :**
+- Support GeoJSON natif pour cartographie
+- Export Excel multi-feuilles
+- API optimisée pour tableaux de bord
+- Métadonnées complètes dans toutes les réponses
+
+### Documentation complète
+
+**Guide d'utilisation :** [docs/API_PLANS_GUIDE.md](../docs/API_PLANS_GUIDE.md)
+
+### Test rapide
+
+```bash
+# 1. Obtenir token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin"}' | jq -r '.access')
+
+# 2. Lister les plans
+curl -X GET http://localhost:8000/api/plans/plans/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 3. Plans validés seulement
+curl -X GET "http://localhost:8000/api/plans/plans/?statut=valide" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 4. Recherche par nom
+curl -X GET "http://localhost:8000/api/plans/plans/?search=Camargue" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 5. Export GeoJSON
+curl -X GET http://localhost:8000/api/plans/plans/geojson_list/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 6. Statistiques complètes
+curl -X GET http://localhost:8000/api/plans/plans/stats/ \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
@@ -840,7 +926,7 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 
 **✅ Phase 4-core (En cours - Plans de gestion)**
 - ✅ **#18 - Modèles de données Plans de Gestion** (**Issue terminée**)
-- ⏳ #19 - API REST Plans de Gestion (prochaine étape)
+- ✅ **#19 - API REST Plans de Gestion** (**Issue terminée**)
 - ⏳ #21 - Permissions spécifiques aux PG
 - ⏳ #20 - Workflow de validation des PG
 
@@ -862,21 +948,21 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 
 ### 🎯 Prochaine priorité recommandée
 
-**Issue #19 - API REST Plans de Gestion**
-- **Phase**: 4-core (développer le cœur métier)
+**Issue #27 - Modèles de données Enjeux et Responsabilités**
+- **Phase**: 4-enjeux (structure CTPG)
 - **Priorité**: P1-important  
 - **Taille**: L (3-5 jours)
-- **Objectif**: Créer l'API REST complète pour CRUD des plans de gestion
-- **Prérequis**: ✅ Modèles créés (Issue #18 terminée)
+- **Objectif**: Créer les modèles pour enjeux de conservation et responsabilités gestionnaires
+- **Prérequis**: ✅ Plans de gestion de base (Issues #18-19 terminées)
 
 ### 📋 Séquence logique suivante
 
-1. **#19** - API REST Plans de Gestion (cœur métier - priorité)
-2. **#21** - Permissions spécifiques aux PG (sécuriser les plans)
-3. **#26** - Initialisation du projet Angular (démarrer frontend)
-4. **#27** - Module d'authentification Angular (interface utilisateur)
-5. **#29** - Module de gestion basique des PG (interface plans)
-6. **#17** - Interface Admin Django personnalisée (amélioration admin)
+1. **#41** - Modèles Enjeux et Responsabilités (structure CTPG de base)
+2. **#42** - Modèles État actuel et Objectifs Long Terme (suite CTPG)
+3. **#43** - Modèles Pressions et Facteurs d'influence (finaliser CTPG)
+4. **#44** - API REST Structure CTPG (exposer via API)
+5. **#26** - Initialisation du projet Angular (démarrer frontend)
+6. **#41** - Module d'authentification Angular (interface utilisateur)
 
 ### 🔍 Issues critiques P0
 - **#10** - Authentification interne Django (JWT déjà implémenté, à finaliser)

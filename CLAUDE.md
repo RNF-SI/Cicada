@@ -93,7 +93,7 @@ The backend follows a modular architecture with distinct Django apps:
 
 - **authentication**: JWT auth with djangorestframework-simplejwt, login/logout/refresh endpoints
 - **users**: User management, organizations (bib_organismes), role-based permissions system
-- **plans**: Management plans CRUD, multi-site support, file attachments *(modèles implémentés)*
+- **plans**: Management plans CRUD, multi-site support, file attachments *(API REST complète)*
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
 
@@ -198,8 +198,9 @@ Angular application with:
 ### Test Data Available
 - **3 Organizations**: RNF, CEN Auvergne-Rhône-Alpes, DREAL
 - **3 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux
-- **5 Site Types**: RNN, RNR, PNR, ENS nomenclatures
+- **5 Site Types**: RNN, RNR, PNR, ENS nomenclatures  
 - **3 Users**: Admin + 2 test users
+- **4 Plans de Gestion**: Test avec fichiers et relations sites
 
 ### Authentication System (JWT)
 
@@ -351,13 +352,21 @@ class UsersConfig(AppConfig):
 - Complete REST API for user management at `/api/users/`
 - Full CRUD with pagination, filtering, and search
 - Role-based permissions and automatic data filtering
-- Comprehensive documentation in `backend/API_USERS_GUIDE.md`
+- Comprehensive documentation in `docs/API_USERS_GUIDE.md`
 
 **API REST Organismes and Sites:**
 - Complete REST API for organizations and sites management
 - GeoJSON support for PostGIS geometries (import/export)
 - Nested routes `/organismes/{id}/sites/` and bulk operations
 - Advanced geospatial filtering and search capabilities
-- Comprehensive documentation in `backend/API_ORGANISMES_SITES_GUIDE.md`
+- Comprehensive documentation in `docs/API_ORGANISMES_SITES_GUIDE.md`
+
+**API REST Plans de Gestion:**
+- Complete REST API for management plans at `/api/plans/plans/`
+- Full CRUD with multi-site support and file attachments
+- 20+ endpoints including GeoJSON, statistics, bulk operations
+- Advanced filtering (25+ filters) and search capabilities
+- Upload/download system for plan files (documents, maps, reports)
+- Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
 
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.
