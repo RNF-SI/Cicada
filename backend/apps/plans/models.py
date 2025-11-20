@@ -390,3 +390,42 @@ class CorPgFichier(models.Model):
         if self.extension:
             return self.extension.lower() in ['.pdf', '.doc', '.docx', '.odt', '.txt']
         return False
+    
+    def handle_file_upload(self, uploaded_file):
+        """Gère l'upload d'un fichier."""
+        import os
+        from django.conf import settings
+        from django.core.files.storage import default_storage
+        
+        # Déterminer le nom du fichier s'il n'est pas déjà défini
+        if not self.nom_fichier:
+            self.nom_fichier = uploaded_file.name
+        
+        # Déterminer l'extension
+        _, ext = os.path.splitext(self.nom_fichier)
+        self.extension = ext.lower()
+        
+        # Déterminer la taille
+        self.taille_fichier = uploaded_file.size
+        
+        # Déterminer le type de fichier automatiquement
+        if self.is_image():
+            self.type_fichier = 'image'
+        elif self.extension in ['.pdf']:
+            self.type_fichier = 'document'
+        elif self.extension in ['.jpg', '.jpeg', '.png', '.gif'] and 'carte' in self.nom_fichier.lower():
+            self.type_fichier = 'carte'
+        
+        # Définir le chemin de stockage
+        upload_dir = f"plans/{self.plan_de_gestion.id_pg}"
+        
+        # Créer le répertoire s'il n'existe pas
+        full_upload_dir = os.path.join(settings.MEDIA_ROOT, upload_dir)
+        os.makedirs(full_upload_dir, exist_ok=True)
+        
+        # Sauvegarder le fichier
+        file_path = os.path.join(upload_dir, self.nom_fichier)
+        self.chemin_fichier = default_storage.save(file_path, uploaded_file)
+        
+        # Sauvegarder les métadonnées
+        self.save()

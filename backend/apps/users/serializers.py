@@ -48,6 +48,18 @@ class CorRoleSiteSerializer(serializers.ModelSerializer):
         ]
 
 
+class RoleBasicSerializer(serializers.ModelSerializer):
+    """
+    Serializer basique pour les utilisateurs (pour les relations).
+    """
+    nom_complet = serializers.CharField(source='get_full_name', read_only=True)
+    
+    class Meta:
+        model = Role
+        fields = ['id_role', 'email', 'nom_complet', 'role_level']
+        read_only_fields = ['id_role']
+
+
 class RoleListSerializer(serializers.ModelSerializer):
     """
     Serializer pour la liste des utilisateurs (vue allégée).
