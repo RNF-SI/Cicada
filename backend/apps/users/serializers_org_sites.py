@@ -2,7 +2,14 @@
 Serializers pour les API Organismes et Sites avec support GeoJSON.
 """
 from rest_framework import serializers
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
+try:
+    from rest_framework_gis.serializers import GeoFeatureModelSerializer
+    HAS_GIS_SUPPORT = True
+except ImportError:
+    # Fallback si rest_framework_gis n'est pas disponible
+    GeoFeatureModelSerializer = serializers.ModelSerializer
+    HAS_GIS_SUPPORT = False
+    
 from django.contrib.gis.geos import Point, MultiPolygon
 from django.db import transaction
 

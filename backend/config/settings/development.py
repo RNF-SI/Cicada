@@ -8,7 +8,7 @@ from .base import *
 DEBUG = True
 
 # Allowed hosts for development
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', 'frontend', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', 'frontend', '0.0.0.0', 'testserver']
 
 # CORS settings for development
 CORS_ALLOW_ALL_ORIGINS = True

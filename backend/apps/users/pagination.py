@@ -41,3 +41,11 @@ class LargeResultsSetPagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 500
+
+
+class StandardPagination(UsersPagination):
+    """
+    Pagination standard héritée de UsersPagination.
+    Alias pour compatibilité avec les viewsets organismes et sites.
+    """
+    pass

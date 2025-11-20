@@ -84,19 +84,112 @@ docker-compose exec web python manage.py migrate
 
 ### Django Admin
 
-L'interface admin est automatiquement générée :
+L'interface admin est **entièrement personnalisée** pour la gestion des espaces naturels :
 
 **Accès :** http://localhost:8000/admin/ (`admin` / `admin`)
 
-**Customisation :**
+#### 🎯 Fonctionnalités avancées implémentées
+
+**RoleAdmin (Utilisateurs) :**
+- Colonnes enrichies : nom complet, rôle avec icônes (👑 Super Admin, 🔧 Admin, 👤 Référent, 👥 Utilisateur)
+- Statuts colorés : ✅ Actif (vert) / ❌ Inactif (rouge)
+- Liens vers organismes, compteur de sites assignés
+- Actions en masse : activer/désactiver utilisateurs, export CSV
+
+**BibOrganismesAdmin (Organismes) :**
+- Informations contact formatées (📧 email, 📞 téléphone)
+- Hiérarchie parents/enfants avec liens
+- Compteurs utilisateurs et sites avec badges colorés
+- Export CSV complet avec relations
+
+**SiteAdmin (Sites) :**
+- Interface géospatiale avec cartes PostGIS
+- Types de sites colorés (RNN=vert, RNR=bleu, PNR=orange)
+- Caractéristiques visuelles : 🌊 Marin, 🏝️ Outre-mer
+- Surface formatée, statuts avec icônes
+- Actions masse : activer/désactiver sites
+
+#### ⚡ Actions en masse disponibles
+
+- **Utilisateurs** : Activer/désactiver en bloc, export CSV détaillé
+- **Sites** : Activation/désactivation groupée, export avec géométries
+- **Relations** : Validation référents, assignation gestionnaire principal
+
+#### 🔍 Filtres et recherche avancés
+
+**Filtres multiples :**
+- Par organisme, rôle, date de création, dernière connexion
+- Filtres spéciaux : "A un email", "A une géométrie", "Est parent"
+- Filtres temporels avec calendrier
+
+**Recherche optimisée :**
+- Recherche par ID numérique + texte
+- Recherche cross-relationnelle (ex: sites d'un organisme)
+- Performance optimisée avec `select_related()`
+
+#### 📊 Exports CSV complets
+
+**Export utilisateurs :**
+```csv
+ID,Email,Nom,Prénom,Rôle,Organisme,Actif,Sites assignés,Date création,Dernière connexion
+2,marie.dupont@rnf.fr,Dupont,Marie,Référent,RNF,Oui,"Camargue, Aiguilles Rouges",15/11/2024,20/11/2024
+```
+
+**Export sites avec géométries :**
+```csv
+ID,Nom,Type,Surface,Marin,Actif,Organismes gestionnaires,Référents
+1,Réserve de la Camargue,RNN,13117.0,Non,Oui,"RNF, CEN","Marie Dupont"
+```
+
+#### 🔗 Relations inline optimisées
+
+**Gestion des relations :**
+- Autocomplete pour sélection rapide des FK
+- Inlines pour voir sites d'un organisme, utilisateurs d'un organisme
+- Édition des relations utilisateur-site (référent, conservateur)
+- Assignations organismes-sites avec statut principal
+
+#### 🎨 Interface personnalisée
+
+**CSS custom (`admin_custom.css`) :**
+- Design moderne avec icônes et couleurs significatives
+- Actions en masse avec boutons stylés
+- Tableaux avec survol et espacement optimisé
+- Responsive design pour mobile
+- Messages d'alerte colorés (succès/erreur/warning)
+
+#### 🚀 Performance optimisée
+
+**Optimisations techniques :**
+- Pagination : 25 éléments par page
+- Requêtes optimisées : évitement du problème N+1
+- `prefetch_related()` pour les relations
+- Recherche par ID + fallbacks pour erreurs
+
+#### 📋 Utilisation pratique
+
+**Pour un gestionnaire RNF :**
+1. **Vue d'ensemble** : "Marie Dupont (👤 Référent) gère 3 sites ✅"
+2. **Actions groupées** : Activer 10 utilisateurs en 1 clic
+3. **Exports métier** : Liste complète pour reporting
+4. **Filtres rapides** : "Tous les référents actifs de mon organisme"
+5. **Relations visuelles** : Voir directement qui gère quoi
+
+**Exemple de customisation avancée :**
 ```python
 # Dans apps/users/admin.py
-@admin.register(Site)
-class SiteAdmin(admin.ModelAdmin):
-    list_display = ('nom_site', 'surf_off', 'active')  # Colonnes
-    list_filter = ('active', 'marin')                  # Filtres
-    search_fields = ('nom_site',)                      # Recherche
-    readonly_fields = ('id_site',)                     # Lecture seule
+@admin.register(Role)
+class RoleAdmin(BaseUserAdmin):
+    list_display = ('email', 'nom_complet', 'role_display', 'organisme_display', 'active_status', 'sites_count')
+    actions = [make_active, make_inactive, export_users_csv]
+    list_filter = ('is_active', 'role_level', 'id_organisme', 'date_insert')
+    
+    def role_display(self, obj):
+        icons = {'super_admin': '👑', 'admin_og': '🔧', 'referent': '👤', 'utilisateur': '👥'}
+        colors = {'super_admin': 'red', 'admin_og': 'orange', 'referent': 'blue', 'utilisateur': 'green'}
+        icon = icons.get(obj.role_level, '❓')
+        color = colors.get(obj.role_level, 'black')
+        return mark_safe(f'<span style="color: {color}; font-weight: bold;">{icon} {obj.get_role_level_display()}</span>')
 ```
 
 ### Commandes utiles

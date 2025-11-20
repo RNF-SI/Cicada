@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_gis',
+    # 'rest_framework_gis',  # Sera réactivé après build container
     'django_filters',
     'corsheaders',
     # Apps locales

@@ -3,7 +3,6 @@ URLs pour l'API des utilisateurs, organismes et sites.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_nested import routers
 from .views import (
     super_admin_only_view,
     admin_organisme_view,
@@ -26,28 +25,11 @@ router.register(r'users', RoleViewSet, basename='users')
 router.register(r'organismes', OrganismeViewSet, basename='organismes')
 router.register(r'sites', SiteViewSet, basename='sites')
 
-# Routes nested pour organismes/{id}/sites
-try:
-    organismes_router = routers.NestedDefaultRouter(
-        router, r'organismes', lookup='organisme'
-    )
-    organismes_router.register(
-        r'sites', SiteViewSet, basename='organisme-sites'
-    )
-    NESTED_ROUTES_AVAILABLE = True
-except ImportError:
-    # Fallback si drf-nested-routers n'est pas installé
-    organismes_router = None
-    NESTED_ROUTES_AVAILABLE = False
-
 urlpatterns = [
     # API REST principale
     path('', include(router.urls)),
     
-    # Routes nested si disponibles
-    path('', include(organismes_router.urls)) if NESTED_ROUTES_AVAILABLE else path('', lambda r: None),
-    
-    # Routes manuelles pour sites d'un organisme (fallback)
+    # Routes manuelles pour relations organismes-sites
     path('organismes/<int:organisme_pk>/sites/', 
          SiteViewSet.as_view({'get': 'list'}), 
          name='organisme_sites_list'),
@@ -55,7 +37,7 @@ urlpatterns = [
          SiteViewSet.as_view({'get': 'retrieve'}), 
          name='organisme_sites_detail'),
     
-    # Routes pour désassignation (nested)
+    # Routes pour désassignation
     path('organismes/<int:organisme_pk>/sites/<int:site_pk>/',
          OrganismeViewSet.as_view({'delete': 'unassign_site'}),
          name='organisme_unassign_site'),
@@ -78,5 +60,5 @@ urlpatterns = [
     path('test/sites/<int:site_id>/', site_detail_view, name='site_detail'),
     
     # Vue d'information sur les permissions
-    path('test/permissions/', permissions_info_view, name='permissions_info'),
+    path('permissions/', permissions_info_view, name='permissions_info'),
 ]
