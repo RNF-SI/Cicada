@@ -65,6 +65,13 @@ outil_plan_de_gestion/
 - **`TypeNomenclature`** : Types de référentiels
 - **`Nomenclature`** : Valeurs de référentiels (hiérarchiques)
 
+#### Plans App *(Nouveau - Issue #18)*
+- **`PlanGestion`** : Plans de gestion avec support multi-sites et géospatial
+- **`CorSitePg`** : Relations sites ↔ plans de gestion (anciennement CorEpPg)
+- **`CorPgFichier`** : Fichiers joints aux plans (documents, cartes, photos)
+- **18 nomenclatures** automatiques : types évaluation, rédacteur, statuts validation
+- **Interface admin** complète avec cartes PostGIS et gestion de fichiers
+
 ## 🔄 Workflow de développement
 
 ### Modifications de modèles
@@ -81,6 +88,35 @@ docker-compose exec web python manage.py migrate
 
 # 4. Optionnel : mettre à jour admin.py pour le nouveau champ
 ```
+
+#### 🏗️ Refactoring terminologique (Issue #18)
+
+**Problème résolu :** Harmonisation de la terminologie entre "espaces protégés" et "sites"
+
+**Changements effectués :**
+```bash
+# 1. Renommage de modèle : CorEpPg → CorSitePg
+# 2. Renommage de table : cor_ep_pg → cor_site_pg  
+# 3. Renommage de relation : espaces_proteges → sites
+# 4. Migration personnalisée avec préservation des données
+```
+
+**Migration de données sécurisée :**
+```python
+# Migration 0002_rename_corepyg_to_corsitepg.py
+operations = [
+    migrations.RunSQL(
+        "ALTER TABLE cor_ep_pg RENAME TO cor_site_pg;",
+        reverse_sql="ALTER TABLE cor_site_pg RENAME TO cor_ep_pg;"
+    ),
+    migrations.RenameModel(
+        old_name='CorEpPg',
+        new_name='CorSitePg',
+    ),
+]
+```
+
+**Résultat :** Terminologie cohérente dans toute l'application ("sites" partout)
 
 ### Django Admin
 
@@ -802,11 +838,11 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 - ⏳ #13 - Formulaire d'onboarding utilisateur
 - ⏳ #38 - Keycloak: lien avec les tables Utilisateurs et Organisme
 
-**⏳ Phase 4-core (À venir - Plans de gestion)**
-- #18 - Modèles de données Plans de Gestion
-- #19 - API REST Plans de Gestion
-- #21 - Permissions spécifiques aux PG
-- #20 - Workflow de validation des PG
+**✅ Phase 4-core (En cours - Plans de gestion)**
+- ✅ **#18 - Modèles de données Plans de Gestion** (**Issue terminée**)
+- ⏳ #19 - API REST Plans de Gestion (prochaine étape)
+- ⏳ #21 - Permissions spécifiques aux PG
+- ⏳ #20 - Workflow de validation des PG
 
 **⏳ Phase 5-frontend (À venir - Interface Angular)**
 - #26 - Initialisation du projet Angular
@@ -826,20 +862,21 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 
 ### 🎯 Prochaine priorité recommandée
 
-**Issue #17 - Interface Admin Django personnalisée**
-- **Phase**: 3-users (finaliser la gestion utilisateurs)
+**Issue #19 - API REST Plans de Gestion**
+- **Phase**: 4-core (développer le cœur métier)
 - **Priorité**: P1-important  
-- **Taille**: S (2h-1 jour)
-- **Objectif**: Personnaliser l'admin Django avec actions en masse, filtres avancés, exports
+- **Taille**: L (3-5 jours)
+- **Objectif**: Créer l'API REST complète pour CRUD des plans de gestion
+- **Prérequis**: ✅ Modèles créés (Issue #18 terminée)
 
 ### 📋 Séquence logique suivante
 
-1. **#17** - Interface Admin Django personnalisée (finaliser phase 3-users)
-2. **#13** - Formulaire d'onboarding utilisateur (compléter auth)
-3. **#18** - Modèles de données Plans de Gestion (démarrer phase 4-core)
-4. **#19** - API REST Plans de Gestion (cœur métier)
-5. **#21** - Permissions spécifiques aux PG
-6. **#26** - Initialisation du projet Angular (démarrer frontend)
+1. **#19** - API REST Plans de Gestion (cœur métier - priorité)
+2. **#21** - Permissions spécifiques aux PG (sécuriser les plans)
+3. **#26** - Initialisation du projet Angular (démarrer frontend)
+4. **#27** - Module d'authentification Angular (interface utilisateur)
+5. **#29** - Module de gestion basique des PG (interface plans)
+6. **#17** - Interface Admin Django personnalisée (amélioration admin)
 
 ### 🔍 Issues critiques P0
 - **#10** - Authentification interne Django (JWT déjà implémenté, à finaliser)

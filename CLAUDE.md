@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Outil Plan de Gestion** - Web application for managing conservation area management plans, developed for CEN (Conservatoire d'Espaces Naturels) and RNF (Réserves Naturelles de France).
 
-- **Current Status**: Models implemented, Django admin configured
+- **Current Status**: Plans de Gestion models implemented, Django admin configured
 - **Architecture Documentation**: See `claude.md` for detailed specifications
 - **Repository**: https://github.com/RNF-SI/outil_plan_de_gestion
 
@@ -93,7 +93,7 @@ The backend follows a modular architecture with distinct Django apps:
 
 - **authentication**: JWT auth with djangorestframework-simplejwt, login/logout/refresh endpoints
 - **users**: User management, organizations (bib_organismes), role-based permissions system
-- **plans**: Management plans CRUD, multi-site support, file attachments *(à venir)*
+- **plans**: Management plans CRUD, multi-site support, file attachments *(modèles implémentés)*
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
 
@@ -112,7 +112,8 @@ The application uses PostgreSQL with PostGIS and follows a multi-schema approach
 
 3. **general schema**: Application data
    - `t_plan_gestion`: Management plans
-   - `cor_ep_pg`: Many-to-many between plans and sites
+   - `cor_site_pg`: Many-to-many between plans and sites (renamed for terminology consistency)
+   - `cor_pg_fichier`: File attachments for management plans
 
 ### Frontend Architecture
 

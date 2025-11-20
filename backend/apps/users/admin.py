@@ -136,7 +136,26 @@ def make_inactive(modeladmin, request, queryset):
         request,
         f"{updated} utilisateur(s) désactivé(s) avec succès."
     )
-make_inactive.short_description = "Désactiver les utilisateurs sélectionnés"
+make_inactive.short_description = "Désactiver les utilisateurs sélectionnés (soft delete)"
+
+def hard_delete_users(modeladmin, request, queryset):
+    """Action pour supprimer définitivement les utilisateurs (DANGER!)."""
+    if not request.user.is_superuser:
+        modeladmin.message_user(
+            request,
+            "Seuls les super-administrateurs peuvent supprimer définitivement des utilisateurs.",
+            level='ERROR'
+        )
+        return
+    
+    count = queryset.count()
+    queryset.delete()
+    modeladmin.message_user(
+        request,
+        f"{count} utilisateur(s) supprimé(s) DÉFINITIVEMENT.",
+        level='WARNING'
+    )
+hard_delete_users.short_description = "⚠️ SUPPRIMER DÉFINITIVEMENT (Super-admin seulement)"
 
 def export_users_csv(modeladmin, request, queryset):
     """Exporter les utilisateurs sélectionnés en CSV."""
@@ -175,6 +194,10 @@ class RoleAdmin(BaseUserAdmin):
     form = RoleChangeForm
     add_form = RoleCreationForm
     
+    def has_delete_permission(self, request, obj=None):
+        """Désactive le bouton 'Supprimer' standard de Django."""
+        return False
+    
     list_display = (
         'email', 'nom_complet', 'role_display', 'organisme_display', 
         'active_status', 'sites_count', 'date_insert'
@@ -186,7 +209,7 @@ class RoleAdmin(BaseUserAdmin):
     search_fields = ('email', 'nom_role', 'prenom_role', 'id_organisme__nom_organisme')
     ordering = ('email',)
     filter_horizontal = ()
-    actions = [make_active, make_inactive, export_users_csv]
+    actions = [make_active, make_inactive, export_users_csv, hard_delete_users]
     list_per_page = 25
     
     def nom_complet(self, obj):
@@ -325,9 +348,32 @@ def export_organismes_csv(modeladmin, request, queryset):
     return response
 export_organismes_csv.short_description = "Exporter en CSV"
 
+def hard_delete_organismes(modeladmin, request, queryset):
+    """Action pour supprimer définitivement les organismes (DANGER!)."""
+    if not request.user.is_superuser:
+        modeladmin.message_user(
+            request,
+            "Seuls les super-administrateurs peuvent supprimer définitivement des organismes.",
+            level='ERROR'
+        )
+        return
+    
+    count = queryset.count()
+    queryset.delete()
+    modeladmin.message_user(
+        request,
+        f"{count} organisme(s) supprimé(s) DÉFINITIVEMENT.",
+        level='WARNING'
+    )
+hard_delete_organismes.short_description = "⚠️ SUPPRIMER DÉFINITIVEMENT (Super-admin seulement)"
+
 @admin.register(BibOrganismes)
 class BibOrganismesAdmin(admin.ModelAdmin):
     """Administration des organismes avec fonctionnalités avancées."""
+    
+    def has_delete_permission(self, request, obj=None):
+        """Désactive le bouton 'Supprimer' standard de Django."""
+        return False
     
     list_display = (
         'nom_organisme', 'ville_organisme', 'contact_info',
@@ -343,7 +389,7 @@ class BibOrganismesAdmin(admin.ModelAdmin):
         'adresse_organisme', 'id_parent__nom_organisme'
     )
     readonly_fields = ('uuid_organisme', 'meta_create_date', 'meta_update_date')
-    actions = [export_organismes_csv]
+    actions = [export_organismes_csv, hard_delete_organismes]
     list_per_page = 25
     
     def contact_info(self, obj):
@@ -441,7 +487,26 @@ def deactivate_sites(modeladmin, request, queryset):
         request,
         f"{updated} site(s) désactivé(s) avec succès."
     )
-deactivate_sites.short_description = "Désactiver les sites sélectionnés"
+deactivate_sites.short_description = "Désactiver les sites sélectionnés (soft delete)"
+
+def hard_delete_sites(modeladmin, request, queryset):
+    """Action pour supprimer définitivement les sites (DANGER!)."""
+    if not request.user.is_superuser:
+        modeladmin.message_user(
+            request,
+            "Seuls les super-administrateurs peuvent supprimer définitivement des sites.",
+            level='ERROR'
+        )
+        return
+    
+    count = queryset.count()
+    queryset.delete()
+    modeladmin.message_user(
+        request,
+        f"{count} site(s) supprimé(s) DÉFINITIVEMENT.",
+        level='WARNING'
+    )
+hard_delete_sites.short_description = "⚠️ SUPPRIMER DÉFINITIVEMENT (Super-admin seulement)"
 
 def export_sites_csv(modeladmin, request, queryset):
     """Exporter les sites sélectionnés en CSV."""
@@ -479,6 +544,10 @@ export_sites_csv.short_description = "Exporter en CSV"
 class SiteAdmin(gis_admin.GISModelAdmin):
     """Administration des sites avec support géospatial et fonctionnalités avancées."""
     
+    def has_delete_permission(self, request, obj=None):
+        """Désactive le bouton 'Supprimer' standard de Django."""
+        return False
+    
     list_display = (
         'nom_site', 'id_local', 'type_site_display', 'surface_display',
         'caractéristiques', 'status_display', 'organismes_count', 'date_crea'
@@ -494,7 +563,7 @@ class SiteAdmin(gis_admin.GISModelAdmin):
         'users_assigned__nom_role', 'users_assigned__email'
     )
     readonly_fields = ('id_site',)
-    actions = [activate_sites, deactivate_sites, export_sites_csv]
+    actions = [activate_sites, deactivate_sites, export_sites_csv, hard_delete_sites]
     list_per_page = 25
     
     def type_site_display(self, obj):
