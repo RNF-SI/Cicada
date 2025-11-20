@@ -116,6 +116,14 @@ L'API d'authentification JWT est opérationnelle :
 - **Token refresh :** `POST /api/auth/refresh/`  
 - **User info :** `GET /api/auth/me/`
 
+L'API REST des utilisateurs est disponible :
+- **Liste :** `GET /api/users/` (pagination, filtres, recherche)
+- **Détail :** `GET /api/users/{id}/` 
+- **CRUD :** POST, PUT/PATCH, DELETE avec permissions
+- **Actions :** changement mot de passe, assignation sites, statistiques
+
+**Documentation complète :** [API_USERS_GUIDE.md](backend/API_USERS_GUIDE.md)
+
 Test avec curl :
 ```bash
 curl -X POST http://localhost:8000/api/auth/login/ \

@@ -1,7 +1,8 @@
 """
-URLs pour les vues de démonstration du système de permissions.
+URLs pour l'API des utilisateurs et les vues de démonstration.
 """
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     super_admin_only_view,
     admin_organisme_view,
@@ -13,24 +14,32 @@ from .views import (
     site_detail_view,
     permissions_info_view,
 )
+from .viewsets import RoleViewSet
 
 app_name = 'users'
 
+# Router pour les ViewSets
+router = DefaultRouter()
+router.register(r'', RoleViewSet, basename='users')
+
 urlpatterns = [
-    # Vues avec permissions DRF
+    # API REST principale
+    path('', include(router.urls)),
+    
+    # Vues de test/démonstration avec permissions DRF
     path('test/super-admin/', super_admin_only_view, name='test_super_admin'),
     path('test/admin-organisme/', admin_organisme_view, name='test_admin_organisme'),
     path('test/referent/', referent_view, name='test_referent'),
     
-    # Vues avec décorateurs
+    # Vues de test avec décorateurs
     path('test/decorator-super-admin/', decorator_super_admin_view, name='test_decorator_super_admin'),
     path('test/decorator-admin-organisme/', decorator_admin_organisme_view, name='test_decorator_admin_organisme'),
     path('test/decorator-referent/', decorator_referent_view, name='test_decorator_referent'),
     
-    # Vues avec permissions d'objet
-    path('organismes/<int:organisme_id>/', organisme_detail_view, name='organisme_detail'),
-    path('sites/<int:site_id>/', site_detail_view, name='site_detail'),
+    # Vues de test avec permissions d'objet
+    path('test/organismes/<int:organisme_id>/', organisme_detail_view, name='organisme_detail'),
+    path('test/sites/<int:site_id>/', site_detail_view, name='site_detail'),
     
     # Vue d'information sur les permissions
-    path('permissions/', permissions_info_view, name='permissions_info'),
+    path('test/permissions/', permissions_info_view, name='permissions_info'),
 ]

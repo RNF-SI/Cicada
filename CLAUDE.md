@@ -346,4 +346,10 @@ class UsersConfig(AppConfig):
 - Decorators provide function-based permission checks
 - Object-level permissions via model methods (`can_manage_organisme()`)
 
+**API REST Users:**
+- Complete REST API for user management at `/api/users/`
+- Full CRUD with pagination, filtering, and search
+- Role-based permissions and automatic data filtering
+- Comprehensive documentation in `backend/API_USERS_GUIDE.md`
+
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.

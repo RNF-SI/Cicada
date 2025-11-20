@@ -232,6 +232,56 @@ curl -X GET http://localhost:8000/api/auth/me/ \
   -H "Authorization: Bearer $TOKEN"
 ```
 
+## 👥 API REST Utilisateurs
+
+### Endpoints disponibles
+
+L'API REST pour la gestion des utilisateurs est complètement opérationnelle :
+
+**Endpoints principaux :**
+- `GET /api/users/` : Liste paginée avec filtres et recherche
+- `GET /api/users/{id}/` : Détail utilisateur avec permissions
+- `POST /api/users/` : Création avec validation métier
+- `PUT/PATCH /api/users/{id}/` : Modification sécurisée
+- `DELETE /api/users/{id}/` : Soft delete
+
+**Actions spécialisées :**
+- `GET /api/users/me/` : Profil utilisateur connecté
+- `POST /api/users/{id}/change-password/` : Changement mot de passe
+- `POST /api/users/{id}/assign-site/` : Assignation sites
+- `GET /api/users/stats/` : Statistiques (admin)
+
+### Fonctionnalités
+
+**Pagination :** 20 résultats/page (configurable), métadonnées complètes
+
+**Filtres :** 15+ filtres disponibles (search, role_level, organisme, dates, etc.)
+
+**Sécurité :** Permissions granulaires, filtrage automatique selon rôle
+
+**Documentation complète :** Voir `backend/API_USERS_GUIDE.md`
+
+### Test rapide
+
+```bash
+# 1. Obtenir token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin"}' | jq -r '.access')
+
+# 2. Lister utilisateurs
+curl -X GET http://localhost:8000/api/users/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 3. Profil utilisateur connecté
+curl -X GET http://localhost:8000/api/users/me/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 4. Statistiques
+curl -X GET http://localhost:8000/api/users/stats/ \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
 ### Gestion des erreurs
 
 ```json
@@ -602,8 +652,9 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 ### V0 (MVP en cours)
 - ✅ Modèles de données et admin
 - ✅ Authentification JWT
-- ✅ Système de rôles et permissions
-- 🔄 **API REST CRUD** (prochaine étape)
+- ✅ Système de rôles et permissions  
+- ✅ API REST Utilisateurs (complète)
+- 🔄 **API REST Organismes et Sites** (prochaine étape)
 - ⏳ Interface Angular basique
 
 ### V1 
