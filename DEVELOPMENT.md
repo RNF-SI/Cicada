@@ -612,10 +612,11 @@ Django génère automatiquement une interface d'administration :
 
 Organisation modulaire :
 
-- **`core`** : Modèles partagés (nomenclatures, utilitaires)
-- **`users`** : Gestion utilisateurs, organismes, sites
-- **`plans`** : Plans de gestion (à venir)
-- **`api`** : Endpoints API publics (à venir)
+- **`core`** : Modèles partagés (nomenclatures, utilitaires) ✅
+- **`users`** : Gestion utilisateurs, organismes, sites ✅
+- **`authentication`** : Gestion JWT et auth ✅
+- **`plans`** : Plans de gestion (Issue #18-21 à venir)
+- **`api`** : Endpoints API publics (Issue #22-23 à venir)
 
 ## 🔒 Sécurité & Bonnes pratiques
 
@@ -687,22 +688,77 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 \d t_roles
 ```
 
-## 🚀 Prochaines étapes
+## 🚀 Roadmap et prochaines étapes
 
-### V0 (MVP en cours)
-- ✅ Modèles de données et admin
-- ✅ Authentification JWT
-- ✅ Système de rôles et permissions  
-- ✅ API REST Utilisateurs (complète)
-- ✅ **API REST Organismes et Sites** (avec support GeoJSON)
-- 🔄 **Plans de gestion** (prochaine étape)
-- ⏳ Interface Angular basique
+### État d'avancement basé sur GitHub Issues
 
-### V1 
-- Workflow de validation
-- Exports PDF
-- Géolocalisation avancée
-- Plans de gestion multi-sites
+**✅ Phase 1-infrastructure (Terminée)**
+- ✅ #6 - Initialisation du projet Django
+- ✅ #7 - Configuration Docker et docker-compose 
+- ✅ #8 - Configuration PostgreSQL avec PostGIS
+
+**✅ Phase 2-auth (Partiellement terminée)**
+- ✅ #12 - Système de rôles et permissions
+- ✅ #14 - Modèles de données Utilisateurs/Organismes/Sites
+- ⏳ #10 - Authentification interne Django (en cours - JWT implémenté)
+
+**✅ Phase 3-users (Partiellement terminée)**
+- ✅ #15 - API REST Utilisateurs
+- ✅ #16 - API REST Organismes et Sites
+- 🔄 **#17 - Interface Admin Django personnalisée** (prochaine étape)
+- ⏳ #13 - Formulaire d'onboarding utilisateur
+- ⏳ #38 - Keycloak: lien avec les tables Utilisateurs et Organisme
+
+**⏳ Phase 4-core (À venir - Plans de gestion)**
+- #18 - Modèles de données Plans de Gestion
+- #19 - API REST Plans de Gestion
+- #21 - Permissions spécifiques aux PG
+- #20 - Workflow de validation des PG
+
+**⏳ Phase 5-frontend (À venir - Interface Angular)**
+- #26 - Initialisation du projet Angular
+- #27 - Module d'authentification Angular
+- #37 - Interface d'accueil
+- #22 - Système de gestion des tokens API
+- #23 - Endpoints API publics
+
+**⏳ Phase 6-release (À venir - Finalisation)**
+- #28 - Dashboard utilisateur
+- #29 - Module de gestion basique des PG
+- #30 - Documentation technique
+- #31 - Tests unitaires backend
+- #32 - Tests frontend Angular
+- #35 - Audit de sécurité (P0-critical)
+- #36 - RGPD Compliance (P0-critical)
+
+### 🎯 Prochaine priorité recommandée
+
+**Issue #17 - Interface Admin Django personnalisée**
+- **Phase**: 3-users (finaliser la gestion utilisateurs)
+- **Priorité**: P1-important  
+- **Taille**: S (2h-1 jour)
+- **Objectif**: Personnaliser l'admin Django avec actions en masse, filtres avancés, exports
+
+### 📋 Séquence logique suivante
+
+1. **#17** - Interface Admin Django personnalisée (finaliser phase 3-users)
+2. **#13** - Formulaire d'onboarding utilisateur (compléter auth)
+3. **#18** - Modèles de données Plans de Gestion (démarrer phase 4-core)
+4. **#19** - API REST Plans de Gestion (cœur métier)
+5. **#21** - Permissions spécifiques aux PG
+6. **#26** - Initialisation du projet Angular (démarrer frontend)
+
+### 🔍 Issues critiques P0
+- **#10** - Authentification interne Django (JWT déjà implémenté, à finaliser)
+- **#35** - Audit de sécurité  
+- **#36** - RGPD Compliance
+
+### 📊 Métriques d'avancement
+- **Issues fermées**: 7/46 (15%)
+- **Phase 1 (Infrastructure)**: 3/3 terminées (100%)
+- **Phase 2 (Auth)**: 2/3 terminées (67%) 
+- **Phase 3 (Users)**: 2/5 terminées (40%)
+- **Phases 4-6**: 0% (à venir)
 
 ## 📚 Ressources
 
