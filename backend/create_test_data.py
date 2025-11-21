@@ -17,44 +17,24 @@ def create_test_data():
     
     print("🏗️  Création des données de test...")
     
-    # 1. Type de nomenclature pour les types de sites
-    type_site, created = TypeNomenclature.objects.get_or_create(
-        mnemonique='TYPE_SITE',
-        defaults={
-            'label_default': 'Type de site',
-            'label_fr': 'Type de site',
-            'definition_fr': 'Classification des types de sites naturels',
-            'statut': 'Validé',
-            'source': 'RNF'
-        }
-    )
-    if created:
-        print("✅ Type nomenclature 'Type de site' créé")
+    # 1. Utiliser les nomenclatures existantes importées
+    try:
+        # Type de site (id_type=1 dans les nomenclatures importées)
+        type_site = TypeNomenclature.objects.get(id_type=1)
+        print(f"✅ Type nomenclature '{type_site.label}' trouvé")
+        
+        # Types d'évaluation (id_type=2)
+        type_evaluation = TypeNomenclature.objects.get(id_type=2)
+        print(f"✅ Type nomenclature '{type_evaluation.label}' trouvé")
+        
+        # Type de rédacteur (id_type=3)
+        type_redacteur = TypeNomenclature.objects.get(id_type=3)
+        print(f"✅ Type nomenclature '{type_redacteur.label}' trouvé")
+    except TypeNomenclature.DoesNotExist as e:
+        print(f"⚠️  Types de nomenclature requis non trouvés: {e}")
+        return
     
-    # 2. Nomenclatures pour types de sites
-    types_sites = [
-        ('RN', 'Réserve Naturelle'),
-        ('RNN', 'Réserve Naturelle Nationale'),
-        ('RNR', 'Réserve Naturelle Régionale'),
-        ('PNR', 'Parc Naturel Régional'),
-        ('ENS', 'Espace Naturel Sensible'),
-    ]
-    
-    for cd, label in types_sites:
-        nom_type, created = Nomenclature.objects.get_or_create(
-            id_type=type_site,
-            cd_nomenclature=cd,
-            defaults={
-                'label_default': label,
-                'label_fr': label,
-                'mnemonique': cd,
-                'active': True
-            }
-        )
-        if created:
-            print(f"✅ Nomenclature '{label}' créée")
-    
-    # 3. Organismes gestionnaires
+    # 2. Organismes gestionnaires
     organismes = [
         {
             'nom_organisme': 'Réserves Naturelles de France',
@@ -84,10 +64,11 @@ def create_test_data():
         if created:
             print(f"✅ Organisme '{org.nom_organisme}' créé")
     
-    # 4. Sites
+    # 3. Sites
     rnf = BibOrganismes.objects.get(nom_organisme='Réserves Naturelles de France')
-    type_rnn = Nomenclature.objects.get(cd_nomenclature='RNN')
-    type_rnr = Nomenclature.objects.get(cd_nomenclature='RNR')
+    # Utiliser les ID corrects des nomenclatures importées
+    type_rnn = Nomenclature.objects.get(id_nomenclature=42)  # RNN
+    type_rnr = Nomenclature.objects.get(id_nomenclature=43)  # RNR
     
     sites = [
         {
@@ -172,4 +153,12 @@ def create_test_data():
 
 
 if __name__ == '__main__':
-    create_test_data()
+    try:
+        create_test_data()
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la création des données de test: {e}")
+        print("ℹ️  Le serveur continuera de démarrer malgré cette erreur.")
+        import traceback
+        traceback.print_exc()
+        # Ne pas faire échouer le script pour permettre au serveur de démarrer
+        sys.exit(0)

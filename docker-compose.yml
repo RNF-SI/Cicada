@@ -71,6 +71,9 @@ services:
       retries: 3
     command: >
       sh -c "python manage.py migrate &&
+             python import_nomenclatures.py &&
+             python create_superuser.py &&
+             python create_test_data.py &&
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
 
@@ -84,7 +87,7 @@ services:
       - /app/node_modules
     ports:
       - "${FRONTEND_PORT:-4200}:4200"
-    command: npm run start:docker
+    command: sh -c "npm install && npm run start:docker"
     depends_on:
       - web
     networks:
