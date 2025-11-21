@@ -64,10 +64,11 @@ docker-compose build
 ### État actuel du projet
 
 ✅ **Implémenté :**
-- Modèles de données Django (Users, Organisations, Sites, Nomenclatures)  
+- Modèles de données Django (Users, Organisations, Sites, Plans, Nomenclatures)  
 - Interface d'administration Django complète
 - Authentification JWT complète avec API REST
 - Système de rôles et permissions hiérarchiques
+- **Référentiels de nomenclatures standardisés** (28 types, 261 valeurs)
 - Middleware de sécurité et audit intégré
 - Base de données PostgreSQL avec PostGIS
 - Support Docker avec migrations automatiques
@@ -139,6 +140,7 @@ L'API REST complète est disponible :
 - **[API_PLANS_GUIDE.md](docs/API_PLANS_GUIDE.md)** - Guide API Plans de Gestion
 - **[API_USERS_GUIDE.md](docs/API_USERS_GUIDE.md)** - Guide API Utilisateurs
 - **[API_ORGANISMES_SITES_GUIDE.md](docs/API_ORGANISMES_SITES_GUIDE.md)** - Guide API Organismes/Sites
+- **[NOMENCLATURES.md](docs/NOMENCLATURES.md)** - Référentiels et nomenclatures
 
 Test avec curl :
 ```bash

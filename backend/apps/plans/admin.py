@@ -52,8 +52,8 @@ class PlanGestionAdmin(GISModelAdmin):
         'risque_incendie',
         'date_ajout',
         'annee_debut',
-        'id_evaluation__label_fr',
-        'id_redacteur_type__label_fr'
+        'id_evaluation__label',
+        'id_redacteur_type__label'
     ]
     
     search_fields = [

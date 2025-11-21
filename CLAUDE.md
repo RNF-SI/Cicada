@@ -34,6 +34,7 @@ docker-compose up -d
 # - PostgreSQL with PostGIS
 # - Redis for caching
 # - Django backend with migrations applied
+# - Nomenclatures import (reference data)
 # - Static files collection
 # - Test data creation
 ```
@@ -53,6 +54,12 @@ docker-compose exec web python create_superuser.py
 
 # Create test data
 docker-compose exec web python create_test_data.py
+
+# Import/Update nomenclatures (reference data)
+docker-compose exec web python import_nomenclatures.py
+
+# Test nomenclatures import
+docker-compose exec web python test_nomenclatures.py
 
 # Access Django shell
 docker-compose exec web python manage.py shell
@@ -96,6 +103,7 @@ The backend follows a modular architecture with distinct Django apps:
 - **plans**: Management plans CRUD, multi-site support, file attachments *(API REST complète)*
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
+  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management
 
 ### Database Schema Design
 

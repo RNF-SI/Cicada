@@ -890,6 +890,162 @@ docker-compose logs -f web
 DEBUG = True
 ```
 
+### Diagnostic Docker
+
+**Quand quelque chose ne fonctionne pas, suivez cette séquence :**
+
+#### 1. Vérifier l'état des conteneurs
+
+```bash
+# État de tous les conteneurs
+docker-compose ps
+
+# Indicateurs à surveiller :
+# - Exit 1, Exit 127 → Conteneur a échoué
+# - unhealthy → Conteneur tourne mais healthcheck échoue
+# - Up (healthy) → Tout va bien ✅
+```
+
+#### 2. Examiner les logs des conteneurs en erreur
+
+```bash
+# Logs du backend (le plus important)
+docker-compose logs web | tail -50
+
+# Logs du frontend
+docker-compose logs frontend | tail -50
+
+# Tous les logs ensemble
+docker-compose logs | tail -100
+```
+
+#### 3. Filtrer les erreurs dans les logs
+
+```bash
+# Chercher les erreurs Python/Django
+docker-compose logs web | grep -i "error\|exception\|traceback\|failed"
+
+# Chercher les erreurs de commande
+docker-compose logs frontend | grep -i "not found\|error\|failed"
+
+# Voir le contexte autour d'une erreur (10 lignes avant/après)
+docker-compose logs web | grep -A 10 -B 10 -i "error"
+```
+
+#### 4. Suivre les logs en temps réel (pendant le démarrage)
+
+```bash
+# Logs en temps réel de tous les services
+docker-compose logs -f
+
+# Logs d'un service spécifique
+docker-compose logs -f web
+
+# Appuyez sur Ctrl+C pour arrêter
+```
+
+#### 5. Tester l'accès aux services
+
+```bash
+# Tester si le serveur Django répond
+curl -I http://localhost:8000/admin/
+
+# Tester l'API
+curl http://localhost:8000/api/auth/health/
+
+# Tester le frontend
+curl -I http://localhost:4200/
+```
+
+#### 6. Problèmes courants et solutions
+
+**Conteneur en Exit 1 (erreur Python) :**
+```bash
+# Voir l'erreur exacte
+docker-compose logs web | grep -A 20 "Traceback"
+
+# Causes fréquentes :
+# - Erreur dans un script d'initialisation (create_test_data.py, etc.)
+# - Migration échouée
+# - Problème de connexion à la base de données
+```
+
+**Conteneur en Exit 127 (commande non trouvée) :**
+```bash
+# Voir quelle commande a échoué
+docker-compose logs frontend | grep "not found"
+
+# Causes fréquentes :
+# - Dépendances npm non installées (npm install manquant)
+# - Commande inexistante dans le PATH du conteneur
+```
+
+**Conteneur unhealthy :**
+```bash
+# Vérifier le healthcheck
+docker inspect outil_pg_web | grep -A 10 Health
+
+# Causes fréquentes :
+# - Serveur démarre mais endpoint de healthcheck non accessible
+# - Timeout du healthcheck trop court
+```
+
+#### 7. Commandes de diagnostic avancées
+
+```bash
+# Entrer dans un conteneur pour investiguer
+docker-compose exec web bash
+docker-compose exec frontend sh
+
+# Vérifier les processus en cours
+docker-compose exec web ps aux
+
+# Vérifier les variables d'environnement
+docker-compose exec web env | grep DJANGO
+
+# Tester une commande manuellement
+docker-compose exec web python manage.py check
+docker-compose exec web python manage.py showmigrations
+```
+
+#### 8. Séquence de diagnostic complète
+
+```bash
+# 1. Vérifier l'état
+docker-compose ps
+
+# 2. Si un conteneur est en erreur, voir ses logs
+docker-compose logs web | tail -100
+
+# 3. Chercher les erreurs spécifiques
+docker-compose logs web | grep -A 10 -i "error\|exception"
+
+# 4. Si le conteneur est arrêté, le relancer et suivre les logs
+docker-compose up -d web
+docker-compose logs -f web
+```
+
+#### 9. Astuce : Alias utiles
+
+Ajoutez à votre `~/.zshrc` ou `~/.bashrc` :
+
+```bash
+alias dclogs='docker-compose logs'
+alias dcps='docker-compose ps'
+alias dclogs-web='docker-compose logs web | tail -50'
+alias dclogs-frontend='docker-compose logs frontend | tail -50'
+alias dcrestart='docker-compose restart'
+alias dcup='docker-compose up -d'
+alias dcdown='docker-compose down'
+```
+
+Ensuite utilisez simplement :
+```bash
+dcps              # État des conteneurs
+dclogs-web        # Logs du backend
+dclogs-frontend   # Logs du frontend
+```
+
 ### Base de données
 
 ```bash

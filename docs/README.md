@@ -12,6 +12,12 @@ Index de la documentation pour l'Outil Plan de Gestion - Application web de gest
 | **[API Utilisateurs](API_USERS_GUIDE.md)** | Guide de l'API pour la gestion des utilisateurs | `/api/users/` |
 | **[API Organismes/Sites](API_ORGANISMES_SITES_GUIDE.md)** | Guide de l'API pour organismes et sites avec GeoJSON | `/api/users/organismes/` |
 
+## 📖 Référentiels et données
+
+| Guide | Description |
+|-------|-------------|
+| **[Nomenclatures](NOMENCLATURES.md)** | Gestion des nomenclatures et référentiels pour plans de gestion |
+
 ### Authentification
 
 Toutes les API utilisent l'authentification JWT :
@@ -42,17 +48,20 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 1. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
 2. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
-3. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
+3. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
+4. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
 
 ### Pour administrateurs système
 
 1. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-2. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
+2. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
+3. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
 
 ### Pour gestionnaires d'espaces naturels
 
 1. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Utilisation de l'API
-2. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
+2. **[Nomenclatures](NOMENCLATURES.md)** - Consultation des référentiels
+3. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
 
 ## 🔗 Liens utiles
 
