@@ -1,0 +1,21 @@
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/accueil',
+    pathMatch: 'full'
+  },
+  {
+    path: 'accueil',
+    loadChildren: () => import('./features/home/home.routes').then(m => m.HOME_ROUTES)
+  },
+  {
+    path: 'auth',
+    loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)
+  },
+  {
+    path: 'plans',
+    loadChildren: () => import('./features/plans/plans.routes').then(m => m.PLANS_ROUTES)
+  }
+];

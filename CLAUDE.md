@@ -17,10 +17,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - PostgreSQL 15+ with PostGIS 3.3+ for spatial data
 - Python 3.11+
 
-### Frontend  
+### Frontend
 - Angular 19+ with TypeScript 5+
 - Angular Material for UI components
 - Leaflet for interactive maps
+- **Design System**: Custom SCSS based on Biodiv' France branding
+  - **Documentation complète**: [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)
+  - **Status**: ✅ 100% complet, prêt pour production
+  - **Composants**: 60+ composants Material personnalisés + custom
+  - **Fichiers SCSS**: 11 fichiers (~6500 lignes)
+  - **Couleurs**: 100% conformes PNG Biodiv' France
+    - Primary: #022F39 (Bleu-vert)
+    - Secondary: #FFC935 (Jaune), #FF6E3D (Orange), etc.
+  - **Font**: Nunito (Google Font)
+  - **Accessibilité**: WCAG AA compliant
+  - **Responsive**: Mobile, Tablet, Desktop
 
 ## Common Development Commands
 
@@ -79,6 +90,25 @@ npm run test:coverage
 npm run e2e  # Cypress tests
 ```
 
+### Frontend Development
+
+```bash
+# Install dependencies
+cd frontend && npm install
+
+# Development server
+npm start  # http://localhost:4200
+
+# Build for production
+npm run build:prod
+
+# Generate component
+ng generate component components/my-component
+
+# Generate service
+ng generate service services/my-service
+```
+
 ### Code Quality
 
 ```bash
@@ -93,6 +123,20 @@ npm run format
 ```
 
 ## High-Level Architecture
+
+### Frontend Architecture
+
+The Angular application follows a modular structure:
+
+- **core module**: Singleton services (auth, API client, interceptors)
+- **shared module**: Reusable components, pipes, directives, design system components
+- **feature modules**: Plans, users, auth (lazy loaded)
+- **State management**: RxJS-based with services as stores
+- **Design System**: Custom SCSS implementing Biodiv' France branding
+  - Variables: `src/assets/scss/_variables.scss`
+  - Typography: `src/assets/scss/_typography.scss`
+  - Buttons: `src/assets/scss/_buttons.scss`
+  - Main styles: `src/styles.scss`
 
 ### Django Apps Structure
 

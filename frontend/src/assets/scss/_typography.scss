@@ -1,0 +1,285 @@
+// Typography Styles - Design System
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import 'variables';
+
+// ============================================
+// BASE TYPOGRAPHY
+// ============================================
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: $font-family;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-base;
+  color: $black;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ============================================
+// HEADINGS
+// ============================================
+
+h1, .h1 {
+  font-size: $font-size-h1;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-h1;
+  margin-bottom: $spacing-lg;
+}
+
+h2, .h2 {
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-h2;
+  margin-bottom: $spacing-md;
+}
+
+h3, .h3 {
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-h3;
+  margin-bottom: $spacing-md;
+}
+
+h4, .h4 {
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-h4;
+  margin-bottom: $spacing-sm;
+}
+
+// ============================================
+// BODY TEXT
+// ============================================
+
+p {
+  margin-bottom: $spacing-md;
+}
+
+.subtitle {
+  font-size: $font-size-subtitle;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-base;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.text-regular {
+  font-size: $font-size-base;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-base;
+}
+
+.text-bold {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-base;
+}
+
+.text-small {
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-small;
+}
+
+.text-mention {
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-small;
+  color: $gray-dark;
+}
+
+// ============================================
+// TEXT ALIGNMENT
+// ============================================
+
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-right { text-align: right !important; }
+.text-justify { text-align: justify !important; }
+
+// ============================================
+// TEXT TRANSFORM
+// ============================================
+
+.text-lowercase { text-transform: lowercase !important; }
+.text-uppercase { text-transform: uppercase !important; }
+.text-capitalize { text-transform: capitalize !important; }
+
+// ============================================
+// TEXT DECORATION
+// ============================================
+
+.text-decoration-none { text-decoration: none !important; }
+.text-underline { text-decoration: underline !important; }
+.text-line-through { text-decoration: line-through !important; }
+
+// ============================================
+// TEXT COLORS
+// ============================================
+
+.text-primary { color: $primary-color !important; }
+.text-secondary-yellow { color: $secondary-yellow !important; }
+.text-secondary-orange { color: $secondary-orange !important; }
+.text-success { color: $success-color !important; }
+.text-error { color: $error-color !important; }
+.text-warning { color: $warning-color !important; }
+.text-info { color: $info-color !important; }
+.text-muted { color: $gray-dark !important; }
+.text-white { color: $white !important; }
+
+// ============================================
+// LINKS
+// ============================================
+
+a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $primary-hover;
+    text-decoration: underline;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  &:active {
+    color: $primary-active;
+  }
+}
+
+// Link variants
+.link-default {
+  color: $primary-color;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.link-survol {
+  color: $primary-color;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: currentColor;
+    transition: width $transition-base;
+  }
+  
+  &:hover::after {
+    width: 100%;
+  }
+}
+
+.link-inactif {
+  color: $gray;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+// ============================================
+// LISTS
+// ============================================
+
+ul, ol {
+  padding-left: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+li {
+  margin-bottom: $spacing-xs;
+}
+
+// Custom bullet points (from design system)
+.list-custom {
+  list-style: none;
+  padding-left: 0;
+  
+  li {
+    position: relative;
+    padding-left: $spacing-lg;
+    
+    &::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: $primary-color;
+    }
+  }
+}
+
+// ============================================
+// BLOCKQUOTES
+// ============================================
+
+blockquote {
+  border-left: $border-width-accent solid $primary-color;
+  padding-left: $spacing-md;
+  margin: $spacing-lg 0;
+  font-style: italic;
+  color: $gray-dark;
+}
+
+// ============================================
+// CODE
+// ============================================
+
+code {
+  background-color: $gray-lighter;
+  padding: 2px 4px;
+  border-radius: $border-radius-sm;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875em;
+}
+
+pre {
+  background-color: $gray-lighter;
+  padding: $spacing-md;
+  border-radius: $border-radius-sm;
+  overflow-x: auto;
+  
+  code {
+    background-color: transparent;
+    padding: 0;
+  }
+}
+
+// ============================================
+// RESPONSIVE TYPOGRAPHY
+// ============================================
+
+@media (max-width: $breakpoint-tablet) {
+  h1, .h1 {
+    font-size: 36px;
+    line-height: 48px;
+  }
+  
+  h2, .h2 {
+    font-size: 28px;
+    line-height: 36px;
+  }
+  
+  h3, .h3 {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  
+  h4, .h4 {
+    font-size: 18px;
+    line-height: 24px;
+  }
+}

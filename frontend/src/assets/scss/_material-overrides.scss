@@ -1,0 +1,959 @@
+// Material Component Overrides - Outil Plan de Gestion
+// Custom styling for Angular Material components to match design system
+
+@import 'variables';
+
+// ============================================
+// BUTTONS
+// ============================================
+
+// All Material buttons
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button,
+.mat-mdc-icon-button,
+.mat-mdc-fab,
+.mat-mdc-mini-fab {
+  font-family: $font-family !important;
+  font-weight: $font-weight-bold !important;
+  text-transform: none !important;
+
+  // Override Material's default border-radius
+  &:not(.mat-mdc-icon-button):not(.mat-mdc-fab):not(.mat-mdc-mini-fab) {
+    border-radius: $border-radius-xl !important; // 24px rounded buttons
+  }
+}
+
+// Primary buttons
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary {
+  background-color: $primary-color !important;
+  color: $white !important;
+
+  &:hover:not([disabled]) {
+    background-color: $primary-hover !important;
+  }
+
+  &:active:not([disabled]) {
+    background-color: $primary-active !important;
+  }
+
+  &[disabled] {
+    background-color: $gray-light !important;
+    color: $gray-dark !important;
+  }
+}
+
+// Accent buttons (yellow)
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-flat-button.mat-accent {
+  background-color: $secondary-yellow !important;
+  color: $black !important;
+
+  &:hover:not([disabled]) {
+    background-color: darken($secondary-yellow, 10%) !important;
+  }
+
+  &[disabled] {
+    background-color: $gray-light !important;
+    color: $gray-dark !important;
+  }
+}
+
+// Secondary/Stroked buttons (outlined)
+.mat-mdc-stroked-button {
+  border: 2px solid $primary-color !important;
+  color: $primary-color !important;
+  background-color: transparent !important;
+
+  &:hover:not([disabled]) {
+    background-color: $primary-color !important;
+    color: $white !important;
+  }
+
+  &[disabled] {
+    border-color: $gray-light !important;
+    color: $gray-dark !important;
+  }
+}
+
+// Icon buttons
+.mat-mdc-icon-button {
+  width: $btn-icon-size;
+  height: $btn-icon-size;
+  padding: 0;
+
+  &.mat-primary {
+    color: $primary-color !important;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08) !important;
+  }
+}
+
+// Button sizes
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button {
+  &.btn-sm {
+    padding: $btn-padding-sm-y $btn-padding-sm-x !important;
+    font-size: $font-size-small !important;
+    min-height: 32px !important;
+  }
+
+  &.btn-lg {
+    padding: $btn-padding-lg-y $btn-padding-lg-x !important;
+    font-size: $font-size-h4 !important;
+    min-height: 56px !important;
+  }
+}
+
+// ============================================
+// FORM FIELDS
+// ============================================
+
+.mat-mdc-form-field {
+  font-family: $font-family !important;
+
+  // Input wrapper
+  .mat-mdc-text-field-wrapper {
+    background-color: $white;
+    border-radius: $border-radius-sm !important; // 4px
+
+    .mat-mdc-form-field-flex {
+      padding: 0 $input-padding-x;
+    }
+  }
+
+  // Outline variant
+  &.mat-form-field-appearance-outline {
+    .mat-mdc-notched-outline {
+      .mat-mdc-notched-outline-leading,
+      .mat-mdc-notched-outline-notch,
+      .mat-mdc-notched-outline-trailing {
+        border-color: $input-border-color !important;
+        border-width: $border-width !important;
+      }
+    }
+
+    // Focused state
+    &.mat-focused {
+      .mat-mdc-notched-outline {
+        .mat-mdc-notched-outline-leading,
+        .mat-mdc-notched-outline-notch,
+        .mat-mdc-notched-outline-trailing {
+          border-color: $input-focus-color !important;
+          border-width: $border-width-thick !important;
+        }
+      }
+    }
+
+    // Error state
+    &.mat-form-field-invalid {
+      .mat-mdc-notched-outline {
+        .mat-mdc-notched-outline-leading,
+        .mat-mdc-notched-outline-notch,
+        .mat-mdc-notched-outline-trailing {
+          border-color: $input-error-color !important;
+        }
+      }
+    }
+  }
+
+  // Labels
+  .mat-mdc-form-field-label {
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+
+  // Input text
+  .mat-mdc-input-element {
+    color: $black;
+    font-size: $font-size-base;
+    padding: $input-padding-y 0;
+  }
+
+  // Hint and error messages
+  .mat-mdc-form-field-hint,
+  .mat-mdc-form-field-error {
+    font-size: $font-size-small;
+  }
+
+  .mat-mdc-form-field-error {
+    color: $error-color;
+  }
+}
+
+// Select dropdowns
+.mat-mdc-select {
+  font-family: $font-family !important;
+
+  .mat-mdc-select-trigger {
+    padding: $input-padding-y $input-padding-x;
+  }
+
+  .mat-mdc-select-value {
+    color: $black;
+    font-size: $font-size-base;
+  }
+
+  .mat-mdc-select-arrow {
+    color: $gray-dark;
+  }
+}
+
+// Date picker
+.mat-datepicker-toggle {
+  .mat-mdc-icon-button {
+    color: $primary-color;
+  }
+}
+
+.mat-datepicker-content {
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-medium;
+
+  .mat-calendar {
+    font-family: $font-family;
+
+    .mat-calendar-header {
+      background-color: $primary-color;
+      color: $white;
+      padding: $spacing-md;
+    }
+
+    .mat-calendar-body-selected {
+      background-color: $primary-color;
+      color: $white;
+    }
+
+    .mat-calendar-body-today:not(.mat-calendar-body-selected) {
+      border-color: $primary-color;
+    }
+  }
+}
+
+// ============================================
+// TABLES
+// ============================================
+
+.mat-mdc-table {
+  font-family: $font-family !important;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  // Header
+  .mat-mdc-header-row {
+    background-color: $table-header-bg;
+
+    .mat-mdc-header-cell {
+      color: $white;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      border-bottom: none;
+      padding: $spacing-md $spacing-lg;
+    }
+  }
+
+  // Body rows
+  .mat-mdc-row {
+    border-bottom: $border-width solid $table-border-color;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background-color: $gray-lighter;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .mat-mdc-cell {
+      color: $black;
+      font-size: $font-size-base;
+      padding: $spacing-md $spacing-lg;
+      border-bottom: none;
+    }
+  }
+
+  // Footer
+  .mat-mdc-footer-row {
+    background-color: $gray-lighter;
+
+    .mat-mdc-footer-cell {
+      color: $gray-dark;
+      font-size: $font-size-small;
+      border-top: $border-width solid $table-border-color;
+    }
+  }
+}
+
+// Table with sticky header
+.mat-mdc-table-sticky {
+  .mat-mdc-header-row {
+    position: sticky;
+    top: 0;
+    z-index: $z-index-sticky;
+    box-shadow: $shadow-light;
+  }
+}
+
+// ============================================
+// CARDS
+// ============================================
+
+.mat-mdc-card {
+  font-family: $font-family !important;
+  background-color: $white;
+  border-radius: $card-border-radius !important;
+  padding: $card-padding;
+  box-shadow: $shadow-light;
+  transition: box-shadow $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-medium;
+  }
+
+  .mat-mdc-card-header {
+    padding-bottom: $spacing-md;
+    border-bottom: $border-width solid $gray-lighter;
+    margin-bottom: $spacing-md;
+
+    .mat-mdc-card-title {
+      color: $primary-color;
+      font-size: $font-size-h4;
+      font-weight: $font-weight-bold;
+      margin: 0;
+    }
+
+    .mat-mdc-card-subtitle {
+      color: $gray-dark;
+      font-size: $font-size-base;
+      margin: 0;
+    }
+  }
+
+  .mat-mdc-card-content {
+    color: $black;
+    font-size: $font-size-base;
+    line-height: $line-height-base;
+    padding: 0;
+  }
+
+  .mat-mdc-card-actions {
+    padding: $spacing-md 0 0 0;
+    margin: 0;
+    border-top: $border-width solid $gray-lighter;
+
+    &:first-child {
+      border-top: none;
+    }
+  }
+}
+
+// ============================================
+// TOOLBAR
+// ============================================
+
+.mat-toolbar,
+.mat-mdc-toolbar {
+  font-family: $font-family !important;
+  background-color: $primary-color !important;
+  color: $white !important;
+  height: $nav-height;
+  padding: 0 $spacing-lg;
+
+  .mat-toolbar-row,
+  .mat-mdc-toolbar-row {
+    height: $nav-height;
+  }
+
+  // Toolbar title
+  h1, h2, h3, .mat-h1, .mat-h2, .mat-h3 {
+    color: $white;
+    margin: 0;
+  }
+
+  // Toolbar buttons
+  .mat-mdc-button,
+  .mat-mdc-icon-button {
+    color: $white;
+
+    &:hover {
+      background-color: rgba($white, 0.1);
+    }
+  }
+}
+
+// ============================================
+// SIDENAV
+// ============================================
+
+.mat-drawer,
+.mat-mdc-drawer {
+  font-family: $font-family !important;
+  background-color: $primary-color;
+  color: $white;
+  width: $sidebar-width;
+
+  // Navigation list
+  .mat-mdc-list {
+    padding: $spacing-md 0;
+
+    .mat-mdc-list-item {
+      color: $white;
+      height: 48px;
+      padding: 0 $spacing-lg;
+      transition: background-color $transition-fast;
+      cursor: pointer;
+
+      &:hover {
+        background-color: rgba($white, 0.08);
+      }
+
+      &.active {
+        background-color: rgba($white, 0.16);
+        border-left: $border-width-accent solid $white;
+        padding-left: calc($spacing-lg - $border-width-accent);
+      }
+
+      .mat-mdc-list-item-content {
+        padding: 0;
+      }
+
+      .mat-icon {
+        color: $white;
+        margin-right: $spacing-md;
+      }
+
+      .mat-mdc-list-item-title {
+        color: $white;
+        font-size: $font-size-base;
+      }
+    }
+  }
+
+  // Dividers
+  .mat-divider {
+    border-top-color: rgba($white, 0.12);
+  }
+}
+
+// Collapsed sidenav
+.mat-drawer.collapsed,
+.mat-mdc-drawer.collapsed {
+  width: $sidebar-collapsed-width;
+
+  .mat-mdc-list-item {
+    justify-content: center;
+    padding: 0;
+
+    .mat-icon {
+      margin-right: 0;
+    }
+
+    .mat-mdc-list-item-title {
+      display: none;
+    }
+  }
+}
+
+// ============================================
+// CHIPS / TAGS
+// ============================================
+
+.mat-mdc-chip,
+.mat-mdc-standard-chip {
+  font-family: $font-family !important;
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
+  border-radius: $border-radius-lg !important; // 16px rounded chips
+  padding: $spacing-xxs $spacing-sm;
+  height: auto;
+  min-height: 24px;
+
+  &.mat-primary {
+    background-color: $primary-color !important;
+    color: $white !important;
+  }
+
+  &.mat-accent {
+    background-color: $secondary-yellow !important;
+    color: $black !important;
+  }
+
+  // Status chips
+  &.status-success {
+    background-color: $success-color !important;
+    color: $white !important;
+  }
+
+  &.status-error {
+    background-color: $error-color !important;
+    color: $white !important;
+  }
+
+  &.status-warning {
+    background-color: $warning-color !important;
+    color: $white !important;
+  }
+
+  &.status-info {
+    background-color: $info-color !important;
+    color: $white !important;
+  }
+
+  // Score chips
+  &.score-bad {
+    background-color: $score-bad !important;
+    color: $black !important;
+  }
+
+  &.score-medium {
+    background-color: $score-medium !important;
+    color: $black !important;
+  }
+
+  &.score-neutral {
+    background-color: $score-neutral !important;
+    color: $black !important;
+  }
+
+  &.score-good {
+    background-color: $score-good !important;
+    color: $black !important;
+  }
+
+  &.score-excellent {
+    background-color: $score-excellent !important;
+    color: $white !important;
+  }
+}
+
+// ============================================
+// EXPANSION PANELS / ACCORDIONS
+// ============================================
+
+.mat-expansion-panel,
+.mat-mdc-expansion-panel {
+  font-family: $font-family !important;
+  background-color: $white;
+  border-radius: $border-radius-md !important;
+  box-shadow: $shadow-light;
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // Header
+  .mat-expansion-panel-header,
+  .mat-mdc-expansion-panel-header {
+    padding: $spacing-md $spacing-lg;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    height: auto;
+    min-height: 48px;
+
+    &:hover {
+      background-color: $gray-lighter !important;
+    }
+
+    // Expand/collapse indicator
+    .mat-expansion-indicator,
+    .mat-mdc-expansion-indicator {
+      &::after {
+        color: $primary-color;
+      }
+    }
+  }
+
+  // Content
+  .mat-expansion-panel-content,
+  .mat-mdc-expansion-panel-content {
+    .mat-expansion-panel-body,
+    .mat-mdc-expansion-panel-body {
+      padding: $spacing-md $spacing-lg $spacing-lg;
+      color: $black;
+      font-size: $font-size-base;
+      line-height: $line-height-base;
+    }
+  }
+
+  // Left border accent variants
+  &.border-primary {
+    border-left: $border-width-accent solid $primary-color;
+  }
+
+  &.border-secondary {
+    border-left: $border-width-accent solid $secondary-yellow;
+  }
+
+  &.border-success {
+    border-left: $border-width-accent solid $success-color;
+  }
+
+  &.border-error {
+    border-left: $border-width-accent solid $error-color;
+  }
+}
+
+// ============================================
+// PAGINATOR
+// ============================================
+
+.mat-mdc-paginator {
+  font-family: $font-family !important;
+  background-color: $white;
+  color: $black;
+  border-top: $border-width solid $table-border-color;
+
+  .mat-mdc-paginator-container {
+    padding: $spacing-sm $spacing-md;
+    min-height: 56px;
+  }
+
+  // Page size selector
+  .mat-mdc-paginator-page-size-select {
+    .mat-mdc-form-field {
+      font-size: $font-size-base;
+    }
+  }
+
+  // Navigation buttons
+  .mat-mdc-icon-button {
+    color: $primary-color;
+
+    &[disabled] {
+      color: $gray-light;
+    }
+  }
+
+  // Range label
+  .mat-mdc-paginator-range-label {
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+// ============================================
+// DIALOG / MODAL
+// ============================================
+
+.mat-mdc-dialog-container {
+  font-family: $font-family !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: $shadow-heavy;
+
+  .mdc-dialog__surface {
+    border-radius: $border-radius-md !important;
+  }
+
+  .mat-mdc-dialog-title {
+    color: $primary-color;
+    font-size: $font-size-h3;
+    font-weight: $font-weight-bold;
+    padding: $spacing-lg $spacing-lg $spacing-md;
+    margin: 0;
+  }
+
+  .mat-mdc-dialog-content {
+    color: $black;
+    font-size: $font-size-base;
+    line-height: $line-height-base;
+    padding: 0 $spacing-lg;
+    max-height: 65vh;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: $spacing-md $spacing-lg $spacing-lg;
+    justify-content: flex-end;
+    gap: $spacing-md;
+
+    .mat-mdc-button + .mat-mdc-button {
+      margin-left: 0;
+    }
+  }
+}
+
+// Dialog backdrop
+.cdk-overlay-dark-backdrop {
+  background-color: rgba($black, 0.5);
+}
+
+// ============================================
+// SNACKBAR / TOAST
+// ============================================
+
+.mat-mdc-snack-bar-container {
+  font-family: $font-family !important;
+  border-radius: $border-radius-md !important;
+
+  &.success-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $success-color;
+    }
+  }
+
+  &.error-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $error-color;
+    }
+  }
+
+  &.warning-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $warning-color;
+    }
+  }
+
+  &.info-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $info-color;
+    }
+  }
+
+  .mdc-snackbar__label {
+    color: $white;
+    font-size: $font-size-base;
+  }
+
+  .mat-mdc-button {
+    color: $white;
+    font-weight: $font-weight-bold;
+  }
+}
+
+// ============================================
+// TABS
+// ============================================
+
+.mat-mdc-tab-group {
+  font-family: $font-family !important;
+
+  .mat-mdc-tab-header {
+    border-bottom: $border-width-thick solid $gray-lighter;
+
+    .mat-mdc-tab-label-container {
+      .mat-mdc-tab {
+        color: $gray-dark;
+        font-size: $font-size-base;
+        font-weight: $font-weight-regular;
+        min-width: 120px;
+        padding: 0 $spacing-lg;
+        opacity: 1;
+
+        &:hover {
+          background-color: $gray-lighter;
+        }
+
+        &.mat-mdc-tab-active {
+          color: $primary-color;
+          font-weight: $font-weight-bold;
+        }
+      }
+    }
+
+    .mat-mdc-tab-header-pagination {
+      .mat-mdc-tab-header-pagination-chevron {
+        border-color: $primary-color;
+      }
+    }
+  }
+
+  .mdc-tab-indicator__content--underline {
+    border-color: $primary-color;
+    border-top-width: $border-width-thick;
+  }
+
+  .mat-mdc-tab-body-content {
+    padding: $spacing-lg 0;
+  }
+}
+
+// ============================================
+// MENU / DROPDOWN
+// ============================================
+
+.mat-mdc-menu-panel {
+  font-family: $font-family !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: $shadow-medium;
+
+  .mat-mdc-menu-content {
+    padding: $spacing-xs 0;
+
+    .mat-mdc-menu-item {
+      color: $black;
+      font-size: $font-size-base;
+      height: 40px;
+      padding: 0 $spacing-md;
+
+      &:hover {
+        background-color: $gray-lighter;
+      }
+
+      &[disabled] {
+        color: $gray-light;
+      }
+
+      .mat-icon {
+        color: $primary-color;
+        margin-right: $spacing-sm;
+      }
+    }
+  }
+
+  .mat-divider {
+    margin: $spacing-xs 0;
+  }
+}
+
+// ============================================
+// TOOLTIP
+// ============================================
+
+.mat-mdc-tooltip {
+  font-family: $font-family !important;
+  font-size: $font-size-small;
+  background-color: $black;
+  color: $white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+}
+
+// ============================================
+// PROGRESS BAR & SPINNER
+// ============================================
+
+.mat-mdc-progress-bar {
+  .mdc-linear-progress__bar-inner {
+    border-color: $primary-color;
+  }
+}
+
+.mat-mdc-progress-spinner,
+.mat-mdc-spinner {
+  circle {
+    stroke: $primary-color;
+  }
+}
+
+// ============================================
+// CHECKBOX & RADIO
+// ============================================
+
+.mat-mdc-checkbox {
+  font-family: $font-family !important;
+
+  .mdc-checkbox {
+    .mdc-checkbox__background {
+      border-color: $gray;
+    }
+
+    &.mdc-checkbox--selected .mdc-checkbox__background {
+      background-color: $primary-color;
+      border-color: $primary-color;
+    }
+  }
+
+  .mdc-label {
+    color: $black;
+    font-size: $font-size-base;
+  }
+}
+
+.mat-mdc-radio-button {
+  font-family: $font-family !important;
+
+  .mdc-radio {
+    .mdc-radio__outer-circle {
+      border-color: $gray;
+    }
+
+    &.mdc-radio--checked {
+      .mdc-radio__outer-circle {
+        border-color: $primary-color;
+      }
+
+      .mdc-radio__inner-circle {
+        border-color: $primary-color;
+      }
+    }
+  }
+
+  .mdc-label {
+    color: $black;
+    font-size: $font-size-base;
+  }
+}
+
+// ============================================
+// SLIDE TOGGLE
+// ============================================
+
+.mat-mdc-slide-toggle {
+  font-family: $font-family !important;
+
+  .mdc-switch {
+    .mdc-switch__track {
+      background-color: $gray-light;
+    }
+
+    &.mdc-switch--selected .mdc-switch__track {
+      background-color: $primary-color;
+    }
+  }
+
+  .mdc-label {
+    color: $black;
+    font-size: $font-size-base;
+  }
+}
+
+// ============================================
+// STEPPER
+// ============================================
+
+.mat-stepper-horizontal,
+.mat-stepper-vertical {
+  font-family: $font-family !important;
+
+  .mat-step-header {
+    padding: $spacing-md;
+
+    &:hover {
+      background-color: $gray-lighter;
+    }
+
+    .mat-step-icon {
+      background-color: $gray;
+      color: $white;
+
+      &.mat-step-icon-selected,
+      &.mat-step-icon-state-done {
+        background-color: $primary-color;
+      }
+    }
+
+    .mat-step-label {
+      color: $gray-dark;
+      font-size: $font-size-base;
+
+      &.mat-step-label-active,
+      &.mat-step-label-selected {
+        color: $primary-color;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+
+  .mat-step-content {
+    padding: $spacing-lg $spacing-md;
+  }
+}

@@ -46,6 +46,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "outil-plan-gestion:build"
+          },
           "configurations": {
             "production": {
               "buildTarget": "outil-plan-gestion:build:production"

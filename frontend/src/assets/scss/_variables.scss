@@ -1,0 +1,165 @@
+// Design System Variables - Outil Plan de Gestion
+
+// ============================================
+// COLORS
+// ============================================
+
+// Primary Colors
+$primary-color: #022F39;  // Bleu-vert principal
+$primary-hover: lighten($primary-color, 10%);
+$primary-active: #00C7A9; // Turquoise (état actif)
+
+// Secondary Colors  
+$secondary-yellow: #FFC935;
+$secondary-orange: #FF6E3D;
+$secondary-terra-cotta: #B76C67;
+$secondary-pale-green: #C6E4D7;
+
+// Status Colors
+$success-color: #00A564;
+$error-color: #E83F2E;
+$warning-color: #FF9B5D;
+$info-color: #8FC9DB;
+
+// Score Colors
+$score-bad: #FF8B8B;
+$score-medium: #FF9B5D;
+$score-neutral: #FFC73A;  // Jaune moutarde
+$score-good: #A3D49E;
+$score-excellent: #00A564;
+
+// Neutral Colors
+$black: #313638;
+$gray-dark: #7C7D7E;
+$gray: #B5B5B5;
+$gray-light: #D4D4D4;
+$gray-lighter: #E9E9E9;
+$beige: #F9F5F1;
+$white: #FFFFFF;
+
+// Background Colors
+$bg-info-light: #FFF6F0;  // Rose pâle pour blocs info
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+
+// Font Family
+$font-family: 'Nunito', sans-serif;
+
+// Font Sizes
+$font-size-h1: 48px;
+$font-size-h2: 32px;
+$font-size-h3: 24px;
+$font-size-h4: 20px;
+$font-size-subtitle: 16px;
+$font-size-base: 16px;
+$font-size-small: 13px;
+
+// Line Heights
+$line-height-h1: 72px;
+$line-height-h2: 48px;
+$line-height-h3: 36px;
+$line-height-h4: 30px;
+$line-height-base: 24px;
+$line-height-small: 19px;
+
+// Font Weights
+$font-weight-regular: 400;
+$font-weight-bold: 700;
+
+// ============================================
+// SPACING
+// ============================================
+
+$spacing-xxs: 4px;
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// ============================================
+// BORDERS & RADIUS
+// ============================================
+
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 16px;
+$border-radius-xl: 24px;
+$border-radius-round: 50%;
+
+$border-width: 1px;
+$border-width-thick: 2px;
+$border-width-accent: 4px;
+
+// ============================================
+// SHADOWS
+// ============================================
+
+$shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+$shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+// ============================================
+// TRANSITIONS
+// ============================================
+
+$transition-fast: 150ms ease-in-out;
+$transition-base: 250ms ease-in-out;
+$transition-slow: 350ms ease-in-out;
+
+// ============================================
+// BREAKPOINTS
+// ============================================
+
+$breakpoint-mobile: 576px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1440px;
+
+// ============================================
+// Z-INDEX
+// ============================================
+
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// ============================================
+// COMPONENTS SPECIFIC
+// ============================================
+
+// Navigation
+$nav-height: 64px;
+$sidebar-width: 250px;
+$sidebar-collapsed-width: 64px;
+
+// Buttons
+$btn-padding-y: $spacing-sm;
+$btn-padding-x: $spacing-lg;
+$btn-padding-sm-y: $spacing-xs;
+$btn-padding-sm-x: $spacing-md;
+$btn-padding-lg-y: $spacing-md;
+$btn-padding-lg-x: $spacing-xl;
+$btn-icon-size: 40px;
+
+// Inputs
+$input-padding-y: $spacing-sm;
+$input-padding-x: $spacing-md;
+$input-border-color: $gray;
+$input-focus-color: $primary-color;
+$input-error-color: $error-color;
+
+// Cards
+$card-padding: $spacing-lg;
+$card-border-radius: $border-radius-md;
+
+// Tables
+$table-header-bg: $primary-color;
+$table-border-color: $gray-lighter;
