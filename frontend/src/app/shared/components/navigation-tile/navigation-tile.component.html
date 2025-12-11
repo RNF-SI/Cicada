@@ -1,0 +1,40 @@
+<a [routerLink]="link" class="tile-wrapper">
+  <!-- Main tile card -->
+  <div class="tile">
+    <!-- Colored background with waves (single PNG image) -->
+    <img
+      [src]="getBackgroundImagePath()"
+      class="tile-background"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+    />
+
+    <!-- White bottom area for title -->
+    <div class="tile-footer">
+      <span class="tile-title">{{ title }}</span>
+      <i class="fi fi-rr-arrow-right tile-arrow" aria-hidden="true"></i>
+    </div>
+  </div>
+
+  <!-- Corner shape with icon - overlapping top-right -->
+  <div class="tile-corner" [class.icon-dark]="color === 'salmon' || color === 'yellow'">
+    <img
+      [src]="getCornerShapePath()"
+      class="corner-shape"
+      alt=""
+      aria-hidden="true"
+    />
+    <!-- Icon centered on corner - Flaticon or Custom SVG -->
+    @if (isCustomIcon()) {
+      <img
+        [src]="getCustomIconPath()"
+        class="corner-icon corner-icon-svg"
+        alt=""
+        aria-hidden="true"
+      />
+    } @else {
+      <i [class]="getFlatIconClass() + ' corner-icon'" aria-hidden="true"></i>
+    }
+  </div>
+</a>

@@ -1,10 +1,11 @@
 // Material Component Overrides - Outil Plan de Gestion
 // Custom styling for Angular Material components to match design system
+// Based on Kit UI Biodiv' France - November 2025
 
 @import 'variables';
 
 // ============================================
-// BUTTONS
+// BUTTONS (Kit UI 11/2025)
 // ============================================
 
 // All Material buttons
@@ -19,9 +20,9 @@
   font-weight: $font-weight-bold !important;
   text-transform: none !important;
 
-  // Override Material's default border-radius
+  // Override Material's default border-radius - Pill buttons (Kit UI)
   &:not(.mat-mdc-icon-button):not(.mat-mdc-fab):not(.mat-mdc-mini-fab) {
-    border-radius: $border-radius-xl !important; // 24px rounded buttons
+    border-radius: $border-radius-pill !important; // 24px pill buttons
   }
 }
 
@@ -40,28 +41,28 @@
   }
 
   &[disabled] {
-    background-color: $gray-light !important;
-    color: $gray-dark !important;
+    background-color: $gray !important;  // Kit UI: États inactifs
+    color: $white !important;
   }
 }
 
-// Accent buttons (yellow)
+// Accent buttons (yellow) - Kit UI
 .mat-mdc-raised-button.mat-accent,
 .mat-mdc-flat-button.mat-accent {
   background-color: $secondary-yellow !important;
   color: $black !important;
 
   &:hover:not([disabled]) {
-    background-color: darken($secondary-yellow, 10%) !important;
+    background-color: darken($secondary-yellow, 8%) !important;
   }
 
   &[disabled] {
-    background-color: $gray-light !important;
-    color: $gray-dark !important;
+    background-color: $gray !important;  // Kit UI: États inactifs
+    color: $white !important;
   }
 }
 
-// Secondary/Stroked buttons (outlined)
+// Secondary/Stroked buttons (outlined) - Kit UI
 .mat-mdc-stroked-button {
   border: 2px solid $primary-color !important;
   color: $primary-color !important;
@@ -72,9 +73,16 @@
     color: $white !important;
   }
 
+  &:active:not([disabled]) {
+    background-color: $primary-active !important;
+    border-color: $primary-active !important;
+    color: $white !important;
+  }
+
   &[disabled] {
-    border-color: $gray-light !important;
-    color: $gray-dark !important;
+    border-color: $gray !important;  // Kit UI: États inactifs
+    color: $gray !important;
+    background-color: transparent !important;
   }
 }
 
@@ -91,9 +99,35 @@
   &:hover {
     background-color: rgba($primary-color, 0.08) !important;
   }
+
+  &:active {
+    background-color: rgba($primary-color, 0.16) !important;
+  }
+
+  &[disabled] {
+    color: $gray !important;  // Kit UI: États inactifs
+  }
 }
 
-// Button sizes
+// Tertiary buttons (text only) - Kit UI
+.mat-mdc-button {
+  color: $primary-color !important;
+
+  &:hover:not([disabled]) {
+    background-color: rgba($primary-color, 0.08) !important;
+  }
+
+  &:active:not([disabled]) {
+    background-color: $primary-active !important;
+    color: $white !important;
+  }
+
+  &[disabled] {
+    color: $gray !important;  // Kit UI: États inactifs
+  }
+}
+
+// Button sizes (Kit UI: M = default, S = small)
 .mat-mdc-button,
 .mat-mdc-raised-button,
 .mat-mdc-flat-button,
@@ -463,7 +497,7 @@
 }
 
 // ============================================
-// CHIPS / TAGS
+// CHIPS / TAGS (Kit UI 11/2025)
 // ============================================
 
 .mat-mdc-chip,
@@ -486,8 +520,9 @@
     color: $black !important;
   }
 
-  // Status chips
-  &.status-success {
+  // Status chips (Kit UI)
+  &.status-success,
+  &.status-valide {
     background-color: $success-color !important;
     color: $white !important;
   }
@@ -499,38 +534,59 @@
 
   &.status-warning {
     background-color: $warning-color !important;
-    color: $white !important;
+    color: $black !important;  // Kit UI: noir sur orange
   }
 
   &.status-info {
     background-color: $info-color !important;
+    color: $black !important;  // Kit UI: noir sur bleu ciel
+  }
+
+  &.status-neutre {
+    background-color: $secondary-terra-cotta !important;
     color: $white !important;
   }
 
-  // Score chips
-  &.score-bad {
-    background-color: $score-bad !important;
+  // Score chips (Kit UI 11/2025 - 5 niveaux)
+  &.score-very-bad {
+    background-color: $score-very-bad !important;  // #FF7579
     color: $black !important;
   }
 
-  &.score-medium {
-    background-color: $score-medium !important;
+  &.score-bad {
+    background-color: $score-bad !important;  // #FA9965
     color: $black !important;
   }
 
   &.score-neutral {
-    background-color: $score-neutral !important;
+    background-color: $score-neutral !important;  // #F7D35C
     color: $black !important;
   }
 
   &.score-good {
-    background-color: $score-good !important;
+    background-color: $score-good !important;  // #82DB8A
     color: $black !important;
   }
 
-  &.score-excellent {
-    background-color: $score-excellent !important;
+  &.score-very-good {
+    background-color: $score-very-good !important;  // #81C9D8
+    color: $black !important;
+  }
+
+  // Priority chips (Kit UI)
+  &.priority-1 {
+    background-color: $priority-1 !important;  // Rouge
     color: $white !important;
+  }
+
+  &.priority-2 {
+    background-color: $priority-2 !important;  // Orange
+    color: $black !important;
+  }
+
+  &.priority-3 {
+    background-color: $priority-3 !important;  // Jaune
+    color: $black !important;
   }
 }
 

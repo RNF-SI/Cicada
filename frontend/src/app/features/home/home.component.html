@@ -1,0 +1,110 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Main Content -->
+<main class="home-main">
+  <div class="home-container">
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <!-- Logo Biodiv' France -->
+      <div class="hero-logo">
+        <svg class="logo-large" viewBox="0 0 235 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="48" cy="48" r="44" fill="#025359"/>
+          <path d="M48 16C36 16 24 28 24 40C24 52 36 64 48 76C60 64 72 52 72 40C72 28 60 16 48 16Z" fill="#FEC180"/>
+          <circle cx="48" cy="38" r="8" fill="#025359"/>
+          <text x="110" y="45" font-family="Nunito" font-weight="700" font-size="28" fill="#025359">BIODIV'</text>
+          <text x="110" y="75" font-family="Nunito" font-weight="700" font-size="20" fill="#FEC180" letter-spacing="0.1em">FRANCE</text>
+        </svg>
+      </div>
+
+      <!-- Main Title -->
+      <h1 class="hero-title">Biodiv', l'outil des plans de gestion</h1>
+
+      <!-- Subtitle -->
+      <p class="hero-subtitle">
+        Explorez les données du territoire, saisissez vos plans de gestion
+        et suivez vos indicateurs facilement.
+      </p>
+    </section>
+
+    <!-- Search Bar Section -->
+    <section class="search-section">
+      <a routerLink="/exploration" class="search-bar">
+        <div class="search-content">
+          <h2 class="search-title">
+            Exploration des données
+            <i class="fi fi-rr-arrow-right"></i>
+          </h2>
+          <p class="search-description">Découvrez blablabla, comparez blablabla, filtrez blablabla..</p>
+        </div>
+
+        <!-- Data Visualization (Abstract Waves) -->
+        <div class="search-visualization">
+          <svg class="data-waves" viewBox="0 0 600 100" preserveAspectRatio="none">
+            @for (i of dataWaveIndices; track i) {
+              <path
+                [attr.d]="getDataWavePath(i)"
+                stroke="#4A9A9E"
+                [attr.stroke-width]="1 + (i % 3) * 0.5"
+                fill="none"
+                [attr.opacity]="0.2 + (i * 0.05)"
+              />
+            }
+          </svg>
+        </div>
+
+        <!-- Search Button -->
+        <button class="search-button" type="button">
+          <i class="fi fi-rr-search"></i>
+        </button>
+      </a>
+    </section>
+
+    <!-- Navigation Tiles Section -->
+    <section class="tiles-section">
+      <div class="tiles-grid">
+        <app-navigation-tile
+          title="Mes plans de gestion"
+          uicon="fi-rr-document"
+          link="/plans"
+          color="primary">
+        </app-navigation-tile>
+
+        <app-navigation-tile
+          title="Mes sites"
+          uicon="fi-rr-map-marker"
+          link="/sites"
+          color="salmon">
+        </app-navigation-tile>
+
+        <app-navigation-tile
+          title="Zonages règlementaires"
+          uicon="custom:icon-auction"
+          link="/zonages"
+          color="terra-cotta">
+        </app-navigation-tile>
+
+        <app-navigation-tile
+          title="Mes inventaires et suivis"
+          uicon="fi-rr-test-tube"
+          link="/inventaires"
+          color="yellow">
+        </app-navigation-tile>
+      </div>
+    </section>
+
+    <!-- Separator -->
+    <div class="section-separator"></div>
+
+    <!-- Referentials Link -->
+    <section class="referentials-section">
+      <a routerLink="/referentiels" class="referentials-link">
+        <i class="fi fi-rr-book-alt"></i>
+        <span>Référentiels de données</span>
+        <i class="fi fi-rr-arrow-right arrow"></i>
+      </a>
+    </section>
+
+  </div>
+</main>

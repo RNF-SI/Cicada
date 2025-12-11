@@ -53,30 +53,33 @@ def execute_insert_file(file_path, description):
 def migrate_existing_data():
     """Migre les données existantes depuis le schéma referentiels vers public."""
     logger.info("Migration des données existantes...")
-    
-    with connection.cursor() as cursor:
-        try:
+
+    try:
+        with connection.cursor() as cursor:
             # Vérifier si le schéma referentiels existe
             cursor.execute("""
-                SELECT COUNT(*) FROM information_schema.schemata 
+                SELECT COUNT(*) FROM information_schema.schemata
                 WHERE schema_name = 'referentiels'
             """)
             if cursor.fetchone()[0] == 0:
                 logger.info("Schéma referentiels inexistant, pas de migration nécessaire")
+                logger.info("✓ Migration terminée")
                 return
-                
+
             # Vérifier s'il y a des données dans referentiels
             cursor.execute("SELECT COUNT(*) FROM referentiels.t_nomenclatures")
             ref_count = cursor.fetchone()[0]
-            
+
             if ref_count > 0:
                 logger.info(f"Migration de {ref_count} nomenclatures depuis referentiels...")
                 logger.info("Migration ignorée - les données seront rechargées depuis les fichiers SQL")
             else:
                 logger.info("Aucune donnée à migrer depuis referentiels")
-        except Exception as e:
-            logger.info(f"Pas de migration nécessaire: {e}")
-    
+    except Exception as e:
+        # Rollback la transaction pour éviter l'état "aborted"
+        connection.rollback()
+        logger.info(f"Pas de migration nécessaire: {e}")
+
     logger.info("✓ Migration terminée")
 
 
@@ -172,27 +175,28 @@ def main():
     logger.info("=== IMPORT DES NOMENCLATURES ===")
     logger.info("Ce script va remplacer toutes les nomenclatures existantes")
     logger.info("par celles des fichiers SQL fournis.")
-    
+
     try:
+        # 1. Créer le schéma pour la migration (hors transaction atomique)
+        create_schema_if_needed()
+
+        # 2. Migrer les données existantes (hors transaction atomique - peut échouer)
+        migrate_existing_data()
+
+        # 3-5. Opérations critiques dans une transaction atomique
         with transaction.atomic():
-            # 1. Créer le schéma pour la migration
-            create_schema_if_needed()
-            
-            # 2. Migrer les données existantes depuis referentiels vers public
-            migrate_existing_data()
-            
             # 3. Vider les tables pour un import propre
             clear_existing_data()
-            
+
             # 4. Charger les données des fichiers INSERT
             if not load_data_from_files():
                 raise Exception("Échec de l'import des données")
-            
+
             # 5. Vérifier l'import
             verify_import()
-            
+
         logger.info("✓ Import des nomenclatures terminé avec succès!")
-        
+
     except Exception as e:
         logger.error(f"✗ Erreur durante l'import: {e}")
         logger.error("La transaction a été annulée.")

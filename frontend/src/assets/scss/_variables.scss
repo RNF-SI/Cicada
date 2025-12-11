@@ -1,62 +1,63 @@
 // Design System Variables - Outil Plan de Gestion
+// Based on Kit UI Biodiv' France - November 2025
 
 // ============================================
-// COLORS
+// COLORS (Kit UI 11/2025)
 // ============================================
 
-// Primary Colors
-$primary-color: #022F39;  // Bleu-vert principal
-$primary-hover: lighten($primary-color, 10%);
-$primary-active: #00C7A9; // Turquoise (état actif)
+// Primary Color - Bleu-vert
+$primary-color: #025359;  // Boutons & actions, navigation, titres
+$primary-hover: lighten($primary-color, 8%);
+$primary-active: lighten($primary-color, 15%);
 
-// Secondary Colors  
-$secondary-yellow: #FFC935;
-$secondary-orange: #FF6E3D;
-$secondary-terra-cotta: #B76C67;
-$secondary-pale-green: #C6E4D7;
+// Secondary Colors
+$secondary-yellow: #FEC180;       // Jaune (décoratif/fond)
+$secondary-orange-salmon: #F5B399; // Orange saumon (décoratif/fond)
+$secondary-terra-cotta: #B74D5D;  // Terra Cotta (AA sur fond blanc)
+$secondary-pale-green: #C0E3CF;   // Vert pâle (décoratif/fond)
 
 // Status Colors
-$success-color: #00A564;
-$error-color: #E83F2E;
-$warning-color: #FF9B5D;
-$info-color: #8FC9DB;
+$success-color: #04854B;  // Vert - Succès (AA)
+$error-color: #E12329;    // Rouge - Erreur (AA)
+$warning-color: #FA9965;  // Orange - Warning
+$info-color: #81C9D8;     // Bleu ciel - Info
 
-// Score Colors
-$score-bad: #FF8B8B;
-$score-medium: #FF9B5D;
-$score-neutral: #FFC73A;  // Jaune moutarde
-$score-good: #A3D49E;
-$score-excellent: #00A564;
+// Score Colors (pour jauges et indicateurs)
+$score-very-bad: #FF7579;   // Rouge clair - Très mauvais (décoratif/fond)
+$score-bad: #FA9965;        // Orange - Mauvais (décoratif/fond)
+$score-neutral: #F7D35C;    // Jaune moutarde - Score neutre (décoratif/fond)
+$score-good: #82DB8A;       // Vert clair - Bon score (décoratif/fond)
+$score-very-good: #81C9D8;  // Bleu ciel - Très bon score (décoratif/fond)
 
 // Neutral Colors
-$black: #313638;
-$gray-dark: #7C7D7E;
-$gray: #B5B5B5;
-$gray-light: #D4D4D4;
-$gray-lighter: #E9E9E9;
-$beige: #F9F5F1;
+$black: #343433;          // Textes
+$gray-dark: #746F6E;      // Textes mention (AA)
+$gray: #C6C6C6;           // États inactifs
+$gray-light: #E4E4E4;     // Filets séparateurs tableau
+$gray-lighter: #E4E4E4;   // Background tableau
+$beige: #F8F5F1;          // Background
 $white: #FFFFFF;
 
 // Background Colors
-$bg-info-light: #FFF6F0;  // Rose pâle pour blocs info
+$bg-info-light: #F8F5F1;  // Beige pour blocs info (remplace rose pâle)
 
 // ============================================
-// TYPOGRAPHY
+// TYPOGRAPHY (Kit UI 11/2025)
 // ============================================
 
 // Font Family
 $font-family: 'Nunito', sans-serif;
 
-// Font Sizes
+// Font Sizes (Kit UI specs)
 $font-size-h1: 48px;
 $font-size-h2: 32px;
 $font-size-h3: 24px;
 $font-size-h4: 20px;
-$font-size-subtitle: 16px;
-$font-size-base: 16px;
-$font-size-small: 13px;
+$font-size-subtitle: 15px;  // Subtitle: Bold, uppercase, letter-spacing 20%
+$font-size-base: 15px;      // Texte standard
+$font-size-small: 13px;     // Texte mention
 
-// Line Heights
+// Line Heights (Kit UI specs)
 $line-height-h1: 72px;
 $line-height-h2: 48px;
 $line-height-h3: 36px;
@@ -67,6 +68,9 @@ $line-height-small: 19px;
 // Font Weights
 $font-weight-regular: 400;
 $font-weight-bold: 700;
+
+// Letter Spacing
+$letter-spacing-subtitle: 0.2em;  // 20% for subtitle (uppercase)
 
 // ============================================
 // SPACING
@@ -81,14 +85,18 @@ $spacing-xl: 32px;
 $spacing-xxl: 48px;
 
 // ============================================
-// BORDERS & RADIUS
+// BORDERS & RADIUS (Kit UI 11/2025)
 // ============================================
 
-$border-radius-sm: 4px;
+$border-radius-sm: 4px;      // Tables, inputs
 $border-radius-md: 8px;
-$border-radius-lg: 16px;
-$border-radius-xl: 24px;
-$border-radius-round: 50%;
+$border-radius-lg: 16px;     // Tags
+$border-radius-xl: 20px;     // Tuiles (asymétriques)
+$border-radius-pill: 24px;   // Boutons pill
+$border-radius-round: 50%;   // Boutons icône
+
+// Tuiles asymétriques (Kit UI spec: 20px bas-gauche et haut-droit)
+$tile-border-radius: 0 $border-radius-xl $border-radius-xl 0;
 
 $border-width: 1px;
 $border-width-thick: 2px;
@@ -163,3 +171,25 @@ $card-border-radius: $border-radius-md;
 // Tables
 $table-header-bg: $primary-color;
 $table-border-color: $gray-lighter;
+
+// ============================================
+// KIT UI SPECIFIC COMPONENTS
+// ============================================
+
+// Jauges de progression (4 états)
+$gauge-not-started: $gray;           // Non démarrée
+$gauge-mid-progress: $primary-color; // Mi-parcours
+$gauge-completed: $error-color;      // Parcours terminé (rouge)
+$gauge-exceeded: $error-color;       // Parcours dépassé (rouge pointillé)
+
+// Indicateurs d'actions (5 types)
+$action-planned: $primary-color;              // Action prévue (drapeau plein)
+$action-planned-realized: $primary-color;     // Prévue et réalisée (étoile pleine)
+$action-planned-partial: $primary-color;      // Prévue et partiellement réalisée (étoile mi-pleine)
+$action-realized-unplanned: $gray-dark;       // Réalisée non prévue (rond plein)
+$action-partial-unplanned: $gray-dark;        // Partiellement réalisée non prévue (rond mi-plein)
+
+// Priority tags
+$priority-1: $error-color;           // Priorité 1 (rouge)
+$priority-2: $warning-color;         // Priorité 2 (orange)
+$priority-3: $score-neutral;         // Priorité 3 (jaune)

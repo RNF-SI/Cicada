@@ -1,19 +1,21 @@
 // Typography Styles - Design System
+// Based on Kit UI Biodiv' France - November 2025
 
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
 @import 'variables';
 
 // ============================================
-// BASE TYPOGRAPHY
+// BASE TYPOGRAPHY (Kit UI 11/2025)
 // ============================================
 
 html {
-  font-size: 16px;
+  font-size: 15px;  // Kit UI: base 15px
 }
 
 body {
   font-family: $font-family;
   font-weight: $font-weight-regular;
+  font-size: $font-size-base;
   line-height: $line-height-base;
   color: $black;
   -webkit-font-smoothing: antialiased;
@@ -65,7 +67,7 @@ p {
   font-weight: $font-weight-bold;
   line-height: $line-height-base;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: $letter-spacing-subtitle;  // Kit UI: 20%
 }
 
 .text-regular {
@@ -124,7 +126,7 @@ p {
 
 .text-primary { color: $primary-color !important; }
 .text-secondary-yellow { color: $secondary-yellow !important; }
-.text-secondary-orange { color: $secondary-orange !important; }
+.text-secondary-orange { color: $secondary-orange-salmon !important; }
 .text-success { color: $success-color !important; }
 .text-error { color: $error-color !important; }
 .text-warning { color: $warning-color !important; }

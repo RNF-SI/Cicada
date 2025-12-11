@@ -1,4 +1,5 @@
 // Main Styles - Outil Plan de Gestion
+// Based on Kit UI Biodiv' France - November 2025
 // IMPORTANT: @use rules must be written before any other rules
 
 // ============================================
@@ -28,15 +29,19 @@
 // Advanced filters (filter panels, active filters, pagination, sort controls)
 @import 'assets/scss/filters';
 
+// Kit UI custom components (jauges, indicateurs, tuiles, breadcrumb, etc.)
+@import 'assets/scss/components';
+
 // ============================================
 // MATERIAL DESIGN 3 THEME - BIODIV' FRANCE
+// Based on Kit UI 11/2025
 // ============================================
 
 // Define custom theme using Material 3 color system
-// Primary: Bleu-vert (#022F39)
-// Secondary: Jaune (#FFC935)
-// Tertiary: Orange (#FF6E3D)
-// Error: Rouge (#E83F2E)
+// Primary: Bleu-vert (#025359)
+// Secondary: Jaune (#FEC180)
+// Tertiary: Orange saumon (#F5B399)
+// Error: Rouge (#E12329)
 
 $theme: mat.define-theme((
   color: (
@@ -51,50 +56,128 @@ html {
   @include mat.all-component-themes($theme);
 }
 
-// Override Material 3 color tokens with Biodiv' France colors
+// Override Material 3 color tokens with Biodiv' France colors (Kit UI 11/2025)
 :root {
-  // Primary color (Bleu-vert #022F39)
+  // ============================================
+  // PRIMARY COLOR (Bleu-vert #025359)
+  // ============================================
   --mat-sys-primary: #{$primary-color};
   --mat-sys-on-primary: #{$white};
-  --mat-sys-primary-container: lighten($primary-color, 48%);
+  --mat-sys-primary-container: #{$secondary-pale-green};
   --mat-sys-on-primary-container: #{$primary-color};
+  // Primary fixed (M3 - pour surfaces étendues)
+  --mat-sys-primary-fixed: #{lighten($primary-color, 35%)};
+  --mat-sys-primary-fixed-dim: #{lighten($primary-color, 25%)};
+  --mat-sys-on-primary-fixed: #{$primary-color};
+  --mat-sys-on-primary-fixed-variant: #{darken($primary-color, 10%)};
 
-  // Secondary color (Jaune #FFC935)
+  // ============================================
+  // SECONDARY COLOR (Jaune #FEC180)
+  // ============================================
   --mat-sys-secondary: #{$secondary-yellow};
   --mat-sys-on-secondary: #{$black};
-  --mat-sys-secondary-container: lighten($secondary-yellow, 30%);
-  --mat-sys-on-secondary-container: darken($secondary-yellow, 30%);
+  --mat-sys-secondary-container: #{lighten($secondary-yellow, 15%)};
+  --mat-sys-on-secondary-container: #{darken($secondary-yellow, 40%)};
+  // Secondary fixed (M3)
+  --mat-sys-secondary-fixed: #{lighten($secondary-yellow, 10%)};
+  --mat-sys-secondary-fixed-dim: #{$secondary-yellow};
+  --mat-sys-on-secondary-fixed: #{$black};
+  --mat-sys-on-secondary-fixed-variant: #{darken($secondary-yellow, 30%)};
 
-  // Tertiary color (Orange #FF6E3D)
-  --mat-sys-tertiary: #{$secondary-orange};
-  --mat-sys-on-tertiary: #{$white};
-  --mat-sys-tertiary-container: lighten($secondary-orange, 30%);
-  --mat-sys-on-tertiary-container: darken($secondary-orange, 20%);
+  // ============================================
+  // TERTIARY COLOR (Orange saumon #F5B399)
+  // ============================================
+  --mat-sys-tertiary: #{$secondary-orange-salmon};
+  --mat-sys-on-tertiary: #{$black};
+  --mat-sys-tertiary-container: #{lighten($secondary-orange-salmon, 15%)};
+  --mat-sys-on-tertiary-container: #{darken($secondary-orange-salmon, 30%)};
+  // Tertiary fixed (M3)
+  --mat-sys-tertiary-fixed: #{lighten($secondary-orange-salmon, 10%)};
+  --mat-sys-tertiary-fixed-dim: #{$secondary-orange-salmon};
+  --mat-sys-on-tertiary-fixed: #{$black};
+  --mat-sys-on-tertiary-fixed-variant: #{darken($secondary-orange-salmon, 20%)};
 
-  // Error color (Rouge #E83F2E)
+  // ============================================
+  // ERROR COLOR (Rouge #E12329)
+  // ============================================
   --mat-sys-error: #{$error-color};
   --mat-sys-on-error: #{$white};
-  --mat-sys-error-container: lighten($error-color, 40%);
-  --mat-sys-on-error-container: darken($error-color, 10%);
+  --mat-sys-error-container: #{lighten($error-color, 35%)};
+  --mat-sys-on-error-container: #{darken($error-color, 10%)};
 
-  // Surface colors
+  // ============================================
+  // SURFACE COLORS (M3)
+  // ============================================
   --mat-sys-surface: #{$white};
   --mat-sys-on-surface: #{$black};
   --mat-sys-surface-variant: #{$gray-lighter};
   --mat-sys-on-surface-variant: #{$gray-dark};
+  // Surface levels (M3 elevation tones)
+  --mat-sys-surface-dim: #{$beige};
+  --mat-sys-surface-bright: #{$white};
+  --mat-sys-surface-container-lowest: #{$white};
+  --mat-sys-surface-container-low: #{lighten($beige, 2%)};
+  --mat-sys-surface-container: #{$beige};
+  --mat-sys-surface-container-high: #{darken($beige, 3%)};
+  --mat-sys-surface-container-highest: #{darken($beige, 6%)};
+  // Surface tint (M3 - pour les élévations)
+  --mat-sys-surface-tint: #{$primary-color};
 
-  // Background
+  // ============================================
+  // INVERSE COLORS (M3 - pour dark surfaces)
+  // ============================================
+  --mat-sys-inverse-surface: #{$primary-color};
+  --mat-sys-inverse-on-surface: #{$white};
+  --mat-sys-inverse-primary: #{$secondary-pale-green};
+
+  // ============================================
+  // BACKGROUND
+  // ============================================
   --mat-sys-background: #{$beige};
   --mat-sys-on-background: #{$black};
 
-  // Outline
-  --mat-sys-outline: #{$gray-light};
-  --mat-sys-outline-variant: #{$gray-lighter};
+  // ============================================
+  // OUTLINE
+  // ============================================
+  --mat-sys-outline: #{$gray};
+  --mat-sys-outline-variant: #{$gray-light};
 
-  // Success color (for consistency)
+  // ============================================
+  // SCRIM & SHADOW (M3)
+  // ============================================
+  --mat-sys-scrim: #{rgba($black, 0.5)};
+  --mat-sys-shadow: #{$black};
+
+  // ============================================
+  // ÉTATS INTERACTIFS (Kit UI)
+  // ============================================
+  --mat-sys-state-hover-opacity: 0.08;
+  --mat-sys-state-focus-opacity: 0.12;
+  --mat-sys-state-pressed-opacity: 0.16;
+  --mat-sys-state-dragged-opacity: 0.16;
+
+  // ============================================
+  // STATUS COLORS (Kit UI 11/2025)
+  // ============================================
   --color-success: #{$success-color};
   --color-info: #{$info-color};
   --color-warning: #{$warning-color};
+  --color-error: #{$error-color};
+
+  // ============================================
+  // SCORE COLORS (Kit UI 11/2025)
+  // ============================================
+  --color-score-very-bad: #{$score-very-bad};
+  --color-score-bad: #{$score-bad};
+  --color-score-neutral: #{$score-neutral};
+  --color-score-good: #{$score-good};
+  --color-score-very-good: #{$score-very-good};
+
+  // ============================================
+  // SECONDARY COLORS FOR DECORATIVE USE
+  // ============================================
+  --color-terra-cotta: #{$secondary-terra-cotta};
+  --color-pale-green: #{$secondary-pale-green};
 }
 
 // Material component overrides (must come after theme application)
@@ -187,17 +270,26 @@ body {
 .mw-100 { max-width: 100% !important; }
 .mh-100 { max-height: 100% !important; }
 
-// Background utilities
+// Background utilities (Kit UI 11/2025)
 .bg-primary { background-color: $primary-color !important; }
 .bg-secondary-yellow { background-color: $secondary-yellow !important; }
-.bg-secondary-orange { background-color: $secondary-orange !important; }
+.bg-secondary-orange { background-color: $secondary-orange-salmon !important; }
 .bg-secondary-green { background-color: $secondary-pale-green !important; }
+.bg-terra-cotta { background-color: $secondary-terra-cotta !important; }
 .bg-success { background-color: $success-color !important; }
 .bg-error { background-color: $error-color !important; }
 .bg-warning { background-color: $warning-color !important; }
 .bg-info { background-color: $info-color !important; }
 .bg-light { background-color: $gray-lighter !important; }
+.bg-beige { background-color: $beige !important; }
 .bg-white { background-color: $white !important; }
+
+// Score background utilities (Kit UI 11/2025)
+.bg-score-very-bad { background-color: $score-very-bad !important; }
+.bg-score-bad { background-color: $score-bad !important; }
+.bg-score-neutral { background-color: $score-neutral !important; }
+.bg-score-good { background-color: $score-good !important; }
+.bg-score-very-good { background-color: $score-very-good !important; }
 
 // Border utilities
 .border { border: $border-width solid $gray-light !important; }

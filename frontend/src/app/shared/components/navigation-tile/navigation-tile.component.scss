@@ -1,0 +1,190 @@
+// Variables
+$primary-color: #025359;
+
+// Tile dimensions (selon Figma)
+$tile-width: 300px;
+$tile-height: 258px;
+$tile-top-offset: 12px;
+$corner-size: 94px;
+$corner-top-offset: 0px;
+$corner-right-offset: -7px;
+$bg-height: 152px;
+
+// Border radius selon Figma
+$card-border-radius-bl: 20px;
+$card-border-radius-tr: 48px;
+
+.tile-wrapper {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  height: $tile-height;
+  width: 100%;
+  max-width: $tile-width;
+  cursor: pointer;
+
+  &:hover {
+    .tile {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .tile-corner {
+      transform: scale(1.05);
+    }
+
+    .tile-arrow {
+      transform: translateX(4px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 4px;
+    border-radius: $card-border-radius-bl;
+  }
+}
+
+// Main tile card (rectangle blanc)
+.tile {
+  position: absolute;
+  top: $tile-top-offset;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #FFFFFF;
+  border-radius: 0;
+  border-bottom-left-radius: $card-border-radius-bl;
+  border-top-right-radius: $card-border-radius-tr;
+  overflow: hidden;
+  box-shadow: -1px 1px 4px 0px rgba(0, 0, 0, 0.1);
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+// Image de fond (couleur + vagues + découpage dans un seul PNG)
+.tile-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: $bg-height;
+  object-fit: cover;
+  object-position: left top;
+}
+
+// Zone du titre
+.tile-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(100% - #{$bg-height});
+  padding: 16px 28px 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: transparent;
+}
+
+.tile-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  color: $primary-color;
+  flex: 1;
+  margin-right: 12px;
+}
+
+.tile-arrow {
+  color: $primary-color;
+  font-size: 24px;
+  flex-shrink: 0;
+  transition: transform 200ms ease-out;
+
+  // Override le ::after de _components.scss
+  &::after {
+    content: none;
+  }
+}
+
+// Corner shape - positionné par rapport au wrapper
+.tile-corner {
+  position: absolute;
+  top: $corner-top-offset;
+  right: $corner-right-offset;
+  width: $corner-size;
+  height: $corner-size;
+  z-index: 10;
+  transition: transform 200ms ease-out;
+  transform-origin: top right;
+}
+
+.corner-shape {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+// Icône centrée sur le corner
+.corner-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #FFFFFF;
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.corner-icon-svg {
+  filter: brightness(0) invert(1);
+}
+
+// Icônes foncées pour salmon et yellow
+.tile-corner.icon-dark {
+  .corner-icon {
+    color: $primary-color;
+  }
+
+  .corner-icon-svg {
+    filter: none;
+  }
+}
+
+// Responsive
+@media (max-width: 576px) {
+  .tile-wrapper {
+    height: 220px;
+  }
+
+  .tile-background {
+    height: 120px;
+  }
+
+  .tile-footer {
+    padding: 12px 16px;
+    height: calc(100% - 120px);
+  }
+
+  .tile-title {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .tile-corner {
+    width: 70px;
+    height: 70px;
+  }
+
+  .corner-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}

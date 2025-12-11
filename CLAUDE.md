@@ -21,17 +21,141 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Angular 19+ with TypeScript 5+
 - Angular Material for UI components
 - Leaflet for interactive maps
-- **Design System**: Custom SCSS based on Biodiv' France branding
-  - **Documentation complète**: [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md)
-  - **Status**: ✅ 100% complet, prêt pour production
-  - **Composants**: 60+ composants Material personnalisés + custom
-  - **Fichiers SCSS**: 11 fichiers (~6500 lignes)
-  - **Couleurs**: 100% conformes PNG Biodiv' France
-    - Primary: #022F39 (Bleu-vert)
-    - Secondary: #FFC935 (Jaune), #FF6E3D (Orange), etc.
+- **Design System**: Custom SCSS based on Kit UI Biodiv' France (11/2025)
+  - **Source de référence**: `KitUI/` (PNG des maquettes)
+  - **Status**: ⚠️ 95% complet
+  - **Fichiers SCSS**: 5 fichiers (~3000 lignes)
+    - `_variables.scss` - Tokens (couleurs, spacing, typography)
+    - `_typography.scss` - Styles typographiques
+    - `_material-overrides.scss` - Personnalisation Angular Material
+    - `_components.scss` - Composants custom (jauges, tuiles, breadcrumb, etc.)
+    - `_filters.scss` - Filtres et pagination
+  - **Couleurs**: Conformes Kit UI 11/2025
+    - Primary: #025359 (Bleu-vert)
+    - Secondary: #FEC180 (Jaune), #F5B399 (Orange saumon), #B74D5D (Terra Cotta), #C0E3CF (Vert pâle)
+    - Scores: #FF7579, #FA9965, #F7D35C, #82DB8A, #81C9D8
+    - Status: #04854B (Succès), #E12329 (Erreur), #FA9965 (Warning), #81C9D8 (Info)
   - **Font**: Nunito (Google Font)
   - **Accessibilité**: WCAG AA compliant
   - **Responsive**: Mobile, Tablet, Desktop
+  - **Icônes**:
+    - **Uicons by Flaticon**: CDN intégré (Rounded Regular - `fi-rr-*`)
+    - **ScoreIconComponent**: Smileys SVG pour scores (very-bad, bad, neutral, good, very-good, no-data)
+    - **ActionIconComponent**: Indicateurs d'actions SVG (planned, planned-realized, planned-partial, realized-unplanned, partial-unplanned)
+    - Classes utilitaires: `.icon-xs` à `.icon-xxl`, `.icon-primary`, `.icon-btn`, `.icon-circle`
+  - **À compléter**:
+    - Zebra striping pour tableaux
+    - Badge compteur filtres actifs
+    - Composant input +/- (fréquence)
+
+### Composants Angular Réutilisables
+
+Les composants standalone sont dans `frontend/src/app/shared/components/`.
+
+#### `NavigationTileComponent`
+**Sélecteur**: `app-navigation-tile`
+**Fichiers**: `navigation-tile/`
+**Description**: Tuile de navigation avec image de fond, forme de coin arrondi et icône.
+
+```html
+<app-navigation-tile
+  title="Mes plans de gestion"
+  uicon="fi-rr-document"
+  link="/plans"
+  color="primary"
+></app-navigation-tile>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `title` | `string` | `''` | Titre affiché en bas de la tuile |
+| `uicon` | `string` | `'fi-rr-folder'` | Icône Flaticon (`fi-rr-*`) ou custom (`custom:icon-name`) |
+| `link` | `string` | `'/'` | Route de navigation |
+| `color` | `'primary' \| 'salmon' \| 'terra-cotta' \| 'yellow'` | `'primary'` | Couleur de la tuile |
+
+**Assets requis** (dans `assets/images/`):
+- `tile-backgrounds/bg-{color}.png` - Fond coloré avec vagues
+- `corner-shapes/corner-{color}.png` - Forme de coin avec icône
+- `icons/{icon-name}.svg` - Icônes custom (si `uicon` commence par `custom:`)
+
+#### `EllipseIconButtonComponent`
+**Sélecteur**: `app-ellipse-icon-button`
+**Fichiers**: `ellipse-icon-button/`
+**Description**: Bouton ellipse avec icône, configurable en couleur et taille.
+
+```html
+<!-- Ellipse primaire avec icône blanche -->
+<app-ellipse-icon-button icon="fi-rr-document"></app-ellipse-icon-button>
+
+<!-- Ellipse blanche avec icône primaire, grande -->
+<app-ellipse-icon-button
+  icon="fi-rr-search"
+  ellipseColor="white"
+  iconColor="primary"
+  size="lg"
+></app-ellipse-icon-button>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `icon` | `string` | `'fi-rr-document'` | Classe d'icône Flaticon |
+| `ellipseColor` | `EllipseColor` | `'primary'` | Couleur de fond (`primary`, `salmon`, `terra-cotta`, `yellow`, `pale-green`, `white`, `beige`, `gray`, `gray-light`) |
+| `iconColor` | `'white' \| 'primary'` | `'white'` | Couleur de l'icône |
+| `size` | `'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'` | Taille de l'ellipse |
+| `showBorder` | `boolean` | `true` | Afficher la bordure blanche |
+| `showShadow` | `boolean` | `true` | Afficher l'ombre |
+
+#### `ScoreIconComponent`
+**Sélecteur**: `app-score-icon`
+**Fichiers**: `icons/score-icon.component.*`
+**Description**: Icône smiley SVG pour afficher les scores/évaluations.
+
+```html
+<app-score-icon level="good" [size]="24"></app-score-icon>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `level` | `'very-bad' \| 'bad' \| 'neutral' \| 'good' \| 'very-good' \| 'no-data'` | `'neutral'` | Niveau de score |
+| `size` | `number` | `20` | Taille en pixels |
+
+**Couleurs associées**:
+- `very-bad`: #FF7579 (rouge)
+- `bad`: #FA9965 (orange)
+- `neutral`: #F7D35C (jaune)
+- `good`: #82DB8A (vert)
+- `very-good`: #81C9D8 (bleu)
+- `no-data`: #DADADA (gris)
+
+#### `ActionIconComponent`
+**Sélecteur**: `app-action-icon`
+**Fichiers**: `icons/action-icon.component.*`
+**Description**: Indicateur SVG pour le statut des actions dans les plans de gestion.
+
+```html
+<app-action-icon status="planned-realized" [size]="28"></app-action-icon>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `status` | `ActionStatus` | `'planned'` | Statut de l'action |
+| `size` | `number` | `28` | Taille en pixels |
+
+**Statuts disponibles**:
+- `planned`: Cercle pointillé (action prévue)
+- `planned-realized`: Cercle plein + ✓ (prévue et réalisée)
+- `planned-partial`: Demi-cercle + ✓ (prévue et partiellement réalisée)
+- `realized-unplanned`: Cercle + ✗ (réalisée non prévue)
+- `partial-unplanned`: Demi-cercle + ✗ (partiellement réalisée non prévue)
+
+#### `HeaderComponent`
+**Sélecteur**: `app-header`
+**Fichiers**: `header/`
+**Description**: Barre de navigation principale de l'application.
+
+```html
+<app-header></app-header>
+```
 
 ## Common Development Commands
 
@@ -132,11 +256,69 @@ The Angular application follows a modular structure:
 - **shared module**: Reusable components, pipes, directives, design system components
 - **feature modules**: Plans, users, auth (lazy loaded)
 - **State management**: RxJS-based with services as stores
-- **Design System**: Custom SCSS implementing Biodiv' France branding
+- **Design System**: Custom SCSS implementing Kit UI Biodiv' France (11/2025)
   - Variables: `src/assets/scss/_variables.scss`
   - Typography: `src/assets/scss/_typography.scss`
-  - Buttons: `src/assets/scss/_buttons.scss`
+  - Material overrides: `src/assets/scss/_material-overrides.scss`
+  - Custom components: `src/assets/scss/_components.scss`
+  - Filters & pagination: `src/assets/scss/_filters.scss`
   - Main styles: `src/styles.scss`
+  - Reference: `KitUI/` (PNG maquettes)
+
+#### Composants SCSS disponibles
+
+**`_variables.scss`** - Tokens de design
+- Couleurs: `$primary-color`, `$secondary-yellow`, `$secondary-orange-salmon`, `$secondary-terra-cotta`, `$secondary-pale-green`
+- Scores: `$score-very-bad`, `$score-bad`, `$score-neutral`, `$score-good`, `$score-very-good`
+- Status: `$success-color`, `$error-color`, `$warning-color`, `$info-color`
+- Neutres: `$black`, `$gray-dark`, `$gray`, `$gray-light`, `$gray-lighter`, `$beige`, `$white`
+- Spacing: `$spacing-xxs` (4px) → `$spacing-xxl` (48px)
+- Border radius: `$border-radius-sm` (4px), `$border-radius-pill` (24px), `$border-radius-round` (50%)
+
+**`_typography.scss`** - Classes typographiques
+- Headings: `h1`-`h4`, `.h1`-`.h4`
+- Texte: `.subtitle`, `.text-regular`, `.text-bold`, `.text-small`, `.text-mention`
+- Liens: `.link-default`, `.link-survol`, `.link-inactif`
+- Listes: `.list-custom` (puces personnalisées)
+- Couleurs: `.text-primary`, `.text-success`, `.text-error`, `.text-muted`, etc.
+
+**`_material-overrides.scss`** - Angular Material personnalisé
+- Boutons: `.btn-sm`, `.btn-lg` (tailles)
+- Chips/Tags: `.status-success`, `.status-valide`, `.status-error`, `.status-warning`, `.status-info`, `.status-neutre`
+- Chips scores: `.score-very-bad`, `.score-bad`, `.score-neutral`, `.score-good`, `.score-very-good`
+- Chips priorité: `.priority-1`, `.priority-2`, `.priority-3`
+- Accordéons: `.border-primary`, `.border-secondary`, `.border-success`, `.border-error`
+
+**`_components.scss`** - Composants custom (non Material)
+- Jauges: `.gauge`, `.gauge-not-started`, `.gauge-mid-progress`, `.gauge-completed`, `.gauge-exceeded`
+- Actions: `.action-indicator`, `.action-planned`, `.action-planned-realized`, `.action-planned-partial`, `.action-realized-unplanned`, `.action-partial-unplanned`
+- Scores emoji: `.score-emoji` avec variantes
+- Tuiles: `.tile`, `.tile-image`, `.tile-content`, `.tile-title`
+- Info blocks: `.info-block`, `.info-block-success`, `.info-block-warning`, `.info-block-error`
+- Breadcrumb: `.breadcrumb`, `.breadcrumb-home`, `.breadcrumb-item`
+- Barre action: `.action-bar`, `.action-bar.with-sidebar`
+- Menu latéral: `.sidebar-menu`, `.sidebar-menu-item`, `.sidebar-menu-item.active`, `.sidebar-menu-item.submenu`
+- Listes: `.list-bullets`, `.documents-list`
+- Pagination: `.pagination-custom`, `.pagination-custom-btn`
+- Contrôles: `.segmented-control`
+
+**`_filters.scss`** - Filtres et recherche
+- Panneau filtres: `.filter-panel`, `.filter-panel-horizontal`, `.filter-panel-collapsible`
+- Filtres actifs: `.active-filters`, `.filter-chip`
+- Sidebar filtres: `.sidebar-filters`
+- Barre recherche: `.search-filter-bar`
+- Quick filters: `.quick-filters`, `.quick-filter-btn`
+- Pagination: `.pagination-container`, `.pagination`, `.page-btn`
+- Tri: `.sort-controls`, `.view-switcher`
+- Mobile: `.filter-drawer`
+
+**`styles.scss`** - Utilitaires globaux
+- Spacing: `.m-{size}`, `.p-{size}`, `.mx-{size}`, `.my-{size}`, `.px-{size}`, `.py-{size}`
+- Display: `.d-none`, `.d-flex`, `.d-block`, `.d-grid`
+- Flex: `.flex-row`, `.flex-column`, `.justify-content-*`, `.align-items-*`
+- Background: `.bg-primary`, `.bg-success`, `.bg-error`, `.bg-score-*`
+- Border: `.rounded`, `.rounded-sm`, `.rounded-lg`, `.rounded-circle`
+- Shadow: `.shadow-sm`, `.shadow`, `.shadow-lg`
 
 ### Django Apps Structure
 

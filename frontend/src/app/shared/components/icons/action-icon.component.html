@@ -1,0 +1,106 @@
+<svg
+  [attr.width]="size"
+  [attr.height]="size"
+  viewBox="0 0 28 28"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  [class]="'action-icon action-icon--' + status"
+  role="img"
+  [attr.aria-label]="getLabel()"
+>
+  @switch (status) {
+    @case ('planned') {
+      <!-- Cercle vide avec pointillés -->
+      <circle
+        cx="14" cy="14" r="12"
+        stroke="#025359"
+        stroke-width="2"
+        stroke-dasharray="4 2"
+        fill="none"
+      />
+    }
+    @case ('planned-realized') {
+      <!-- Cercle plein -->
+      <circle
+        cx="14" cy="14" r="12"
+        stroke="#025359"
+        stroke-width="2"
+        fill="#025359"
+      />
+      <!-- Checkmark -->
+      <path
+        d="M8 14 L12 18 L20 10"
+        stroke="white"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    }
+    @case ('planned-partial') {
+      <!-- Cercle avec moitié remplie -->
+      <circle
+        cx="14" cy="14" r="12"
+        stroke="#025359"
+        stroke-width="2"
+        fill="none"
+      />
+      <!-- Moitié gauche remplie -->
+      <path
+        d="M14 2 A12 12 0 0 0 14 26 Z"
+        fill="#025359"
+      />
+      <!-- Petit checkmark -->
+      <path
+        d="M9 14 L12 17 L18 11"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    }
+    @case ('realized-unplanned') {
+      <!-- Cercle plein avec bord en croix -->
+      <circle
+        cx="14" cy="14" r="12"
+        stroke="#025359"
+        stroke-width="2"
+        fill="#025359"
+      />
+      <!-- Croix en fond (non prévu) -->
+      <line x1="4" y1="4" x2="24" y2="24" stroke="#B74D5D" stroke-width="2"/>
+      <line x1="24" y1="4" x2="4" y2="24" stroke="#B74D5D" stroke-width="2"/>
+      <!-- Cercle plein au centre -->
+      <circle cx="14" cy="14" r="8" fill="#025359"/>
+      <!-- Checkmark -->
+      <path
+        d="M10 14 L13 17 L18 11"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    }
+    @case ('partial-unplanned') {
+      <!-- Cercle demi-rempli avec bord en croix -->
+      <circle
+        cx="14" cy="14" r="12"
+        stroke="#025359"
+        stroke-width="2"
+        fill="none"
+      />
+      <!-- Croix en fond (non prévu) -->
+      <line x1="4" y1="4" x2="24" y2="24" stroke="#B74D5D" stroke-width="2"/>
+      <line x1="24" y1="4" x2="4" y2="24" stroke="#B74D5D" stroke-width="2"/>
+      <!-- Moitié gauche remplie -->
+      <path
+        d="M14 2 A12 12 0 0 0 14 26 Z"
+        fill="#025359"
+      />
+      <!-- Petit trait horizontal -->
+      <line x1="9" y1="14" x2="19" y2="14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    }
+  }
+</svg>
