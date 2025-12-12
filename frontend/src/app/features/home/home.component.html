@@ -28,36 +28,40 @@
       </p>
     </section>
 
-    <!-- Search Bar Section -->
+    <!-- Search Bar Section - Exploration des données -->
     <section class="search-section">
-      <a routerLink="/exploration" class="search-bar">
-        <div class="search-content">
-          <h2 class="search-title">
-            Exploration des données
-            <i class="fi fi-rr-arrow-right"></i>
-          </h2>
-          <p class="search-description">Découvrez blablabla, comparez blablabla, filtrez blablabla..</p>
+      <a routerLink="/exploration" class="search-bar-wrapper">
+        <!-- Main search bar card -->
+        <div class="search-bar">
+          <div class="search-content">
+            <h2 class="search-title">
+              Exploration des données
+              <i class="fi fi-rr-arrow-small-right"></i>
+            </h2>
+            <p class="search-description">Découvrez blablabla, comparez blablabla, filtrez blablabla..</p>
+          </div>
+
+          <!-- Data Visualization (Waves Image) -->
+          <div class="search-visualization">
+            <img
+              src="assets/images/data-waves.png"
+              alt=""
+              aria-hidden="true"
+              class="data-waves-img"
+            />
+          </div>
         </div>
 
-        <!-- Data Visualization (Abstract Waves) -->
-        <div class="search-visualization">
-          <svg class="data-waves" viewBox="0 0 600 100" preserveAspectRatio="none">
-            @for (i of dataWaveIndices; track i) {
-              <path
-                [attr.d]="getDataWavePath(i)"
-                stroke="#4A9A9E"
-                [attr.stroke-width]="1 + (i % 3) * 0.5"
-                fill="none"
-                [attr.opacity]="0.2 + (i * 0.05)"
-              />
-            }
-          </svg>
+        <!-- Corner shape avec icône - comme les tuiles de navigation -->
+        <div class="search-corner">
+          <img
+            src="assets/images/corner-shapes/corner-pale-green.png"
+            class="corner-shape"
+            alt=""
+            aria-hidden="true"
+          />
+          <i class="fi fi-rr-search corner-icon" aria-hidden="true"></i>
         </div>
-
-        <!-- Search Button -->
-        <button class="search-button" type="button">
-          <i class="fi fi-rr-search"></i>
-        </button>
       </a>
     </section>
 

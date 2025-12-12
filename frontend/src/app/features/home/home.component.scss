@@ -42,38 +42,71 @@
   max-width: 963px;
 }
 
-/* Search Section */
+/* Search Section - Exploration des données */
+// Variables (positionnement - comme les tuiles)
+// Le bar-top-offset crée l'espace pour que le corner puisse déborder en haut
+$corner-top-offset: -10px;
+$corner-right-offset: -7px;
+$bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
+
 .search-section {
   margin-bottom: 40px;
 }
 
+// Wrapper avec positionnement relatif pour le corner (comme tile-wrapper)
+.search-bar-wrapper {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    .search-bar {
+      transform: translateY(-2px);
+      box-shadow: -2px 2px 8px 0px rgba(0, 0, 0, 0.15);
+    }
+
+    .search-corner {
+      transform: scale(1.05);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #025359;
+    outline-offset: 4px;
+    border-radius: 20px;
+  }
+}
+
+// Main search bar card (comme .tile)
 .search-bar {
+  position: relative;
+  margin-top: $bar-top-offset;
   background-color: #025359;
-  border-radius: 16px;
+  // Coins asymétriques selon Kit UI: bas-gauche 20px, haut-droit 48px
+  border-radius: 0 48px 20px 0;
   padding: 24px 32px;
+  padding-right: 120px; // Espace pour le corner
   display: flex;
   align-items: center;
   gap: 24px;
-  position: relative;
   overflow: hidden;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 150ms ease-in-out;
-
-  &:hover {
-    opacity: 0.95;
-  }
+  box-shadow: -1px 1px 4px 0px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  min-height: 128px;
 }
 
 .search-content {
   flex: 0 0 auto;
-  z-index: 1;
+  z-index: 2;
+  max-width: 350px;
 }
 
 .search-title {
   font-family: 'Nunito', sans-serif;
   font-size: 20px;
   font-weight: 700;
+  line-height: 30px;
   color: #FFFFFF;
   margin: 0 0 4px 0;
   display: flex;
@@ -81,51 +114,74 @@
   gap: 8px;
 
   i {
-    font-size: 16px;
+    font-size: 20px; // Taille augmentée pour la flèche
   }
 }
 
 .search-description {
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #FFFFFF;
   margin: 0;
 }
 
 .search-visualization {
   flex: 1;
-  height: 80px;
-  position: relative;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0px; // Plus à droite, avant le corner
+  bottom: 0;
+  left: 45%;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 
-.data-waves {
+.data-waves-img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  object-position: right center;
+}
+
+// Corner shape - positionné en haut à droite (comme tile-corner)
+$corner-size: 94px;
+
+.search-corner {
+  position: absolute;
+  top: $corner-top-offset;
+  right: $corner-right-offset;
+  width: $corner-size;
+  height: $corner-size;
+  z-index: 10;
+  transition: transform 200ms ease-out;
+  transform-origin: top right;
+}
+
+.search-corner .corner-shape {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
-.search-button {
-  background-color: #FEC180;
+.search-corner .corner-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: #025359;
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  border: none;
-  border-radius: 50%;
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 1;
-  transition: transform 150ms ease-in-out;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-
-  i {
-    font-size: 24px;
-  }
+  line-height: 1;
 }
 
 /* Tiles Section */
@@ -206,10 +262,32 @@
   .search-bar {
     flex-direction: column;
     text-align: center;
+    border-radius: 0 24px 12px 0;
+    min-height: auto;
+    padding: 20px 24px;
+    padding-right: 24px;
+    padding-top: 50px; // Espace pour le corner
+    gap: 16px;
+  }
+
+  .search-content {
+    max-width: 100%;
   }
 
   .search-visualization {
     display: none;
+  }
+
+  .search-corner {
+    width: 70px;
+    height: 70px;
+    right: -5px;
+
+    .corner-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
   }
 }
 
