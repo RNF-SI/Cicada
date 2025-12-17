@@ -1,120 +1,265 @@
+@import 'variables';
+
 .header {
-  background-color: #FFFFFF;
-  border-bottom: 1px solid #E4E4E4;
+  background-color: $white;
   height: 64px;
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: $z-index-sticky;
+  width: 100%;
 }
 
 .header-content {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 24px;
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
 }
 
+// Hamburger menu button - positioned at far left of viewport
+.hamburger-btn {
+  position: absolute;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $primary-color;
+  font-size: 24px;
+  padding: 0;
+
+  &:hover {
+    color: $primary-hover;
+  }
+}
+
+// Logo centered
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
 }
 
-.logo-icon {
-  width: 40px;
-  height: 40px;
+.logo-img {
+  height: 48px;
+  width: auto;
 }
 
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-
-.logo-biodiv {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  color: #025359;
-  letter-spacing: 0.05em;
-}
-
-.logo-france {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  font-size: 12px;
-  color: #FEC180;
-  letter-spacing: 0.1em;
-}
-
+// Navigation - positioned at far right of viewport (68px from right edge as per Figma)
 .header-nav {
+  position: absolute;
+  right: 68px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-sm;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  color: #025359;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  color: $primary-color;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: background-color 150ms ease-in-out;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  border-radius: $border-radius-md;
+  transition: background-color $transition-fast;
   background: transparent;
   border: none;
   cursor: pointer;
 
   &:hover {
-    background-color: rgba(2, 83, 89, 0.08);
+    background-color: rgba($primary-color, 0.08);
+  }
+}
+
+// Administration button
+.admin-btn {
+  i {
+    font-size: 20px;
   }
 
-  i {
-    font-size: 18px;
+  .btn-text {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
   }
 }
 
 .user-menu-trigger {
-  .chevron {
-    font-size: 16px;
-    margin-left: 2px;
+  .user-icon {
+    font-size: 20px;
   }
+
+  .user-name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+  }
+
+  .chevron {
+    font-size: 20px;
+  }
+}
+
+// Dropdown menu styles
+.menu-user-info {
+  padding: $spacing-sm $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-user-name {
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.menu-user-email {
+  font-family: $font-family;
+  font-size: 12px;
+  color: $gray-dark;
 }
 
 .menu-icon {
   font-size: 16px;
-  margin-right: 8px;
-  color: #025359;
+  margin-right: $spacing-xs;
+  color: $primary-color;
+}
+
+.logout-item {
+  color: $error-color;
+
+  .menu-icon {
+    color: $error-color;
+  }
 }
 
 ::ng-deep .mat-mdc-menu-item {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 14px;
-  color: #343433;
+  color: $black;
 
   &:hover {
-    background-color: rgba(2, 83, 89, 0.08);
+    background-color: rgba($primary-color, 0.08);
   }
 }
 
-@media (max-width: 768px) {
-  .header-content {
-    padding: 0 16px;
+// Mobile menu overlay
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba($black, 0.5);
+  z-index: $z-index-modal-backdrop;
+}
+
+// Mobile menu
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+  background-color: $white;
+  z-index: $z-index-modal;
+  box-shadow: $shadow-heavy;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $gray-light;
+}
+
+.mobile-menu-title {
+  font-family: $font-family;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $gray-dark;
+  font-size: 16px;
+
+  &:hover {
+    color: $black;
+  }
+}
+
+.mobile-menu-content {
+  flex: 1;
+  padding: $spacing-md 0;
+  overflow-y: auto;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  color: $black;
+  text-decoration: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  transition: background-color $transition-fast;
+
+  i {
+    font-size: 20px;
+    color: $primary-color;
   }
 
-  .nav-link span {
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+
+  &.active {
+    background-color: $primary-color;
+    color: $white;
+
+    i {
+      color: $white;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-tablet) {
+  .hamburger-btn {
+    left: $spacing-md;
+  }
+
+  .header-nav {
+    right: $spacing-md;
+  }
+
+  .user-name,
+  .btn-text {
     display: none;
   }
 
   .nav-link {
-    padding: 8px;
+    padding: $spacing-xs;
   }
 }

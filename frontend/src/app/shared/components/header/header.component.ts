@@ -1,9 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { AuthService } from '../../../core/services/auth.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -13,8 +16,53 @@ import { MatMenuModule } from '@angular/material/menu';
   styleUrl: './header.component.scss'
 })
 export class HeaderComponent {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  // Menu state
+  menuOpen = false;
+
+  // Track current route to detect home page
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(event => event.urlAfterRedirects)
+    ),
+    { initialValue: this.router.url }
+  );
+
+  // Detect if we're on the home page
+  readonly isHomePage = computed(() => {
+    const url = this.currentUrl();
+    return url === '/' || url === '/accueil' || url.startsWith('/accueil?');
+  });
+
+  // Expose auth state to template
+  readonly isAuthenticated = this.authService.isAuthenticated;
+  readonly currentUser = this.authService.currentUser;
+  readonly canAccessAdmin = this.authService.canAccessAdmin;
+
+  get userDisplayName(): string {
+    return this.authService.getUserDisplayName();
+  }
+
+  get userInitials(): string {
+    const user = this.currentUser();
+    if (!user) return '';
+
+    if (user.prenom_role && user.nom_role) {
+      return `${user.prenom_role.charAt(0)}${user.nom_role.charAt(0)}`.toUpperCase();
+    }
+    return user.email.charAt(0).toUpperCase();
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+    // Prevent body scroll when menu is open
+    document.body.style.overflow = this.menuOpen ? 'hidden' : '';
+  }
+
   logout(): void {
-    // TODO: Implement logout logic
-    console.log('Logout clicked');
+    this.authService.logout().subscribe();
   }
 }
