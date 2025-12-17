@@ -24,7 +24,10 @@
             "tsConfig": "tsconfig.app.json",
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": ["src/styles.scss"],
-            "scripts": []
+            "scripts": [],
+            "stylePreprocessorOptions": {
+              "includePaths": ["src/assets/scss"]
+            }
           },
           "configurations": {
             "production": {
@@ -47,7 +50,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "buildTarget": "outil-plan-gestion:build"
+            "buildTarget": "outil-plan-gestion:build",
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
