@@ -171,7 +171,7 @@ docker-compose up -d
 # - Django backend with migrations applied
 # - Nomenclatures import (reference data)
 # - Static files collection
-# - Test data creation
+# Note: Test data is NOT created automatically (use seed_testdata command)
 ```
 
 ### Development
@@ -187,8 +187,10 @@ docker-compose exec web python manage.py migrate
 # Create superuser
 docker-compose exec web python create_superuser.py
 
-# Create test data
-docker-compose exec web python create_test_data.py
+# Create test data (Django management command)
+docker-compose exec web python manage.py seed_testdata          # Create all test data
+docker-compose exec web python manage.py seed_testdata --reset  # Remove test data
+docker-compose exec web python manage.py seed_testdata --dry-run # Preview changes
 
 # Import/Update nomenclatures (reference data)
 docker-compose exec web python import_nomenclatures.py
@@ -429,12 +431,27 @@ Angular application with:
 - **Search and filtering** optimized for each model
 - **Custom forms** for user creation/modification
 
-### Test Data Available
-- **3 Organizations**: RNF, CEN Auvergne-Rhône-Alpes, DREAL
-- **3 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux
-- **5 Site Types**: RNN, RNR, PNR, ENS nomenclatures  
-- **3 Users**: Admin + 2 test users
-- **4 Plans de Gestion**: Test avec fichiers et relations sites
+### Test Data Available (via `python manage.py seed_testdata`)
+
+Run `docker-compose exec web python manage.py seed_testdata` to create:
+
+- **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
+- **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
+- **7 Users** with different roles:
+  | Email | Role | Organization |
+  |-------|------|--------------|
+  | admin@test.fr | Super Admin | - |
+  | admin.rnf@test.fr | Admin Organisme | RNF |
+  | admin.cen@test.fr | Admin Organisme | CEN AURA |
+  | referent.camargue@test.fr | Referent | RNF |
+  | referent.vercors@test.fr | Referent | CEN AURA |
+  | user.rnf@test.fr | Utilisateur | RNF |
+  | user.cen@test.fr | Utilisateur | CEN AURA |
+
+  **Password for all test users**: `Test123!`
+- **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations
+- **Django Groups**: Super Administrateurs, Administrateurs Organisme, Referents, Utilisateurs
+- **Nomenclatures**: Site types, evaluation types, editor types
 
 ### Authentication System (JWT)
 

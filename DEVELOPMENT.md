@@ -46,7 +46,7 @@ outil_plan_de_gestion/
 │   │   ├── settings/          # Settings par environnement
 │   │   └── urls.py           # Routes principales
 │   ├── create_superuser.py    # Script admin
-│   └── create_test_data.py    # Script données test
+│   └── apps/core/management/  # Commandes Django (seed_testdata, etc.)
 ├── frontend/                  # Application Angular (à venir)
 ├── docker-compose.yml         # Configuration Docker
 └── docs/                     # Documentation
@@ -236,7 +236,9 @@ docker-compose exec web python manage.py shell          # Console Django
 docker-compose exec web python manage.py makemigrations  # Créer migrations
 docker-compose exec web python manage.py migrate        # Appliquer migrations
 docker-compose exec web python create_superuser.py      # Créer admin
-docker-compose exec web python create_test_data.py      # Données test
+docker-compose exec web python manage.py seed_testdata  # Données test (commande Django)
+docker-compose exec web python manage.py seed_testdata --reset   # Supprimer données test
+docker-compose exec web python manage.py seed_testdata --dry-run # Aperçu des données
 
 # Base de données
 docker-compose exec db psql -U outil_user -d outil_plan_gestion  # Console PostgreSQL
@@ -858,18 +860,39 @@ Organisation modulaire :
 
 ## 📊 Données de test
 
-Le projet inclut des données de test réalistes :
+Le projet inclut une commande Django pour créer des données de test réalistes :
 
 ```bash
-# Créer les données
-docker-compose exec web python create_test_data.py
+# Créer toutes les données de test
+docker-compose exec web python manage.py seed_testdata
+
+# Supprimer les données de test
+docker-compose exec web python manage.py seed_testdata --reset
+
+# Aperçu sans modification (dry-run)
+docker-compose exec web python manage.py seed_testdata --dry-run
 ```
 
-**Contenu :**
-- **3 organismes** : RNF, CEN Auvergne-Rhône-Alpes, DREAL
-- **3 sites** : Camargue, Aiguilles Rouges, Grand-Voyeux
-- **5 types sites** : RNN, RNR, PNR, ENS (nomenclatures)
-- **3 utilisateurs** : admin + 2 utilisateurs test
+**Contenu créé :**
+- **5 organismes** : RNF, CEN Auvergne-Rhône-Alpes, DREAL Nouvelle-Aquitaine, Parc National des Ecrins, OFB
+- **7 sites** : Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
+- **11 nomenclatures** : 5 types de site (RNN, RNR, PNR, ENS, APB), 3 types d'évaluation, 3 types de rédacteur
+- **7 utilisateurs** avec différents rôles :
+
+| Email | Identifiant | Rôle | Organisme |
+|-------|-------------|------|-----------|
+| admin@test.fr | super_admin | Super Admin | - |
+| admin.rnf@test.fr | admin_rnf | Admin Organisme | RNF |
+| admin.cen@test.fr | admin_cen | Admin Organisme | CEN AURA |
+| referent.camargue@test.fr | ref_camargue | Référent | RNF |
+| referent.vercors@test.fr | ref_vercors | Référent | CEN AURA |
+| user.rnf@test.fr | user_rnf | Utilisateur | RNF |
+| user.cen@test.fr | user_cen | Utilisateur | CEN AURA |
+
+**Mot de passe pour tous** : `Test123!`
+
+- **6 plans de gestion** : Avec différents statuts (validé, brouillon, archivé) et relations multi-sites
+- **4 groupes Django** : Super Administrateurs, Administrateurs Organisme, Référents, Utilisateurs
 
 ## 🔍 Debugging
 
@@ -965,7 +988,7 @@ curl -I http://localhost:4200/
 docker-compose logs web | grep -A 20 "Traceback"
 
 # Causes fréquentes :
-# - Erreur dans un script d'initialisation (create_test_data.py, etc.)
+# - Erreur dans un script d'initialisation
 # - Migration échouée
 # - Problème de connexion à la base de données
 ```
