@@ -6,7 +6,7 @@
  * Organisme (organization) - full model from API
  */
 export interface AdminOrganisme {
-  id: number;
+  id_organisme: number;
   uuid_organisme?: string;
   nom_organisme: string;
   adresse_organisme?: string;
@@ -41,7 +41,7 @@ export interface OrganismeCreatePayload {
  * Site - model from API
  */
 export interface AdminSite {
-  id: number;
+  id_site: number;
   nom_site: string;
   id_local?: string;
   id_inpn?: string;
@@ -59,15 +59,15 @@ export interface AdminSite {
  * User - admin list model
  */
 export interface AdminUser {
-  id: number;
+  id_role: number;
   email: string;
   nom_role?: string;
   prenom_role?: string;
   identifiant?: string;
   id_organisme?: number;
   organisme?: AdminOrganisme;
-  niveau_role: 'utilisateur' | 'referent' | 'admin_og' | 'super_admin';
-  is_active: boolean;
+  role_level: 'utilisateur' | 'referent' | 'admin_og' | 'super_admin';
+  active: boolean;
   last_login?: string;
   sites_geres?: AdminSite[];
 }

@@ -1,0 +1,146 @@
+<div class="admin-users">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Gestion des utilisateurs</h1>
+      <p class="subtitle">
+        @if (isSuperAdmin()) {
+          Tous les utilisateurs de la plateforme
+        } @else {
+          Utilisateurs de {{ currentOrganismeName() }}
+        }
+      </p>
+    </div>
+    <!-- No add user button - users are created via Django admin -->
+  </header>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input
+        type="text"
+        placeholder="Rechercher un utilisateur..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="filterUsers()"
+      />
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="filterRole" (ngModelChange)="filterUsers()">
+        <option value="">Tous les roles</option>
+        <option value="super_admin">Super Admin</option>
+        <option value="admin_og">Admin Organisme</option>
+        <option value="referent">Referent</option>
+        <option value="utilisateur">Utilisateur</option>
+      </select>
+
+      @if (isSuperAdmin()) {
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterUsers()">
+          <option value="">Tous les organismes</option>
+          @for (org of organismes(); track org.id) {
+            <option [value]="org.id">{{ org.nom }}</option>
+          }
+        </select>
+      }
+
+      <select [(ngModel)]="filterStatus" (ngModelChange)="filterUsers()">
+        <option value="">Tous les statuts</option>
+        <option value="active">Actif</option>
+        <option value="inactive">Inactif</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement des utilisateurs...</p>
+    </div>
+  } @else {
+    <!-- Users Table -->
+    <div class="table-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Email</th>
+            @if (isSuperAdmin()) {
+              <th>Organisme</th>
+            }
+            <th>Role</th>
+            <th>Statut</th>
+            <th>Derniere connexion</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers(); track user.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <td class="user-cell">
+                <div class="user-avatar">{{ getInitials(user) }}</div>
+                <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+              </td>
+              <td>{{ user.email }}</td>
+              @if (isSuperAdmin()) {
+                <td>
+                  @if (user.organisme !== 'Non assigne') {
+                    {{ user.organisme }}
+                  } @else {
+                    <span class="text-muted">Non assigne</span>
+                  }
+                </td>
+              }
+              <td>
+                <span class="role-badge" [class]="'role-' + user.role">
+                  {{ getRoleLabel(user.role) }}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                  {{ user.isActive ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td class="date-cell">{{ user.lastLogin || 'Jamais' }}</td>
+              <td class="actions-cell">
+                @if (canManageUser(user)) {
+                  @if (isSuperAdmin()) {
+                    <button class="btn-icon" title="Assigner un organisme" (click)="openAssignOrganismeModal(user)">
+                      <i class="fi fi-rr-building"></i>
+                    </button>
+                  }
+                  <button class="btn-icon" title="Assigner un site (referent)" (click)="openAssignSiteModal(user)">
+                    <i class="fi fi-rr-marker"></i>
+                  </button>
+                  <button
+                    class="btn-icon"
+                    [class.danger]="user.isActive"
+                    [title]="user.isActive ? 'Desactiver' : 'Activer'"
+                    (click)="toggleUserStatus(user)">
+                    <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+
+          @if (filteredUsers().length === 0) {
+            <tr>
+              <td [attr.colspan]="isSuperAdmin() ? 7 : 6" class="empty-cell">
+                Aucun utilisateur trouve
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="pagination-info">
+        {{ filteredUsers().length }} utilisateur(s) sur {{ users().length }}
+      </span>
+    </div>
+  }
+</div>
