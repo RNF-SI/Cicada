@@ -1,0 +1,93 @@
+<div class="admin-dashboard">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1>Tableau de bord</h1>
+      <p class="welcome-message">
+        Bienvenue, {{ userDisplayName() }}
+        @if (isSuperAdmin()) {
+          <span class="scope-info">- Vue globale (tous les organismes)</span>
+        } @else {
+          <span class="scope-info">- {{ organismeName() }}</span>
+        }
+      </p>
+    </div>
+  </header>
+
+  <!-- Error Message -->
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+      <button class="retry-btn" (click)="loadDashboardData()">
+        <i class="fi fi-rr-refresh"></i>
+        Reessayer
+      </button>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement des statistiques...</p>
+    </div>
+  } @else {
+    <!-- Stats Cards -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon plans">
+            <i class="fi fi-rr-document"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ stats().totalPlans }}</span>
+            <span class="stat-label">Plans de gestion</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon active">
+            <i class="fi fi-rr-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ stats().plansActifs }}</span>
+            <span class="stat-label">Plans actifs</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon users">
+            <i class="fi fi-rr-users"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ stats().totalUtilisateurs }}</span>
+            <span class="stat-label">Utilisateurs</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon sites">
+            <i class="fi fi-rr-marker"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ stats().totalSites }}</span>
+            <span class="stat-label">Sites</span>
+          </div>
+        </div>
+
+        @if (isSuperAdmin()) {
+          <div class="stat-card">
+            <div class="stat-icon organismes">
+              <i class="fi fi-rr-building"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-value">{{ stats().totalOrganismes }}</span>
+              <span class="stat-label">Organismes</span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

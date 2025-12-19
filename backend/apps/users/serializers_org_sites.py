@@ -27,9 +27,9 @@ class OrganismeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = BibOrganismes
         fields = [
-            'id_organisme', 'nom_organisme', 'ville_organisme', 
+            'id_organisme', 'nom_organisme', 'ville_organisme',
             'email_organisme', 'url_organisme', 'parent_organisme',
-            'sites_count', 'users_count', 'active'
+            'sites_count', 'users_count'
         ]
     
     def get_sites_count(self, obj):
@@ -57,8 +57,8 @@ class OrganismeDetailSerializer(serializers.ModelSerializer):
             'adresse_organisme', 'cp_organisme', 'ville_organisme',
             'tel_organisme', 'fax_organisme', 'email_organisme',
             'url_organisme', 'url_logo', 'parent_organisme',
-            'enfants_organismes', 'sites_geres', 'users', 
-            'statistiques', 'active'
+            'enfants_organismes', 'sites_geres', 'users',
+            'statistiques'
         ]
     
     def get_sites_geres(self, obj):
@@ -107,7 +107,7 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
             'nom_organisme', 'adresse_organisme', 'cp_organisme',
             'ville_organisme', 'tel_organisme', 'fax_organisme',
             'email_organisme', 'url_organisme', 'url_logo',
-            'parent_id', 'active'
+            'parent_id'
         ]
     
     def validate_parent_id(self, value):
