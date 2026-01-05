@@ -46,7 +46,7 @@ export class LinkUserOrganismeModalComponent implements OnInit {
   organismes = signal<AdminOrganisme[]>([]);
 
   selectedUserId: number | null = null;
-  selectedOrganismeId: number | null = null;
+  selectedOrganismeUuid: string | null = null;
 
   searchUserQuery = '';
   filteredUsers = signal<AdminUser[]>([]);
@@ -57,7 +57,7 @@ export class LinkUserOrganismeModalComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.mode === 'select-organisme') {
-      this.selectedOrganismeId = this.data.user?.id_organisme || null;
+      this.selectedOrganismeUuid = this.data.user?.organisme?.uuid_organisme || null;
       this.loadOrganismes();
     } else {
       this.loadUsers();
@@ -121,12 +121,12 @@ export class LinkUserOrganismeModalComponent implements OnInit {
 
   private assignOrganismeToUser(): void {
     const userId = this.mode === 'select-organisme' ? this.data.user!.id_role : this.selectedUserId!;
-    const organismeId = this.mode === 'select-organisme' ? this.selectedOrganismeId : this.data.organisme!.id_organisme;
+    const organismeUuid = this.mode === 'select-organisme' ? this.selectedOrganismeUuid : this.data.organisme!.uuid_organisme || null;
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.adminService.assignOrganismeToUser(userId, organismeId).subscribe({
+    this.adminService.assignOrganismeToUser(userId, organismeUuid).subscribe({
       next: (user) => {
         this.isLoading.set(false);
         this.dialogRef.close({ success: true, user });

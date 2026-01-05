@@ -36,10 +36,10 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Organisme</mat-label>
-          <mat-select [(ngModel)]="selectedOrganismeId">
+          <mat-select [(ngModel)]="selectedOrganismeUuid">
             <mat-option [value]="null">Aucun organisme</mat-option>
-            @for (org of organismes(); track org.id_organisme) {
-              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+            @for (org of organismes(); track org.uuid_organisme) {
+              <mat-option [value]="org.uuid_organisme">{{ org.nom_organisme }}</mat-option>
             }
           </mat-select>
           <mat-hint>

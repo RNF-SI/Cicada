@@ -27,7 +27,7 @@ class OrganismeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = BibOrganismes
         fields = [
-            'id_organisme', 'nom_organisme', 'ville_organisme',
+            'id_organisme', 'uuid_organisme', 'nom_organisme', 'ville_organisme',
             'email_organisme', 'url_organisme', 'parent_organisme',
             'sites_count', 'users_count'
         ]

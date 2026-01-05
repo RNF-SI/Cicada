@@ -73,6 +73,8 @@ class Role(AbstractUser):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        to_field='uuid_organisme',
+        db_column='uuid_organisme',
         verbose_name="Organisme"
     )
     remarques = models.TextField(null=True, blank=True)
@@ -238,14 +240,16 @@ class CorRoleSite(models.Model):
     """
     Table de liaison entre utilisateurs et sites avec permissions.
     """
-    
+
     id_site = models.ForeignKey(
         Site,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        db_column='id_site'
     )
     id_role = models.ForeignKey(
         Role,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        db_column='id_role'
     )
     referent = models.BooleanField("Référent", default=False)
     referent_valid = models.BooleanField("Référent validé", default=False)
@@ -266,15 +270,17 @@ class CorOgSite(models.Model):
     """
     Table de liaison entre organismes et sites.
     """
-    
+
     id_site = models.ForeignKey(
         Site,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        db_column='id_site'
     )
     uuid_og = models.ForeignKey(
         BibOrganismes,
         on_delete=models.CASCADE,
-        to_field='uuid_organisme'
+        to_field='uuid_organisme',
+        db_column='uuid_organisme'
     )
     principal = models.BooleanField("Gestionnaire principal", default=False)
 

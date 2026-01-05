@@ -223,9 +223,9 @@ export class AdminService {
   /**
    * Assign organisme to user
    */
-  assignOrganismeToUser(userId: number, organismeId: number | null): Observable<AdminUser> {
+  assignOrganismeToUser(userId: number, uuidOrganisme: string | null): Observable<AdminUser> {
     return this.http.patch<AdminUser>(`${this.apiUrl}/users/${userId}/`, {
-      id_organisme: organismeId
+      uuid_organisme: uuidOrganisme
     }).pipe(catchError(this.handleError));
   }
 

@@ -21,6 +21,7 @@ interface DisplayUser {
   prenom: string;
   organisme: string;
   organismeId: number;
+  organismeUuid?: string;
   role: UserRole;
   isActive: boolean;
   lastLogin?: string;
@@ -113,6 +114,7 @@ export class AdminUsersComponent implements OnInit {
       prenom: user.prenom_role || '',
       organisme: user.organisme?.nom_organisme || 'Non assigne',
       organismeId: user.organisme?.id_organisme || 0,
+      organismeUuid: user.organisme?.uuid_organisme,
       role: user.role_level,
       isActive: user.active,
       lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined
@@ -201,7 +203,11 @@ export class AdminUsersComponent implements OnInit {
           nom_role: user.nom,
           prenom_role: user.prenom,
           id_organisme: user.organismeId || null,
-          organisme: user.organismeId ? { id_organisme: user.organismeId, nom_organisme: user.organisme } : null
+          organisme: user.organismeUuid ? {
+            id_organisme: user.organismeId,
+            uuid_organisme: user.organismeUuid,
+            nom_organisme: user.organisme
+          } : null
         }
       }
     });

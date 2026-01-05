@@ -12,14 +12,14 @@ class BibOrganismesSerializer(serializers.ModelSerializer):
     """
     Serializer pour les organismes (lecture seule dans le contexte users).
     """
-    
+
     class Meta:
         model = BibOrganismes
         fields = [
-            'id_organisme', 'nom_organisme', 'ville_organisme', 
+            'id_organisme', 'uuid_organisme', 'nom_organisme', 'ville_organisme',
             'email_organisme', 'tel_organisme', 'url_organisme'
         ]
-        read_only_fields = ['id_organisme']
+        read_only_fields = ['id_organisme', 'uuid_organisme']
 
 
 class SiteBasicSerializer(serializers.ModelSerializer):
@@ -81,8 +81,9 @@ class RoleDetailSerializer(serializers.ModelSerializer):
     Serializer détaillé pour un utilisateur.
     """
     organisme = BibOrganismesSerializer(source='id_organisme', read_only=True)
-    organisme_id = serializers.PrimaryKeyRelatedField(
+    uuid_organisme = serializers.SlugRelatedField(
         source='id_organisme',
+        slug_field='uuid_organisme',
         queryset=BibOrganismes.objects.all(),
         write_only=True,
         required=False,
@@ -90,19 +91,19 @@ class RoleDetailSerializer(serializers.ModelSerializer):
     )
     nom_complet = serializers.CharField(source='get_full_name', read_only=True)
     sites_geres = CorRoleSiteSerializer(
-        source='corrolesite_set', 
-        many=True, 
+        source='corrolesite_set',
+        many=True,
         read_only=True
     )
-    
+
     # Permissions info
     permissions_info = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Role
         fields = [
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
-            'role_level', 'organisme', 'organisme_id', 'desc_role',
+            'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
             'sites_geres', 'permissions_info', 'date_insert', 'date_update',
             'last_login'
@@ -133,21 +134,22 @@ class RoleCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=Role.objects.all())]
     )
-    organisme_id = serializers.PrimaryKeyRelatedField(
+    uuid_organisme = serializers.SlugRelatedField(
         source='id_organisme',
+        slug_field='uuid_organisme',
         queryset=BibOrganismes.objects.all(),
         required=False,
         allow_null=True
     )
-    
+
     class Meta:
         model = Role
         fields = [
             'email', 'nom_role', 'prenom_role', 'role_level',
-            'organisme_id', 'desc_role', 'identifiant', 'remarques',
+            'uuid_organisme', 'desc_role', 'identifiant', 'remarques',
             'password', 'password_confirm', 'active', 'is_staff'
         ]
-    
+
     def validate(self, attrs):
         """Validation personnalisée."""
         # Vérifier que les mots de passe correspondent
@@ -155,17 +157,17 @@ class RoleCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'password_confirm': 'Les mots de passe ne correspondent pas.'
             })
-        
+
         # Validation métier : Super admin ne peut pas être dans un organisme
         if attrs.get('role_level') == 'super_admin' and attrs.get('id_organisme'):
             raise serializers.ValidationError({
-                'organisme_id': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
+                'uuid_organisme': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
             })
-        
+
         # Validation métier : Admin organisme doit avoir un organisme
         if attrs.get('role_level') == 'admin_og' and not attrs.get('id_organisme'):
             raise serializers.ValidationError({
-                'organisme_id': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
+                'uuid_organisme': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
             })
         
         return attrs
@@ -206,38 +208,39 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer pour la modification d'utilisateurs.
     """
-    organisme_id = serializers.PrimaryKeyRelatedField(
+    uuid_organisme = serializers.SlugRelatedField(
         source='id_organisme',
+        slug_field='uuid_organisme',
         queryset=BibOrganismes.objects.all(),
         required=False,
         allow_null=True
     )
-    
+
     class Meta:
         model = Role
         fields = [
-            'nom_role', 'prenom_role', 'role_level', 'organisme_id',
+            'nom_role', 'prenom_role', 'role_level', 'uuid_organisme',
             'desc_role', 'identifiant', 'remarques', 'active', 'is_staff'
         ]
-    
+
     def validate(self, attrs):
         """Validation pour la modification."""
         instance = self.instance
-        
+
         # Validation métier selon les nouvelles valeurs
         new_role_level = attrs.get('role_level', instance.role_level)
         new_organisme = attrs.get('id_organisme', instance.id_organisme)
-        
+
         # Super admin ne peut pas être dans un organisme
         if new_role_level == 'super_admin' and new_organisme:
             raise serializers.ValidationError({
-                'organisme_id': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
+                'uuid_organisme': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
             })
-        
+
         # Admin organisme doit avoir un organisme
         if new_role_level == 'admin_og' and not new_organisme:
             raise serializers.ValidationError({
-                'organisme_id': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
+                'uuid_organisme': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
             })
         
         return attrs
