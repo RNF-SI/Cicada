@@ -16,6 +16,7 @@ import {
 // Interface for display (mapping from API model)
 interface DisplayOrganisme {
   id: number;
+  uuid?: string;
   nom: string;
   adresse?: string;
   codePostal?: string;
@@ -103,6 +104,7 @@ export class AdminOrganismesComponent implements OnInit {
   private mapOrganisme(org: AdminOrganisme): DisplayOrganisme {
     return {
       id: org.id_organisme,
+      uuid: org.uuid_organisme,
       nom: org.nom_organisme,
       adresse: org.adresse_organisme,
       codePostal: org.cp_organisme,
@@ -179,11 +181,13 @@ export class AdminOrganismesComponent implements OnInit {
 
   openAddUserModal(org: DisplayOrganisme): void {
     const dialogRef = this.dialog.open(LinkUserOrganismeModalComponent, {
-      width: '500px',
+      width: '600px',
       data: {
         organisme: {
-          id: org.id,
-          nom_organisme: org.nom
+          id_organisme: org.id,
+          uuid_organisme: org.uuid,
+          nom_organisme: org.nom,
+          ville_organisme: org.ville
         }
       }
     });
@@ -198,10 +202,10 @@ export class AdminOrganismesComponent implements OnInit {
 
   openAddSiteModal(org: DisplayOrganisme): void {
     const dialogRef = this.dialog.open(LinkSiteOrganismeModalComponent, {
-      width: '550px',
+      width: '600px',
       data: {
         organisme: {
-          id: org.id,
+          id_organisme: org.id,
           nom_organisme: org.nom,
           ville_organisme: org.ville
         }

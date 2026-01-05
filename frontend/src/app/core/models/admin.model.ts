@@ -122,6 +122,17 @@ export interface OrganismeSiteAssignment {
 }
 
 /**
+ * Site linked to an organisme (from /organismes/{id}/sites/ endpoint)
+ */
+export interface OrganismeSite {
+  id_site: number;
+  nom_site: string;
+  surf_off?: number;
+  type_site?: string;
+  active?: boolean;
+}
+
+/**
  * Paginated API response (format standard DRF)
  */
 export interface PaginatedResponse<T> {
