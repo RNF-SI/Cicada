@@ -31,3 +31,13 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Extended JWT token lifetime for development
+# Access token: 24 hours (instead of 60 min) - less frequent re-auth during dev
+# Refresh token: 30 days (instead of 7 days) - longer dev sessions
+from datetime import timedelta
+SIMPLE_JWT = {
+    **SIMPLE_JWT,
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+}
