@@ -571,14 +571,16 @@ class SiteAdmin(gis_admin.GISModelAdmin):
         if obj.id_type_site:
             color = {
                 'RNN': 'green',
-                'RNR': 'blue', 
+                'RNR': 'blue',
                 'PNR': 'orange',
-                'ENS': 'purple'
+                'ENS': 'purple',
+                'APB': 'teal'
             }.get(obj.id_type_site.cd_nomenclature, 'black')
-            return mark_safe(f'<span style="color: {color}; font-weight: bold;">{obj.id_type_site.label_default}</span>')
-        return "Non défini"
+            label = obj.id_type_site.label or obj.id_type_site.cd_nomenclature or str(obj.id_type_site)
+            return mark_safe(f'<span style="color: {color}; font-weight: bold;">{label}</span>')
+        return "Non defini"
     type_site_display.short_description = "Type"
-    type_site_display.admin_order_field = 'id_type_site__label_default'
+    type_site_display.admin_order_field = 'id_type_site__cd_nomenclature'
     
     def surface_display(self, obj):
         """Affiche la surface formatée."""
