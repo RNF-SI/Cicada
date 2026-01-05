@@ -196,11 +196,12 @@ export class AdminUsersComponent implements OnInit {
       width: '500px',
       data: {
         user: {
-          id: user.id,
+          id_role: user.id,
           email: user.email,
           nom_role: user.nom,
           prenom_role: user.prenom,
-          organisme: user.organismeId ? { id: user.organismeId, nom_organisme: user.organisme } : null
+          id_organisme: user.organismeId || null,
+          organisme: user.organismeId ? { id_organisme: user.organismeId, nom_organisme: user.organisme } : null
         }
       }
     });
@@ -218,7 +219,7 @@ export class AdminUsersComponent implements OnInit {
       width: '550px',
       data: {
         user: {
-          id: user.id,
+          id_role: user.id,
           email: user.email,
           nom_role: user.nom,
           prenom_role: user.prenom

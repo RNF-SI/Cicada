@@ -1,0 +1,33 @@
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-header">
+      <h2>Administration</h2>
+      <span class="role-badge">{{ roleLabel() }}</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of visibleNavItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          class="nav-item">
+          <i class="fi" [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <a routerLink="/accueil" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        <span>Retour à l'accueil</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

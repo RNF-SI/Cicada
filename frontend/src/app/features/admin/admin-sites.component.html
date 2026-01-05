@@ -1,0 +1,136 @@
+<div class="admin-sites">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Gestion des sites</h1>
+      <p class="subtitle">
+        @if (isSuperAdmin()) {
+          Tous les espaces proteges
+        } @else {
+          Sites de {{ currentOrganismeName() }}
+        }
+      </p>
+    </div>
+    <button class="btn-primary" (click)="openAddSiteModal()">
+      <i class="fi fi-rr-map-marker-plus"></i>
+      <span>Ajouter un site</span>
+    </button>
+  </header>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input
+        type="text"
+        placeholder="Rechercher un site..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="filterSites()"
+      />
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="filterType" (ngModelChange)="filterSites()">
+        <option value="">Tous les types</option>
+        <option value="RNN">RNN - Reserve Naturelle Nationale</option>
+        <option value="RNR">RNR - Reserve Naturelle Regionale</option>
+        <option value="PNR">PNR - Parc Naturel Regional</option>
+        <option value="ENS">ENS - Espace Naturel Sensible</option>
+      </select>
+
+      @if (isSuperAdmin()) {
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterSites()">
+          <option value="">Tous les organismes</option>
+          @for (org of organismes(); track org.id) {
+            <option [value]="org.id">{{ org.nom }}</option>
+          }
+        </select>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement des sites...</p>
+    </div>
+  } @else {
+    <!-- Sites Table -->
+    <div class="table-container">
+      <table class="sites-table">
+        <thead>
+          <tr>
+            <th>Nom du site</th>
+            <th>Type</th>
+            @if (isSuperAdmin()) {
+              <th>Organisme</th>
+            }
+            <th>Surface</th>
+            <th>Plans</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (site of filteredSites(); track site.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <td class="name-cell">
+                <i class="fi fi-rr-marker site-icon"></i>
+                <span class="site-name">{{ site.nom }}</span>
+              </td>
+              <td>
+                <span class="type-badge">{{ site.type }}</span>
+              </td>
+              @if (isSuperAdmin()) {
+                <td>
+                  @if (site.organisme !== 'Non assigne') {
+                    {{ site.organisme }}
+                  } @else {
+                    <span class="text-muted">Non assigne</span>
+                  }
+                </td>
+              }
+              <td>
+                @if (site.surface) {
+                  {{ site.surface | number:'1.0-0' }} ha
+                } @else {
+                  -
+                }
+              </td>
+              <td>{{ site.nbPlans }}</td>
+              <td class="actions-cell">
+                <button class="btn-icon" title="Ajouter un referent" (click)="openAddReferentModal(site)">
+                  <i class="fi fi-rr-user-add"></i>
+                </button>
+                @if (isSuperAdmin()) {
+                  <button class="btn-icon" title="Associer a un organisme" (click)="openAssignOrganismeModal(site)">
+                    <i class="fi fi-rr-building"></i>
+                  </button>
+                }
+                <button class="btn-icon" title="Voir sur la carte" (click)="viewOnMap(site)">
+                  <i class="fi fi-rr-map"></i>
+                </button>
+              </td>
+            </tr>
+          }
+
+          @if (filteredSites().length === 0) {
+            <tr>
+              <td [attr.colspan]="isSuperAdmin() ? 6 : 5" class="empty-cell">
+                Aucun site trouve
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <span class="summary-text">
+        {{ filteredSites().length }} site(s) -
+        Surface totale: {{ totalSurface() | number:'1.0-0' }} ha
+      </span>
+    </div>
+  }
+</div>
