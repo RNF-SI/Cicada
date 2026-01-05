@@ -56,6 +56,20 @@ export interface AdminSite {
 }
 
 /**
+ * Create/Update site payload
+ */
+export interface SiteCreatePayload {
+  nom_site: string;
+  id_local?: string;
+  id_inpn?: string;
+  id_type_site?: number;
+  surf_off?: number;
+  marin?: boolean;
+  outre_mer?: boolean;
+  active?: boolean;
+}
+
+/**
  * User - admin list model
  */
 export interface AdminUser {

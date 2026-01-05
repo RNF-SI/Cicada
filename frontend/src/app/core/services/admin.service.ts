@@ -7,6 +7,7 @@ import {
   AdminSite,
   AdminUser,
   OrganismeCreatePayload,
+  SiteCreatePayload,
   PaginatedResponse,
   PaginatedResponseNested
 } from '../models/admin.model';
@@ -147,6 +148,33 @@ export class AdminService {
   getSiteOrganismes(siteId: number): Observable<AdminOrganisme[]> {
     return this.http.get<AdminOrganisme[]>(`${this.apiUrl}/sites/${siteId}/organismes/`)
       .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Create a new site
+   */
+  createSite(payload: SiteCreatePayload): Observable<AdminSite> {
+    return this.http.post<AdminSite>(`${this.apiUrl}/sites/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Update a site
+   */
+  updateSite(id: number, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
+    return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${id}/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get site types (nomenclatures)
+   */
+  getSiteTypes(): Observable<{ id_nomenclature: number; cd_nomenclature: string; label: string }[]> {
+    return this.http.get<any>('/api/nomenclatures/?type=TYPE_SITE')
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
   }
 
   // ==================== USERS ====================
