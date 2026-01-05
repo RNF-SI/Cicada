@@ -1,0 +1,83 @@
+<div class="login-page">
+  <div class="login-container">
+    <div class="login-header">
+      <img src="assets/images/logo-biodiv-france.svg" alt="Biodiv' France" class="logo">
+      <h1>Connexion</h1>
+      <p class="subtitle">Accedez a votre espace de gestion</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Identifiant ou email</mat-label>
+        <input
+          matInput
+          type="text"
+          formControlName="username"
+          placeholder="votre.identifiant ou email"
+          autocomplete="username"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-user"></i>
+        </mat-icon>
+        @if (loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched) {
+          <mat-error>L'identifiant ou l'email est requis</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          placeholder="Votre mot de passe"
+          autocomplete="current-password"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-lock"></i>
+        </mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="togglePasswordVisibility()"
+          [attr.aria-label]="hidePassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+        >
+          <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
+        </button>
+        @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+          <mat-error>Le mot de passe est requis</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="submit-button"
+        [disabled]="loginForm.invalid || isLoading()"
+      >
+        @if (isLoading()) {
+          <mat-spinner diameter="20" color="accent"></mat-spinner>
+          <span>Connexion en cours...</span>
+        } @else {
+          <span>Se connecter</span>
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <a routerLink="/accueil" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        Retour a l'accueil
+      </a>
+    </div>
+  </div>
+</div>
