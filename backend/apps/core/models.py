@@ -6,11 +6,15 @@ from django.db import models
 
 class Nomenclature(models.Model):
     """
-    Modèle pour les nomenclatures et référentiels.
-    Table t_nomenclatures dans le schéma referentiels.
-    Structure adaptée aux données ODASE.
+    Modele pour les nomenclatures et referentiels.
+    Table t_nomenclatures dans le schema referentiels.
+    Structure adaptee aux donnees ODASE.
+
+    - cd_nomenclature: Code technique unique (ex: 'RNN', 'RNR', 'PNR')
+    - mnemonique: Mnemonique metier pour retrouver facilement les elements
+    - label: Label affiche a l'utilisateur
     """
-    
+
     id_nomenclature = models.AutoField(primary_key=True)
     id_type = models.ForeignKey(
         'TypeNomenclature',
@@ -18,16 +22,30 @@ class Nomenclature(models.Model):
         verbose_name="Type de nomenclature",
         null=True,
         blank=True,
-        db_column='id_type'  # Utiliser le nom de colonne exact
+        db_column='id_type'
     )
-    mnemonique = models.CharField("Mnémonique", max_length=255, null=True, blank=True)
+    cd_nomenclature = models.CharField(
+        "Code nomenclature",
+        max_length=50,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Code technique unique de la nomenclature (ex: RNN, RNR, PNR)"
+    )
+    mnemonique = models.CharField(
+        "Mnemonique",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Mnemonique metier pour retrouver facilement les elements"
+    )
     label = models.CharField("Label", max_length=255, null=True, blank=True)
-    definition = models.TextField("Définition", null=True, blank=True)
+    definition = models.TextField("Definition", null=True, blank=True)
     source = models.CharField("Source", max_length=255, null=True, blank=True)
     statut = models.CharField("Statut", max_length=50, null=True, blank=True)
-    hierarchy = models.CharField("Hiérarchie", max_length=255, null=True, blank=True)
+    hierarchy = models.CharField("Hierarchie", max_length=255, null=True, blank=True)
     date_ajout = models.DateTimeField("Date d'ajout", null=True, blank=True)
-    date_maj = models.DateTimeField("Date de mise à jour", null=True, blank=True)
+    date_maj = models.DateTimeField("Date de mise a jour", null=True, blank=True)
     actif = models.BooleanField("Actif", default=True)
 
     class Meta:
