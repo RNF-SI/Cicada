@@ -14,6 +14,7 @@ import {
 
 const TOKEN_KEY = 'auth_tokens';
 const USER_KEY = 'current_user';
+const TOKEN_TIMESTAMP_KEY = 'auth_token_timestamp';
 
 @Injectable({
   providedIn: 'root'
@@ -27,10 +28,12 @@ export class AuthService {
   // State management with signals
   private currentUserSignal = signal<User | null>(null);
   private isLoadingSignal = signal<boolean>(false);
+  private isInitializedSignal = signal<boolean>(false);
 
   // Public readonly signals
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly isLoading = this.isLoadingSignal.asReadonly();
+  readonly isInitialized = this.isInitializedSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserSignal() !== null);
 
   // Computed properties for role checks
@@ -55,15 +58,27 @@ export class AuthService {
 
   /**
    * Initialize auth state from localStorage
+   * Uses cached user data immediately, only verifies token if stale (>30 min)
    */
   private initializeFromStorage(): void {
     const tokens = this.getStoredTokens();
     const user = this.getStoredUser();
 
     if (tokens && user) {
+      // Set user immediately from cache (synchronous - no race condition)
       this.currentUserSignal.set(user);
-      // Optionally verify token validity by calling /me endpoint
-      this.verifyToken().subscribe();
+      this.isInitializedSignal.set(true);
+
+      // Only verify token if it's been more than 30 minutes since last verification
+      // This avoids unnecessary API calls on every page load/new window
+      const lastVerified = localStorage.getItem(TOKEN_TIMESTAMP_KEY);
+      const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+
+      if (!lastVerified || parseInt(lastVerified, 10) < thirtyMinutesAgo) {
+        this.verifyToken().subscribe();
+      }
+    } else {
+      this.isInitializedSignal.set(true);
     }
   }
 
@@ -80,6 +95,7 @@ export class AuthService {
       tap(user => {
         this.currentUserSignal.set(user);
         this.storeUser(user);
+        this.updateVerificationTimestamp();
       }),
       catchError(() => {
         // Token invalid, try refresh or logout
@@ -88,6 +104,7 @@ export class AuthService {
           tap(user => {
             this.currentUserSignal.set(user);
             this.storeUser(user);
+            this.updateVerificationTimestamp();
           }),
           catchError(() => {
             this.clearAuthData();
@@ -96,6 +113,13 @@ export class AuthService {
         );
       })
     );
+  }
+
+  /**
+   * Update the last verification timestamp
+   */
+  private updateVerificationTimestamp(): void {
+    localStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
   }
 
   /**
@@ -108,7 +132,9 @@ export class AuthService {
       tap(response => {
         this.storeTokens({ access: response.access, refresh: response.refresh });
         this.storeUser(response.user);
+        this.updateVerificationTimestamp();
         this.currentUserSignal.set(response.user);
+        this.isInitializedSignal.set(true);
         this.isLoadingSignal.set(false);
       }),
       map(response => response.user),
@@ -225,6 +251,7 @@ export class AuthService {
   private clearAuthData(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_TIMESTAMP_KEY);
     this.currentUserSignal.set(null);
     this.router.navigate(['/accueil']);
   }
