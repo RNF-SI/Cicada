@@ -1,0 +1,188 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Main Content -->
+<main class="plans-page">
+  <!-- Hero Section avec bandeau primary -->
+  <section class="hero-section">
+    <!-- Background avec motif carte -->
+    <div class="hero-background">
+      <div class="hero-pattern"></div>
+    </div>
+
+    <!-- Contenu du hero -->
+    <div class="hero-content">
+      <!-- Fil d'Ariane -->
+      <nav class="breadcrumb" aria-label="Fil d'Ariane">
+        <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+          <i class="fi fi-rr-home"></i>
+        </a>
+        <span class="breadcrumb-separator"></span>
+        <span class="breadcrumb-current">Plans de gestion</span>
+      </nav>
+
+      <!-- Section titre -->
+      <div class="title-section">
+        <div class="title-left">
+          <div class="subtitle">
+            <i class="fi fi-rr-marker"></i>
+            <span>SOUS-TITRE ?</span>
+          </div>
+          <h1>Plans de gestion</h1>
+        </div>
+
+        <div class="title-right">
+          <button class="btn-create" [matMenuTriggerFor]="createMenu">
+            <i class="fi fi-rr-plus-small"></i>
+            <span>Créer un plan de gestion</span>
+            <i class="fi fi-rr-angle-small-down"></i>
+          </button>
+
+          <mat-menu #createMenu="matMenu" class="create-dropdown">
+            <button mat-menu-item routerLink="/plans/nouveau">
+              Nouveau plan vierge
+            </button>
+            <button mat-menu-item routerLink="/plans/dupliquer">
+              Dupliquer un plan existant
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+      <!-- Tabs - positionnés en bas du hero -->
+      <div class="tabs">
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'actifs'"
+          (click)="setTab('actifs')">
+          Actifs
+        </button>
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'inactifs'"
+          (click)="setTab('inactifs')">
+          Inactifs
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content Section -->
+  <section class="content-section">
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <!-- Search -->
+      <div class="search-box">
+        <i class="fi fi-rr-search"></i>
+        <input
+          type="text"
+          placeholder="Rechercher"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+        />
+      </div>
+
+      <!-- Old versions link -->
+      <button class="btn-link">
+        <span>Voir les anciennes versions</span>
+        <i class="fi fi-rr-time-past"></i>
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="plans-table">
+        <thead>
+          <tr>
+            <th class="col-name">
+              Nom du plan de gestion
+              <i class="fi fi-rr-arrow-small-down"></i>
+            </th>
+            <th class="col-period">Période de validité</th>
+            <th class="col-status">
+              Statut
+              <i class="fi fi-rr-arrow-small-down"></i>
+            </th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of filteredPlans(); track plan.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <td class="col-name">
+                <span class="plan-name">{{ plan.nom }}</span>
+                @if (plan.isMultisites) {
+                  <span class="plan-separator">-</span>
+                  <span class="plan-multisites">multisites</span>
+                }
+              </td>
+              <td class="col-period">
+                <div class="period-content">
+                  <span class="period-dates">{{ plan.periodeDebut }}-{{ plan.periodeFin }}</span>
+                  <app-plan-gauge
+                    [status]="plan.gaugeStatus"
+                    [startYear]="plan.periodeDebut"
+                    [endYear]="plan.periodeFin">
+                  </app-plan-gauge>
+                </div>
+              </td>
+              <td class="col-status">
+                <div class="status-content">
+                  <span class="status-tag" [class]="getStatutClass(plan.statut)">
+                    {{ getStatutLabel(plan.statut) }}
+                  </span>
+                  <button class="btn-icon" (click)="editStatus(plan)" title="Modifier le statut">
+                    <i class="fi fi-rr-pencil"></i>
+                  </button>
+                </div>
+              </td>
+              <td class="col-actions">
+                <div class="actions-content">
+                  <button class="btn-action" (click)="followPlan(plan)">
+                    <span>Suivre</span>
+                    <i class="fi fi-rr-stats"></i>
+                  </button>
+                  <button class="btn-action" (click)="viewPlan(plan)">
+                    <span>Voir</span>
+                    <i class="fi fi-rr-eye"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination - affichée seulement si nécessaire -->
+    @if (showPagination()) {
+      <div class="pagination">
+        <button
+          class="pagination-btn nav"
+          [disabled]="currentPage() === 1"
+          (click)="previousPage()">
+          <i class="fi fi-rr-arrow-small-left"></i>
+        </button>
+
+        @for (page of paginationPages(); track $index) {
+          @if (page === '...') {
+            <span class="pagination-ellipsis">...</span>
+          } @else {
+            <button
+              class="pagination-btn"
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)">
+              {{ page }}
+            </button>
+          }
+        }
+
+        <button
+          class="pagination-btn nav"
+          [disabled]="currentPage() === totalPages()"
+          (click)="nextPage()">
+          <i class="fi fi-rr-arrow-small-right"></i>
+        </button>
+      </div>
+    }
+  </section>
+</main>
