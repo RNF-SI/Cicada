@@ -14,13 +14,13 @@ class PlanGestionFilter(filters.FilterSet):
     """
     Filtres pour les Plans de Gestion.
     """
-    
+
     # Filtres de base
     statut = filters.ChoiceFilter(choices=PlanGestion.STATUT_CHOICES)
     gestion_partagee = filters.BooleanFilter()
     ct88 = filters.BooleanFilter()
     risque_incendie = filters.BooleanFilter()
-    
+
     # Filtres par période
     annee_debut = filters.NumberFilter()
     annee_fin = filters.NumberFilter()
@@ -28,7 +28,10 @@ class PlanGestionFilter(filters.FilterSet):
     annee_debut_lte = filters.NumberFilter(field_name='annee_debut', lookup_expr='lte')
     annee_fin_gte = filters.NumberFilter(field_name='annee_fin', lookup_expr='gte')
     annee_fin_lte = filters.NumberFilter(field_name='annee_fin', lookup_expr='lte')
-    
+
+    # Filtre pour plans actifs (annee courante dans la periode du plan)
+    actif = filters.BooleanFilter(method='filter_actif')
+
     # Filtre pour plans actifs dans une année donnée
     actif_en_annee = filters.NumberFilter(method='filter_actif_en_annee')
     
@@ -90,6 +93,21 @@ class PlanGestionFilter(filters.FilterSet):
             'version': ['exact', 'icontains'],
         }
     
+    def filter_actif(self, queryset, name, value):
+        """Filtrer les plans actifs (annee courante dans la periode du plan)."""
+        current_year = datetime.now().year
+        if value is True:
+            return queryset.filter(
+                annee_debut__lte=current_year,
+                annee_fin__gte=current_year
+            )
+        elif value is False:
+            from django.db.models import Q
+            return queryset.filter(
+                Q(annee_debut__gt=current_year) | Q(annee_fin__lt=current_year)
+            )
+        return queryset
+
     def filter_actif_en_annee(self, queryset, name, value):
         """Filtrer les plans actifs dans une année donnée."""
         if value:

@@ -278,12 +278,12 @@ export class AdminService {
         map(res => res.pagination?.count ?? 0),
         catchError(() => of(0))
       ),
-      plans: this.http.get<PaginatedResponse<any>>('/api/plans/plans/').pipe(
-        map(res => res.count ?? 0),
+      plans: this.http.get<PaginatedResponseNested<any>>('/api/plans/plans/').pipe(
+        map(res => res.pagination?.count ?? 0),
         catchError(() => of(0))
       ),
-      plansActifs: this.http.get<PaginatedResponse<any>>('/api/plans/plans/?actif=true').pipe(
-        map(res => res.count ?? 0),
+      plansActifs: this.http.get<PaginatedResponseNested<any>>('/api/plans/plans/?actif=true').pipe(
+        map(res => res.pagination?.count ?? 0),
         catchError(() => of(0))
       )
     }).pipe(
