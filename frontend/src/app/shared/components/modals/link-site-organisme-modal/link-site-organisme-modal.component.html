@@ -1,0 +1,105 @@
+<h2 mat-dialog-title>
+  @if (mode === 'select-organisme') {
+    Associer le site a un organisme
+  } @else {
+    Ajouter un site a l'organisme
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement...</p>
+    </div>
+  } @else {
+    <div class="modal-form">
+      @if (mode === 'select-organisme') {
+        <div class="site-info">
+          <div class="site-icon">
+            <i class="fi fi-rr-marker"></i>
+          </div>
+          <div class="site-details">
+            <span class="site-name">{{ data.site?.nom_site }}</span>
+            @if (data.site?.type_site_label) {
+              <span class="site-type">{{ data.site?.type_site_label }}</span>
+            }
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Organisme gestionnaire</mat-label>
+          <mat-select [(ngModel)]="selectedOrganismeId" required>
+            @for (org of organismes(); track org.id_organisme) {
+              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      } @else {
+        <div class="organisme-info">
+          <div class="org-icon">
+            <i class="fi fi-rr-building"></i>
+          </div>
+          <div class="org-details">
+            <span class="org-name">{{ data.organisme?.nom_organisme }}</span>
+            @if (data.organisme?.ville_organisme) {
+              <span class="org-location">{{ data.organisme?.ville_organisme }}</span>
+            }
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rechercher un site</mat-label>
+          <input
+            matInput
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="filterSites()"
+            placeholder="Nom ou identifiant du site...">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Site</mat-label>
+          <mat-select [(ngModel)]="selectedSiteId" required>
+            @for (site of filteredSites(); track site.id_site) {
+              <mat-option [value]="site.id_site">
+                {{ getSiteDisplayName(site) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      <div class="checkbox-container">
+        <mat-checkbox [(ngModel)]="isPrincipal">
+          Organisme principal (gestionnaire principal du site)
+        </mat-checkbox>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    Annuler
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="isLoading() || isLoadingData() ||
+      (mode === 'select-organisme' && !selectedOrganismeId) ||
+      (mode === 'select-site' && !selectedSiteId)">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Associer
+    }
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,105 @@
+<h2 mat-dialog-title>
+  @if (mode === 'select-organisme') {
+    Associer l'utilisateur a un organisme
+  } @else {
+    Ajouter un utilisateur a l'organisme
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement...</p>
+    </div>
+  } @else {
+    <div class="modal-form">
+      @if (mode === 'select-organisme') {
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ data.user?.prenom_role?.charAt(0) || '' }}{{ data.user?.nom_role?.charAt(0) || '' }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">
+              {{ data.user?.prenom_role }} {{ data.user?.nom_role }}
+            </span>
+            <span class="user-email">{{ data.user?.email }}</span>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Organisme</mat-label>
+          <mat-select [(ngModel)]="selectedOrganismeId">
+            <mat-option [value]="null">Aucun organisme</mat-option>
+            @for (org of organismes(); track org.id_organisme) {
+              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>
+            @if (data.user?.organisme) {
+              Actuellement: {{ data.user?.organisme?.nom_organisme }}
+            } @else {
+              Aucun organisme actuellement
+            }
+          </mat-hint>
+        </mat-form-field>
+      } @else {
+        <div class="organisme-info">
+          <div class="org-icon">
+            <i class="fi fi-rr-building"></i>
+          </div>
+          <div class="org-details">
+            <span class="org-name">{{ data.organisme?.nom_organisme }}</span>
+            @if (data.organisme?.ville_organisme) {
+              <span class="org-location">{{ data.organisme?.ville_organisme }}</span>
+            }
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rechercher un utilisateur</mat-label>
+          <input
+            matInput
+            [(ngModel)]="searchUserQuery"
+            (ngModelChange)="filterUsers()"
+            placeholder="Nom, prenom ou email...">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Utilisateur</mat-label>
+          <mat-select [(ngModel)]="selectedUserId">
+            @for (user of filteredUsers(); track user.id_role) {
+              <mat-option [value]="user.id_role">
+                {{ getUserDisplayName(user) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    Annuler
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="isLoading() || isLoadingData() || (mode === 'select-user' && !selectedUserId)">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Associer
+    }
+  </button>
+</mat-dialog-actions>

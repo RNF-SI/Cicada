@@ -1,0 +1,121 @@
+<h2 mat-dialog-title>
+  @if (mode === 'select-site') {
+    Associer l'utilisateur a un site
+  } @else {
+    Ajouter un referent au site
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement...</p>
+    </div>
+  } @else {
+    <div class="modal-form">
+      @if (mode === 'select-site') {
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ data.user?.prenom_role?.charAt(0) || '' }}{{ data.user?.nom_role?.charAt(0) || '' }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">
+              {{ data.user?.prenom_role }} {{ data.user?.nom_role }}
+            </span>
+            <span class="user-email">{{ data.user?.email }}</span>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rechercher un site</mat-label>
+          <input
+            matInput
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="filterItems()"
+            placeholder="Nom ou identifiant du site...">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Site</mat-label>
+          <mat-select [(ngModel)]="selectedSiteId" required>
+            @for (site of filteredItems(); track site.id_site) {
+              <mat-option [value]="site.id_site">
+                {{ getSiteDisplayName(site) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      } @else {
+        <div class="site-info">
+          <div class="site-icon">
+            <i class="fi fi-rr-marker"></i>
+          </div>
+          <div class="site-details">
+            <span class="site-name">{{ data.site?.nom_site }}</span>
+            @if (data.site?.type_site_label) {
+              <span class="site-type">{{ data.site?.type_site_label }}</span>
+            }
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rechercher un utilisateur</mat-label>
+          <input
+            matInput
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="filterItems()"
+            placeholder="Nom, prenom ou email...">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Utilisateur</mat-label>
+          <mat-select [(ngModel)]="selectedUserId" required>
+            @for (user of filteredItems(); track user.id_role) {
+              <mat-option [value]="user.id_role">
+                {{ getUserDisplayName(user) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      <div class="checkbox-container">
+        <mat-checkbox [(ngModel)]="isReferent">
+          Referent du site (peut gerer le site et ses plans de gestion)
+        </mat-checkbox>
+      </div>
+
+      <div class="info-box">
+        <i class="fi fi-rr-info"></i>
+        <span>Le referent d'un site peut creer et modifier les plans de gestion associes a ce site.</span>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    Annuler
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="isLoading() || isLoadingData() ||
+      (mode === 'select-site' && !selectedSiteId) ||
+      (mode === 'select-user' && !selectedUserId)">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Associer
+    }
+  </button>
+</mat-dialog-actions>

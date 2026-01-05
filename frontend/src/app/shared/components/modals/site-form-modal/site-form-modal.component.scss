@@ -1,0 +1,57 @@
+.site-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 450px;
+  padding-top: 8px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+
+  &.two-columns {
+    > * {
+      flex: 1;
+    }
+  }
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 24px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #ffebee;
+  border: 1px solid #ef5350;
+  border-radius: 4px;
+  color: #c62828;
+  margin-bottom: 16px;
+
+  i {
+    font-size: 18px;
+  }
+}
+
+mat-dialog-content {
+  min-height: 200px;
+}
+
+mat-dialog-actions {
+  padding: 16px 0 0 0;
+
+  button {
+    min-width: 100px;
+  }
+}
