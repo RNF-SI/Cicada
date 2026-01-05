@@ -15,9 +15,9 @@
     <!-- Navigation -->
     <nav class="header-nav">
       @if (isAuthenticated()) {
-        <!-- Administration button - visible separately -->
+        <!-- Administration button - opens in new window -->
         @if (canAccessAdmin()) {
-          <a routerLink="/administration" class="nav-link admin-btn">
+          <a (click)="openAdminInNewWindow()" class="nav-link admin-btn" role="button" tabindex="0">
             <i class="fi fi-rr-settings-sliders"></i>
             <span class="btn-text">Administration</span>
           </a>
@@ -82,7 +82,7 @@
         <span>Plans de gestion</span>
       </a>
       @if (isAuthenticated() && canAccessAdmin()) {
-        <a routerLink="/administration" class="mobile-menu-item" (click)="toggleMenu()">
+        <a (click)="openAdminInNewWindow(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
           <i class="fi fi-rr-settings-sliders"></i>
           <span>Administration</span>
         </a>

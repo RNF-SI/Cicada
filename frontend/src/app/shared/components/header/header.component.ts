@@ -65,4 +65,8 @@ export class HeaderComponent {
   logout(): void {
     this.authService.logout().subscribe();
   }
+
+  openAdminInNewWindow(): void {
+    window.open('/administration', '_blank');
+  }
 }
