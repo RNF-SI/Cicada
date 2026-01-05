@@ -253,6 +253,68 @@
   }
 }
 
+// Sites column
+.sites-cell {
+  max-width: 250px;
+}
+
+.sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.site-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px $spacing-xs;
+  background-color: rgba($primary-color, 0.08);
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  i {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .role-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: $border-radius-round;
+    margin-left: 2px;
+    flex-shrink: 0;
+
+    &.referent {
+      background-color: $secondary-yellow;
+      color: darken($secondary-yellow, 35%);
+    }
+
+    &.conservateur {
+      background-color: $secondary-pale-green;
+      color: darken($secondary-pale-green, 40%);
+    }
+  }
+}
+
+.sites-more {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+  cursor: help;
+  padding: 2px 0;
+}
+
 .date-cell {
   color: $gray-dark;
   font-size: $font-size-small;
@@ -339,6 +401,6 @@
   }
 
   .users-table {
-    min-width: 700px;
+    min-width: 900px;
   }
 }

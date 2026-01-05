@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>
   @if (mode === 'select-site') {
-    Associer l'utilisateur a un site
+    Gerer les sites de l'utilisateur
   } @else {
-    Ajouter un referent au site
+    Ajouter un utilisateur au site
   }
 </h2>
 
@@ -14,6 +14,13 @@
     </div>
   }
 
+  @if (successMessage()) {
+    <div class="success-banner">
+      <i class="fi fi-rr-check"></i>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
   @if (isLoadingData()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
@@ -22,6 +29,7 @@
   } @else {
     <div class="modal-form">
       @if (mode === 'select-site') {
+        <!-- User info header -->
         <div class="user-info">
           <div class="user-avatar">
             {{ data.user?.prenom_role?.charAt(0) || '' }}{{ data.user?.nom_role?.charAt(0) || '' }}
@@ -34,26 +42,148 @@
           </div>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Rechercher un site</mat-label>
-          <input
-            matInput
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="filterItems()"
-            placeholder="Nom ou identifiant du site...">
-        </mat-form-field>
+        <!-- Current sites list -->
+        <div class="sites-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-marker"></i>
+            Sites associes ({{ visibleAssignments.length }})
+          </h3>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Site</mat-label>
-          <mat-select [(ngModel)]="selectedSiteId" required>
-            @for (site of filteredItems(); track site.id_site) {
-              <mat-option [value]="site.id_site">
-                {{ getSiteDisplayName(site) }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          @if (siteAssignments().length === 0) {
+            <div class="empty-state">
+              <i class="fi fi-rr-info"></i>
+              <span>Aucun site associe. Utilisez le formulaire ci-dessous pour ajouter un site.</span>
+            </div>
+          } @else {
+            <div class="sites-list">
+              @for (assignment of siteAssignments(); track assignment.site.id_site) {
+                <div class="site-item"
+                     [class.is-new]="assignment.isNew"
+                     [class.is-modified]="assignment.isModified && !assignment.isDeleted"
+                     [class.is-deleted]="assignment.isDeleted">
+                  <div class="site-item-info">
+                    <i class="fi fi-rr-marker"></i>
+                    <span class="site-name">{{ assignment.site.nom_site }}</span>
+                    @if (assignment.isNew) {
+                      <span class="badge new-badge">Nouveau</span>
+                    }
+                    @if (assignment.isModified && !assignment.isDeleted) {
+                      <span class="badge modified-badge">Modifie</span>
+                    }
+                    @if (assignment.isDeleted) {
+                      <span class="badge deleted-badge">Supprime</span>
+                    }
+                  </div>
+                  @if (!assignment.isDeleted) {
+                    <div class="site-item-roles">
+                      <label class="role-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="assignment.referent"
+                          (change)="toggleReferent(assignment)">
+                        <span class="role-label referent">R</span>
+                        <span class="role-text">Referent</span>
+                      </label>
+                      <label class="role-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="assignment.conservateur"
+                          (change)="toggleConservateur(assignment)">
+                        <span class="role-label conservateur">C</span>
+                        <span class="role-text">Conservateur</span>
+                      </label>
+                    </div>
+                    <button
+                      class="btn-remove"
+                      type="button"
+                      (click)="removeSite(assignment)"
+                      title="Retirer ce site">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  } @else {
+                    <button
+                      class="btn-restore"
+                      type="button"
+                      (click)="restoreSite(assignment)"
+                      title="Annuler la suppression">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>Annuler</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Add new site section -->
+        <div class="add-site-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-plus"></i>
+            Ajouter un site
+          </h3>
+
+          <div class="add-site-form">
+            <mat-form-field appearance="outline" class="site-search-field">
+              <mat-label>Rechercher un site</mat-label>
+              <input
+                type="text"
+                matInput
+                [formControl]="siteControl"
+                [matAutocomplete]="siteAuto"
+                placeholder="Tapez pour rechercher...">
+              <i class="fi fi-rr-search" matSuffix></i>
+              <mat-autocomplete
+                #siteAuto="matAutocomplete"
+                [displayWith]="displaySite"
+                (optionSelected)="addSite($event.option.value)">
+                @for (site of filteredSites(); track site.id_site) {
+                  <mat-option [value]="site">
+                    <div class="autocomplete-option">
+                      <span class="option-name">{{ site.nom_site }}</span>
+                      @if (site.type_site_label) {
+                        <span class="option-type">{{ site.type_site_label }}</span>
+                      }
+                    </div>
+                  </mat-option>
+                }
+                @if (filteredSites().length === 0) {
+                  <mat-option disabled>
+                    @if (availableSitesForAdd.length === 0) {
+                      Tous les sites sont deja associes
+                    } @else {
+                      Aucun site trouve
+                    }
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <div class="new-site-roles">
+              <span class="roles-label">Roles par defaut:</span>
+              <label class="role-checkbox-inline">
+                <input type="checkbox" [(ngModel)]="newSiteReferent">
+                <span>Referent</span>
+              </label>
+              <label class="role-checkbox-inline">
+                <input type="checkbox" [(ngModel)]="newSiteConservateur">
+                <span>Conservateur</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+          <i class="fi fi-rr-info"></i>
+          <div>
+            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.<br>
+            <strong>Conservateur:</strong> responsable de la conservation du site.
+          </div>
+        </div>
+
       } @else {
+        <!-- Select user mode (for site detail page) -->
         <div class="site-info">
           <div class="site-icon">
             <i class="fi fi-rr-marker"></i>
@@ -67,36 +197,57 @@
         </div>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Rechercher un utilisateur</mat-label>
+          <mat-label>Rechercher et selectionner un utilisateur</mat-label>
           <input
+            type="text"
             matInput
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="filterItems()"
-            placeholder="Nom, prenom ou email...">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Utilisateur</mat-label>
-          <mat-select [(ngModel)]="selectedUserId" required>
-            @for (user of filteredItems(); track user.id_role) {
-              <mat-option [value]="user.id_role">
-                {{ getUserDisplayName(user) }}
+            [formControl]="userControl"
+            [matAutocomplete]="userAuto"
+            placeholder="Tapez pour rechercher un utilisateur...">
+          <i class="fi fi-rr-search" matSuffix></i>
+          <mat-autocomplete
+            #userAuto="matAutocomplete"
+            [displayWith]="displayUser"
+            (optionSelected)="onUserSelected($event.option.value)">
+            @for (user of filteredUsers(); track user.id_role) {
+              <mat-option [value]="user">
+                <div class="autocomplete-option">
+                  <span class="option-name">
+                    @if (user.prenom_role && user.nom_role) {
+                      {{ user.prenom_role }} {{ user.nom_role }}
+                    } @else {
+                      {{ user.email }}
+                    }
+                  </span>
+                  <span class="option-email">{{ user.email }}</span>
+                </div>
               </mat-option>
             }
-          </mat-select>
+            @if (filteredUsers().length === 0) {
+              <mat-option disabled>Aucun utilisateur trouve</mat-option>
+            }
+          </mat-autocomplete>
+          @if (selectedUser) {
+            <mat-hint>Utilisateur selectionne: {{ selectedUser.email }}</mat-hint>
+          }
         </mat-form-field>
+
+        <div class="roles-section">
+          <p class="roles-title">Roles de l'utilisateur sur ce site</p>
+          <div class="checkbox-container">
+            <mat-checkbox [(ngModel)]="isReferent">
+              <span class="checkbox-label">Referent</span>
+              <span class="checkbox-description">Peut gerer le site et ses plans de gestion</span>
+            </mat-checkbox>
+          </div>
+          <div class="checkbox-container">
+            <mat-checkbox [(ngModel)]="isConservateur">
+              <span class="checkbox-label">Conservateur</span>
+              <span class="checkbox-description">Responsable de la conservation du site</span>
+            </mat-checkbox>
+          </div>
+        </div>
       }
-
-      <div class="checkbox-container">
-        <mat-checkbox [(ngModel)]="isReferent">
-          Referent du site (peut gerer le site et ses plans de gestion)
-        </mat-checkbox>
-      </div>
-
-      <div class="info-box">
-        <i class="fi fi-rr-info"></i>
-        <span>Le referent d'un site peut creer et modifier les plans de gestion associes a ce site.</span>
-      </div>
     </div>
   }
 </mat-dialog-content>
@@ -105,17 +256,29 @@
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
     Annuler
   </button>
-  <button
-    mat-flat-button
-    color="primary"
-    (click)="onSubmit()"
-    [disabled]="isLoading() || isLoadingData() ||
-      (mode === 'select-site' && !selectedSiteId) ||
-      (mode === 'select-user' && !selectedUserId)">
-    @if (isLoading()) {
-      <mat-spinner diameter="20"></mat-spinner>
-    } @else {
-      Associer
-    }
-  </button>
+  @if (mode === 'select-site') {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isLoading() || isLoadingData()">
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Enregistrer
+      }
+    </button>
+  } @else {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isLoading() || isLoadingData() || !isValidForSelectUser()">
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Associer
+      }
+    </button>
+  }
 </mat-dialog-actions>

@@ -70,6 +70,21 @@ export interface SiteCreatePayload {
 }
 
 /**
+ * User-Site relationship with role details
+ */
+export interface UserSiteRelation {
+  site: {
+    id_site: number;
+    nom_site: string;
+    surf_off?: number;
+    active?: boolean;
+  };
+  referent: boolean;
+  referent_valid?: boolean;
+  conservateur: boolean;
+}
+
+/**
  * User - admin list model
  */
 export interface AdminUser {
@@ -83,7 +98,7 @@ export interface AdminUser {
   role_level: 'utilisateur' | 'referent' | 'admin_og' | 'super_admin';
   active: boolean;
   last_login?: string;
-  sites_geres?: AdminSite[];
+  sites_lies?: UserSiteRelation[];
 }
 
 /**

@@ -41,7 +41,7 @@ urlpatterns = [
     path('organismes/<int:organisme_pk>/sites/<int:site_pk>/',
          OrganismeViewSet.as_view({'delete': 'unassign_site'}),
          name='organisme_unassign_site'),
-    path('sites/<int:site_pk>/users/<int:user_pk>/',
+    path('sites/<int:pk>/users/<int:user_pk>/',
          SiteViewSet.as_view({'delete': 'unassign_user'}),
          name='site_unassign_user'),
     

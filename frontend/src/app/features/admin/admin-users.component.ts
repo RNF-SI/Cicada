@@ -4,14 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
-import { AdminUser as ApiUser, AdminOrganisme } from '../../core/models/admin.model';
+import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../core/models/admin.model';
 import { UserRole } from '../../core/models/user.model';
 import {
   LinkUserOrganismeModalComponent,
   LinkUserSiteModalComponent
 } from '../../shared/components/modals';
+
+// Interface for display site
+interface DisplaySite {
+  id: number;
+  nom: string;
+  isReferent: boolean;
+  isConservateur: boolean;
+}
 
 // Interface for display
 interface DisplayUser {
@@ -25,6 +34,7 @@ interface DisplayUser {
   role: UserRole;
   isActive: boolean;
   lastLogin?: string;
+  sites: DisplaySite[];
 }
 
 interface DisplayOrganisme {
@@ -40,7 +50,8 @@ interface DisplayOrganisme {
     FormsModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatTooltipModule
   ],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'
@@ -107,6 +118,13 @@ export class AdminUsersComponent implements OnInit {
   }
 
   private mapUser(user: ApiUser): DisplayUser {
+    const sites: DisplaySite[] = (user.sites_lies || []).map(relation => ({
+      id: relation.site.id_site,
+      nom: relation.site.nom_site,
+      isReferent: relation.referent,
+      isConservateur: relation.conservateur
+    }));
+
     return {
       id: user.id_role,
       email: user.email,
@@ -117,8 +135,20 @@ export class AdminUsersComponent implements OnInit {
       organismeUuid: user.organisme?.uuid_organisme,
       role: user.role_level,
       isActive: user.active,
-      lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined
+      lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined,
+      sites
     };
+  }
+
+  getSiteRoles(site: DisplaySite): string {
+    const roles: string[] = [];
+    if (site.isReferent) roles.push('Referent');
+    if (site.isConservateur) roles.push('Conservateur');
+    return roles.length > 0 ? roles.join(', ') : 'Associe';
+  }
+
+  getOtherSitesNames(sites: DisplaySite[]): string {
+    return sites.slice(2).map(s => s.nom).join(', ');
   }
 
   filterUsers(): void {
@@ -221,21 +251,34 @@ export class AdminUsersComponent implements OnInit {
   }
 
   openAssignSiteModal(user: DisplayUser): void {
+    // Build sites_lies from DisplaySite array
+    const sitesLies = user.sites.map(s => ({
+      site: {
+        id_site: s.id,
+        nom_site: s.nom,
+        active: true
+      },
+      referent: s.isReferent,
+      conservateur: s.isConservateur
+    }));
+
     const dialogRef = this.dialog.open(LinkUserSiteModalComponent, {
-      width: '550px',
+      width: '650px',
+      maxHeight: '85vh',
       data: {
         user: {
           id_role: user.id,
           email: user.email,
           nom_role: user.nom,
-          prenom_role: user.prenom
+          prenom_role: user.prenom,
+          sites_lies: sitesLies
         }
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.success) {
-        this.snackBar.open('Site assigne a l\'utilisateur', 'Fermer', { duration: 3000 });
+      if (result?.success && result?.changed) {
+        this.snackBar.open('Sites de l\'utilisateur mis a jour', 'Fermer', { duration: 3000 });
         this.loadUsers();
       }
     });

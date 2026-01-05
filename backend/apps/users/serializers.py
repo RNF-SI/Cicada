@@ -66,14 +66,20 @@ class RoleListSerializer(serializers.ModelSerializer):
     """
     organisme = BibOrganismesSerializer(source='id_organisme', read_only=True)
     nom_complet = serializers.CharField(source='get_full_name', read_only=True)
-    
+    sites_lies = CorRoleSiteSerializer(
+        source='corrolesite_set',
+        many=True,
+        read_only=True
+    )
+
     class Meta:
         model = Role
         fields = [
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
-            'role_level', 'organisme', 'active', 'is_staff', 'date_insert'
+            'role_level', 'organisme', 'active', 'is_staff', 'date_insert',
+            'sites_lies', 'last_login'
         ]
-        read_only_fields = ['id_role', 'date_insert']
+        read_only_fields = ['id_role', 'date_insert', 'last_login']
 
 
 class RoleDetailSerializer(serializers.ModelSerializer):
@@ -90,7 +96,7 @@ class RoleDetailSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     nom_complet = serializers.CharField(source='get_full_name', read_only=True)
-    sites_geres = CorRoleSiteSerializer(
+    sites_lies = CorRoleSiteSerializer(
         source='corrolesite_set',
         many=True,
         read_only=True
@@ -105,7 +111,7 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
             'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
-            'sites_geres', 'permissions_info', 'date_insert', 'date_update',
+            'sites_lies', 'permissions_info', 'date_insert', 'date_update',
             'last_login'
         ]
         read_only_fields = [

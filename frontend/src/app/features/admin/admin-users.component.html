@@ -70,6 +70,7 @@
               <th>Organisme</th>
             }
             <th>Role</th>
+            <th>Sites</th>
             <th>Statut</th>
             <th>Derniere connexion</th>
             <th>Actions</th>
@@ -96,6 +97,42 @@
                 <span class="role-badge" [class]="'role-' + user.role">
                   {{ getRoleLabel(user.role) }}
                 </span>
+              </td>
+              <td class="sites-cell">
+                @if (user.sites.length === 0) {
+                  <span class="text-muted">Aucun site</span>
+                } @else if (user.sites.length === 1) {
+                  <span class="site-chip" [matTooltip]="getSiteRoles(user.sites[0])">
+                    <i class="fi fi-rr-marker"></i>
+                    {{ user.sites[0].nom }}
+                    @if (user.sites[0].isReferent) {
+                      <span class="role-indicator referent" title="Referent">R</span>
+                    }
+                    @if (user.sites[0].isConservateur) {
+                      <span class="role-indicator conservateur" title="Conservateur">C</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="sites-list">
+                    @for (site of user.sites.slice(0, 2); track site.id) {
+                      <span class="site-chip" [matTooltip]="getSiteRoles(site)">
+                        <i class="fi fi-rr-marker"></i>
+                        {{ site.nom }}
+                        @if (site.isReferent) {
+                          <span class="role-indicator referent" title="Referent">R</span>
+                        }
+                        @if (site.isConservateur) {
+                          <span class="role-indicator conservateur" title="Conservateur">C</span>
+                        }
+                      </span>
+                    }
+                    @if (user.sites.length > 2) {
+                      <span class="sites-more" [matTooltip]="getOtherSitesNames(user.sites)">
+                        +{{ user.sites.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
               </td>
               <td>
                 <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
@@ -127,7 +164,7 @@
 
           @if (filteredUsers().length === 0) {
             <tr>
-              <td [attr.colspan]="isSuperAdmin() ? 7 : 6" class="empty-cell">
+              <td [attr.colspan]="isSuperAdmin() ? 8 : 7" class="empty-cell">
                 Aucun utilisateur trouve
               </td>
             </tr>

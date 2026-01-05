@@ -117,12 +117,13 @@ export class AdminService {
   }
 
   /**
-   * Assign a user to a site (as referent)
+   * Assign a user to a site with roles (referent and/or conservateur)
    */
-  assignUserToSite(siteId: number, userId: number, referent: boolean = true): Observable<any> {
+  assignUserToSite(siteId: number, userId: number, referent: boolean = true, conservateur: boolean = false): Observable<any> {
     return this.http.post(`${this.apiUrl}/sites/${siteId}/assign_user/`, {
       user_id: userId,
-      referent
+      referent,
+      conservateur
     }).pipe(catchError(this.handleError));
   }
 
