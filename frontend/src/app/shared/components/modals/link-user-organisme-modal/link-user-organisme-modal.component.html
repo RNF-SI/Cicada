@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>
-  @if (mode === 'select-organisme') {
-    Associer l'utilisateur a un organisme
+  @if (mode === 'select-user') {
+    Gerer les utilisateurs de l'organisme
   } @else {
-    Ajouter un utilisateur a l'organisme
+    Associer l'utilisateur a un organisme
   }
 </h2>
 
@@ -14,6 +14,13 @@
     </div>
   }
 
+  @if (successMessage()) {
+    <div class="success-banner">
+      <i class="fi fi-rr-check"></i>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
   @if (isLoadingData()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
@@ -21,7 +28,138 @@
     </div>
   } @else {
     <div class="modal-form">
-      @if (mode === 'select-organisme') {
+      @if (mode === 'select-user') {
+        <!-- Organisme info header -->
+        <div class="organisme-info">
+          <div class="org-icon">
+            <i class="fi fi-rr-building"></i>
+          </div>
+          <div class="org-details">
+            <span class="org-name">{{ data.organisme?.nom_organisme }}</span>
+            @if (data.organisme?.ville_organisme) {
+              <span class="org-location">{{ data.organisme?.ville_organisme }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Current users list -->
+        <div class="users-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-users"></i>
+            Utilisateurs ({{ visibleAssignments.length }})
+          </h3>
+
+          @if (userAssignments().length === 0) {
+            <div class="empty-state">
+              <i class="fi fi-rr-info"></i>
+              <span>Aucun utilisateur. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.</span>
+            </div>
+          } @else {
+            <div class="users-list">
+              @for (assignment of userAssignments(); track assignment.user.id_role) {
+                <div class="user-item"
+                     [class.is-new]="assignment.isNew"
+                     [class.is-deleted]="assignment.isDeleted">
+                  <div class="user-item-avatar">
+                    {{ getUserInitials(assignment.user) }}
+                  </div>
+                  <div class="user-item-info">
+                    <span class="user-name">{{ getUserDisplayName(assignment.user) }}</span>
+                    <span class="user-email">{{ assignment.user.email }}</span>
+                    @if (assignment.isNew) {
+                      <span class="badge new-badge">Nouveau</span>
+                    }
+                    @if (assignment.isDeleted) {
+                      <span class="badge deleted-badge">Supprime</span>
+                    }
+                  </div>
+                  @if (!assignment.isDeleted) {
+                    <button
+                      class="btn-remove"
+                      type="button"
+                      (click)="removeUser(assignment)"
+                      title="Retirer cet utilisateur">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  } @else {
+                    <button
+                      class="btn-restore"
+                      type="button"
+                      (click)="restoreUser(assignment)"
+                      title="Annuler la suppression">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>Annuler</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Add new user section -->
+        <div class="add-user-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-user-add"></i>
+            Ajouter un utilisateur
+          </h3>
+
+          <div class="add-user-form">
+            <mat-form-field appearance="outline" class="user-search-field">
+              <mat-label>Rechercher un utilisateur</mat-label>
+              <input
+                type="text"
+                matInput
+                [formControl]="userControl"
+                [matAutocomplete]="userAuto"
+                placeholder="Tapez pour rechercher...">
+              <i class="fi fi-rr-search" matSuffix></i>
+              <mat-autocomplete
+                #userAuto="matAutocomplete"
+                [displayWith]="displayUser"
+                (optionSelected)="addUser($event.option.value)">
+                @for (user of filteredUsers(); track user.id_role) {
+                  <mat-option [value]="user">
+                    <div class="autocomplete-option">
+                      <span class="option-name">
+                        @if (user.prenom_role && user.nom_role) {
+                          {{ user.prenom_role }} {{ user.nom_role }}
+                        } @else {
+                          {{ user.email }}
+                        }
+                      </span>
+                      <span class="option-email">{{ user.email }}</span>
+                      @if (user.organisme) {
+                        <span class="option-org">Actuellement: {{ user.organisme.nom_organisme }}</span>
+                      }
+                    </div>
+                  </mat-option>
+                }
+                @if (filteredUsers().length === 0) {
+                  <mat-option disabled>
+                    @if (availableUsersForAdd.length === 0) {
+                      Tous les utilisateurs sont deja associes
+                    } @else {
+                      Aucun utilisateur trouve
+                    }
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+          <i class="fi fi-rr-info"></i>
+          <div>
+            <strong>Note:</strong> Un utilisateur ne peut appartenir qu'a un seul organisme.
+            L'ajout d'un utilisateur le transferera vers cet organisme.
+          </div>
+        </div>
+
+      } @else {
+        <!-- Select organisme mode (for user detail page) -->
         <div class="user-info">
           <div class="user-avatar">
             {{ data.user?.prenom_role?.charAt(0) || '' }}{{ data.user?.nom_role?.charAt(0) || '' }}
@@ -50,38 +188,6 @@
             }
           </mat-hint>
         </mat-form-field>
-      } @else {
-        <div class="organisme-info">
-          <div class="org-icon">
-            <i class="fi fi-rr-building"></i>
-          </div>
-          <div class="org-details">
-            <span class="org-name">{{ data.organisme?.nom_organisme }}</span>
-            @if (data.organisme?.ville_organisme) {
-              <span class="org-location">{{ data.organisme?.ville_organisme }}</span>
-            }
-          </div>
-        </div>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Rechercher un utilisateur</mat-label>
-          <input
-            matInput
-            [(ngModel)]="searchUserQuery"
-            (ngModelChange)="filterUsers()"
-            placeholder="Nom, prenom ou email...">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Utilisateur</mat-label>
-          <mat-select [(ngModel)]="selectedUserId">
-            @for (user of filteredUsers(); track user.id_role) {
-              <mat-option [value]="user.id_role">
-                {{ getUserDisplayName(user) }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
       }
     </div>
   }
@@ -91,15 +197,29 @@
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
     Annuler
   </button>
-  <button
-    mat-flat-button
-    color="primary"
-    (click)="onSubmit()"
-    [disabled]="isLoading() || isLoadingData() || (mode === 'select-user' && !selectedUserId)">
-    @if (isLoading()) {
-      <mat-spinner diameter="20"></mat-spinner>
-    } @else {
-      Associer
-    }
-  </button>
+  @if (mode === 'select-user') {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isLoading() || isLoadingData()">
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Enregistrer
+      }
+    </button>
+  } @else {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isLoading() || isLoadingData()">
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Associer
+      }
+    </button>
+  }
 </mat-dialog-actions>
