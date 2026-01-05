@@ -30,14 +30,10 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Routes manuelles pour relations organismes-sites
-    path('organismes/<int:organisme_pk>/sites/', 
-         SiteViewSet.as_view({'get': 'list'}), 
+    path('organismes/<int:organisme_pk>/sites/',
+         SiteViewSet.as_view({'get': 'list'}),
          name='organisme_sites_list'),
-    path('organismes/<int:organisme_pk>/sites/<int:pk>/', 
-         SiteViewSet.as_view({'get': 'retrieve'}), 
-         name='organisme_sites_detail'),
-    
-    # Routes pour désassignation
+    # Route pour désassigner un site d'un organisme
     path('organismes/<int:organisme_pk>/sites/<int:site_pk>/',
          OrganismeViewSet.as_view({'delete': 'unassign_site'}),
          name='organisme_unassign_site'),

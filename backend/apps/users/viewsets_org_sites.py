@@ -208,9 +208,11 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['delete'])
-    def unassign_site(self, request, pk=None, site_pk=None):
+    def unassign_site(self, request, pk=None, organisme_pk=None, site_pk=None):
         """Désassigne un site d'un organisme."""
-        organisme = self.get_object()
+        # Support both pk (from router) and organisme_pk (from manual URL)
+        organisme_id = pk or organisme_pk
+        organisme = get_object_or_404(BibOrganismes, id_organisme=organisme_id)
         site = get_object_or_404(Site, id_site=site_pk)
         
         # Vérifier permissions
@@ -248,7 +250,7 @@ class OrganismeViewSet(viewsets.ModelViewSet):
                 'id_site': site.id_site,
                 'nom_site': site.nom_site,
                 'surf_off': site.surf_off,
-                'type_site': site.id_type_site.label_default if site.id_type_site else None,
+                'type_site': site.id_type_site.label if site.id_type_site else None,
                 'active': site.active
             })
         
@@ -529,20 +531,60 @@ class SiteViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """Statistiques des sites."""
         queryset = self.get_queryset()
-        
+
         total_sites = queryset.count()
         active_sites = queryset.filter(active=True).count()
         sites_marins = queryset.filter(marin=True).count()
         sites_outre_mer = queryset.filter(outre_mer=True).count()
-        
+
         # Surface totale
         from django.db.models import Sum
         surface_totale = queryset.aggregate(Sum('surf_off'))['surf_off__sum'] or 0
-        
+
         return Response({
             'total_sites': total_sites,
             'active_sites': active_sites,
             'sites_marins': sites_marins,
             'sites_outre_mer': sites_outre_mer,
             'surface_totale_ha': round(surface_totale, 2)
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme])
+    def available_for_assignment(self, request):
+        """
+        Liste tous les sites actifs disponibles pour assignation à un organisme.
+        Cet endpoint ne filtre pas par organisme, permettant aux admins d'organisme
+        de voir tous les sites qu'ils peuvent potentiellement ajouter.
+        GET /api/users/sites/available_for_assignment/
+        """
+        # Retourner tous les sites actifs sans filtrage par organisme
+        sites = Site.objects.filter(active=True).select_related('id_type_site').order_by('nom_site')
+
+        # Filtrage optionnel par recherche
+        search = request.query_params.get('search', '')
+        if search:
+            sites = sites.filter(
+                Q(nom_site__icontains=search) |
+                Q(id_local__icontains=search) |
+                Q(id_inpn__icontains=search)
+            )
+
+        # Pagination simple
+        page_size = int(request.query_params.get('page_size', 100))
+        sites = sites[:page_size]
+
+        sites_data = []
+        for site in sites:
+            sites_data.append({
+                'id_site': site.id_site,
+                'nom_site': site.nom_site,
+                'id_local': site.id_local,
+                'type_site_label': site.id_type_site.label if site.id_type_site else None,
+                'surf_off': site.surf_off,
+                'active': site.active
+            })
+
+        return Response({
+            'count': len(sites_data),
+            'results': sites_data
         })
