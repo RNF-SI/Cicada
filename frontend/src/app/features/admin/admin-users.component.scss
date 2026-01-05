@@ -273,14 +273,18 @@
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: $primary-color;
-  white-space: nowrap;
   max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   i {
     font-size: 12px;
     flex-shrink: 0;
+  }
+
+  .site-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   .role-indicator {

@@ -235,7 +235,7 @@ export class AdminService {
    */
   toggleUserStatus(userId: number, active: boolean): Observable<AdminUser> {
     return this.http.patch<AdminUser>(`${this.apiUrl}/users/${userId}/`, {
-      is_active: active
+      active: active
     }).pipe(catchError(this.handleError));
   }
 
