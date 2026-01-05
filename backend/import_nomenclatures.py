@@ -170,11 +170,28 @@ def verify_import():
             logger.info(f"  - {row[0]}: {row[1]} - {row[2]}")
 
 
+def nomenclatures_already_exist():
+    """Vérifie si les nomenclatures sont déjà importées."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM t_nomenclatures")
+            count = cursor.fetchone()[0]
+            return count > 0
+    except Exception:
+        return False
+
+
 def main():
     """Fonction principale."""
     logger.info("=== IMPORT DES NOMENCLATURES ===")
-    logger.info("Ce script va remplacer toutes les nomenclatures existantes")
-    logger.info("par celles des fichiers SQL fournis.")
+
+    # Vérifier si les nomenclatures existent déjà
+    if nomenclatures_already_exist():
+        logger.info("✓ Les nomenclatures sont déjà importées - import ignoré")
+        logger.info("  (Utilisez --force pour forcer la réimportation)")
+        return
+
+    logger.info("Ce script va importer les nomenclatures depuis les fichiers SQL.")
 
     try:
         # 1. Créer le schéma pour la migration (hors transaction atomique)
