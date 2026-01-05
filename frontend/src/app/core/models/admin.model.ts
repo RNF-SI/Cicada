@@ -34,7 +34,7 @@ export interface OrganismeCreatePayload {
   tel_organisme?: string;
   email_organisme?: string;
   url_organisme?: string;
-  id_parent?: number;
+  parent_id?: number | null;
 }
 
 /**

@@ -62,7 +62,7 @@ export class OrganismeFormModalComponent implements OnInit {
       tel_organisme: [org?.tel_organisme || '', Validators.maxLength(20)],
       email_organisme: [org?.email_organisme || '', [Validators.email, Validators.maxLength(255)]],
       url_organisme: [org?.url_organisme || '', Validators.maxLength(255)],
-      id_parent: [org?.id_parent || null]
+      parent_id: [org?.id_parent || null]
     });
   }
 
@@ -104,7 +104,7 @@ export class OrganismeFormModalComponent implements OnInit {
       tel_organisme: this.form.value.tel_organisme || undefined,
       email_organisme: this.form.value.email_organisme || undefined,
       url_organisme: this.form.value.url_organisme || undefined,
-      id_parent: this.form.value.id_parent || undefined
+      parent_id: this.form.value.parent_id || null
     };
 
     const request$ = this.isEditMode

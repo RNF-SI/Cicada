@@ -23,6 +23,8 @@ interface DisplayOrganisme {
   ville?: string;
   telephone?: string;
   email?: string;
+  url?: string;
+  parentId?: number;
   nbUtilisateurs: number;
   nbSites: number;
   nbPlans: number;
@@ -111,6 +113,8 @@ export class AdminOrganismesComponent implements OnInit {
       ville: org.ville_organisme,
       telephone: org.tel_organisme,
       email: org.email_organisme,
+      url: org.url_organisme,
+      parentId: org.id_parent,
       nbUtilisateurs: org.users_count || 0,
       nbSites: org.sites_count || 0,
       nbPlans: 0, // Will be added later
@@ -137,7 +141,7 @@ export class AdminOrganismesComponent implements OnInit {
       width: '600px',
       data: {
         parentOrganismes: this.organismes().map(o => ({
-          id: o.id,
+          id_organisme: o.id,
           nom_organisme: o.nom
         }))
       }
@@ -156,16 +160,18 @@ export class AdminOrganismesComponent implements OnInit {
       width: '600px',
       data: {
         organisme: {
-          id: org.id,
+          id_organisme: org.id,
           nom_organisme: org.nom,
           adresse_organisme: org.adresse,
           cp_organisme: org.codePostal,
           ville_organisme: org.ville,
           tel_organisme: org.telephone,
-          email_organisme: org.email
+          email_organisme: org.email,
+          url_organisme: org.url,
+          id_parent: org.parentId
         },
         parentOrganismes: this.organismes().map(o => ({
-          id: o.id,
+          id_organisme: o.id,
           nom_organisme: o.nom
         }))
       }

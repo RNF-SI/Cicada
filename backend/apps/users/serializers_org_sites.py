@@ -19,16 +19,18 @@ from apps.core.models import Nomenclature
 
 class OrganismeListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des organismes."""
-    
+
     sites_count = serializers.SerializerMethodField()
     users_count = serializers.SerializerMethodField()
     parent_organisme = serializers.CharField(source='id_parent.nom_organisme', read_only=True)
-    
+
     class Meta:
         model = BibOrganismes
         fields = [
-            'id_organisme', 'uuid_organisme', 'nom_organisme', 'ville_organisme',
-            'email_organisme', 'url_organisme', 'parent_organisme',
+            'id_organisme', 'uuid_organisme', 'nom_organisme',
+            'adresse_organisme', 'cp_organisme', 'ville_organisme',
+            'tel_organisme', 'email_organisme', 'url_organisme',
+            'parent_organisme', 'id_parent',
             'sites_count', 'users_count'
         ]
     
