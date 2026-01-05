@@ -9,7 +9,8 @@ import {
   OrganismeCreatePayload,
   SiteCreatePayload,
   PaginatedResponse,
-  PaginatedResponseNested
+  PaginatedResponseNested,
+  OrganismeSite
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -87,7 +88,40 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Get sites linked to an organisme
+   */
+  getOrganismeSites(organismeId: number): Observable<OrganismeSite[]> {
+    return this.http.get<OrganismeSite[]>(`${this.apiUrl}/organismes/${organismeId}/sites/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get users belonging to an organisme
+   */
+  getOrganismeUsers(organismeId: number): Observable<AdminUser[]> {
+    return this.http.get<PaginatedResponse<AdminUser>>(`${this.apiUrl}/users/?organisme=${organismeId}`)
+      .pipe(
+        map(res => res.results),
+        catchError(this.handleError)
+      );
+  }
+
   // ==================== SITES ====================
+
+  /**
+   * Get all sites available for assignment (no organisme filtering)
+   * Used for adding sites to an organisme
+   */
+  getSitesAvailableForAssignment(search?: string): Observable<PaginatedResponse<AdminSite>> {
+    let httpParams = new HttpParams();
+    if (search) {
+      httpParams = httpParams.set('search', search);
+    }
+
+    return this.http.get<PaginatedResponse<AdminSite>>(`${this.apiUrl}/sites/available_for_assignment/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
+  }
 
   /**
    * Get list of sites
