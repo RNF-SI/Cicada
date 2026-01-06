@@ -70,25 +70,25 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """Filtrer selon les permissions utilisateur."""
         user = self.request.user
         queryset = self.queryset
-        
+
         # Super admin : voir tous les plans
         if user.is_super_admin():
             return queryset
-        
+
         # Admin organisme : voir les plans des sites de son organisme
-        if user.is_admin_organisme():
+        if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                sites__site__cor_og_site__id_organisme=user.id_organisme
+                sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
-        
+
         # Référent : voir les plans des sites assignés + plans dont il est référent
         if user.is_referent():
             from django.db.models import Q
             return queryset.filter(
-                Q(sites__site__cor_role_site__id_role=user) |
+                Q(sites__site__corrolesite__id_role=user) |
                 Q(referents=user)
             ).distinct()
-        
+
         # Utilisateur : voir les plans publics
         return queryset.filter(statut='valide')
     
