@@ -44,7 +44,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     queryset = PlanGestion.objects.all().select_related(
         'id_evaluation', 'id_redacteur_type',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related('sites__site', 'fichiers', 'referents')
+    ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents')
     
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

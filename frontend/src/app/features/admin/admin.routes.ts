@@ -8,6 +8,7 @@ import { AdminDashboardComponent } from './admin-dashboard.component';
 import { AdminUsersComponent } from './admin-users.component';
 import { AdminOrganismesComponent } from './admin-organismes.component';
 import { AdminSitesComponent } from './admin-sites.component';
+import { AdminPlansComponent } from './admin-plans.component';
 
 /**
  * Admin Routes Configuration
@@ -65,6 +66,11 @@ export const ADMIN_ROUTES: Routes = [
         path: 'sites',
         component: AdminSitesComponent,
         canActivate: [notAdminOgOnlyGuard] // Block admin_og
+      },
+      {
+        path: 'plans',
+        component: AdminPlansComponent,
+        canActivate: [notAdminOgOnlyGuard] // Block admin_og - only super_admin can manage plans
       }
     ]
   }

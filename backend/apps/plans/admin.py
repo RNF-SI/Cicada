@@ -1,13 +1,171 @@
 """
 Configuration de l'interface d'administration pour les Plans de Gestion.
 """
+import csv
+from datetime import datetime
+
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
+from django.http import HttpResponse
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from .models import PlanGestion, CorSitePg, CorPgFichier
+
+
+# =============================================================================
+# Actions pour les Plans de Gestion
+# =============================================================================
+
+def valider_plans(modeladmin, request, queryset):
+    """Action pour valider les plans sélectionnés (passer de draft à valide)."""
+    plans_draft = queryset.filter(statut='draft')
+    count = plans_draft.count()
+    if count == 0:
+        modeladmin.message_user(
+            request,
+            "Aucun plan en brouillon sélectionné.",
+            level='WARNING'
+        )
+        return
+
+    plans_draft.update(statut='valide', id_utilisateur_maj=request.user)
+    modeladmin.message_user(
+        request,
+        f"{count} plan(s) validé(s) avec succès."
+    )
+valider_plans.short_description = "✓ Valider les plans sélectionnés (draft → valide)"
+
+
+def archiver_plans(modeladmin, request, queryset):
+    """Action pour archiver les plans sélectionnés."""
+    plans_non_archives = queryset.exclude(statut='archive')
+    count = plans_non_archives.count()
+    if count == 0:
+        modeladmin.message_user(
+            request,
+            "Aucun plan non-archivé sélectionné.",
+            level='WARNING'
+        )
+        return
+
+    plans_non_archives.update(statut='archive', id_utilisateur_maj=request.user)
+    modeladmin.message_user(
+        request,
+        f"{count} plan(s) archivé(s) avec succès."
+    )
+archiver_plans.short_description = "📦 Archiver les plans sélectionnés"
+
+
+def remettre_en_brouillon(modeladmin, request, queryset):
+    """Action pour remettre les plans en brouillon."""
+    if not request.user.is_superuser:
+        modeladmin.message_user(
+            request,
+            "Seuls les super-administrateurs peuvent remettre un plan en brouillon.",
+            level='ERROR'
+        )
+        return
+
+    count = queryset.exclude(statut='draft').count()
+    if count == 0:
+        modeladmin.message_user(
+            request,
+            "Aucun plan non-brouillon sélectionné.",
+            level='WARNING'
+        )
+        return
+
+    queryset.exclude(statut='draft').update(statut='draft', id_utilisateur_maj=request.user)
+    modeladmin.message_user(
+        request,
+        f"{count} plan(s) remis en brouillon.",
+        level='WARNING'
+    )
+remettre_en_brouillon.short_description = "⚠️ Remettre en brouillon (Super-admin)"
+
+
+def export_plans_csv(modeladmin, request, queryset):
+    """Exporter les plans sélectionnés en CSV."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="plans_gestion_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Nom', 'Statut', 'Version', 'Période', 'Gestion partagée',
+        'CT88', 'Risque incendie', 'Type évaluation', 'Rédacteur',
+        'Sites', 'Référents', 'Date création', 'Dernière modification'
+    ])
+
+    for plan in queryset.select_related('id_evaluation', 'id_redacteur_type').prefetch_related('sites__site', 'referents'):
+        sites = ', '.join([cor.site.nom_site for cor in plan.sites.all()])
+        referents = ', '.join([f"{r.nom_role} {r.prenom_role}" for r in plan.referents.all()])
+
+        writer.writerow([
+            plan.id_pg,
+            plan.nom,
+            plan.get_statut_display(),
+            plan.version,
+            plan.get_periode_gestion(),
+            'Oui' if plan.gestion_partagee else 'Non',
+            'Oui' if plan.ct88 else 'Non',
+            'Oui' if plan.risque_incendie else 'Non',
+            plan.id_evaluation.label if plan.id_evaluation else '',
+            plan.redacteur_nom or '',
+            sites,
+            referents,
+            plan.date_ajout.strftime('%d/%m/%Y %H:%M') if plan.date_ajout else '',
+            plan.date_maj.strftime('%d/%m/%Y %H:%M') if plan.date_maj else '',
+        ])
+
+    return response
+export_plans_csv.short_description = "📥 Exporter en CSV"
+
+
+def dupliquer_plan(modeladmin, request, queryset):
+    """Dupliquer les plans sélectionnés."""
+    if queryset.count() > 5:
+        modeladmin.message_user(
+            request,
+            "Vous ne pouvez dupliquer que 5 plans maximum à la fois.",
+            level='ERROR'
+        )
+        return
+
+    count = 0
+    for plan in queryset:
+        # Sauvegarder les relations
+        sites = list(plan.sites.all())
+        referents = list(plan.referents.all())
+
+        # Dupliquer le plan
+        plan.pk = None
+        plan.id_pg = None
+        plan.nom = f"[COPIE] {plan.nom}"
+        plan.statut = 'draft'
+        plan.version = '0.1'
+        plan.id_utilisateur_ajout = request.user
+        plan.id_utilisateur_maj = request.user
+        plan.geometrie = None
+        plan.save()
+
+        # Restaurer les relations
+        for cor_site in sites:
+            CorSitePg.objects.create(
+                site=cor_site.site,
+                plan_de_gestion=plan,
+                rang=cor_site.rang,
+                commentaire=cor_site.commentaire
+            )
+        plan.referents.set([r for r in referents])
+        count += 1
+
+    modeladmin.message_user(
+        request,
+        f"{count} plan(s) dupliqué(s) avec succès. Les copies sont en statut 'Brouillon'."
+    )
+dupliquer_plan.short_description = "📋 Dupliquer les plans sélectionnés"
 
 
 class CorSitePgInline(admin.TabularInline):
@@ -36,8 +194,8 @@ class PlanGestionAdmin(GISModelAdmin):
     """Interface d'administration pour les Plans de Gestion."""
     
     list_display = [
-        'nom', 
-        'statut', 
+        'nom',
+        'statut_display',
         'periode_gestion_display',
         'nb_sites',
         'gestion_partagee',
@@ -81,8 +239,12 @@ class PlanGestionAdmin(GISModelAdmin):
     ]
     
     filter_horizontal = ['referents']
-    
+
     inlines = [CorSitePgInline, CorPgFichierInline]
+
+    actions = [valider_plans, archiver_plans, remettre_en_brouillon, dupliquer_plan, export_plans_csv]
+
+    list_per_page = 25
     
     fieldsets = (
         ('Informations générales', {
@@ -151,6 +313,18 @@ class PlanGestionAdmin(GISModelAdmin):
             'id_utilisateur_maj'
         ).prefetch_related('sites__site', 'referents')
     
+    def statut_display(self, obj):
+        """Affichage du statut avec couleur et icône."""
+        statut_config = {
+            'draft': ('orange', '📝', 'Brouillon'),
+            'valide': ('green', '✓', 'Validé'),
+            'archive': ('gray', '📦', 'Archivé'),
+        }
+        color, icon, label = statut_config.get(obj.statut, ('black', '?', obj.statut))
+        return mark_safe(f'<span style="color: {color}; font-weight: bold;">{icon} {label}</span>')
+    statut_display.short_description = "Statut"
+    statut_display.admin_order_field = 'statut'
+
     def periode_gestion_display(self, obj):
         """Affichage de la période de gestion."""
         return obj.get_periode_gestion()

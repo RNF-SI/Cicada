@@ -14,6 +14,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
+from apps.plans.models import PlanGestion, CorSitePg
 
 
 class RoleCreationForm(forms.ModelForm):
@@ -112,10 +113,92 @@ class UsersInlineForOrganisme(admin.TabularInline):
     readonly_fields = ('email', 'nom_role', 'prenom_role')
     verbose_name = "Utilisateur"
     verbose_name_plural = "Utilisateurs de l'organisme"
-    
+
     def has_add_permission(self, request, obj=None):
         return False
-        
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class PlansInlineForSite(admin.TabularInline):
+    """Inline pour afficher les plans de gestion associés à un site."""
+    model = CorSitePg
+    extra = 0
+    fields = ('plan_link', 'plan_statut', 'plan_periode', 'rang', 'commentaire')
+    readonly_fields = ('plan_link', 'plan_statut', 'plan_periode')
+    verbose_name = "Plan de gestion"
+    verbose_name_plural = "Plans de gestion associés"
+
+    def plan_link(self, obj):
+        """Lien vers le plan de gestion."""
+        if obj.plan_de_gestion:
+            url = reverse('admin:plans_plangestion_change', args=[obj.plan_de_gestion.id_pg])
+            return format_html('<a href="{}">{}</a>', url, obj.plan_de_gestion.nom)
+        return "-"
+    plan_link.short_description = "Plan de gestion"
+
+    def plan_statut(self, obj):
+        """Statut du plan avec couleur."""
+        if obj.plan_de_gestion:
+            colors = {'draft': 'orange', 'valide': 'green', 'archive': 'gray'}
+            color = colors.get(obj.plan_de_gestion.statut, 'black')
+            return mark_safe(f'<span style="color: {color};">{obj.plan_de_gestion.get_statut_display()}</span>')
+        return "-"
+    plan_statut.short_description = "Statut"
+
+    def plan_periode(self, obj):
+        """Période du plan."""
+        if obj.plan_de_gestion:
+            return obj.plan_de_gestion.get_periode_gestion()
+        return "-"
+    plan_periode.short_description = "Période"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('plan_de_gestion')
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class PlansReferentInlineForRole(admin.TabularInline):
+    """Inline pour afficher les plans où l'utilisateur est référent."""
+    model = PlanGestion.referents.through
+    extra = 0
+    fields = ('plan_link', 'plan_statut', 'plan_periode', 'plan_sites')
+    readonly_fields = ('plan_link', 'plan_statut', 'plan_periode', 'plan_sites')
+    verbose_name = "Plan de gestion (référent)"
+    verbose_name_plural = "Plans de gestion (en tant que référent)"
+
+    def plan_link(self, obj):
+        """Lien vers le plan de gestion."""
+        url = reverse('admin:plans_plangestion_change', args=[obj.plangestion.id_pg])
+        return format_html('<a href="{}">{}</a>', url, obj.plangestion.nom)
+    plan_link.short_description = "Plan de gestion"
+
+    def plan_statut(self, obj):
+        """Statut du plan avec couleur."""
+        colors = {'draft': 'orange', 'valide': 'green', 'archive': 'gray'}
+        color = colors.get(obj.plangestion.statut, 'black')
+        return mark_safe(f'<span style="color: {color};">{obj.plangestion.get_statut_display()}</span>')
+    plan_statut.short_description = "Statut"
+
+    def plan_periode(self, obj):
+        """Période du plan."""
+        return obj.plangestion.get_periode_gestion()
+    plan_periode.short_description = "Période"
+
+    def plan_sites(self, obj):
+        """Sites du plan."""
+        sites = obj.plangestion.get_sites()
+        if sites:
+            return ", ".join([s.nom_site[:30] for s in sites[:3]])
+        return "-"
+    plan_sites.short_description = "Sites"
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -313,8 +396,8 @@ class RoleAdmin(BaseUserAdmin):
         }),
     )
     
-    inlines = [CorRoleSiteInline]
-    
+    inlines = [CorRoleSiteInline, PlansReferentInlineForRole]
+
     class Media:
         css = {
             'all': ('admin/css/admin_custom.css',)
@@ -370,14 +453,14 @@ hard_delete_organismes.short_description = "⚠️ SUPPRIMER DÉFINITIVEMENT (Su
 @admin.register(BibOrganismes)
 class BibOrganismesAdmin(admin.ModelAdmin):
     """Administration des organismes avec fonctionnalités avancées."""
-    
+
     def has_delete_permission(self, request, obj=None):
         """Désactive le bouton 'Supprimer' standard de Django."""
         return False
-    
+
     list_display = (
         'nom_organisme', 'ville_organisme', 'contact_info',
-        'parent_display', 'users_count', 'sites_count', 'meta_create_date'
+        'parent_display', 'users_count', 'sites_count', 'plans_count', 'meta_create_date'
     )
     list_filter = (
         'ville_organisme', 'id_parent', 'meta_create_date',
@@ -388,7 +471,7 @@ class BibOrganismesAdmin(admin.ModelAdmin):
         'nom_organisme', 'email_organisme', 'ville_organisme', 
         'adresse_organisme', 'id_parent__nom_organisme'
     )
-    readonly_fields = ('uuid_organisme', 'meta_create_date', 'meta_update_date')
+    readonly_fields = ('uuid_organisme', 'meta_create_date', 'meta_update_date', 'plans_lies')
     actions = [export_organismes_csv, hard_delete_organismes]
     list_per_page = 25
     
@@ -426,7 +509,48 @@ class BibOrganismesAdmin(admin.ModelAdmin):
             return mark_safe(f'<span style="color: green;">{count} site(s)</span>')
         return "0"
     sites_count.short_description = "Sites"
-    
+
+    def plans_count(self, obj):
+        """Nombre de plans de gestion liés aux sites de l'organisme."""
+        # Récupérer les IDs des sites de l'organisme
+        site_ids = obj.corogsite_set.values_list('id_site', flat=True)
+        # Compter les plans uniques liés à ces sites
+        count = PlanGestion.objects.filter(sites__site__in=site_ids).distinct().count()
+        if count > 0:
+            return mark_safe(f'<span style="color: purple;">{count} plan(s)</span>')
+        return "0"
+    plans_count.short_description = "Plans"
+
+    def plans_lies(self, obj):
+        """Affiche les plans de gestion liés aux sites de l'organisme."""
+        # Récupérer les IDs des sites de l'organisme
+        site_ids = obj.corogsite_set.values_list('id_site', flat=True)
+        # Récupérer les plans uniques liés à ces sites
+        plans = PlanGestion.objects.filter(sites__site__in=site_ids).distinct().select_related(
+            'id_evaluation', 'id_redacteur_type'
+        )[:10]
+
+        if not plans:
+            return "Aucun plan de gestion"
+
+        links = []
+        for plan in plans:
+            url = reverse('admin:plans_plangestion_change', args=[plan.id_pg])
+            statut_colors = {'draft': 'orange', 'valide': 'green', 'archive': 'gray'}
+            color = statut_colors.get(plan.statut, 'black')
+            links.append(format_html(
+                '<a href="{}" style="color: {};">{}</a> <small>({} - {})</small>',
+                url, color, plan.nom, plan.get_statut_display(), plan.get_periode_gestion()
+            ))
+
+        result = '<br>'.join(links)
+        total = PlanGestion.objects.filter(sites__site__in=site_ids).distinct().count()
+        if total > 10:
+            result += f'<br><em>... et {total - 10} autres plan(s)</em>'
+
+        return mark_safe(result)
+    plans_lies.short_description = "Plans de gestion liés"
+
     def get_queryset(self, request):
         """Optimise les requêtes."""
         return super().get_queryset(request).select_related(
@@ -458,6 +582,10 @@ class BibOrganismesAdmin(admin.ModelAdmin):
         ('Web', {
             'fields': ('url_organisme', 'url_logo')
         }),
+        ('Plans de gestion', {
+            'fields': ('plans_lies',),
+            'description': 'Plans de gestion liés aux sites gérés par cet organisme'
+        }),
         ('Données additionnelles', {
             'fields': ('additional_data',),
             'classes': ('collapse',)
@@ -467,7 +595,7 @@ class BibOrganismesAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     inlines = [SiteInlineForOrganisme, UsersInlineForOrganisme]
 
 
@@ -657,13 +785,13 @@ class SiteAdmin(gis_admin.GISModelAdmin):
         }),
     )
     
-    inlines = [CorRoleSiteInline, CorOgSiteInline]
-    
+    inlines = [CorRoleSiteInline, CorOgSiteInline, PlansInlineForSite]
+
     class Media:
         css = {
             'all': ('admin/css/admin_custom.css',)
         }
-    
+
     # Configuration de la carte
     default_zoom = 6
     default_lon = 2.0  # Longitude centre France

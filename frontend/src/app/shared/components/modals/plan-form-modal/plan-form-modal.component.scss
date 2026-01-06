@@ -1,0 +1,390 @@
+@import 'variables';
+
+// Force dialog container to be large enough
+:host {
+  display: block;
+  overflow: hidden;
+}
+
+.plan-form-modal {
+  width: 100%;
+  padding: 0 $spacing-lg;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+h2[mat-dialog-title] {
+  font-family: $font-family;
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: 0;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $gray-light;
+}
+
+mat-dialog-content {
+  padding: $spacing-md $spacing-xs !important;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  overflow-x: hidden;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($error-color, 0.1);
+  border: 1px solid $error-color;
+  border-radius: $border-radius-md;
+  color: $error-color;
+  font-size: $font-size-base;
+
+  i {
+    font-size: 18px;
+  }
+}
+
+.form-section {
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid $gray-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background-color: transparent;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  &.btn-select-all {
+    border-color: $success-color;
+    color: $success-color;
+
+    &:hover {
+      background-color: $success-color;
+      color: $white;
+    }
+  }
+
+  &.btn-deselect-all {
+    border-color: $gray-dark;
+    color: $gray-dark;
+
+    &:hover {
+      background-color: $gray-dark;
+      color: $white;
+    }
+  }
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 $spacing-xs;
+  background-color: $primary-color;
+  color: $white;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: $spacing-md;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.checkboxes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-lg;
+
+  mat-checkbox {
+    font-family: $font-family;
+  }
+}
+
+// Search box for lists
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  background-color: $gray-lighter;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-sm;
+
+  i {
+    color: $gray-dark;
+    font-size: 14px;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    outline: none;
+
+    &::placeholder {
+      color: $gray;
+    }
+  }
+}
+
+// Selection list for sites and referents
+.selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-xs;
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.05);
+  }
+
+  &.selected {
+    background-color: rgba($primary-color, 0.1);
+    border: 1px solid rgba($primary-color, 0.3);
+  }
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex: 1;
+  min-width: 0;
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+
+  .item-name {
+    font-weight: $font-weight-bold;
+    color: $black;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .item-type,
+  .item-email {
+    font-size: $font-size-small;
+    color: $gray-dark;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .item-role {
+    font-size: $font-size-small;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.1);
+    padding: 2px 6px;
+    border-radius: $border-radius-sm;
+    margin-left: auto;
+  }
+}
+
+.item-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: $border-radius-sm;
+  flex-shrink: 0;
+
+  i {
+    color: $success-color;
+    font-size: 16px;
+  }
+}
+
+.no-items {
+  text-align: center;
+  padding: $spacing-md;
+  color: $gray-dark;
+  font-style: italic;
+  margin: 0;
+}
+
+// Two column layout for sites and referents
+.two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-lg;
+  overflow: hidden;
+
+  > div {
+    min-width: 0; // Prevent grid children from overflowing
+    overflow: hidden;
+  }
+}
+
+// Dialog actions
+mat-dialog-actions {
+  padding: $spacing-md 0 0 !important;
+  border-top: 1px solid $gray-light;
+  margin-top: $spacing-md;
+
+  button {
+    font-family: $font-family;
+  }
+
+  button[mat-raised-button] {
+    min-width: 100px;
+  }
+}
+
+// Material overrides
+::ng-deep {
+  .mat-mdc-form-field {
+    font-family: $font-family;
+  }
+
+  .mat-mdc-select-value,
+  .mat-mdc-input-element {
+    font-family: $font-family;
+  }
+
+  .mat-mdc-checkbox .mdc-label {
+    font-family: $font-family;
+  }
+}
+
+// Responsive
+@media (max-width: 1200px) {
+  .two-columns {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+
+  .selection-list {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .form-row,
+  .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .checkboxes-row {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .section-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

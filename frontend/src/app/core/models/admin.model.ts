@@ -173,3 +173,98 @@ export interface PaginatedResponseNested<T> {
   };
   results: T[];
 }
+
+// ==================== PLANS DE GESTION ====================
+
+/**
+ * Statuts possibles d'un plan de gestion
+ */
+export type PlanStatut = 'draft' | 'valide' | 'archive';
+
+/**
+ * Site associé à un plan de gestion
+ */
+export interface PlanSite {
+  id_site: number;
+  nom_site: string;
+  type_site_label?: string;
+  surf_off?: number;
+  rang?: number;
+}
+
+/**
+ * Référent d'un plan de gestion
+ */
+export interface PlanReferent {
+  id_role: number;
+  email: string;
+  nom_role?: string;
+  prenom_role?: string;
+  nom_complet?: string;
+}
+
+/**
+ * Plan de gestion - modèle complet depuis l'API
+ */
+export interface AdminPlan {
+  id_pg: number;
+  nom: string;
+  id_cdr?: number;
+  statut: PlanStatut;
+  version?: string;
+  annee_debut?: number;
+  annee_fin?: number;
+  gestion_partagee: boolean;
+  ct88: boolean;
+  risque_incendie: boolean;
+  id_evaluation?: number;
+  evaluation_label?: string;
+  id_redacteur_type?: number;
+  redacteur_type_label?: string;
+  redacteur_nom?: string;
+  commentaire?: string;
+  date_ajout?: string;
+  date_maj?: string;
+  sites?: PlanSite[];
+  referents?: PlanReferent[];
+  id_utilisateur_ajout?: number;
+  id_utilisateur_maj?: number;
+}
+
+/**
+ * Payload pour créer/modifier un plan de gestion
+ */
+export interface PlanCreatePayload {
+  nom: string;
+  statut?: PlanStatut;
+  version?: string;
+  annee_debut?: number;
+  annee_fin?: number;
+  gestion_partagee?: boolean;
+  ct88?: boolean;
+  risque_incendie?: boolean;
+  id_evaluation?: number;
+  id_redacteur_type?: number;
+  redacteur_nom?: string;
+  commentaire?: string;
+  sites_ids?: number[];
+  referents_ids?: number[];
+}
+
+/**
+ * Type d'évaluation (nomenclature)
+ */
+export interface EvaluationType {
+  id_nomenclature: number;
+  cd_nomenclature: string;
+  label: string;
+}
+
+/**
+ * Type de rédacteur (nomenclature)
+ */
+export interface RedacteurType {
+  id_nomenclature: number;
+  cd_nomenclature: string;
+  label: string;
+}

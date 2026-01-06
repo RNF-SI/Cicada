@@ -4,3 +4,4 @@ export { SiteFormModalComponent, SiteFormModalData } from './site-form-modal/sit
 export { LinkUserOrganismeModalComponent, LinkUserOrganismeModalData } from './link-user-organisme-modal/link-user-organisme-modal.component';
 export { LinkSiteOrganismeModalComponent, LinkSiteOrganismeModalData, ExistingOrganismeData } from './link-site-organisme-modal/link-site-organisme-modal.component';
 export { LinkUserSiteModalComponent, LinkUserSiteModalData, ExistingUserData } from './link-user-site-modal/link-user-site-modal.component';
+export { PlanFormModalComponent, PlanFormModalData } from './plan-form-modal/plan-form-modal.component';

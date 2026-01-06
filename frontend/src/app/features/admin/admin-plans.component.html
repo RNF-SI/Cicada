@@ -1,0 +1,249 @@
+<div class="admin-plans">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Gestion des plans de gestion</h1>
+      <p class="subtitle">
+        Administration des plans de gestion des espaces proteges
+      </p>
+    </div>
+    <button class="btn-primary" (click)="openAddPlanModal()">
+      <i class="fi fi-rr-document-signed"></i>
+      <span>Nouveau plan</span>
+    </button>
+  </header>
+
+  <!-- Statistics cards -->
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-icon total">
+        <i class="fi fi-rr-document"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ totalPlans() }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon valide">
+        <i class="fi fi-rr-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ plansValides() }}</span>
+        <span class="stat-label">Valides</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon draft">
+        <i class="fi fi-rr-edit"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ plansBrouillon() }}</span>
+        <span class="stat-label">Brouillons</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon archive">
+        <i class="fi fi-rr-archive"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ plansArchives() }}</span>
+        <span class="stat-label">Archives</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input
+        type="text"
+        placeholder="Rechercher un plan..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+      />
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="filterStatut" (ngModelChange)="filterPlans()">
+        <option value="">Tous les statuts</option>
+        <option value="draft">Brouillon</option>
+        <option value="valide">Valide</option>
+        <option value="archive">Archive</option>
+      </select>
+
+      @if (isSuperAdmin()) {
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterPlans()">
+          <option value="">Tous les organismes</option>
+          @for (org of organismes(); track org.id) {
+            <option [value]="org.id">{{ org.nom }}</option>
+          }
+        </select>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement des plans de gestion...</p>
+    </div>
+  } @else {
+    <!-- Plans Table -->
+    <div class="table-container">
+      <table class="plans-table">
+        <thead>
+          <tr>
+            <th>Nom du plan</th>
+            <th>Statut</th>
+            <th>Periode</th>
+            <th>Sites</th>
+            <th>Referents</th>
+            <th>Derniere MAJ</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of filteredPlans(); track plan.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <!-- Nom -->
+              <td class="name-cell">
+                <div class="plan-info">
+                  <i class="fi fi-rr-document plan-icon"></i>
+                  <div class="plan-details">
+                    <span class="plan-name">{{ plan.nom }}</span>
+                    @if (plan.version) {
+                      <span class="plan-version">v{{ plan.version }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="statut-badge" [ngClass]="getStatutClass(plan.statut)">
+                  @switch (plan.statut) {
+                    @case ('draft') {
+                      <i class="fi fi-rr-edit"></i>
+                    }
+                    @case ('valide') {
+                      <i class="fi fi-rr-check"></i>
+                    }
+                    @case ('archive') {
+                      <i class="fi fi-rr-archive"></i>
+                    }
+                  }
+                  {{ plan.statutLabel }}
+                </span>
+              </td>
+
+              <!-- Periode -->
+              <td class="periode-cell">
+                {{ plan.periode }}
+              </td>
+
+              <!-- Sites -->
+              <td class="sites-cell">
+                @if (plan.sites.length === 0) {
+                  <span class="text-muted">Aucun site</span>
+                } @else if (plan.sites.length === 1) {
+                  <span class="site-chip" [matTooltip]="plan.sites[0].nom">
+                    <i class="fi fi-rr-marker"></i>
+                    <span class="site-name">{{ plan.sites[0].nom }}</span>
+                  </span>
+                } @else {
+                  <div class="sites-list">
+                    @for (site of plan.sites.slice(0, 2); track site.id) {
+                      <span class="site-chip" [matTooltip]="site.nom">
+                        <i class="fi fi-rr-marker"></i>
+                        <span class="site-name">{{ site.nom }}</span>
+                      </span>
+                    }
+                    @if (plan.sites.length > 2) {
+                      <span class="sites-more" [matTooltip]="getOtherSitesNames(plan.sites)">
+                        +{{ plan.sites.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+
+              <!-- Referents -->
+              <td class="referents-cell">
+                @if (plan.referents.length === 0) {
+                  <span class="text-muted">Aucun referent</span>
+                } @else if (plan.referents.length === 1) {
+                  <span class="referent-chip" [matTooltip]="plan.referents[0].email">
+                    <i class="fi fi-rr-user"></i>
+                    <span class="referent-name">{{ plan.referents[0].nom }}</span>
+                  </span>
+                } @else {
+                  <div class="referents-list">
+                    @for (ref of plan.referents.slice(0, 2); track ref.id) {
+                      <span class="referent-chip" [matTooltip]="ref.email">
+                        <i class="fi fi-rr-user"></i>
+                        <span class="referent-name">{{ ref.nom }}</span>
+                      </span>
+                    }
+                    @if (plan.referents.length > 2) {
+                      <span class="referents-more" [matTooltip]="getOtherReferentsNames(plan.referents)">
+                        +{{ plan.referents.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+
+              <!-- Date MAJ -->
+              <td class="date-cell">
+                {{ formatDate(plan.dateMaj) }}
+              </td>
+
+              <!-- Actions -->
+              <td class="actions-cell">
+                <button class="btn-icon" title="Voir le plan" (click)="viewPlan(plan)">
+                  <i class="fi fi-rr-eye"></i>
+                </button>
+                <button class="btn-icon" title="Modifier" (click)="editPlan(plan)">
+                  <i class="fi fi-rr-pencil"></i>
+                </button>
+                @if (plan.statut === 'draft') {
+                  <button class="btn-icon success" title="Valider le plan" (click)="validerPlan(plan)">
+                    <i class="fi fi-rr-check"></i>
+                  </button>
+                }
+                @if (plan.statut !== 'archive') {
+                  <button class="btn-icon warning" title="Archiver" (click)="archiverPlan(plan)">
+                    <i class="fi fi-rr-archive"></i>
+                  </button>
+                }
+                @if (plan.statut === 'archive' && isSuperAdmin()) {
+                  <button class="btn-icon" title="Restaurer en brouillon" (click)="restaurerPlan(plan)">
+                    <i class="fi fi-rr-undo"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+
+          @if (filteredPlans().length === 0) {
+            <tr>
+              <td colspan="7" class="empty-cell">
+                Aucun plan de gestion trouve
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <span class="summary-text">
+        {{ filteredPlans().length }} plan(s) de gestion
+      </span>
+    </div>
+  }
+</div>

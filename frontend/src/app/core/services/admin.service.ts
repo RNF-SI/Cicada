@@ -6,8 +6,13 @@ import {
   AdminOrganisme,
   AdminSite,
   AdminUser,
+  AdminPlan,
   OrganismeCreatePayload,
   SiteCreatePayload,
+  PlanCreatePayload,
+  PlanStatut,
+  EvaluationType,
+  RedacteurType,
   PaginatedResponse,
   PaginatedResponseNested,
   OrganismeSite,
@@ -127,13 +132,16 @@ export class AdminService {
   /**
    * Get list of sites
    */
-  getSites(params?: { search?: string; page?: number; type?: string }): Observable<PaginatedResponse<AdminSite>> {
+  getSites(params?: { search?: string; page?: number; page_size?: number; type?: string }): Observable<PaginatedResponse<AdminSite>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
     }
     if (params?.page) {
       httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.page_size) {
+      httpParams = httpParams.set('page_size', params.page_size.toString());
     }
     if (params?.type) {
       httpParams = httpParams.set('id_type_site', params.type);
@@ -218,13 +226,16 @@ export class AdminService {
   /**
    * Get list of users
    */
-  getUsers(params?: { search?: string; page?: number; role?: string; organisme?: number; active?: boolean }): Observable<PaginatedResponse<AdminUser>> {
+  getUsers(params?: { search?: string; page?: number; page_size?: number; role?: string; organisme?: number; active?: boolean }): Observable<PaginatedResponse<AdminUser>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
     }
     if (params?.page) {
       httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.page_size) {
+      httpParams = httpParams.set('page_size', params.page_size.toString());
     }
     if (params?.role) {
       httpParams = httpParams.set('role_level', params.role);
@@ -290,6 +301,129 @@ export class AdminService {
   removeSiteFromUser(userId: number, siteId: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/users/${userId}/sites/${siteId}/`)
       .pipe(catchError(this.handleError));
+  }
+
+  // ==================== PLANS DE GESTION ====================
+
+  private readonly plansApiUrl = '/api/plans';
+
+  /**
+   * Get list of plans de gestion
+   */
+  getPlans(params?: {
+    search?: string;
+    page?: number;
+    statut?: PlanStatut;
+    organisme?: number;
+    site?: number;
+  }): Observable<PaginatedResponse<AdminPlan>> {
+    let httpParams = new HttpParams();
+    if (params?.search) {
+      httpParams = httpParams.set('search', params.search);
+    }
+    if (params?.page) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.statut) {
+      httpParams = httpParams.set('statut', params.statut);
+    }
+    if (params?.organisme) {
+      httpParams = httpParams.set('organisme', params.organisme.toString());
+    }
+    if (params?.site) {
+      httpParams = httpParams.set('site', params.site.toString());
+    }
+
+    return this.http.get<PaginatedResponse<AdminPlan>>(`${this.plansApiUrl}/plans/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get single plan by ID
+   */
+  getPlan(id: number): Observable<AdminPlan> {
+    return this.http.get<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Create a new plan de gestion
+   */
+  createPlan(payload: PlanCreatePayload): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Update a plan de gestion
+   */
+  updatePlan(id: number, payload: Partial<PlanCreatePayload>): Observable<AdminPlan> {
+    return this.http.patch<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Delete a plan de gestion
+   */
+  deletePlan(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.plansApiUrl}/plans/${id}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Update plan status (valider, archiver, etc.)
+   */
+  updatePlanStatus(id: number, statut: PlanStatut): Observable<AdminPlan> {
+    return this.http.patch<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`, { statut })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Assign sites to a plan
+   */
+  assignSitesToPlan(planId: number, siteIds: number[]): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_sites/`, {
+      site_ids: siteIds
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove a site from a plan
+   */
+  removeSiteFromPlan(planId: number, siteId: number): Observable<any> {
+    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/sites/${siteId}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Assign referents to a plan
+   */
+  assignReferentsToPlan(planId: number, referentIds: number[]): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_referents/`, {
+      referent_ids: referentIds
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get evaluation types (nomenclatures)
+   */
+  getEvaluationTypes(): Observable<EvaluationType[]> {
+    return this.http.get<any>('/api/nomenclatures/?type=TYPE_EVALUATION')
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get redacteur types (nomenclatures)
+   */
+  getRedacteurTypes(): Observable<RedacteurType[]> {
+    return this.http.get<any>('/api/nomenclatures/?type=TYPE_REDACTEUR')
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
   }
 
   // ==================== DASHBOARD ====================

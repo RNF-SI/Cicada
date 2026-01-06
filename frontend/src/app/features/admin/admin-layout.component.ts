@@ -28,13 +28,14 @@ export class AdminLayoutComponent {
 
   // Navigation items with role-based visibility
   // admin_og: ONLY sees "Organismes" (their own organisme)
-  // super_admin: sees everything (dashboard, utilisateurs, organismes, sites)
+  // super_admin: sees everything (dashboard, utilisateurs, organismes, sites, plans)
   // referent & utilisateur: NO access to admin
   readonly navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'fi-rr-dashboard', route: '/administration/dashboard', exactRole: 'super_admin' },
     { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', exactRole: 'super_admin' },
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
-    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', exactRole: 'super_admin' }
+    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', exactRole: 'super_admin' },
+    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', exactRole: 'super_admin' }
   ];
 
   visibleNavItems = computed(() => {
