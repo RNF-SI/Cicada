@@ -314,4 +314,22 @@ export class AdminUsersComponent implements OnInit {
     // User deletion is sensitive - redirect to Django admin
     this.snackBar.open('La suppression d\'utilisateur n\'est pas disponible ici. Utilisez l\'admin Django.', 'OK', { duration: 5000 });
   }
+
+  removeUserFromOrganisme(user: DisplayUser): void {
+    if (!this.canManageUser(user)) {
+      this.snackBar.open('Vous ne pouvez pas modifier cet utilisateur', 'OK', { duration: 3000 });
+      return;
+    }
+
+    // Remove user from organisme by setting uuid_organisme to null
+    this.adminService.assignOrganismeToUser(user.id, null).subscribe({
+      next: () => {
+        this.snackBar.open('Utilisateur retire de l\'organisme', 'Fermer', { duration: 3000 });
+        this.loadUsers();
+      },
+      error: (error: Error) => {
+        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+      }
+    });
+  }
 }

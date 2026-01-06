@@ -116,9 +116,15 @@ export class AdminPlansComponent implements OnInit {
 
   loadPlans(): void {
     this.isLoading.set(true);
+
+    // For non-super admin, filter by their organisme
+    const currentOrgId = this.currentUser()?.organisme?.id;
+    const organismeFilter = !this.isSuperAdmin() && currentOrgId ? currentOrgId : undefined;
+
     this.adminService.getPlans({
       search: this.searchQuery || undefined,
-      statut: this.filterStatut || undefined
+      statut: this.filterStatut || undefined,
+      organisme: organismeFilter
     }).subscribe({
       next: (response) => {
         const mapped = response.results.map(plan => this.mapPlan(plan));

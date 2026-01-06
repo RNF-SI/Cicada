@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminService } from '../../../../core/services/admin.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite, AdminUser, UserSiteRelation } from '../../../../core/models/admin.model';
 
 // Interface for a site assignment in the modal
@@ -68,8 +69,12 @@ export interface LinkUserSiteModalData {
 })
 export class LinkUserSiteModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<LinkUserSiteModalComponent>);
   readonly data = inject<LinkUserSiteModalData>(MAT_DIALOG_DATA);
+
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly currentUser = this.authService.currentUser;
 
   isLoading = signal(false);
   isLoadingData = signal(true);
@@ -147,42 +152,75 @@ export class LinkUserSiteModalComponent implements OnInit {
   private loadSitesAndAssignments(): void {
     this.isLoadingData.set(true);
 
-    // Load all sites
-    this.adminService.getSites().subscribe({
-      next: (response) => {
-        this.allSites.set(response.results);
+    const currentOrgId = this.currentUser()?.organisme?.id;
+    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
 
-        // Initialize assignments from user's existing sites
-        const existingAssignments: SiteAssignment[] = (this.data.user?.sites_lies || []).map(rel => ({
-          site: {
-            id_site: rel.site.id_site,
-            nom_site: rel.site.nom_site,
-            surf_off: rel.site.surf_off,
-            active: rel.site.active
-          } as AdminSite,
-          referent: rel.referent,
-          conservateur: rel.conservateur,
-          isNew: false,
-          isModified: false,
-          isDeleted: false
-        }));
+    // Load sites - if admin_org, only load sites from their organisme
+    if (filterByOrg) {
+      // Load sites linked to the organisme
+      this.adminService.getOrganismeSites(currentOrgId!).subscribe({
+        next: (orgSites) => {
+          // Map organisme sites to AdminSite format
+          const sites: AdminSite[] = orgSites.map(os => ({
+            id_site: os.id_site,
+            nom_site: os.nom_site,
+            surf_off: os.surf_off,
+            active: true
+          } as AdminSite));
+          this.allSites.set(sites);
+          this.initSiteAssignments();
+        },
+        error: (error: Error) => {
+          this.errorMessage.set(error.message);
+          this.isLoadingData.set(false);
+        }
+      });
+    } else {
+      // Super admin: load all sites
+      this.adminService.getSites().subscribe({
+        next: (response) => {
+          this.allSites.set(response.results);
+          this.initSiteAssignments();
+        },
+        error: (error: Error) => {
+          this.errorMessage.set(error.message);
+          this.isLoadingData.set(false);
+        }
+      });
+    }
+  }
 
-        this.siteAssignments.set(existingAssignments);
-        this.filterAvailableSites('');
-        this.isLoadingData.set(false);
-      },
-      error: (error: Error) => {
-        this.errorMessage.set(error.message);
-        this.isLoadingData.set(false);
-      }
-    });
+  private initSiteAssignments(): void {
+    // Initialize assignments from user's existing sites
+    const existingAssignments: SiteAssignment[] = (this.data.user?.sites_lies || []).map(rel => ({
+      site: {
+        id_site: rel.site.id_site,
+        nom_site: rel.site.nom_site,
+        surf_off: rel.site.surf_off,
+        active: rel.site.active
+      } as AdminSite,
+      referent: rel.referent,
+      conservateur: rel.conservateur,
+      isNew: false,
+      isModified: false,
+      isDeleted: false
+    }));
+
+    this.siteAssignments.set(existingAssignments);
+    this.filterAvailableSites('');
+    this.isLoadingData.set(false);
   }
 
   private loadUsersAndAssignments(): void {
     this.isLoadingData.set(true);
 
-    // Load all users
-    this.adminService.getUsers().subscribe({
+    const currentOrgId = this.currentUser()?.organisme?.id;
+    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
+
+    // Load users - if admin_org, only load users from their organisme
+    const params = filterByOrg ? { organisme: currentOrgId } : {};
+
+    this.adminService.getUsers(params).subscribe({
       next: (response) => {
         this.allUsers.set(response.results);
 

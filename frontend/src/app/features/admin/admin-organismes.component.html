@@ -125,14 +125,7 @@
               <span class="status-badge active">Actif</span>
             </div>
             <div class="header-actions">
-              <button class="btn-secondary" (click)="openAddUserModal(currentOrganisme()!)" title="Ajouter un utilisateur">
-                <i class="fi fi-rr-user-add"></i>
-                <span>Ajouter un utilisateur</span>
-              </button>
-              <button class="btn-secondary" (click)="openAddSiteModal(currentOrganisme()!)" title="Ajouter un site">
-                <i class="fi fi-rr-map-marker-plus"></i>
-                <span>Ajouter un site</span>
-              </button>
+              <!-- Admin org ne peut pas ajouter des utilisateurs ou sites depuis cette vue -->
               <button class="btn-primary" (click)="editOrganisme(currentOrganisme()!)">
                 <i class="fi fi-rr-pencil"></i>
                 <span>Modifier</span>

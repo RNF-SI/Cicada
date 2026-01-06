@@ -129,6 +129,7 @@ export interface OrganismeSite {
   nom_site: string;
   surf_off?: number;
   type_site?: string;
+  type_site_label?: string;
   active?: boolean;
   principal?: boolean;
 }

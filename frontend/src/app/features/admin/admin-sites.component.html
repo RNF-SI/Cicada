@@ -11,10 +11,12 @@
         }
       </p>
     </div>
-    <button class="btn-primary" (click)="openAddSiteModal()">
-      <i class="fi fi-rr-map-marker-plus"></i>
-      <span>Ajouter un site</span>
-    </button>
+    @if (isSuperAdmin()) {
+      <button class="btn-primary" (click)="openAddSiteModal()">
+        <i class="fi fi-rr-map-marker-plus"></i>
+        <span>Ajouter un site</span>
+      </button>
+    }
   </header>
 
   <!-- Filters -->

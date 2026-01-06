@@ -229,14 +229,21 @@ export class AdminSitesComponent implements OnInit {
 
     // Filter by organisme (super admin only)
     if (this.filterOrganisme) {
-      result = result.filter(site => site.organismeId === parseInt(this.filterOrganisme));
+      const filterOrgId = parseInt(this.filterOrganisme);
+      result = result.filter(site =>
+        site.organismeId === filterOrgId ||
+        site.organismes.some(org => org.id === filterOrgId)
+      );
     }
 
-    // For non-super admin, only show sites from their organisme
+    // For non-super admin, only show sites linked to their organisme
     if (!this.isSuperAdmin()) {
       const currentOrgId = this.currentUser()?.organisme?.id;
       if (currentOrgId) {
-        result = result.filter(site => site.organismeId === currentOrgId);
+        result = result.filter(site =>
+          site.organismeId === currentOrgId ||
+          site.organismes.some(org => org.id === currentOrgId)
+        );
       }
     }
 

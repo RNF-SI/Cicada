@@ -12,6 +12,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { AdminService } from '../../../../core/services/admin.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   AdminPlan,
   PlanCreatePayload,
@@ -69,8 +70,12 @@ interface SelectableUser {
 export class PlanFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
   readonly data = inject<PlanFormModalData>(MAT_DIALOG_DATA, { optional: true });
+
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly currentUser = this.authService.currentUser;
 
   form!: FormGroup;
   isLoading = signal(false);
@@ -167,6 +172,9 @@ export class PlanFormModalComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
+    const currentOrgId = this.currentUser()?.organisme?.id;
+    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
+
     // Load evaluation types
     this.adminService.getEvaluationTypes().subscribe({
       next: (types) => this.evaluationTypes.set(types),
@@ -179,22 +187,41 @@ export class PlanFormModalComponent implements OnInit {
       error: () => this.redacteurTypes.set([])
     });
 
-    // Load sites
-    this.adminService.getSites({ page: 1, page_size: 100 }).subscribe({
-      next: (response) => {
-        const sites = response.results.map(s => ({
-          id: s.id_site,
-          nom: s.nom_site,
-          type: s.type_site_label,
-          selected: this.selectedSiteIds().includes(s.id_site)
-        }));
-        this.availableSites.set(sites);
-      },
-      error: () => this.availableSites.set([])
-    });
+    // Load sites - if admin_org, only load sites from their organisme
+    if (filterByOrg) {
+      this.adminService.getOrganismeSites(currentOrgId!).subscribe({
+        next: (orgSites) => {
+          const sites = orgSites.map(s => ({
+            id: s.id_site,
+            nom: s.nom_site,
+            type: s.type_site_label || s.type_site,
+            selected: this.selectedSiteIds().includes(s.id_site)
+          }));
+          this.availableSites.set(sites);
+        },
+        error: () => this.availableSites.set([])
+      });
+    } else {
+      this.adminService.getSites({ page: 1, page_size: 100 }).subscribe({
+        next: (response) => {
+          const sites = response.results.map(s => ({
+            id: s.id_site,
+            nom: s.nom_site,
+            type: s.type_site_label,
+            selected: this.selectedSiteIds().includes(s.id_site)
+          }));
+          this.availableSites.set(sites);
+        },
+        error: () => this.availableSites.set([])
+      });
+    }
 
-    // Load users (referents potentiels)
-    this.adminService.getUsers({ page: 1, page_size: 100 }).subscribe({
+    // Load users (referents potentiels) - if admin_org, only load users from their organisme
+    const userParams = filterByOrg
+      ? { page: 1, page_size: 100, organisme: currentOrgId }
+      : { page: 1, page_size: 100 };
+
+    this.adminService.getUsers(userParams).subscribe({
       next: (response) => {
         const users = response.results.map(u => ({
           id: u.id_role,

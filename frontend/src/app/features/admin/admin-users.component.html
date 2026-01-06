@@ -146,17 +146,26 @@
                     <button class="btn-icon" title="Assigner un organisme" (click)="openAssignOrganismeModal(user)">
                       <i class="fi fi-rr-building"></i>
                     </button>
+                  } @else {
+                    <!-- Admin org: bouton pour retirer le lien avec l'organisme -->
+                    @if (user.organismeId === currentUser()?.organisme?.id) {
+                      <button class="btn-icon danger" title="Retirer de l'organisme" (click)="removeUserFromOrganisme(user)">
+                        <i class="fi fi-rr-link-slash"></i>
+                      </button>
+                    }
                   }
                   <button class="btn-icon" title="Assigner un site (referent)" (click)="openAssignSiteModal(user)">
                     <i class="fi fi-rr-marker"></i>
                   </button>
-                  <button
-                    class="btn-icon"
-                    [class.danger]="user.isActive"
-                    [title]="user.isActive ? 'Desactiver' : 'Activer'"
-                    (click)="toggleUserStatus(user)">
-                    <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
-                  </button>
+                  @if (isSuperAdmin()) {
+                    <button
+                      class="btn-icon"
+                      [class.danger]="user.isActive"
+                      [title]="user.isActive ? 'Desactiver' : 'Activer'"
+                      (click)="toggleUserStatus(user)">
+                      <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
+                    </button>
+                  }
                 }
               </td>
             </tr>
