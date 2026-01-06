@@ -9,8 +9,8 @@ Usage:
 Donnees creees:
     - 5 Organismes
     - 7 Sites (avec types de nomenclature)
-    - 7 Utilisateurs (avec differents roles)
-    - 6 Plans de gestion
+    - 10 Utilisateurs (7 actifs + 3 inactifs)
+    - 8 Plans de gestion (5 actifs + 3 archives)
     - Groupes Django avec permissions
     - Nomenclatures (types de site, evaluation, redacteur)
 """
@@ -95,7 +95,9 @@ class Command(BaseCommand):
         test_emails = [
             'admin@test.fr', 'admin.rnf@test.fr', 'admin.cen@test.fr',
             'referent.camargue@test.fr', 'referent.vercors@test.fr',
-            'user.rnf@test.fr', 'user.cen@test.fr'
+            'user.rnf@test.fr', 'user.cen@test.fr',
+            # Utilisateurs inactifs
+            'ancien.rnf@test.fr', 'ancien.cen@test.fr', 'stagiaire.dreal@test.fr'
         ]
         users_deleted = Role.objects.filter(email__in=test_emails).delete()[0]
         self.stdout.write(f'  Utilisateurs supprimes: {users_deleted}')
@@ -147,7 +149,7 @@ class Command(BaseCommand):
         self.stdout.write('  - Reserve Naturelle de Scandola (RNN)')
         self.stdout.write('  - Reserve Naturelle du Lac de Remoray (RNN)')
 
-        self.stdout.write('\nUtilisateurs (7):')
+        self.stdout.write('\nUtilisateurs actifs (7):')
         self.stdout.write(f'  Mot de passe commun: {DEFAULT_PASSWORD}')
         self.stdout.write('  - admin@test.fr (super_admin)')
         self.stdout.write('  - admin.rnf@test.fr (admin_og) - RNF')
@@ -157,13 +159,22 @@ class Command(BaseCommand):
         self.stdout.write('  - user.rnf@test.fr (utilisateur) - RNF')
         self.stdout.write('  - user.cen@test.fr (utilisateur) - CEN AURA')
 
-        self.stdout.write('\nPlans de gestion (6):')
+        self.stdout.write('\nUtilisateurs inactifs (3):')
+        self.stdout.write('  - ancien.rnf@test.fr (referent) - RNF [INACTIF]')
+        self.stdout.write('  - ancien.cen@test.fr (admin_og) - CEN AURA [INACTIF]')
+        self.stdout.write('  - stagiaire.dreal@test.fr (utilisateur) - DREAL [INACTIF]')
+
+        self.stdout.write('\nPlans de gestion actifs (6):')
         self.stdout.write('  - Plan 2020-2030 Camargue (valide)')
         self.stdout.write('  - Plan 2018-2028 Aiguilles Rouges (valide)')
         self.stdout.write('  - Plan 2022-2032 Grand-Voyeux (draft)')
         self.stdout.write('  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide)')
         self.stdout.write('  - Plan 2019-2029 Marais de Brouage (archive)')
         self.stdout.write('  - Plan 2023-2033 Lac de Remoray (draft)')
+
+        self.stdout.write('\nPlans de gestion archives (2):')
+        self.stdout.write('  - Plan 2010-2020 Camargue ancien (archive)')
+        self.stdout.write('  - Plan 2008-2018 Aiguilles Rouges ancien (archive)')
 
     def _create_nomenclatures(self):
         """Cree les nomenclatures necessaires."""
@@ -572,7 +583,48 @@ class Command(BaseCommand):
                 'is_superuser': False,
                 'id_organisme': organismes[1],  # CEN AURA
                 'groups': ['Utilisateurs'],
-                'sites_referent': []
+                'sites_referent': [],
+                'active': True
+            },
+            # Utilisateurs inactifs (anciens collaborateurs)
+            {
+                'email': 'ancien.rnf@test.fr',
+                'nom_role': 'Moreau',
+                'prenom_role': 'Pierre',
+                'identifiant': 'ancien_rnf',
+                'role_level': 'referent',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': organismes[0],  # RNF
+                'groups': ['Referents'],
+                'sites_referent': [],
+                'active': False  # Utilisateur inactif
+            },
+            {
+                'email': 'ancien.cen@test.fr',
+                'nom_role': 'Dubois',
+                'prenom_role': 'Claire',
+                'identifiant': 'ancien_cen',
+                'role_level': 'admin_og',
+                'is_staff': True,
+                'is_superuser': False,
+                'id_organisme': organismes[1],  # CEN AURA
+                'groups': ['Administrateurs Organisme'],
+                'sites_referent': [],
+                'active': False  # Utilisateur inactif
+            },
+            {
+                'email': 'stagiaire.dreal@test.fr',
+                'nom_role': 'Robert',
+                'prenom_role': 'Julie',
+                'identifiant': 'stagiaire_dreal',
+                'role_level': 'utilisateur',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': organismes[2],  # DREAL
+                'groups': ['Utilisateurs'],
+                'sites_referent': [],
+                'active': False  # Stagiaire parti
             },
         ]
 
@@ -580,6 +632,7 @@ class Command(BaseCommand):
         for user_data in users_data:
             user_groups = user_data.pop('groups')
             sites_referent = user_data.pop('sites_referent')
+            is_active = user_data.pop('active', True)  # Valeur par defaut: True
 
             user, created = Role.objects.update_or_create(
                 email=user_data['email'],
@@ -591,7 +644,7 @@ class Command(BaseCommand):
                     'is_staff': user_data['is_staff'],
                     'is_superuser': user_data['is_superuser'],
                     'id_organisme': user_data['id_organisme'],
-                    'active': True,
+                    'active': is_active,
                 }
             )
 
@@ -730,6 +783,39 @@ class Command(BaseCommand):
                 'sites': [sites[6]],  # Lac de Remoray
                 'referents': [users[1]]  # admin.rnf
             },
+            # Plans de gestion archives (anciens plans remplaces)
+            {
+                'nom': 'Plan de gestion 2010-2020 - Camargue (ancien)',
+                'annee_debut': 2010,
+                'annee_fin': 2020,
+                'statut': 'archive',
+                'version': '1.5',
+                'gestion_partagee': False,
+                'ct88': True,
+                'risque_incendie': True,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Equipe Camargue',
+                'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030',
+                'sites': [sites[0]],  # Camargue
+                'referents': []
+            },
+            {
+                'nom': 'Plan de gestion 2008-2018 - Aiguilles Rouges (ancien)',
+                'annee_debut': 2008,
+                'annee_fin': 2018,
+                'statut': 'archive',
+                'version': '2.0',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_be,
+                'redacteur_nom': 'Bureau Natura 2000',
+                'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028',
+                'sites': [sites[1]],  # Aiguilles Rouges
+                'referents': []
+            },
         ]
 
         plans = []
@@ -773,15 +859,20 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('DONNEES DE TEST CREEES AVEC SUCCES'))
         self.stdout.write('=' * 70)
 
+        users_actifs = Role.objects.filter(active=True).count()
+        users_inactifs = Role.objects.filter(active=False).count()
+        plans_archives = PlanGestion.objects.filter(statut='archive').count()
+        plans_actifs = PlanGestion.objects.exclude(statut='archive').count()
+
         self.stdout.write(f'\n  Organismes:        {BibOrganismes.objects.count()}')
         self.stdout.write(f'  Sites:             {Site.objects.count()}')
-        self.stdout.write(f'  Utilisateurs:      {Role.objects.count()}')
-        self.stdout.write(f'  Plans de gestion:  {PlanGestion.objects.count()}')
+        self.stdout.write(f'  Utilisateurs:      {Role.objects.count()} ({users_actifs} actifs, {users_inactifs} inactifs)')
+        self.stdout.write(f'  Plans de gestion:  {PlanGestion.objects.count()} ({plans_actifs} actifs, {plans_archives} archives)')
         self.stdout.write(f'  Groupes Django:    {Group.objects.count()}')
         self.stdout.write(f'  Nomenclatures:     {Nomenclature.objects.count()}')
 
         self.stdout.write('\n' + '-' * 70)
-        self.stdout.write('UTILISATEURS DE TEST')
+        self.stdout.write('UTILISATEURS DE TEST ACTIFS')
         self.stdout.write('-' * 70)
         self.stdout.write(f'\n  Mot de passe pour tous: {DEFAULT_PASSWORD}')
         self.stdout.write('''
@@ -794,6 +885,17 @@ class Command(BaseCommand):
   | ref_vercors     | referent.vercors@test.fr   | Referent        | CEN AURA    |
   | user_rnf        | user.rnf@test.fr           | Utilisateur     | RNF         |
   | user_cen        | user.cen@test.fr           | Utilisateur     | CEN AURA    |
+        ''')
+
+        self.stdout.write('-' * 70)
+        self.stdout.write('UTILISATEURS DE TEST INACTIFS')
+        self.stdout.write('-' * 70)
+        self.stdout.write('''
+  | Identifiant     | Email                      | Role            | Organisme   |
+  |-----------------|----------------------------|-----------------|-------------|
+  | ancien_rnf      | ancien.rnf@test.fr         | Referent        | RNF         |
+  | ancien_cen      | ancien.cen@test.fr         | Admin Organisme | CEN AURA    |
+  | stagiaire_dreal | stagiaire.dreal@test.fr    | Utilisateur     | DREAL       |
         ''')
 
         self.stdout.write('-' * 70)
