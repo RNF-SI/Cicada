@@ -9,12 +9,18 @@ import {
   LoginRequest,
   LoginResponse,
   RefreshResponse,
-  UserRole
+  UserRole,
+  ImpersonationInfo,
+  ImpersonationResponse,
+  StopImpersonationResponse
 } from '../models/user.model';
 
 const TOKEN_KEY = 'auth_tokens';
 const USER_KEY = 'current_user';
 const TOKEN_TIMESTAMP_KEY = 'auth_token_timestamp';
+const IMPERSONATION_KEY = 'impersonation_info';
+const ORIGINAL_TOKENS_KEY = 'original_auth_tokens';
+const ORIGINAL_USER_KEY = 'original_user';
 
 @Injectable({
   providedIn: 'root'
@@ -29,12 +35,15 @@ export class AuthService {
   private currentUserSignal = signal<User | null>(null);
   private isLoadingSignal = signal<boolean>(false);
   private isInitializedSignal = signal<boolean>(false);
+  private impersonationInfoSignal = signal<ImpersonationInfo | null>(null);
 
   // Public readonly signals
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly isLoading = this.isLoadingSignal.asReadonly();
   readonly isInitialized = this.isInitializedSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserSignal() !== null);
+  readonly impersonationInfo = this.impersonationInfoSignal.asReadonly();
+  readonly isImpersonating = computed(() => this.impersonationInfoSignal()?.isImpersonating === true);
 
   // Computed properties for role checks
   readonly isSuperAdmin = computed(() => this.currentUser()?.niveau_role === 'super_admin');
@@ -51,6 +60,12 @@ export class AuthService {
     return role === 'admin_og' || role === 'super_admin';
   });
 
+  // Original user info (when impersonating)
+  readonly originalUser = computed(() => {
+    const info = this.impersonationInfoSignal();
+    return info?.impersonator ?? null;
+  });
+
   constructor() {
     // Initialize from localStorage on service creation
     this.initializeFromStorage();
@@ -63,11 +78,17 @@ export class AuthService {
   private initializeFromStorage(): void {
     const tokens = this.getStoredTokens();
     const user = this.getStoredUser();
+    const impersonationInfo = this.getStoredImpersonationInfo();
 
     if (tokens && user) {
       // Set user immediately from cache (synchronous - no race condition)
       this.currentUserSignal.set(user);
       this.isInitializedSignal.set(true);
+
+      // Restore impersonation state if any
+      if (impersonationInfo) {
+        this.impersonationInfoSignal.set(impersonationInfo);
+      }
 
       // Only verify token if it's been more than 30 minutes since last verification
       // This avoids unnecessary API calls on every page load/new window
@@ -278,5 +299,125 @@ export class AuthService {
     }
 
     return throwError(() => new Error(errorMessage));
+  }
+
+  // ==================== IMPERSONATION METHODS ====================
+
+  /**
+   * Start impersonating another user (super_admin only)
+   * Stores original tokens to allow returning to admin account
+   */
+  startImpersonation(userId: number, reason?: string): Observable<ImpersonationResponse> {
+    // Store original tokens before impersonation
+    const currentTokens = this.getStoredTokens();
+    const currentUser = this.getStoredUser();
+
+    if (currentTokens && currentUser) {
+      localStorage.setItem(ORIGINAL_TOKENS_KEY, JSON.stringify(currentTokens));
+      localStorage.setItem(ORIGINAL_USER_KEY, JSON.stringify(currentUser));
+    }
+
+    const body = reason ? { reason } : {};
+
+    return this.http.post<ImpersonationResponse>(`${this.apiUrl}/impersonate/${userId}/`, body).pipe(
+      tap(response => {
+        // Store new tokens for impersonated user
+        this.storeTokens({ access: response.access, refresh: response.refresh });
+        this.storeUser(response.user);
+        this.updateVerificationTimestamp();
+
+        // Store impersonation info
+        this.storeImpersonationInfo(response.impersonation);
+        this.impersonationInfoSignal.set(response.impersonation);
+
+        // Update current user signal
+        this.currentUserSignal.set(response.user);
+      }),
+      catchError(error => {
+        // Restore original tokens on error
+        const originalTokens = localStorage.getItem(ORIGINAL_TOKENS_KEY);
+        const originalUser = localStorage.getItem(ORIGINAL_USER_KEY);
+
+        if (originalTokens && originalUser) {
+          this.storeTokens(JSON.parse(originalTokens));
+          this.storeUser(JSON.parse(originalUser));
+        }
+
+        localStorage.removeItem(ORIGINAL_TOKENS_KEY);
+        localStorage.removeItem(ORIGINAL_USER_KEY);
+
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Stop impersonation and return to original admin account
+   */
+  stopImpersonation(): Observable<StopImpersonationResponse> {
+    return this.http.post<StopImpersonationResponse>(`${this.apiUrl}/stop-impersonation/`, {}).pipe(
+      tap(response => {
+        // Clear impersonation data
+        this.clearImpersonationData();
+
+        // Restore admin tokens
+        this.storeTokens({ access: response.access, refresh: response.refresh });
+        this.storeUser(response.user);
+        this.updateVerificationTimestamp();
+
+        // Update signals
+        this.impersonationInfoSignal.set(null);
+        this.currentUserSignal.set(response.user);
+      }),
+      catchError(error => {
+        // If API fails, try to restore from stored original tokens
+        const originalTokens = localStorage.getItem(ORIGINAL_TOKENS_KEY);
+        const originalUser = localStorage.getItem(ORIGINAL_USER_KEY);
+
+        if (originalTokens && originalUser) {
+          const tokens = JSON.parse(originalTokens);
+          const user = JSON.parse(originalUser);
+
+          this.storeTokens(tokens);
+          this.storeUser(user);
+          this.currentUserSignal.set(user);
+        }
+
+        this.clearImpersonationData();
+        this.impersonationInfoSignal.set(null);
+
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Get display name of original admin (when impersonating)
+   */
+  getOriginalUserDisplayName(): string {
+    const info = this.impersonationInfoSignal();
+    if (!info?.impersonator) return '';
+
+    const impersonator = info.impersonator;
+    if (impersonator.prenom_role && impersonator.nom_role) {
+      return `${impersonator.prenom_role} ${impersonator.nom_role}`;
+    }
+    return impersonator.email;
+  }
+
+  // Private impersonation storage methods
+  private storeImpersonationInfo(info: ImpersonationInfo): void {
+    localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(info));
+  }
+
+  private getStoredImpersonationInfo(): ImpersonationInfo | null {
+    const info = localStorage.getItem(IMPERSONATION_KEY);
+    return info ? JSON.parse(info) : null;
+  }
+
+  private clearImpersonationData(): void {
+    localStorage.removeItem(IMPERSONATION_KEY);
+    localStorage.removeItem(ORIGINAL_TOKENS_KEY);
+    localStorage.removeItem(ORIGINAL_USER_KEY);
   }
 }

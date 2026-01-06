@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -61,6 +62,7 @@ export class AdminUsersComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -329,6 +331,53 @@ export class AdminUsersComponent implements OnInit {
       },
       error: (error: Error) => {
         this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+      }
+    });
+  }
+
+  /**
+   * Check if current user can impersonate the target user
+   * Only super_admin can impersonate, and cannot impersonate other super_admins
+   */
+  canImpersonateUser(user: DisplayUser): boolean {
+    // Must be super admin to impersonate
+    if (!this.isSuperAdmin()) {
+      return false;
+    }
+    // Cannot impersonate yourself
+    if (user.id === this.currentUser()?.id) {
+      return false;
+    }
+    // Cannot impersonate other super admins
+    if (user.role === 'super_admin') {
+      return false;
+    }
+    // Cannot impersonate inactive users
+    if (!user.isActive) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Start impersonation session for the specified user
+   */
+  startImpersonation(user: DisplayUser): void {
+    if (!this.canImpersonateUser(user)) {
+      this.snackBar.open('Vous ne pouvez pas visualiser en tant que cet utilisateur', 'OK', { duration: 3000 });
+      return;
+    }
+
+    this.snackBar.open(`Demarrage de la session en tant que ${user.prenom} ${user.nom}...`, 'OK', { duration: 2000 });
+
+    this.authService.startImpersonation(user.id).subscribe({
+      next: () => {
+        this.snackBar.open(`Vous visualisez maintenant en tant que ${user.prenom} ${user.nom}`, 'OK', { duration: 3000 });
+        // Navigate to home page as the impersonated user
+        this.router.navigate(['/']);
+      },
+      error: (error: Error) => {
+        this.snackBar.open(`Erreur: ${error.message}`, 'Fermer', { duration: 5000 });
       }
     });
   }

@@ -62,3 +62,38 @@ export interface LoginResponse {
 export interface RefreshResponse {
   access: string;
 }
+
+/**
+ * Impersonation info stored in localStorage
+ */
+export interface ImpersonationInfo {
+  isImpersonating: boolean;
+  impersonator: {
+    id: number;
+    email: string;
+    nom_role?: string;
+    prenom_role?: string;
+  };
+  logId: number;
+  startedAt: string;
+}
+
+/**
+ * Response from impersonation start endpoint
+ */
+export interface ImpersonationResponse {
+  access: string;
+  refresh: string;
+  user: User;
+  impersonation: ImpersonationInfo;
+}
+
+/**
+ * Response from stop impersonation endpoint
+ */
+export interface StopImpersonationResponse {
+  access: string;
+  refresh: string;
+  user: User;
+  message: string;
+}

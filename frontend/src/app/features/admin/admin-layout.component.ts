@@ -1,6 +1,6 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 interface NavItem {
@@ -21,21 +21,45 @@ interface NavItem {
 })
 export class AdminLayoutComponent {
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
+  // Impersonation state
+  readonly isImpersonating = this.authService.isImpersonating;
+  readonly impersonationInfo = this.authService.impersonationInfo;
+
+  get userDisplayName(): string {
+    return this.authService.getUserDisplayName();
+  }
+
+  get originalUserDisplayName(): string {
+    return this.authService.getOriginalUserDisplayName();
+  }
+
+  stopImpersonation(): void {
+    this.authService.stopImpersonation().subscribe({
+      next: () => {
+        this.router.navigate(['/administration/utilisateurs']);
+      },
+      error: () => {
+        this.router.navigate(['/']);
+      }
+    });
+  }
+
   // Navigation items with role-based visibility
-  // admin_og: ONLY sees "Organismes" (their own organisme)
+  // admin_og: sees Utilisateurs, Organismes, Sites, Plans (filtered by their organisme)
   // super_admin: sees everything (dashboard, utilisateurs, organismes, sites, plans)
   // referent & utilisateur: NO access to admin
   readonly navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'fi-rr-dashboard', route: '/administration/dashboard', exactRole: 'super_admin' },
-    { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', exactRole: 'super_admin' },
+    { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', minRole: 'admin_og' },
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
-    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', exactRole: 'super_admin' },
-    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', exactRole: 'super_admin' }
+    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'admin_og' },
+    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'admin_og' }
   ];
 
   visibleNavItems = computed(() => {

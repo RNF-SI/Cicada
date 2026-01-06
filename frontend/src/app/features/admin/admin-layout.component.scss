@@ -1,9 +1,84 @@
 @import 'variables';
 
+// Impersonation Banner (same as header component)
+.impersonation-banner {
+  background: linear-gradient(135deg, $warning-color 0%, darken($warning-color, 10%) 100%);
+  color: $white;
+  padding: $spacing-xs $spacing-md;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $z-index-modal; // Above everything
+  box-shadow: 0 2px 8px rgba($black, 0.15);
+}
+
+.impersonation-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+
+  > i {
+    font-size: 18px;
+  }
+}
+
+.impersonation-text {
+  font-family: $font-family;
+  font-size: $font-size-small;
+
+  strong {
+    font-weight: $font-weight-bold;
+  }
+}
+
+.impersonation-info {
+  opacity: 0.85;
+  font-size: $font-size-small - 1px;
+}
+
+.stop-impersonation-btn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  background-color: rgba($white, 0.2);
+  color: $white;
+  border: 1px solid rgba($white, 0.4);
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  margin-left: $spacing-sm;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: rgba($white, 0.3);
+    border-color: $white;
+  }
+}
+
 .admin-layout {
   display: flex;
   min-height: 100vh;
   background-color: $beige;
+
+  &.with-impersonation {
+    margin-top: 40px; // Height of impersonation banner
+
+    .admin-sidebar {
+      top: 40px; // Adjust sidebar position
+    }
+  }
 }
 
 // Sidebar
@@ -13,7 +88,7 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 64px; // Below header
+  top: 0;
   bottom: 0;
   left: 0;
   z-index: $z-index-sticky;
@@ -109,7 +184,7 @@
   flex: 1;
   margin-left: 280px;
   padding: $spacing-lg;
-  min-height: calc(100vh - 64px);
+  min-height: 100vh;
 }
 
 // Responsive

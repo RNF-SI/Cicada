@@ -167,6 +167,16 @@
                     </button>
                   }
                 }
+                <!-- Impersonation button (super admin only, not for other super admins) -->
+                @if (canImpersonateUser(user)) {
+                  <button
+                    class="btn-icon impersonate"
+                    title="Voir en tant que cet utilisateur"
+                    matTooltip="Voir en tant que {{ user.prenom }} {{ user.nom }}"
+                    (click)="startImpersonation(user)">
+                    <i class="fi fi-rr-eye"></i>
+                  </button>
+                }
               </td>
             </tr>
           }

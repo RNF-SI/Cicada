@@ -1,5 +1,71 @@
 @import 'variables';
 
+// Impersonation Banner
+.impersonation-banner {
+  background: linear-gradient(135deg, $warning-color 0%, darken($warning-color, 10%) 100%);
+  color: $white;
+  padding: $spacing-xs $spacing-md;
+  position: sticky;
+  top: 0;
+  z-index: $z-index-sticky + 1;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba($black, 0.15);
+}
+
+.impersonation-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+
+  > i {
+    font-size: 18px;
+  }
+}
+
+.impersonation-text {
+  font-family: $font-family;
+  font-size: $font-size-small;
+
+  strong {
+    font-weight: $font-weight-bold;
+  }
+}
+
+.impersonation-info {
+  opacity: 0.85;
+  font-size: $font-size-small - 1px;
+}
+
+.stop-impersonation-btn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  background-color: rgba($white, 0.2);
+  color: $white;
+  border: 1px solid rgba($white, 0.4);
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  margin-left: $spacing-sm;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: rgba($white, 0.3);
+    border-color: $white;
+  }
+}
+
 .header {
   background-color: $white;
   height: 64px;
@@ -7,6 +73,11 @@
   top: 0;
   z-index: $z-index-sticky;
   width: 100%;
+
+  &.with-impersonation {
+    top: 0; // Header is no longer sticky when banner is shown
+    position: relative;
+  }
 }
 
 .header-content {

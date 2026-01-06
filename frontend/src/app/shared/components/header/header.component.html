@@ -1,4 +1,21 @@
-<header class="header" [class.home-page]="isHomePage()">
+<!-- Impersonation Banner -->
+@if (isImpersonating()) {
+  <div class="impersonation-banner">
+    <div class="impersonation-content">
+      <i class="fi fi-rr-eye"></i>
+      <span class="impersonation-text">
+        <strong>Mode visualisation</strong> - Vous visualisez en tant que <strong>{{ userDisplayName }}</strong>
+        <span class="impersonation-info">(connecte en tant que {{ originalUserDisplayName }})</span>
+      </span>
+      <button class="stop-impersonation-btn" (click)="stopImpersonation()">
+        <i class="fi fi-rr-cross-circle"></i>
+        Revenir a mon compte
+      </button>
+    </div>
+  </div>
+}
+
+<header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()">
   <div class="header-content">
     <!-- Hamburger Menu - Hidden on home page -->
     @if (!isHomePage()) {
@@ -15,9 +32,9 @@
     <!-- Navigation -->
     <nav class="header-nav">
       @if (isAuthenticated()) {
-        <!-- Administration button - opens in new window -->
+        <!-- Administration button - opens in new window (except during impersonation) -->
         @if (canAccessAdmin()) {
-          <a (click)="openAdminInNewWindow()" class="nav-link admin-btn" role="button" tabindex="0">
+          <a (click)="openAdmin()" class="nav-link admin-btn" role="button" tabindex="0">
             <i class="fi fi-rr-settings-sliders"></i>
             <span class="btn-text">Administration</span>
           </a>
@@ -82,7 +99,7 @@
         <span>Plans de gestion</span>
       </a>
       @if (isAuthenticated() && canAccessAdmin()) {
-        <a (click)="openAdminInNewWindow(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
+        <a (click)="openAdmin(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
           <i class="fi fi-rr-settings-sliders"></i>
           <span>Administration</span>
         </a>

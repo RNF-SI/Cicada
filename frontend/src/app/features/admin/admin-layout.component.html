@@ -1,4 +1,21 @@
-<div class="admin-layout">
+<!-- Impersonation Banner -->
+@if (isImpersonating()) {
+  <div class="impersonation-banner">
+    <div class="impersonation-content">
+      <i class="fi fi-rr-eye"></i>
+      <span class="impersonation-text">
+        <strong>Mode visualisation</strong> - Vous visualisez en tant que <strong>{{ userDisplayName }}</strong>
+        <span class="impersonation-info">(connecte en tant que {{ originalUserDisplayName }})</span>
+      </span>
+      <button class="stop-impersonation-btn" (click)="stopImpersonation()">
+        <i class="fi fi-rr-cross-circle"></i>
+        Revenir a mon compte
+      </button>
+    </div>
+  </div>
+}
+
+<div class="admin-layout" [class.with-impersonation]="isImpersonating()">
   <!-- Sidebar -->
   <aside class="admin-sidebar">
     <div class="sidebar-header">

@@ -42,8 +42,16 @@ export class HeaderComponent {
   readonly currentUser = this.authService.currentUser;
   readonly canAccessAdmin = this.authService.canAccessAdmin;
 
+  // Impersonation state
+  readonly isImpersonating = this.authService.isImpersonating;
+  readonly impersonationInfo = this.authService.impersonationInfo;
+
   get userDisplayName(): string {
     return this.authService.getUserDisplayName();
+  }
+
+  get originalUserDisplayName(): string {
+    return this.authService.getOriginalUserDisplayName();
   }
 
   get userInitials(): string {
@@ -66,7 +74,26 @@ export class HeaderComponent {
     this.authService.logout().subscribe();
   }
 
-  openAdminInNewWindow(): void {
-    window.open('/administration', '_blank');
+  openAdmin(): void {
+    if (this.isImpersonating()) {
+      // En mode impersonation, naviguer sur la même page pour garder le contexte
+      this.router.navigate(['/administration']);
+    } else {
+      // En mode normal, ouvrir dans une nouvelle fenêtre
+      window.open('/administration', '_blank');
+    }
+  }
+
+  stopImpersonation(): void {
+    this.authService.stopImpersonation().subscribe({
+      next: () => {
+        // Redirect to admin users page after stopping impersonation
+        this.router.navigate(['/administration/utilisateurs']);
+      },
+      error: () => {
+        // Even on error, redirect to home
+        this.router.navigate(['/']);
+      }
+    });
   }
 }

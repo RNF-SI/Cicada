@@ -353,6 +353,14 @@
       background-color: rgba($error-color, 0.1);
     }
   }
+
+  &.impersonate {
+    color: $info-color;
+
+    &:hover {
+      background-color: rgba($info-color, 0.15);
+    }
+  }
 }
 
 .empty-cell {
