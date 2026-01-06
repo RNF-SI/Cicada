@@ -21,9 +21,27 @@ interface SiteAssignment {
   isDeleted?: boolean;  // true if marked for deletion
 }
 
+// Interface for an organisme assignment (when managing organismes for a site)
+interface OrganismeAssignment {
+  organisme: AdminOrganisme;
+  principal: boolean;
+  isNew?: boolean;
+  isModified?: boolean;
+  isDeleted?: boolean;
+}
+
+// Interface for existing organisme data passed to modal
+export interface ExistingOrganismeData {
+  id_organisme: number;
+  nom_organisme: string;
+  ville_organisme?: string;
+  principal: boolean;
+}
+
 export interface LinkSiteOrganismeModalData {
-  site?: AdminSite; // If provided, select organisme for this site
+  site?: AdminSite; // If provided, manage organismes for this site
   organisme?: AdminOrganisme; // If provided, manage sites for this organisme
+  existingOrganismes?: ExistingOrganismeData[]; // Existing organismes when managing site
 }
 
 @Component({
@@ -61,10 +79,12 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
   // Sites currently assigned to organisme (with modifications tracking)
   siteAssignments = signal<SiteAssignment[]>([]);
 
-  // For select-organisme mode (when site is provided)
-  organismes = signal<AdminOrganisme[]>([]);
-  selectedOrganismeId: number | null = null;
-  isPrincipal = false;
+  // For select-organisme mode (managing multiple organismes for a site)
+  allOrganismes = signal<AdminOrganisme[]>([]);
+  organismeAssignments = signal<OrganismeAssignment[]>([]);
+  organismeControl = new FormControl<AdminOrganisme | string>('');
+  filteredOrganismes = signal<AdminOrganisme[]>([]);
+  newOrganismePrincipal = false;
 
   // For adding new site (select-site mode)
   siteControl = new FormControl<AdminSite | string>('');
@@ -76,11 +96,19 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
   }
 
   get hasChanges(): boolean {
-    return this.siteAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    if (this.mode === 'select-site') {
+      return this.siteAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    } else {
+      return this.organismeAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    }
   }
 
   get visibleAssignments(): SiteAssignment[] {
     return this.siteAssignments().filter(a => !a.isDeleted);
+  }
+
+  get visibleOrganismeAssignments(): OrganismeAssignment[] {
+    return this.organismeAssignments().filter(a => !a.isDeleted);
   }
 
   get availableSitesForAdd(): AdminSite[] {
@@ -90,6 +118,13 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     return this.allSites().filter(s => !assignedIds.has(s.id_site));
   }
 
+  get availableOrganismesForAdd(): AdminOrganisme[] {
+    const assignedIds = new Set(this.organismeAssignments()
+      .filter(a => !a.isDeleted)
+      .map(a => a.organisme.id_organisme));
+    return this.allOrganismes().filter(o => !assignedIds.has(o.id_organisme));
+  }
+
   ngOnInit(): void {
     if (this.mode === 'select-site') {
       this.loadSitesAndAssignments();
@@ -97,7 +132,10 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
         this.filterAvailableSites(value);
       });
     } else {
-      this.loadOrganismes();
+      this.loadOrganismesAndAssignments();
+      this.organismeControl.valueChanges.subscribe(value => {
+        this.filterAvailableOrganismes(value);
+      });
     }
   }
 
@@ -121,7 +159,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
                   type_site_label: orgSite.type_site,
                   active: orgSite.active
                 } as AdminSite,
-                principal: false, // API doesn't return this yet, will need update
+                principal: orgSite.principal || false,
                 isNew: false,
                 isModified: false,
                 isDeleted: false
@@ -150,11 +188,34 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     });
   }
 
-  private loadOrganismes(): void {
+  private loadOrganismesAndAssignments(): void {
     this.isLoadingData.set(true);
+
+    // Load all organismes
     this.adminService.getOrganismes().subscribe({
       next: (response) => {
-        this.organismes.set(response.results);
+        this.allOrganismes.set(response.results);
+
+        // Initialize assignments from existing organismes of the site
+        const existingAssignments: OrganismeAssignment[] = (this.data.existingOrganismes || []).map(existingOrg => {
+          // Try to find the full organisme object
+          const fullOrg = response.results.find(o => o.id_organisme === existingOrg.id_organisme);
+          return {
+            organisme: fullOrg || {
+              id_organisme: existingOrg.id_organisme,
+              nom_organisme: existingOrg.nom_organisme,
+              ville_organisme: existingOrg.ville_organisme,
+              active: true
+            } as AdminOrganisme,
+            principal: existingOrg.principal,
+            isNew: false,
+            isModified: false,
+            isDeleted: false
+          };
+        });
+
+        this.organismeAssignments.set(existingAssignments);
+        this.filterAvailableOrganismes('');
         this.isLoadingData.set(false);
       },
       error: (error: Error) => {
@@ -178,6 +239,20 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     this.filteredSites.set(filtered);
   }
 
+  private filterAvailableOrganismes(value: AdminOrganisme | string | null): void {
+    const available = this.availableOrganismesForAdd;
+    if (!value) {
+      this.filteredOrganismes.set(available);
+      return;
+    }
+    const query = typeof value === 'string' ? value.toLowerCase() : value.nom_organisme.toLowerCase();
+    const filtered = available.filter(org =>
+      org.nom_organisme.toLowerCase().includes(query) ||
+      (org.ville_organisme?.toLowerCase().includes(query) || '')
+    );
+    this.filteredOrganismes.set(filtered);
+  }
+
   displaySite(site: AdminSite | null): string {
     if (!site) return '';
     let name = site.nom_site;
@@ -185,6 +260,80 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
       name += ` (${site.type_site_label})`;
     }
     return name;
+  }
+
+  displayOrganisme(org: AdminOrganisme | null): string {
+    if (!org) return '';
+    let name = org.nom_organisme;
+    if (org.ville_organisme) {
+      name += ` (${org.ville_organisme})`;
+    }
+    return name;
+  }
+
+  // Add a new organisme to the list
+  addOrganisme(org: AdminOrganisme): void {
+    const assignments = [...this.organismeAssignments()];
+    assignments.push({
+      organisme: org,
+      principal: this.newOrganismePrincipal,
+      isNew: true,
+      isModified: false,
+      isDeleted: false
+    });
+    this.organismeAssignments.set(assignments);
+
+    // Reset the form
+    this.organismeControl.setValue('');
+    this.newOrganismePrincipal = false;
+    this.filterAvailableOrganismes('');
+
+    this.successMessage.set(`Organisme "${org.nom_organisme}" ajoute a la liste`);
+    setTimeout(() => this.successMessage.set(null), 3000);
+  }
+
+  // Remove an organisme from the list
+  removeOrganisme(assignment: OrganismeAssignment): void {
+    const assignments = [...this.organismeAssignments()];
+    const index = assignments.findIndex(a => a.organisme.id_organisme === assignment.organisme.id_organisme);
+
+    if (index >= 0) {
+      if (assignment.isNew) {
+        // Just remove it from the list
+        assignments.splice(index, 1);
+      } else {
+        // Mark for deletion
+        assignments[index] = { ...assignments[index], isDeleted: true };
+      }
+      this.organismeAssignments.set(assignments);
+      this.filterAvailableOrganismes(this.organismeControl.value);
+    }
+  }
+
+  // Restore an organisme marked for deletion
+  restoreOrganisme(assignment: OrganismeAssignment): void {
+    const assignments = [...this.organismeAssignments()];
+    const index = assignments.findIndex(a => a.organisme.id_organisme === assignment.organisme.id_organisme);
+
+    if (index >= 0) {
+      assignments[index] = { ...assignments[index], isDeleted: false };
+      this.organismeAssignments.set(assignments);
+      this.filterAvailableOrganismes(this.organismeControl.value);
+    }
+  }
+
+  // Toggle principal for an organisme
+  toggleOrganismePrincipal(assignment: OrganismeAssignment): void {
+    const assignments = [...this.organismeAssignments()];
+    const index = assignments.findIndex(a => a.organisme.id_organisme === assignment.organisme.id_organisme);
+    if (index >= 0) {
+      assignments[index] = {
+        ...assignments[index],
+        principal: !assignments[index].principal,
+        isModified: !assignments[index].isNew
+      };
+      this.organismeAssignments.set(assignments);
+    }
   }
 
   // Add a new site to the list
@@ -252,10 +401,6 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     }
   }
 
-  isValidForSelectOrganisme(): boolean {
-    return this.selectedOrganismeId !== null;
-  }
-
   // Save all changes
   onSave(): void {
     if (this.mode === 'select-organisme') {
@@ -266,23 +411,81 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
   }
 
   private saveSelectOrganisme(): void {
-    if (!this.selectedOrganismeId || !this.data.site) return;
+    if (!this.data.site) return;
+
+    const siteId = this.data.site.id_site;
+    const toAdd = this.organismeAssignments().filter(a => a.isNew && !a.isDeleted);
+    const toUpdate = this.organismeAssignments().filter(a => a.isModified && !a.isNew && !a.isDeleted);
+    const toDelete = this.organismeAssignments().filter(a => a.isDeleted && !a.isNew);
+
+    if (toAdd.length === 0 && toUpdate.length === 0 && toDelete.length === 0) {
+      this.dialogRef.close({ success: true, changed: false });
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.adminService.assignSiteToOrganisme(
-      this.selectedOrganismeId,
-      this.data.site.id_site,
-      this.isPrincipal
-    ).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.dialogRef.close({ success: true, changed: true });
-      },
-      error: (error: Error) => {
-        this.isLoading.set(false);
-        this.errorMessage.set(error.message);
+    // Process all operations
+    this.processOrganismeOperations(siteId, toAdd, toUpdate, toDelete);
+  }
+
+  private processOrganismeOperations(
+    siteId: number,
+    toAdd: OrganismeAssignment[],
+    toUpdate: OrganismeAssignment[],
+    toDelete: OrganismeAssignment[]
+  ): void {
+    const allOperations = [
+      ...toAdd.map(a => ({ type: 'add' as const, assignment: a })),
+      ...toUpdate.map(a => ({ type: 'update' as const, assignment: a })),
+      ...toDelete.map(a => ({ type: 'delete' as const, assignment: a }))
+    ];
+
+    if (allOperations.length === 0) {
+      this.isLoading.set(false);
+      this.dialogRef.close({ success: true, changed: true });
+      return;
+    }
+
+    let completed = 0;
+    let hasError = false;
+
+    allOperations.forEach(op => {
+      if (op.type === 'delete') {
+        this.adminService.removeSiteFromOrganisme(op.assignment.organisme.id_organisme, siteId).subscribe({
+          next: () => {
+            completed++;
+            if (completed === allOperations.length && !hasError) {
+              this.isLoading.set(false);
+              this.dialogRef.close({ success: true, changed: true });
+            }
+          },
+          error: (error: Error) => {
+            hasError = true;
+            this.isLoading.set(false);
+            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+          }
+        });
+      } else {
+        this.adminService.assignSiteToOrganisme(
+          op.assignment.organisme.id_organisme,
+          siteId,
+          op.assignment.principal
+        ).subscribe({
+          next: () => {
+            completed++;
+            if (completed === allOperations.length && !hasError) {
+              this.isLoading.set(false);
+              this.dialogRef.close({ success: true, changed: true });
+            }
+          },
+          error: (error: Error) => {
+            hasError = true;
+            this.isLoading.set(false);
+            this.errorMessage.set(`Erreur: ${error.message}`);
+          }
+        });
       }
     });
   }

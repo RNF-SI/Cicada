@@ -63,9 +63,8 @@
           <tr>
             <th>Nom du site</th>
             <th>Type</th>
-            @if (isSuperAdmin()) {
-              <th>Organisme</th>
-            }
+            <th>Organismes</th>
+            <th>Utilisateurs</th>
             <th>Surface</th>
             <th>Plans</th>
             <th>Actions</th>
@@ -81,15 +80,74 @@
               <td>
                 <span class="type-badge">{{ site.type }}</span>
               </td>
-              @if (isSuperAdmin()) {
-                <td>
-                  @if (site.organisme !== 'Non assigne') {
-                    {{ site.organisme }}
-                  } @else {
-                    <span class="text-muted">Non assigne</span>
-                  }
-                </td>
-              }
+              <td class="organismes-cell">
+                @if (site.organismes.length === 0) {
+                  <span class="text-muted">Aucun organisme</span>
+                } @else if (site.organismes.length === 1) {
+                  <span class="org-chip" [class.principal]="site.organismes[0].principal"
+                        [matTooltip]="site.organismes[0].nom + (site.organismes[0].principal ? ' (Principal)' : '')">
+                    <i class="fi fi-rr-building"></i>
+                    <span class="org-name">{{ site.organismes[0].nom }}</span>
+                    @if (site.organismes[0].principal) {
+                      <span class="principal-indicator" title="Organisme principal">P</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="orgs-list">
+                    @for (org of site.organismes.slice(0, 2); track org.id) {
+                      <span class="org-chip" [class.principal]="org.principal"
+                            [matTooltip]="org.nom + (org.principal ? ' (Principal)' : '')">
+                        <i class="fi fi-rr-building"></i>
+                        <span class="org-name">{{ org.nom }}</span>
+                        @if (org.principal) {
+                          <span class="principal-indicator" title="Organisme principal">P</span>
+                        }
+                      </span>
+                    }
+                    @if (site.organismes.length > 2) {
+                      <span class="orgs-more" [matTooltip]="getOtherOrganismesNames(site.organismes)">
+                        +{{ site.organismes.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+              <td class="users-cell">
+                @if (site.users.length === 0) {
+                  <span class="text-muted">Aucun utilisateur</span>
+                } @else if (site.users.length === 1) {
+                  <span class="user-chip" [matTooltip]="site.users[0].nom + (getUserRoles(site.users[0]) ? ' - ' + getUserRoles(site.users[0]) : '')">
+                    <i class="fi fi-rr-user"></i>
+                    <span class="user-name">{{ site.users[0].nom }}</span>
+                    @if (site.users[0].isReferent) {
+                      <span class="role-indicator referent" title="Referent">R</span>
+                    }
+                    @if (site.users[0].isConservateur) {
+                      <span class="role-indicator conservateur" title="Conservateur">C</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="users-list">
+                    @for (user of site.users.slice(0, 2); track user.id) {
+                      <span class="user-chip" [matTooltip]="user.nom + (getUserRoles(user) ? ' - ' + getUserRoles(user) : '')">
+                        <i class="fi fi-rr-user"></i>
+                        <span class="user-name">{{ user.nom }}</span>
+                        @if (user.isReferent) {
+                          <span class="role-indicator referent" title="Referent">R</span>
+                        }
+                        @if (user.isConservateur) {
+                          <span class="role-indicator conservateur" title="Conservateur">C</span>
+                        }
+                      </span>
+                    }
+                    @if (site.users.length > 2) {
+                      <span class="users-more" [matTooltip]="getOtherUsersNames(site.users)">
+                        +{{ site.users.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
               <td>
                 @if (site.surface) {
                   {{ site.surface | number:'1.0-0' }} ha
@@ -107,16 +165,13 @@
                     <i class="fi fi-rr-building"></i>
                   </button>
                 }
-                <button class="btn-icon" title="Voir sur la carte" (click)="viewOnMap(site)">
-                  <i class="fi fi-rr-map"></i>
-                </button>
               </td>
             </tr>
           }
 
           @if (filteredSites().length === 0) {
             <tr>
-              <td [attr.colspan]="isSuperAdmin() ? 6 : 5" class="empty-cell">
+              <td colspan="7" class="empty-cell">
                 Aucun site trouve
               </td>
             </tr>

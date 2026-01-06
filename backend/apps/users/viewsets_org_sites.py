@@ -242,7 +242,7 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         """Liste des sites gérés par un organisme."""
         organisme = self.get_object()
         cor_sites = CorOgSite.objects.filter(uuid_og=organisme).select_related('id_site')
-        
+
         sites_data = []
         for cor in cor_sites:
             site = cor.id_site
@@ -251,9 +251,10 @@ class OrganismeViewSet(viewsets.ModelViewSet):
                 'nom_site': site.nom_site,
                 'surf_off': site.surf_off,
                 'type_site': site.id_type_site.label if site.id_type_site else None,
-                'active': site.active
+                'active': site.active,
+                'principal': cor.principal
             })
-        
+
         return Response(sites_data)
     
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme])
@@ -514,7 +515,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         """Liste des organismes gestionnaires du site."""
         site = self.get_object()
         cor_orgs = CorOgSite.objects.filter(id_site=site).select_related('uuid_og')
-        
+
         orgs_data = []
         for cor in cor_orgs:
             org = cor.uuid_og
@@ -522,9 +523,10 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'id_organisme': org.id_organisme,
                 'nom_organisme': org.nom_organisme,
                 'ville_organisme': org.ville_organisme,
-                'email_organisme': org.email_organisme
+                'email_organisme': org.email_organisme,
+                'principal': cor.principal
             })
-        
+
         return Response(orgs_data)
     
     @action(detail=False, methods=['get'], permission_classes=[IsReferent])

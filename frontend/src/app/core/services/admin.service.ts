@@ -10,7 +10,8 @@ import {
   SiteCreatePayload,
   PaginatedResponse,
   PaginatedResponseNested,
-  OrganismeSite
+  OrganismeSite,
+  SiteOrganisme
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -180,8 +181,8 @@ export class AdminService {
   /**
    * Get organismes managing a site
    */
-  getSiteOrganismes(siteId: number): Observable<AdminOrganisme[]> {
-    return this.http.get<AdminOrganisme[]>(`${this.apiUrl}/sites/${siteId}/organismes/`)
+  getSiteOrganismes(siteId: number): Observable<SiteOrganisme[]> {
+    return this.http.get<SiteOrganisme[]>(`${this.apiUrl}/sites/${siteId}/organismes/`)
       .pipe(catchError(this.handleError));
   }
 

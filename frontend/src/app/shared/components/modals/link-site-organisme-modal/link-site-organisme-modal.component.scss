@@ -331,6 +331,123 @@
   }
 }
 
+// Organismes section (for select-organisme mode with list)
+.organismes-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.organismes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.organisme-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+
+  &.is-new {
+    border-color: #82DB8A;
+    background: rgba(130, 219, 138, 0.05);
+  }
+
+  &.is-modified {
+    border-color: #FEC180;
+    background: rgba(254, 193, 128, 0.05);
+  }
+
+  &.is-deleted {
+    border-color: #dc2626;
+    background: rgba(220, 38, 38, 0.05);
+    opacity: 0.7;
+
+    .organisme-item-info {
+      .organisme-name {
+        text-decoration: line-through;
+        color: #6c757d;
+      }
+
+      i {
+        color: #6c757d;
+      }
+    }
+  }
+}
+
+.organisme-item-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+
+  i {
+    color: #025359;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .organisme-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .organisme-location {
+    font-size: 12px;
+    color: #6c757d;
+    white-space: nowrap;
+  }
+}
+
+.organisme-item-roles {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+// Add organisme section
+.add-organisme-section {
+  background: #e8f4f8;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px dashed #81C9D8;
+}
+
+.add-organisme-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.organisme-search-field {
+  width: 100%;
+}
+
+.new-organisme-roles {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .roles-label {
+    font-size: 13px;
+    color: #6c757d;
+  }
+}
+
 .role-checkbox-inline {
   display: flex;
   align-items: center;

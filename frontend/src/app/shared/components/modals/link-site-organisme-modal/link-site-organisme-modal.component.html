@@ -2,7 +2,7 @@
   @if (mode === 'select-site') {
     Gerer les sites de l'organisme
   } @else {
-    Associer le site a un organisme
+    Gerer les organismes du site
   }
 </h2>
 
@@ -169,7 +169,7 @@
         </div>
 
       } @else {
-        <!-- Select organisme mode (for site detail page) -->
+        <!-- Manage organismes for a site -->
         <div class="site-info">
           <div class="site-icon">
             <i class="fi fi-rr-marker"></i>
@@ -182,20 +182,133 @@
           </div>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Organisme gestionnaire</mat-label>
-          <mat-select [(ngModel)]="selectedOrganismeId" required>
-            @for (org of organismes(); track org.id_organisme) {
-              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <!-- Current organismes list -->
+        <div class="organismes-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-building"></i>
+            Organismes gestionnaires ({{ visibleOrganismeAssignments.length }})
+          </h3>
 
-        <div class="checkbox-container">
-          <mat-checkbox [(ngModel)]="isPrincipal">
-            <span class="checkbox-label">Organisme principal</span>
-            <span class="checkbox-description">Designe l'organisme gestionnaire principal du site</span>
-          </mat-checkbox>
+          @if (organismeAssignments().length === 0) {
+            <div class="empty-state">
+              <i class="fi fi-rr-info"></i>
+              <span>Aucun organisme gestionnaire. Utilisez le formulaire ci-dessous pour ajouter un organisme.</span>
+            </div>
+          } @else {
+            <div class="organismes-list">
+              @for (assignment of organismeAssignments(); track assignment.organisme.id_organisme) {
+                <div class="organisme-item"
+                     [class.is-new]="assignment.isNew"
+                     [class.is-modified]="assignment.isModified && !assignment.isDeleted"
+                     [class.is-deleted]="assignment.isDeleted">
+                  <div class="organisme-item-info">
+                    <i class="fi fi-rr-building"></i>
+                    <span class="organisme-name">{{ assignment.organisme.nom_organisme }}</span>
+                    @if (assignment.organisme.ville_organisme) {
+                      <span class="organisme-location">{{ assignment.organisme.ville_organisme }}</span>
+                    }
+                    @if (assignment.isNew) {
+                      <span class="badge new-badge">Nouveau</span>
+                    }
+                    @if (assignment.isModified && !assignment.isDeleted) {
+                      <span class="badge modified-badge">Modifie</span>
+                    }
+                    @if (assignment.isDeleted) {
+                      <span class="badge deleted-badge">Supprime</span>
+                    }
+                  </div>
+                  @if (!assignment.isDeleted) {
+                    <div class="organisme-item-roles">
+                      <label class="role-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="assignment.principal"
+                          (change)="toggleOrganismePrincipal(assignment)">
+                        <span class="role-label principal">P</span>
+                        <span class="role-text">Principal</span>
+                      </label>
+                    </div>
+                    <button
+                      class="btn-remove"
+                      type="button"
+                      (click)="removeOrganisme(assignment)"
+                      title="Retirer cet organisme">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  } @else {
+                    <button
+                      class="btn-restore"
+                      type="button"
+                      (click)="restoreOrganisme(assignment)"
+                      title="Annuler la suppression">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>Annuler</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Add new organisme section -->
+        <div class="add-organisme-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-plus"></i>
+            Ajouter un organisme
+          </h3>
+
+          <div class="add-organisme-form">
+            <mat-form-field appearance="outline" class="organisme-search-field">
+              <mat-label>Rechercher un organisme</mat-label>
+              <input
+                type="text"
+                matInput
+                [formControl]="organismeControl"
+                [matAutocomplete]="orgAuto"
+                placeholder="Tapez pour rechercher...">
+              <i class="fi fi-rr-search" matSuffix></i>
+              <mat-autocomplete
+                #orgAuto="matAutocomplete"
+                [displayWith]="displayOrganisme"
+                (optionSelected)="addOrganisme($event.option.value)">
+                @for (org of filteredOrganismes(); track org.id_organisme) {
+                  <mat-option [value]="org">
+                    <div class="autocomplete-option">
+                      <span class="option-name">{{ org.nom_organisme }}</span>
+                      @if (org.ville_organisme) {
+                        <span class="option-type">{{ org.ville_organisme }}</span>
+                      }
+                    </div>
+                  </mat-option>
+                }
+                @if (filteredOrganismes().length === 0) {
+                  <mat-option disabled>
+                    @if (availableOrganismesForAdd.length === 0) {
+                      Tous les organismes sont deja associes
+                    } @else {
+                      Aucun organisme trouve
+                    }
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <div class="new-organisme-roles">
+              <label class="role-checkbox-inline">
+                <input type="checkbox" [(ngModel)]="newOrganismePrincipal">
+                <span>Organisme principal</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+          <i class="fi fi-rr-info"></i>
+          <div>
+            <strong>Organisme principal:</strong> designe l'organisme gestionnaire principal du site.
+          </div>
         </div>
       }
     </div>
@@ -206,29 +319,15 @@
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
     Annuler
   </button>
-  @if (mode === 'select-site') {
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="onSave()"
-      [disabled]="isLoading() || isLoadingData()">
-      @if (isLoading()) {
-        <mat-spinner diameter="20"></mat-spinner>
-      } @else {
-        Enregistrer
-      }
-    </button>
-  } @else {
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="onSave()"
-      [disabled]="isLoading() || isLoadingData() || !isValidForSelectOrganisme()">
-      @if (isLoading()) {
-        <mat-spinner diameter="20"></mat-spinner>
-      } @else {
-        Associer
-      }
-    </button>
-  }
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="isLoading() || isLoadingData()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Enregistrer
+    }
+  </button>
 </mat-dialog-actions>

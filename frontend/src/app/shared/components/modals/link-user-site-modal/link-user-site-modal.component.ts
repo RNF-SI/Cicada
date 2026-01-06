@@ -22,9 +22,29 @@ interface SiteAssignment {
   isDeleted?: boolean;  // true if marked for deletion
 }
 
+// Interface for a user assignment (when managing users for a site)
+interface UserAssignment {
+  user: AdminUser;
+  referent: boolean;
+  conservateur: boolean;
+  isNew?: boolean;
+  isModified?: boolean;
+  isDeleted?: boolean;
+}
+
+// Interface for existing user data passed to modal
+export interface ExistingUserData {
+  id_role: number;
+  nom_complet?: string;
+  email: string;
+  referent: boolean;
+  conservateur: boolean;
+}
+
 export interface LinkUserSiteModalData {
   user?: AdminUser; // If provided, manage sites for this user
-  site?: AdminSite; // If provided, select user for this site
+  site?: AdminSite; // If provided, manage users for this site
+  existingUsers?: ExistingUserData[]; // Existing users when managing site
 }
 
 @Component({
@@ -62,13 +82,13 @@ export class LinkUserSiteModalComponent implements OnInit {
   // Sites currently assigned to user (with modifications tracking)
   siteAssignments = signal<SiteAssignment[]>([]);
 
-  // For select-user mode
-  users = signal<AdminUser[]>([]);
-  filteredUsers = signal<AdminUser[]>([]);
+  // For select-user mode (managing multiple users for a site)
+  allUsers = signal<AdminUser[]>([]);
+  userAssignments = signal<UserAssignment[]>([]);
   userControl = new FormControl<AdminUser | string>('');
-  selectedUser: AdminUser | null = null;
-  isReferent = true;
-  isConservateur = false;
+  filteredUsers = signal<AdminUser[]>([]);
+  newUserReferent = true;
+  newUserConservateur = false;
 
   // For adding new site (select-site mode)
   siteControl = new FormControl<AdminSite | string>('');
@@ -81,11 +101,19 @@ export class LinkUserSiteModalComponent implements OnInit {
   }
 
   get hasChanges(): boolean {
-    return this.siteAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    if (this.mode === 'select-site') {
+      return this.siteAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    } else {
+      return this.userAssignments().some(a => a.isNew || a.isModified || a.isDeleted);
+    }
   }
 
   get visibleAssignments(): SiteAssignment[] {
     return this.siteAssignments().filter(a => !a.isDeleted);
+  }
+
+  get visibleUserAssignments(): UserAssignment[] {
+    return this.userAssignments().filter(a => !a.isDeleted);
   }
 
   get availableSitesForAdd(): AdminSite[] {
@@ -95,6 +123,13 @@ export class LinkUserSiteModalComponent implements OnInit {
     return this.allSites().filter(s => !assignedIds.has(s.id_site));
   }
 
+  get availableUsersForAdd(): AdminUser[] {
+    const assignedIds = new Set(this.userAssignments()
+      .filter(a => !a.isDeleted)
+      .map(a => a.user.id_role));
+    return this.allUsers().filter(u => !assignedIds.has(u.id_role));
+  }
+
   ngOnInit(): void {
     if (this.mode === 'select-site') {
       this.loadSitesAndAssignments();
@@ -102,9 +137,9 @@ export class LinkUserSiteModalComponent implements OnInit {
         this.filterAvailableSites(value);
       });
     } else {
-      this.loadUsers();
+      this.loadUsersAndAssignments();
       this.userControl.valueChanges.subscribe(value => {
-        this.filterUsers(value);
+        this.filterAvailableUsers(value);
       });
     }
   }
@@ -143,12 +178,37 @@ export class LinkUserSiteModalComponent implements OnInit {
     });
   }
 
-  private loadUsers(): void {
+  private loadUsersAndAssignments(): void {
     this.isLoadingData.set(true);
+
+    // Load all users
     this.adminService.getUsers().subscribe({
       next: (response) => {
-        this.users.set(response.results);
-        this.filteredUsers.set(response.results);
+        this.allUsers.set(response.results);
+
+        // Initialize assignments from existing users of the site
+        const existingAssignments: UserAssignment[] = (this.data.existingUsers || []).map(existingUser => {
+          // Try to find the full user object
+          const fullUser = response.results.find(u => u.id_role === existingUser.id_role);
+          return {
+            user: fullUser || {
+              id_role: existingUser.id_role,
+              email: existingUser.email,
+              nom_role: existingUser.nom_complet?.split(' ').slice(1).join(' '),
+              prenom_role: existingUser.nom_complet?.split(' ')[0],
+              role_level: 'utilisateur' as const,
+              active: true
+            },
+            referent: existingUser.referent,
+            conservateur: existingUser.conservateur,
+            isNew: false,
+            isModified: false,
+            isDeleted: false
+          };
+        });
+
+        this.userAssignments.set(existingAssignments);
+        this.filterAvailableUsers('');
         this.isLoadingData.set(false);
       },
       error: (error: Error) => {
@@ -172,13 +232,14 @@ export class LinkUserSiteModalComponent implements OnInit {
     this.filteredSites.set(filtered);
   }
 
-  private filterUsers(value: AdminUser | string | null): void {
+  private filterAvailableUsers(value: AdminUser | string | null): void {
+    const available = this.availableUsersForAdd;
     if (!value) {
-      this.filteredUsers.set(this.users());
+      this.filteredUsers.set(available);
       return;
     }
     const query = typeof value === 'string' ? value.toLowerCase() : value.email.toLowerCase();
-    const filtered = this.users().filter(user =>
+    const filtered = available.filter(user =>
       (user.nom_role?.toLowerCase().includes(query) || false) ||
       (user.prenom_role?.toLowerCase().includes(query) || false) ||
       user.email.toLowerCase().includes(query)
@@ -199,6 +260,97 @@ export class LinkUserSiteModalComponent implements OnInit {
     if (!user) return '';
     if (user.prenom_role && user.nom_role) {
       return `${user.prenom_role} ${user.nom_role} (${user.email})`;
+    }
+    return user.email;
+  }
+
+  // Add a new user to the list
+  addUser(user: AdminUser): void {
+    const assignments = [...this.userAssignments()];
+    assignments.push({
+      user,
+      referent: this.newUserReferent,
+      conservateur: this.newUserConservateur,
+      isNew: true,
+      isModified: false,
+      isDeleted: false
+    });
+    this.userAssignments.set(assignments);
+
+    // Reset the form
+    this.userControl.setValue('');
+    this.newUserReferent = true;
+    this.newUserConservateur = false;
+    this.filterAvailableUsers('');
+
+    const userName = user.prenom_role && user.nom_role
+      ? `${user.prenom_role} ${user.nom_role}`
+      : user.email;
+    this.successMessage.set(`Utilisateur "${userName}" ajoute a la liste`);
+    setTimeout(() => this.successMessage.set(null), 3000);
+  }
+
+  // Remove a user from the list
+  removeUser(assignment: UserAssignment): void {
+    const assignments = [...this.userAssignments()];
+    const index = assignments.findIndex(a => a.user.id_role === assignment.user.id_role);
+
+    if (index >= 0) {
+      if (assignment.isNew) {
+        // Just remove it from the list
+        assignments.splice(index, 1);
+      } else {
+        // Mark for deletion
+        assignments[index] = { ...assignments[index], isDeleted: true };
+      }
+      this.userAssignments.set(assignments);
+      this.filterAvailableUsers(this.userControl.value);
+    }
+  }
+
+  // Restore a user marked for deletion
+  restoreUser(assignment: UserAssignment): void {
+    const assignments = [...this.userAssignments()];
+    const index = assignments.findIndex(a => a.user.id_role === assignment.user.id_role);
+
+    if (index >= 0) {
+      assignments[index] = { ...assignments[index], isDeleted: false };
+      this.userAssignments.set(assignments);
+      this.filterAvailableUsers(this.userControl.value);
+    }
+  }
+
+  // Toggle referent role for a user
+  toggleUserReferent(assignment: UserAssignment): void {
+    const assignments = [...this.userAssignments()];
+    const index = assignments.findIndex(a => a.user.id_role === assignment.user.id_role);
+    if (index >= 0) {
+      assignments[index] = {
+        ...assignments[index],
+        referent: !assignments[index].referent,
+        isModified: !assignments[index].isNew
+      };
+      this.userAssignments.set(assignments);
+    }
+  }
+
+  // Toggle conservateur role for a user
+  toggleUserConservateur(assignment: UserAssignment): void {
+    const assignments = [...this.userAssignments()];
+    const index = assignments.findIndex(a => a.user.id_role === assignment.user.id_role);
+    if (index >= 0) {
+      assignments[index] = {
+        ...assignments[index],
+        conservateur: !assignments[index].conservateur,
+        isModified: !assignments[index].isNew
+      };
+      this.userAssignments.set(assignments);
+    }
+  }
+
+  getUserDisplayName(user: AdminUser): string {
+    if (user.prenom_role && user.nom_role) {
+      return `${user.prenom_role} ${user.nom_role}`;
     }
     return user.email;
   }
@@ -284,14 +436,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     }
   }
 
-  onUserSelected(user: AdminUser): void {
-    this.selectedUser = user;
-  }
-
-  isValidForSelectUser(): boolean {
-    return this.selectedUser !== null;
-  }
-
   // Save all changes
   onSave(): void {
     if (this.mode === 'select-user') {
@@ -302,24 +446,82 @@ export class LinkUserSiteModalComponent implements OnInit {
   }
 
   private saveSelectUser(): void {
-    if (!this.selectedUser || !this.data.site) return;
+    if (!this.data.site) return;
+
+    const siteId = this.data.site.id_site;
+    const toAdd = this.userAssignments().filter(a => a.isNew && !a.isDeleted);
+    const toUpdate = this.userAssignments().filter(a => a.isModified && !a.isNew && !a.isDeleted);
+    const toDelete = this.userAssignments().filter(a => a.isDeleted && !a.isNew);
+
+    if (toAdd.length === 0 && toUpdate.length === 0 && toDelete.length === 0) {
+      this.dialogRef.close({ success: true, changed: false });
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.adminService.assignUserToSite(
-      this.data.site.id_site,
-      this.selectedUser.id_role,
-      this.isReferent,
-      this.isConservateur
-    ).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.dialogRef.close({ success: true, changed: true });
-      },
-      error: (error: Error) => {
-        this.isLoading.set(false);
-        this.errorMessage.set(error.message);
+    // Process all operations
+    this.processUserOperations(siteId, toAdd, toUpdate, toDelete);
+  }
+
+  private processUserOperations(
+    siteId: number,
+    toAdd: UserAssignment[],
+    toUpdate: UserAssignment[],
+    toDelete: UserAssignment[]
+  ): void {
+    const allOperations = [
+      ...toAdd.map(a => ({ type: 'add' as const, assignment: a })),
+      ...toUpdate.map(a => ({ type: 'update' as const, assignment: a })),
+      ...toDelete.map(a => ({ type: 'delete' as const, assignment: a }))
+    ];
+
+    if (allOperations.length === 0) {
+      this.isLoading.set(false);
+      this.dialogRef.close({ success: true, changed: true });
+      return;
+    }
+
+    let completed = 0;
+    let hasError = false;
+
+    allOperations.forEach(op => {
+      if (op.type === 'delete') {
+        this.adminService.removeUserFromSite(siteId, op.assignment.user.id_role).subscribe({
+          next: () => {
+            completed++;
+            if (completed === allOperations.length && !hasError) {
+              this.isLoading.set(false);
+              this.dialogRef.close({ success: true, changed: true });
+            }
+          },
+          error: (error: Error) => {
+            hasError = true;
+            this.isLoading.set(false);
+            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+          }
+        });
+      } else {
+        this.adminService.assignUserToSite(
+          siteId,
+          op.assignment.user.id_role,
+          op.assignment.referent,
+          op.assignment.conservateur
+        ).subscribe({
+          next: () => {
+            completed++;
+            if (completed === allOperations.length && !hasError) {
+              this.isLoading.set(false);
+              this.dialogRef.close({ success: true, changed: true });
+            }
+          },
+          error: (error: Error) => {
+            hasError = true;
+            this.isLoading.set(false);
+            this.errorMessage.set(`Erreur: ${error.message}`);
+          }
+        });
       }
     });
   }

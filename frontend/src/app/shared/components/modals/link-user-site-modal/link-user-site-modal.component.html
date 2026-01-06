@@ -2,7 +2,7 @@
   @if (mode === 'select-site') {
     Gerer les sites de l'utilisateur
   } @else {
-    Ajouter un utilisateur au site
+    Gerer les utilisateurs du site
   }
 </h2>
 
@@ -183,7 +183,7 @@
         </div>
 
       } @else {
-        <!-- Select user mode (for site detail page) -->
+        <!-- Manage users for a site -->
         <div class="site-info">
           <div class="site-icon">
             <i class="fi fi-rr-marker"></i>
@@ -196,55 +196,148 @@
           </div>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Rechercher et selectionner un utilisateur</mat-label>
-          <input
-            type="text"
-            matInput
-            [formControl]="userControl"
-            [matAutocomplete]="userAuto"
-            placeholder="Tapez pour rechercher un utilisateur...">
-          <i class="fi fi-rr-search" matSuffix></i>
-          <mat-autocomplete
-            #userAuto="matAutocomplete"
-            [displayWith]="displayUser"
-            (optionSelected)="onUserSelected($event.option.value)">
-            @for (user of filteredUsers(); track user.id_role) {
-              <mat-option [value]="user">
-                <div class="autocomplete-option">
-                  <span class="option-name">
-                    @if (user.prenom_role && user.nom_role) {
-                      {{ user.prenom_role }} {{ user.nom_role }}
-                    } @else {
-                      {{ user.email }}
-                    }
-                  </span>
-                  <span class="option-email">{{ user.email }}</span>
-                </div>
-              </mat-option>
-            }
-            @if (filteredUsers().length === 0) {
-              <mat-option disabled>Aucun utilisateur trouve</mat-option>
-            }
-          </mat-autocomplete>
-          @if (selectedUser) {
-            <mat-hint>Utilisateur selectionne: {{ selectedUser.email }}</mat-hint>
-          }
-        </mat-form-field>
+        <!-- Current users list -->
+        <div class="users-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-users"></i>
+            Utilisateurs associes ({{ visibleUserAssignments.length }})
+          </h3>
 
-        <div class="roles-section">
-          <p class="roles-title">Roles de l'utilisateur sur ce site</p>
-          <div class="checkbox-container">
-            <mat-checkbox [(ngModel)]="isReferent">
-              <span class="checkbox-label">Referent</span>
-              <span class="checkbox-description">Peut gerer le site et ses plans de gestion</span>
-            </mat-checkbox>
+          @if (userAssignments().length === 0) {
+            <div class="empty-state">
+              <i class="fi fi-rr-info"></i>
+              <span>Aucun utilisateur associe. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.</span>
+            </div>
+          } @else {
+            <div class="users-list">
+              @for (assignment of userAssignments(); track assignment.user.id_role) {
+                <div class="user-item"
+                     [class.is-new]="assignment.isNew"
+                     [class.is-modified]="assignment.isModified && !assignment.isDeleted"
+                     [class.is-deleted]="assignment.isDeleted">
+                  <div class="user-item-info">
+                    <i class="fi fi-rr-user"></i>
+                    <span class="user-name">{{ getUserDisplayName(assignment.user) }}</span>
+                    <span class="user-email-small">{{ assignment.user.email }}</span>
+                    @if (assignment.isNew) {
+                      <span class="badge new-badge">Nouveau</span>
+                    }
+                    @if (assignment.isModified && !assignment.isDeleted) {
+                      <span class="badge modified-badge">Modifie</span>
+                    }
+                    @if (assignment.isDeleted) {
+                      <span class="badge deleted-badge">Supprime</span>
+                    }
+                  </div>
+                  @if (!assignment.isDeleted) {
+                    <div class="user-item-roles">
+                      <label class="role-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="assignment.referent"
+                          (change)="toggleUserReferent(assignment)">
+                        <span class="role-label referent">R</span>
+                        <span class="role-text">Referent</span>
+                      </label>
+                      <label class="role-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="assignment.conservateur"
+                          (change)="toggleUserConservateur(assignment)">
+                        <span class="role-label conservateur">C</span>
+                        <span class="role-text">Conservateur</span>
+                      </label>
+                    </div>
+                    <button
+                      class="btn-remove"
+                      type="button"
+                      (click)="removeUser(assignment)"
+                      title="Retirer cet utilisateur">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  } @else {
+                    <button
+                      class="btn-restore"
+                      type="button"
+                      (click)="restoreUser(assignment)"
+                      title="Annuler la suppression">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>Annuler</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Add new user section -->
+        <div class="add-user-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-plus"></i>
+            Ajouter un utilisateur
+          </h3>
+
+          <div class="add-user-form">
+            <mat-form-field appearance="outline" class="user-search-field">
+              <mat-label>Rechercher un utilisateur</mat-label>
+              <input
+                type="text"
+                matInput
+                [formControl]="userControl"
+                [matAutocomplete]="userAuto"
+                placeholder="Tapez pour rechercher...">
+              <i class="fi fi-rr-search" matSuffix></i>
+              <mat-autocomplete
+                #userAuto="matAutocomplete"
+                [displayWith]="displayUser"
+                (optionSelected)="addUser($event.option.value)">
+                @for (user of filteredUsers(); track user.id_role) {
+                  <mat-option [value]="user">
+                    <div class="autocomplete-option">
+                      <span class="option-name">
+                        @if (user.prenom_role && user.nom_role) {
+                          {{ user.prenom_role }} {{ user.nom_role }}
+                        } @else {
+                          {{ user.email }}
+                        }
+                      </span>
+                      <span class="option-email">{{ user.email }}</span>
+                    </div>
+                  </mat-option>
+                }
+                @if (filteredUsers().length === 0) {
+                  <mat-option disabled>
+                    @if (availableUsersForAdd.length === 0) {
+                      Tous les utilisateurs sont deja associes
+                    } @else {
+                      Aucun utilisateur trouve
+                    }
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <div class="new-user-roles">
+              <span class="roles-label">Roles par defaut:</span>
+              <label class="role-checkbox-inline">
+                <input type="checkbox" [(ngModel)]="newUserReferent">
+                <span>Referent</span>
+              </label>
+              <label class="role-checkbox-inline">
+                <input type="checkbox" [(ngModel)]="newUserConservateur">
+                <span>Conservateur</span>
+              </label>
+            </div>
           </div>
-          <div class="checkbox-container">
-            <mat-checkbox [(ngModel)]="isConservateur">
-              <span class="checkbox-label">Conservateur</span>
-              <span class="checkbox-description">Responsable de la conservation du site</span>
-            </mat-checkbox>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+          <i class="fi fi-rr-info"></i>
+          <div>
+            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.<br>
+            <strong>Conservateur:</strong> responsable de la conservation du site.
           </div>
         </div>
       }
@@ -256,29 +349,15 @@
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
     Annuler
   </button>
-  @if (mode === 'select-site') {
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="onSave()"
-      [disabled]="isLoading() || isLoadingData()">
-      @if (isLoading()) {
-        <mat-spinner diameter="20"></mat-spinner>
-      } @else {
-        Enregistrer
-      }
-    </button>
-  } @else {
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="onSave()"
-      [disabled]="isLoading() || isLoadingData() || !isValidForSelectUser()">
-      @if (isLoading()) {
-        <mat-spinner diameter="20"></mat-spinner>
-      } @else {
-        Associer
-      }
-    </button>
-  }
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="isLoading() || isLoadingData()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Enregistrer
+    }
+  </button>
 </mat-dialog-actions>

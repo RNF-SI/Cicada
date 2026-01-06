@@ -4,14 +4,35 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminSite as ApiSite, AdminOrganisme } from '../../core/models/admin.model';
 import {
   LinkUserSiteModalComponent,
   LinkSiteOrganismeModalComponent,
-  SiteFormModalComponent
+  SiteFormModalComponent,
+  ExistingUserData,
+  ExistingOrganismeData
 } from '../../shared/components/modals';
+
+// Interface for linked organisme display
+interface DisplayOrganismeLie {
+  id: number;
+  nom: string;
+  principal: boolean;
+}
+
+// Interface for linked user display
+interface DisplayUserLie {
+  id: number;
+  nom: string;
+  email: string;
+  isReferent: boolean;
+  isConservateur: boolean;
+}
 
 // Interface for display (mapping from API model)
 interface DisplaySite {
@@ -25,6 +46,8 @@ interface DisplaySite {
   departement?: string;
   nbPlans: number;
   isActive: boolean;
+  organismes: DisplayOrganismeLie[];
+  users: DisplayUserLie[];
 }
 
 interface DisplayOrganisme {
@@ -40,7 +63,8 @@ interface DisplayOrganisme {
     FormsModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatTooltipModule
   ],
   templateUrl: './admin-sites.component.html',
   styleUrl: './admin-sites.component.scss'
@@ -100,10 +124,66 @@ export class AdminSitesComponent implements OnInit {
         const mapped = response.results.map(site => this.mapSite(site));
         this.sites.set(mapped);
         this.applyFilters();
-        this.isLoading.set(false);
+
+        // Load related data for each site
+        this.loadRelatedDataForSites(mapped);
       },
       error: (error: Error) => {
         this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private loadRelatedDataForSites(sites: DisplaySite[]): void {
+    if (sites.length === 0) {
+      this.isLoading.set(false);
+      return;
+    }
+
+    // Create observables for all sites
+    const observables = sites.map(site =>
+      forkJoin({
+        siteId: of(site.id),
+        organismes: this.adminService.getSiteOrganismes(site.id).pipe(
+          catchError(() => of([]))
+        ),
+        users: this.adminService.getSiteUsers(site.id).pipe(
+          catchError(() => of([]))
+        )
+      })
+    );
+
+    forkJoin(observables).subscribe({
+      next: (results) => {
+        const currentSites = [...this.sites()];
+
+        results.forEach(result => {
+          const siteIndex = currentSites.findIndex(s => s.id === result.siteId);
+          if (siteIndex >= 0) {
+            currentSites[siteIndex] = {
+              ...currentSites[siteIndex],
+              organismes: result.organismes.map((org: any) => ({
+                id: org.id_organisme,
+                nom: org.nom_organisme,
+                principal: org.principal || false
+              })),
+              users: result.users.map((user: any) => ({
+                id: user.id_role,
+                nom: user.nom_complet || user.email,
+                email: user.email,
+                isReferent: user.referent || false,
+                isConservateur: user.conservateur || false
+              }))
+            };
+          }
+        });
+
+        this.sites.set(currentSites);
+        this.applyFilters();
+        this.isLoading.set(false);
+      },
+      error: () => {
         this.isLoading.set(false);
       }
     });
@@ -120,7 +200,9 @@ export class AdminSitesComponent implements OnInit {
       commune: undefined, // Will need to be added to API if needed
       departement: undefined,
       nbPlans: 0, // Will need to be added to API
-      isActive: site.active ?? true
+      isActive: site.active ?? true,
+      organismes: [],
+      users: []
     };
   }
 
@@ -197,52 +279,81 @@ export class AdminSitesComponent implements OnInit {
   }
 
   openAddReferentModal(site: DisplaySite): void {
+    // Convert existing users to the format expected by the modal
+    const existingUsers: ExistingUserData[] = site.users.map(u => ({
+      id_role: u.id,
+      nom_complet: u.nom,
+      email: u.email,
+      referent: u.isReferent,
+      conservateur: u.isConservateur
+    }));
+
     const dialogRef = this.dialog.open(LinkUserSiteModalComponent, {
-      width: '550px',
+      width: '600px',
       data: {
         site: {
-          id: site.id,
+          id_site: site.id,
           nom_site: site.nom,
           type_site_label: site.type
-        }
+        },
+        existingUsers
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.success) {
-        this.snackBar.open('Referent ajoute au site', 'Fermer', { duration: 3000 });
+      if (result?.success && result?.changed) {
+        this.snackBar.open('Utilisateurs du site mis a jour', 'Fermer', { duration: 3000 });
         this.loadSites();
       }
     });
   }
 
   openAssignOrganismeModal(site: DisplaySite): void {
+    // Convert existing organismes to the format expected by the modal
+    const existingOrganismes: ExistingOrganismeData[] = site.organismes.map(o => ({
+      id_organisme: o.id,
+      nom_organisme: o.nom,
+      principal: o.principal
+    }));
+
     const dialogRef = this.dialog.open(LinkSiteOrganismeModalComponent, {
-      width: '550px',
+      width: '600px',
       data: {
         site: {
-          id: site.id,
+          id_site: site.id,
           nom_site: site.nom,
           type_site_label: site.type
-        }
+        },
+        existingOrganismes
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.success) {
-        this.snackBar.open('Site associe a l\'organisme', 'Fermer', { duration: 3000 });
+      if (result?.success && result?.changed) {
+        this.snackBar.open('Organismes du site mis a jour', 'Fermer', { duration: 3000 });
         this.loadSites();
       }
     });
   }
 
-  viewOnMap(site: DisplaySite): void {
-    // TODO: Navigate to map view centered on site
-    this.snackBar.open('Vue carte non disponible pour le moment', 'OK', { duration: 3000 });
-  }
-
   deleteSite(site: DisplaySite): void {
     // For now, show a message - site deletion is sensitive
     this.snackBar.open('La suppression de site n\'est pas disponible ici. Utilisez l\'admin Django.', 'OK', { duration: 5000 });
+  }
+
+  // Helper methods for display
+  getUserRoles(user: DisplayUserLie): string {
+    const roles: string[] = [];
+    if (user.isReferent) roles.push('Referent');
+    if (user.isConservateur) roles.push('Conservateur');
+    return roles.join(', ');
+  }
+
+  getOtherOrganismesNames(organismes: DisplayOrganismeLie[]): string {
+    return organismes.slice(2).map(org => org.nom).join(', ');
+  }
+
+  getOtherUsersNames(users: DisplayUserLie[]): string {
+    return users.slice(2).map(u => u.nom).join(', ');
   }
 }

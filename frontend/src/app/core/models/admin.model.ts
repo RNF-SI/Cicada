@@ -130,6 +130,18 @@ export interface OrganismeSite {
   surf_off?: number;
   type_site?: string;
   active?: boolean;
+  principal?: boolean;
+}
+
+/**
+ * Organisme linked to a site (from /sites/{id}/organismes/ endpoint)
+ */
+export interface SiteOrganisme {
+  id_organisme: number;
+  nom_organisme: string;
+  ville_organisme?: string;
+  email_organisme?: string;
+  principal: boolean;
 }
 
 /**
