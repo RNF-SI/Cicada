@@ -472,6 +472,9 @@ export class AdminService {
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'Une erreur est survenue';
 
+    // Log the full error for debugging
+    console.error('API Error:', error);
+
     if (error.error instanceof ErrorEvent) {
       errorMessage = error.error.message;
     } else {
@@ -492,9 +495,12 @@ export class AdminService {
           errorMessage = errors.join('\n');
         }
       } else if (error.status === 403) {
-        errorMessage = 'Vous n\'avez pas les droits pour effectuer cette action';
+        errorMessage = error.error?.detail || 'Vous n\'avez pas les droits pour effectuer cette action';
       } else if (error.status === 404) {
         errorMessage = 'Ressource non trouvée';
+      } else if (error.status === 500) {
+        errorMessage = error.error?.detail || error.error?.error || 'Erreur serveur. Veuillez réessayer.';
+        console.error('Server error details:', error.error);
       } else if (error.status === 0) {
         errorMessage = 'Impossible de se connecter au serveur';
       }

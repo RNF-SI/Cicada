@@ -309,15 +309,15 @@ class PlanGestionGeoJSONSerializer(serializers.ModelSerializer):
 
 class PlanGestionCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création simplifiée de Plans de Gestion."""
-    
+
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
-    
+
     class Meta:
         model = PlanGestion
         fields = [
             'nom', 'id_cdr', 'annee_debut', 'annee_fin',
-            'gestion_partagee', 'autres_ep', 'ct88', 'risque_incendie',
+            'gestion_partagee', 'ct88', 'risque_incendie',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
             'commentaire', 'statut', 'version', 'geometrie',
             'sites_ids', 'referents_ids'

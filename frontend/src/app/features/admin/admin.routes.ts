@@ -14,8 +14,8 @@ import { AdminPlansComponent } from './admin-plans.component';
  * Admin Routes Configuration
  *
  * Role-based access:
- * - super_admin: access to all pages (dashboard, utilisateurs, organismes, sites)
- * - admin_og: ONLY access to organismes (their own organisme)
+ * - super_admin: access to all pages (dashboard, utilisateurs, organismes, sites, plans)
+ * - admin_og: access to utilisateurs, organismes, sites, plans (filtered by their organisme)
  * - referent: NO access to admin
  * - utilisateur: NO access to admin
  */
@@ -35,11 +35,11 @@ export const ADMIN_ROUTES: Routes = [
           const router = inject(Router);
           const user = authService.currentUser();
 
-          // admin_og goes to organismes
+          // admin_og goes to utilisateurs (their main view)
           if (user?.niveau_role === 'admin_og') {
-            router.navigate(['/administration/organismes']);
+            router.navigate(['/administration/utilisateurs']);
           } else {
-            // referent and super_admin go to dashboard
+            // super_admin goes to dashboard
             router.navigate(['/administration/dashboard']);
           }
           return false;
@@ -49,28 +49,31 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'dashboard',
         component: AdminDashboardComponent,
-        canActivate: [notAdminOgOnlyGuard] // Block admin_og
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin (dashboard has global stats)
       },
       {
         path: 'utilisateurs',
         component: AdminUsersComponent,
-        canActivate: [notAdminOgOnlyGuard] // Block admin_og
+        canActivate: [roleGuard],
+        data: { requiredRole: 'admin_og' } // admin_og sees users from their organisme only
       },
       {
         path: 'organismes',
         component: AdminOrganismesComponent,
         canActivate: [roleGuard],
-        data: { requiredRole: 'admin_og' } // Only admin_og and super_admin
+        data: { requiredRole: 'admin_og' } // admin_og sees their organisme only
       },
       {
         path: 'sites',
         component: AdminSitesComponent,
-        canActivate: [notAdminOgOnlyGuard] // Block admin_og
+        canActivate: [roleGuard],
+        data: { requiredRole: 'admin_og' } // admin_og sees sites linked to their organisme
       },
       {
         path: 'plans',
         component: AdminPlansComponent,
-        canActivate: [notAdminOgOnlyGuard] // Block admin_og - only super_admin can manage plans
+        canActivate: [roleGuard],
+        data: { requiredRole: 'admin_og' } // admin_og sees plans from their organisme's sites
       }
     ]
   }
