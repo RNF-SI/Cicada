@@ -31,7 +31,6 @@ interface DisplayUserLie {
   nom: string;
   email: string;
   isReferent: boolean;
-  isConservateur: boolean;
 }
 
 // Interface for display (mapping from API model)
@@ -172,8 +171,7 @@ export class AdminSitesComponent implements OnInit {
                 id: user.id_role,
                 nom: user.nom_complet || user.email,
                 email: user.email,
-                isReferent: user.referent || false,
-                isConservateur: user.conservateur || false
+                isReferent: user.referent || false
               }))
             };
           }
@@ -291,8 +289,7 @@ export class AdminSitesComponent implements OnInit {
       id_role: u.id,
       nom_complet: u.nom,
       email: u.email,
-      referent: u.isReferent,
-      conservateur: u.isConservateur
+      referent: u.isReferent
     }));
 
     const dialogRef = this.dialog.open(LinkUserSiteModalComponent, {
@@ -350,10 +347,7 @@ export class AdminSitesComponent implements OnInit {
 
   // Helper methods for display
   getUserRoles(user: DisplayUserLie): string {
-    const roles: string[] = [];
-    if (user.isReferent) roles.push('Referent');
-    if (user.isConservateur) roles.push('Conservateur');
-    return roles.join(', ');
+    return user.isReferent ? 'Referent' : '';
   }
 
   getOtherOrganismesNames(organismes: DisplayOrganismeLie[]): string {

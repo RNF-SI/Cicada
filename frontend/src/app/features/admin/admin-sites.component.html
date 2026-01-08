@@ -118,27 +118,21 @@
                 @if (site.users.length === 0) {
                   <span class="text-muted">Aucun utilisateur</span>
                 } @else if (site.users.length === 1) {
-                  <span class="user-chip" [matTooltip]="site.users[0].nom + (getUserRoles(site.users[0]) ? ' - ' + getUserRoles(site.users[0]) : '')">
+                  <span class="user-chip" [matTooltip]="site.users[0].nom + (site.users[0].isReferent ? ' - Referent' : '')">
                     <i class="fi fi-rr-user"></i>
                     <span class="user-name">{{ site.users[0].nom }}</span>
                     @if (site.users[0].isReferent) {
                       <span class="role-indicator referent" title="Referent">R</span>
                     }
-                    @if (site.users[0].isConservateur) {
-                      <span class="role-indicator conservateur" title="Conservateur">C</span>
-                    }
                   </span>
                 } @else {
                   <div class="users-list">
                     @for (user of site.users.slice(0, 2); track user.id) {
-                      <span class="user-chip" [matTooltip]="user.nom + (getUserRoles(user) ? ' - ' + getUserRoles(user) : '')">
+                      <span class="user-chip" [matTooltip]="user.nom + (user.isReferent ? ' - Referent' : '')">
                         <i class="fi fi-rr-user"></i>
                         <span class="user-name">{{ user.nom }}</span>
                         @if (user.isReferent) {
                           <span class="role-indicator referent" title="Referent">R</span>
-                        }
-                        @if (user.isConservateur) {
-                          <span class="role-indicator conservateur" title="Conservateur">C</span>
                         }
                       </span>
                     }

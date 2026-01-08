@@ -57,7 +57,8 @@ export class AuthService {
   });
   readonly canAccessAdmin = computed(() => {
     const role = this.currentUser()?.niveau_role;
-    return role === 'admin_og' || role === 'super_admin';
+    // Referents can access admin for managing plans/validations
+    return role === 'referent' || role === 'admin_og' || role === 'super_admin';
   });
 
   // Original user info (when impersonating)

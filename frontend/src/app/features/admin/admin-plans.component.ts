@@ -9,7 +9,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, AdminOrganisme } from '../../core/models/admin.model';
-import { PlanFormModalComponent } from '../../shared/components/modals/plan-form-modal/plan-form-modal.component';
+import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-plan-site-modal/link-plan-site-modal.component';
+import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
 
 // Interface for linked site display
 interface DisplaySiteLie {
@@ -214,41 +215,53 @@ export class AdminPlansComponent implements OnInit {
   }
 
   // Actions
-  openAddPlanModal(): void {
-    const dialogRef = this.dialog.open(PlanFormModalComponent, {
-      width: '1100px',
-      maxWidth: '95vw',
-      maxHeight: '90vh'
+  managePlanSites(plan: DisplayPlan): void {
+    const dialogRef = this.dialog.open(LinkPlanSiteModalComponent, {
+      width: '650px',
+      maxHeight: '85vh',
+      data: {
+        plan: {
+          id_pg: plan.id,
+          nom: plan.nom,
+          sites: plan.sites.map(s => ({
+            id_site: s.id,
+            nom_site: s.nom,
+            type_site_label: s.type,
+            rang: s.rang
+          }))
+        }
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.success) {
-        this.snackBar.open('Plan de gestion cree avec succes', 'Fermer', { duration: 3000 });
+      if (result?.success && result?.changed) {
+        this.snackBar.open('Sites du plan mis a jour', 'Fermer', { duration: 3000 });
         this.loadPlans();
       }
     });
   }
 
-  editPlan(plan: DisplayPlan): void {
-    // First get the full plan data
-    this.adminService.getPlan(plan.id).subscribe({
-      next: (fullPlan) => {
-        const dialogRef = this.dialog.open(PlanFormModalComponent, {
-          width: '1100px',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
-          data: { plan: fullPlan }
-        });
+  managePlanReferents(plan: DisplayPlan): void {
+    const dialogRef = this.dialog.open(LinkPlanReferentModalComponent, {
+      width: '650px',
+      maxHeight: '85vh',
+      data: {
+        plan: {
+          id_pg: plan.id,
+          nom: plan.nom,
+          referents: plan.referents.map(r => ({
+            id_role: r.id,
+            email: r.email,
+            nom_complet: r.nom
+          }))
+        }
+      }
+    });
 
-        dialogRef.afterClosed().subscribe(result => {
-          if (result?.success) {
-            this.snackBar.open('Plan de gestion modifie avec succes', 'Fermer', { duration: 3000 });
-            this.loadPlans();
-          }
-        });
-      },
-      error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.success && result?.changed) {
+        this.snackBar.open('Referents du plan mis a jour', 'Fermer', { duration: 3000 });
+        this.loadPlans();
       }
     });
   }

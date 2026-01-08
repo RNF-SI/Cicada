@@ -81,7 +81,6 @@ export interface UserSiteRelation {
   };
   referent: boolean;
   referent_valid?: boolean;
-  conservateur: boolean;
 }
 
 /**
@@ -109,7 +108,6 @@ export interface UserSiteAssignment {
   id_site: number;
   referent: boolean;
   referent_valid?: boolean;
-  conservateur?: boolean;
 }
 
 /**

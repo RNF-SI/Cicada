@@ -273,7 +273,18 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
 
   // Add a new organisme to the list
   addOrganisme(org: AdminOrganisme): void {
-    const assignments = [...this.organismeAssignments()];
+    let assignments = [...this.organismeAssignments()];
+
+    // If the new organisme is principal, remove principal from all others
+    if (this.newOrganismePrincipal) {
+      assignments = assignments.map(a => {
+        if (a.principal && !a.isDeleted) {
+          return { ...a, principal: false, isModified: !a.isNew };
+        }
+        return a;
+      });
+    }
+
     assignments.push({
       organisme: org,
       principal: this.newOrganismePrincipal,
@@ -322,14 +333,27 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     }
   }
 
-  // Toggle principal for an organisme
+  // Toggle principal for an organisme (only one can be principal at a time)
   toggleOrganismePrincipal(assignment: OrganismeAssignment): void {
-    const assignments = [...this.organismeAssignments()];
+    let assignments = [...this.organismeAssignments()];
     const index = assignments.findIndex(a => a.organisme.id_organisme === assignment.organisme.id_organisme);
+
     if (index >= 0) {
+      const newPrincipalValue = !assignments[index].principal;
+
+      // If setting as principal, remove principal from all other organismes
+      if (newPrincipalValue) {
+        assignments = assignments.map((a, i) => {
+          if (i !== index && a.principal && !a.isDeleted) {
+            return { ...a, principal: false, isModified: !a.isNew };
+          }
+          return a;
+        });
+      }
+
       assignments[index] = {
         ...assignments[index],
-        principal: !assignments[index].principal,
+        principal: newPrincipalValue,
         isModified: !assignments[index].isNew
       };
       this.organismeAssignments.set(assignments);
@@ -338,7 +362,18 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
 
   // Add a new site to the list
   addSite(site: AdminSite): void {
-    const assignments = [...this.siteAssignments()];
+    let assignments = [...this.siteAssignments()];
+
+    // If the new site is principal, remove principal from all others
+    if (this.newSitePrincipal) {
+      assignments = assignments.map(a => {
+        if (a.principal && !a.isDeleted) {
+          return { ...a, principal: false, isModified: !a.isNew };
+        }
+        return a;
+      });
+    }
+
     assignments.push({
       site,
       principal: this.newSitePrincipal,
@@ -387,14 +422,27 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     }
   }
 
-  // Toggle principal for a site
+  // Toggle principal for a site (only one can be principal at a time)
   togglePrincipal(assignment: SiteAssignment): void {
-    const assignments = [...this.siteAssignments()];
+    let assignments = [...this.siteAssignments()];
     const index = assignments.findIndex(a => a.site.id_site === assignment.site.id_site);
+
     if (index >= 0) {
+      const newPrincipalValue = !assignments[index].principal;
+
+      // If setting as principal, remove principal from all other sites
+      if (newPrincipalValue) {
+        assignments = assignments.map((a, i) => {
+          if (i !== index && a.principal && !a.isDeleted) {
+            return { ...a, principal: false, isModified: !a.isNew };
+          }
+          return a;
+        });
+      }
+
       assignments[index] = {
         ...assignments[index],
-        principal: !assignments[index].principal,
+        principal: newPrincipalValue,
         isModified: !assignments[index].isNew
       };
       this.siteAssignments.set(assignments);

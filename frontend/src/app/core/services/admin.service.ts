@@ -160,13 +160,12 @@ export class AdminService {
   }
 
   /**
-   * Assign a user to a site with roles (referent and/or conservateur)
+   * Assign a user to a site with referent role
    */
-  assignUserToSite(siteId: number, userId: number, referent: boolean = true, conservateur: boolean = false): Observable<any> {
+  assignUserToSite(siteId: number, userId: number, referent: boolean = true): Observable<any> {
     return this.http.post(`${this.apiUrl}/sites/${siteId}/assign_user/`, {
       user_id: userId,
-      referent,
-      conservateur
+      referent
     }).pipe(catchError(this.handleError));
   }
 
@@ -379,28 +378,66 @@ export class AdminService {
   }
 
   /**
-   * Assign sites to a plan
+   * Assign a single site to a plan
+   * POST /api/plans/plans/{id}/assign_site/
    */
-  assignSitesToPlan(planId: number, siteIds: number[]): Observable<AdminPlan> {
-    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_sites/`, {
-      site_ids: siteIds
-    }).pipe(catchError(this.handleError));
-  }
-
-  /**
-   * Remove a site from a plan
-   */
-  removeSiteFromPlan(planId: number, siteId: number): Observable<any> {
-    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/sites/${siteId}/`)
+  assignSiteToPlan(planId: number, siteId: number, rang?: number, commentaire?: string): Observable<AdminPlan> {
+    const payload: { site_id: number; rang?: number; commentaire?: string } = { site_id: siteId };
+    if (rang !== undefined) payload.rang = rang;
+    if (commentaire) payload.commentaire = commentaire;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_site/`, payload)
       .pipe(catchError(this.handleError));
   }
 
   /**
-   * Assign referents to a plan
+   * Assign multiple sites to a plan (calls API for each site)
    */
-  assignReferentsToPlan(planId: number, referentIds: number[]): Observable<AdminPlan> {
-    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_referents/`, {
-      referent_ids: referentIds
+  assignSitesToPlan(planId: number, siteIds: number[]): Observable<AdminPlan[]> {
+    if (siteIds.length === 0) {
+      return of([]);
+    }
+    const requests = siteIds.map(siteId => this.assignSiteToPlan(planId, siteId));
+    return forkJoin(requests).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove a site from a plan
+   * DELETE /api/plans/plans/{id}/remove_site/?site_id=X
+   */
+  removeSiteFromPlan(planId: number, siteId: number): Observable<any> {
+    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/remove_site/`, {
+      params: { site_id: siteId.toString() }
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Assign a single referent to a plan
+   * POST /api/plans/plans/{id}/assign_referent/
+   */
+  assignReferentToPlan(planId: number, referentId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/assign_referent/`, {
+      referent_id: referentId
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Assign multiple referents to a plan (calls API for each referent)
+   */
+  assignReferentsToPlan(planId: number, referentIds: number[]): Observable<AdminPlan[]> {
+    if (referentIds.length === 0) {
+      return of([]);
+    }
+    const requests = referentIds.map(referentId => this.assignReferentToPlan(planId, referentId));
+    return forkJoin(requests).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove a referent from a plan
+   * DELETE /api/plans/plans/{id}/remove_referent/?referent_id=X
+   */
+  removeReferentFromPlan(planId: number, referentId: number): Observable<any> {
+    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/remove_referent/`, {
+      params: { referent_id: referentId.toString() }
     }).pipe(catchError(this.handleError));
   }
 

@@ -13,6 +13,8 @@ import { AdminSite, SiteCreatePayload } from '../../../../core/models/admin.mode
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
+  organismeId?: number; // If provided, auto-link site to this organisme after creation
+  principal?: boolean; // If true, set as principal site for the organisme
 }
 
 interface SiteType {
@@ -115,20 +117,51 @@ export class SiteFormModalComponent implements OnInit {
       active: this.form.value.active
     };
 
-    const request$ = this.isEditMode
-      ? this.adminService.updateSite(this.data!.site!.id_site, payload)
-      : this.adminService.createSite(payload);
-
-    request$.subscribe({
-      next: (site) => {
-        this.isLoading.set(false);
-        this.dialogRef.close(site);
-      },
-      error: (error: Error) => {
-        this.isLoading.set(false);
-        this.errorMessage.set(error.message);
-      }
-    });
+    if (this.isEditMode) {
+      this.adminService.updateSite(this.data!.site!.id_site, payload).subscribe({
+        next: (site) => {
+          this.isLoading.set(false);
+          this.dialogRef.close(site);
+        },
+        error: (error: Error) => {
+          this.isLoading.set(false);
+          this.errorMessage.set(error.message);
+        }
+      });
+    } else {
+      // Create site and optionally link to organisme
+      this.adminService.createSite(payload).subscribe({
+        next: (site) => {
+          // If organismeId is provided, auto-link the site
+          if (this.data?.organismeId) {
+            this.adminService.assignSiteToOrganisme(
+              this.data.organismeId,
+              site.id_site,
+              this.data.principal || false
+            ).subscribe({
+              next: () => {
+                this.isLoading.set(false);
+                this.dialogRef.close(site);
+              },
+              error: (error: Error) => {
+                // Site was created but linking failed - still close with site
+                this.isLoading.set(false);
+                this.errorMessage.set(`Site cree mais erreur lors de la liaison: ${error.message}`);
+                // Still close after a delay to show the message
+                setTimeout(() => this.dialogRef.close(site), 2000);
+              }
+            });
+          } else {
+            this.isLoading.set(false);
+            this.dialogRef.close(site);
+          }
+        },
+        error: (error: Error) => {
+          this.isLoading.set(false);
+          this.errorMessage.set(error.message);
+        }
+      });
+    }
   }
 
   onCancel(): void {

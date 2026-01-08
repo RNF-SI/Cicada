@@ -84,14 +84,6 @@
                         <span class="role-label referent">R</span>
                         <span class="role-text">Referent</span>
                       </label>
-                      <label class="role-checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="assignment.conservateur"
-                          (change)="toggleConservateur(assignment)">
-                        <span class="role-label conservateur">C</span>
-                        <span class="role-text">Conservateur</span>
-                      </label>
                     </div>
                     <button
                       class="btn-remove"
@@ -165,10 +157,6 @@
                 <input type="checkbox" [(ngModel)]="newSiteReferent">
                 <span>Referent</span>
               </label>
-              <label class="role-checkbox-inline">
-                <input type="checkbox" [(ngModel)]="newSiteConservateur">
-                <span>Conservateur</span>
-              </label>
             </div>
           </div>
         </div>
@@ -177,8 +165,7 @@
         <div class="info-box">
           <i class="fi fi-rr-info"></i>
           <div>
-            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.<br>
-            <strong>Conservateur:</strong> responsable de la conservation du site.
+            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.
           </div>
         </div>
 
@@ -238,14 +225,6 @@
                           (change)="toggleUserReferent(assignment)">
                         <span class="role-label referent">R</span>
                         <span class="role-text">Referent</span>
-                      </label>
-                      <label class="role-checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="assignment.conservateur"
-                          (change)="toggleUserConservateur(assignment)">
-                        <span class="role-label conservateur">C</span>
-                        <span class="role-text">Conservateur</span>
                       </label>
                     </div>
                     <button
@@ -324,10 +303,6 @@
                 <input type="checkbox" [(ngModel)]="newUserReferent">
                 <span>Referent</span>
               </label>
-              <label class="role-checkbox-inline">
-                <input type="checkbox" [(ngModel)]="newUserConservateur">
-                <span>Conservateur</span>
-              </label>
             </div>
           </div>
         </div>
@@ -336,8 +311,7 @@
         <div class="info-box">
           <i class="fi fi-rr-info"></i>
           <div>
-            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.<br>
-            <strong>Conservateur:</strong> responsable de la conservation du site.
+            <strong>Referent:</strong> peut gerer le site et ses plans de gestion.
           </div>
         </div>
       }

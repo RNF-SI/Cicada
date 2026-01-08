@@ -259,11 +259,42 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             plan.referents.add(referent)
             
             return Response({'message': f'Référent {referent} assigné au plan'})
-            
+
         except Role.DoesNotExist:
-            return Response({'error': 'Utilisateur non trouvé'}, 
+            return Response({'error': 'Utilisateur non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
-    
+
+    @action(detail=True, methods=['delete'],
+            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+    def remove_referent(self, request, pk=None):
+        """
+        Retirer un référent d'un plan.
+
+        DELETE /api/plans/{id}/remove_referent/?referent_id=123
+        """
+        plan = self.get_object()
+        referent_id = request.query_params.get('referent_id')
+
+        if not referent_id:
+            return Response({'error': 'referent_id requis'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from apps.users.models import Role
+            referent = Role.objects.get(id_role=referent_id)
+
+            if referent not in plan.referents.all():
+                return Response({'error': 'Ce référent n\'est pas assigné à ce plan'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            plan.referents.remove(referent)
+
+            return Response({'message': f'Référent {referent} retiré du plan'})
+
+        except Role.DoesNotExist:
+            return Response({'error': 'Utilisateur non trouvé'},
+                          status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=False, methods=['get'])
     @method_decorator(cache_page(60 * 15))  # Cache 15 minutes
     def stats(self, request):

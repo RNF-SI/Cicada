@@ -318,20 +318,21 @@ class SiteDetailSerializer(serializers.ModelSerializer):
 
 class SiteCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer pour créer/modifier un site avec support GeoJSON."""
-    
+
     type_site_id = serializers.IntegerField(source='id_type_site.id_nomenclature', required=False, allow_null=True)
-    
+
     # Support des géométries en GeoJSON ou WKT
     geom_geojson = serializers.JSONField(write_only=True, required=False, allow_null=True)
     geom_pt_geojson = serializers.JSONField(write_only=True, required=False, allow_null=True)
-    
+
     class Meta:
         model = Site
         fields = [
-            'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
+            'id_site', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
             'surf_off', 'type_site_id', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_geojson', 'geom_pt_geojson'
         ]
+        read_only_fields = ['id_site']
     
     def validate_type_site_id(self, value):
         """Valide le type de site."""

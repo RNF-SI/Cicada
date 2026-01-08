@@ -51,15 +51,16 @@ export class AdminLayoutComponent {
   }
 
   // Navigation items with role-based visibility
+  // referent: sees only Plans de gestion (for validations)
   // admin_og: sees Utilisateurs, Organismes, Sites, Plans (filtered by their organisme)
   // super_admin: sees everything (dashboard, utilisateurs, organismes, sites, plans)
-  // referent & utilisateur: NO access to admin
+  // utilisateur: NO access to admin
   readonly navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'fi-rr-dashboard', route: '/administration/dashboard', exactRole: 'super_admin' },
     { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', minRole: 'admin_og' },
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'admin_og' },
-    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'admin_og' }
+    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' }
   ];
 
   visibleNavItems = computed(() => {
@@ -96,7 +97,8 @@ export class AdminLayoutComponent {
 
     const labels: Record<string, string> = {
       'super_admin': 'Super Administrateur',
-      'admin_og': 'Admin Organisme'
+      'admin_og': 'Admin Organisme',
+      'referent': 'Referent'
     };
     return labels[user.niveau_role] || user.niveau_role;
   });

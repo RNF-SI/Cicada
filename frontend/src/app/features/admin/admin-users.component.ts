@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,11 @@ import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../co
 import { UserRole } from '../../core/models/user.model';
 import {
   LinkUserOrganismeModalComponent,
-  LinkUserSiteModalComponent
+  LinkUserSiteModalComponent,
+  DeactivateUserModalComponent,
+  DeactivateUserModalResult,
+  RemoveUserOrganismeModalComponent,
+  RemoveUserOrganismeModalResult
 } from '../../shared/components/modals';
 
 // Interface for display site
@@ -20,7 +24,6 @@ interface DisplaySite {
   id: number;
   nom: string;
   isReferent: boolean;
-  isConservateur: boolean;
 }
 
 // Interface for display
@@ -66,6 +69,7 @@ export class AdminUsersComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isImpersonating = this.authService.isImpersonating;
 
   // Filter state
   searchQuery = '';
@@ -78,11 +82,41 @@ export class AdminUsersComponent implements OnInit {
   organismes = signal<DisplayOrganisme[]>([]);
   filteredUsers = signal<DisplayUser[]>([]);
 
+  // Track previous user ID to detect user changes (e.g., after stopping impersonation)
+  private previousUserId: number | null = null;
+  private initialized = false;
+
   currentOrganismeName = computed(() => {
     return this.currentUser()?.organisme?.nom_organisme || '';
   });
 
+  constructor() {
+    // Effect to reload data when user changes (e.g., after stopping impersonation)
+    effect(() => {
+      const user = this.currentUser();
+      const currentUserId = user?.id ?? null;
+
+      // Skip first execution during ngOnInit
+      if (!this.initialized) {
+        this.previousUserId = currentUserId;
+        return;
+      }
+
+      // Reload data if user ID changed
+      if (currentUserId !== this.previousUserId) {
+        this.previousUserId = currentUserId;
+        // Reset filters and reload data
+        this.searchQuery = '';
+        this.filterRole = '';
+        this.filterOrganisme = '';
+        this.filterStatus = '';
+        this.loadData();
+      }
+    });
+  }
+
   ngOnInit(): void {
+    this.initialized = true;
     this.loadData();
   }
 
@@ -123,8 +157,7 @@ export class AdminUsersComponent implements OnInit {
     const sites: DisplaySite[] = (user.sites_lies || []).map(relation => ({
       id: relation.site.id_site,
       nom: relation.site.nom_site,
-      isReferent: relation.referent,
-      isConservateur: relation.conservateur
+      isReferent: relation.referent
     }));
 
     return {
@@ -143,10 +176,7 @@ export class AdminUsersComponent implements OnInit {
   }
 
   getSiteRoles(site: DisplaySite): string {
-    const roles: string[] = [];
-    if (site.isReferent) roles.push('Referent');
-    if (site.isConservateur) roles.push('Conservateur');
-    return roles.length > 0 ? roles.join(', ') : 'Associe';
+    return site.isReferent ? 'Referent' : 'Associe';
   }
 
   getOtherSitesNames(sites: DisplaySite[]): string {
@@ -260,8 +290,7 @@ export class AdminUsersComponent implements OnInit {
         nom_site: s.nom,
         active: true
       },
-      referent: s.isReferent,
-      conservateur: s.isConservateur
+      referent: s.isReferent
     }));
 
     const dialogRef = this.dialog.open(LinkUserSiteModalComponent, {
@@ -297,19 +326,41 @@ export class AdminUsersComponent implements OnInit {
       return;
     }
 
-    this.adminService.toggleUserStatus(user.id, !user.isActive).subscribe({
-      next: () => {
-        this.snackBar.open(
-          user.isActive ? 'Utilisateur desactive' : 'Utilisateur active',
-          'Fermer',
-          { duration: 3000 }
-        );
-        this.loadUsers();
-      },
-      error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
-      }
-    });
+    // If deactivating, show confirmation modal with reason
+    if (user.isActive) {
+      const dialogRef = this.dialog.open(DeactivateUserModalComponent, {
+        width: '500px',
+        data: {
+          userName: `${user.prenom} ${user.nom}`.trim() || user.email,
+          userEmail: user.email
+        }
+      });
+
+      dialogRef.afterClosed().subscribe((result: DeactivateUserModalResult) => {
+        if (result?.confirmed) {
+          this.adminService.toggleUserStatus(user.id, false).subscribe({
+            next: () => {
+              this.snackBar.open('Utilisateur desactive', 'Fermer', { duration: 3000 });
+              this.loadUsers();
+            },
+            error: (error: Error) => {
+              this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+            }
+          });
+        }
+      });
+    } else {
+      // If activating, proceed directly
+      this.adminService.toggleUserStatus(user.id, true).subscribe({
+        next: () => {
+          this.snackBar.open('Utilisateur active', 'Fermer', { duration: 3000 });
+          this.loadUsers();
+        },
+        error: (error: Error) => {
+          this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        }
+      });
+    }
   }
 
   deleteUser(user: DisplayUser): void {
@@ -323,14 +374,38 @@ export class AdminUsersComponent implements OnInit {
       return;
     }
 
-    // Remove user from organisme by setting uuid_organisme to null
-    this.adminService.assignOrganismeToUser(user.id, null).subscribe({
-      next: () => {
-        this.snackBar.open('Utilisateur retire de l\'organisme', 'Fermer', { duration: 3000 });
-        this.loadUsers();
-      },
-      error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+    // Show confirmation modal with reason
+    const dialogRef = this.dialog.open(RemoveUserOrganismeModalComponent, {
+      width: '500px',
+      data: {
+        userName: `${user.prenom} ${user.nom}`.trim() || user.email,
+        userEmail: user.email,
+        organismeName: user.organisme
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((result: RemoveUserOrganismeModalResult) => {
+      if (result?.confirmed) {
+        // First remove from organisme, then deactivate
+        this.adminService.assignOrganismeToUser(user.id, null).subscribe({
+          next: () => {
+            // Now deactivate the user
+            this.adminService.toggleUserStatus(user.id, false).subscribe({
+              next: () => {
+                this.snackBar.open('Utilisateur retire de l\'organisme et desactive', 'Fermer', { duration: 3000 });
+                this.loadUsers();
+              },
+              error: (error: Error) => {
+                // User was removed from organisme but deactivation failed
+                this.snackBar.open(`Utilisateur retire mais erreur lors de la desactivation: ${error.message}`, 'Fermer', { duration: 5000 });
+                this.loadUsers();
+              }
+            });
+          },
+          error: (error: Error) => {
+            this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+          }
+        });
       }
     });
   }

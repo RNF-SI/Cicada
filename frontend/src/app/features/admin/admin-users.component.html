@@ -102,27 +102,21 @@
                 @if (user.sites.length === 0) {
                   <span class="text-muted">Aucun site</span>
                 } @else if (user.sites.length === 1) {
-                  <span class="site-chip" [matTooltip]="user.sites[0].nom + (getSiteRoles(user.sites[0]) ? ' - ' + getSiteRoles(user.sites[0]) : '')">
+                  <span class="site-chip" [matTooltip]="user.sites[0].nom + (user.sites[0].isReferent ? ' - Referent' : '')">
                     <i class="fi fi-rr-marker"></i>
                     <span class="site-name">{{ user.sites[0].nom }}</span>
                     @if (user.sites[0].isReferent) {
                       <span class="role-indicator referent" title="Referent">R</span>
                     }
-                    @if (user.sites[0].isConservateur) {
-                      <span class="role-indicator conservateur" title="Conservateur">C</span>
-                    }
                   </span>
                 } @else {
                   <div class="sites-list">
                     @for (site of user.sites.slice(0, 2); track site.id) {
-                      <span class="site-chip" [matTooltip]="site.nom + (getSiteRoles(site) ? ' - ' + getSiteRoles(site) : '')">
+                      <span class="site-chip" [matTooltip]="site.nom + (site.isReferent ? ' - Referent' : '')">
                         <i class="fi fi-rr-marker"></i>
                         <span class="site-name">{{ site.nom }}</span>
                         @if (site.isReferent) {
                           <span class="role-indicator referent" title="Referent">R</span>
-                        }
-                        @if (site.isConservateur) {
-                          <span class="role-indicator conservateur" title="Conservateur">C</span>
                         }
                       </span>
                     }

@@ -4,13 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminOrganisme } from '../../core/models/admin.model';
 import {
   OrganismeFormModalComponent,
   LinkUserOrganismeModalComponent,
-  LinkSiteOrganismeModalComponent
+  LinkSiteOrganismeModalComponent,
+  SiteFormModalComponent
 } from '../../shared/components/modals';
 
 // Interface for display (mapping from API model)
@@ -39,7 +41,8 @@ interface DisplayOrganisme {
     FormsModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatTooltipModule
   ],
   templateUrl: './admin-organismes.component.html',
   styleUrl: './admin-organismes.component.scss'
@@ -221,6 +224,27 @@ export class AdminOrganismesComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
         this.snackBar.open('Site associe a l\'organisme', 'Fermer', { duration: 3000 });
+        this.loadOrganismes();
+      }
+    });
+  }
+
+  /**
+   * Open site creation modal (for admin_og)
+   * The site will be automatically linked to their organisme
+   */
+  openCreateSiteModal(org: DisplayOrganisme): void {
+    const dialogRef = this.dialog.open(SiteFormModalComponent, {
+      width: '600px',
+      data: {
+        organismeId: org.id,
+        principal: true // New site is principal by default for admin_og
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Site cree et associe a votre organisme', 'Fermer', { duration: 3000 });
         this.loadOrganismes();
       }
     });

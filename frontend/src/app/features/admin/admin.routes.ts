@@ -16,7 +16,7 @@ import { AdminPlansComponent } from './admin-plans.component';
  * Role-based access:
  * - super_admin: access to all pages (dashboard, utilisateurs, organismes, sites, plans)
  * - admin_og: access to utilisateurs, organismes, sites, plans (filtered by their organisme)
- * - referent: NO access to admin
+ * - referent: access to plans only (for managing validations on their sites/plans)
  * - utilisateur: NO access to admin
  */
 export const ADMIN_ROUTES: Routes = [
@@ -24,7 +24,7 @@ export const ADMIN_ROUTES: Routes = [
     path: '',
     component: AdminLayoutComponent,
     canActivate: [roleGuard],
-    data: { requiredRole: 'admin_og' }, // Minimum role: admin_og (referent and utilisateur have NO access)
+    data: { requiredRole: 'referent' }, // Minimum role: referent (can access plans for validations)
     children: [
       {
         // Dynamic redirect based on user role
@@ -35,8 +35,12 @@ export const ADMIN_ROUTES: Routes = [
           const router = inject(Router);
           const user = authService.currentUser();
 
+          // referent goes directly to plans (their only admin view)
+          if (user?.niveau_role === 'referent') {
+            router.navigate(['/administration/plans']);
+          }
           // admin_og goes to utilisateurs (their main view)
-          if (user?.niveau_role === 'admin_og') {
+          else if (user?.niveau_role === 'admin_og') {
             router.navigate(['/administration/utilisateurs']);
           } else {
             // super_admin goes to dashboard
@@ -73,7 +77,7 @@ export const ADMIN_ROUTES: Routes = [
         path: 'plans',
         component: AdminPlansComponent,
         canActivate: [roleGuard],
-        data: { requiredRole: 'admin_og' } // admin_og sees plans from their organisme's sites
+        data: { requiredRole: 'referent' } // referent can access for validations
       }
     ]
   }

@@ -4,13 +4,9 @@
     <div class="header-left">
       <h1>Gestion des plans de gestion</h1>
       <p class="subtitle">
-        Administration des plans de gestion des espaces proteges
+        Administration des liens sites et referents des plans de gestion
       </p>
     </div>
-    <button class="btn-primary" (click)="openAddPlanModal()">
-      <i class="fi fi-rr-document-signed"></i>
-      <span>Nouveau plan</span>
-    </button>
   </header>
 
   <!-- Statistics cards -->
@@ -206,8 +202,11 @@
                 <button class="btn-icon" title="Voir le plan" (click)="viewPlan(plan)">
                   <i class="fi fi-rr-eye"></i>
                 </button>
-                <button class="btn-icon" title="Modifier" (click)="editPlan(plan)">
-                  <i class="fi fi-rr-pencil"></i>
+                <button class="btn-icon" title="Gerer les sites" (click)="managePlanSites(plan)">
+                  <i class="fi fi-rr-marker"></i>
+                </button>
+                <button class="btn-icon" title="Gerer les referents" (click)="managePlanReferents(plan)">
+                  <i class="fi fi-rr-user"></i>
                 </button>
                 @if (plan.statut === 'draft') {
                   <button class="btn-icon success" title="Valider le plan" (click)="validerPlan(plan)">

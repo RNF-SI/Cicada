@@ -131,19 +131,29 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         """Assigne un site à un organisme."""
         organisme = self.get_object()
         serializer = OrganismeSiteAssignmentSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             site_id = serializer.validated_data['site_id']
             site = get_object_or_404(Site, id_site=site_id)
-            
-            # Vérifier que l'utilisateur peut gérer ce site
+
+            # Vérifier les permissions
             if not request.user.is_super_admin():
-                if not request.user.can_manage_site(site):
-                    return Response(
-                        {'error': 'Vous ne pouvez pas gérer ce site.'},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-            
+                # Admin_og peut assigner un site à son propre organisme
+                if request.user.is_admin_organisme() and request.user.id_organisme:
+                    # Vérifier que c'est bien son organisme
+                    if organisme.id_organisme != request.user.id_organisme.id_organisme:
+                        return Response(
+                            {'error': 'Vous ne pouvez assigner des sites qu\'à votre propre organisme.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                else:
+                    # Pour les autres rôles, vérifier can_manage_site
+                    if not request.user.can_manage_site(site):
+                        return Response(
+                            {'error': 'Vous ne pouvez pas gérer ce site.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
             # Créer ou récupérer la relation
             cor_og_site, created = CorOgSite.objects.get_or_create(
                 uuid_og=organisme,
@@ -168,24 +178,24 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         """Assignation en masse de sites à un organisme."""
         organisme = self.get_object()
         serializer = BulkSiteAssignmentSerializer(data=request.data)
-        
+
         if serializer.is_valid():
+            # Vérifier que l'admin_og assigne à son propre organisme
+            if not request.user.is_super_admin():
+                if request.user.is_admin_organisme() and request.user.id_organisme:
+                    if organisme.id_organisme != request.user.id_organisme.id_organisme:
+                        return Response(
+                            {'error': 'Vous ne pouvez assigner des sites qu\'à votre propre organisme.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
             site_ids = serializer.validated_data['site_ids']
             sites = Site.objects.filter(id_site__in=site_ids)
-            
+
             results = {'assigned': [], 'already_assigned': [], 'forbidden': []}
-            
+
             with transaction.atomic():
                 for site in sites:
-                    # Vérifier permissions
-                    if not request.user.is_super_admin():
-                        if not request.user.can_manage_site(site):
-                            results['forbidden'].append({
-                                'id_site': site.id_site,
-                                'nom_site': site.nom_site
-                            })
-                            continue
-                    
                     # Créer la relation
                     cor_og_site, created = CorOgSite.objects.get_or_create(
                         uuid_og=organisme,

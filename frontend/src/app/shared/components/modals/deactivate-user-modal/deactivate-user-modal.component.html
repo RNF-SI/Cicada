@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Desactiver l'utilisateur</h2>
+
+<mat-dialog-content>
+  <div class="modal-form">
+    <!-- User info header -->
+    <div class="user-info">
+      <div class="user-avatar">
+        {{ data.userName.charAt(0).toUpperCase() }}
+      </div>
+      <div class="user-details">
+        <span class="user-name">{{ data.userName }}</span>
+        <span class="user-email">{{ data.userEmail }}</span>
+      </div>
+    </div>
+
+    <!-- Warning message -->
+    <div class="warning-box">
+      <i class="fi fi-rr-exclamation"></i>
+      <div>
+        <strong>Attention</strong>
+        <p>La desactivation d'un utilisateur lui retirera l'acces a l'application. Il ne pourra plus se connecter.</p>
+      </div>
+    </div>
+
+    <!-- Reason field -->
+    <div class="reason-section">
+      <label class="reason-label">Raison de la desactivation *</label>
+      <mat-form-field appearance="outline" class="full-width">
+        <textarea
+          matInput
+          [(ngModel)]="reason"
+          placeholder="Indiquez la raison de la desactivation (minimum 10 caracteres)..."
+          rows="3"
+        ></textarea>
+        <mat-hint>{{ reason.length }} / 10 caracteres minimum</mat-hint>
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="error-message">
+          <i class="fi fi-rr-exclamation"></i>
+          {{ errorMessage() }}
+        </div>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annuler</button>
+  <button mat-raised-button
+          color="warn"
+          [disabled]="!isValid"
+          (click)="onConfirm()">
+    Desactiver
+  </button>
+</mat-dialog-actions>

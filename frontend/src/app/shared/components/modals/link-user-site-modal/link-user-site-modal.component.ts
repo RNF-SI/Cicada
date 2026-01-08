@@ -17,7 +17,6 @@ import { AdminSite, AdminUser, UserSiteRelation } from '../../../../core/models/
 interface SiteAssignment {
   site: AdminSite;
   referent: boolean;
-  conservateur: boolean;
   isNew?: boolean;  // true if just added, not yet saved
   isModified?: boolean;  // true if roles changed
   isDeleted?: boolean;  // true if marked for deletion
@@ -27,7 +26,6 @@ interface SiteAssignment {
 interface UserAssignment {
   user: AdminUser;
   referent: boolean;
-  conservateur: boolean;
   isNew?: boolean;
   isModified?: boolean;
   isDeleted?: boolean;
@@ -39,7 +37,6 @@ export interface ExistingUserData {
   nom_complet?: string;
   email: string;
   referent: boolean;
-  conservateur: boolean;
 }
 
 export interface LinkUserSiteModalData {
@@ -93,13 +90,11 @@ export class LinkUserSiteModalComponent implements OnInit {
   userControl = new FormControl<AdminUser | string>('');
   filteredUsers = signal<AdminUser[]>([]);
   newUserReferent = true;
-  newUserConservateur = false;
 
   // For adding new site (select-site mode)
   siteControl = new FormControl<AdminSite | string>('');
   filteredSites = signal<AdminSite[]>([]);
   newSiteReferent = true;
-  newSiteConservateur = false;
 
   get mode(): 'select-site' | 'select-user' {
     return this.data?.user ? 'select-site' : 'select-user';
@@ -200,7 +195,6 @@ export class LinkUserSiteModalComponent implements OnInit {
         active: rel.site.active
       } as AdminSite,
       referent: rel.referent,
-      conservateur: rel.conservateur,
       isNew: false,
       isModified: false,
       isDeleted: false
@@ -238,7 +232,6 @@ export class LinkUserSiteModalComponent implements OnInit {
               active: true
             },
             referent: existingUser.referent,
-            conservateur: existingUser.conservateur,
             isNew: false,
             isModified: false,
             isDeleted: false
@@ -308,7 +301,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     assignments.push({
       user,
       referent: this.newUserReferent,
-      conservateur: this.newUserConservateur,
       isNew: true,
       isModified: false,
       isDeleted: false
@@ -318,7 +310,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     // Reset the form
     this.userControl.setValue('');
     this.newUserReferent = true;
-    this.newUserConservateur = false;
     this.filterAvailableUsers('');
 
     const userName = user.prenom_role && user.nom_role
@@ -372,20 +363,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     }
   }
 
-  // Toggle conservateur role for a user
-  toggleUserConservateur(assignment: UserAssignment): void {
-    const assignments = [...this.userAssignments()];
-    const index = assignments.findIndex(a => a.user.id_role === assignment.user.id_role);
-    if (index >= 0) {
-      assignments[index] = {
-        ...assignments[index],
-        conservateur: !assignments[index].conservateur,
-        isModified: !assignments[index].isNew
-      };
-      this.userAssignments.set(assignments);
-    }
-  }
-
   getUserDisplayName(user: AdminUser): string {
     if (user.prenom_role && user.nom_role) {
       return `${user.prenom_role} ${user.nom_role}`;
@@ -399,7 +376,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     assignments.push({
       site,
       referent: this.newSiteReferent,
-      conservateur: this.newSiteConservateur,
       isNew: true,
       isModified: false,
       isDeleted: false
@@ -409,7 +385,6 @@ export class LinkUserSiteModalComponent implements OnInit {
     // Reset the form
     this.siteControl.setValue('');
     this.newSiteReferent = true;
-    this.newSiteConservateur = false;
     this.filterAvailableSites('');
 
     this.successMessage.set(`Site "${site.nom_site}" ajoute a la liste`);
@@ -454,20 +429,6 @@ export class LinkUserSiteModalComponent implements OnInit {
       assignments[index] = {
         ...assignments[index],
         referent: !assignments[index].referent,
-        isModified: !assignments[index].isNew
-      };
-      this.siteAssignments.set(assignments);
-    }
-  }
-
-  // Toggle conservateur role for a site
-  toggleConservateur(assignment: SiteAssignment): void {
-    const assignments = [...this.siteAssignments()];
-    const index = assignments.findIndex(a => a.site.id_site === assignment.site.id_site);
-    if (index >= 0) {
-      assignments[index] = {
-        ...assignments[index],
-        conservateur: !assignments[index].conservateur,
         isModified: !assignments[index].isNew
       };
       this.siteAssignments.set(assignments);
@@ -544,8 +505,7 @@ export class LinkUserSiteModalComponent implements OnInit {
         this.adminService.assignUserToSite(
           siteId,
           op.assignment.user.id_role,
-          op.assignment.referent,
-          op.assignment.conservateur
+          op.assignment.referent
         ).subscribe({
           next: () => {
             completed++;
@@ -625,8 +585,7 @@ export class LinkUserSiteModalComponent implements OnInit {
         this.adminService.assignUserToSite(
           op.assignment.site.id_site,
           userId,
-          op.assignment.referent,
-          op.assignment.conservateur
+          op.assignment.referent
         ).subscribe({
           next: () => {
             completed++;
