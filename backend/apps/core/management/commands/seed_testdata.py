@@ -140,14 +140,21 @@ class Command(BaseCommand):
         self.stdout.write('  - Parc National des Ecrins')
         self.stdout.write('  - Office Francais de la Biodiversite')
 
-        self.stdout.write('\nSites (7):')
+        self.stdout.write('\nSites (7) avec organismes gestionnaires:')
         self.stdout.write('  - Reserve Naturelle de la Camargue (RNN)')
+        self.stdout.write('      Organismes: RNF [PRINCIPAL], OFB')
         self.stdout.write('  - Reserve Naturelle des Aiguilles Rouges (RNN)')
+        self.stdout.write('      Organismes: RNF [PRINCIPAL]')
         self.stdout.write('  - Reserve Naturelle Regionale du Grand-Voyeux (RNR)')
+        self.stdout.write('      Organismes: CEN AURA [PRINCIPAL]')
         self.stdout.write('  - Parc Naturel Regional du Vercors (PNR)')
+        self.stdout.write('      Organismes: CEN AURA [PRINCIPAL], DREAL')
         self.stdout.write('  - Espace Naturel Sensible des Marais de Brouage (ENS)')
+        self.stdout.write('      Organismes: DREAL [PRINCIPAL]')
         self.stdout.write('  - Reserve Naturelle de Scandola (RNN)')
+        self.stdout.write('      Organismes: Parc Ecrins [PRINCIPAL], OFB')
         self.stdout.write('  - Reserve Naturelle du Lac de Remoray (RNN)')
+        self.stdout.write('      Organismes: RNF [PRINCIPAL]')
 
         self.stdout.write('\nUtilisateurs actifs (7):')
         self.stdout.write(f'  Mot de passe commun: {DEFAULT_PASSWORD}')
@@ -480,9 +487,9 @@ class Command(BaseCommand):
             )
             sites.append(site)
 
-            # Lier aux organismes
+            # Lier aux organismes (le premier de la liste est le gestionnaire principal)
             for i, org in enumerate(organismes_list):
-                CorOgSite.objects.get_or_create(
+                CorOgSite.objects.update_or_create(
                     id_site=site,
                     uuid_og=org,
                     defaults={'principal': i == 0}
@@ -491,7 +498,9 @@ class Command(BaseCommand):
             if self.verbosity >= 2:
                 status = "cree" if created else "existant"
                 type_code = site.id_type_site.cd_nomenclature if site.id_type_site else 'N/A'
+                principal_org = organismes_list[0].nom_organisme if organismes_list else 'N/A'
                 self.stdout.write(f"  [{status.upper()}] {site.nom_site} ({type_code})")
+                self.stdout.write(f"              Gestionnaire principal: {principal_org}")
 
         self.stdout.write(self.style.SUCCESS(f'  {len(sites)} sites'))
         return sites

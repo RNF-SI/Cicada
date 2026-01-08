@@ -128,12 +128,17 @@ class OrganismeViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
     def assign_site(self, request, pk=None):
-        """Assigne un site à un organisme."""
+        """
+        Assigne un site à un organisme ou met à jour le statut principal.
+        POST /api/users/organismes/{id}/assign_site/
+        Body: { "site_id": 123, "principal": true/false }
+        """
         organisme = self.get_object()
         serializer = OrganismeSiteAssignmentSerializer(data=request.data)
 
         if serializer.is_valid():
             site_id = serializer.validated_data['site_id']
+            principal = serializer.validated_data.get('principal', False)
             site = get_object_or_404(Site, id_site=site_id)
 
             # Vérifier les permissions
@@ -146,6 +151,12 @@ class OrganismeViewSet(viewsets.ModelViewSet):
                             {'error': 'Vous ne pouvez assigner des sites qu\'à votre propre organisme.'},
                             status=status.HTTP_403_FORBIDDEN
                         )
+                    # Seul super_admin peut modifier le statut principal
+                    if principal:
+                        return Response(
+                            {'error': 'Seul un super administrateur peut définir un organisme comme gestionnaire principal.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
                 else:
                     # Pour les autres rôles, vérifier can_manage_site
                     if not request.user.can_manage_site(site):
@@ -154,23 +165,30 @@ class OrganismeViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_403_FORBIDDEN
                         )
 
-            # Créer ou récupérer la relation
-            cor_og_site, created = CorOgSite.objects.get_or_create(
+            # Créer ou mettre à jour la relation (principal est géré par le save() du modèle)
+            cor_og_site, created = CorOgSite.objects.update_or_create(
                 uuid_og=organisme,
-                id_site=site
+                id_site=site,
+                defaults={'principal': principal}
             )
-            
+
             if created:
+                message = f'Site {site.nom_site} assigné à {organisme.nom_organisme}'
+                if principal:
+                    message += ' comme gestionnaire principal'
                 return Response(
-                    {'message': f'Site {site.nom_site} assigné à {organisme.nom_organisme}'},
+                    {'message': message, 'principal': principal},
                     status=status.HTTP_201_CREATED
                 )
             else:
+                message = f'Relation mise à jour pour {site.nom_site}'
+                if principal:
+                    message = f'{organisme.nom_organisme} est maintenant le gestionnaire principal de {site.nom_site}'
                 return Response(
-                    {'message': 'Le site est déjà assigné à cet organisme'},
+                    {'message': message, 'principal': cor_og_site.principal},
                     status=status.HTTP_200_OK
                 )
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
@@ -540,7 +558,87 @@ class SiteViewSet(viewsets.ModelViewSet):
             })
 
         return Response(orgs_data)
-    
+
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def set_principal_organisme(self, request, pk=None):
+        """
+        Définit l'organisme gestionnaire principal du site.
+        POST /api/users/sites/{id}/set_principal_organisme/
+        Body: { "organisme_id": 123 }
+
+        Seul un super admin peut modifier l'organisme principal.
+        Un seul organisme peut être principal par site.
+        """
+        site = self.get_object()
+        organisme_id = request.data.get('organisme_id')
+
+        if not organisme_id:
+            return Response(
+                {'error': 'organisme_id est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            organisme = BibOrganismes.objects.get(id_organisme=organisme_id)
+        except BibOrganismes.DoesNotExist:
+            return Response(
+                {'error': 'Organisme non trouvé.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Vérifier que l'organisme est bien lié au site
+        try:
+            cor_og_site = CorOgSite.objects.get(id_site=site, uuid_og=organisme)
+        except CorOgSite.DoesNotExist:
+            return Response(
+                {'error': 'Cet organisme n\'est pas lié à ce site. Assignez-le d\'abord.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Définir comme principal (le save() retire le statut des autres)
+        if cor_og_site.principal:
+            return Response(
+                {'message': f'{organisme.nom_organisme} est déjà le gestionnaire principal de {site.nom_site}.'},
+                status=status.HTTP_200_OK
+            )
+
+        cor_og_site.principal = True
+        cor_og_site.save()
+
+        return Response({
+            'message': f'{organisme.nom_organisme} est maintenant le gestionnaire principal de {site.nom_site}.',
+            'site': {
+                'id_site': site.id_site,
+                'nom_site': site.nom_site
+            },
+            'organisme_principal': {
+                'id_organisme': organisme.id_organisme,
+                'nom_organisme': organisme.nom_organisme
+            }
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def principal_organisme(self, request, pk=None):
+        """
+        Retourne l'organisme gestionnaire principal du site.
+        GET /api/users/sites/{id}/principal_organisme/
+        """
+        site = self.get_object()
+        principal = CorOgSite.get_principal(site)
+
+        if principal:
+            return Response({
+                'id_organisme': principal.id_organisme,
+                'nom_organisme': principal.nom_organisme,
+                'ville_organisme': principal.ville_organisme,
+                'email_organisme': principal.email_organisme
+            })
+        else:
+            return Response(
+                {'message': 'Aucun organisme principal défini pour ce site.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     @action(detail=False, methods=['get'], permission_classes=[IsReferent])
     def stats(self, request):
         """Statistiques des sites."""

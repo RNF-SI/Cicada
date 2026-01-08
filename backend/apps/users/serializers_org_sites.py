@@ -443,9 +443,10 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
 
 class OrganismeSiteAssignmentSerializer(serializers.Serializer):
     """Serializer pour assigner un site à un organisme."""
-    
+
     site_id = serializers.IntegerField()
-    
+    principal = serializers.BooleanField(default=False, required=False)
+
     def validate_site_id(self, value):
         """Valide l'existence du site."""
         try:

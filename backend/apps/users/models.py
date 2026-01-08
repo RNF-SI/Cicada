@@ -269,6 +269,7 @@ class CorRoleSite(models.Model):
 class CorOgSite(models.Model):
     """
     Table de liaison entre organismes et sites.
+    Un seul organisme peut être gestionnaire principal par site.
     """
 
     id_site = models.ForeignKey(
@@ -293,3 +294,43 @@ class CorOgSite(models.Model):
 
     def __str__(self):
         return f"{self.id_site} - {self.uuid_og}"
+
+    def save(self, *args, **kwargs):
+        """
+        Override save pour garantir un seul organisme principal par site.
+        Si cet organisme est défini comme principal, les autres perdent ce statut.
+        """
+        if self.principal:
+            # Retirer le statut principal des autres organismes pour ce site
+            CorOgSite.objects.filter(
+                id_site=self.id_site,
+                principal=True
+            ).exclude(pk=self.pk).update(principal=False)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def set_principal(cls, site, organisme):
+        """
+        Définit un organisme comme gestionnaire principal d'un site.
+        Retourne True si la modification a été effectuée, False sinon.
+        """
+        try:
+            cor_og_site = cls.objects.get(id_site=site, uuid_og=organisme)
+            if not cor_og_site.principal:
+                cor_og_site.principal = True
+                cor_og_site.save()
+                return True
+            return False  # Déjà principal
+        except cls.DoesNotExist:
+            return False
+
+    @classmethod
+    def get_principal(cls, site):
+        """
+        Retourne l'organisme gestionnaire principal d'un site, ou None.
+        """
+        try:
+            cor = cls.objects.get(id_site=site, principal=True)
+            return cor.uuid_og
+        except cls.DoesNotExist:
+            return None
