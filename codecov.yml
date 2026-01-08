@@ -1,0 +1,44 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  status:
+    project:
+      default:
+        target: 60%      # Objectif global de couverture
+        threshold: 5%    # Tolérance de diminution
+    patch:
+      default:
+        target: 70%      # Objectif pour le nouveau code
+
+# Flags pour séparer backend/frontend
+flags:
+  backend:
+    paths:
+      - backend/apps/
+    carryforward: true
+  frontend:
+    paths:
+      - frontend/src/
+    carryforward: true
+
+# Configuration des commentaires PR
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+  require_base: false
+  require_head: true
+
+# Ignorer certains fichiers
+ignore:
+  - "**/*.spec.ts"
+  - "**/*_test.py"
+  - "**/test_*.py"
+  - "**/migrations/**"
+  - "**/tests/**"
+  - "backend/config/**"
+  - "frontend/src/main.ts"
+  - "frontend/src/app/app.config.ts"
+  - "**/*.module.ts"
+  - "**/*.routes.ts"

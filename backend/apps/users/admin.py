@@ -655,7 +655,7 @@ def export_sites_csv(modeladmin, request, queryset):
             site.id_site,
             site.nom_site,
             site.id_local or '',
-            site.id_type_site.label_default if site.id_type_site else '',
+            site.id_type_site.label if site.id_type_site else '',
             site.surf_off or '',
             'Oui' if site.marin else 'Non',
             'Oui' if site.outre_mer else 'Non',

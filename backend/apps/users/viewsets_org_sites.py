@@ -261,19 +261,21 @@ class OrganismeViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """Statistiques des organismes."""
         queryset = self.get_queryset()
-        
+
         total_organismes = queryset.count()
-        active_organismes = queryset.filter(active=True).count()
-        
+
         # Statistiques par type (parent/enfant)
         organismes_parents = queryset.filter(id_parent__isnull=True).count()
         organismes_enfants = queryset.filter(id_parent__isnull=False).count()
-        
+
+        # BibOrganismes doesn't have 'active' field - count with sites instead
+        organismes_with_sites = queryset.filter(corogsite__isnull=False).distinct().count()
+
         return Response({
             'total_organismes': total_organismes,
-            'active_organismes': active_organismes,
             'organismes_parents': organismes_parents,
-            'organismes_enfants': organismes_enfants
+            'organismes_enfants': organismes_enfants,
+            'organismes_with_sites': organismes_with_sites
         })
 
 

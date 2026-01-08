@@ -204,17 +204,76 @@ docker-compose exec web python manage.py shell
 
 ### Testing
 
-```bash
-# Backend tests
-cd backend && pytest
-pytest --cov=apps --cov-report=html  # With coverage
-pytest -k test_name  # Run specific test
+> **Documentation complète** : Voir [`docs/TESTING.md`](docs/TESTING.md) pour le guide détaillé des tests.
 
-# Frontend tests
-cd frontend && npm test
-npm run test:coverage
-npm run e2e  # Cypress tests
+#### Résumé de la couverture
+
+| Stack | Framework | Tests | Couverture |
+|-------|-----------|-------|------------|
+| Backend | pytest + pytest-django + Factory Boy | 317 | 62% |
+| Frontend | Jest + jest-preset-angular | 55 | 100% (auth) |
+| **Total** | | **372** | |
+
+#### Backend (pytest)
+
+```bash
+# Via Docker (recommandé)
+docker-compose exec web pytest tests/
+
+# Avec couverture HTML
+docker-compose exec web pytest tests/ --cov=apps --cov-report=html
+
+# Tests unitaires uniquement
+docker-compose exec web pytest tests/ -m unit
+
+# Tests d'intégration uniquement
+docker-compose exec web pytest tests/ -m integration
+
+# Un fichier spécifique
+docker-compose exec web pytest tests/integration/test_api_users.py -v
+
+# Un test spécifique
+docker-compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint -v
 ```
+
+**Structure des tests backend :**
+```
+backend/tests/
+├── factories/           # Factory Boy (UserFactory, PlanGestionFactory, etc.)
+├── apps/               # Tests unitaires
+│   ├── users/          # test_models.py, test_permissions.py, test_middleware.py
+│   └── plans/          # test_views.py, test_filters.py
+└── integration/        # Tests API
+    ├── test_api_auth.py
+    ├── test_api_users.py
+    ├── test_api_org_sites.py
+    └── test_api_plans.py
+```
+
+#### Frontend (Jest)
+
+```bash
+cd frontend
+
+# Tous les tests
+npm test
+
+# Mode watch (développement)
+npm run test:watch
+
+# Avec couverture
+npm run test:coverage
+```
+
+**Tests frontend disponibles :**
+- `auth.service.spec.ts` - Login, logout, tokens, rôles, impersonation (27 tests)
+- `auth.guard.spec.ts` - authGuard, roleGuard, adminGuard, guestGuard (15 tests)
+- `auth.interceptor.spec.ts` - Injection token, refresh 401 (13 tests)
+
+#### CI/CD
+
+Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`.
+Configuration : `.github/workflows/tests.yml`
 
 ### Frontend Development
 
@@ -389,7 +448,11 @@ Angular application with:
 1. **Database Migrations**: Always create reversible migrations
 2. **API Design**: RESTful with consistent naming, pagination for lists > 20 items
 3. **Frontend State**: Services as stores pattern, avoid NgRx for V0
-4. **Testing**: Minimum 80% backend, 70% frontend coverage
+4. **Testing**:
+   - Backend : 317 tests (62% couverture) - pytest + Factory Boy
+   - Frontend : 55 tests (100% auth) - Jest
+   - CI/CD : GitHub Actions sur push/PR
+   - Objectif : 80% backend, 70% frontend
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
 

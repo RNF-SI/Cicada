@@ -153,8 +153,9 @@ class HasPlanGestionAccess(BasePermission):
         # Pour un plan de gestion, vérifier les sites associés
         if hasattr(obj, 'sites'):
             # Si l'utilisateur peut gérer au moins un des sites du plan
-            for site in obj.sites.all():
-                if user.can_manage_site(site):
+            # obj.sites.all() renvoie des CorSitePg, donc on accède à .site
+            for cor_site in obj.sites.all():
+                if user.can_manage_site(cor_site.site):
                     return True
         
         return False

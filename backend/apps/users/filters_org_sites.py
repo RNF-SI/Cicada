@@ -152,7 +152,7 @@ class SiteFilter(django_filters.FilterSet):
     # Filtres par type
     type_site = django_filters.NumberFilter(field_name='id_type_site__id_nomenclature')
     type_site_label = django_filters.CharFilter(
-        field_name='id_type_site__label_default', 
+        field_name='id_type_site__label',
         lookup_expr='icontains'
     )
     
@@ -223,13 +223,13 @@ class SiteFilter(django_filters.FilterSet):
         """Recherche globale dans plusieurs champs."""
         if not value:
             return queryset
-        
+
         return queryset.filter(
             Q(nom_site__icontains=value) |
             Q(id_local__icontains=value) |
             Q(id_inpn__icontains=value) |
             Q(jonction_nom__icontains=value) |
-            Q(id_type_site__label_default__icontains=value)
+            Q(id_type_site__label__icontains=value)
         ).distinct()
     
     def filter_has_geometry(self, queryset, name, value):

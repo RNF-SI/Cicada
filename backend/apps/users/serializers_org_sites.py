@@ -130,30 +130,37 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Crée un nouvel organisme."""
         parent_data = validated_data.pop('id_parent', None)
-        
+
         organisme = BibOrganismes.objects.create(**validated_data)
-        
-        if parent_data and parent_data.get('id_organisme'):
-            parent = BibOrganismes.objects.get(id_organisme=parent_data['id_organisme'])
-            organisme.id_parent = parent
+
+        if parent_data:
+            # parent_data can be a BibOrganismes instance or a dict
+            if isinstance(parent_data, BibOrganismes):
+                organisme.id_parent = parent_data
+            elif isinstance(parent_data, dict) and parent_data.get('id_organisme'):
+                parent = BibOrganismes.objects.get(id_organisme=parent_data['id_organisme'])
+                organisme.id_parent = parent
             organisme.save()
-        
+
         return organisme
-    
+
     def update(self, instance, validated_data):
         """Met à jour un organisme."""
         parent_data = validated_data.pop('id_parent', None)
-        
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
+
         if parent_data is not None:
-            if parent_data.get('id_organisme'):
+            # parent_data can be a BibOrganismes instance or a dict
+            if isinstance(parent_data, BibOrganismes):
+                instance.id_parent = parent_data
+            elif isinstance(parent_data, dict) and parent_data.get('id_organisme'):
                 parent = BibOrganismes.objects.get(id_organisme=parent_data['id_organisme'])
                 instance.id_parent = parent
             else:
                 instance.id_parent = None
-        
+
         instance.save()
         return instance
 
@@ -161,7 +168,7 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
 class SiteListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des sites."""
     
-    type_site = serializers.CharField(source='id_type_site.label_default', read_only=True)
+    type_site = serializers.CharField(source='id_type_site.label', read_only=True)
     organismes_count = serializers.SerializerMethodField()
     users_count = serializers.SerializerMethodField()
     
@@ -197,10 +204,14 @@ class SiteListSerializer(serializers.ModelSerializer):
 
 class SiteGeoJSONSerializer(GeoFeatureModelSerializer):
     """Serializer GeoJSON complet pour un site avec géométries."""
-    
-    type_site = serializers.CharField(source='id_type_site.label_default', read_only=True)
+
+    type_site = serializers.SerializerMethodField()
     organismes_gestionnaires = serializers.SerializerMethodField()
     users_assignes = serializers.SerializerMethodField()
+
+    def get_type_site(self, obj):
+        """Type de site with None handling."""
+        return obj.id_type_site.label if obj.id_type_site else None
     
     class Meta:
         model = Site
@@ -263,7 +274,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
         if obj.id_type_site:
             return {
                 'id_nomenclature': obj.id_type_site.id_nomenclature,
-                'label_default': obj.id_type_site.label_default,
+                'label': obj.id_type_site.label,
                 'cd_nomenclature': obj.id_type_site.cd_nomenclature
             }
         return None
