@@ -6,13 +6,6 @@ on:
   pull_request:
     branches: [main, develop]
 
-env:
-  POSTGRES_DB: test_db
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-  DJANGO_SETTINGS_MODULE: config.settings.development
-  SECRET_KEY: test-secret-key-for-ci
-
 jobs:
   # ============================================
   # Backend Tests
@@ -24,9 +17,9 @@ jobs:
       postgres:
         image: postgis/postgis:15-3.3
         env:
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -34,6 +27,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      SECRET_KEY: test-secret-key-for-ci
 
     steps:
       - name: Checkout code
@@ -60,14 +62,10 @@ jobs:
 
       - name: Run database migrations
         working-directory: ./backend
-        env:
-          DATABASE_URL: postgis://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         run: python manage.py migrate --noinput
 
       - name: Run backend tests
         working-directory: ./backend
-        env:
-          DATABASE_URL: postgis://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         run: |
           pytest tests/ \
             --cov=apps \
