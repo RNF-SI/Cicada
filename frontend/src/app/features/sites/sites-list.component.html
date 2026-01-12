@@ -1,0 +1,210 @@
+<div class="sites-page">
+  <!-- Bouton retour -->
+  <a routerLink="/accueil" class="back-link">
+    <i class="fi fi-rr-arrow-left"></i>
+    {{ 'sites.backToHome' | translate }}
+  </a>
+
+  <header class="page-header">
+    <h1>{{ 'sites.title' | translate }}</h1>
+    <p class="subtitle">{{ 'sites.subtitle' | translate }}</p>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- Section: Mes sites -->
+    <section class="section my-sites-section">
+      <h2 class="section-title">
+        <i class="fi fi-rr-check-circle section-icon"></i>
+        {{ 'sites.mySites.title' | translate }}
+        <span class="badge">{{ mySites().length }}</span>
+      </h2>
+
+      @if (mySites().length === 0) {
+        <div class="empty-state empty-state--small">
+          <i class="fi fi-rr-marker empty-icon"></i>
+          <p>{{ 'sites.mySites.empty' | translate }}</p>
+        </div>
+      } @else {
+        <mat-card class="sites-card">
+          <mat-card-content>
+            <table mat-table [dataSource]="mySites()" class="sites-table">
+              <!-- Nom -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.name' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  <span class="site-name">{{ site.nom_site }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Type -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.type' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  <mat-chip class="type-chip">{{ site.type_site_label || site.id_type_site || '-' }}</mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Surface -->
+              <ng-container matColumnDef="surface">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.surface' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  {{ formatSurface(site.surf_off) }}
+                </td>
+              </ng-container>
+
+              <!-- Organisme -->
+              <ng-container matColumnDef="organisme">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.organisme' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  @if (site.organismes && site.organismes.length > 0) {
+                    {{ site.organismes[0].nom_organisme }}
+                    @if (site.organismes.length > 1) {
+                      <span class="others">+{{ site.organismes.length - 1 }}</span>
+                    }
+                  } @else {
+                    -
+                  }
+                </td>
+              </ng-container>
+
+              <!-- Statut -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.status' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  @if (site.isReferent) {
+                    <mat-chip class="status-success">
+                      <i class="fi fi-rr-star chip-icon"></i>
+                      {{ 'sites.mySites.referent' | translate }}
+                    </mat-chip>
+                  } @else {
+                    <mat-chip class="status-success">
+                      <i class="fi fi-rr-check chip-icon"></i>
+                      Acces
+                    </mat-chip>
+                  }
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="mySitesColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: mySitesColumns"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      }
+    </section>
+
+    <!-- Section: Demander l'acces -->
+    <section class="section request-section">
+      <h2 class="section-title">
+        <i class="fi fi-rr-lock section-icon"></i>
+        {{ 'sites.requestAccess.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'sites.requestAccess.description' | translate }}</p>
+
+      <!-- Barre de recherche -->
+      <div class="search-bar">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-icon matPrefix class="search-icon">
+            <i class="fi fi-rr-search"></i>
+          </mat-icon>
+          <input
+            matInput
+            type="text"
+            [placeholder]="'sites.requestAccess.searchPlaceholder' | translate"
+            (input)="onSearch($event)"
+          />
+        </mat-form-field>
+      </div>
+
+      @if (otherSites().length === 0) {
+        <div class="empty-state empty-state--small">
+          <i class="fi fi-rr-search empty-icon"></i>
+          <p>{{ 'sites.requestAccess.noResults' | translate }}</p>
+        </div>
+      } @else {
+        <mat-card class="sites-card">
+          <mat-card-content>
+            <table mat-table [dataSource]="otherSites()" class="sites-table">
+              <!-- Nom -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.name' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  <span class="site-name">{{ site.nom_site }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Type -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.type' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  <mat-chip class="type-chip">{{ site.type_site_label || site.id_type_site || '-' }}</mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Surface -->
+              <ng-container matColumnDef="surface">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.surface' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  {{ formatSurface(site.surf_off) }}
+                </td>
+              </ng-container>
+
+              <!-- Organisme -->
+              <ng-container matColumnDef="organisme">
+                <th mat-header-cell *matHeaderCellDef>{{ 'sites.table.organisme' | translate }}</th>
+                <td mat-cell *matCellDef="let site">
+                  @if (site.organismes && site.organismes.length > 0) {
+                    {{ site.organismes[0].nom_organisme }}
+                    @if (site.organismes.length > 1) {
+                      <span class="others">+{{ site.organismes.length - 1 }}</span>
+                    }
+                  } @else {
+                    -
+                  }
+                </td>
+              </ng-container>
+
+              <!-- Actions -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let site">
+                  @switch (site.accessStatus) {
+                    @case ('pending') {
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'sites.requestAccess.pending' | translate }}
+                      </mat-chip>
+                    }
+                    @case ('rejected') {
+                      <mat-chip class="status-error">
+                        <i class="fi fi-rr-cross-circle chip-icon"></i>
+                        {{ 'sites.requestAccess.rejected' | translate }}
+                      </mat-chip>
+                    }
+                    @default {
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        (click)="openAccessRequestDialog(site)"
+                      >
+                        <i class="fi fi-rr-lock"></i>
+                        {{ 'sites.requestAccess.button' | translate }}
+                      </button>
+                    }
+                  }
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="otherSitesColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: otherSitesColumns"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      }
+    </section>
+  }
+</div>
