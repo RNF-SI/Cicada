@@ -40,10 +40,13 @@
           </a>
         }
 
+        <!-- Notification bell -->
+        <app-notification-bell></app-notification-bell>
+
         <!-- User menu -->
         <button mat-button [matMenuTriggerFor]="userMenu" class="nav-link user-menu-trigger">
           <i class="fi fi-rr-user user-icon"></i>
-          <span class="user-name">Mon compte</span>
+          <span class="user-name">{{ userDisplayName }}</span>
           <i class="fi fi-rr-angle-small-down chevron"></i>
         </button>
 
@@ -61,6 +64,13 @@
             <i class="fi fi-rr-settings menu-icon"></i>
             <span>Parametres</span>
           </button>
+          @if (canAccessAdmin()) {
+            <mat-divider></mat-divider>
+            <button mat-menu-item routerLink="/administration/validations">
+              <i class="fi fi-rr-check-circle menu-icon"></i>
+              <span>Validations</span>
+            </button>
+          }
           <mat-divider></mat-divider>
           <button mat-menu-item (click)="logout()" class="logout-item">
             <i class="fi fi-rr-sign-out-alt menu-icon"></i>
@@ -69,10 +79,9 @@
         </mat-menu>
       } @else {
         <!-- Guest user - Login button -->
-        <a routerLink="/auth/login" class="nav-link user-menu-trigger">
-          <i class="fi fi-rr-user user-icon"></i>
-          <span class="user-name">Mon compte</span>
-          <i class="fi fi-rr-angle-small-down chevron"></i>
+        <a routerLink="/auth/login" class="nav-link login-btn">
+          <i class="fi fi-rr-sign-in-alt user-icon"></i>
+          <span class="user-name">Se connecter</span>
         </a>
       }
     </nav>

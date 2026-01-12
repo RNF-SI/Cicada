@@ -1,0 +1,300 @@
+// Variables
+$primary-color: #025359;
+$secondary-yellow: #FEC180;
+$success-color: #04854B;
+$error-color: #E12329;
+$warning-color: #FA9965;
+$gray-light: #F5F5F5;
+$gray: #999;
+$white: #fff;
+
+.profile-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $primary-color;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  transition: opacity 0.2s;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.page-header {
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 8px 0;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: $gray;
+    margin: 0;
+  }
+}
+
+// Onglets
+.tab-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $white;
+  background-color: $warning-color;
+  border-radius: 10px;
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+// Cartes profil
+.profile-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+}
+
+.profile-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .card-header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $primary-color, lighten($primary-color, 15%));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 28px;
+      color: $white;
+    }
+  }
+
+  .user-info {
+    mat-card-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    mat-card-subtitle {
+      font-size: 14px;
+      color: $gray;
+    }
+  }
+
+  .card-title-icon {
+    margin-right: 8px;
+    color: $primary-color;
+  }
+
+  mat-card-content {
+    padding-top: 16px;
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .info-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: $gray;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .info-value {
+    font-size: 14px;
+    color: #333;
+
+    &.org-name {
+      font-weight: 600;
+      color: $primary-color;
+    }
+  }
+}
+
+.role-chip {
+  background-color: rgba($primary-color, 0.1) !important;
+  color: $primary-color !important;
+  font-size: 12px;
+}
+
+// Section demandes
+.requests-section {
+  .section-description {
+    color: $gray;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+}
+
+.requests-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  th {
+    background-color: $gray-light;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: $gray-light;
+  border-radius: 4px;
+  font-size: 13px;
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+  }
+}
+
+.validator-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $success-color;
+
+  .validator-icon {
+    font-size: 14px;
+  }
+}
+
+.pending-label {
+  color: $gray;
+  font-style: italic;
+}
+
+// Statuts
+.status-success {
+  background-color: rgba($success-color, 0.15) !important;
+  color: $success-color !important;
+}
+
+.status-error {
+  background-color: rgba($error-color, 0.15) !important;
+  color: $error-color !important;
+}
+
+.status-warning {
+  background-color: rgba($warning-color, 0.15) !important;
+  color: darken($warning-color, 15%) !important;
+}
+
+.status-neutre {
+  background-color: $gray-light !important;
+  color: $gray !important;
+}
+
+// Etats
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 48px;
+    color: $gray;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    color: $gray;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 16px;
+  }
+
+  .profile-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}

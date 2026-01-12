@@ -1,0 +1,92 @@
+<!-- Bouton cloche avec badge -->
+<button
+  mat-button
+  [matMenuTriggerFor]="notificationMenu"
+  class="notification-bell-btn"
+  aria-label="Notifications"
+>
+  <span class="bell-container">
+    <i class="fi fi-rr-bell bell-icon"></i>
+    @if (totalBadgeCount() > 0) {
+      <span class="notification-badge" [class.has-critical]="pendingValidations() > 0">
+        {{ badgeDisplay() }}
+      </span>
+    }
+  </span>
+</button>
+
+<!-- Menu dropdown des notifications -->
+<mat-menu #notificationMenu="matMenu" class="notification-menu">
+  <div class="notification-header">
+    <span class="notification-title">Notifications</span>
+    @if (hasUnread()) {
+      <button class="mark-all-btn" (click)="markAllAsRead(); $event.stopPropagation()">
+        Tout marquer comme lu
+      </button>
+    }
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Validations en attente -->
+  @if (canAccessValidations() && pendingValidations() > 0) {
+    <button mat-menu-item class="validation-item" (click)="goToValidations()">
+      <div class="notification-item-content">
+        <span class="notification-icon validation">
+          <i class="fi fi-rr-check-circle"></i>
+        </span>
+        <div class="notification-text">
+          <span class="notification-item-title">Validations en attente</span>
+          <span class="notification-item-message">
+            {{ pendingValidations() }} demande(s) a traiter
+          </span>
+        </div>
+        <span class="notification-badge-small">{{ pendingValidations() }}</span>
+      </div>
+    </button>
+    <mat-divider></mat-divider>
+  }
+
+  <!-- Liste des notifications -->
+  <div class="notification-list">
+    @if (notifications().length === 0) {
+      <div class="no-notifications">
+        <i class="fi fi-rr-bell-slash"></i>
+        <span>Aucune notification</span>
+      </div>
+    } @else {
+      @for (notification of notifications(); track notification.id) {
+        <button
+          mat-menu-item
+          class="notification-item"
+          [class.unread]="!notification.read"
+          [class]="getPriorityClass(notification.priority)"
+          (click)="onNotificationClick(notification)"
+        >
+          <div class="notification-item-content">
+            <span class="notification-icon" [class]="notification.notification_type">
+              <i class="fi" [class]="getNotificationIcon(notification.notification_type)"></i>
+            </span>
+            <div class="notification-text">
+              <span class="notification-item-title">{{ notification.title }}</span>
+              <span class="notification-item-message">{{ notification.message }}</span>
+              <span class="notification-time">{{ getRelativeTime(notification.created_at) }}</span>
+            </div>
+            @if (!notification.read) {
+              <span class="unread-indicator"></span>
+            }
+          </div>
+        </button>
+      }
+    }
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Footer avec lien voir tout -->
+  <div class="notification-footer">
+    <button class="see-all-link" mat-menu-item (click)="openNotificationsDialog()">
+      Voir toutes les notifications
+    </button>
+  </div>
+</mat-menu>

@@ -285,15 +285,13 @@ export class AuthService {
       // Client-side error
       errorMessage = error.error.message;
     } else {
-      // Server-side error
-      if (error.status === 401) {
+      // Server-side error - utiliser le message du backend si disponible
+      if (error.error?.detail) {
+        errorMessage = error.error.detail;
+      } else if (error.error?.non_field_errors) {
+        errorMessage = error.error.non_field_errors[0];
+      } else if (error.status === 401) {
         errorMessage = 'Email ou mot de passe incorrect';
-      } else if (error.status === 400) {
-        if (error.error?.detail) {
-          errorMessage = error.error.detail;
-        } else if (error.error?.non_field_errors) {
-          errorMessage = error.error.non_field_errors[0];
-        }
       } else if (error.status === 0) {
         errorMessage = 'Impossible de se connecter au serveur';
       }

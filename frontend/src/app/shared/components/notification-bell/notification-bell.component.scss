@@ -1,0 +1,282 @@
+// Variables
+$primary-color: #025359;
+$secondary-yellow: #FEC180;
+$secondary-orange: #FA9965;
+$secondary-terra-cotta: #B74D5D;
+$success-color: #04854B;
+$error-color: #E12329;
+$warning-color: #FA9965;
+$info-color: #81C9D8;
+$gray-light: #F5F5F5;
+$gray: #999;
+
+// Bouton cloche
+.notification-bell-btn {
+  position: relative;
+  min-width: auto;
+  padding: 8px;
+  border-radius: 50%;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+
+  .bell-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bell-icon {
+    font-size: 20px;
+    color: $primary-color;
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    color: white;
+    background-color: $error-color;
+    border-radius: 9px;
+
+    &.has-critical {
+      background-color: $secondary-terra-cotta;
+      animation: pulse 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba($secondary-terra-cotta, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba($secondary-terra-cotta, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba($secondary-terra-cotta, 0);
+  }
+}
+
+// Header du menu
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+
+  .notification-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: $primary-color;
+  }
+
+  .mark-all-btn {
+    font-size: 12px;
+    color: $primary-color;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      color: darken($primary-color, 10%);
+    }
+  }
+}
+
+// Liste des notifications
+.notification-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.no-notifications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: $gray;
+
+  i {
+    font-size: 32px;
+  }
+
+  span {
+    font-size: 14px;
+  }
+}
+
+// Item de notification
+.notification-item {
+  height: auto !important;
+  padding: 12px 16px !important;
+  white-space: normal !important;
+
+  &.unread {
+    background-color: rgba($info-color, 0.1);
+  }
+
+  &.priority-high,
+  &.priority-critical {
+    border-left: 3px solid $warning-color;
+  }
+
+  &.priority-critical {
+    border-left-color: $error-color;
+  }
+}
+
+.validation-item {
+  background-color: rgba($secondary-yellow, 0.15);
+  border-left: 3px solid $secondary-yellow;
+}
+
+.notification-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: $gray-light;
+  flex-shrink: 0;
+
+  i {
+    font-size: 16px;
+    color: $primary-color;
+  }
+
+  &.validation,
+  &.validation_request {
+    background-color: rgba($secondary-yellow, 0.2);
+
+    i {
+      color: darken($secondary-yellow, 20%);
+    }
+  }
+
+  &.validation_approved,
+  &.user_associated_site,
+  &.user_associated_plan {
+    background-color: rgba($success-color, 0.15);
+
+    i {
+      color: $success-color;
+    }
+  }
+
+  &.validation_rejected,
+  &.user_removed_site,
+  &.user_removed_plan,
+  &.account_deactivated {
+    background-color: rgba($error-color, 0.15);
+
+    i {
+      color: $error-color;
+    }
+  }
+
+  &.site_orphaned,
+  &.organisme_no_admin,
+  &.system_alert {
+    background-color: rgba($warning-color, 0.15);
+
+    i {
+      color: $warning-color;
+    }
+  }
+}
+
+.notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item-title {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.notification-item-message {
+  display: block;
+  font-size: 12px;
+  color: $gray;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.notification-time {
+  display: block;
+  font-size: 11px;
+  color: lighten($gray, 10%);
+  margin-top: 4px;
+}
+
+.unread-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $info-color;
+  flex-shrink: 0;
+}
+
+.notification-badge-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  background-color: $secondary-yellow;
+  border-radius: 10px;
+}
+
+// Footer
+.notification-footer {
+  padding: 8px 0;
+
+  .see-all-link {
+    display: flex;
+    justify-content: center;
+    font-size: 13px;
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Global menu override
+::ng-deep .notification-menu {
+  width: 360px;
+  max-width: 90vw;
+}
