@@ -48,7 +48,8 @@
           </mat-menu>
         </div>
       </div>
-      <!-- Tabs - positionnés en bas du hero -->
+
+      <!-- Tabs -->
       <div class="tabs">
         <button
           class="tab"
@@ -66,123 +67,226 @@
     </div>
   </section>
 
-  <!-- Content Section -->
-  <section class="content-section">
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <!-- Search -->
-      <div class="search-box">
-        <i class="fi fi-rr-search"></i>
-        <input
-          type="text"
-          [placeholder]="'common.actions.search' | translate"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-        />
-      </div>
-
-      <!-- Old versions link -->
-      <button class="btn-link">
-        <span>{{ 'plans.list.oldVersions' | translate }}</span>
-        <i class="fi fi-rr-time-past"></i>
-      </button>
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
     </div>
-
-    <!-- Table -->
-    <div class="table-container">
-      <table class="plans-table">
-        <thead>
-          <tr>
-            <th class="col-name">
-              {{ 'plans.list.table.name' | translate }}
-              <i class="fi fi-rr-arrow-small-down"></i>
-            </th>
-            <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
-            <th class="col-status">
-              {{ 'plans.list.table.status' | translate }}
-              <i class="fi fi-rr-arrow-small-down"></i>
-            </th>
-            <th class="col-actions"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (plan of filteredPlans(); track plan.id; let odd = $odd) {
-            <tr [class.odd]="odd">
-              <td class="col-name">
-                <span class="plan-name">{{ plan.nom }}</span>
-                @if (plan.isMultisites) {
-                  <span class="plan-separator">-</span>
-                  <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
+  } @else {
+    <!-- Section 1: Mes plans de gestion -->
+      <section class="content-section my-plans-section">
+        @if (myPlans().length === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-document empty-icon"></i>
+            <p>{{ 'plans.myPlans.empty' | translate }}</p>
+          </div>
+        } @else {
+          <!-- Table des plans -->
+          <div class="table-container">
+            <table class="plans-table">
+              <thead>
+                <tr>
+                  <th class="col-name">
+                    {{ 'plans.list.table.name' | translate }}
+                    <i class="fi fi-rr-arrow-small-down"></i>
+                  </th>
+                  <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
+                  <th class="col-status">
+                    {{ 'plans.list.table.status' | translate }}
+                    <i class="fi fi-rr-arrow-small-down"></i>
+                  </th>
+                  <th class="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (plan of myPlans(); track plan.id_pg; let odd = $odd) {
+                  <tr [class.odd]="odd">
+                    <td class="col-name">
+                      <span class="plan-name">{{ plan.nom }}</span>
+                      @if (plan.sites && plan.sites.length > 1) {
+                        <span class="plan-separator">-</span>
+                        <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
+                      }
+                      @if (plan.isReferent) {
+                        <mat-chip class="referent-chip">
+                          <i class="fi fi-rr-star chip-icon"></i>
+                          {{ 'plans.myPlans.referent' | translate }}
+                        </mat-chip>
+                      }
+                    </td>
+                    <td class="col-period">
+                      <div class="period-content">
+                        <span class="period-dates">{{ formatPeriod(plan) }}</span>
+                        @if (plan.annee_debut && plan.annee_fin) {
+                          <app-plan-gauge
+                            [status]="plan.gaugeStatus"
+                            [startYear]="plan.annee_debut"
+                            [endYear]="plan.annee_fin">
+                          </app-plan-gauge>
+                        }
+                      </div>
+                    </td>
+                    <td class="col-status">
+                      <div class="status-content">
+                        <span class="status-tag" [class]="getStatutClass(plan.statut)">
+                          {{ getStatutLabel(plan.statut) }}
+                        </span>
+                        <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
+                          <i class="fi fi-rr-pencil"></i>
+                        </button>
+                      </div>
+                    </td>
+                    <td class="col-actions">
+                      <div class="actions-content">
+                        <button class="btn-action" (click)="followPlan(plan)">
+                          <span>{{ 'plans.list.actions.follow' | translate }}</span>
+                          <i class="fi fi-rr-stats"></i>
+                        </button>
+                        <button class="btn-action" (click)="viewPlan(plan)">
+                          <span>{{ 'plans.list.actions.view' | translate }}</span>
+                          <i class="fi fi-rr-eye"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 }
-              </td>
-              <td class="col-period">
-                <div class="period-content">
-                  <span class="period-dates">{{ plan.periodeDebut }}-{{ plan.periodeFin }}</span>
-                  <app-plan-gauge
-                    [status]="plan.gaugeStatus"
-                    [startYear]="plan.periodeDebut"
-                    [endYear]="plan.periodeFin">
-                  </app-plan-gauge>
-                </div>
-              </td>
-              <td class="col-status">
-                <div class="status-content">
-                  <span class="status-tag" [class]="getStatutClass(plan.statut)">
-                    {{ getStatutLabel(plan.statut) }}
-                  </span>
-                  <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
-                    <i class="fi fi-rr-pencil"></i>
-                  </button>
-                </div>
-              </td>
-              <td class="col-actions">
-                <div class="actions-content">
-                  <button class="btn-action" (click)="followPlan(plan)">
-                    <span>{{ 'plans.list.actions.follow' | translate }}</span>
-                    <i class="fi fi-rr-stats"></i>
-                  </button>
-                  <button class="btn-action" (click)="viewPlan(plan)">
-                    <span>{{ 'plans.list.actions.view' | translate }}</span>
-                    <i class="fi fi-rr-eye"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+              </tbody>
+            </table>
+          </div>
 
-    <!-- Pagination - affichée seulement si nécessaire -->
-    @if (showPagination()) {
-      <div class="pagination">
-        <button
-          class="pagination-btn nav"
-          [disabled]="currentPage() === 1"
-          (click)="previousPage()">
-          <i class="fi fi-rr-arrow-small-left"></i>
-        </button>
+          <!-- Pagination - affichée seulement si nécessaire -->
+          @if (showPagination()) {
+            <div class="pagination">
+              <button
+                class="pagination-btn nav"
+                [disabled]="currentPage() === 1"
+                (click)="previousPage()">
+                <i class="fi fi-rr-arrow-small-left"></i>
+              </button>
 
-        @for (page of paginationPages(); track $index) {
-          @if (page === '...') {
-            <span class="pagination-ellipsis">...</span>
-          } @else {
-            <button
-              class="pagination-btn"
-              [class.active]="page === currentPage()"
-              (click)="goToPage(page)">
-              {{ page }}
-            </button>
+              @for (page of paginationPages(); track $index) {
+                @if (page === '...') {
+                  <span class="pagination-ellipsis">...</span>
+                } @else {
+                  <button
+                    class="pagination-btn"
+                    [class.active]="page === currentPage()"
+                    (click)="goToPage(page)">
+                    {{ page }}
+                  </button>
+                }
+              }
+
+              <button
+                class="pagination-btn nav"
+                [disabled]="currentPage() === totalPages()"
+                (click)="nextPage()">
+                <i class="fi fi-rr-arrow-small-right"></i>
+              </button>
+            </div>
           }
         }
+      </section>
 
-        <button
-          class="pagination-btn nav"
-          [disabled]="currentPage() === totalPages()"
-          (click)="nextPage()">
-          <i class="fi fi-rr-arrow-small-right"></i>
-        </button>
-      </div>
-    }
-  </section>
+      <!-- Section 2: Demander l'accès à d'autres plans -->
+      <section class="content-section request-section">
+        <h2 class="section-title">
+          <i class="fi fi-rr-lock section-icon"></i>
+          {{ 'plans.requestAccess.title' | translate }}
+        </h2>
+        <p class="section-description">{{ 'plans.requestAccess.description' | translate }}</p>
+
+        <!-- Barre de recherche -->
+        <div class="search-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-icon matPrefix class="search-icon">
+              <i class="fi fi-rr-search"></i>
+            </mat-icon>
+            <input
+              matInput
+              type="text"
+              [placeholder]="'plans.requestAccess.searchPlaceholder' | translate"
+              (input)="onSearch($event)"
+            />
+          </mat-form-field>
+        </div>
+
+        @if (otherPlans().length === 0) {
+          <div class="empty-state empty-state--small">
+            <i class="fi fi-rr-search empty-icon"></i>
+            <p>{{ 'plans.requestAccess.noResults' | translate }}</p>
+          </div>
+        } @else {
+          <mat-card class="plans-card">
+            <mat-card-content>
+              <table mat-table [dataSource]="otherPlans()" class="other-plans-table">
+                <!-- Nom -->
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>{{ 'plans.list.table.name' | translate }}</th>
+                  <td mat-cell *matCellDef="let plan">
+                    <span class="plan-name">{{ plan.nom }}</span>
+                  </td>
+                </ng-container>
+
+                <!-- Période -->
+                <ng-container matColumnDef="period">
+                  <th mat-header-cell *matHeaderCellDef>{{ 'plans.list.table.period' | translate }}</th>
+                  <td mat-cell *matCellDef="let plan">
+                    {{ formatPeriod(plan) }}
+                  </td>
+                </ng-container>
+
+                <!-- Site principal -->
+                <ng-container matColumnDef="organisme">
+                  <th mat-header-cell *matHeaderCellDef>{{ 'plans.list.table.site' | translate }}</th>
+                  <td mat-cell *matCellDef="let plan">
+                    @if (plan.sites && plan.sites.length > 0) {
+                      {{ plan.sites[0].nom_site }}
+                      @if (plan.sites.length > 1) {
+                        <span class="others">+{{ plan.sites.length - 1 }}</span>
+                      }
+                    } @else {
+                      -
+                    }
+                  </td>
+                </ng-container>
+
+                <!-- Actions -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let plan">
+                    @switch (plan.accessStatus) {
+                      @case ('pending') {
+                        <mat-chip class="status-warning">
+                          <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                          {{ 'plans.requestAccess.pending' | translate }}
+                        </mat-chip>
+                      }
+                      @case ('rejected') {
+                        <mat-chip class="status-error">
+                          <i class="fi fi-rr-cross-circle chip-icon"></i>
+                          {{ 'plans.requestAccess.rejected' | translate }}
+                        </mat-chip>
+                      }
+                      @default {
+                        <button
+                          mat-stroked-button
+                          color="primary"
+                          (click)="openAccessRequestDialog(plan)"
+                        >
+                          <i class="fi fi-rr-lock"></i>
+                          {{ 'plans.requestAccess.button' | translate }}
+                        </button>
+                      }
+                    }
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="otherPlansColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: otherPlansColumns"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
+        }
+      </section>
+  }
 </main>

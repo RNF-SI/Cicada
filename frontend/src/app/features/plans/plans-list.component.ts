@@ -1,21 +1,35 @@
+/**
+ * Composant pour la liste des plans de gestion.
+ * Affiche les plans auxquels l'utilisateur a accès et permet de demander l'accès à d'autres plans.
+ */
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
+import { AdminService } from '../../core/services/admin.service';
+import { ValidationService } from '../../core/services/validation.service';
+import { AuthService } from '../../core/services/auth.service';
+import { AdminPlan } from '../../core/models/admin.model';
+import { ValidationRequestListItem } from '../../core/models/notification.model';
+import { AccessRequestDialogComponent, AccessRequestDialogData } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
-interface PlanGestion {
-  id: number;
-  nom: string;
-  sousNom?: string;
-  isMultisites: boolean;
-  periodeDebut: number;
-  periodeFin: number;
-  statut: 'en_cours_revision' | 'evaluation_mi_parcours' | 'valide' | 'brouillon';
+interface PlanWithAccess extends AdminPlan {
+  accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
+  isReferent: boolean;
   gaugeStatus: GaugeStatus;
 }
 
@@ -28,6 +42,15 @@ interface PlanGestion {
     FormsModule,
     MatMenuModule,
     MatButtonModule,
+    MatCardModule,
+    MatTableModule,
+    MatChipsModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatDialogModule,
     TranslateModule,
     HeaderComponent,
     PlanGaugeComponent
@@ -38,70 +61,54 @@ interface PlanGestion {
 export class PlansListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly adminService = inject(AdminService);
+  private readonly validationService = inject(ValidationService);
+  private readonly authService = inject(AuthService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
-  // Tab state
+  // Données
+  readonly allPlans = signal<PlanWithAccess[]>([]);
+  readonly myRequests = signal<ValidationRequestListItem[]>([]);
+  readonly loading = signal(false);
+
+  // Tab state pour "Mes plans"
   activeTab = signal<'actifs' | 'inactifs'>('actifs');
 
-  // Search
+  // Search pour "Demander l'accès"
   searchQuery = signal('');
 
-  // Pagination
+  // Colonnes des tableaux
+  readonly myPlansColumns = ['name', 'period', 'status', 'actions'];
+  readonly otherPlansColumns = ['name', 'period', 'organisme', 'actions'];
+
+  // Plans filtrés
+  readonly myPlans = computed(() => {
+    const tab = this.activeTab();
+    return this.allPlans()
+      .filter(p => p.accessStatus === 'granted')
+      .filter(p => {
+        if (tab === 'actifs') {
+          return p.statut !== 'archive';
+        } else {
+          return p.statut === 'archive';
+        }
+      });
+  });
+
+  readonly otherPlans = computed(() => {
+    const search = this.searchQuery().toLowerCase();
+    return this.allPlans()
+      .filter(p => p.accessStatus !== 'granted')
+      .filter(p => !search || p.nom.toLowerCase().includes(search));
+  });
+
+  // Pagination pour "Mes plans"
   currentPage = signal(1);
   totalPages = signal(1);
   itemsPerPage = 10;
-
-  // Afficher la pagination seulement si nécessaire
   showPagination = computed(() => this.totalPages() > 1);
 
-  // Mock data for plans
-  plans = signal<PlanGestion[]>([
-    {
-      id: 1,
-      nom: 'Marais du Grosset',
-      isMultisites: false,
-      periodeDebut: 2026,
-      periodeFin: 2036,
-      statut: 'en_cours_revision',
-      gaugeStatus: 'not-started'
-    },
-    {
-      id: 2,
-      nom: 'Aven Espatty',
-      isMultisites: true,
-      periodeDebut: 2020,
-      periodeFin: 2030,
-      statut: 'evaluation_mi_parcours',
-      gaugeStatus: 'in-progress'
-    },
-    {
-      id: 3,
-      nom: 'Bois de la Manche',
-      isMultisites: false,
-      periodeDebut: 2015,
-      periodeFin: 2025,
-      statut: 'valide',
-      gaugeStatus: 'completed'
-    },
-    {
-      id: 4,
-      nom: 'Aven Espatty',
-      isMultisites: true,
-      periodeDebut: 2012,
-      periodeFin: 2022,
-      statut: 'valide',
-      gaugeStatus: 'exceeded'
-    }
-  ]);
-
-  // Computed filtered plans
-  filteredPlans = computed(() => {
-    const query = this.searchQuery().toLowerCase();
-    return this.plans().filter(plan =>
-      plan.nom.toLowerCase().includes(query)
-    );
-  });
-
-  // Pagination pages array
   paginationPages = computed(() => {
     const total = this.totalPages();
     const current = this.currentPage();
@@ -132,10 +139,153 @@ export class PlansListComponent implements OnInit {
     return pages;
   });
 
+  ngOnInit(): void {
+    this.loadData();
+  }
+
+  /**
+   * Charge les données (plans et demandes en cours).
+   */
+  loadData(): void {
+    this.loading.set(true);
+
+    // Charger les plans
+    this.adminService.getPlans().subscribe({
+      next: (response) => {
+        // Charger aussi les demandes de l'utilisateur
+        this.validationService.getMyRequests().subscribe({
+          next: (requests) => {
+            this.myRequests.set(requests.filter(r => r.request_type === 'plan_access'));
+
+            // Enrichir les plans avec le statut d'accès
+            const plansWithAccess = this.enrichPlansWithAccess(response.results, requests);
+            this.allPlans.set(plansWithAccess);
+            this.loading.set(false);
+          },
+          error: () => {
+            // Si erreur sur les demandes, afficher quand même les plans
+            const plansWithAccess = this.enrichPlansWithAccess(response.results, []);
+            this.allPlans.set(plansWithAccess);
+            this.loading.set(false);
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Erreur chargement plans:', error);
+        this.snackBar.open(
+          this.translate.instant('common.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Enrichit les plans avec les informations d'accès.
+   */
+  private enrichPlansWithAccess(plans: AdminPlan[], requests: ValidationRequestListItem[]): PlanWithAccess[] {
+    const currentUser = this.authService.currentUser();
+
+    return plans.map(plan => {
+      // Vérifier s'il y a une demande en cours pour ce plan
+      const pendingRequest = requests.find(
+        r => r.request_type === 'plan_access' &&
+             r.status === 'pending' &&
+             r.target_name === plan.nom
+      );
+      const rejectedRequest = requests.find(
+        r => r.request_type === 'plan_access' &&
+             r.status === 'rejected' &&
+             r.target_name === plan.nom
+      );
+      const approvedRequest = requests.find(
+        r => r.request_type === 'plan_access' &&
+             r.status === 'approved' &&
+             r.target_name === plan.nom
+      );
+
+      // Vérifier si l'utilisateur est référent du plan
+      const isReferent = plan.referents?.some(r => r.id_role === currentUser?.id) || false;
+
+      let accessStatus: 'granted' | 'pending' | 'rejected' | 'none' = 'none';
+      if (isReferent || approvedRequest) {
+        accessStatus = 'granted';
+      } else if (pendingRequest) {
+        accessStatus = 'pending';
+      } else if (rejectedRequest) {
+        accessStatus = 'rejected';
+      }
+
+      // Calculer le statut de la jauge
+      const gaugeStatus = this.calculateGaugeStatus(plan);
+
+      return {
+        ...plan,
+        accessStatus,
+        isReferent,
+        gaugeStatus
+      };
+    });
+  }
+
+  /**
+   * Calcule le statut de la jauge en fonction des dates du plan.
+   */
+  private calculateGaugeStatus(plan: AdminPlan): GaugeStatus {
+    if (!plan.annee_debut || !plan.annee_fin) {
+      return 'not-started';
+    }
+
+    const currentYear = new Date().getFullYear();
+    const startYear = plan.annee_debut;
+    const endYear = plan.annee_fin;
+
+    if (currentYear < startYear) {
+      return 'not-started';
+    } else if (currentYear > endYear) {
+      return 'exceeded';
+    } else {
+      const progress = (currentYear - startYear) / (endYear - startYear);
+      if (progress < 0.5) {
+        return 'in-progress';
+      } else {
+        return 'completed';
+      }
+    }
+  }
+
+  /**
+   * Ouvre le dialog de demande d'accès.
+   */
+  openAccessRequestDialog(plan: PlanWithAccess): void {
+    const dialogRef = this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetId: plan.id_pg,
+        targetName: plan.nom
+      } as AccessRequestDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.loadData();
+      }
+    });
+  }
+
+  /**
+   * Tabs pour "Mes plans".
+   */
   setTab(tab: 'actifs' | 'inactifs'): void {
     this.activeTab.set(tab);
   }
 
+  /**
+   * Pagination.
+   */
   goToPage(page: number | string): void {
     if (typeof page === 'number' && page >= 1 && page <= this.totalPages()) {
       this.currentPage.set(page);
@@ -154,12 +304,14 @@ export class PlansListComponent implements OnInit {
     }
   }
 
+  /**
+   * Labels et classes CSS pour les statuts.
+   */
   getStatutLabel(statut: string): string {
     const keys: Record<string, string> = {
-      'en_cours_revision': 'plans.status.inProgress',
-      'evaluation_mi_parcours': 'plans.status.midterm',
+      'draft': 'plans.status.draft',
       'valide': 'plans.status.valide',
-      'brouillon': 'plans.status.draft'
+      'archive': 'plans.status.archive'
     };
     const key = keys[statut];
     return key ? this.translate.instant(key) : statut;
@@ -167,37 +319,55 @@ export class PlansListComponent implements OnInit {
 
   getStatutClass(statut: string): string {
     const classes: Record<string, string> = {
-      'en_cours_revision': 'status-warning',
-      'evaluation_mi_parcours': 'status-warning',
+      'draft': 'status-warning',
       'valide': 'status-success',
-      'brouillon': 'status-neutral'
+      'archive': 'status-neutre'
     };
     return classes[statut] || '';
   }
 
-  ngOnInit(): void {
-    // TODO: Charger les plans depuis l'API
-    this.loadPlans();
+  /**
+   * Recherche de plans.
+   */
+  onSearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.searchQuery.set(input.value);
   }
 
-  loadPlans(): void {
-    // TODO: Appeler l'API backend pour récupérer les plans de l'utilisateur
-    // Pour l'instant, on utilise les données mock
-    console.log('Loading plans...');
+  /**
+   * Actions sur les plans.
+   */
+  editStatus(plan: PlanWithAccess): void {
+    console.log('Edit status for plan:', plan.id_pg);
   }
 
-  editStatus(plan: PlanGestion): void {
-    // TODO: Open modal to edit status
-    console.log('Edit status for plan:', plan.id);
+  viewPlan(plan: PlanWithAccess): void {
+    this.router.navigate(['/plans', plan.id_pg]);
   }
 
-  viewPlan(plan: PlanGestion): void {
-    // Naviguer vers la page de détail du plan
-    this.router.navigate(['/plans', plan.id]);
+  followPlan(plan: PlanWithAccess): void {
+    console.log('Follow plan:', plan.id_pg);
   }
 
-  followPlan(plan: PlanGestion): void {
-    // TODO: Navigate to plan monitoring
-    console.log('Follow plan:', plan.id);
+  /**
+   * Formate la période du plan.
+   */
+  formatPeriod(plan: PlanWithAccess): string {
+    if (plan.annee_debut && plan.annee_fin) {
+      return `${plan.annee_debut}-${plan.annee_fin}`;
+    } else if (plan.annee_debut) {
+      return `${plan.annee_debut}`;
+    }
+    return '-';
+  }
+
+  /**
+   * Récupère le premier site du plan (pour affichage).
+   */
+  getFirstSite(plan: PlanWithAccess): string {
+    if (plan.sites && plan.sites.length > 0) {
+      return plan.sites[0].nom_site;
+    }
+    return '-';
   }
 }

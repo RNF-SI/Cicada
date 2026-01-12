@@ -563,6 +563,181 @@ h1 {
 }
 
 // ============================================
+// LOADING & EMPTY STATES
+// ============================================
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background-color: white;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.empty-state--small {
+  padding: 32px 24px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: $gray-light;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $gray-dark;
+  margin: 0;
+}
+
+// ============================================
+// REQUEST ACCESS SECTION
+// ============================================
+
+.request-section {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid $gray-light;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: $font-family;
+  font-size: 20px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0 0 16px;
+}
+
+.section-icon {
+  font-size: 24px;
+  color: $primary-color;
+}
+
+.section-description {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $gray-dark;
+  margin: 0 0 16px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background-color: $primary-color;
+  color: white;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  border-radius: 12px;
+}
+
+// Login prompt for non-authenticated users
+.login-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #E8F5F5;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $primary-color;
+
+  i {
+    font-size: 16px;
+  }
+
+  .login-link {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    text-decoration: underline;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+// Search bar for request section
+.search-bar {
+  margin-bottom: 16px;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 400px;
+}
+
+.search-icon {
+  color: $gray;
+}
+
+// Plans card for other plans
+.plans-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.other-plans-table {
+  width: 100%;
+
+  th {
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: $gray-dark;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background-color: #F8F5F1;
+  }
+
+  td {
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+  }
+}
+
+.others {
+  font-size: 12px;
+  color: $gray;
+  margin-left: 4px;
+}
+
+.chip-icon {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.referent-chip {
+  background-color: $secondary-yellow !important;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.status-neutre {
+  background-color: $gray-light !important;
+}
+
+// ============================================
 // RESPONSIVE
 // ============================================
 
