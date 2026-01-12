@@ -203,6 +203,28 @@ docker-compose exec web python test_nomenclatures.py
 docker-compose exec web python manage.py shell
 ```
 
+### Logging
+
+```bash
+# Logs en temps réel (filtrés sur les requêtes et erreurs)
+docker-compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
+
+# Tous les logs en temps réel
+docker-compose logs -f web
+```
+
+**Configuration des logs** (variables d'environnement) :
+- `LOG_LEVEL` : Niveau de log (DEBUG, INFO, WARNING, ERROR) - défaut: INFO
+- `LOG_DIR` : Répertoire des logs - défaut: /app/logs
+- `LOG_SQL` : Activer les logs SQL (true/false) - défaut: false
+
+**Fichiers de logs** (production uniquement) :
+- `django.log` : Logs généraux (rotation 10x10MB)
+- `error.log` : Erreurs uniquement
+- `audit.log` : Actions utilisateur (POST/PUT/DELETE)
+
+**Correlation ID** : Chaque requête HTTP reçoit un UUID unique (`X-Correlation-ID`) propagé dans tous les logs pour faciliter le debugging.
+
 ### Testing
 
 > **Documentation complète** : Voir [`docs/TESTING.md`](docs/TESTING.md) pour le guide détaillé des tests.

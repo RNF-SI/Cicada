@@ -2,9 +2,14 @@
 Middleware pour la gestion des permissions.
 """
 import json
+import logging
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework import status
+
+
+# Logger pour l'audit
+audit_logger = logging.getLogger('audit')
 
 
 class PermissionMiddleware(MiddlewareMixin):
@@ -123,14 +128,21 @@ class AuditMiddleware(MiddlewareMixin):
     
     def process_response(self, request, response):
         """
-        Finalise l'audit après traitement de la requête.
+        Finalise l'audit apres traitement de la requete.
+        Log les actions importantes pour la tracabilite.
         """
         if hasattr(request, 'audit_info'):
             from datetime import datetime
-            request.audit_info['timestamp'] = datetime.now()
+            request.audit_info['timestamp'] = datetime.now().isoformat()
             request.audit_info['status_code'] = response.status_code
-            
-            # TODO: Implémenter le stockage des logs d'audit
-            # logger.info("AUDIT", extra=request.audit_info)
-            
+            request.audit_info['success'] = 200 <= response.status_code < 400
+
+            # Log l'action d'audit
+            log_level = logging.INFO if request.audit_info['success'] else logging.WARNING
+            audit_logger.log(
+                log_level,
+                f"AUDIT: {request.audit_info['action']} {request.audit_info['path']}",
+                extra=request.audit_info,
+            )
+
         return response

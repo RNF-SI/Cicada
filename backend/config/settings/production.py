@@ -29,32 +29,46 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
-# Logging
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/outil_plan_gestion/django.log',
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-}
+# =============================================================================
+# PRODUCTION LOGGING CONFIGURATION
+# =============================================================================
+# Surcharge la configuration de base pour la production:
+# - Logs JSON structures vers fichiers avec rotation
+# - Console en JSON pour Docker/orchestrateurs
+# - Niveau WARNING minimum
+# - Fichiers separes pour erreurs et audit
+
+from copy import deepcopy
+
+# Copier la config de base et la modifier pour la production
+LOGGING = deepcopy(LOGGING)
+
+# En production, utiliser JSON sur la console aussi
+LOGGING['handlers']['console']['formatter'] = 'json'
+
+# Ajouter les fichiers de logs en production
+LOGGING['loggers']['root']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['root']['level'] = 'WARNING'
+
+LOGGING['loggers']['apps']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['apps']['level'] = 'INFO'
+
+LOGGING['loggers']['django']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['django']['level'] = 'WARNING'
+
+LOGGING['loggers']['django.request']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['django.request']['level'] = 'WARNING'
+
+LOGGING['loggers']['django.server']['handlers'] = ['console_json', 'file', 'error_file']
+
+LOGGING['loggers']['celery']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['celery']['level'] = 'INFO'
+
+LOGGING['loggers']['audit']['handlers'] = ['console_json', 'audit_file']
+LOGGING['loggers']['audit']['level'] = 'INFO'
+
+LOGGING['loggers']['http']['handlers'] = ['console_json', 'file']
+LOGGING['loggers']['http']['level'] = 'INFO'
 
 # CORS settings for production
 CORS_ALLOW_ALL_ORIGINS = False

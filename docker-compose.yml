@@ -55,6 +55,7 @@ services:
       - ./backend:/app
       - media_files:/app/media
       - static_files:/app/static
+      - logs_data:/app/logs
     ports:
       - "${DJANGO_PORT:-8000}:8000"
     depends_on:
@@ -103,6 +104,8 @@ volumes:
   media_files:
     driver: local
   static_files:
+    driver: local
+  logs_data:
     driver: local
 
 networks:

@@ -17,20 +17,33 @@ CORS_ALLOW_CREDENTIALS = True
 # Email backend for development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Logging for development
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-}
+# =============================================================================
+# DEVELOPMENT LOGGING CONFIGURATION
+# =============================================================================
+# Surcharge la configuration de base pour le developpement:
+# - Format lisible (pas JSON)
+# - Niveau DEBUG
+# - Console uniquement (pas de fichiers)
+# - Option pour activer les logs SQL
+
+from copy import deepcopy
+
+LOGGING = deepcopy(LOGGING)
+
+# En dev, utiliser le format lisible sur la console
+LOGGING['handlers']['console']['formatter'] = 'verbose'
+
+# Niveau DEBUG pour le developpement
+LOGGING['loggers']['root']['level'] = 'DEBUG'
+LOGGING['loggers']['apps']['level'] = 'DEBUG'
+LOGGING['loggers']['django']['level'] = 'DEBUG'
+LOGGING['loggers']['django.request']['level'] = 'DEBUG'
+LOGGING['loggers']['http']['level'] = 'DEBUG'
+
+# Activer les logs SQL si LOG_SQL=true
+import os
+if os.environ.get('LOG_SQL', 'false').lower() == 'true':
+    LOGGING['loggers']['django.db.backends']['level'] = 'DEBUG'
 
 # Extended JWT token lifetime for development
 # Access token: 24 hours (instead of 60 min) - less frequent re-auth during dev
