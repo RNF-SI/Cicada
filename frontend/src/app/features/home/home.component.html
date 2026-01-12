@@ -140,32 +140,34 @@
     }
 
     <!-- ================================ -->
-    <!-- MODULES - Accessible à tous      -->
+    <!-- MODULES (Authenticated only)     -->
     <!-- ================================ -->
-    <section class="tiles-section">
-      <div class="tiles-grid tiles-grid--three">
-        <app-navigation-tile
-          [title]="'home.tiles.plans' | translate"
-          uicon="fi-rr-document"
-          link="/plans"
-          color="primary">
-        </app-navigation-tile>
+    @if (isAuthenticated()) {
+      <section class="tiles-section">
+        <div class="tiles-grid tiles-grid--three">
+          <app-navigation-tile
+            [title]="'home.tiles.plans' | translate"
+            uicon="fi-rr-document"
+            link="/plans"
+            color="primary">
+          </app-navigation-tile>
 
-        <app-navigation-tile
-          [title]="'home.tiles.sites' | translate"
-          uicon="fi-rr-map-marker"
-          link="/sites"
-          color="salmon">
-        </app-navigation-tile>
+          <app-navigation-tile
+            [title]="'home.tiles.sites' | translate"
+            uicon="fi-rr-map-marker"
+            link="/sites"
+            color="salmon">
+          </app-navigation-tile>
 
-        <app-navigation-tile
-          [title]="'home.tiles.inventaires' | translate"
-          uicon="fi-rr-test-tube"
-          link="/inventaires"
-          color="yellow">
-        </app-navigation-tile>
-      </div>
-    </section>
+          <app-navigation-tile
+            [title]="'home.tiles.inventaires' | translate"
+            uicon="fi-rr-test-tube"
+            link="/inventaires"
+            color="yellow">
+          </app-navigation-tile>
+        </div>
+      </section>
+    }
 
     <!-- ================================ -->
     <!-- STATS (Guest only)               -->
