@@ -1,0 +1,206 @@
+<div class="register-page">
+  <div class="register-container">
+    <div class="register-header">
+      <img src="assets/images/logo-biodiv-france.svg" alt="Biodiv' France" class="logo">
+      <h1>Inscription</h1>
+      <p class="subtitle">Creez votre compte pour acceder a l'application</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="half-width">
+          <mat-label>Prenom</mat-label>
+          <input
+            matInput
+            type="text"
+            formControlName="prenom"
+            placeholder="Votre prenom"
+            autocomplete="given-name"
+          >
+          <mat-icon matPrefix class="field-icon">
+            <i class="fi fi-rr-user"></i>
+          </mat-icon>
+          @if (registerForm.get('prenom')?.hasError('required') && registerForm.get('prenom')?.touched) {
+            <mat-error>Le prenom est requis</mat-error>
+          }
+          @if (registerForm.get('prenom')?.hasError('maxlength')) {
+            <mat-error>50 caracteres maximum</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="half-width">
+          <mat-label>Nom</mat-label>
+          <input
+            matInput
+            type="text"
+            formControlName="nom"
+            placeholder="Votre nom"
+            autocomplete="family-name"
+          >
+          @if (registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched) {
+            <mat-error>Le nom est requis</mat-error>
+          }
+          @if (registerForm.get('nom')?.hasError('maxlength')) {
+            <mat-error>50 caracteres maximum</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Adresse email</mat-label>
+        <input
+          matInput
+          type="email"
+          formControlName="email"
+          placeholder="votre.email@exemple.fr"
+          autocomplete="email"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-envelope"></i>
+        </mat-icon>
+        @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
+          <mat-error>L'email est requis</mat-error>
+        }
+        @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
+          <mat-error>Veuillez entrer une adresse email valide</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Organisme</mat-label>
+        <input
+          matInput
+          type="text"
+          formControlName="organisme"
+          [matAutocomplete]="auto"
+          (input)="filterOrganismes($event)"
+          placeholder="Selectionnez ou recherchez votre organisme"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-building"></i>
+        </mat-icon>
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayOrganisme">
+          @for (org of filteredOrganismes(); track org.id) {
+            <mat-option [value]="org">{{ org.nom_organisme }}</mat-option>
+          }
+        </mat-autocomplete>
+        @if (registerForm.get('organisme')?.hasError('required') && registerForm.get('organisme')?.touched) {
+          <mat-error>L'organisme est requis</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          placeholder="Minimum 8 caracteres"
+          autocomplete="new-password"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-lock"></i>
+        </mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="togglePasswordVisibility()"
+          [attr.aria-label]="hidePassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+        >
+          <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
+        </button>
+        @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
+          <mat-error>Le mot de passe est requis</mat-error>
+        }
+        @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
+          <mat-error>Minimum 8 caracteres</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Confirmer le mot de passe</mat-label>
+        <input
+          matInput
+          [type]="hideConfirmPassword() ? 'password' : 'text'"
+          formControlName="confirmPassword"
+          placeholder="Retapez votre mot de passe"
+          autocomplete="new-password"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-lock"></i>
+        </mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="toggleConfirmPasswordVisibility()"
+          [attr.aria-label]="hideConfirmPassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+        >
+          <i class="fi" [class.fi-rr-eye]="hideConfirmPassword()" [class.fi-rr-eye-crossed]="!hideConfirmPassword()"></i>
+        </button>
+        @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
+          <mat-error>Veuillez confirmer le mot de passe</mat-error>
+        }
+        @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+          <mat-error>Les mots de passe ne correspondent pas</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Justification (optionnel)</mat-label>
+        <textarea
+          matInput
+          formControlName="justification"
+          rows="3"
+          placeholder="Expliquez pourquoi vous souhaitez rejoindre cet organisme..."
+        ></textarea>
+        <mat-hint>Cette information sera transmise a l'administrateur pour validation</mat-hint>
+        @if (registerForm.get('justification')?.hasError('maxlength')) {
+          <mat-error>1000 caracteres maximum</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="info-box">
+        <i class="fi fi-rr-info"></i>
+        <p>
+          Votre inscription sera soumise a validation par un administrateur de l'organisme choisi.
+          Vous recevrez un email une fois votre demande traitee.
+        </p>
+      </div>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="submit-button"
+        [disabled]="registerForm.invalid || isLoading()"
+      >
+        @if (isLoading()) {
+          <mat-spinner diameter="20" color="accent"></mat-spinner>
+          <span>Inscription en cours...</span>
+        } @else {
+          <span>S'inscrire</span>
+        }
+      </button>
+    </form>
+
+    <div class="register-footer">
+      <p class="login-link">
+        Deja inscrit ?
+        <a routerLink="/auth/login">Se connecter</a>
+      </p>
+      <a routerLink="/accueil" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        Retour a l'accueil
+      </a>
+    </div>
+  </div>
+</div>

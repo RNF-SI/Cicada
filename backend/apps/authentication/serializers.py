@@ -38,6 +38,19 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         ).first()
 
         if not user:
+            # Verifier si c'est un utilisateur en attente d'inscription
+            from apps.notifications.models import PendingUser
+            pending = PendingUser.objects.filter(email__iexact=username).first()
+            if pending:
+                # Determiner qui doit valider
+                if pending.requested_organisme:
+                    validator_info = f"un administrateur de {pending.requested_organisme.nom_organisme}"
+                else:
+                    validator_info = "un administrateur"
+                raise serializers.ValidationError(
+                    f"Votre demande d'inscription est en attente de validation par {validator_info}. "
+                    "Vous recevrez un email lorsque votre compte sera active."
+                )
             raise serializers.ValidationError(
                 "Identifiant ou mot de passe incorrect."
             )
@@ -52,6 +65,18 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         if not user.active or not user.is_active:
             raise serializers.ValidationError(
                 "Ce compte est desactive."
+            )
+
+        # Verifier si l'utilisateur est en attente de validation
+        if user.pending_validation:
+            # Determiner qui doit valider
+            if user.id_organisme:
+                validator_info = f"un administrateur de {user.id_organisme.nom_organisme}"
+            else:
+                validator_info = "un administrateur"
+            raise serializers.ValidationError(
+                f"Votre compte est en attente de validation par {validator_info}. "
+                "Vous recevrez un email lorsque votre compte sera active."
             )
 
         # Generer les tokens JWT

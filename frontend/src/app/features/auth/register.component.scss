@@ -1,4 +1,4 @@
-.login-page {
+.register-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -7,16 +7,16 @@
   padding: 24px;
 }
 
-.login-container {
+.register-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   padding: 48px 40px;
 }
 
-.login-header {
+.register-header {
   text-align: center;
   margin-bottom: 32px;
 }
@@ -40,10 +40,19 @@ h1 {
   margin: 0;
 }
 
-.login-form {
+.register-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+
+  .half-width {
+    flex: 1;
+  }
 }
 
 .error-banner {
@@ -75,6 +84,28 @@ h1 {
   padding-right: 8px !important;
 }
 
+.info-box {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  color: #0369a1;
+  font-size: 13px;
+
+  i {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
 .submit-button {
   height: 48px;
   font-size: 16px;
@@ -91,12 +122,12 @@ h1 {
   }
 }
 
-.login-footer {
+.register-footer {
   margin-top: 32px;
   text-align: center;
 }
 
-.register-link {
+.login-link {
   font-size: 14px;
   color: #6c757d;
   margin: 0 0 16px 0;
@@ -131,11 +162,16 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  .login-container {
+  .register-container {
     padding: 32px 24px;
   }
 
   h1 {
     font-size: 24px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
   }
 }

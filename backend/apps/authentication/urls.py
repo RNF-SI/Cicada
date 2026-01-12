@@ -13,6 +13,10 @@ from .views import (
     stop_impersonation_view,
     impersonation_logs_view
 )
+from apps.notifications.views import (
+    public_registration_view,
+    check_registration_status_view
+)
 
 app_name = 'authentication'
 
@@ -21,6 +25,10 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', logout_view, name='logout'),
+
+    # Inscription publique
+    path('register/', public_registration_view, name='register'),
+    path('registration-status/', check_registration_status_view, name='registration_status'),
 
     # Informations utilisateur
     path('me/', user_info_view, name='user_info'),
