@@ -75,4 +75,6 @@ coverage/
 # Toutes les images du design system qui sont des captures d'écran dans le dossier design_system à la racine
 design_system/*
 
+captures_maquettes/*
 
+KitUI/*

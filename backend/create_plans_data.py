@@ -67,7 +67,7 @@ def create_plans_data():
                 'id_utilisateur_ajout': marie or admin
             },
             {
-                'nom': 'Plan de gestion inter-réserves Auvergne-Rhône-Alpes 2022-2027',
+                'nom': 'Plan de gestion inter-réserves Auvergne-Rhone-Alpes 2022-2027',
                 'annee_debut': 2022,
                 'annee_fin': 2027,
                 'gestion_partagee': True,

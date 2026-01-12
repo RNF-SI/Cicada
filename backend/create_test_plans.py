@@ -90,7 +90,7 @@ def create_test_plans():
     
     # Plan 2: Plan multi-sites
     plan2, created = PlanGestion.objects.get_or_create(
-        nom="Plan de gestion inter-réserves Auvergne-Rhône-Alpes 2022-2027",
+        nom="Plan de gestion inter-réserves Auvergne-Rhone-Alpes 2022-2027",
         defaults={
             'id_cdr': 2022015,
             'annee_debut': 2022,

@@ -13,7 +13,16 @@ from apps.users.models import Role
 
 # Création du superutilisateur
 try:
-    if not Role.objects.filter(email='admin').exists():
+    existing_admin = Role.objects.filter(email='admin').first()
+    if existing_admin:
+        # Mettre a jour role_level si necessaire
+        if existing_admin.role_level != 'super_admin':
+            existing_admin.role_level = 'super_admin'
+            existing_admin.save(update_fields=['role_level'])
+            print("✅ Superutilisateur mis à jour: role_level='super_admin'")
+        else:
+            print("ℹ️ Superutilisateur déjà existant et correctement configuré")
+    else:
         Role.objects.create_superuser(
             email='admin',
             password='admin',
@@ -23,7 +32,5 @@ try:
         print("✅ Superutilisateur créé avec succès !")
         print("Email: admin")
         print("Mot de passe: admin")
-    else:
-        print("ℹ️ Superutilisateur déjà existant")
 except Exception as e:
     print(f"❌ Erreur lors de la création: {e}")
