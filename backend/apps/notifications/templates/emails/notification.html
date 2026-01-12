@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+
+{% block title %}{{ notification.title }}{% endblock %}
+
+{% block content %}
+<h2>{{ notification.title }}</h2>
+
+<p>Bonjour {{ recipient.prenom_role|default:recipient.email }},</p>
+
+<p>{{ notification.message }}</p>
+
+{% if notification.action_url %}
+<p style="text-align: center;">
+    <a href="{{ site_url }}{{ notification.action_url }}" class="button">
+        Voir les details
+    </a>
+</p>
+{% endif %}
+
+{% if notification.priority == 'critical' %}
+<div class="warning-box">
+    <strong>Action requise</strong><br>
+    Cette notification necessite votre attention immediate.
+</div>
+{% endif %}
+{% endblock %}

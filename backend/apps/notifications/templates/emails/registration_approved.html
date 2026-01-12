@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Votre compte a ete valide{% endblock %}
+
+{% block content %}
+<h2>Bienvenue sur l'Outil Plan de Gestion !</h2>
+
+<p>Bonjour {{ nom_complet }},</p>
+
+<p>
+    Bonne nouvelle ! Votre demande d'inscription a ete approuvee.
+    Vous pouvez maintenant vous connecter a l'application.
+</p>
+
+<p style="text-align: center;">
+    <a href="{{ login_url }}" class="button">
+        Se connecter
+    </a>
+</p>
+
+<div class="info-box">
+    <strong>Vos identifiants de connexion :</strong><br>
+    Email : {{ email }}
+</div>
+
+<p>
+    Si vous avez des questions, n'hesitez pas a contacter votre administrateur.
+</p>
+{% endblock %}
