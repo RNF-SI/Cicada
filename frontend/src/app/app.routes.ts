@@ -29,5 +29,13 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadChildren: () => import('./features/profile/profile.routes').then(m => m.PROFILE_ROUTES)
+  },
+  {
+    path: 'mes-demandes',
+    loadChildren: () => import('./features/my-requests/my-requests.routes').then(m => m.MY_REQUESTS_ROUTES)
+  },
+  {
+    path: 'sites',
+    loadChildren: () => import('./features/sites/sites.routes').then(m => m.SITES_ROUTES)
   }
 ];

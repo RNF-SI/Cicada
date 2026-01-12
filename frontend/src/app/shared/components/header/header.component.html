@@ -60,6 +60,10 @@
             <i class="fi fi-rr-user menu-icon"></i>
             <span>{{ 'header.profile' | translate }}</span>
           </button>
+          <button mat-menu-item routerLink="/mes-demandes">
+            <i class="fi fi-rr-time-past menu-icon"></i>
+            <span>{{ 'header.myRequests' | translate }}</span>
+          </button>
           <button mat-menu-item routerLink="/settings">
             <i class="fi fi-rr-settings menu-icon"></i>
             <span>{{ 'header.settings' | translate }}</span>
@@ -106,6 +110,10 @@
       <a routerLink="/plans" class="mobile-menu-item" (click)="toggleMenu()">
         <i class="fi fi-rr-document"></i>
         <span>{{ 'header.plans' | translate }}</span>
+      </a>
+      <a routerLink="/sites" class="mobile-menu-item" (click)="toggleMenu()">
+        <i class="fi fi-rr-marker"></i>
+        <span>{{ 'header.sites' | translate }}</span>
       </a>
       @if (isAuthenticated() && canAccessAdmin()) {
         <a (click)="openAdmin(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">

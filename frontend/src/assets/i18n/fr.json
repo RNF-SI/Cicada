@@ -17,7 +17,8 @@
       "restore": "Restaurer",
       "archive": "Archiver",
       "validate": "Valider",
-      "associate": "Associer"
+      "associate": "Associer",
+      "searching": "Recherche en cours"
     },
     "status": {
       "active": "Actif",
@@ -133,6 +134,7 @@
   "header": {
     "administration": "Administration",
     "profile": "Mon profil",
+    "myRequests": "Mes demandes",
     "settings": "Parametres",
     "validations": "Validations",
     "logout": "Deconnexion",
@@ -140,6 +142,7 @@
     "menu": "Menu",
     "home": "Accueil",
     "plans": "Plans de gestion",
+    "sites": "Mes sites",
     "impersonation": {
       "banner": "Mode visualisation",
       "viewing": "Vous visualisez en tant que",
@@ -152,7 +155,7 @@
     "heroSubtitle": "Explorez les donnees du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
       "title": "Exploration des donnees",
-      "description": "Decouvrez blablabla, comparez blablabla, filtrez blablabla.."
+      "description": "Decouvrez les espaces naturels proteges, comparez les indicateurs, filtrez par territoire."
     },
     "tiles": {
       "plans": "Mes plans de gestion",
@@ -160,7 +163,37 @@
       "zonages": "Zonages reglementaires",
       "inventaires": "Mes inventaires et suivis"
     },
-    "referentials": "Referentiels de donnees"
+    "referentials": "Referentiels de donnees",
+    "guest": {
+      "title": "Bienvenue sur Biodiv'",
+      "description": {
+        "intro": "L'outil collaboratif de gestion des espaces naturels proteges en France.",
+        "details": "Biodiv' accompagne les gestionnaires d'espaces naturels dans la redaction, le suivi et l'evaluation de leurs plans de gestion. Concu en partenariat avec les reseaux nationaux de conservation, l'outil permet de centraliser les donnees, suivre les indicateurs et partager les bonnes pratiques."
+      },
+      "partners": {
+        "label": "Un projet porte par"
+      },
+      "actions": {
+        "login": {
+          "title": "Se connecter",
+          "description": "Accedez a vos plans de gestion et suivez vos indicateurs"
+        },
+        "register": {
+          "title": "Creer un compte",
+          "description": "Rejoignez votre organisme et commencez a utiliser l'outil"
+        }
+      },
+      "stats": {
+        "title": "En quelques chiffres",
+        "subtitle": "Decouvrez l'etendue du reseau des espaces naturels proteges",
+        "sites": "Sites proteges",
+        "plans": "Plans de gestion",
+        "organismes": "Organismes gestionnaires"
+      }
+    },
+    "authenticated": {
+      "welcome": "Bonjour {{name}} !"
+    }
   },
   "admin": {
     "users": {
@@ -386,6 +419,7 @@
         "user_registration": "Inscription",
         "site_access": "Acces site",
         "plan_access": "Acces plan",
+        "module_access": "Acces module",
         "referent_validation": "Validation referent"
       },
       "actions": {
@@ -395,6 +429,42 @@
       },
       "empty": {
         "noValidations": "Aucune demande de validation"
+      }
+    },
+    "modules": {
+      "title": "Gestion des acces aux modules",
+      "subtitle": "Gerez les demandes d'acces aux modules de l'application",
+      "devNotice": {
+        "title": "Fonctionnalite en cours de developpement",
+        "message": "Cette gestion des acces aux modules est temporaire et constitue un debut de developpement. Elle sera amenee a evoluer significativement dans les prochaines versions."
+      },
+      "availableModules": "Modules disponibles",
+      "usersWithAccess": "utilisateur(s) avec acces",
+      "pendingRequests": "Demandes en attente",
+      "noPendingRequests": "Aucune demande d'acces module en attente",
+      "grantAccess": "Gerer les acces",
+      "grantAccessTo": "Donner l'acces a",
+      "searchUser": "Rechercher un utilisateur",
+      "searchUserPlaceholder": "Nom, prenom ou email...",
+      "searchResults": "Resultats de recherche",
+      "noUsersFound": "Aucun utilisateur trouve",
+      "hasAccess": "A deja acces",
+      "pendingAccess": "Demande en cours",
+      "grant": "Donner l'acces",
+      "revokeAccess": "Retirer l'acces",
+      "usersWithAccessList": "Utilisateurs avec acces",
+      "noUsersWithAccess": "Aucun utilisateur n'a acces a ce module pour le moment",
+      "table": {
+        "requester": "Demandeur",
+        "module": "Module",
+        "date": "Date de demande",
+        "justification": "Justification"
+      },
+      "messages": {
+        "approved": "Acces au module accorde",
+        "rejected": "Demande d'acces refusee",
+        "accessGranted": "Acces accorde a {{user}}",
+        "accessRevoked": "Acces retire a {{user}}"
       }
     }
   },
@@ -689,13 +759,31 @@
       "table": {
         "name": "Nom du plan de gestion",
         "period": "Periode de validite",
-        "status": "Statut"
+        "status": "Statut",
+        "site": "Site"
       },
       "actions": {
         "follow": "Suivre",
         "view": "Voir",
         "editStatus": "Modifier le statut"
       }
+    },
+    "myPlans": {
+      "empty": "Vous n'avez acces a aucun plan de gestion pour le moment.",
+      "referent": "Referent"
+    },
+    "requestAccess": {
+      "title": "Demander l'acces a un plan",
+      "description": "Recherchez et demandez l'acces aux plans de gestion qui vous interessent.",
+      "searchPlaceholder": "Rechercher un plan...",
+      "noResults": "Aucun plan trouve",
+      "button": "Demander l'acces",
+      "pending": "Demande en attente",
+      "rejected": "Acces refuse"
+    },
+    "allPlans": {
+      "title": "Tous les plans de gestion",
+      "loginPrompt": "Connectez-vous pour demander l'acces a un plan de gestion."
     },
     "detail": {
       "title": "Detail du plan",
@@ -750,6 +838,105 @@
       "pending": "En attente",
       "loadError": "Erreur lors du chargement des demandes"
     }
+  },
+  "myRequests": {
+    "title": "Mes demandes",
+    "subtitle": "Suivez l'etat de vos demandes d'acces aux sites, plans et modules",
+    "backToHome": "Retour a l'accueil",
+    "historyTitle": "Historique des demandes",
+    "stats": {
+      "pending": "En attente",
+      "approved": "Approuvees",
+      "rejected": "Refusees"
+    },
+    "empty": {
+      "title": "Aucune demande",
+      "message": "Vous n'avez fait aucune demande d'acces pour le moment.",
+      "goToPlans": "Voir les plans de gestion",
+      "goToSites": "Voir les sites"
+    },
+    "table": {
+      "type": "Type",
+      "target": "Cible",
+      "date": "Date demande",
+      "validatedAt": "Date validation",
+      "status": "Statut",
+      "validator": "Traite par",
+      "awaitingValidation": "En attente"
+    },
+    "actions": {
+      "cancel": "Annuler la demande"
+    },
+    "loadError": "Erreur lors du chargement des demandes",
+    "cancelSuccess": "Demande annulee",
+    "cancelError": "Erreur lors de l'annulation"
+  },
+  "moduleAccess": {
+    "section": {
+      "title": "Demander l'acces a d'autres modules",
+      "description": "Demandez l'acces aux modules supplementaires pour etendre vos fonctionnalites."
+    },
+    "requestButton": "Demander l'acces",
+    "status": {
+      "pending": "En attente",
+      "rejected": "Refuse",
+      "granted": "Accorde"
+    },
+    "dialog": {
+      "title": "Demander l'acces a un module",
+      "moduleLabel": "Module",
+      "justificationLabel": "Justification (optionnel)",
+      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'acces a ce module...",
+      "justificationHint": "Cette information sera transmise aux administrateurs",
+      "submit": "Envoyer la demande"
+    },
+    "success": "Votre demande a ete envoyee et est en attente de validation",
+    "error": "Erreur lors de l'envoi de la demande"
+  },
+  "sites": {
+    "title": "Sites",
+    "subtitle": "Decouvrez les espaces naturels proteges et demandez l'acces",
+    "backToHome": "Retour a l'accueil",
+    "mySites": {
+      "title": "Sites auxquels j'ai acces",
+      "empty": "Vous n'avez acces a aucun site pour le moment.",
+      "referent": "Referent"
+    },
+    "allSites": {
+      "title": "Tous les sites",
+      "loginPrompt": "Connectez-vous pour demander l'acces a un site."
+    },
+    "requestAccess": {
+      "title": "Demander l'acces a un site",
+      "description": "Recherchez et demandez l'acces aux sites qui vous interessent.",
+      "searchPlaceholder": "Rechercher un site...",
+      "noResults": "Aucun site trouve",
+      "button": "Demander l'acces",
+      "pending": "Demande en attente",
+      "rejected": "Acces refuse"
+    },
+    "table": {
+      "name": "Nom du site",
+      "type": "Type",
+      "surface": "Surface",
+      "organisme": "Organisme",
+      "status": "Statut"
+    }
+  },
+  "accessRequest": {
+    "dialog": {
+      "titleSite": "Demander l'acces a un site",
+      "titlePlan": "Demander l'acces a un plan",
+      "targetLabel": "Cible",
+      "justificationLabel": "Justification (optionnel)",
+      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'acces...",
+      "justificationHint": "Cette information sera transmise aux administrateurs",
+      "submit": "Envoyer la demande",
+      "cancel": "Annuler"
+    },
+    "success": "Votre demande a ete envoyee et est en attente de validation",
+    "error": "Erreur lors de l'envoi de la demande",
+    "alreadyPending": "Une demande est deja en cours pour cet element"
   },
   "notifications": {
     "title": "Notifications",
