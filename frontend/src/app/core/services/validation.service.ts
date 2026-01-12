@@ -14,6 +14,7 @@ import {
   ValidationActionResponse,
   SiteAccessRequestData,
   PlanAccessRequestData,
+  ModuleAccessRequestData,
   PublicRegistrationData,
   PublicRegistrationResponse,
   RegistrationStatusResponse
@@ -129,6 +130,27 @@ export class ValidationService {
    */
   requestPlanAccess(planId: number, data?: PlanAccessRequestData): Observable<ValidationRequest> {
     return this.http.post<ValidationRequest>(`/api/plans/plans/${planId}/request_access/`, data || {});
+  }
+
+  /**
+   * Demande l'acces a un module.
+   */
+  requestModuleAccess(data: ModuleAccessRequestData): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`${this.apiUrl}/request_module_access/`, data);
+  }
+
+  /**
+   * Octroie l'acces a un module directement (admin).
+   */
+  grantModuleAccess(data: { user_id: number; module_code: string }): Observable<ValidationActionResponse> {
+    return this.http.post<ValidationActionResponse>(`${this.apiUrl}/grant_module_access/`, data);
+  }
+
+  /**
+   * Revoque l'acces a un module (admin).
+   */
+  revokeModuleAccess(data: { user_id: number; module_code: string }): Observable<ValidationActionResponse> {
+    return this.http.post<ValidationActionResponse>(`${this.apiUrl}/revoke_module_access/`, data);
   }
 
   // ==================== Inscription publique ====================

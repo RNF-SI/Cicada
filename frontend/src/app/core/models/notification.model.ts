@@ -26,8 +26,21 @@ export type ValidationRequestType =
   | 'user_registration'
   | 'site_access'
   | 'plan_access'
+  | 'module_access'
   | 'admin_deactivation'
   | 'referent_validation';
+
+// Modules disponibles pour les demandes d'accès
+export type ModuleCode = 'zonages' | 'inventaires' | 'plans' | 'sites';
+
+export interface ApplicationModule {
+  code: ModuleCode;
+  name: string;
+  description: string;
+  icon: string;
+  route: string;
+  requiresAccess: boolean;
+}
 
 // Statuts de validation
 export type ValidationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'expired';
@@ -104,6 +117,10 @@ export interface ValidationRequest {
     id: number;
     nom: string;
   };
+  target_module?: {
+    code: string;
+    name: string;
+  };
   target_user?: {
     id: number;
     email: string;
@@ -149,6 +166,7 @@ export interface ValidationRequestListItem {
   request_type_display?: string;
   status: ValidationStatus;
   status_display?: string;
+  requester_id: number;
   requester_name: string;
   target_name?: string;
   justification?: string;
@@ -237,6 +255,14 @@ export interface SiteAccessRequestData {
  * Donnees pour demander acces a un plan.
  */
 export interface PlanAccessRequestData {
+  justification?: string;
+}
+
+/**
+ * Donnees pour demander acces a un module.
+ */
+export interface ModuleAccessRequestData {
+  module_code: ModuleCode;
   justification?: string;
 }
 
