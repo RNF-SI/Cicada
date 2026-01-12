@@ -37,9 +37,9 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 | Document | Description |
 |----------|-------------|
-| **[DEVELOPMENT.md](../DEVELOPMENT.md)** | Guide technique complet pour développeurs |
-| **[CLAUDE.md](../CLAUDE.md)** | Guide pour Claude Code avec commandes rapides |
-| **[claude.md](../claude.md)** | Spécifications métier détaillées du projet |
+| **[Guide Développeur](GUIDE_DEVELOPPEUR.md)** | Commandes, permissions, logs, i18n, styles |
+| **[Tests](TESTING.md)** | Guide complet des tests (pytest, Jest) |
+| **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
 | **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
 
 ## 🎯 Par cas d'usage

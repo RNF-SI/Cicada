@@ -152,9 +152,9 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 ## 📖 Documentation
 
 - **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guide technique complet pour développeurs
-- **[CLAUDE.md](CLAUDE.md)** - Guide pour Claude Code
-- **[claude.md](claude.md)** - Spécifications détaillées du projet
+- **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
+- **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
+- **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 
 ## 🛠️ Technologies
 
