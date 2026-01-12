@@ -505,16 +505,16 @@ class TestUsersFiltersAndSearch:
     def test_filter_by_role_level(self, api_client):
         """Test filtering by role level."""
         admin = SuperAdminFactory()
-        referent = ReferentFactory()
+        admin_og = AdminOrganismeFactory()
 
         api_client.force_authenticate(user=admin)
-        response = api_client.get('/api/users/users/?role_level=referent')
+        response = api_client.get('/api/users/users/?role_level=admin_og')
 
         assert response.status_code == status.HTTP_200_OK
-        # All returned users should be referents
+        # All returned users with admin_og role should be in results
         for user in response.data['results']:
-            if user['id_role'] == referent.id_role:
-                assert user.get('role_level') == 'referent' or 'referent' in str(user)
+            if user['id_role'] == admin_og.id_role:
+                assert user.get('role_level') == 'admin_og'
 
     def test_filter_by_organisme(self, api_client):
         """Test filtering by organisme."""

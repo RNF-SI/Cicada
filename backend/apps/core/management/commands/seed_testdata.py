@@ -677,11 +677,11 @@ class Command(BaseCommand):
                 'nom_role': 'Bernard',
                 'prenom_role': 'Sophie',
                 'identifiant': 'ref_camargue',
-                'role_level': 'referent',
+                'role_level': 'utilisateur',  # Sera referent via CorRoleSite
                 'is_staff': False,
                 'is_superuser': False,
                 'id_organisme': organismes[0],  # RNF
-                'groups': ['Referents'],
+                'groups': ['Utilisateurs'],
                 'sites_referent': [sites[0]]  # Camargue
             },
             {
@@ -689,11 +689,11 @@ class Command(BaseCommand):
                 'nom_role': 'Petit',
                 'prenom_role': 'Lucas',
                 'identifiant': 'ref_vercors',
-                'role_level': 'referent',
+                'role_level': 'utilisateur',  # Sera referent via CorRoleSite
                 'is_staff': False,
                 'is_superuser': False,
                 'id_organisme': organismes[1],  # CEN AURA
-                'groups': ['Referents'],
+                'groups': ['Utilisateurs'],
                 'sites_referent': [sites[3]]  # Vercors
             },
             {
@@ -727,11 +727,11 @@ class Command(BaseCommand):
                 'nom_role': 'Moreau',
                 'prenom_role': 'Pierre',
                 'identifiant': 'ancien_rnf',
-                'role_level': 'referent',
+                'role_level': 'utilisateur',
                 'is_staff': False,
                 'is_superuser': False,
                 'id_organisme': organismes[0],  # RNF
-                'groups': ['Referents'],
+                'groups': ['Utilisateurs'],
                 'sites_referent': [],
                 'active': False  # Utilisateur inactif
             },

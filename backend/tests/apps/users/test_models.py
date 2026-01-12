@@ -134,10 +134,31 @@ class TestRolePermissionMethods:
         user = RoleFactory()
         assert user.is_admin_organisme() is False
 
-    def test_is_referent_for_referent(self):
-        """Test is_referent returns True for referent role."""
-        referent = ReferentFactory()
-        assert referent.is_referent() is True
+    def test_is_referent_for_site_referent(self):
+        """Test is_referent returns True for user who is site referent."""
+        user = RoleFactory()
+        site = SiteFactory()
+        # Create a validated site referent assignment
+        CorRoleSite.objects.create(
+            id_role=user,
+            id_site=site,
+            referent=True,
+            referent_valid=True
+        )
+        assert user.is_referent() is True
+
+    def test_is_referent_for_unvalidated_site_referent(self):
+        """Test is_referent returns False for unvalidated site referent."""
+        user = RoleFactory()
+        site = SiteFactory()
+        # Create an unvalidated site referent assignment
+        CorRoleSite.objects.create(
+            id_role=user,
+            id_site=site,
+            referent=True,
+            referent_valid=False
+        )
+        assert user.is_referent() is False
 
     def test_is_referent_for_admin_og(self):
         """Test is_referent returns True for admin_og (hierarchy)."""

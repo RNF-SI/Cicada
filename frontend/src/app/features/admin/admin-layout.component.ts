@@ -3,13 +3,16 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
+// Note: 'referent' is an access level (is_referent computed), not a role level
+type AccessLevel = 'referent' | 'admin_og' | 'super_admin';
+
 interface NavItem {
   label: string;
   icon: string;
   route: string;
-  minRole?: 'referent' | 'admin_og' | 'super_admin';
-  maxRole?: 'referent' | 'admin_og' | 'super_admin'; // Exclusive to this role and below
-  exactRole?: 'referent' | 'admin_og' | 'super_admin'; // Only for this exact role
+  minRole?: AccessLevel;
+  maxRole?: AccessLevel; // Exclusive to this role and below
+  exactRole?: 'admin_og' | 'super_admin'; // Only for this exact role (not referent since it's not a role)
 }
 
 @Component({
@@ -68,22 +71,31 @@ export class AdminLayoutComponent {
     const user = this.currentUser();
     if (!user) return [];
 
-    const roleHierarchy = ['utilisateur', 'referent', 'admin_og', 'super_admin'];
-    const userRoleIndex = roleHierarchy.indexOf(user.niveau_role);
+    // Access level hierarchy (referent is computed, not a role)
+    const accessHierarchy = ['utilisateur', 'referent', 'admin_og', 'super_admin'];
+
+    // Get user's effective access level
+    const getUserAccessIndex = (): number => {
+      if (user.niveau_role === 'super_admin') return 3;
+      if (user.niveau_role === 'admin_og') return 2;
+      if (user.is_referent) return 1;
+      return 0;
+    };
+    const userAccessIndex = getUserAccessIndex();
 
     return this.navItems.filter(item => {
-      // exactRole: only for this specific role
+      // exactRole: only for this specific role level
       if (item.exactRole) {
         return user.niveau_role === item.exactRole;
       }
 
-      // maxRole: only for roles up to this level (excludes higher roles)
+      // maxRole: only for access levels up to this level (excludes higher)
       if (item.maxRole) {
-        const maxRoleIndex = roleHierarchy.indexOf(item.maxRole);
-        if (userRoleIndex > maxRoleIndex) return false;
+        const maxAccessIndex = accessHierarchy.indexOf(item.maxRole);
+        if (userAccessIndex > maxAccessIndex) return false;
       }
 
-      // minRole: requires at least this role
+      // minRole: requires at least this access level
       if (item.minRole) {
         return this.authService.hasRole(item.minRole);
       }
@@ -99,8 +111,14 @@ export class AdminLayoutComponent {
     const labels: Record<string, string> = {
       'super_admin': 'Super Administrateur',
       'admin_og': 'Admin Organisme',
-      'referent': 'Referent'
+      'utilisateur': 'Utilisateur'
     };
+
+    // If user is a referent (via is_referent), show that
+    if (user.is_referent && user.niveau_role === 'utilisateur') {
+      return 'Referent';
+    }
+
     return labels[user.niveau_role] || user.niveau_role;
   });
 }

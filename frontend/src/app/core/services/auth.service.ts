@@ -52,13 +52,14 @@ export class AuthService {
     return role === 'admin_og' || role === 'super_admin';
   });
   readonly isReferent = computed(() => {
-    const role = this.currentUser()?.niveau_role;
-    return role === 'referent' || role === 'admin_og' || role === 'super_admin';
+    const user = this.currentUser();
+    // is_referent is computed by backend: true if user is site or plan referent
+    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'super_admin';
   });
   readonly canAccessAdmin = computed(() => {
-    const role = this.currentUser()?.niveau_role;
+    const user = this.currentUser();
     // Referents can access admin for managing plans/validations
-    return role === 'referent' || role === 'admin_og' || role === 'super_admin';
+    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'super_admin';
   });
 
   // Original user info (when impersonating)
@@ -225,13 +226,20 @@ export class AuthService {
   }
 
   /**
-   * Check if user has minimum required role
+   * Check if user has minimum required role/access level
+   * Note: 'referent' is handled as an access level (is_referent computed field),
+   * not as a role level since it was removed from ROLE_CHOICES.
    */
-  hasRole(requiredRole: UserRole): boolean {
+  hasRole(requiredRole: UserRole | 'referent'): boolean {
     const user = this.currentUser();
     if (!user) return false;
 
-    const roleHierarchy: UserRole[] = ['utilisateur', 'referent', 'admin_og', 'super_admin'];
+    // Special case: 'referent' is an access level, not a role
+    if (requiredRole === 'referent') {
+      return user.is_referent === true || user.niveau_role === 'admin_og' || user.niveau_role === 'super_admin';
+    }
+
+    const roleHierarchy: UserRole[] = ['utilisateur', 'admin_og', 'super_admin'];
     const userRoleIndex = roleHierarchy.indexOf(user.niveau_role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
 

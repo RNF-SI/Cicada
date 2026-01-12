@@ -11,6 +11,7 @@ export interface User {
   niveau_role: UserRole;
   is_staff: boolean;
   is_active: boolean;
+  is_referent?: boolean;  // Computed: true if user is site or plan referent
   date_joined?: string;
   last_login?: string;
 }
@@ -27,8 +28,11 @@ export interface Organisme {
 
 /**
  * User role levels - matches backend permission system
+ * Note: Le role 'referent' a ete supprime. Un utilisateur est considere comme
+ * "referent" s'il est referent d'au moins un site ou plan de gestion.
+ * Ceci est verifie cote backend via is_referent().
  */
-export type UserRole = 'utilisateur' | 'referent' | 'admin_og' | 'super_admin';
+export type UserRole = 'utilisateur' | 'admin_og' | 'super_admin';
 
 /**
  * Authentication tokens from JWT

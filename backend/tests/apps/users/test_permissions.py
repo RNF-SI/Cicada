@@ -149,11 +149,14 @@ class TestIsAdminOrganismePermission:
 class TestIsReferentPermission:
     """Tests for IsReferent permission class."""
 
-    def test_referent_has_permission(self, mock_view):
-        """Test referent passes permission check."""
+    def test_site_referent_has_permission(self, mock_view):
+        """Test site referent passes permission check."""
         permission = IsReferent()
-        referent = ReferentFactory()
-        request = create_mock_request(referent)
+        user = RoleFactory()
+        site = SiteFactory()
+        # Create validated site referent assignment
+        CorRoleSiteFactory(id_role=user, id_site=site, referent=True, referent_valid=True)
+        request = create_mock_request(user)
 
         assert permission.has_permission(request, mock_view) is True
 

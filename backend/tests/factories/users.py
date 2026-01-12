@@ -73,9 +73,15 @@ class AdminOrganismeFactory(RoleFactory):
 
 
 class ReferentFactory(RoleFactory):
-    """Factory for referent users."""
+    """
+    Factory for referent users.
+    Note: Le role_level 'referent' n'existe plus. Un utilisateur est considere
+    comme referent s'il est referent d'au moins un site ou plan.
+    Cette factory cree un utilisateur simple - pour le rendre referent,
+    il faut creer une entree CorRoleSite avec referent=True, referent_valid=True.
+    """
 
-    role_level = 'referent'
+    role_level = 'utilisateur'
     id_organisme = factory.SubFactory(OrganismeFactory)
     email = factory.Sequence(lambda n: f'referent{n}@test.fr')
 

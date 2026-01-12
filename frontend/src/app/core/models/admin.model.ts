@@ -94,7 +94,7 @@ export interface AdminUser {
   identifiant?: string;
   id_organisme?: number;
   organisme?: AdminOrganisme;
-  role_level: 'utilisateur' | 'referent' | 'admin_og' | 'super_admin';
+  role_level: 'utilisateur' | 'admin_og' | 'super_admin';
   active: boolean;
   last_login?: string;
   sites_lies?: UserSiteRelation[];

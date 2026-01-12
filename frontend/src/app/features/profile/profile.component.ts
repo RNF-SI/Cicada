@@ -105,9 +105,14 @@ export class ProfileComponent implements OnInit {
     const labels: Record<string, string> = {
       'super_admin': 'Super Administrateur',
       'admin_og': 'Administrateur Organisme',
-      'referent': 'Referent',
       'utilisateur': 'Utilisateur'
     };
+
+    // If user is a referent (via is_referent), show that
+    if (user.is_referent && user.niveau_role === 'utilisateur') {
+      return 'Referent';
+    }
+
     return labels[user.niveau_role] || user.niveau_role;
   }
 

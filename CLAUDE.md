@@ -424,7 +424,8 @@ Angular application with:
 
 ### Authentication & Permissions
 
-- **User Roles**: Super Admin > Admin Organisme > Référent > Utilisateur
+- **User Roles**: Super Admin > Admin Organisme > Utilisateur
+- **Référent** (access level, not a role): User is "referent" if assigned as site referent (`CorRoleSite.referent=True`) or plan referent (`PlanGestion.referents`)
 - **Permission Model**: Role-based with hierarchical access and Django groups
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
@@ -503,19 +504,19 @@ Run `docker-compose exec web python manage.py seed_testdata` to create:
 - **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
 - **7 Users** with different roles:
-  | Email | Role | Organization |
-  |-------|------|--------------|
-  | admin@test.fr | Super Admin | - |
-  | admin.rnf@test.fr | Admin Organisme | RNF |
-  | admin.cen@test.fr | Admin Organisme | CEN AURA |
-  | referent.camargue@test.fr | Referent | RNF |
-  | referent.vercors@test.fr | Referent | CEN AURA |
-  | user.rnf@test.fr | Utilisateur | RNF |
-  | user.cen@test.fr | Utilisateur | CEN AURA |
+  | Email | Role | Organization | Notes |
+  |-------|------|--------------|-------|
+  | admin@test.fr | Super Admin | - | |
+  | admin.rnf@test.fr | Admin Organisme | RNF | |
+  | admin.cen@test.fr | Admin Organisme | CEN AURA | |
+  | referent.camargue@test.fr | Utilisateur | RNF | Site referent (Camargue) |
+  | referent.vercors@test.fr | Utilisateur | CEN AURA | Site referent (Vercors) |
+  | user.rnf@test.fr | Utilisateur | RNF | |
+  | user.cen@test.fr | Utilisateur | CEN AURA | |
 
   **Password for all test users**: `Test123!`
 - **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations
-- **Django Groups**: Super Administrateurs, Administrateurs Organisme, Referents, Utilisateurs
+- **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
 - **Nomenclatures**: Site types, evaluation types, editor types
 - **Validation Requests**: Demandes de test avec différents statuts (pending, approved, rejected) et dates réalistes
 
@@ -649,9 +650,10 @@ class UsersConfig(AppConfig):
 - Each app should have a clear, single responsibility
 
 **Permissions System:**
-- **4 role levels**: utilisateur → referent → admin_og → super_admin
+- **3 role levels**: utilisateur → admin_og → super_admin
+- **Referent access**: Computed via `is_referent()` - true if user is site or plan referent
 - **10 custom permissions** + Django standard (add/change/view/delete)
-- **Permission check methods**: `user.is_super_admin()`, `user.can_manage_site(site)`
+- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
 - **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
 - **Decorators**: `@require_super_admin`, `@require_admin_organisme`
 

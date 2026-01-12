@@ -40,7 +40,8 @@ describe('AuthService', () => {
     ...mockUser,
     id: 4,
     email: 'referent@example.com',
-    niveau_role: 'referent'
+    niveau_role: 'utilisateur',
+    is_referent: true  // Site or plan referent
   };
 
   const mockTokens = {

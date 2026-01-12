@@ -45,9 +45,10 @@ class Role(AbstractUser):
     """
     
     # Niveaux de permission/rôles
+    # Note: Le rôle 'referent' a été supprimé. Un utilisateur est considéré comme
+    # "référent" s'il est référent d'au moins un site ou plan de gestion.
     ROLE_CHOICES = [
         ('utilisateur', 'Utilisateur'),
-        ('referent', 'Référent'),
         ('admin_og', 'Administrateur Organisme'),
         ('super_admin', 'Super Administrateur'),
     ]
@@ -145,8 +146,22 @@ class Role(AbstractUser):
         return self.role_level in ['admin_og', 'super_admin'] or self.is_superuser
     
     def is_referent(self):
-        """Vérifie si l'utilisateur est au moins Référent."""
-        return self.role_level in ['referent', 'admin_og', 'super_admin'] or self.is_superuser
+        """
+        Vérifie si l'utilisateur est considéré comme "référent".
+        Un utilisateur est référent s'il :
+        - Est admin organisme ou super admin
+        - Est référent validé d'au moins un site
+        - Est référent d'au moins un plan de gestion
+        """
+        if self.is_admin_organisme():
+            return True
+        # Référent d'au moins un site validé ?
+        if CorRoleSite.objects.filter(id_role=self, referent=True, referent_valid=True).exists():
+            return True
+        # Référent d'au moins un plan ?
+        if self.plans_referents.exists():
+            return True
+        return False
     
     def can_manage_organisme(self, organisme):
         """Vérifie si l'utilisateur peut gérer un organisme donné."""

@@ -36,8 +36,8 @@ export const ADMIN_ROUTES: Routes = [
           const router = inject(Router);
           const user = authService.currentUser();
 
-          // referent goes to validations (their main admin view)
-          if (user?.niveau_role === 'referent') {
+          // Referent (via is_referent, not admin) goes to validations
+          if (user?.is_referent && user?.niveau_role === 'utilisateur') {
             router.navigate(['/administration/validations']);
           }
           // admin_og goes to utilisateurs (their main view)

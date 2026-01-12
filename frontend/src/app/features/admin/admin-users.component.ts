@@ -237,7 +237,6 @@ export class AdminUsersComponent implements OnInit {
     const labels: Record<string, string> = {
       'super_admin': 'Super Admin',
       'admin_og': 'Admin Org.',
-      'referent': 'Referent',
       'utilisateur': 'Utilisateur'
     };
     return labels[role] || role;

@@ -82,11 +82,11 @@ def create_test_users():
             'nom_role': 'Martin',
             'prenom_role': 'Sophie',
             'identifiant': 'referent',
-            'role_level': 'referent',
+            'role_level': 'utilisateur',  # Sera referent via CorRoleSite
             'is_staff': False,
             'is_superuser': False,
             'id_organisme': organisme,
-            'description': 'Referent (gestion sites assignes)'
+            'description': 'Utilisateur referent de site (via CorRoleSite)'
         },
         {
             'email': 'user@test.fr',
