@@ -47,7 +47,10 @@ class OrganismeViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """Permissions selon l'action."""
-        if self.action in ['create']:
+        if self.action in ['public']:
+            # L'endpoint public est accessible sans authentification
+            permission_classes = [permissions.AllowAny]
+        elif self.action in ['create']:
             permission_classes = [IsAdminOrganisme]
         elif self.action in ['update', 'partial_update']:
             permission_classes = [IsAdminOrganisme]  # Vérifié dans get_object
@@ -55,7 +58,7 @@ class OrganismeViewSet(viewsets.ModelViewSet):
             permission_classes = [IsSuperAdmin]
         else:
             permission_classes = [permissions.IsAuthenticated]
-        
+
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
@@ -285,6 +288,23 @@ class OrganismeViewSet(viewsets.ModelViewSet):
 
         return Response(sites_data)
     
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def public(self, request):
+        """
+        Liste publique des organismes pour l'inscription.
+        GET /api/users/organismes/public/
+
+        Retourne uniquement id et nom, sans authentification requise.
+        """
+        organismes = BibOrganismes.objects.all().order_by('nom_organisme')
+
+        data = [
+            {'id': org.id_organisme, 'nom_organisme': org.nom_organisme}
+            for org in organismes
+        ]
+
+        return Response(data)
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme])
     def stats(self, request):
         """Statistiques des organismes."""

@@ -28,12 +28,13 @@ class RoleManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('active', True)
-        
+        extra_fields.setdefault('role_level', 'super_admin')
+
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Le superutilisateur doit avoir is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Le superutilisateur doit avoir is_superuser=True.')
-            
+
         return self.create_user(email, password, **extra_fields)
 
 
@@ -84,6 +85,30 @@ class Role(AbstractUser):
         max_length=20,
         choices=ROLE_CHOICES,
         default='utilisateur'
+    )
+    # Champs pour la validation et desactivation
+    pending_validation = models.BooleanField(
+        default=False,
+        verbose_name="En attente de validation",
+        help_text="Utilisateur inscrit mais en attente de validation"
+    )
+    deactivation_reason = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Motif de desactivation"
+    )
+    deactivated_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deactivated_users',
+        verbose_name="Desactive par"
+    )
+    deactivated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Desactive le"
     )
     champs_addi = models.TextField("Champs additionnels", null=True, blank=True)
     date_insert = models.DateTimeField(auto_now_add=True)
