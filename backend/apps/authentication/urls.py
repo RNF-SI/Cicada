@@ -11,7 +11,8 @@ from .views import (
     health_check_view,
     start_impersonation_view,
     stop_impersonation_view,
-    impersonation_logs_view
+    impersonation_logs_view,
+    public_stats_view
 )
 from apps.notifications.views import (
     public_registration_view,
@@ -40,4 +41,7 @@ urlpatterns = [
 
     # Health check
     path('health/', health_check_view, name='health_check'),
+
+    # Public stats (accessible without authentication)
+    path('stats/', public_stats_view, name='public_stats'),
 ]

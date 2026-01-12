@@ -12,7 +12,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from apps.users.models import Role
+from apps.users.models import Role, Site, BibOrganismes
+from apps.plans.models import PlanGestion
 from .models import ImpersonationLog
 from .serializers import CustomTokenObtainPairSerializer, UserInfoSerializer
 
@@ -357,4 +358,34 @@ def impersonation_logs_view(request):
             }
             for log in logs
         ]
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_stats_view(request):
+    """
+    Vue publique retournant des statistiques generales sur la plateforme.
+    Ces donnees sont accessibles sans authentification.
+
+    GET /api/auth/stats/
+
+    Retourne:
+        - sites_count: Nombre de sites actifs
+        - plans_count: Nombre de plans de gestion (hors brouillons)
+        - organismes_count: Nombre d'organismes
+    """
+    # Compter les sites actifs
+    sites_count = Site.objects.filter(active=True).count()
+
+    # Compter les plans de gestion (valides uniquement, pas les brouillons)
+    plans_count = PlanGestion.objects.filter(statut='valide').count()
+
+    # Compter les organismes
+    organismes_count = BibOrganismes.objects.count()
+
+    return Response({
+        'sites_count': sites_count,
+        'plans_count': plans_count,
+        'organismes_count': organismes_count
     })
