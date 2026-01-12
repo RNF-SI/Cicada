@@ -1,0 +1,224 @@
+<div class="my-requests-page">
+  <!-- Bouton retour -->
+  <a routerLink="/accueil" class="back-link">
+    <i class="fi fi-rr-arrow-left"></i>
+    {{ 'myRequests.backToHome' | translate }}
+  </a>
+
+  <header class="page-header">
+    <h1>{{ 'myRequests.title' | translate }}</h1>
+    <p class="subtitle">{{ 'myRequests.subtitle' | translate }}</p>
+  </header>
+
+  <!-- Stats cards -->
+  <div class="stats-cards">
+    <div class="stat-card stat-card--pending">
+      <div class="stat-icon">
+        <i class="fi fi-rr-hourglass-end"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getPendingCount() }}</span>
+        <span class="stat-label">{{ 'myRequests.stats.pending' | translate }}</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--approved">
+      <div class="stat-icon">
+        <i class="fi fi-rr-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getApprovedCount() }}</span>
+        <span class="stat-label">{{ 'myRequests.stats.approved' | translate }}</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--rejected">
+      <div class="stat-icon">
+        <i class="fi fi-rr-cross-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getRejectedCount() }}</span>
+        <span class="stat-label">{{ 'myRequests.stats.rejected' | translate }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Demander l'acces a d'autres modules -->
+  @if (modulesWithStatus().length > 0) {
+    <section class="modules-section">
+      <h2 class="section-title">
+        <i class="fi fi-rr-apps section-icon"></i>
+        {{ 'moduleAccess.section.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'moduleAccess.section.description' | translate }}</p>
+
+      <div class="modules-grid">
+        @for (module of modulesWithStatus(); track module.code) {
+          <div class="module-card">
+            <div class="module-icon">
+              <i class="fi" [ngClass]="module.icon"></i>
+            </div>
+            <div class="module-content">
+              <h3 class="module-name">{{ module.name }}</h3>
+              <p class="module-description">{{ module.description }}</p>
+            </div>
+            <div class="module-action">
+              @switch (module.accessStatus) {
+                @case ('pending') {
+                  <mat-chip class="status-warning">
+                    <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                    {{ 'moduleAccess.status.pending' | translate }}
+                  </mat-chip>
+                }
+                @case ('rejected') {
+                  <mat-chip class="status-error">
+                    <i class="fi fi-rr-cross-circle chip-icon"></i>
+                    {{ 'moduleAccess.status.rejected' | translate }}
+                  </mat-chip>
+                }
+                @default {
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    (click)="openModuleAccessDialog(module)"
+                  >
+                    <i class="fi fi-rr-lock"></i>
+                    {{ 'moduleAccess.requestButton' | translate }}
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Content -->
+  <div class="content-section">
+    <h2 class="section-title">
+      <i class="fi fi-rr-document-signed section-icon"></i>
+      {{ 'myRequests.historyTitle' | translate }}
+    </h2>
+
+    @if (loadingRequests()) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    } @else {
+      @if (myRequests().length === 0) {
+        <div class="empty-state">
+          <i class="fi fi-rr-document-signed empty-icon"></i>
+          <h3>{{ 'myRequests.empty.title' | translate }}</h3>
+          <p>{{ 'myRequests.empty.message' | translate }}</p>
+          <div class="empty-actions">
+            <a routerLink="/plans" mat-flat-button color="primary">
+              <i class="fi fi-rr-document"></i>
+              {{ 'myRequests.empty.goToPlans' | translate }}
+            </a>
+            <a routerLink="/sites" mat-stroked-button color="primary">
+              <i class="fi fi-rr-marker"></i>
+              {{ 'myRequests.empty.goToSites' | translate }}
+            </a>
+          </div>
+        </div>
+      } @else {
+        <mat-card class="requests-card">
+          <mat-card-content>
+            <table mat-table [dataSource]="myRequests()" class="requests-table">
+              <!-- Type -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.type' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  <span class="type-badge">
+                    <i class="fi" [ngClass]="getTypeIcon(request.request_type)"></i>
+                    {{ request.request_type_display }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Cible -->
+              <ng-container matColumnDef="target">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.target' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  <span class="target-name">{{ request.target_name || '-' }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Date de demande -->
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.date' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  {{ formatDateTime(request.created_at) }}
+                </td>
+              </ng-container>
+
+              <!-- Date de validation -->
+              <ng-container matColumnDef="validated_at">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.validatedAt' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  @if (request.validated_at) {
+                    {{ formatDateTime(request.validated_at) }}
+                  } @else {
+                    <span class="pending-label">-</span>
+                  }
+                </td>
+              </ng-container>
+
+              <!-- Statut -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.status' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  <mat-chip [ngClass]="getStatusClass(request.status)">
+                    {{ request.status_display }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Validateur -->
+              <ng-container matColumnDef="validator">
+                <th mat-header-cell *matHeaderCellDef>{{ 'myRequests.table.validator' | translate }}</th>
+                <td mat-cell *matCellDef="let request">
+                  @if (request.validator_name) {
+                    <span class="validator-info">
+                      <i class="fi fi-rr-user-check validator-icon"></i>
+                      {{ request.validator_name }}
+                    </span>
+                  } @else {
+                    <span class="pending-label">{{ 'myRequests.table.awaitingValidation' | translate }}</span>
+                  }
+                </td>
+              </ng-container>
+
+              <!-- Actions -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let request">
+                  @if (request.status === 'pending') {
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      (click)="cancelRequest(request)"
+                      [matTooltip]="'myRequests.actions.cancel' | translate"
+                    >
+                      <i class="fi fi-rr-cross"></i>
+                    </button>
+                  }
+                  @if (request.status === 'rejected' && request.validator_comment) {
+                    <button
+                      mat-icon-button
+                      [matTooltip]="request.validator_comment"
+                    >
+                      <i class="fi fi-rr-info"></i>
+                    </button>
+                  }
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="requestColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: requestColumns"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  </div>
+</div>

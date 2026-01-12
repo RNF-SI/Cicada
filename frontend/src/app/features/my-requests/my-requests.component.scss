@@ -1,0 +1,365 @@
+.my-requests-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #025359;
+  text-decoration: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 24px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  i {
+    font-size: 16px;
+  }
+}
+
+.page-header {
+  margin-bottom: 32px;
+
+  h1 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #025359;
+    margin: 0 0 8px;
+  }
+
+  .subtitle {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    color: #5C5C5C;
+    margin: 0;
+  }
+}
+
+/* Stats cards */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 24px;
+    color: white;
+  }
+}
+
+.stat-card--pending .stat-icon {
+  background-color: #FA9965;
+}
+
+.stat-card--approved .stat-icon {
+  background-color: #04854B;
+}
+
+.stat-card--rejected .stat-icon {
+  background-color: #E12329;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-family: 'Nunito', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #343433;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  color: #5C5C5C;
+}
+
+/* Modules section */
+.modules-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #343433;
+  margin: 0 0 8px;
+}
+
+.section-icon {
+  font-size: 24px;
+  color: #025359;
+}
+
+.section-description {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  color: #5C5C5C;
+  margin: 0 0 16px;
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.module-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.module-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: #E8F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 24px;
+    color: #025359;
+  }
+}
+
+.module-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.module-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #343433;
+  margin: 0 0 4px;
+}
+
+.module-description {
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  color: #5C5C5C;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.module-action {
+  flex-shrink: 0;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.chip-icon {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+/* Content */
+.content-section {
+  min-height: 300px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  background-color: white;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  color: #DADADA;
+  margin-bottom: 24px;
+}
+
+.empty-state h3 {
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #343433;
+  margin: 0 0 8px;
+}
+
+.empty-state p {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  color: #5C5C5C;
+  margin: 0 0 24px;
+  max-width: 400px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 12px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* Requests card */
+.requests-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.requests-table {
+  width: 100%;
+
+  th {
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #5C5C5C;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background-color: #F8F5F1;
+  }
+
+  td {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    color: #343433;
+  }
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background-color: #F0F0F0;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+
+  i {
+    font-size: 14px;
+    color: #025359;
+  }
+}
+
+.target-name {
+  font-weight: 600;
+  color: #025359;
+}
+
+.pending-label {
+  color: #949494;
+  font-style: italic;
+}
+
+.validator-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.validator-icon {
+  font-size: 14px;
+  color: #04854B;
+}
+
+/* Status chips - using global classes from _material-overrides.scss */
+
+/* Responsive */
+@media (max-width: 768px) {
+  .my-requests-page {
+    padding: 16px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .empty-actions {
+    flex-direction: column;
+    width: 100%;
+
+    a {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .requests-table {
+    font-size: 12px;
+
+    // Hide some columns on mobile
+    .mat-column-validated_at,
+    .mat-column-validator {
+      display: none;
+    }
+  }
+}
