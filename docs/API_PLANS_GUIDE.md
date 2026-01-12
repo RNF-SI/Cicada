@@ -24,6 +24,7 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | POST | `/api/plans/plans/{id}/assign_site/` | Assigner un site à un plan |
 | DELETE | `/api/plans/plans/{id}/remove_site/` | Retirer un site d'un plan |
 | POST | `/api/plans/plans/{id}/assign_referent/` | Assigner un référent |
+| DELETE | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent |
 
 ### Fichiers de plans
 

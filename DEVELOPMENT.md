@@ -47,7 +47,7 @@ outil_plan_de_gestion/
 │   │   └── urls.py           # Routes principales
 │   ├── create_superuser.py    # Script admin
 │   └── apps/core/management/  # Commandes Django (seed_testdata, etc.)
-├── frontend/                  # Application Angular (à venir)
+├── frontend/                  # Application Angular
 ├── docker-compose.yml         # Configuration Docker
 └── docs/                     # Documentation
 ```
@@ -1109,21 +1109,24 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 - ⏳ #21 - Permissions spécifiques aux PG
 - ⏳ #20 - Workflow de validation des PG
 
-**⏳ Phase 5-frontend (À venir - Interface Angular)**
-- #26 - Initialisation du projet Angular
-- #27 - Module d'authentification Angular
-- #37 - Interface d'accueil
-- #22 - Système de gestion des tokens API
-- #23 - Endpoints API publics
+**🔄 Phase 5-frontend (En cours - Interface Angular)**
+- ✅ #26 - Initialisation du projet Angular
+- ✅ #27 - Module d'authentification Angular (guards, interceptors, services)
+- ✅ #37 - Interface d'accueil
+- ✅ Design System SCSS (Kit UI Biodiv' France)
+- ✅ Composants partagés (NavigationTile, ScoreIcon, ActionIcon, etc.)
+- ✅ Internationalisation (ngx-translate)
+- ⏳ #22 - Système de gestion des tokens API
+- ⏳ #23 - Endpoints API publics
 
 **⏳ Phase 6-release (À venir - Finalisation)**
-- #28 - Dashboard utilisateur
-- #29 - Module de gestion basique des PG
-- #30 - Documentation technique
-- #31 - Tests unitaires backend
-- #32 - Tests frontend Angular
-- #35 - Audit de sécurité (P0-critical)
-- #36 - RGPD Compliance (P0-critical)
+- ⏳ #28 - Dashboard utilisateur
+- ⏳ #29 - Module de gestion basique des PG
+- ✅ #30 - Documentation technique
+- ✅ #31 - Tests unitaires backend (317 tests, 62% couverture)
+- ✅ #32 - Tests frontend Angular (55 tests auth)
+- ⏳ #35 - Audit de sécurité (P0-critical)
+- ⏳ #36 - RGPD Compliance (P0-critical)
 
 ### 🎯 Prochaine priorité recommandée
 
@@ -1149,11 +1152,12 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 - **#36** - RGPD Compliance
 
 ### 📊 Métriques d'avancement
-- **Issues fermées**: 7/46 (15%)
-- **Phase 1 (Infrastructure)**: 3/3 terminées (100%)
-- **Phase 2 (Auth)**: 2/3 terminées (67%) 
-- **Phase 3 (Users)**: 2/5 terminées (40%)
-- **Phases 4-6**: 0% (à venir)
+- **Phase 1 (Infrastructure)**: 100% terminée
+- **Phase 2 (Auth)**: 100% terminée (JWT, registration, impersonation)
+- **Phase 3 (Users)**: 100% terminée (API REST complète)
+- **Phase 4 (Plans)**: 80% terminée (API REST, fichiers, stats)
+- **Phase 5 (Frontend)**: 70% en cours (Angular, auth, composants, i18n)
+- **Phase 6 (Release)**: 30% (tests, docs)
 
 ## 📚 Ressources
 

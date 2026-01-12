@@ -73,10 +73,10 @@ Script de vérification des nomenclatures importées.
 
 ## Fichiers de données
 
-### `nomenclatures_data/backup_bib_nomenclatures.sql`
+### `nomenclatures_data/types_inserts.sql`
 Fichier SQL contenant les INSERT pour les types de nomenclatures.
 
-### `nomenclatures_data/backup_nomenclatures.sql`
+### `nomenclatures_data/nomenclatures_inserts.sql`
 Fichier SQL contenant les INSERT pour les nomenclatures individuelles.
 
 ## Administration Django

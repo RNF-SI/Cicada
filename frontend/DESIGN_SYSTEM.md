@@ -269,6 +269,73 @@ Le Kit UI indique les combinaisons accessibles :
 
 ---
 
+## Composants Angular Reutilisables
+
+Les composants standalone sont dans `frontend/src/app/shared/components/`.
+
+### `PlanGaugeComponent`
+**Selecteur**: `app-plan-gauge`
+**Fichiers**: `plan-gauge/`
+**Description**: Jauge de progression pour les plans de gestion.
+
+```html
+<app-plan-gauge
+  status="in-progress"
+  [startYear]="2020"
+  [endYear]="2030"
+  [currentYear]="2025"
+></app-plan-gauge>
+```
+
+| Input | Type | Defaut | Description |
+|-------|------|--------|-------------|
+| `status` | `GaugeStatus` | `'not-started'` | Statut de la jauge |
+| `startYear` | `number` | `2020` | Annee de debut du plan |
+| `endYear` | `number` | `2030` | Annee de fin du plan |
+| `currentYear` | `number` | Annee actuelle | Annee courante pour le calcul |
+
+**Statuts disponibles** (`GaugeStatus`):
+- `not-started`: Barre vide grise
+- `in-progress`: Barre partiellement remplie avec indicateur position
+- `completed`: Barre completement remplie
+- `exceeded`: Barre rouge avec indicateur de depassement
+
+### `NotificationBellComponent`
+**Selecteur**: `app-notification-bell`
+**Fichiers**: `notification-bell/`
+**Description**: Cloche de notifications pour le header avec badge compteur.
+
+```html
+<app-notification-bell></app-notification-bell>
+```
+
+**Fonctionnalites**:
+- Badge affichant le nombre total (notifications non lues + validations en attente)
+- Affiche "99+" si le compte depasse 99
+- Menu dropdown avec les notifications recentes
+- Dialog pour voir toutes les notifications
+- Marquage comme lu automatique au clic
+- Navigation vers l'URL d'action de chaque notification
+- Polling automatique pour les mises a jour
+
+**Signals exposes**:
+- `notifications`: Liste des notifications
+- `unreadCount`: Nombre de notifications non lues
+- `pendingValidations`: Nombre de validations en attente
+- `totalBadgeCount`: Total pour le badge
+- `hasUnread`: Boolean si notifications non lues
+
+**Types de notifications** (icones associees):
+- `welcome`: Bienvenue (fi-rr-hand-wave)
+- `validation_request`: Demande de validation (fi-rr-check-circle)
+- `validation_approved`: Validation approuvee (fi-rr-check)
+- `validation_rejected`: Validation rejetee (fi-rr-cross)
+- `user_associated_site`: Association a un site (fi-rr-marker)
+- `user_associated_plan`: Association a un plan (fi-rr-document)
+- `system_alert`: Alerte systeme (fi-rr-bell)
+
+---
+
 # Implementation Technique
 
 ## Structure des fichiers SCSS

@@ -82,14 +82,15 @@ Détail d'un utilisateur.
   "nom_complet": "Marie Dupont",
   "role_level": "utilisateur",
   "organisme": {...},
-  "sites_geres": [
+  "sites_lies": [
     {
       "site": {
         "id_site": 1,
         "nom_site": "Réserve Naturelle de la Camargue"
       },
       "referent": true,
-      "referent_valid": true
+      "referent_valid": true,
+      "conservateur": false
     }
   ],
   "permissions_info": {
@@ -115,7 +116,7 @@ Créer un utilisateur.
   "nom_role": "Nom",
   "prenom_role": "Prénom",
   "role_level": "utilisateur",
-  "organisme_id": 1,
+  "uuid_organisme": "550e8400-e29b-41d4-a716-446655440000",
   "password": "MotDePasse123!",
   "password_confirm": "MotDePasse123!",
   "active": true
@@ -143,7 +144,7 @@ Modifier un utilisateur.
 ```
 
 **Restrictions :**
-- Utilisateur ne peut pas modifier son `role_level` ou `organisme_id`
+- Utilisateur ne peut pas modifier son `role_level` ou `uuid_organisme`
 - Admin organisme ne peut pas créer de Super Admin
 
 ---

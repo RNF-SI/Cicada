@@ -494,6 +494,53 @@ Liste des organismes gestionnaires du site.
 
 ---
 
+### **POST /api/users/sites/{id}/set_principal_organisme/**
+Définir l'organisme gestionnaire principal du site.
+
+**Permissions :** Super Admin
+
+**Payload :**
+```json
+{
+  "organisme_id": 1
+}
+```
+
+---
+
+### **GET /api/users/sites/{id}/principal_organisme/**
+Récupérer l'organisme gestionnaire principal du site.
+
+**Réponse :**
+```json
+{
+  "id_organisme": 1,
+  "nom_organisme": "RNF",
+  "ville_organisme": "Dijon",
+  "email_organisme": "contact@rnf.fr"
+}
+```
+
+---
+
+### **GET /api/users/sites/available_for_assignment/**
+Liste des sites disponibles pour assignation à un organisme.
+
+**Permissions :** Admin Organisme+
+
+**Réponse :**
+```json
+[
+  {
+    "id_site": 5,
+    "nom_site": "Site disponible",
+    "type_site": "RNN"
+  }
+]
+```
+
+---
+
 ### **GET /api/users/organismes/stats/**
 Statistiques des organismes.
 
