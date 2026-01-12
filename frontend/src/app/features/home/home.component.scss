@@ -193,6 +193,10 @@ $corner-size: 94px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
+
+  &--three {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Separator */
@@ -230,6 +234,292 @@ $corner-size: 94px;
 
   .arrow {
     margin-left: 4px;
+  }
+}
+
+/* ================================ */
+/* GUEST VIEW STYLES               */
+/* ================================ */
+
+.hero-section--guest {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 48px;
+
+  .hero-logo {
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-title {
+    text-align: center;
+  }
+}
+
+.project-description {
+  margin: 24px 0 32px;
+
+  .description-intro {
+    font-family: 'Nunito', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 32px;
+    color: #025359;
+    margin: 0 0 16px;
+  }
+
+  .description-details {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 26px;
+    color: #5C5C5C;
+    margin: 0;
+  }
+}
+
+.partners-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+
+  .partners-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #949494;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .partners-list {
+    display: flex;
+    gap: 12px;
+  }
+
+  .partner-badge {
+    background-color: #025359;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+}
+
+/* Auth Actions Section */
+.auth-actions-section {
+  margin-bottom: 48px;
+}
+
+.auth-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.auth-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 16px;
+  text-decoration: none;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+    .auth-card-arrow {
+      transform: translateX(4px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #025359;
+    outline-offset: 2px;
+  }
+}
+
+.auth-card--login {
+  background-color: #025359;
+
+  .auth-card-icon {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+
+  .auth-card-title,
+  .auth-card-description,
+  .auth-card-arrow {
+    color: white;
+  }
+}
+
+.auth-card--register {
+  background-color: white;
+  border: 2px solid #E4E4E4;
+
+  .auth-card-icon {
+    background-color: #FEC180;
+    color: #025359;
+  }
+
+  .auth-card-title {
+    color: #025359;
+  }
+
+  .auth-card-description {
+    color: #5C5C5C;
+  }
+
+  .auth-card-arrow {
+    color: #025359;
+  }
+}
+
+.auth-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 24px;
+  }
+}
+
+.auth-card-content {
+  flex: 1;
+}
+
+.auth-card-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.auth-card-description {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.auth-card-arrow {
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: transform 200ms ease-out;
+}
+
+/* Stats Section */
+.stats-section {
+  background-color: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.stats-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.stats-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #025359;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  i {
+    font-size: 28px;
+    color: #FEC180;
+  }
+}
+
+.stats-subtitle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #5C5C5C;
+  margin: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24px 16px;
+  background-color: #F8F5F1;
+  border-radius: 12px;
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background-color: #025359;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 24px;
+    color: white;
+  }
+}
+
+.stat-value {
+  font-family: 'Nunito', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #025359;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5C5C5C;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-value--loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
@@ -300,5 +590,74 @@ $corner-size: 94px;
   .hero-title {
     font-size: 24px;
     line-height: 36px;
+  }
+}
+
+/* Guest View Responsive */
+@media (max-width: 768px) {
+  .auth-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-section {
+    padding: 24px 16px;
+  }
+
+  .project-description {
+    .description-intro {
+      font-size: 18px;
+      line-height: 28px;
+    }
+
+    .description-details {
+      font-size: 15px;
+      line-height: 24px;
+    }
+  }
+
+  .partners-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .auth-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .auth-card-icon {
+    width: 40px;
+    height: 40px;
+
+    i {
+      font-size: 20px;
+    }
+  }
+
+  .auth-card-title {
+    font-size: 16px;
+  }
+
+  .auth-card-description {
+    font-size: 13px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+
+    i {
+      font-size: 20px;
+    }
   }
 }
