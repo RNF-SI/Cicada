@@ -1,0 +1,179 @@
+// Variables
+$primary-color: #025359;
+$secondary-yellow: #FEC180;
+$success-color: #04854B;
+$error-color: #E12329;
+$warning-color: #FA9965;
+$gray-light: #F5F5F5;
+$gray: #999;
+
+.admin-validations {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 8px 0;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: $gray;
+    margin: 0;
+  }
+}
+
+// Filtres
+.filters-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+
+  .filter-field {
+    min-width: 200px;
+  }
+}
+
+// Loading
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+// Etat vide
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 48px;
+    color: $gray;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    color: $gray;
+  }
+}
+
+// Tableau
+.validations-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  th {
+    background-color: $gray-light;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .clickable-row {
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+    }
+  }
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: $gray-light;
+  border-radius: 4px;
+  font-size: 13px;
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+  }
+}
+
+.actions-cell {
+  display: flex;
+  gap: 4px;
+
+  i {
+    font-size: 16px;
+  }
+}
+
+// Validateur
+.validator-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $success-color;
+
+  .validator-icon {
+    font-size: 14px;
+  }
+}
+
+.pending-label {
+  color: $gray;
+}
+
+// Statuts
+.status-success {
+  background-color: rgba($success-color, 0.15) !important;
+  color: $success-color !important;
+}
+
+.status-error {
+  background-color: rgba($error-color, 0.15) !important;
+  color: $error-color !important;
+}
+
+.status-warning {
+  background-color: rgba($warning-color, 0.15) !important;
+  color: darken($warning-color, 15%) !important;
+}
+
+.status-neutre {
+  background-color: $gray-light !important;
+  color: $gray !important;
+}
+
+// Pagination
+mat-paginator {
+  background: transparent;
+  margin-top: 16px;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .admin-validations {
+    padding: 16px;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+
+    .filter-field {
+      width: 100%;
+    }
+  }
+}

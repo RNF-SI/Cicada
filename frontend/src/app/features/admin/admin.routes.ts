@@ -9,6 +9,7 @@ import { AdminUsersComponent } from './admin-users.component';
 import { AdminOrganismesComponent } from './admin-organismes.component';
 import { AdminSitesComponent } from './admin-sites.component';
 import { AdminPlansComponent } from './admin-plans.component';
+import { AdminValidationsComponent } from './admin-validations/admin-validations.component';
 
 /**
  * Admin Routes Configuration
@@ -35,9 +36,9 @@ export const ADMIN_ROUTES: Routes = [
           const router = inject(Router);
           const user = authService.currentUser();
 
-          // referent goes directly to plans (their only admin view)
+          // referent goes to validations (their main admin view)
           if (user?.niveau_role === 'referent') {
-            router.navigate(['/administration/plans']);
+            router.navigate(['/administration/validations']);
           }
           // admin_og goes to utilisateurs (their main view)
           else if (user?.niveau_role === 'admin_og') {
@@ -54,6 +55,12 @@ export const ADMIN_ROUTES: Routes = [
         path: 'dashboard',
         component: AdminDashboardComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin (dashboard has global stats)
+      },
+      {
+        path: 'validations',
+        component: AdminValidationsComponent,
+        canActivate: [roleGuard],
+        data: { requiredRole: 'referent' } // All admin roles can access validations
       },
       {
         path: 'utilisateurs',
