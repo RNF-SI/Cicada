@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Django 5.0+ with Django REST Framework 3.14+
 - PostgreSQL 15+ with PostGIS 3.3+ for spatial data
 - Python 3.11+
+- Celery + Redis for async tasks (email notifications)
 
 ### Frontend
 - Angular 19+ with TypeScript 5+
@@ -385,9 +386,10 @@ The Angular application follows a modular structure:
 
 The backend follows a modular architecture with distinct Django apps:
 
-- **authentication**: JWT auth with djangorestframework-simplejwt, login/logout/refresh endpoints
+- **authentication**: JWT auth with djangorestframework-simplejwt, login/logout/refresh endpoints, public registration
 - **users**: User management, organizations (bib_organismes), role-based permissions system
 - **plans**: Management plans CRUD, multi-site support, file attachments *(API REST complète)*
+- **notifications**: Validation requests system, email notifications, Celery async tasks
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
   - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management
@@ -515,6 +517,7 @@ Run `docker-compose exec web python manage.py seed_testdata` to create:
 - **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Referents, Utilisateurs
 - **Nomenclatures**: Site types, evaluation types, editor types
+- **Validation Requests**: Demandes de test avec différents statuts (pending, approved, rejected) et dates réalistes
 
 ### Authentication System (JWT)
 
@@ -526,6 +529,8 @@ JWT authentication is fully implemented and operational:
 - `POST /api/auth/logout/` - Logout (blacklist refresh token)
 - `GET /api/auth/me/` - Get current user info
 - `GET /api/auth/health/` - Public health check
+- `POST /api/auth/register/` - Public user registration (requires admin approval)
+- `GET /api/auth/registration-status/` - Check registration request status
 
 **Configuration:**
 - Access tokens: 60 minutes lifetime
@@ -682,5 +687,43 @@ class UsersConfig(AppConfig):
 - Advanced filtering (25+ filters) and search capabilities
 - Upload/download system for plan files (documents, maps, reports)
 - Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
+
+**API REST Notifications & Validations:**
+- Validation requests API at `/api/validations/`
+- Request types: `user_registration`, `site_access`, `plan_access`, `referent_validation`
+- Status workflow: `pending` → `approved` / `rejected` / `cancelled` / `expired`
+- Endpoints:
+  - `GET /api/validations/` - List validation requests (filtered by user role)
+  - `GET /api/validations/pending/` - Pending requests for current validator
+  - `GET /api/validations/my-requests/` - Current user's own requests
+  - `POST /api/validations/{id}/approve/` - Approve a request
+  - `POST /api/validations/{id}/reject/` - Reject a request
+  - `GET /api/notifications/` - User notifications
+  - `POST /api/notifications/{id}/read/` - Mark notification as read
+  - `POST /api/notifications/read-all/` - Mark all as read
+
+### Frontend Features
+
+**Page Profil (`/profile`):**
+- Informations personnelles de l'utilisateur
+- Onglet "Mes demandes" : suivi des demandes de validation en cours
+- Accessible à tous les utilisateurs authentifiés
+
+**Administration Validations (`/admin/validations`):**
+- Tableau des demandes de validation à traiter
+- Filtres par statut et type de demande
+- Actions rapides : approuver/rejeter en un clic
+- Dialog de détail avec informations complètes
+- Accessible aux admin_og et super_admin
+
+**Inscription Publique (`/auth/register`):**
+- Formulaire d'inscription avec sélection d'organisme
+- Page d'attente de validation (`/auth/registration-pending`)
+- Workflow : inscription → validation admin → activation compte
+
+**Cloche de Notifications:**
+- Composant `NotificationBellComponent` dans le header
+- Compteur de notifications non lues
+- Dialog avec liste des notifications et marquage comme lu
 
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.
