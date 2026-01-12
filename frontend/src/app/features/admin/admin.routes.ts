@@ -10,6 +10,7 @@ import { AdminOrganismesComponent } from './admin-organismes.component';
 import { AdminSitesComponent } from './admin-sites.component';
 import { AdminPlansComponent } from './admin-plans.component';
 import { AdminValidationsComponent } from './admin-validations/admin-validations.component';
+import { AdminModulesComponent } from './admin-modules/admin-modules.component';
 
 /**
  * Admin Routes Configuration
@@ -85,6 +86,11 @@ export const ADMIN_ROUTES: Routes = [
         component: AdminPlansComponent,
         canActivate: [roleGuard],
         data: { requiredRole: 'referent' } // referent can access for validations
+      },
+      {
+        path: 'modules',
+        component: AdminModulesComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage module access
       }
     ]
   }

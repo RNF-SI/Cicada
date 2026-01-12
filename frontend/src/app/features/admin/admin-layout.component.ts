@@ -64,7 +64,8 @@ export class AdminLayoutComponent {
     { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', minRole: 'admin_og' },
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
-    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' }
+    { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
+    { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' }
   ];
 
   visibleNavItems = computed(() => {
