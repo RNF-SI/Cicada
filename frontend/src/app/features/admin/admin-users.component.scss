@@ -1,8 +1,7 @@
 @import 'variables';
 
 .admin-users {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 // Header
@@ -139,17 +138,26 @@
   background-color: $white;
   border-radius: $border-radius-md;
   box-shadow: $shadow-light;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .users-table {
   width: 100%;
   border-collapse: collapse;
   font-family: $font-family;
+  table-layout: auto;
 
   th, td {
     padding: $spacing-sm $spacing-md;
     text-align: left;
+    white-space: nowrap;
+  }
+
+  // Colonnes qui peuvent wrapper leur contenu
+  td.sites-cell,
+  td.plans-cell {
+    white-space: normal;
+    min-width: 180px;
   }
 
   thead {
@@ -314,6 +322,67 @@
   padding: 2px 0;
 }
 
+// Plans column
+.plans-cell {
+  max-width: 250px;
+}
+
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px $spacing-xs;
+  background-color: rgba($secondary-pale-green, 0.4);
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  color: darken($secondary-pale-green, 35%);
+  max-width: 220px;
+
+  i {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .plan-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .role-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: $border-radius-round;
+    margin-left: 2px;
+    flex-shrink: 0;
+
+    &.referent {
+      background-color: $secondary-yellow;
+      color: darken($secondary-yellow, 35%);
+    }
+  }
+}
+
+.plans-more {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+  cursor: help;
+  padding: 2px 0;
+}
+
 .date-cell {
   color: $gray-dark;
   font-size: $font-size-small;
@@ -408,6 +477,6 @@
   }
 
   .users-table {
-    min-width: 900px;
+    min-width: 1200px;
   }
 }

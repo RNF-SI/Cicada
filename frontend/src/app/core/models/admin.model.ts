@@ -84,6 +84,17 @@ export interface UserSiteRelation {
 }
 
 /**
+ * User-Plan relationship (plans where user is referent)
+ */
+export interface UserPlanRelation {
+  id_pg: number;
+  nom: string;
+  statut: PlanStatut;
+  annee_debut?: number;
+  annee_fin?: number;
+}
+
+/**
  * User - admin list model
  */
 export interface AdminUser {
@@ -98,6 +109,7 @@ export interface AdminUser {
   active: boolean;
   last_login?: string;
   sites_lies?: UserSiteRelation[];
+  plans_referent?: UserPlanRelation[];
 }
 
 /**

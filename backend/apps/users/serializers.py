@@ -6,6 +6,7 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
+from apps.plans.models import PlanGestion
 
 
 class BibOrganismesSerializer(serializers.ModelSerializer):
@@ -53,11 +54,21 @@ class RoleBasicSerializer(serializers.ModelSerializer):
     Serializer basique pour les utilisateurs (pour les relations).
     """
     nom_complet = serializers.CharField(source='get_full_name', read_only=True)
-    
+
     class Meta:
         model = Role
         fields = ['id_role', 'email', 'nom_complet', 'role_level']
         read_only_fields = ['id_role']
+
+
+class PlanReferentSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les plans de gestion dont l'utilisateur est referent.
+    """
+    class Meta:
+        model = PlanGestion
+        fields = ['id_pg', 'nom', 'statut', 'annee_debut', 'annee_fin']
+        read_only_fields = ['id_pg']
 
 
 class RoleListSerializer(serializers.ModelSerializer):
@@ -71,13 +82,18 @@ class RoleListSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    plans_referent = PlanReferentSerializer(
+        source='plans_referents',
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Role
         fields = [
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
             'role_level', 'organisme', 'active', 'is_staff', 'date_insert',
-            'sites_lies', 'last_login'
+            'sites_lies', 'plans_referent', 'last_login'
         ]
         read_only_fields = ['id_role', 'date_insert', 'last_login']
 
@@ -101,6 +117,11 @@ class RoleDetailSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    plans_referent = PlanReferentSerializer(
+        source='plans_referents',
+        many=True,
+        read_only=True
+    )
 
     # Permissions info
     permissions_info = serializers.SerializerMethodField()
@@ -111,7 +132,7 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
             'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
-            'sites_lies', 'permissions_info', 'date_insert', 'date_update',
+            'sites_lies', 'plans_referent', 'permissions_info', 'date_insert', 'date_update',
             'last_login'
         ]
         read_only_fields = [

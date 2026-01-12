@@ -26,6 +26,13 @@ interface DisplaySite {
   isReferent: boolean;
 }
 
+// Interface for display plan
+interface DisplayPlan {
+  id: number;
+  nom: string;
+  statut: string;
+}
+
 // Interface for display
 interface DisplayUser {
   id: number;
@@ -39,6 +46,7 @@ interface DisplayUser {
   isActive: boolean;
   lastLogin?: string;
   sites: DisplaySite[];
+  plans: DisplayPlan[];
 }
 
 interface DisplayOrganisme {
@@ -160,6 +168,12 @@ export class AdminUsersComponent implements OnInit {
       isReferent: relation.referent
     }));
 
+    const plans: DisplayPlan[] = (user.plans_referent || []).map(plan => ({
+      id: plan.id_pg,
+      nom: plan.nom,
+      statut: plan.statut
+    }));
+
     return {
       id: user.id_role,
       email: user.email,
@@ -171,7 +185,8 @@ export class AdminUsersComponent implements OnInit {
       role: user.role_level,
       isActive: user.active,
       lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined,
-      sites
+      sites,
+      plans
     };
   }
 
@@ -181,6 +196,10 @@ export class AdminUsersComponent implements OnInit {
 
   getOtherSitesNames(sites: DisplaySite[]): string {
     return sites.slice(2).map(s => s.nom).join(', ');
+  }
+
+  getOtherPlansNames(plans: DisplayPlan[]): string {
+    return plans.slice(2).map(p => p.nom).join(', ');
   }
 
   filterUsers(): void {

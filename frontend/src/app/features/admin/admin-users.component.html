@@ -70,6 +70,7 @@
             }
             <th>Role</th>
             <th>Sites</th>
+            <th>Plans de gestion</th>
             <th>Statut</th>
             <th>Derniere connexion</th>
             <th>Actions</th>
@@ -127,6 +128,32 @@
                   </div>
                 }
               </td>
+              <td class="plans-cell">
+                @if (user.plans.length === 0) {
+                  <span class="text-muted">Aucun plan</span>
+                } @else if (user.plans.length === 1) {
+                  <span class="plan-chip" [matTooltip]="user.plans[0].nom">
+                    <i class="fi fi-rr-document"></i>
+                    <span class="plan-name">{{ user.plans[0].nom }}</span>
+                    <span class="role-indicator referent" title="Referent">R</span>
+                  </span>
+                } @else {
+                  <div class="plans-list">
+                    @for (plan of user.plans.slice(0, 2); track plan.id) {
+                      <span class="plan-chip" [matTooltip]="plan.nom">
+                        <i class="fi fi-rr-document"></i>
+                        <span class="plan-name">{{ plan.nom }}</span>
+                        <span class="role-indicator referent" title="Referent">R</span>
+                      </span>
+                    }
+                    @if (user.plans.length > 2) {
+                      <span class="plans-more" [matTooltip]="getOtherPlansNames(user.plans)">
+                        +{{ user.plans.length - 2 }} autres
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
               <td>
                 <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
                   {{ user.isActive ? 'Actif' : 'Inactif' }}
@@ -176,7 +203,7 @@
 
           @if (filteredUsers().length === 0) {
             <tr>
-              <td [attr.colspan]="isSuperAdmin() ? 8 : 7" class="empty-cell">
+              <td [attr.colspan]="isSuperAdmin() ? 9 : 8" class="empty-cell">
                 Aucun utilisateur trouve
               </td>
             </tr>
