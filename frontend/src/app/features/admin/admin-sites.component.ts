@@ -76,6 +76,7 @@ export class AdminSitesComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
   // Filter state
   searchQuery = '';
@@ -225,7 +226,7 @@ export class AdminSitesComponent implements OnInit {
       result = result.filter(site => site.type === this.filterType);
     }
 
-    // Filter by organisme (super admin only)
+    // Filter by organisme (super admin filter dropdown)
     if (this.filterOrganisme) {
       const filterOrgId = parseInt(this.filterOrganisme);
       result = result.filter(site =>
@@ -234,8 +235,11 @@ export class AdminSitesComponent implements OnInit {
       );
     }
 
-    // For non-super admin, only show sites linked to their organisme
-    if (!this.isSuperAdmin()) {
+    // For admin_og (not super_admin), filter by their organisme
+    // Note: The backend already filters sites, but this ensures consistency
+    // For referents (is_referent && niveau_role === 'utilisateur'), the backend
+    // returns only their assigned sites, so no additional filtering needed
+    if (!this.isSuperAdmin() && this.isAdminOrganisme()) {
       const currentOrgId = this.currentUser()?.organisme?.id;
       if (currentOrgId) {
         result = result.filter(site =>

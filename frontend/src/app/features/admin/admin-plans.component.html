@@ -4,7 +4,13 @@
     <div class="header-left">
       <h1>Gestion des plans de gestion</h1>
       <p class="subtitle">
-        Administration des liens sites et referents des plans de gestion
+        @if (isSuperAdmin()) {
+          Administration de tous les plans de gestion
+        } @else if (isAdminOrganisme()) {
+          Plans de gestion de votre organisme
+        } @else {
+          Mes plans de gestion assignes
+        }
       </p>
     </div>
   </header>
@@ -202,21 +208,23 @@
                 <button class="btn-icon" title="Voir le plan" (click)="viewPlan(plan)">
                   <i class="fi fi-rr-eye"></i>
                 </button>
-                <button class="btn-icon" title="Gerer les sites" (click)="managePlanSites(plan)">
-                  <i class="fi fi-rr-marker"></i>
-                </button>
-                <button class="btn-icon" title="Gerer les referents" (click)="managePlanReferents(plan)">
-                  <i class="fi fi-rr-user"></i>
-                </button>
-                @if (plan.statut === 'draft') {
-                  <button class="btn-icon success" title="Valider le plan" (click)="validerPlan(plan)">
-                    <i class="fi fi-rr-check"></i>
+                @if (isAdminOrganisme()) {
+                  <button class="btn-icon" title="Gerer les sites" (click)="managePlanSites(plan)">
+                    <i class="fi fi-rr-marker"></i>
                   </button>
-                }
-                @if (plan.statut !== 'archive') {
-                  <button class="btn-icon warning" title="Archiver" (click)="archiverPlan(plan)">
-                    <i class="fi fi-rr-archive"></i>
+                  <button class="btn-icon" title="Gerer les referents" (click)="managePlanReferents(plan)">
+                    <i class="fi fi-rr-user"></i>
                   </button>
+                  @if (plan.statut === 'draft') {
+                    <button class="btn-icon success" title="Valider le plan" (click)="validerPlan(plan)">
+                      <i class="fi fi-rr-check"></i>
+                    </button>
+                  }
+                  @if (plan.statut !== 'archive') {
+                    <button class="btn-icon warning" title="Archiver" (click)="archiverPlan(plan)">
+                      <i class="fi fi-rr-archive"></i>
+                    </button>
+                  }
                 }
                 @if (plan.statut === 'archive' && isSuperAdmin()) {
                   <button class="btn-icon" title="Restaurer en brouillon" (click)="restaurerPlan(plan)">

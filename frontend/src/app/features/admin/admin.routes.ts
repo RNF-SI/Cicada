@@ -17,7 +17,7 @@ import { AdminValidationsComponent } from './admin-validations/admin-validations
  * Role-based access:
  * - super_admin: access to all pages (dashboard, utilisateurs, organismes, sites, plans)
  * - admin_og: access to utilisateurs, organismes, sites, plans (filtered by their organisme)
- * - referent: access to plans only (for managing validations on their sites/plans)
+ * - referent: access to validations, sites, plans (filtered to their assigned sites/plans)
  * - utilisateur: NO access to admin
  */
 export const ADMIN_ROUTES: Routes = [
@@ -78,7 +78,7 @@ export const ADMIN_ROUTES: Routes = [
         path: 'sites',
         component: AdminSitesComponent,
         canActivate: [roleGuard],
-        data: { requiredRole: 'admin_og' } // admin_og sees sites linked to their organisme
+        data: { requiredRole: 'referent' } // referent sees their assigned sites only
       },
       {
         path: 'plans',

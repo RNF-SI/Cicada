@@ -97,6 +97,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                 'niveau_role': user.role_level,
                 'is_staff': user.is_staff,
                 'is_active': user.active,
+                'is_referent': user.is_referent(),
                 'organisme': {
                     'id': user.id_organisme.id_organisme,
                     'nom_organisme': user.id_organisme.nom_organisme,
@@ -113,16 +114,21 @@ class UserInfoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='id_role', read_only=True)
     niveau_role = serializers.CharField(source='role_level', read_only=True)
     is_active = serializers.BooleanField(source='active', read_only=True)
+    is_referent = serializers.SerializerMethodField()
     organisme = serializers.SerializerMethodField()
 
     class Meta:
         model = Role
         fields = [
             'id', 'email', 'nom_role', 'prenom_role', 'identifiant',
-            'niveau_role', 'is_staff', 'is_active', 'organisme',
+            'niveau_role', 'is_staff', 'is_active', 'is_referent', 'organisme',
             'date_insert', 'last_login'
         ]
         read_only_fields = ['id', 'date_insert', 'last_login']
+
+    def get_is_referent(self, obj):
+        """Retourne True si l'utilisateur est referent d'au moins un site ou plan."""
+        return obj.is_referent()
 
     def get_organisme(self, obj):
         """Retourne les informations de l'organisme."""

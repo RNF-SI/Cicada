@@ -179,6 +179,7 @@ def start_impersonation_view(request, user_id):
             'niveau_role': target_user.role_level,
             'is_staff': target_user.is_staff,
             'is_active': target_user.active,
+            'is_referent': target_user.is_referent(),
             'organisme': {
                 'id': target_user.id_organisme.id_organisme,
                 'nom_organisme': target_user.id_organisme.nom_organisme,
@@ -284,6 +285,7 @@ def stop_impersonation_view(request):
             'niveau_role': original_admin.role_level,
             'is_staff': original_admin.is_staff,
             'is_active': original_admin.active,
+            'is_referent': original_admin.is_referent(),
             'organisme': {
                 'id': original_admin.id_organisme.id_organisme,
                 'nom_organisme': original_admin.id_organisme.nom_organisme,

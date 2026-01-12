@@ -54,7 +54,7 @@ export class AdminLayoutComponent {
   }
 
   // Navigation items with role-based visibility
-  // referent: sees only Plans de gestion and Validations
+  // referent: sees Validations, Sites (their assigned), Plans (their assigned)
   // admin_og: sees Utilisateurs, Organismes, Sites, Plans, Validations (filtered by their organisme)
   // super_admin: sees everything (dashboard, utilisateurs, organismes, sites, plans, validations)
   // utilisateur: NO access to admin
@@ -63,7 +63,7 @@ export class AdminLayoutComponent {
     { label: 'Validations', icon: 'fi-rr-check-circle', route: '/administration/validations', minRole: 'referent' },
     { label: 'Utilisateurs', icon: 'fi-rr-users', route: '/administration/utilisateurs', minRole: 'admin_og' },
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
-    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'admin_og' },
+    { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' }
   ];
 

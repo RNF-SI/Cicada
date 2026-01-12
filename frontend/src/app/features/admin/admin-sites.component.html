@@ -6,8 +6,10 @@
       <p class="subtitle">
         @if (isSuperAdmin()) {
           Tous les espaces proteges
-        } @else {
+        } @else if (isAdminOrganisme()) {
           Sites de {{ currentOrganismeName() }}
+        } @else {
+          Mes sites assignes
         }
       </p>
     </div>
@@ -153,9 +155,11 @@
               </td>
               <td>{{ site.nbPlans }}</td>
               <td class="actions-cell">
-                <button class="btn-icon" title="Ajouter un referent" (click)="openAddReferentModal(site)">
-                  <i class="fi fi-rr-user-add"></i>
-                </button>
+                @if (isAdminOrganisme()) {
+                  <button class="btn-icon" title="Gerer les utilisateurs" (click)="openAddReferentModal(site)">
+                    <i class="fi fi-rr-user-add"></i>
+                  </button>
+                }
                 @if (isSuperAdmin()) {
                   <button class="btn-icon" title="Associer a un organisme" (click)="openAssignOrganismeModal(site)">
                     <i class="fi fi-rr-building"></i>

@@ -77,6 +77,7 @@ export class AdminPlansComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
   // Filter state
   searchQuery = '';
@@ -118,9 +119,12 @@ export class AdminPlansComponent implements OnInit {
   loadPlans(): void {
     this.isLoading.set(true);
 
-    // For non-super admin, filter by their organisme
+    // For admin_og (not super_admin), filter by their organisme
+    // For referents, the backend handles filtering to show their assigned plans
     const currentOrgId = this.currentUser()?.organisme?.id;
-    const organismeFilter = !this.isSuperAdmin() && currentOrgId ? currentOrgId : undefined;
+    const organismeFilter = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId
+      ? currentOrgId
+      : undefined;
 
     this.adminService.getPlans({
       search: this.searchQuery || undefined,
