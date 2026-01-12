@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { User } from '../../core/models/user.model';
@@ -38,7 +39,8 @@ import {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    TranslateModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
@@ -47,6 +49,7 @@ export class ProfileComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly validationService = inject(ValidationService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   // Utilisateur courant
   readonly currentUser = this.authService.currentUser;
@@ -75,7 +78,9 @@ export class ProfileComponent implements OnInit {
       },
       error: (error) => {
         console.error('Erreur chargement mes demandes:', error);
-        this.snackBar.open('Erreur lors du chargement des demandes', 'Fermer', {
+        this.snackBar.open(
+          this.translate.instant('profile.requests.loadError'),
+          this.translate.instant('common.actions.close'), {
           duration: 3000
         });
         this.loadingRequests.set(false);

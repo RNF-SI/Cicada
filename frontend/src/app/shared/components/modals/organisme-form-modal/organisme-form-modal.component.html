@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>
   @if (isEditMode) {
-    Modifier l'organisme
+    {{ 'modals.organismeForm.titleEdit' | translate }}
   } @else {
-    Nouvel organisme
+    {{ 'modals.organismeForm.titleCreate' | translate }}
   }
 </h2>
 
@@ -16,17 +16,17 @@
 
   <form [formGroup]="form" class="organisme-form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Nom de l'organisme *</mat-label>
-      <input matInput formControlName="nom_organisme" placeholder="Ex: CEN Auvergne-Rhone-Alpes">
+      <mat-label>{{ 'modals.organismeForm.name' | translate }} *</mat-label>
+      <input matInput formControlName="nom_organisme" [placeholder]="'modals.organismeForm.namePlaceholder' | translate">
       @if (form.get('nom_organisme')?.hasError('required') && form.get('nom_organisme')?.touched) {
-        <mat-error>Le nom est requis</mat-error>
+        <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
       }
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Organisme parent</mat-label>
+      <mat-label>{{ 'modals.organismeForm.parent' | translate }}</mat-label>
       <mat-select formControlName="parent_id">
-        <mat-option [value]="null">Aucun (organisme principal)</mat-option>
+        <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
         @for (org of parentOrganismes(); track org.id_organisme) {
           <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
         }
@@ -35,60 +35,60 @@
 
     <div class="form-row">
       <mat-form-field appearance="outline">
-        <mat-label>Adresse</mat-label>
-        <input matInput formControlName="adresse_organisme" placeholder="Ex: 6 bis rue de la Gouge">
+        <mat-label>{{ 'modals.organismeForm.address' | translate }}</mat-label>
+        <input matInput formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
       </mat-form-field>
     </div>
 
     <div class="form-row two-columns">
       <mat-form-field appearance="outline">
-        <mat-label>Code postal</mat-label>
-        <input matInput formControlName="cp_organisme" placeholder="Ex: 21000">
+        <mat-label>{{ 'modals.organismeForm.postalCode' | translate }}</mat-label>
+        <input matInput formControlName="cp_organisme" [placeholder]="'modals.organismeForm.postalCodePlaceholder' | translate">
         @if (form.get('cp_organisme')?.hasError('pattern') && form.get('cp_organisme')?.touched) {
-          <mat-error>Code postal invalide (5 chiffres)</mat-error>
+          <mat-error>{{ 'modals.organismeForm.validation.postalCodeInvalid' | translate }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Ville</mat-label>
-        <input matInput formControlName="ville_organisme" placeholder="Ex: Dijon">
+        <mat-label>{{ 'modals.organismeForm.city' | translate }}</mat-label>
+        <input matInput formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
       </mat-form-field>
     </div>
 
     <div class="form-row two-columns">
       <mat-form-field appearance="outline">
-        <mat-label>Telephone</mat-label>
-        <input matInput formControlName="tel_organisme" placeholder="Ex: 03 80 48 91 00">
+        <mat-label>{{ 'modals.organismeForm.phone' | translate }}</mat-label>
+        <input matInput formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email_organisme" placeholder="Ex: contact@organisme.fr">
+        <mat-label>{{ 'modals.organismeForm.email' | translate }}</mat-label>
+        <input matInput type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
         @if (form.get('email_organisme')?.hasError('email') && form.get('email_organisme')?.touched) {
-          <mat-error>Email invalide</mat-error>
+          <mat-error>{{ 'common.validation.emailInvalid' | translate }}</mat-error>
         }
       </mat-form-field>
     </div>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Site web</mat-label>
-      <input matInput formControlName="url_organisme" placeholder="Ex: https://www.organisme.fr">
-      <mat-hint>L'URL doit commencer par http:// ou https://</mat-hint>
+      <mat-label>{{ 'modals.organismeForm.website' | translate }}</mat-label>
+      <input matInput formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
+      <mat-hint>{{ 'modals.organismeForm.websiteHint' | translate }}</mat-hint>
     </mat-form-field>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
-    Annuler
+    {{ 'common.actions.cancel' | translate }}
   </button>
   <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="isLoading()">
     @if (isLoading()) {
       <mat-spinner diameter="20"></mat-spinner>
     } @else if (isEditMode) {
-      Enregistrer
+      {{ 'common.actions.save' | translate }}
     } @else {
-      Creer
+      {{ 'common.actions.create' | translate }}
     }
   </button>
 </mat-dialog-actions>

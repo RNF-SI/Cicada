@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -13,7 +14,7 @@ import { NotificationBellComponent } from '../notification-bell/notification-bel
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatButtonModule, MatDividerModule, MatMenuModule, NotificationBellComponent],
+  imports: [CommonModule, RouterModule, MatButtonModule, MatDividerModule, MatMenuModule, NotificationBellComponent, TranslateModule],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'
 })

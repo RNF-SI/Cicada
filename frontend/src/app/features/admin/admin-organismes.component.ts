@@ -5,6 +5,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminOrganisme } from '../../core/models/admin.model';
@@ -42,7 +43,8 @@ interface DisplayOrganisme {
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   templateUrl: './admin-organismes.component.html',
   styleUrl: './admin-organismes.component.scss'
@@ -52,6 +54,7 @@ export class AdminOrganismesComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -100,7 +103,7 @@ export class AdminOrganismesComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         this.isLoading.set(false);
       }
     });
@@ -152,7 +155,7 @@ export class AdminOrganismesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Organisme cree avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.organismes.messages.created'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadOrganismes();
       }
     });
@@ -182,7 +185,7 @@ export class AdminOrganismesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Organisme modifie avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.organismes.messages.updated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadOrganismes();
       }
     });
@@ -203,7 +206,7 @@ export class AdminOrganismesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
-        this.snackBar.open('Utilisateur associe a l\'organisme', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.organismes.messages.userLinked'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadOrganismes();
       }
     });
@@ -223,7 +226,7 @@ export class AdminOrganismesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
-        this.snackBar.open('Site associe a l\'organisme', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.organismes.messages.siteLinked'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadOrganismes();
       }
     });
@@ -244,7 +247,7 @@ export class AdminOrganismesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Site cree et associe a votre organisme', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.organismes.messages.siteCreated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadOrganismes();
       }
     });

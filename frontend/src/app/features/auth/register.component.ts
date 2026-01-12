@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface OrganismeOption {
   id: number;
@@ -29,7 +30,8 @@ interface OrganismeOption {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    TranslateModule
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss'
@@ -38,6 +40,7 @@ export class RegisterComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   registerForm: FormGroup;
   hidePassword = signal(true);
@@ -152,11 +155,11 @@ export class RegisterComponent implements OnInit {
         },
         error: (error) => {
           if (error.error?.email) {
-            this.errorMessage.set('Cette adresse email est deja utilisee.');
+            this.errorMessage.set(this.translate.instant('auth.register.errors.emailAlreadyUsed'));
           } else if (error.error?.error) {
             this.errorMessage.set(error.error.error);
           } else {
-            this.errorMessage.set('Une erreur est survenue. Veuillez reessayer.');
+            this.errorMessage.set(this.translate.instant('errors.generic'));
           }
           this.isLoading.set(false);
         }

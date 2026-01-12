@@ -728,4 +728,155 @@ class UsersConfig(AppConfig):
 - Compteur de notifications non lues
 - Dialog avec liste des notifications et marquage comme lu
 
+## Internationalisation (i18n)
+
+**IMPORTANT : Toutes les chaînes de texte visibles par l'utilisateur doivent être traduites.**
+
+### Frontend (Angular avec ngx-translate)
+
+**Configuration :**
+- Fichier de traductions : `frontend/src/assets/i18n/fr.json`
+- Service : `frontend/src/app/core/services/translation.service.ts`
+- Langue par défaut : Français (`fr`)
+
+**Usage dans les templates HTML :**
+```html
+<!-- Texte simple -->
+<h1>{{ 'admin.users.title' | translate }}</h1>
+
+<!-- Avec paramètres -->
+<p>{{ 'common.itemsCount' | translate:{ count: items.length } }}</p>
+
+<!-- Dans les attributs -->
+<input [placeholder]="'common.actions.search' | translate">
+<button [title]="'common.actions.delete' | translate">
+```
+
+**Usage dans le TypeScript :**
+```typescript
+import { TranslateService } from '@ngx-translate/core';
+
+// Dans le composant
+private readonly translate = inject(TranslateService);
+
+// Utilisation
+this.snackBar.open(
+  this.translate.instant('admin.users.messages.success'),
+  this.translate.instant('common.actions.close'),
+  { duration: 3000 }
+);
+```
+
+**Structure des clés de traduction :**
+```
+common.actions.*      - Actions (save, cancel, delete, close, search...)
+common.status.*       - Statuts (active, inactive, pending...)
+common.validation.*   - Messages de validation
+auth.*                - Authentification (login, register)
+header.*              - Navigation et header
+admin.users.*         - Gestion des utilisateurs
+admin.plans.*         - Gestion des plans
+admin.sites.*         - Gestion des sites
+admin.organismes.*    - Gestion des organismes
+admin.validations.*   - Gestion des validations
+modals.*              - Dialogues modaux
+plans.*               - Module plans
+profile.*             - Page profil
+home.*                - Page d'accueil
+scores.*              - Labels des scores
+actionStatus.*        - Statuts des actions
+```
+
+**Ajouter TranslateModule aux composants standalone :**
+```typescript
+import { TranslateModule } from '@ngx-translate/core';
+
+@Component({
+  // ...
+  imports: [CommonModule, TranslateModule, /* autres imports */],
+})
+```
+
+### Backend (Django avec gettext)
+
+**Configuration :**
+- Répertoire locale : `backend/locale/fr/LC_MESSAGES/`
+- Import : `from django.utils.translation import gettext_lazy as _`
+
+**Fichiers de traduction Django :**
+
+| Fichier | Type | Description |
+|---------|------|-------------|
+| `.po` (Portable Object) | Texte | Fichier éditable contenant les chaînes source et leurs traductions |
+| `.mo` (Machine Object) | Binaire | Fichier compilé utilisé par Django à l'exécution |
+
+**Workflow de traduction :**
+1. `makemessages` → Scanne le code Python/templates et génère/met à jour les `.po`
+2. Édition manuelle → Traduire les chaînes dans le fichier `.po`
+3. `compilemessages` → Compile les `.po` en `.mo` pour la production
+
+**Note importante :** Avec `gettext_lazy`, les chaînes françaises sont directement dans le code Python. Les fichiers `.po`/`.mo` ne sont nécessaires que si vous ajoutez une **autre langue** (ex: anglais). Pour le français uniquement, l'infrastructure actuelle suffit.
+
+**Usage dans les models :**
+```python
+from django.utils.translation import gettext_lazy as _
+
+class MonModel(models.Model):
+    nom = models.CharField(_("Nom"), max_length=100)
+    description = models.TextField(_("Description"), help_text=_("Description détaillée"))
+
+    class Meta:
+        verbose_name = _("Mon modèle")
+        verbose_name_plural = _("Mes modèles")
+```
+
+**Usage dans les serializers/views :**
+```python
+from django.utils.translation import gettext_lazy as _
+
+raise serializers.ValidationError(_("Les mots de passe ne correspondent pas."))
+```
+
+**Usage dans les templates email :**
+```html
+{% load i18n %}
+
+<h1>{% trans "Bienvenue" %}</h1>
+<p>{% blocktrans %}Bonjour {{ nom }},{% endblocktrans %}</p>
+```
+
+**Commandes de traduction (uniquement si ajout d'une nouvelle langue) :**
+```bash
+# Installer gettext dans le container (requis une seule fois)
+docker-compose exec web apk add gettext
+
+# Extraire les chaînes traduisibles vers backend/locale/fr/LC_MESSAGES/django.po
+docker-compose exec web python manage.py makemessages -l fr
+
+# Pour ajouter l'anglais
+docker-compose exec web python manage.py makemessages -l en
+
+# Compiler les .po en .mo (après traduction manuelle du .po)
+docker-compose exec web python manage.py compilemessages
+```
+
+**Contenu d'un fichier .po :**
+```po
+#: apps/users/models.py:42
+msgid "Adresse email"
+msgstr "Adresse email"  # FR: identique car source en français
+
+#: apps/users/models.py:42 (dans en/django.po)
+msgid "Adresse email"
+msgstr "Email address"  # EN: traduction anglaise
+```
+
+### Bonnes pratiques
+
+1. **Ne jamais coder en dur** les textes visibles par l'utilisateur
+2. **Utiliser des clés descriptives** : `admin.users.messages.deleteSuccess` plutôt que `msg1`
+3. **Grouper les clés** par fonctionnalité/module
+4. **Ajouter les traductions** dans `fr.json` AVANT de les utiliser
+5. **Vérifier** que TranslateModule est importé dans les composants standalone
+
 For detailed specifications, model definitions, and full documentation, refer to `claude.md`.

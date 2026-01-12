@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { NavigationTileComponent } from '../../shared/components/navigation-tile/navigation-tile.component';
 
@@ -10,6 +11,7 @@ import { NavigationTileComponent } from '../../shared/components/navigation-tile
   imports: [
     CommonModule,
     RouterModule,
+    TranslateModule,
     HeaderComponent,
     NavigationTileComponent
   ],

@@ -2,19 +2,19 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-left">
-      <h1>Gestion des organismes</h1>
+      <h1>{{ 'admin.organismes.title' | translate }}</h1>
       <p class="subtitle">
         @if (isSuperAdmin()) {
-          Tous les organismes gestionnaires
+          {{ 'admin.organismes.subtitle.superAdmin' | translate }}
         } @else {
-          Votre organisme
+          {{ 'admin.organismes.subtitle.orgAdmin' | translate }}
         }
       </p>
     </div>
     @if (isSuperAdmin()) {
       <button class="btn-primary" (click)="openAddOrganismeModal()">
         <i class="fi fi-rr-building"></i>
-        <span>Ajouter un organisme</span>
+        <span>{{ 'admin.organismes.addOrganisme' | translate }}</span>
       </button>
     }
   </header>
@@ -26,7 +26,7 @@
         <i class="fi fi-rr-search"></i>
         <input
           type="text"
-          placeholder="Rechercher un organisme..."
+          [placeholder]="'admin.organismes.search' | translate"
           [(ngModel)]="searchQuery"
           (ngModelChange)="filterOrganismes()"
         />
@@ -38,7 +38,7 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Chargement des organismes...</p>
+      <p>{{ 'admin.organismes.messages.loading' | translate }}</p>
     </div>
   } @else {
     <!-- Organismes Grid / Single View -->
@@ -50,22 +50,22 @@
             <div class="card-header">
               <h3>{{ org.nom }}</h3>
               <span class="status-badge" [class.active]="org.isActive" [class.inactive]="!org.isActive">
-                {{ org.isActive ? 'Actif' : 'Inactif' }}
+                {{ (org.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
               </span>
             </div>
 
             <div class="card-stats">
               <div class="stat">
                 <i class="fi fi-rr-users"></i>
-                <span>{{ org.nbUtilisateurs }} utilisateurs</span>
+                <span>{{ 'admin.organismes.stats.users' | translate:{ count: org.nbUtilisateurs } }}</span>
               </div>
               <div class="stat">
                 <i class="fi fi-rr-marker"></i>
-                <span>{{ org.nbSites }} sites</span>
+                <span>{{ 'admin.organismes.stats.sites' | translate:{ count: org.nbSites } }}</span>
               </div>
               <div class="stat">
                 <i class="fi fi-rr-document"></i>
-                <span>{{ org.nbPlans }} plans</span>
+                <span>{{ 'admin.organismes.stats.plans' | translate:{ count: org.nbPlans } }}</span>
               </div>
             </div>
 
@@ -91,14 +91,14 @@
             </div>
 
             <div class="card-actions">
-              <button class="btn-secondary" (click)="editOrganisme(org)" title="Modifier l'organisme">
+              <button class="btn-secondary" (click)="editOrganisme(org)" [title]="'admin.organismes.actions.edit' | translate">
                 <i class="fi fi-rr-pencil"></i>
-                <span>Modifier</span>
+                <span>{{ 'admin.organismes.actions.edit' | translate }}</span>
               </button>
-              <button class="btn-icon-secondary" (click)="openAddUserModal(org)" title="Ajouter un utilisateur">
+              <button class="btn-icon-secondary" (click)="openAddUserModal(org)" [title]="'admin.organismes.actions.addUser' | translate">
                 <i class="fi fi-rr-user-add"></i>
               </button>
-              <button class="btn-icon-secondary" (click)="openAddSiteModal(org)" title="Ajouter un site">
+              <button class="btn-icon-secondary" (click)="openAddSiteModal(org)" [title]="'admin.organismes.actions.addSite' | translate">
                 <i class="fi fi-rr-map-marker-plus"></i>
               </button>
             </div>
@@ -108,7 +108,7 @@
         @if (filteredOrganismes().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-building"></i>
-            <p>Aucun organisme trouve</p>
+            <p>{{ 'admin.organismes.empty.noOrganismes' | translate }}</p>
           </div>
         }
       </div>
@@ -122,49 +122,48 @@
             </div>
             <div class="org-info">
               <h2>{{ currentOrganisme()!.nom }}</h2>
-              <span class="status-badge active">Actif</span>
+              <span class="status-badge active">{{ 'common.status.active' | translate }}</span>
             </div>
             <div class="header-actions">
               <button class="btn-secondary" (click)="openAddSiteModal(currentOrganisme()!)"
-                      matTooltip="A terme, cette action enverra une demande de liaison qui devra etre validee par un super administrateur"
                       matTooltipPosition="below">
                 <i class="fi fi-rr-link"></i>
-                <span>Demander un lien</span>
+                <span>{{ 'admin.organismes.actions.requestLink' | translate }}</span>
               </button>
-              <button class="btn-primary" (click)="openCreateSiteModal(currentOrganisme()!)" title="Creer un nouveau site">
+              <button class="btn-primary" (click)="openCreateSiteModal(currentOrganisme()!)" [title]="'admin.organismes.actions.createSite' | translate">
                 <i class="fi fi-rr-add"></i>
-                <span>Creer un site</span>
+                <span>{{ 'admin.organismes.actions.createSite' | translate }}</span>
               </button>
             </div>
           </div>
 
           <div class="detail-grid">
             <div class="detail-section stats-section">
-              <h3>Statistiques</h3>
+              <h3>{{ 'admin.plans.stats.total' | translate }}</h3>
               <div class="stats-grid">
                 <div class="stat-card">
                   <span class="stat-value">{{ currentOrganisme()!.nbUtilisateurs }}</span>
-                  <span class="stat-label">Utilisateurs</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.usersLabel' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <span class="stat-value">{{ currentOrganisme()!.nbSites }}</span>
-                  <span class="stat-label">Sites</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.sitesLabel' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <span class="stat-value">{{ currentOrganisme()!.nbPlans }}</span>
-                  <span class="stat-label">Plans de gestion</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.plansLabel' | translate }}</span>
                 </div>
               </div>
             </div>
 
             <div class="detail-section contact-section">
-              <h3>Informations de contact</h3>
+              <h3>{{ 'admin.organismes.contact.title' | translate }}</h3>
               <div class="contact-info">
                 @if (currentOrganisme()!.email) {
                   <div class="contact-row">
                     <i class="fi fi-rr-envelope"></i>
                     <div>
-                      <span class="label">Email</span>
+                      <span class="label">{{ 'admin.organismes.contact.email' | translate }}</span>
                       <span class="value">{{ currentOrganisme()!.email }}</span>
                     </div>
                   </div>
@@ -173,7 +172,7 @@
                   <div class="contact-row">
                     <i class="fi fi-rr-phone-call"></i>
                     <div>
-                      <span class="label">Telephone</span>
+                      <span class="label">{{ 'admin.organismes.contact.phone' | translate }}</span>
                       <span class="value">{{ currentOrganisme()!.telephone }}</span>
                     </div>
                   </div>
@@ -182,7 +181,7 @@
                   <div class="contact-row">
                     <i class="fi fi-rr-marker"></i>
                     <div>
-                      <span class="label">Adresse</span>
+                      <span class="label">{{ 'admin.organismes.contact.address' | translate }}</span>
                       <span class="value">
                         {{ currentOrganisme()!.adresse }}<br>
                         {{ currentOrganisme()!.codePostal }} {{ currentOrganisme()!.ville }}

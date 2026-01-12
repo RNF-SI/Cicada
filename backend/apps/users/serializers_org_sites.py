@@ -2,6 +2,7 @@
 Serializers pour les API Organismes et Sites avec support GeoJSON.
 """
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 try:
     from rest_framework_gis.serializers import GeoFeatureModelSerializer
     HAS_GIS_SUPPORT = True
@@ -9,7 +10,7 @@ except ImportError:
     # Fallback si rest_framework_gis n'est pas disponible
     GeoFeatureModelSerializer = serializers.ModelSerializer
     HAS_GIS_SUPPORT = False
-    
+
 from django.contrib.gis.geos import Point, MultiPolygon
 from django.db import transaction
 
@@ -118,13 +119,13 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
             try:
                 BibOrganismes.objects.get(id_organisme=value)
             except BibOrganismes.DoesNotExist:
-                raise serializers.ValidationError("Organisme parent introuvable.")
+                raise serializers.ValidationError(_("Organisme parent introuvable."))
         return value
-    
+
     def validate_nom_organisme(self, value):
         """Valide le nom de l'organisme."""
         if not value or len(value.strip()) < 3:
-            raise serializers.ValidationError("Le nom doit contenir au moins 3 caractères.")
+            raise serializers.ValidationError(_("Le nom doit contenir au moins 3 caractères."))
         return value.strip()
     
     def create(self, validated_data):
@@ -340,21 +341,21 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
             try:
                 Nomenclature.objects.get(id_nomenclature=value)
             except Nomenclature.DoesNotExist:
-                raise serializers.ValidationError("Type de site introuvable.")
+                raise serializers.ValidationError(_("Type de site introuvable."))
         return value
-    
+
     def validate_nom_site(self, value):
         """Valide le nom du site."""
         if not value or len(value.strip()) < 3:
-            raise serializers.ValidationError("Le nom doit contenir au moins 3 caractères.")
+            raise serializers.ValidationError(_("Le nom doit contenir au moins 3 caractères."))
         return value.strip()
-    
+
     def validate_surf_off(self, value):
         """Valide la surface officielle."""
         if value is not None and value < 0:
-            raise serializers.ValidationError("La surface ne peut pas être négative.")
+            raise serializers.ValidationError(_("La surface ne peut pas être négative."))
         return value
-    
+
     def validate_geom_geojson(self, value):
         """Valide la géométrie GeoJSON."""
         if value is not None:
@@ -366,12 +367,12 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
                     if hasattr(geom, 'geom_type') and geom.geom_type == 'Polygon':
                         geom = MultiPolygon(geom)
                     else:
-                        raise serializers.ValidationError("La géométrie doit être un Polygon ou MultiPolygon.")
+                        raise serializers.ValidationError(_("La géométrie doit être un Polygon ou MultiPolygon."))
                 return geom
             except Exception as e:
-                raise serializers.ValidationError(f"GeoJSON invalide: {str(e)}")
+                raise serializers.ValidationError(_("GeoJSON invalide: %(error)s") % {'error': str(e)})
         return value
-    
+
     def validate_geom_pt_geojson(self, value):
         """Valide le point de référence GeoJSON."""
         if value is not None:
@@ -379,10 +380,10 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
                 from django.contrib.gis.geos import GEOSGeometry
                 geom = GEOSGeometry(str(value))
                 if not isinstance(geom, Point):
-                    raise serializers.ValidationError("Le point de référence doit être un Point.")
+                    raise serializers.ValidationError(_("Le point de référence doit être un Point."))
                 return geom
             except Exception as e:
-                raise serializers.ValidationError(f"Point GeoJSON invalide: {str(e)}")
+                raise serializers.ValidationError(_("Point GeoJSON invalide: %(error)s") % {'error': str(e)})
         return value
     
     def create(self, validated_data):
@@ -452,24 +453,24 @@ class OrganismeSiteAssignmentSerializer(serializers.Serializer):
         try:
             Site.objects.get(id_site=value)
         except Site.DoesNotExist:
-            raise serializers.ValidationError("Site introuvable.")
+            raise serializers.ValidationError(_("Site introuvable."))
         return value
 
 
 class BulkSiteAssignmentSerializer(serializers.Serializer):
     """Serializer pour assignation en masse de sites."""
-    
+
     site_ids = serializers.ListField(child=serializers.IntegerField())
-    
+
     def validate_site_ids(self, value):
         """Valide l'existence de tous les sites."""
         if not value:
-            raise serializers.ValidationError("Au moins un site doit être spécifié.")
-        
+            raise serializers.ValidationError(_("Au moins un site doit être spécifié."))
+
         existing_sites = Site.objects.filter(id_site__in=value).values_list('id_site', flat=True)
         missing_sites = set(value) - set(existing_sites)
-        
+
         if missing_sites:
-            raise serializers.ValidationError(f"Sites introuvables: {list(missing_sites)}")
-        
+            raise serializers.ValidationError(_("Sites introuvables: %(sites)s") % {'sites': list(missing_sites)})
+
         return value

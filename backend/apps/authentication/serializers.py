@@ -3,6 +3,7 @@ Serializers pour l'authentification.
 """
 from django.contrib.auth import authenticate
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import Role
@@ -16,7 +17,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
 
     username = serializers.CharField(
         write_only=True,
-        help_text="Email ou identifiant de l'utilisateur"
+        help_text=_("Email ou identifiant de l'utilisateur")
     )
     password = serializers.CharField(
         write_only=True,
@@ -29,7 +30,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
 
         if not username or not password:
             raise serializers.ValidationError(
-                "L'identifiant et le mot de passe sont requis."
+                _("L'identifiant et le mot de passe sont requis.")
             )
 
         # Rechercher l'utilisateur par email OU identifiant
@@ -46,25 +47,25 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                 if pending.requested_organisme:
                     validator_info = f"un administrateur de {pending.requested_organisme.nom_organisme}"
                 else:
-                    validator_info = "un administrateur"
+                    validator_info = _("un administrateur")
                 raise serializers.ValidationError(
-                    f"Votre demande d'inscription est en attente de validation par {validator_info}. "
-                    "Vous recevrez un email lorsque votre compte sera active."
+                    _("Votre demande d'inscription est en attente de validation par %(validator)s. "
+                      "Vous recevrez un email lorsque votre compte sera activé.") % {'validator': validator_info}
                 )
             raise serializers.ValidationError(
-                "Identifiant ou mot de passe incorrect."
+                _("Identifiant ou mot de passe incorrect.")
             )
 
         # Verifier le mot de passe
         if not user.check_password(password):
             raise serializers.ValidationError(
-                "Identifiant ou mot de passe incorrect."
+                _("Identifiant ou mot de passe incorrect.")
             )
 
         # Verifier que l'utilisateur est actif
         if not user.active or not user.is_active:
             raise serializers.ValidationError(
-                "Ce compte est desactive."
+                _("Ce compte est désactivé.")
             )
 
         # Verifier si l'utilisateur est en attente de validation
@@ -73,10 +74,10 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             if user.id_organisme:
                 validator_info = f"un administrateur de {user.id_organisme.nom_organisme}"
             else:
-                validator_info = "un administrateur"
+                validator_info = _("un administrateur")
             raise serializers.ValidationError(
-                f"Votre compte est en attente de validation par {validator_info}. "
-                "Vous recevrez un email lorsque votre compte sera active."
+                _("Votre compte est en attente de validation par %(validator)s. "
+                  "Vous recevrez un email lorsque votre compte sera activé.") % {'validator': validator_info}
             )
 
         # Generer les tokens JWT

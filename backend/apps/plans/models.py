@@ -3,6 +3,7 @@ Modèles pour la gestion des Plans de Gestion.
 """
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.translation import gettext_lazy as _
 from datetime import datetime
 
 
@@ -11,145 +12,145 @@ class PlanGestion(models.Model):
     Modèle principal pour les Plans de Gestion.
     Basé sur t_plan_gestion du schéma general.
     """
-    
+
     # Statuts possibles
     STATUT_CHOICES = [
-        ('draft', 'Brouillon'),
-        ('valide', 'Validé'), 
-        ('archive', 'Archivé'),
+        ('draft', _('Brouillon')),
+        ('valide', _('Validé')),
+        ('archive', _('Archivé')),
     ]
     
     id_pg = models.AutoField(primary_key=True)
-    id_cdr = models.IntegerField("Identifiant CDR", null=True, blank=True)
-    nom = models.CharField("Nom du plan de gestion", max_length=255)
-    
+    id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
+    nom = models.CharField(_("Nom du plan de gestion"), max_length=255)
+
     # Gestion multi-sites
     gestion_partagee = models.BooleanField(
-        "Gestion partagée", 
+        _("Gestion partagée"),
         default=False,
-        help_text="Ce plan concerne-t-il plusieurs sites ?"
+        help_text=_("Ce plan concerne-t-il plusieurs sites ?")
     )
-    
+
     # Période de validité
     annee_debut = models.IntegerField(
-        "Année de début",
+        _("Année de début"),
         validators=[MinValueValidator(1900), MaxValueValidator(2100)],
         null=True, blank=True
     )
     annee_fin = models.IntegerField(
-        "Année de fin", 
+        _("Année de fin"),
         validators=[MinValueValidator(1900), MaxValueValidator(2100)],
         null=True, blank=True
     )
-    
+
     # Contraintes réglementaires
     ct88 = models.BooleanField(
-        "Circulaire CT88",
+        _("Circulaire CT88"),
         default=False,
-        help_text="Plan soumis à la circulaire CT88"
+        help_text=_("Plan soumis à la circulaire CT88")
     )
     risque_incendie = models.BooleanField(
-        "Risque incendie pris en compte",
+        _("Risque incendie pris en compte"),
         default=False,
-        help_text="Le risque incendie est-il pris en compte dans le plan ?"
+        help_text=_("Le risque incendie est-il pris en compte dans le plan ?")
     )
-    
+
     # Relations vers nomenclatures
     id_evaluation = models.ForeignKey(
         'core.Nomenclature',
         on_delete=models.PROTECT,
         null=True, blank=True,
         related_name='plans_evaluation',
-        verbose_name="Type d'évaluation",
-        help_text="Type d'évaluation du plan (ex: évaluation intermédiaire, finale...)"
+        verbose_name=_("Type d'évaluation"),
+        help_text=_("Type d'évaluation du plan (ex: évaluation intermédiaire, finale...)")
     )
-    
+
     id_redacteur_type = models.ForeignKey(
-        'core.Nomenclature', 
+        'core.Nomenclature',
         on_delete=models.PROTECT,
         null=True, blank=True,
         related_name='plans_redacteur_type',
-        verbose_name="Type de rédacteur",
-        help_text="Type de rédacteur (ex: bureau d'étude, gestionnaire, autre...)"
+        verbose_name=_("Type de rédacteur"),
+        help_text=_("Type de rédacteur (ex: bureau d'étude, gestionnaire, autre...)")
     )
-    
+
     redacteur_nom = models.CharField(
-        "Nom du rédacteur",
+        _("Nom du rédacteur"),
         max_length=255,
         null=True, blank=True,
-        help_text="Nom de la personne ou structure ayant rédigé le plan"
+        help_text=_("Nom de la personne ou structure ayant rédigé le plan")
     )
-    
+
     # Contenu
-    commentaire = models.TextField("Commentaire", null=True, blank=True)
-    
+    commentaire = models.TextField(_("Commentaire"), null=True, blank=True)
+
     # Statut et versioning
     statut = models.CharField(
-        "Statut", 
+        _("Statut"),
         max_length=20,
         choices=STATUT_CHOICES,
         default='draft'
     )
     version = models.CharField(
-        "Version", 
-        max_length=20, 
+        _("Version"),
+        max_length=20,
         default='1.0',
-        help_text="Version du plan (ex: 1.0, 1.1, 2.0...)"
+        help_text=_("Version du plan (ex: 1.0, 1.1, 2.0...)")
     )
-    
+
     # Géométrie (optionnelle, peut être calculée depuis les sites)
     geometrie = models.MultiPolygonField(
-        "Géométrie du plan",
+        _("Géométrie du plan"),
         srid=4326,
         null=True, blank=True,
-        help_text="Emprise géographique du plan (calculée automatiquement si vide)"
+        help_text=_("Emprise géographique du plan (calculée automatiquement si vide)")
     )
-    
+
     # Métadonnées de traçabilité
     date_ajout = models.DateTimeField(
-        "Date de création",
+        _("Date de création"),
         auto_now_add=True
     )
     date_maj = models.DateTimeField(
-        "Date de modification", 
+        _("Date de modification"),
         auto_now=True
     )
     last_update = models.DateTimeField(
-        "Dernière mise à jour",
+        _("Dernière mise à jour"),
         auto_now=True
     )
-    
+
     # Utilisateurs responsables
     id_utilisateur_ajout = models.ForeignKey(
         'users.Role',
         on_delete=models.PROTECT,
         related_name='plans_crees',
-        verbose_name="Créateur",
-        help_text="Utilisateur ayant créé le plan"
+        verbose_name=_("Créateur"),
+        help_text=_("Utilisateur ayant créé le plan")
     )
     id_utilisateur_maj = models.ForeignKey(
         'users.Role',
-        on_delete=models.PROTECT, 
+        on_delete=models.PROTECT,
         null=True, blank=True,
         related_name='plans_modifies',
-        verbose_name="Dernier modificateur",
-        help_text="Utilisateur ayant effectué la dernière modification"
+        verbose_name=_("Dernier modificateur"),
+        help_text=_("Utilisateur ayant effectué la dernière modification")
     )
-    
+
     # Référents du plan (Many-to-Many)
     referents = models.ManyToManyField(
         'users.Role',
         blank=True,
         related_name='plans_referents',
-        verbose_name="Référents du plan",
-        help_text="Utilisateurs référents pour ce plan"
+        verbose_name=_("Référents du plan"),
+        help_text=_("Utilisateurs référents pour ce plan")
     )
 
     class Meta:
         db_table = 't_plan_gestion'
         db_table_comment = 'Plans de gestion des espaces naturels'
-        verbose_name = "Plan de gestion"
-        verbose_name_plural = "Plans de gestion"
+        verbose_name = _("Plan de gestion")
+        verbose_name_plural = _("Plans de gestion")
         ordering = ['-date_maj', 'nom']
 
     def __str__(self):
@@ -221,40 +222,40 @@ class CorSitePg(models.Model):
     Table de liaison entre Sites et Plans de Gestion.
     Un plan peut concerner plusieurs sites, et un site peut avoir plusieurs plans.
     """
-    
+
     site = models.ForeignKey(
         'users.Site',
         on_delete=models.CASCADE,
-        verbose_name="Site"
+        verbose_name=_("Site")
     )
     plan_de_gestion = models.ForeignKey(
         PlanGestion,
         on_delete=models.CASCADE,
         related_name='sites',
-        verbose_name="Plan de gestion"
+        verbose_name=_("Plan de gestion")
     )
     rang = models.IntegerField(
-        "Rang",
+        _("Rang"),
         null=True, blank=True,
-        help_text="Ordre d'importance du site dans le plan (1=principal)"
+        help_text=_("Ordre d'importance du site dans le plan (1=principal)")
     )
-    
+
     # Métadonnées
     date_association = models.DateTimeField(
-        "Date d'association",
+        _("Date d'association"),
         auto_now_add=True
     )
     commentaire = models.TextField(
-        "Commentaire",
+        _("Commentaire"),
         null=True, blank=True,
-        help_text="Précisions sur le lien entre ce site et le plan"
+        help_text=_("Précisions sur le lien entre ce site et le plan")
     )
 
     class Meta:
         db_table = 'cor_site_pg'
         db_table_comment = 'Liaison entre sites et plans de gestion'
-        verbose_name = "Site - Plan de gestion"
-        verbose_name_plural = "Sites - Plans de gestion"
+        verbose_name = _("Site - Plan de gestion")
+        verbose_name_plural = _("Sites - Plans de gestion")
         unique_together = ['site', 'plan_de_gestion']
         ordering = ['rang', 'site__nom_site']
 
@@ -268,101 +269,101 @@ class CorPgFichier(models.Model):
     Table de liaison entre Plans de Gestion et fichiers joints.
     Gestion des pièces jointes et documents associés aux plans.
     """
-    
+
     TYPE_FICHIER_CHOICES = [
-        ('document', 'Document principal'),
-        ('annexe', 'Annexe'),
-        ('carte', 'Carte'),
-        ('photo', 'Photographie'),
-        ('rapport', 'Rapport d\'étude'),
-        ('autre', 'Autre'),
+        ('document', _('Document principal')),
+        ('annexe', _('Annexe')),
+        ('carte', _('Carte')),
+        ('photo', _('Photographie')),
+        ('rapport', _("Rapport d'étude")),
+        ('autre', _('Autre')),
     ]
-    
+
     plan_de_gestion = models.ForeignKey(
         PlanGestion,
         on_delete=models.CASCADE,
         related_name='fichiers',
-        verbose_name="Plan de gestion"
+        verbose_name=_("Plan de gestion")
     )
-    
+
     # Informations sur le fichier
     nom_fichier = models.CharField(
-        "Nom du fichier",
+        _("Nom du fichier"),
         max_length=255,
-        help_text="Nom original du fichier uploadé"
+        help_text=_("Nom original du fichier uploadé")
     )
     chemin_fichier = models.CharField(
-        "Chemin du fichier", 
+        _("Chemin du fichier"),
         max_length=500,
-        help_text="Chemin d'accès au fichier sur le serveur"
+        help_text=_("Chemin d'accès au fichier sur le serveur")
     )
     type_fichier = models.CharField(
-        "Type de fichier",
+        _("Type de fichier"),
         max_length=20,
         choices=TYPE_FICHIER_CHOICES,
         default='document'
     )
     taille_fichier = models.BigIntegerField(
-        "Taille du fichier (bytes)",
+        _("Taille du fichier (bytes)"),
         null=True, blank=True
     )
     extension = models.CharField(
-        "Extension",
+        _("Extension"),
         max_length=10,
         null=True, blank=True
     )
-    
+
     # Métadonnées descriptives
     titre = models.CharField(
-        "Titre",
+        _("Titre"),
         max_length=255,
         null=True, blank=True,
-        help_text="Titre descriptif du document"
+        help_text=_("Titre descriptif du document")
     )
     description = models.TextField(
-        "Description", 
+        _("Description"),
         null=True, blank=True
     )
     auteur = models.CharField(
-        "Auteur", 
+        _("Auteur"),
         max_length=255,
         null=True, blank=True
     )
     date_document = models.DateField(
-        "Date du document",
+        _("Date du document"),
         null=True, blank=True,
-        help_text="Date de création/rédaction du document"
+        help_text=_("Date de création/rédaction du document")
     )
-    
+
     # Métadonnées techniques
     date_upload = models.DateTimeField(
-        "Date d'upload",
+        _("Date d'upload"),
         auto_now_add=True
     )
     id_utilisateur_upload = models.ForeignKey(
         'users.Role',
         on_delete=models.PROTECT,
-        verbose_name="Utilisateur ayant uploadé",
-        help_text="Utilisateur ayant ajouté ce fichier"
+        verbose_name=_("Utilisateur ayant uploadé"),
+        help_text=_("Utilisateur ayant ajouté ce fichier")
     )
-    
+
     # Options d'affichage
     public = models.BooleanField(
-        "Fichier public",
+        _("Fichier public"),
         default=False,
-        help_text="Le fichier est-il accessible publiquement ?"
+        help_text=_("Le fichier est-il accessible publiquement ?")
     )
     ordre_affichage = models.IntegerField(
-        "Ordre d'affichage",
+        _("Ordre d'affichage"),
         default=0,
-        help_text="Ordre d'affichage dans la liste des fichiers"
+        help_text=_("Ordre d'affichage dans la liste des fichiers")
     )
 
     class Meta:
         db_table = 'cor_pg_fichier'
         db_table_comment = 'Fichiers associés aux plans de gestion'
-        verbose_name = "Fichier plan de gestion"
-        verbose_name_plural = "Fichiers plans de gestion"
+        verbose_name = _("Fichier plan de gestion")
+        verbose_name_plural = _("Fichiers plans de gestion")
         ordering = ['ordre_affichage', 'nom_fichier']
 
     def __str__(self):

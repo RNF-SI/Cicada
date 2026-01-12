@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminSite, SiteCreatePayload } from '../../../../core/models/admin.model';
 
@@ -35,7 +36,8 @@ interface SiteType {
     MatButtonModule,
     MatSelectModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    TranslateModule
   ],
   templateUrl: './site-form-modal.component.html',
   styleUrl: './site-form-modal.component.scss'
@@ -44,6 +46,7 @@ export class SiteFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
   private readonly dialogRef = inject(MatDialogRef<SiteFormModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<SiteFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
   form!: FormGroup;
@@ -146,7 +149,7 @@ export class SiteFormModalComponent implements OnInit {
               error: (error: Error) => {
                 // Site was created but linking failed - still close with site
                 this.isLoading.set(false);
-                this.errorMessage.set(`Site cree mais erreur lors de la liaison: ${error.message}`);
+                this.errorMessage.set(this.translate.instant('modals.siteForm.messages.linkError', { error: error.message }));
                 // Still close after a delay to show the message
                 setTimeout(() => this.dialogRef.close(site), 2000);
               }

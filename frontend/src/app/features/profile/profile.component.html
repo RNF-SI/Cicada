@@ -2,12 +2,12 @@
   <!-- Bouton retour -->
   <a routerLink="/accueil" class="back-link">
     <i class="fi fi-rr-arrow-left"></i>
-    Retour a l'accueil
+    {{ 'profile.backToHome' | translate }}
   </a>
 
   <header class="page-header">
-    <h1>Mon profil</h1>
-    <p class="subtitle">Consultez vos informations et suivez vos demandes</p>
+    <h1>{{ 'profile.title' | translate }}</h1>
+    <p class="subtitle">{{ 'profile.subtitle' | translate }}</p>
   </header>
 
   <mat-tab-group>
@@ -15,7 +15,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <i class="fi fi-rr-user tab-icon"></i>
-        Informations
+        {{ 'profile.tabs.info' | translate }}
       </ng-template>
 
       <div class="tab-content">
@@ -37,24 +37,24 @@
               <mat-card-content>
                 <div class="info-grid">
                   <div class="info-item">
-                    <span class="info-label">Role</span>
+                    <span class="info-label">{{ 'profile.info.role' | translate }}</span>
                     <span class="info-value">
                       <mat-chip class="role-chip">{{ getRoleLevelLabel() }}</mat-chip>
                     </span>
                   </div>
                   @if (user.identifiant) {
                     <div class="info-item">
-                      <span class="info-label">Identifiant</span>
+                      <span class="info-label">{{ 'profile.info.identifier' | translate }}</span>
                       <span class="info-value">{{ user.identifiant }}</span>
                     </div>
                   }
                   <div class="info-item">
-                    <span class="info-label">Membre depuis</span>
+                    <span class="info-label">{{ 'profile.info.memberSince' | translate }}</span>
                     <span class="info-value">{{ formatDate(user.date_joined) }}</span>
                   </div>
                   @if (user.last_login) {
                     <div class="info-item">
-                      <span class="info-label">Derniere connexion</span>
+                      <span class="info-label">{{ 'profile.info.lastLogin' | translate }}</span>
                       <span class="info-value">{{ formatDateTime(user.last_login) }}</span>
                     </div>
                   }
@@ -68,18 +68,18 @@
                 <mat-card-header>
                   <mat-card-title>
                     <i class="fi fi-rr-building card-title-icon"></i>
-                    Mon organisme
+                    {{ 'profile.organisme.title' | translate }}
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
                   <div class="info-grid">
                     <div class="info-item full-width">
-                      <span class="info-label">Nom</span>
+                      <span class="info-label">{{ 'profile.organisme.name' | translate }}</span>
                       <span class="info-value org-name">{{ user.organisme.nom_organisme }}</span>
                     </div>
                     @if (user.organisme.adresse_organisme) {
                       <div class="info-item full-width">
-                        <span class="info-label">Adresse</span>
+                        <span class="info-label">{{ 'profile.organisme.address' | translate }}</span>
                         <span class="info-value">
                           {{ user.organisme.adresse_organisme }}
                           @if (user.organisme.cp_organisme || user.organisme.ville_organisme) {
@@ -90,13 +90,13 @@
                     }
                     @if (user.organisme.tel_organisme) {
                       <div class="info-item">
-                        <span class="info-label">Telephone</span>
+                        <span class="info-label">{{ 'profile.organisme.phone' | translate }}</span>
                         <span class="info-value">{{ user.organisme.tel_organisme }}</span>
                       </div>
                     }
                     @if (user.organisme.email_organisme) {
                       <div class="info-item">
-                        <span class="info-label">Email</span>
+                        <span class="info-label">{{ 'profile.organisme.email' | translate }}</span>
                         <span class="info-value">{{ user.organisme.email_organisme }}</span>
                       </div>
                     }
@@ -117,7 +117,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <i class="fi fi-rr-time-check tab-icon"></i>
-        Mes demandes
+        {{ 'profile.tabs.requests' | translate }}
         @if (getPendingCount() > 0) {
           <span class="badge">{{ getPendingCount() }}</span>
         }
@@ -132,19 +132,17 @@
           @if (myRequests().length === 0) {
             <div class="empty-state">
               <i class="fi fi-rr-document-signed empty-icon"></i>
-              <h3>Aucune demande</h3>
-              <p>Vous n'avez fait aucune demande de validation pour le moment.</p>
+              <h3>{{ 'profile.requests.empty.title' | translate }}</h3>
+              <p>{{ 'profile.requests.empty.message' | translate }}</p>
             </div>
           } @else {
             <div class="requests-section">
-              <p class="section-description">
-                Retrouvez ici l'etat de vos demandes d'acces aux sites et plans de gestion.
-              </p>
+              <p class="section-description">{{ 'profile.requests.description' | translate }}</p>
 
               <table mat-table [dataSource]="myRequests()" class="requests-table">
                 <!-- Type -->
                 <ng-container matColumnDef="type">
-                  <th mat-header-cell *matHeaderCellDef>Type</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.type' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     <span class="type-badge">
                       <i class="fi" [ngClass]="getTypeIcon(request.request_type)"></i>
@@ -155,7 +153,7 @@
 
                 <!-- Cible -->
                 <ng-container matColumnDef="target">
-                  <th mat-header-cell *matHeaderCellDef>Cible</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.target' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     {{ request.target_name || '-' }}
                   </td>
@@ -163,7 +161,7 @@
 
                 <!-- Date de demande -->
                 <ng-container matColumnDef="date">
-                  <th mat-header-cell *matHeaderCellDef>Demande</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.date' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     {{ formatDateTime(request.created_at) }}
                   </td>
@@ -171,7 +169,7 @@
 
                 <!-- Date de validation -->
                 <ng-container matColumnDef="validated_at">
-                  <th mat-header-cell *matHeaderCellDef>Valide le</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.validatedAt' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     @if (request.validated_at) {
                       {{ formatDateTime(request.validated_at) }}
@@ -183,7 +181,7 @@
 
                 <!-- Statut -->
                 <ng-container matColumnDef="status">
-                  <th mat-header-cell *matHeaderCellDef>Statut</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.status' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     <mat-chip [ngClass]="getStatusClass(request.status)">
                       {{ request.status_display }}
@@ -193,7 +191,7 @@
 
                 <!-- Validateur -->
                 <ng-container matColumnDef="validator">
-                  <th mat-header-cell *matHeaderCellDef>Traite par</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.validator' | translate }}</th>
                   <td mat-cell *matCellDef="let request">
                     @if (request.validator_name) {
                       <span class="validator-info">
@@ -201,7 +199,7 @@
                         {{ request.validator_name }}
                       </span>
                     } @else {
-                      <span class="pending-label">En attente</span>
+                      <span class="pending-label">{{ 'profile.requests.pending' | translate }}</span>
                     }
                   </td>
                 </ng-container>

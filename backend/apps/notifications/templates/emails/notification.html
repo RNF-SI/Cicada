@@ -1,26 +1,27 @@
 {% extends "emails/base.html" %}
+{% load i18n %}
 
 {% block title %}{{ notification.title }}{% endblock %}
 
 {% block content %}
 <h2>{{ notification.title }}</h2>
 
-<p>Bonjour {{ recipient.prenom_role|default:recipient.email }},</p>
+<p>{% blocktrans with prenom=recipient.prenom_role|default:recipient.email %}Bonjour {{ prenom }},{% endblocktrans %}</p>
 
 <p>{{ notification.message }}</p>
 
 {% if notification.action_url %}
 <p style="text-align: center;">
     <a href="{{ site_url }}{{ notification.action_url }}" class="button">
-        Voir les details
+        {% trans "Voir les détails" %}
     </a>
 </p>
 {% endif %}
 
 {% if notification.priority == 'critical' %}
 <div class="warning-box">
-    <strong>Action requise</strong><br>
-    Cette notification necessite votre attention immediate.
+    <strong>{% trans "Action requise" %}</strong><br>
+    {% trans "Cette notification nécessite votre attention immédiate." %}
 </div>
 {% endif %}
 {% endblock %}

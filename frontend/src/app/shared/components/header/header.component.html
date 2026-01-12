@@ -4,12 +4,12 @@
     <div class="impersonation-content">
       <i class="fi fi-rr-eye"></i>
       <span class="impersonation-text">
-        <strong>Mode visualisation</strong> - Vous visualisez en tant que <strong>{{ userDisplayName }}</strong>
-        <span class="impersonation-info">(connecte en tant que {{ originalUserDisplayName }})</span>
+        <strong>{{ 'header.impersonation.banner' | translate }}</strong> - {{ 'header.impersonation.viewing' | translate }} <strong>{{ userDisplayName }}</strong>
+        <span class="impersonation-info">({{ 'header.impersonation.connectedAs' | translate }} {{ originalUserDisplayName }})</span>
       </span>
       <button class="stop-impersonation-btn" (click)="stopImpersonation()">
         <i class="fi fi-rr-cross-circle"></i>
-        Revenir a mon compte
+        {{ 'header.impersonation.stopButton' | translate }}
       </button>
     </div>
   </div>
@@ -19,7 +19,7 @@
   <div class="header-content">
     <!-- Hamburger Menu - Hidden on home page -->
     @if (!isHomePage()) {
-      <button class="hamburger-btn" (click)="toggleMenu()" aria-label="Menu">
+      <button class="hamburger-btn" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
         <i class="fi fi-rr-menu-burger"></i>
       </button>
     }
@@ -36,7 +36,7 @@
         @if (canAccessAdmin()) {
           <a (click)="openAdmin()" class="nav-link admin-btn" role="button" tabindex="0">
             <i class="fi fi-rr-settings-sliders"></i>
-            <span class="btn-text">Administration</span>
+            <span class="btn-text">{{ 'header.administration' | translate }}</span>
           </a>
         }
 
@@ -58,30 +58,30 @@
           <mat-divider></mat-divider>
           <button mat-menu-item routerLink="/profile">
             <i class="fi fi-rr-user menu-icon"></i>
-            <span>Mon profil</span>
+            <span>{{ 'header.profile' | translate }}</span>
           </button>
           <button mat-menu-item routerLink="/settings">
             <i class="fi fi-rr-settings menu-icon"></i>
-            <span>Parametres</span>
+            <span>{{ 'header.settings' | translate }}</span>
           </button>
           @if (canAccessAdmin()) {
             <mat-divider></mat-divider>
             <button mat-menu-item routerLink="/administration/validations">
               <i class="fi fi-rr-check-circle menu-icon"></i>
-              <span>Validations</span>
+              <span>{{ 'header.validations' | translate }}</span>
             </button>
           }
           <mat-divider></mat-divider>
           <button mat-menu-item (click)="logout()" class="logout-item">
             <i class="fi fi-rr-sign-out-alt menu-icon"></i>
-            <span>Deconnexion</span>
+            <span>{{ 'header.logout' | translate }}</span>
           </button>
         </mat-menu>
       } @else {
         <!-- Guest user - Login button -->
         <a routerLink="/auth/login" class="nav-link login-btn">
           <i class="fi fi-rr-sign-in-alt user-icon"></i>
-          <span class="user-name">Se connecter</span>
+          <span class="user-name">{{ 'header.login' | translate }}</span>
         </a>
       }
     </nav>
@@ -93,7 +93,7 @@
   <div class="menu-overlay" (click)="toggleMenu()"></div>
   <nav class="mobile-menu">
     <div class="mobile-menu-header">
-      <span class="mobile-menu-title">Menu</span>
+      <span class="mobile-menu-title">{{ 'header.menu' | translate }}</span>
       <button class="close-btn" (click)="toggleMenu()">
         <i class="fi fi-rr-cross"></i>
       </button>
@@ -101,16 +101,16 @@
     <div class="mobile-menu-content">
       <a routerLink="/accueil" class="mobile-menu-item" (click)="toggleMenu()">
         <i class="fi fi-rr-home"></i>
-        <span>Accueil</span>
+        <span>{{ 'header.home' | translate }}</span>
       </a>
       <a routerLink="/plans" class="mobile-menu-item" (click)="toggleMenu()">
         <i class="fi fi-rr-document"></i>
-        <span>Plans de gestion</span>
+        <span>{{ 'header.plans' | translate }}</span>
       </a>
       @if (isAuthenticated() && canAccessAdmin()) {
         <a (click)="openAdmin(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
           <i class="fi fi-rr-settings-sliders"></i>
-          <span>Administration</span>
+          <span>{{ 'header.administration' | translate }}</span>
         </a>
       }
     </div>

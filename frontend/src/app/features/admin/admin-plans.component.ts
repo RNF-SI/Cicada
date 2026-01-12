@@ -6,6 +6,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, AdminOrganisme } from '../../core/models/admin.model';
@@ -64,7 +65,8 @@ interface DisplayOrganisme {
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   templateUrl: './admin-plans.component.html',
   styleUrl: './admin-plans.component.scss'
@@ -74,6 +76,7 @@ export class AdminPlansComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -138,30 +141,24 @@ export class AdminPlansComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         this.isLoading.set(false);
       }
     });
   }
 
   private mapPlan(plan: AdminPlan): DisplayPlan {
-    const statutLabels: Record<PlanStatut, string> = {
-      'draft': 'Brouillon',
-      'valide': 'Valide',
-      'archive': 'Archive'
-    };
-
     const periode = plan.annee_debut && plan.annee_fin
       ? `${plan.annee_debut} - ${plan.annee_fin}`
       : plan.annee_debut
-        ? `Depuis ${plan.annee_debut}`
-        : 'Non definie';
+        ? this.translate.instant('admin.plans.periode.since', { year: plan.annee_debut })
+        : this.translate.instant('admin.plans.periode.undefined');
 
     return {
       id: plan.id_pg,
       nom: plan.nom,
       statut: plan.statut,
-      statutLabel: statutLabels[plan.statut] || plan.statut,
+      statutLabel: this.translate.instant('admin.plans.status.' + plan.statut),
       version: plan.version,
       periodeDebut: plan.annee_debut,
       periodeFin: plan.annee_fin,
@@ -239,7 +236,7 @@ export class AdminPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success && result?.changed) {
-        this.snackBar.open('Sites du plan mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.plans.messages.sitesUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadPlans();
       }
     });
@@ -264,7 +261,7 @@ export class AdminPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success && result?.changed) {
-        this.snackBar.open('Referents du plan mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.plans.messages.referentsUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadPlans();
       }
     });
@@ -277,34 +274,34 @@ export class AdminPlansComponent implements OnInit {
 
   validerPlan(plan: DisplayPlan): void {
     if (plan.statut !== 'draft') {
-      this.snackBar.open('Seuls les plans en brouillon peuvent etre valides', 'OK', { duration: 3000 });
+      this.snackBar.open(this.translate.instant('admin.plans.messages.onlyDraftCanBeValidated'), 'OK', { duration: 3000 });
       return;
     }
 
     this.adminService.updatePlanStatus(plan.id, 'valide').subscribe({
       next: () => {
-        this.snackBar.open('Plan valide avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.plans.messages.validated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadPlans();
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
   }
 
   archiverPlan(plan: DisplayPlan): void {
     if (plan.statut === 'archive') {
-      this.snackBar.open('Ce plan est deja archive', 'OK', { duration: 3000 });
+      this.snackBar.open(this.translate.instant('admin.plans.messages.alreadyArchived'), 'OK', { duration: 3000 });
       return;
     }
 
     this.adminService.updatePlanStatus(plan.id, 'archive').subscribe({
       next: () => {
-        this.snackBar.open('Plan archive avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.plans.messages.archived'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadPlans();
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
   }
@@ -316,11 +313,11 @@ export class AdminPlansComponent implements OnInit {
 
     this.adminService.updatePlanStatus(plan.id, 'draft').subscribe({
       next: () => {
-        this.snackBar.open('Plan restaure en brouillon', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.plans.messages.restored'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadPlans();
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
   }

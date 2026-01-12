@@ -2,14 +2,14 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-left">
-      <h1>Gestion des plans de gestion</h1>
+      <h1>{{ 'admin.plans.title' | translate }}</h1>
       <p class="subtitle">
         @if (isSuperAdmin()) {
-          Administration de tous les plans de gestion
+          {{ 'admin.plans.subtitle.superAdmin' | translate }}
         } @else if (isAdminOrganisme()) {
-          Plans de gestion de votre organisme
+          {{ 'admin.plans.subtitle.orgAdmin' | translate }}
         } @else {
-          Mes plans de gestion assignes
+          {{ 'admin.plans.subtitle.user' | translate }}
         }
       </p>
     </div>
@@ -23,7 +23,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ totalPlans() }}</span>
-        <span class="stat-label">Total</span>
+        <span class="stat-label">{{ 'admin.plans.stats.total' | translate }}</span>
       </div>
     </div>
     <div class="stat-card">
@@ -32,7 +32,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ plansValides() }}</span>
-        <span class="stat-label">Valides</span>
+        <span class="stat-label">{{ 'admin.plans.stats.valides' | translate }}</span>
       </div>
     </div>
     <div class="stat-card">
@@ -41,7 +41,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ plansBrouillon() }}</span>
-        <span class="stat-label">Brouillons</span>
+        <span class="stat-label">{{ 'admin.plans.stats.brouillons' | translate }}</span>
       </div>
     </div>
     <div class="stat-card">
@@ -50,7 +50,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ plansArchives() }}</span>
-        <span class="stat-label">Archives</span>
+        <span class="stat-label">{{ 'admin.plans.stats.archives' | translate }}</span>
       </div>
     </div>
   </div>
@@ -61,7 +61,7 @@
       <i class="fi fi-rr-search"></i>
       <input
         type="text"
-        placeholder="Rechercher un plan..."
+        [placeholder]="'admin.plans.search' | translate"
         [(ngModel)]="searchQuery"
         (ngModelChange)="onSearchChange()"
       />
@@ -69,15 +69,15 @@
 
     <div class="filters">
       <select [(ngModel)]="filterStatut" (ngModelChange)="filterPlans()">
-        <option value="">Tous les statuts</option>
-        <option value="draft">Brouillon</option>
-        <option value="valide">Valide</option>
-        <option value="archive">Archive</option>
+        <option value="">{{ 'common.filters.allStatus' | translate }}</option>
+        <option value="draft">{{ 'admin.plans.status.draft' | translate }}</option>
+        <option value="valide">{{ 'admin.plans.status.valide' | translate }}</option>
+        <option value="archive">{{ 'admin.plans.status.archive' | translate }}</option>
       </select>
 
       @if (isSuperAdmin()) {
         <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterPlans()">
-          <option value="">Tous les organismes</option>
+          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
           @for (org of organismes(); track org.id) {
             <option [value]="org.id">{{ org.nom }}</option>
           }
@@ -90,7 +90,7 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Chargement des plans de gestion...</p>
+      <p>{{ 'admin.plans.messages.loading' | translate }}</p>
     </div>
   } @else {
     <!-- Plans Table -->
@@ -98,13 +98,13 @@
       <table class="plans-table">
         <thead>
           <tr>
-            <th>Nom du plan</th>
-            <th>Statut</th>
-            <th>Periode</th>
-            <th>Sites</th>
-            <th>Referents</th>
-            <th>Derniere MAJ</th>
-            <th>Actions</th>
+            <th>{{ 'admin.plans.table.name' | translate }}</th>
+            <th>{{ 'admin.plans.table.status' | translate }}</th>
+            <th>{{ 'admin.plans.table.periode' | translate }}</th>
+            <th>{{ 'admin.plans.table.sites' | translate }}</th>
+            <th>{{ 'admin.plans.table.referents' | translate }}</th>
+            <th>{{ 'admin.plans.table.lastUpdate' | translate }}</th>
+            <th>{{ 'admin.plans.table.actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -149,7 +149,7 @@
               <!-- Sites -->
               <td class="sites-cell">
                 @if (plan.sites.length === 0) {
-                  <span class="text-muted">Aucun site</span>
+                  <span class="text-muted">{{ 'admin.plans.empty.noSite' | translate }}</span>
                 } @else if (plan.sites.length === 1) {
                   <span class="site-chip" [matTooltip]="plan.sites[0].nom">
                     <i class="fi fi-rr-marker"></i>
@@ -165,7 +165,7 @@
                     }
                     @if (plan.sites.length > 2) {
                       <span class="sites-more" [matTooltip]="getOtherSitesNames(plan.sites)">
-                        +{{ plan.sites.length - 2 }} autres
+                        {{ 'admin.plans.others' | translate:{ count: plan.sites.length - 2 } }}
                       </span>
                     }
                   </div>
@@ -175,7 +175,7 @@
               <!-- Referents -->
               <td class="referents-cell">
                 @if (plan.referents.length === 0) {
-                  <span class="text-muted">Aucun referent</span>
+                  <span class="text-muted">{{ 'admin.plans.empty.noReferent' | translate }}</span>
                 } @else if (plan.referents.length === 1) {
                   <span class="referent-chip" [matTooltip]="plan.referents[0].email">
                     <i class="fi fi-rr-user"></i>
@@ -191,7 +191,7 @@
                     }
                     @if (plan.referents.length > 2) {
                       <span class="referents-more" [matTooltip]="getOtherReferentsNames(plan.referents)">
-                        +{{ plan.referents.length - 2 }} autres
+                        {{ 'admin.plans.others' | translate:{ count: plan.referents.length - 2 } }}
                       </span>
                     }
                   </div>
@@ -205,29 +205,29 @@
 
               <!-- Actions -->
               <td class="actions-cell">
-                <button class="btn-icon" title="Voir le plan" (click)="viewPlan(plan)">
+                <button class="btn-icon" [title]="'admin.plans.actions.view' | translate" (click)="viewPlan(plan)">
                   <i class="fi fi-rr-eye"></i>
                 </button>
                 @if (isAdminOrganisme()) {
-                  <button class="btn-icon" title="Gerer les sites" (click)="managePlanSites(plan)">
+                  <button class="btn-icon" [title]="'admin.plans.actions.manageSites' | translate" (click)="managePlanSites(plan)">
                     <i class="fi fi-rr-marker"></i>
                   </button>
-                  <button class="btn-icon" title="Gerer les referents" (click)="managePlanReferents(plan)">
+                  <button class="btn-icon" [title]="'admin.plans.actions.manageReferents' | translate" (click)="managePlanReferents(plan)">
                     <i class="fi fi-rr-user"></i>
                   </button>
                   @if (plan.statut === 'draft') {
-                    <button class="btn-icon success" title="Valider le plan" (click)="validerPlan(plan)">
+                    <button class="btn-icon success" [title]="'admin.plans.actions.validate' | translate" (click)="validerPlan(plan)">
                       <i class="fi fi-rr-check"></i>
                     </button>
                   }
                   @if (plan.statut !== 'archive') {
-                    <button class="btn-icon warning" title="Archiver" (click)="archiverPlan(plan)">
+                    <button class="btn-icon warning" [title]="'admin.plans.actions.archive' | translate" (click)="archiverPlan(plan)">
                       <i class="fi fi-rr-archive"></i>
                     </button>
                   }
                 }
                 @if (plan.statut === 'archive' && isSuperAdmin()) {
-                  <button class="btn-icon" title="Restaurer en brouillon" (click)="restaurerPlan(plan)">
+                  <button class="btn-icon" [title]="'admin.plans.actions.restore' | translate" (click)="restaurerPlan(plan)">
                     <i class="fi fi-rr-undo"></i>
                   </button>
                 }
@@ -238,7 +238,7 @@
           @if (filteredPlans().length === 0) {
             <tr>
               <td colspan="7" class="empty-cell">
-                Aucun plan de gestion trouve
+                {{ 'admin.plans.empty.noPlans' | translate }}
               </td>
             </tr>
           }
@@ -249,7 +249,7 @@
     <!-- Summary -->
     <div class="summary">
       <span class="summary-text">
-        {{ filteredPlans().length }} plan(s) de gestion
+        {{ 'admin.plans.summary' | translate:{ count: filteredPlans().length } }}
       </span>
     </div>
   }

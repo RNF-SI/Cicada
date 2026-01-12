@@ -4,6 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
 
@@ -27,6 +28,7 @@ interface PlanGestion {
     FormsModule,
     MatMenuModule,
     MatButtonModule,
+    TranslateModule,
     HeaderComponent,
     PlanGaugeComponent
   ],
@@ -35,6 +37,7 @@ interface PlanGestion {
 })
 export class PlansListComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Tab state
   activeTab = signal<'actifs' | 'inactifs'>('actifs');
@@ -152,13 +155,14 @@ export class PlansListComponent implements OnInit {
   }
 
   getStatutLabel(statut: string): string {
-    const labels: Record<string, string> = {
-      'en_cours_revision': 'en cours de révision',
-      'evaluation_mi_parcours': 'évaluation mi-parcours',
-      'valide': 'validé',
-      'brouillon': 'brouillon'
+    const keys: Record<string, string> = {
+      'en_cours_revision': 'plans.status.inProgress',
+      'evaluation_mi_parcours': 'plans.status.midterm',
+      'valide': 'plans.status.valide',
+      'brouillon': 'plans.status.draft'
     };
-    return labels[statut] || statut;
+    const key = keys[statut];
+    return key ? this.translate.instant(key) : statut;
   }
 
   getStatutClass(statut: string): string {

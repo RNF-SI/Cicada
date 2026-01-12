@@ -6,6 +6,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../core/models/admin.model';
@@ -63,7 +64,8 @@ interface DisplayOrganisme {
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'
@@ -74,6 +76,7 @@ export class AdminUsersComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -155,7 +158,7 @@ export class AdminUsersComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         this.isLoading.set(false);
       }
     });
@@ -253,12 +256,7 @@ export class AdminUsersComponent implements OnInit {
   }
 
   getRoleLabel(role: UserRole): string {
-    const labels: Record<string, string> = {
-      'super_admin': 'Super Admin',
-      'admin_og': 'Admin Org.',
-      'utilisateur': 'Utilisateur'
-    };
-    return labels[role] || role;
+    return this.translate.instant('admin.users.roles.' + role);
   }
 
   canManageUser(user: DisplayUser): boolean {
@@ -294,7 +292,7 @@ export class AdminUsersComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
-        this.snackBar.open('Organisme mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.users.messages.organismeUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadUsers();
       }
     });
@@ -327,7 +325,7 @@ export class AdminUsersComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success && result?.changed) {
-        this.snackBar.open('Sites de l\'utilisateur mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.users.messages.sitesUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadUsers();
       }
     });
@@ -340,7 +338,7 @@ export class AdminUsersComponent implements OnInit {
 
   toggleUserStatus(user: DisplayUser): void {
     if (!this.canManageUser(user)) {
-      this.snackBar.open('Vous ne pouvez pas modifier cet utilisateur', 'OK', { duration: 3000 });
+      this.snackBar.open(this.translate.instant('admin.users.messages.cannotModify'), 'OK', { duration: 3000 });
       return;
     }
 
@@ -358,11 +356,11 @@ export class AdminUsersComponent implements OnInit {
         if (result?.confirmed) {
           this.adminService.toggleUserStatus(user.id, false).subscribe({
             next: () => {
-              this.snackBar.open('Utilisateur desactive', 'Fermer', { duration: 3000 });
+              this.snackBar.open(this.translate.instant('admin.users.messages.userDeactivated'), this.translate.instant('common.actions.close'), { duration: 3000 });
               this.loadUsers();
             },
             error: (error: Error) => {
-              this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+              this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
             }
           });
         }
@@ -371,11 +369,11 @@ export class AdminUsersComponent implements OnInit {
       // If activating, proceed directly
       this.adminService.toggleUserStatus(user.id, true).subscribe({
         next: () => {
-          this.snackBar.open('Utilisateur active', 'Fermer', { duration: 3000 });
+          this.snackBar.open(this.translate.instant('admin.users.messages.userActivated'), this.translate.instant('common.actions.close'), { duration: 3000 });
           this.loadUsers();
         },
         error: (error: Error) => {
-          this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+          this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         }
       });
     }
@@ -383,12 +381,12 @@ export class AdminUsersComponent implements OnInit {
 
   deleteUser(user: DisplayUser): void {
     // User deletion is sensitive - redirect to Django admin
-    this.snackBar.open('La suppression d\'utilisateur n\'est pas disponible ici. Utilisez l\'admin Django.', 'OK', { duration: 5000 });
+    this.snackBar.open(this.translate.instant('admin.users.messages.deletionNotAvailable'), 'OK', { duration: 5000 });
   }
 
   removeUserFromOrganisme(user: DisplayUser): void {
     if (!this.canManageUser(user)) {
-      this.snackBar.open('Vous ne pouvez pas modifier cet utilisateur', 'OK', { duration: 3000 });
+      this.snackBar.open(this.translate.instant('admin.users.messages.cannotModify'), 'OK', { duration: 3000 });
       return;
     }
 
@@ -410,18 +408,18 @@ export class AdminUsersComponent implements OnInit {
             // Now deactivate the user
             this.adminService.toggleUserStatus(user.id, false).subscribe({
               next: () => {
-                this.snackBar.open('Utilisateur retire de l\'organisme et desactive', 'Fermer', { duration: 3000 });
+                this.snackBar.open(this.translate.instant('admin.users.messages.removedFromOrganisme'), this.translate.instant('common.actions.close'), { duration: 3000 });
                 this.loadUsers();
               },
               error: (error: Error) => {
                 // User was removed from organisme but deactivation failed
-                this.snackBar.open(`Utilisateur retire mais erreur lors de la desactivation: ${error.message}`, 'Fermer', { duration: 5000 });
+                this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
                 this.loadUsers();
               }
             });
           },
           error: (error: Error) => {
-            this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+            this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
           }
         });
       }
@@ -457,20 +455,21 @@ export class AdminUsersComponent implements OnInit {
    */
   startImpersonation(user: DisplayUser): void {
     if (!this.canImpersonateUser(user)) {
-      this.snackBar.open('Vous ne pouvez pas visualiser en tant que cet utilisateur', 'OK', { duration: 3000 });
+      this.snackBar.open(this.translate.instant('admin.users.messages.cannotModify'), 'OK', { duration: 3000 });
       return;
     }
 
-    this.snackBar.open(`Demarrage de la session en tant que ${user.prenom} ${user.nom}...`, 'OK', { duration: 2000 });
+    const userName = `${user.prenom} ${user.nom}`.trim();
+    this.snackBar.open(this.translate.instant('admin.users.messages.impersonationStarting', { name: userName }), 'OK', { duration: 2000 });
 
     this.authService.startImpersonation(user.id).subscribe({
       next: () => {
-        this.snackBar.open(`Vous visualisez maintenant en tant que ${user.prenom} ${user.nom}`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.users.messages.impersonationStarted', { name: userName }), 'OK', { duration: 3000 });
         // Navigate to home page as the impersonated user
         this.router.navigate(['/']);
       },
       error: (error: Error) => {
-        this.snackBar.open(`Erreur: ${error.message}`, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
   }

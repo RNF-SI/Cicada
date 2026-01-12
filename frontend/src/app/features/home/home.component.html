@@ -19,13 +19,10 @@
       </div>
 
       <!-- Main Title -->
-      <h1 class="hero-title">Biodiv', l'outil des plans de gestion</h1>
+      <h1 class="hero-title">{{ 'home.heroTitle' | translate }}</h1>
 
       <!-- Subtitle -->
-      <p class="hero-subtitle">
-        Explorez les données du territoire, saisissez vos plans de gestion
-        et suivez vos indicateurs facilement.
-      </p>
+      <p class="hero-subtitle">{{ 'home.heroSubtitle' | translate }}</p>
     </section>
 
     <!-- Search Bar Section - Exploration des données -->
@@ -35,10 +32,10 @@
         <div class="search-bar">
           <div class="search-content">
             <h2 class="search-title">
-              Exploration des données
+              {{ 'home.exploration.title' | translate }}
               <i class="fi fi-rr-arrow-small-right"></i>
             </h2>
-            <p class="search-description">Découvrez blablabla, comparez blablabla, filtrez blablabla..</p>
+            <p class="search-description">{{ 'home.exploration.description' | translate }}</p>
           </div>
 
           <!-- Data Visualization (Waves Image) -->
@@ -69,28 +66,28 @@
     <section class="tiles-section">
       <div class="tiles-grid">
         <app-navigation-tile
-          title="Mes plans de gestion"
+          [title]="'home.tiles.plans' | translate"
           uicon="fi-rr-document"
           link="/plans"
           color="primary">
         </app-navigation-tile>
 
         <app-navigation-tile
-          title="Mes sites"
+          [title]="'home.tiles.sites' | translate"
           uicon="fi-rr-map-marker"
           link="/sites"
           color="salmon">
         </app-navigation-tile>
 
         <app-navigation-tile
-          title="Zonages règlementaires"
+          [title]="'home.tiles.zonages' | translate"
           uicon="custom:icon-auction"
           link="/zonages"
           color="terra-cotta">
         </app-navigation-tile>
 
         <app-navigation-tile
-          title="Mes inventaires et suivis"
+          [title]="'home.tiles.inventaires' | translate"
           uicon="fi-rr-test-tube"
           link="/inventaires"
           color="yellow">
@@ -105,7 +102,7 @@
     <section class="referentials-section">
       <a routerLink="/referentiels" class="referentials-link">
         <i class="fi fi-rr-book-alt"></i>
-        <span>Référentiels de données</span>
+        <span>{{ 'home.referentials' | translate }}</span>
         <i class="fi fi-rr-arrow-right arrow"></i>
       </a>
     </section>

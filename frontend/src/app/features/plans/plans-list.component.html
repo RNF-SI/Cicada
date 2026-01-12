@@ -14,11 +14,11 @@
     <div class="hero-content">
       <!-- Fil d'Ariane -->
       <nav class="breadcrumb" aria-label="Fil d'Ariane">
-        <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+        <a routerLink="/accueil" class="breadcrumb-home" [title]="'header.home' | translate">
           <i class="fi fi-rr-home"></i>
         </a>
         <span class="breadcrumb-separator"></span>
-        <span class="breadcrumb-current">Plans de gestion</span>
+        <span class="breadcrumb-current">{{ 'plans.list.title' | translate }}</span>
       </nav>
 
       <!-- Section titre -->
@@ -26,24 +26,24 @@
         <div class="title-left">
           <div class="subtitle">
             <i class="fi fi-rr-marker"></i>
-            <span>SOUS-TITRE ?</span>
+            <span>{{ 'plans.list.subtitle' | translate }}</span>
           </div>
-          <h1>Plans de gestion</h1>
+          <h1>{{ 'plans.list.title' | translate }}</h1>
         </div>
 
         <div class="title-right">
           <button class="btn-create" [matMenuTriggerFor]="createMenu">
             <i class="fi fi-rr-plus-small"></i>
-            <span>Créer un plan de gestion</span>
+            <span>{{ 'plans.list.createPlan' | translate }}</span>
             <i class="fi fi-rr-angle-small-down"></i>
           </button>
 
           <mat-menu #createMenu="matMenu" class="create-dropdown">
             <button mat-menu-item routerLink="/plans/nouveau">
-              Nouveau plan vierge
+              {{ 'plans.list.newBlankPlan' | translate }}
             </button>
             <button mat-menu-item routerLink="/plans/dupliquer">
-              Dupliquer un plan existant
+              {{ 'plans.list.duplicatePlan' | translate }}
             </button>
           </mat-menu>
         </div>
@@ -54,13 +54,13 @@
           class="tab"
           [class.active]="activeTab() === 'actifs'"
           (click)="setTab('actifs')">
-          Actifs
+          {{ 'plans.list.tabs.active' | translate }}
         </button>
         <button
           class="tab"
           [class.active]="activeTab() === 'inactifs'"
           (click)="setTab('inactifs')">
-          Inactifs
+          {{ 'plans.list.tabs.inactive' | translate }}
         </button>
       </div>
     </div>
@@ -75,7 +75,7 @@
         <i class="fi fi-rr-search"></i>
         <input
           type="text"
-          placeholder="Rechercher"
+          [placeholder]="'common.actions.search' | translate"
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
         />
@@ -83,7 +83,7 @@
 
       <!-- Old versions link -->
       <button class="btn-link">
-        <span>Voir les anciennes versions</span>
+        <span>{{ 'plans.list.oldVersions' | translate }}</span>
         <i class="fi fi-rr-time-past"></i>
       </button>
     </div>
@@ -94,12 +94,12 @@
         <thead>
           <tr>
             <th class="col-name">
-              Nom du plan de gestion
+              {{ 'plans.list.table.name' | translate }}
               <i class="fi fi-rr-arrow-small-down"></i>
             </th>
-            <th class="col-period">Période de validité</th>
+            <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
             <th class="col-status">
-              Statut
+              {{ 'plans.list.table.status' | translate }}
               <i class="fi fi-rr-arrow-small-down"></i>
             </th>
             <th class="col-actions"></th>
@@ -112,7 +112,7 @@
                 <span class="plan-name">{{ plan.nom }}</span>
                 @if (plan.isMultisites) {
                   <span class="plan-separator">-</span>
-                  <span class="plan-multisites">multisites</span>
+                  <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
                 }
               </td>
               <td class="col-period">
@@ -130,7 +130,7 @@
                   <span class="status-tag" [class]="getStatutClass(plan.statut)">
                     {{ getStatutLabel(plan.statut) }}
                   </span>
-                  <button class="btn-icon" (click)="editStatus(plan)" title="Modifier le statut">
+                  <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
                     <i class="fi fi-rr-pencil"></i>
                   </button>
                 </div>
@@ -138,11 +138,11 @@
               <td class="col-actions">
                 <div class="actions-content">
                   <button class="btn-action" (click)="followPlan(plan)">
-                    <span>Suivre</span>
+                    <span>{{ 'plans.list.actions.follow' | translate }}</span>
                     <i class="fi fi-rr-stats"></i>
                   </button>
                   <button class="btn-action" (click)="viewPlan(plan)">
-                    <span>Voir</span>
+                    <span>{{ 'plans.list.actions.view' | translate }}</span>
                     <i class="fi fi-rr-eye"></i>
                   </button>
                 </div>

@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminOrganisme, AdminUser } from '../../../../core/models/admin.model';
 
@@ -38,7 +39,8 @@ export interface LinkUserOrganismeModalData {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatInputModule,
-    MatIconModule
+    MatIconModule,
+    TranslateModule
   ],
   templateUrl: './link-user-organisme-modal.component.html',
   styleUrl: './link-user-organisme-modal.component.scss'
@@ -46,6 +48,7 @@ export interface LinkUserOrganismeModalData {
 export class LinkUserOrganismeModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialogRef = inject(MatDialogRef<LinkUserOrganismeModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<LinkUserOrganismeModalData>(MAT_DIALOG_DATA);
 
   isLoading = signal(false);
@@ -203,7 +206,7 @@ export class LinkUserOrganismeModalComponent implements OnInit {
     this.userControl.setValue('');
     this.filterAvailableUsers('');
 
-    this.successMessage.set(`Utilisateur "${this.getUserDisplayName(user)}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkUserOrganisme.messages.userAdded', { name: this.getUserDisplayName(user) }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -319,7 +322,7 @@ export class LinkUserOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserOrganisme.messages.removeError', { error: error.message }));
           }
         });
       } else {
@@ -335,7 +338,7 @@ export class LinkUserOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserOrganisme.messages.addError', { error: error.message }));
           }
         });
       }

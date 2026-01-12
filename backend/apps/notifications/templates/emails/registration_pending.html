@@ -1,26 +1,25 @@
 {% extends "emails/base.html" %}
+{% load i18n %}
 
-{% block title %}Demande d'inscription en attente{% endblock %}
+{% block title %}{% trans "Demande d'inscription en attente" %}{% endblock %}
 
 {% block content %}
-<h2>Demande d'inscription recue</h2>
+<h2>{% trans "Demande d'inscription reçue" %}</h2>
 
-<p>Bonjour {{ nom_complet }},</p>
+<p>{% blocktrans %}Bonjour {{ nom_complet }},{% endblocktrans %}</p>
 
-<p>Nous avons bien recu votre demande d'inscription a l'Outil Plan de Gestion.</p>
+<p>{% trans "Nous avons bien reçu votre demande d'inscription à l'Outil Plan de Gestion." %}</p>
 
 <div class="info-box">
-    <strong>Votre demande est en attente de validation.</strong><br>
-    Un administrateur va examiner votre demande et vous serez notifie par email
-    lorsque celle-ci sera traitee.
+    <strong>{% trans "Votre demande est en attente de validation." %}</strong><br>
+    {% trans "Un administrateur va examiner votre demande et vous serez notifié par email lorsque celle-ci sera traitée." %}
 </div>
 
 <p>
-    En attendant, vous pouvez verifier le statut de votre demande a tout moment
-    en vous rendant sur la page de connexion.
+    {% trans "En attendant, vous pouvez vérifier le statut de votre demande à tout moment en vous rendant sur la page de connexion." %}
 </p>
 
 <p>
-    Si vous n'avez pas effectue cette demande, vous pouvez ignorer cet email.
+    {% trans "Si vous n'avez pas effectué cette demande, vous pouvez ignorer cet email." %}
 </p>
 {% endblock %}

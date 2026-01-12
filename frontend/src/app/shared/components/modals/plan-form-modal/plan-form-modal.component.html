@@ -1,11 +1,11 @@
 <div class="plan-form-modal">
-  <h2 mat-dialog-title>{{ modalTitle }}</h2>
+  <h2 mat-dialog-title>{{ isEditMode ? ('modals.planForm.titleEdit' | translate) : ('modals.planForm.titleCreate' | translate) }}</h2>
 
   <mat-dialog-content>
     @if (isLoadingData()) {
       <div class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
-        <p>Chargement des donnees...</p>
+        <p>{{ 'common.loading' | translate }}</p>
       </div>
     } @else {
       <form [formGroup]="form" class="plan-form">
@@ -19,34 +19,34 @@
 
         <!-- Section: Informations generales -->
         <div class="form-section">
-          <h3 class="section-title">Informations generales</h3>
+          <h3 class="section-title">{{ 'modals.planForm.sections.generalInfo' | translate }}</h3>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nom du plan</mat-label>
-            <input matInput formControlName="nom" placeholder="Plan de gestion 2024-2034 - Site XYZ">
+            <mat-label>{{ 'modals.planForm.fields.name' | translate }}</mat-label>
+            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
             @if (form.get('nom')?.hasError('required')) {
-              <mat-error>Le nom est requis</mat-error>
+              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
             }
           </mat-form-field>
 
           <div class="form-row-3">
             <mat-form-field appearance="outline">
-              <mat-label>Statut</mat-label>
+              <mat-label>{{ 'modals.planForm.fields.status' | translate }}</mat-label>
               <mat-select formControlName="statut">
-                <mat-option value="draft">Brouillon</mat-option>
-                <mat-option value="valide">Valide</mat-option>
-                <mat-option value="archive">Archive</mat-option>
+                <mat-option value="draft">{{ 'common.status.draft' | translate }}</mat-option>
+                <mat-option value="valide">{{ 'common.status.valid' | translate }}</mat-option>
+                <mat-option value="archive">{{ 'common.status.archived' | translate }}</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Version</mat-label>
+              <mat-label>{{ 'modals.planForm.fields.version' | translate }}</mat-label>
               <input matInput formControlName="version" placeholder="1.0">
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Nom du redacteur</mat-label>
-              <input matInput formControlName="redacteur_nom" placeholder="Bureau d'etude XYZ">
+              <mat-label>{{ 'modals.planForm.fields.editorName' | translate }}</mat-label>
+              <input matInput formControlName="redacteur_nom" [placeholder]="'modals.planForm.placeholders.editorName' | translate">
             </mat-form-field>
           </div>
         </div>
@@ -55,33 +55,33 @@
         <div class="form-section">
           <div class="form-row">
             <div>
-              <h3 class="section-title">Periode de gestion</h3>
+              <h3 class="section-title">{{ 'modals.planForm.sections.managementPeriod' | translate }}</h3>
               <div class="form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Annee de debut</mat-label>
+                  <mat-label>{{ 'modals.planForm.fields.startYear' | translate }}</mat-label>
                   <input matInput type="number" formControlName="annee_debut">
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Annee de fin</mat-label>
+                  <mat-label>{{ 'modals.planForm.fields.endYear' | translate }}</mat-label>
                   <input matInput type="number" formControlName="annee_fin">
                 </mat-form-field>
               </div>
             </div>
 
             <div>
-              <h3 class="section-title">Caracteristiques</h3>
+              <h3 class="section-title">{{ 'modals.planForm.sections.characteristics' | translate }}</h3>
               <div class="checkboxes-row">
                 <mat-checkbox formControlName="gestion_partagee">
-                  Gestion partagee
+                  {{ 'modals.planForm.fields.sharedManagement' | translate }}
                 </mat-checkbox>
 
                 <mat-checkbox formControlName="ct88">
-                  CT88
+                  {{ 'modals.planForm.fields.ct88' | translate }}
                 </mat-checkbox>
 
                 <mat-checkbox formControlName="risque_incendie">
-                  Risque incendie
+                  {{ 'modals.planForm.fields.fireRisk' | translate }}
                 </mat-checkbox>
               </div>
             </div>
@@ -90,13 +90,13 @@
 
         <!-- Section: Evaluation et redaction -->
         <div class="form-section">
-          <h3 class="section-title">Evaluation et redaction</h3>
+          <h3 class="section-title">{{ 'modals.planForm.sections.evaluationAndWriting' | translate }}</h3>
 
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Type d'evaluation</mat-label>
+              <mat-label>{{ 'modals.planForm.fields.evaluationType' | translate }}</mat-label>
               <mat-select formControlName="id_evaluation">
-                <mat-option [value]="null">Aucun</mat-option>
+                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
                 @for (type of evaluationTypes(); track type.id_nomenclature) {
                   <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
                 }
@@ -104,9 +104,9 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Type de redacteur</mat-label>
+              <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
               <mat-select formControlName="id_redacteur_type">
-                <mat-option [value]="null">Aucun</mat-option>
+                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
                 @for (type of redacteurTypes(); track type.id_nomenclature) {
                   <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
                 }
@@ -122,7 +122,7 @@
             <div>
               <h3 class="section-title">
                 <i class="fi fi-rr-marker"></i>
-                Sites associes
+                {{ 'modals.planForm.sections.associatedSites' | translate }}
                 <span class="count-badge">{{ getSelectedSitesCount() }}</span>
               </h3>
 
@@ -130,7 +130,7 @@
                 <i class="fi fi-rr-search"></i>
                 <input
                   type="text"
-                  placeholder="Rechercher un site..."
+                  [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
                   [(ngModel)]="siteSearchQuery"
                   [ngModelOptions]="{standalone: true}"
                   (ngModelChange)="filterSites()"
@@ -161,9 +161,9 @@
                 @if (filteredSites().length === 0) {
                   <p class="no-items">
                     @if (siteSearchQuery) {
-                      Aucun site correspondant a "{{ siteSearchQuery }}"
+                      {{ 'modals.planForm.noSiteMatching' | translate:{ query: siteSearchQuery } }}
                     } @else {
-                      Aucun site disponible
+                      {{ 'modals.planForm.noSiteAvailable' | translate }}
                     }
                   </p>
                 }
@@ -174,7 +174,7 @@
             <div>
               <h3 class="section-title">
                 <i class="fi fi-rr-user"></i>
-                Referents
+                {{ 'modals.planForm.sections.referents' | translate }}
                 <span class="count-badge">{{ getSelectedReferentsCount() }}</span>
               </h3>
 
@@ -182,7 +182,7 @@
                 <i class="fi fi-rr-search"></i>
                 <input
                   type="text"
-                  placeholder="Rechercher un utilisateur..."
+                  [placeholder]="'modals.planForm.placeholders.searchUser' | translate"
                   [(ngModel)]="userSearchQuery"
                   [ngModelOptions]="{standalone: true}"
                   (ngModelChange)="filterUsers()"
@@ -214,9 +214,9 @@
                 @if (filteredUsers().length === 0) {
                   <p class="no-items">
                     @if (userSearchQuery) {
-                      Aucun utilisateur correspondant a "{{ userSearchQuery }}"
+                      {{ 'modals.planForm.noUserMatching' | translate:{ query: userSearchQuery } }}
                     } @else {
-                      Aucun utilisateur disponible
+                      {{ 'modals.planForm.noUserAvailable' | translate }}
                     }
                   </p>
                 }
@@ -227,15 +227,15 @@
 
         <!-- Section: Commentaire -->
         <div class="form-section">
-          <h3 class="section-title">Commentaire</h3>
+          <h3 class="section-title">{{ 'modals.planForm.sections.comment' | translate }}</h3>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Commentaire</mat-label>
+            <mat-label>{{ 'modals.planForm.fields.comment' | translate }}</mat-label>
             <textarea
               matInput
               formControlName="commentaire"
               rows="3"
-              placeholder="Informations complementaires..."
+              [placeholder]="'modals.planForm.placeholders.comment' | translate"
             ></textarea>
           </mat-form-field>
         </div>
@@ -245,7 +245,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button (click)="onCancel()" [disabled]="isLoading()">
-      Annuler
+      {{ 'common.actions.cancel' | translate }}
     </button>
     <button
       mat-raised-button
@@ -256,7 +256,7 @@
       @if (isLoading()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {
-        {{ isEditMode ? 'Modifier' : 'Creer' }}
+        {{ isEditMode ? ('common.actions.edit' | translate) : ('common.actions.create' | translate) }}
       }
     </button>
   </mat-dialog-actions>

@@ -3,6 +3,7 @@ Modeles pour les notifications et validations.
 """
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class Notification(models.Model):
@@ -12,27 +13,27 @@ class Notification(models.Model):
     """
 
     NOTIFICATION_TYPES = [
-        ('welcome', 'Bienvenue'),
-        ('validation_request', 'Demande de validation'),
-        ('validation_approved', 'Validation approuvee'),
-        ('validation_rejected', 'Validation rejetee'),
-        ('user_associated_site', 'Utilisateur associe a un site'),
-        ('user_associated_plan', 'Utilisateur associe a un plan'),
-        ('user_removed_site', 'Utilisateur retire d\'un site'),
-        ('user_removed_plan', 'Utilisateur retire d\'un plan'),
-        ('account_deactivated', 'Compte desactive'),
-        ('account_activated', 'Compte active'),
-        ('site_orphaned', 'Site sans utilisateurs'),
-        ('organisme_no_admin', 'Organisme sans administrateur'),
-        ('system_alert', 'Alerte systeme'),
-        ('info', 'Information'),
+        ('welcome', _('Bienvenue')),
+        ('validation_request', _('Demande de validation')),
+        ('validation_approved', _('Validation approuvée')),
+        ('validation_rejected', _('Validation rejetée')),
+        ('user_associated_site', _('Utilisateur associé à un site')),
+        ('user_associated_plan', _('Utilisateur associé à un plan')),
+        ('user_removed_site', _("Utilisateur retiré d'un site")),
+        ('user_removed_plan', _("Utilisateur retiré d'un plan")),
+        ('account_deactivated', _('Compte désactivé')),
+        ('account_activated', _('Compte activé')),
+        ('site_orphaned', _('Site sans utilisateurs')),
+        ('organisme_no_admin', _('Organisme sans administrateur')),
+        ('system_alert', _('Alerte système')),
+        ('info', _('Information')),
     ]
 
     PRIORITY_LEVELS = [
-        ('low', 'Basse'),
-        ('medium', 'Moyenne'),
-        ('high', 'Haute'),
-        ('critical', 'Critique'),
+        ('low', _('Basse')),
+        ('medium', _('Moyenne')),
+        ('high', _('Haute')),
+        ('critical', _('Critique')),
     ]
 
     id = models.AutoField(primary_key=True)
@@ -42,20 +43,20 @@ class Notification(models.Model):
         'users.Role',
         on_delete=models.CASCADE,
         related_name='notifications',
-        verbose_name='Destinataire'
+        verbose_name=_('Destinataire')
     )
 
     # Type et contenu
     notification_type = models.CharField(
-        'Type',
+        _('Type'),
         max_length=30,
         choices=NOTIFICATION_TYPES,
         db_index=True
     )
-    title = models.CharField('Titre', max_length=255)
-    message = models.TextField('Message')
+    title = models.CharField(_('Titre'), max_length=255)
+    message = models.TextField(_('Message'))
     priority = models.CharField(
-        'Priorite',
+        _('Priorité'),
         max_length=10,
         choices=PRIORITY_LEVELS,
         default='medium'
@@ -68,28 +69,28 @@ class Notification(models.Model):
         null=True,
         blank=True,
         related_name='related_notifications',
-        verbose_name='Utilisateur lie'
+        verbose_name=_('Utilisateur lié')
     )
     related_site = models.ForeignKey(
         'users.Site',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Site lie'
+        verbose_name=_('Site lié')
     )
     related_plan = models.ForeignKey(
         'plans.PlanGestion',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Plan lie'
+        verbose_name=_('Plan lié')
     )
     related_organisme = models.ForeignKey(
         'users.BibOrganismes',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Organisme lie'
+        verbose_name=_('Organisme lié')
     )
     related_validation = models.ForeignKey(
         'ValidationRequest',
@@ -97,41 +98,41 @@ class Notification(models.Model):
         null=True,
         blank=True,
         related_name='notifications',
-        verbose_name='Demande liee'
+        verbose_name=_('Demande liée')
     )
 
     # URL d'action pour le frontend
     action_url = models.CharField(
-        'URL d\'action',
+        _("URL d'action"),
         max_length=500,
         null=True,
         blank=True,
-        help_text='URL vers laquelle rediriger l\'utilisateur'
+        help_text=_("URL vers laquelle rediriger l'utilisateur")
     )
 
     # Statut de lecture
-    read = models.BooleanField('Lu', default=False)
-    read_at = models.DateTimeField('Lu le', null=True, blank=True)
+    read = models.BooleanField(_('Lu'), default=False)
+    read_at = models.DateTimeField(_('Lu le'), null=True, blank=True)
 
     # Statut d'envoi email
-    email_sent = models.BooleanField('Email envoye', default=False)
-    email_sent_at = models.DateTimeField('Email envoye le', null=True, blank=True)
+    email_sent = models.BooleanField(_('Email envoyé'), default=False)
+    email_sent_at = models.DateTimeField(_('Email envoyé le'), null=True, blank=True)
 
     # Metadata
-    created_at = models.DateTimeField('Cree le', auto_now_add=True)
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
     expires_at = models.DateTimeField(
-        'Expire le',
+        _('Expire le'),
         null=True,
         blank=True,
-        help_text='Date d\'expiration automatique'
+        help_text=_("Date d'expiration automatique")
     )
 
     class Meta:
         db_table = 't_notifications'
         db_table_comment = 'Table des notifications utilisateurs'
         ordering = ['-created_at']
-        verbose_name = 'Notification'
-        verbose_name_plural = 'Notifications'
+        verbose_name = _('Notification')
+        verbose_name_plural = _('Notifications')
         indexes = [
             models.Index(fields=['recipient', 'read', '-created_at']),
             models.Index(fields=['notification_type', '-created_at']),
@@ -162,32 +163,32 @@ class ValidationRequest(models.Model):
     """
 
     REQUEST_TYPES = [
-        ('user_registration', 'Inscription utilisateur'),
-        ('site_access', 'Acces a un site'),
-        ('plan_access', 'Acces a un plan de gestion'),
-        ('admin_deactivation', 'Desactivation admin_og'),
-        ('referent_validation', 'Validation referent site'),
+        ('user_registration', _('Inscription utilisateur')),
+        ('site_access', _('Accès à un site')),
+        ('plan_access', _('Accès à un plan de gestion')),
+        ('admin_deactivation', _('Désactivation admin_og')),
+        ('referent_validation', _('Validation référent site')),
     ]
 
     STATUS_CHOICES = [
-        ('pending', 'En attente'),
-        ('approved', 'Approuve'),
-        ('rejected', 'Rejete'),
-        ('cancelled', 'Annule'),
-        ('expired', 'Expire'),
+        ('pending', _('En attente')),
+        ('approved', _('Approuvé')),
+        ('rejected', _('Rejeté')),
+        ('cancelled', _('Annulé')),
+        ('expired', _('Expiré')),
     ]
 
     id = models.AutoField(primary_key=True)
 
     # Type et statut
     request_type = models.CharField(
-        'Type de demande',
+        _('Type de demande'),
         max_length=30,
         choices=REQUEST_TYPES,
         db_index=True
     )
     status = models.CharField(
-        'Statut',
+        _('Statut'),
         max_length=15,
         choices=STATUS_CHOICES,
         default='pending',
@@ -202,7 +203,7 @@ class ValidationRequest(models.Model):
         null=True,
         blank=True,
         related_name='validation_requests_made',
-        verbose_name='Demandeur'
+        verbose_name=_('Demandeur')
     )
 
     # Cibles selon le type de demande
@@ -211,14 +212,14 @@ class ValidationRequest(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        verbose_name='Site cible'
+        verbose_name=_('Site cible')
     )
     target_plan = models.ForeignKey(
         'plans.PlanGestion',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        verbose_name='Plan cible'
+        verbose_name=_('Plan cible')
     )
     target_user = models.ForeignKey(
         'users.Role',
@@ -226,7 +227,7 @@ class ValidationRequest(models.Model):
         null=True,
         blank=True,
         related_name='deactivation_requests',
-        verbose_name='Utilisateur cible'
+        verbose_name=_('Utilisateur cible')
     )
 
     # Pour les inscriptions
@@ -235,10 +236,10 @@ class ValidationRequest(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Organisme demande'
+        verbose_name=_('Organisme demandé')
     )
     requested_role_level = models.CharField(
-        'Niveau de role demande',
+        _('Niveau de rôle demandé'),
         max_length=20,
         null=True,
         blank=True
@@ -246,10 +247,10 @@ class ValidationRequest(models.Model):
 
     # Details de la demande
     justification = models.TextField(
-        'Justification',
+        _('Justification'),
         null=True,
         blank=True,
-        help_text='Motif de la demande'
+        help_text=_('Motif de la demande')
     )
 
     # Validation
@@ -259,35 +260,35 @@ class ValidationRequest(models.Model):
         null=True,
         blank=True,
         related_name='validations_handled',
-        verbose_name='Validateur'
+        verbose_name=_('Validateur')
     )
     validation_comment = models.TextField(
-        'Commentaire de validation',
+        _('Commentaire de validation'),
         null=True,
         blank=True
     )
     validated_at = models.DateTimeField(
-        'Valide le',
+        _('Validé le'),
         null=True,
         blank=True
     )
 
     # Metadata
-    created_at = models.DateTimeField('Cree le', auto_now_add=True)
-    updated_at = models.DateTimeField('Mis a jour le', auto_now=True)
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('Mis à jour le'), auto_now=True)
     expires_at = models.DateTimeField(
-        'Expire le',
+        _('Expire le'),
         null=True,
         blank=True,
-        help_text='Date d\'expiration automatique de la demande'
+        help_text=_("Date d'expiration automatique de la demande")
     )
 
     class Meta:
         db_table = 't_validation_requests'
         db_table_comment = 'Table des demandes de validation'
         ordering = ['-created_at']
-        verbose_name = 'Demande de validation'
-        verbose_name_plural = 'Demandes de validation'
+        verbose_name = _('Demande de validation')
+        verbose_name_plural = _('Demandes de validation')
         indexes = [
             models.Index(fields=['status', 'request_type', '-created_at']),
             models.Index(fields=['requester', 'status']),
@@ -342,14 +343,14 @@ class PendingUser(models.Model):
     id = models.AutoField(primary_key=True)
 
     # Informations de base
-    email = models.EmailField('Email', unique=True)
+    email = models.EmailField(_('Email'), unique=True)
     password_hash = models.CharField(
-        'Mot de passe (hash)',
+        _('Mot de passe (hash)'),
         max_length=255,
-        help_text='Mot de passe hashe avec make_password'
+        help_text=_('Mot de passe hashé avec make_password')
     )
-    nom_role = models.CharField('Nom', max_length=50, null=True, blank=True)
-    prenom_role = models.CharField('Prenom', max_length=50, null=True, blank=True)
+    nom_role = models.CharField(_('Nom'), max_length=50, null=True, blank=True)
+    prenom_role = models.CharField(_('Prénom'), max_length=50, null=True, blank=True)
 
     # Affiliation demandee
     requested_organisme = models.ForeignKey(
@@ -357,13 +358,13 @@ class PendingUser(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Organisme demande'
+        verbose_name=_('Organisme demandé')
     )
     justification = models.TextField(
-        'Justification',
+        _('Justification'),
         null=True,
         blank=True,
-        help_text='Motif de l\'inscription'
+        help_text=_("Motif de l'inscription")
     )
 
     # Lien vers la demande de validation
@@ -371,18 +372,18 @@ class PendingUser(models.Model):
         ValidationRequest,
         on_delete=models.CASCADE,
         related_name='pending_user',
-        verbose_name='Demande de validation'
+        verbose_name=_('Demande de validation')
     )
 
     # Metadata de securite
-    created_at = models.DateTimeField('Cree le', auto_now_add=True)
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
     ip_address = models.GenericIPAddressField(
-        'Adresse IP',
+        _('Adresse IP'),
         null=True,
         blank=True
     )
     user_agent = models.CharField(
-        'User Agent',
+        _('User Agent'),
         max_length=500,
         null=True,
         blank=True
@@ -391,8 +392,8 @@ class PendingUser(models.Model):
     class Meta:
         db_table = 't_pending_users'
         db_table_comment = 'Table des utilisateurs en attente de validation'
-        verbose_name = 'Utilisateur en attente'
-        verbose_name_plural = 'Utilisateurs en attente'
+        verbose_name = _('Utilisateur en attente')
+        verbose_name_plural = _('Utilisateurs en attente')
 
     def __str__(self):
         name = f"{self.prenom_role} {self.nom_role}".strip() if self.prenom_role or self.nom_role else self.email

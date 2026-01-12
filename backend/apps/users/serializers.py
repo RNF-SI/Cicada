@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from .models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
 from apps.plans.models import PlanGestion
 
@@ -182,21 +183,21 @@ class RoleCreateSerializer(serializers.ModelSerializer):
         # Vérifier que les mots de passe correspondent
         if attrs.get('password') != attrs.get('password_confirm'):
             raise serializers.ValidationError({
-                'password_confirm': 'Les mots de passe ne correspondent pas.'
+                'password_confirm': _('Les mots de passe ne correspondent pas.')
             })
 
         # Validation métier : Super admin ne peut pas être dans un organisme
         if attrs.get('role_level') == 'super_admin' and attrs.get('id_organisme'):
             raise serializers.ValidationError({
-                'uuid_organisme': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
+                'uuid_organisme': _('Un Super Administrateur ne peut pas appartenir à un organisme.')
             })
 
         # Validation métier : Admin organisme doit avoir un organisme
         if attrs.get('role_level') == 'admin_og' and not attrs.get('id_organisme'):
             raise serializers.ValidationError({
-                'uuid_organisme': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
+                'uuid_organisme': _("Un Administrateur d'organisme doit appartenir à un organisme.")
             })
-        
+
         return attrs
     
     def create(self, validated_data):
@@ -261,15 +262,15 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
         # Super admin ne peut pas être dans un organisme
         if new_role_level == 'super_admin' and new_organisme:
             raise serializers.ValidationError({
-                'uuid_organisme': 'Un Super Administrateur ne peut pas appartenir à un organisme.'
+                'uuid_organisme': _('Un Super Administrateur ne peut pas appartenir à un organisme.')
             })
 
         # Admin organisme doit avoir un organisme
         if new_role_level == 'admin_og' and not new_organisme:
             raise serializers.ValidationError({
-                'uuid_organisme': 'Un Administrateur d\'organisme doit appartenir à un organisme.'
+                'uuid_organisme': _("Un Administrateur d'organisme doit appartenir à un organisme.")
             })
-        
+
         return attrs
     
     def update(self, instance, validated_data):
@@ -321,7 +322,7 @@ class RolePasswordChangeSerializer(serializers.Serializer):
         """Vérifier que les mots de passe correspondent."""
         if attrs.get('password') != attrs.get('password_confirm'):
             raise serializers.ValidationError({
-                'password_confirm': 'Les mots de passe ne correspondent pas.'
+                'password_confirm': _('Les mots de passe ne correspondent pas.')
             })
         return attrs
     
@@ -353,7 +354,7 @@ class SiteAssignmentSerializer(serializers.ModelSerializer):
             Site.objects.get(id_site=value)
             return value
         except Site.DoesNotExist:
-            raise serializers.ValidationError("Site non trouvé.")
+            raise serializers.ValidationError(_("Site non trouvé."))
     
     def create(self, validated_data):
         """Créer une assignation de site."""

@@ -2,8 +2,8 @@
   <div class="register-container">
     <div class="register-header">
       <img src="assets/images/logo-biodiv-france.svg" alt="Biodiv' France" class="logo">
-      <h1>Inscription</h1>
-      <p class="subtitle">Creez votre compte pour acceder a l'application</p>
+      <h1>{{ 'auth.register.title' | translate }}</h1>
+      <p class="subtitle">{{ 'auth.register.subtitle' | translate }}</p>
     </div>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
@@ -16,72 +16,72 @@
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="half-width">
-          <mat-label>Prenom</mat-label>
+          <mat-label>{{ 'auth.register.firstName' | translate }}</mat-label>
           <input
             matInput
             type="text"
             formControlName="prenom"
-            placeholder="Votre prenom"
+            [placeholder]="'auth.register.firstNamePlaceholder' | translate"
             autocomplete="given-name"
           >
           <mat-icon matPrefix class="field-icon">
             <i class="fi fi-rr-user"></i>
           </mat-icon>
           @if (registerForm.get('prenom')?.hasError('required') && registerForm.get('prenom')?.touched) {
-            <mat-error>Le prenom est requis</mat-error>
+            <mat-error>{{ 'auth.register.errors.firstNameRequired' | translate }}</mat-error>
           }
           @if (registerForm.get('prenom')?.hasError('maxlength')) {
-            <mat-error>50 caracteres maximum</mat-error>
+            <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="half-width">
-          <mat-label>Nom</mat-label>
+          <mat-label>{{ 'auth.register.lastName' | translate }}</mat-label>
           <input
             matInput
             type="text"
             formControlName="nom"
-            placeholder="Votre nom"
+            [placeholder]="'auth.register.lastNamePlaceholder' | translate"
             autocomplete="family-name"
           >
           @if (registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched) {
-            <mat-error>Le nom est requis</mat-error>
+            <mat-error>{{ 'auth.register.errors.lastNameRequired' | translate }}</mat-error>
           }
           @if (registerForm.get('nom')?.hasError('maxlength')) {
-            <mat-error>50 caracteres maximum</mat-error>
+            <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</mat-error>
           }
         </mat-form-field>
       </div>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Adresse email</mat-label>
+        <mat-label>{{ 'auth.register.email' | translate }}</mat-label>
         <input
           matInput
           type="email"
           formControlName="email"
-          placeholder="votre.email@exemple.fr"
+          [placeholder]="'auth.register.emailPlaceholder' | translate"
           autocomplete="email"
         >
         <mat-icon matPrefix class="field-icon">
           <i class="fi fi-rr-envelope"></i>
         </mat-icon>
         @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
-          <mat-error>L'email est requis</mat-error>
+          <mat-error>{{ 'auth.register.errors.emailRequired' | translate }}</mat-error>
         }
         @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
-          <mat-error>Veuillez entrer une adresse email valide</mat-error>
+          <mat-error>{{ 'auth.register.errors.emailInvalid' | translate }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Organisme</mat-label>
+        <mat-label>{{ 'auth.register.organisme' | translate }}</mat-label>
         <input
           matInput
           type="text"
           formControlName="organisme"
           [matAutocomplete]="auto"
           (input)="filterOrganismes($event)"
-          placeholder="Selectionnez ou recherchez votre organisme"
+          [placeholder]="'auth.register.organismePlaceholder' | translate"
         >
         <mat-icon matPrefix class="field-icon">
           <i class="fi fi-rr-building"></i>
@@ -92,17 +92,17 @@
           }
         </mat-autocomplete>
         @if (registerForm.get('organisme')?.hasError('required') && registerForm.get('organisme')?.touched) {
-          <mat-error>L'organisme est requis</mat-error>
+          <mat-error>{{ 'auth.register.errors.organismeRequired' | translate }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Mot de passe</mat-label>
+        <mat-label>{{ 'auth.register.password' | translate }}</mat-label>
         <input
           matInput
           [type]="hidePassword() ? 'password' : 'text'"
           formControlName="password"
-          placeholder="Minimum 8 caracteres"
+          [placeholder]="'auth.register.passwordPlaceholder' | translate"
           autocomplete="new-password"
         >
         <mat-icon matPrefix class="field-icon">
@@ -113,25 +113,25 @@
           matSuffix
           type="button"
           (click)="togglePasswordVisibility()"
-          [attr.aria-label]="hidePassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+          [attr.aria-label]="(hidePassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
           <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
         </button>
         @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
-          <mat-error>Le mot de passe est requis</mat-error>
+          <mat-error>{{ 'auth.register.errors.passwordRequired' | translate }}</mat-error>
         }
         @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
-          <mat-error>Minimum 8 caracteres</mat-error>
+          <mat-error>{{ 'auth.register.errors.passwordMinLength' | translate }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Confirmer le mot de passe</mat-label>
+        <mat-label>{{ 'auth.register.confirmPassword' | translate }}</mat-label>
         <input
           matInput
           [type]="hideConfirmPassword() ? 'password' : 'text'"
           formControlName="confirmPassword"
-          placeholder="Retapez votre mot de passe"
+          [placeholder]="'auth.register.confirmPasswordPlaceholder' | translate"
           autocomplete="new-password"
         >
         <mat-icon matPrefix class="field-icon">
@@ -142,38 +142,35 @@
           matSuffix
           type="button"
           (click)="toggleConfirmPasswordVisibility()"
-          [attr.aria-label]="hideConfirmPassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+          [attr.aria-label]="(hideConfirmPassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
           <i class="fi" [class.fi-rr-eye]="hideConfirmPassword()" [class.fi-rr-eye-crossed]="!hideConfirmPassword()"></i>
         </button>
         @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
-          <mat-error>Veuillez confirmer le mot de passe</mat-error>
+          <mat-error>{{ 'auth.register.errors.confirmPasswordRequired' | translate }}</mat-error>
         }
         @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
-          <mat-error>Les mots de passe ne correspondent pas</mat-error>
+          <mat-error>{{ 'auth.register.errors.passwordMismatch' | translate }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Justification (optionnel)</mat-label>
+        <mat-label>{{ 'auth.register.justification' | translate }}</mat-label>
         <textarea
           matInput
           formControlName="justification"
           rows="3"
-          placeholder="Expliquez pourquoi vous souhaitez rejoindre cet organisme..."
+          [placeholder]="'auth.register.justificationPlaceholder' | translate"
         ></textarea>
-        <mat-hint>Cette information sera transmise a l'administrateur pour validation</mat-hint>
+        <mat-hint>{{ 'auth.register.justificationHint' | translate }}</mat-hint>
         @if (registerForm.get('justification')?.hasError('maxlength')) {
-          <mat-error>1000 caracteres maximum</mat-error>
+          <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</mat-error>
         }
       </mat-form-field>
 
       <div class="info-box">
         <i class="fi fi-rr-info"></i>
-        <p>
-          Votre inscription sera soumise a validation par un administrateur de l'organisme choisi.
-          Vous recevrez un email une fois votre demande traitee.
-        </p>
+        <p>{{ 'auth.register.infoBox' | translate }}</p>
       </div>
 
       <button
@@ -185,21 +182,21 @@
       >
         @if (isLoading()) {
           <mat-spinner diameter="20" color="accent"></mat-spinner>
-          <span>Inscription en cours...</span>
+          <span>{{ 'auth.register.loading' | translate }}</span>
         } @else {
-          <span>S'inscrire</span>
+          <span>{{ 'auth.register.submit' | translate }}</span>
         }
       </button>
     </form>
 
     <div class="register-footer">
       <p class="login-link">
-        Deja inscrit ?
-        <a routerLink="/auth/login">Se connecter</a>
+        {{ 'auth.register.alreadyRegistered' | translate }}
+        <a routerLink="/auth/login">{{ 'auth.register.backToLogin' | translate }}</a>
       </p>
       <a routerLink="/accueil" class="back-link">
         <i class="fi fi-rr-arrow-left"></i>
-        Retour a l'accueil
+        {{ 'auth.register.backToHome' | translate }}
       </a>
     </div>
   </div>

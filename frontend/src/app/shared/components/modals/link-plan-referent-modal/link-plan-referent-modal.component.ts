@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminUser } from '../../../../core/models/admin.model';
@@ -49,7 +50,8 @@ export interface LinkPlanReferentModalData {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatInputModule,
-    MatIconModule
+    MatIconModule,
+    TranslateModule
   ],
   templateUrl: './link-plan-referent-modal.component.html',
   styleUrl: './link-plan-referent-modal.component.scss'
@@ -58,6 +60,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<LinkPlanReferentModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<LinkPlanReferentModalData>(MAT_DIALOG_DATA);
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -195,7 +198,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
     const userName = user.prenom_role && user.nom_role
       ? `${user.prenom_role} ${user.nom_role}`
       : user.email;
-    this.successMessage.set(`Referent "${userName}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkPlanReferent.messages.referentAdded', { name: userName }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -279,7 +282,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
         error: (error: Error) => {
           hasError = true;
           this.isLoading.set(false);
-          this.errorMessage.set(`Erreur lors de l'ajout des referents: ${error.message}`);
+          this.errorMessage.set(this.translate.instant('modals.linkPlanReferent.messages.addError', { error: error.message }));
         }
       });
     });
@@ -294,7 +297,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
         error: (error: Error) => {
           hasError = true;
           this.isLoading.set(false);
-          this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+          this.errorMessage.set(this.translate.instant('modals.linkPlanReferent.messages.removeError', { error: error.message }));
         }
       });
     });

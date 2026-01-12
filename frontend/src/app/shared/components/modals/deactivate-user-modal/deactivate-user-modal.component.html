@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Desactiver l'utilisateur</h2>
+<h2 mat-dialog-title>{{ 'modals.deactivateUser.title' | translate }}</h2>
 
 <mat-dialog-content>
   <div class="modal-form">
@@ -17,22 +17,22 @@
     <div class="warning-box">
       <i class="fi fi-rr-exclamation"></i>
       <div>
-        <strong>Attention</strong>
-        <p>La desactivation d'un utilisateur lui retirera l'acces a l'application. Il ne pourra plus se connecter.</p>
+        <strong>{{ 'modals.deactivateUser.warning.title' | translate }}</strong>
+        <p>{{ 'modals.deactivateUser.warning.message' | translate }}</p>
       </div>
     </div>
 
     <!-- Reason field -->
     <div class="reason-section">
-      <label class="reason-label">Raison de la desactivation *</label>
+      <label class="reason-label">{{ 'modals.deactivateUser.reason.label' | translate }} *</label>
       <mat-form-field appearance="outline" class="full-width">
         <textarea
           matInput
           [(ngModel)]="reason"
-          placeholder="Indiquez la raison de la desactivation (minimum 10 caracteres)..."
+          [placeholder]="'modals.deactivateUser.reason.placeholder' | translate"
           rows="3"
         ></textarea>
-        <mat-hint>{{ reason.length }} / 10 caracteres minimum</mat-hint>
+        <mat-hint>{{ 'modals.deactivateUser.reason.hint' | translate:{ count: reason.length } }}</mat-hint>
       </mat-form-field>
 
       @if (errorMessage()) {
@@ -46,11 +46,11 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Annuler</button>
+  <button mat-button (click)="onCancel()">{{ 'common.actions.cancel' | translate }}</button>
   <button mat-raised-button
           color="warn"
           [disabled]="!isValid"
           (click)="onConfirm()">
-    Desactiver
+    {{ 'modals.deactivateUser.confirm' | translate }}
   </button>
 </mat-dialog-actions>

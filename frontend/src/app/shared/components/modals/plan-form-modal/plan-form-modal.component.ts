@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -62,7 +63,8 @@ interface SelectableUser {
     MatProgressSpinnerModule,
     MatChipsModule,
     MatIconModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    TranslateModule
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'
@@ -72,6 +74,7 @@ export class PlanFormModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<PlanFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;

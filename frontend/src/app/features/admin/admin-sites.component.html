@@ -2,21 +2,21 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-left">
-      <h1>Gestion des sites</h1>
+      <h1>{{ 'admin.sites.title' | translate }}</h1>
       <p class="subtitle">
         @if (isSuperAdmin()) {
-          Tous les espaces proteges
+          {{ 'admin.sites.subtitle.superAdmin' | translate }}
         } @else if (isAdminOrganisme()) {
-          Sites de {{ currentOrganismeName() }}
+          {{ 'admin.sites.subtitle.orgAdmin' | translate:{ orgName: currentOrganismeName() } }}
         } @else {
-          Mes sites assignes
+          {{ 'admin.sites.subtitle.user' | translate }}
         }
       </p>
     </div>
     @if (isSuperAdmin()) {
       <button class="btn-primary" (click)="openAddSiteModal()">
         <i class="fi fi-rr-map-marker-plus"></i>
-        <span>Ajouter un site</span>
+        <span>{{ 'admin.sites.addSite' | translate }}</span>
       </button>
     }
   </header>
@@ -27,7 +27,7 @@
       <i class="fi fi-rr-search"></i>
       <input
         type="text"
-        placeholder="Rechercher un site..."
+        [placeholder]="'admin.sites.search' | translate"
         [(ngModel)]="searchQuery"
         (ngModelChange)="filterSites()"
       />
@@ -35,16 +35,16 @@
 
     <div class="filters">
       <select [(ngModel)]="filterType" (ngModelChange)="filterSites()">
-        <option value="">Tous les types</option>
-        <option value="RNN">RNN - Reserve Naturelle Nationale</option>
-        <option value="RNR">RNR - Reserve Naturelle Regionale</option>
-        <option value="PNR">PNR - Parc Naturel Regional</option>
-        <option value="ENS">ENS - Espace Naturel Sensible</option>
+        <option value="">{{ 'common.filters.allTypes' | translate }}</option>
+        <option value="RNN">{{ 'admin.sites.types.RNN' | translate }}</option>
+        <option value="RNR">{{ 'admin.sites.types.RNR' | translate }}</option>
+        <option value="PNR">{{ 'admin.sites.types.PNR' | translate }}</option>
+        <option value="ENS">{{ 'admin.sites.types.ENS' | translate }}</option>
       </select>
 
       @if (isSuperAdmin()) {
         <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterSites()">
-          <option value="">Tous les organismes</option>
+          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
           @for (org of organismes(); track org.id) {
             <option [value]="org.id">{{ org.nom }}</option>
           }
@@ -57,7 +57,7 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Chargement des sites...</p>
+      <p>{{ 'admin.sites.messages.loading' | translate }}</p>
     </div>
   } @else {
     <!-- Sites Table -->
@@ -65,13 +65,13 @@
       <table class="sites-table">
         <thead>
           <tr>
-            <th>Nom du site</th>
-            <th>Type</th>
-            <th>Organismes</th>
-            <th>Utilisateurs</th>
-            <th>Surface</th>
-            <th>Plans</th>
-            <th>Actions</th>
+            <th>{{ 'admin.sites.table.name' | translate }}</th>
+            <th>{{ 'admin.sites.table.type' | translate }}</th>
+            <th>{{ 'admin.sites.table.organismes' | translate }}</th>
+            <th>{{ 'admin.sites.table.users' | translate }}</th>
+            <th>{{ 'admin.sites.table.surface' | translate }}</th>
+            <th>{{ 'admin.sites.table.plans' | translate }}</th>
+            <th>{{ 'admin.sites.table.actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -86,31 +86,31 @@
               </td>
               <td class="organismes-cell">
                 @if (site.organismes.length === 0) {
-                  <span class="text-muted">Aucun organisme</span>
+                  <span class="text-muted">{{ 'admin.sites.empty.noOrganisme' | translate }}</span>
                 } @else if (site.organismes.length === 1) {
                   <span class="org-chip" [class.principal]="site.organismes[0].principal"
-                        [matTooltip]="site.organismes[0].nom + (site.organismes[0].principal ? ' (Principal)' : '')">
+                        [matTooltip]="site.organismes[0].nom + (site.organismes[0].principal ? ' (' + ('admin.sites.principal' | translate) + ')' : '')">
                     <i class="fi fi-rr-building"></i>
                     <span class="org-name">{{ site.organismes[0].nom }}</span>
                     @if (site.organismes[0].principal) {
-                      <span class="principal-indicator" title="Organisme principal">P</span>
+                      <span class="principal-indicator" [title]="'admin.sites.principal' | translate">P</span>
                     }
                   </span>
                 } @else {
                   <div class="orgs-list">
                     @for (org of site.organismes.slice(0, 2); track org.id) {
                       <span class="org-chip" [class.principal]="org.principal"
-                            [matTooltip]="org.nom + (org.principal ? ' (Principal)' : '')">
+                            [matTooltip]="org.nom + (org.principal ? ' (' + ('admin.sites.principal' | translate) + ')' : '')">
                         <i class="fi fi-rr-building"></i>
                         <span class="org-name">{{ org.nom }}</span>
                         @if (org.principal) {
-                          <span class="principal-indicator" title="Organisme principal">P</span>
+                          <span class="principal-indicator" [title]="'admin.sites.principal' | translate">P</span>
                         }
                       </span>
                     }
                     @if (site.organismes.length > 2) {
                       <span class="orgs-more" [matTooltip]="getOtherOrganismesNames(site.organismes)">
-                        +{{ site.organismes.length - 2 }} autres
+                        {{ 'admin.sites.others' | translate:{ count: site.organismes.length - 2 } }}
                       </span>
                     }
                   </div>
@@ -118,29 +118,29 @@
               </td>
               <td class="users-cell">
                 @if (site.users.length === 0) {
-                  <span class="text-muted">Aucun utilisateur</span>
+                  <span class="text-muted">{{ 'admin.sites.empty.noUser' | translate }}</span>
                 } @else if (site.users.length === 1) {
-                  <span class="user-chip" [matTooltip]="site.users[0].nom + (site.users[0].isReferent ? ' - Referent' : '')">
+                  <span class="user-chip" [matTooltip]="site.users[0].nom + (site.users[0].isReferent ? ' - ' + ('admin.sites.referent' | translate) : '')">
                     <i class="fi fi-rr-user"></i>
                     <span class="user-name">{{ site.users[0].nom }}</span>
                     @if (site.users[0].isReferent) {
-                      <span class="role-indicator referent" title="Referent">R</span>
+                      <span class="role-indicator referent" [title]="'admin.sites.referent' | translate">R</span>
                     }
                   </span>
                 } @else {
                   <div class="users-list">
                     @for (user of site.users.slice(0, 2); track user.id) {
-                      <span class="user-chip" [matTooltip]="user.nom + (user.isReferent ? ' - Referent' : '')">
+                      <span class="user-chip" [matTooltip]="user.nom + (user.isReferent ? ' - ' + ('admin.sites.referent' | translate) : '')">
                         <i class="fi fi-rr-user"></i>
                         <span class="user-name">{{ user.nom }}</span>
                         @if (user.isReferent) {
-                          <span class="role-indicator referent" title="Referent">R</span>
+                          <span class="role-indicator referent" [title]="'admin.sites.referent' | translate">R</span>
                         }
                       </span>
                     }
                     @if (site.users.length > 2) {
                       <span class="users-more" [matTooltip]="getOtherUsersNames(site.users)">
-                        +{{ site.users.length - 2 }} autres
+                        {{ 'admin.sites.others' | translate:{ count: site.users.length - 2 } }}
                       </span>
                     }
                   </div>
@@ -156,12 +156,12 @@
               <td>{{ site.nbPlans }}</td>
               <td class="actions-cell">
                 @if (isAdminOrganisme()) {
-                  <button class="btn-icon" title="Gerer les utilisateurs" (click)="openAddReferentModal(site)">
+                  <button class="btn-icon" [title]="'admin.sites.actions.manageUsers' | translate" (click)="openAddReferentModal(site)">
                     <i class="fi fi-rr-user-add"></i>
                   </button>
                 }
                 @if (isSuperAdmin()) {
-                  <button class="btn-icon" title="Associer a un organisme" (click)="openAssignOrganismeModal(site)">
+                  <button class="btn-icon" [title]="'admin.sites.actions.assignOrganisme' | translate" (click)="openAssignOrganismeModal(site)">
                     <i class="fi fi-rr-building"></i>
                   </button>
                 }
@@ -172,7 +172,7 @@
           @if (filteredSites().length === 0) {
             <tr>
               <td colspan="7" class="empty-cell">
-                Aucun site trouve
+                {{ 'admin.sites.empty.noSites' | translate }}
               </td>
             </tr>
           }
@@ -183,8 +183,7 @@
     <!-- Summary -->
     <div class="summary">
       <span class="summary-text">
-        {{ filteredSites().length }} site(s) -
-        Surface totale: {{ totalSurface() | number:'1.0-0' }} ha
+        {{ 'admin.sites.summary' | translate:{ count: filteredSites().length, surface: (totalSurface() | number:'1.0-0') } }}
       </span>
     </div>
   }

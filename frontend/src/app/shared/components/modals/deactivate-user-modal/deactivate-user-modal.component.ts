@@ -5,6 +5,7 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 export interface DeactivateUserModalData {
   userName: string;
@@ -25,13 +26,15 @@ export interface DeactivateUserModalResult {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule
+    MatButtonModule,
+    TranslateModule
   ],
   templateUrl: './deactivate-user-modal.component.html',
   styleUrl: './deactivate-user-modal.component.scss'
 })
 export class DeactivateUserModalComponent {
   private readonly dialogRef = inject(MatDialogRef<DeactivateUserModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<DeactivateUserModalData>(MAT_DIALOG_DATA);
 
   reason = '';
@@ -43,7 +46,7 @@ export class DeactivateUserModalComponent {
 
   onConfirm(): void {
     if (!this.isValid) {
-      this.errorMessage.set('Veuillez fournir une raison d\'au moins 10 caracteres');
+      this.errorMessage.set(this.translate.instant('modals.deactivateUser.validation.minLength'));
       return;
     }
 

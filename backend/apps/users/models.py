@@ -7,6 +7,7 @@ from datetime import datetime
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib.gis.db import models
 from django.core.validators import EmailValidator
+from django.utils.translation import gettext_lazy as _
 
 
 class RoleManager(BaseUserManager):
@@ -15,7 +16,7 @@ class RoleManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         """Crée et retourne un utilisateur avec email et mot de passe."""
         if not email:
-            raise ValueError('L\'email est obligatoire')
+            raise ValueError(_('L\'email est obligatoire'))
         
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -31,9 +32,9 @@ class RoleManager(BaseUserManager):
         extra_fields.setdefault('role_level', 'super_admin')
 
         if extra_fields.get('is_staff') is not True:
-            raise ValueError('Le superutilisateur doit avoir is_staff=True.')
+            raise ValueError(_('Le superutilisateur doit avoir is_staff=True.'))
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Le superutilisateur doit avoir is_superuser=True.')
+            raise ValueError(_('Le superutilisateur doit avoir is_superuser=True.'))
 
         return self.create_user(email, password, **extra_fields)
 
@@ -48,27 +49,27 @@ class Role(AbstractUser):
     # Note: Le rôle 'referent' a été supprimé. Un utilisateur est considéré comme
     # "référent" s'il est référent d'au moins un site ou plan de gestion.
     ROLE_CHOICES = [
-        ('utilisateur', 'Utilisateur'),
-        ('admin_og', 'Administrateur Organisme'),
-        ('super_admin', 'Super Administrateur'),
+        ('utilisateur', _('Utilisateur')),
+        ('admin_og', _('Administrateur Organisme')),
+        ('super_admin', _('Super Administrateur')),
     ]
     
     # Désactiver username d'AbstractUser
     username = None
     
     # Champs spécifiques à t_roles
-    groupe = models.BooleanField(default=False, verbose_name="Est un groupe")
+    groupe = models.BooleanField(default=False, verbose_name=_("Est un groupe"))
     id_role = models.AutoField(primary_key=True)
     uuid_role = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identifiant = models.CharField(max_length=100, null=True, blank=True)
-    nom_role = models.CharField("Nom", max_length=50, null=True, blank=True)
-    prenom_role = models.CharField("Prénom", max_length=50, null=True, blank=True)
-    desc_role = models.TextField("Description", null=True, blank=True)
+    nom_role = models.CharField(_("Nom"), max_length=50, null=True, blank=True)
+    prenom_role = models.CharField(_("Prénom"), max_length=50, null=True, blank=True)
+    desc_role = models.TextField(_("Description"), null=True, blank=True)
     pass_plus = models.TextField(null=True, blank=True)
     email = models.EmailField(
         unique=True,
         validators=[EmailValidator()],
-        verbose_name="Adresse email"
+        verbose_name=_("Adresse email")
     )
     id_organisme = models.ForeignKey(
         'BibOrganismes',
@@ -77,12 +78,12 @@ class Role(AbstractUser):
         blank=True,
         to_field='uuid_organisme',
         db_column='uuid_organisme',
-        verbose_name="Organisme"
+        verbose_name=_("Organisme")
     )
     remarques = models.TextField(null=True, blank=True)
-    active = models.BooleanField(default=True, verbose_name="Actif")
+    active = models.BooleanField(default=True, verbose_name=_("Actif"))
     role_level = models.CharField(
-        "Niveau de rôle",
+        _("Niveau de rôle"),
         max_length=20,
         choices=ROLE_CHOICES,
         default='utilisateur'
@@ -90,13 +91,13 @@ class Role(AbstractUser):
     # Champs pour la validation et desactivation
     pending_validation = models.BooleanField(
         default=False,
-        verbose_name="En attente de validation",
-        help_text="Utilisateur inscrit mais en attente de validation"
+        verbose_name=_("En attente de validation"),
+        help_text=_("Utilisateur inscrit mais en attente de validation")
     )
     deactivation_reason = models.TextField(
         null=True,
         blank=True,
-        verbose_name="Motif de desactivation"
+        verbose_name=_("Motif de desactivation")
     )
     deactivated_by = models.ForeignKey(
         'self',
@@ -104,14 +105,14 @@ class Role(AbstractUser):
         null=True,
         blank=True,
         related_name='deactivated_users',
-        verbose_name="Desactive par"
+        verbose_name=_("Desactive par")
     )
     deactivated_at = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name="Desactive le"
+        verbose_name=_("Desactive le")
     )
-    champs_addi = models.TextField("Champs additionnels", null=True, blank=True)
+    champs_addi = models.TextField(_("Champs additionnels"), null=True, blank=True)
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
     
@@ -196,8 +197,8 @@ class Role(AbstractUser):
     class Meta:
         db_table = 't_roles'
         db_table_comment = 'Table des utilisateurs et groupes'
-        verbose_name = "Utilisateur"
-        verbose_name_plural = "Utilisateurs"
+        verbose_name = _("Utilisateur")
+        verbose_name_plural = _("Utilisateurs")
 
 
 class BibOrganismes(models.Model):
@@ -208,21 +209,21 @@ class BibOrganismes(models.Model):
     
     id_organisme = models.AutoField(primary_key=True)
     uuid_organisme = models.UUIDField(default=uuid.uuid4, unique=True, null=True, blank=True)
-    nom_organisme = models.CharField("Nom", max_length=255, null=True, blank=True)
-    adresse_organisme = models.TextField("Adresse", null=True, blank=True)
-    cp_organisme = models.CharField("Code postal", max_length=10, null=True, blank=True)
-    ville_organisme = models.CharField("Ville", max_length=100, null=True, blank=True)
-    tel_organisme = models.CharField("Téléphone", max_length=20, null=True, blank=True)
-    fax_organisme = models.CharField("Fax", max_length=20, null=True, blank=True)
-    email_organisme = models.EmailField("Email", null=True, blank=True)
-    url_organisme = models.URLField("Site web", null=True, blank=True)
-    url_logo = models.URLField("Logo", null=True, blank=True)
+    nom_organisme = models.CharField(_("Nom"), max_length=255, null=True, blank=True)
+    adresse_organisme = models.TextField(_("Adresse"), null=True, blank=True)
+    cp_organisme = models.CharField(_("Code postal"), max_length=10, null=True, blank=True)
+    ville_organisme = models.CharField(_("Ville"), max_length=100, null=True, blank=True)
+    tel_organisme = models.CharField(_("Téléphone"), max_length=20, null=True, blank=True)
+    fax_organisme = models.CharField(_("Fax"), max_length=20, null=True, blank=True)
+    email_organisme = models.EmailField(_("Email"), null=True, blank=True)
+    url_organisme = models.URLField(_("Site web"), null=True, blank=True)
+    url_logo = models.URLField(_("Logo"), null=True, blank=True)
     id_parent = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Organisme parent"
+        verbose_name=_("Organisme parent")
     )
     additional_data = models.JSONField(default=dict, null=True, blank=True)
     meta_create_date = models.DateTimeField(auto_now_add=True)
@@ -231,8 +232,8 @@ class BibOrganismes(models.Model):
     class Meta:
         db_table = 'bib_organismes'
         db_table_comment = 'Table des organismes gestionnaires'
-        verbose_name = "Organisme"
-        verbose_name_plural = "Organismes"
+        verbose_name = _("Organisme")
+        verbose_name_plural = _("Organismes")
 
     def __str__(self):
         return self.nom_organisme or f"Organisme {self.id_organisme}"
@@ -245,32 +246,32 @@ class Site(models.Model):
     """
     
     id_site = models.AutoField(primary_key=True)
-    id_local = models.CharField("Identifiant local", max_length=50, null=True, blank=True)
-    id_inpn = models.CharField("Identifiant INPN", max_length=50, null=True, blank=True)
+    id_local = models.CharField(_("Identifiant local"), max_length=50, null=True, blank=True)
+    id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True)
     id_type_site = models.ForeignKey(
         'core.Nomenclature',  # À créer dans core app
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        verbose_name="Type de site"
+        verbose_name=_("Type de site")
     )
-    date_crea = models.DateField("Date de création", null=True, blank=True)
-    nom_site = models.CharField("Nom du site", max_length=255)
-    jonction_nom = models.CharField("Jonction nom", max_length=50, null=True, blank=True)
-    surf_off = models.FloatField("Surface officielle (ha)", null=True, blank=True)
-    geom = models.MultiPolygonField("Géométrie", srid=4326, null=True, blank=True)
-    geom_pt = models.PointField("Point de référence", srid=4326, null=True, blank=True)
-    modif_adm = models.DateField("Modification administrative", null=True, blank=True)
-    modif_geo = models.DateField("Modification géographique", null=True, blank=True)
-    marin = models.BooleanField("Milieu marin", default=False)
-    outre_mer = models.BooleanField("Outre-mer", default=False)
-    active = models.BooleanField("Actif", default=True)
+    date_crea = models.DateField(_("Date de création"), null=True, blank=True)
+    nom_site = models.CharField(_("Nom du site"), max_length=255)
+    jonction_nom = models.CharField(_("Jonction nom"), max_length=50, null=True, blank=True)
+    surf_off = models.FloatField(_("Surface officielle (ha)"), null=True, blank=True)
+    geom = models.MultiPolygonField(_("Géométrie"), srid=4326, null=True, blank=True)
+    geom_pt = models.PointField(_("Point de référence"), srid=4326, null=True, blank=True)
+    modif_adm = models.DateField(_("Modification administrative"), null=True, blank=True)
+    modif_geo = models.DateField(_("Modification géographique"), null=True, blank=True)
+    marin = models.BooleanField(_("Milieu marin"), default=False)
+    outre_mer = models.BooleanField(_("Outre-mer"), default=False)
+    active = models.BooleanField(_("Actif"), default=True)
 
     class Meta:
         db_table = 't_site'
         db_table_comment = 'Table des sites'
-        verbose_name = "Site"
-        verbose_name_plural = "Sites"
+        verbose_name = _("Site")
+        verbose_name_plural = _("Sites")
 
     def __str__(self):
         return self.nom_site
@@ -291,16 +292,16 @@ class CorRoleSite(models.Model):
         on_delete=models.CASCADE,
         db_column='id_role'
     )
-    referent = models.BooleanField("Référent", default=False)
-    referent_valid = models.BooleanField("Référent validé", default=False)
-    conservateur = models.BooleanField("Conservateur", default=False)
+    referent = models.BooleanField(_("Référent"), default=False)
+    referent_valid = models.BooleanField(_("Référent validé"), default=False)
+    conservateur = models.BooleanField(_("Conservateur"), default=False)
 
     class Meta:
         db_table = 'cor_role_site'
         db_table_comment = 'Liaison utilisateurs - sites'
         unique_together = ['id_site', 'id_role']
-        verbose_name = "Utilisateur - Site"
-        verbose_name_plural = "Utilisateurs - Sites"
+        verbose_name = _("Utilisateur - Site")
+        verbose_name_plural = _("Utilisateurs - Sites")
 
     def __str__(self):
         return f"{self.id_role} - {self.id_site}"
@@ -323,14 +324,14 @@ class CorOgSite(models.Model):
         to_field='uuid_organisme',
         db_column='uuid_organisme'
     )
-    principal = models.BooleanField("Gestionnaire principal", default=False)
+    principal = models.BooleanField(_("Gestionnaire principal"), default=False)
 
     class Meta:
         db_table = 'cor_site_og'
         db_table_comment = 'Liaison sites - organismes gestionnaires'
         unique_together = ['id_site', 'uuid_og']
-        verbose_name = "Site - Organisme"
-        verbose_name_plural = "Sites - Organismes"
+        verbose_name = _("Site - Organisme")
+        verbose_name_plural = _("Sites - Organismes")
 
     def __str__(self):
         return f"{self.id_site} - {self.uuid_og}"

@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminOrganisme, OrganismeCreatePayload } from '../../../../core/models/admin.model';
 
@@ -26,7 +27,8 @@ export interface OrganismeFormModalData {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    TranslateModule
   ],
   templateUrl: './organisme-form-modal.component.html',
   styleUrl: './organisme-form-modal.component.scss'
@@ -35,6 +37,7 @@ export class OrganismeFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
   private readonly dialogRef = inject(MatDialogRef<OrganismeFormModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<OrganismeFormModalData>(MAT_DIALOG_DATA);
 
   form!: FormGroup;

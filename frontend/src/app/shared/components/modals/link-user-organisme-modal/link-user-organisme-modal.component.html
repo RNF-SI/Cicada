@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>
   @if (mode === 'select-user') {
-    Gerer les utilisateurs de l'organisme
+    {{ 'modals.linkUserOrganisme.titleManage' | translate }}
   } @else {
-    Associer l'utilisateur a un organisme
+    {{ 'modals.linkUserOrganisme.titleAssociate' | translate }}
   }
 </h2>
 
@@ -24,7 +24,7 @@
   @if (isLoadingData()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
-      <p>Chargement...</p>
+      <p>{{ 'common.messages.loading' | translate }}</p>
     </div>
   } @else {
     <div class="modal-form">
@@ -46,13 +46,13 @@
         <div class="users-section">
           <h3 class="section-title">
             <i class="fi fi-rr-users"></i>
-            Utilisateurs ({{ visibleAssignments.length }})
+            {{ 'modals.linkUserOrganisme.usersSection' | translate:{ count: visibleAssignments.length } }}
           </h3>
 
           @if (userAssignments().length === 0) {
             <div class="empty-state">
               <i class="fi fi-rr-info"></i>
-              <span>Aucun utilisateur. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.</span>
+              <span>{{ 'modals.linkUserOrganisme.emptyUsers' | translate }}</span>
             </div>
           } @else {
             <div class="users-list">
@@ -67,10 +67,10 @@
                     <span class="user-name">{{ getUserDisplayName(assignment.user) }}</span>
                     <span class="user-email">{{ assignment.user.email }}</span>
                     @if (assignment.isNew) {
-                      <span class="badge new-badge">Nouveau</span>
+                      <span class="badge new-badge">{{ 'modals.linkUserOrganisme.badges.new' | translate }}</span>
                     }
                     @if (assignment.isDeleted) {
-                      <span class="badge deleted-badge">Supprime</span>
+                      <span class="badge deleted-badge">{{ 'modals.linkUserOrganisme.badges.deleted' | translate }}</span>
                     }
                   </div>
                   @if (!assignment.isDeleted) {
@@ -78,7 +78,7 @@
                       class="btn-remove"
                       type="button"
                       (click)="removeUser(assignment)"
-                      title="Retirer cet utilisateur">
+                      [title]="'modals.linkUserOrganisme.removeUser' | translate">
                       <i class="fi fi-rr-trash"></i>
                     </button>
                   } @else {
@@ -86,9 +86,9 @@
                       class="btn-restore"
                       type="button"
                       (click)="restoreUser(assignment)"
-                      title="Annuler la suppression">
+                      [title]="'modals.linkUserOrganisme.cancelRemoval' | translate">
                       <i class="fi fi-rr-undo"></i>
-                      <span>Annuler</span>
+                      <span>{{ 'common.actions.cancel' | translate }}</span>
                     </button>
                   }
                 </div>
@@ -101,18 +101,18 @@
         <div class="add-user-section">
           <h3 class="section-title">
             <i class="fi fi-rr-user-add"></i>
-            Ajouter un utilisateur
+            {{ 'modals.linkUserOrganisme.addUser' | translate }}
           </h3>
 
           <div class="add-user-form">
             <mat-form-field appearance="outline" class="user-search-field">
-              <mat-label>Rechercher un utilisateur</mat-label>
+              <mat-label>{{ 'modals.linkUserOrganisme.searchUser' | translate }}</mat-label>
               <input
                 type="text"
                 matInput
                 [formControl]="userControl"
                 [matAutocomplete]="userAuto"
-                placeholder="Tapez pour rechercher...">
+                [placeholder]="'modals.linkUserOrganisme.searchPlaceholder' | translate">
               <i class="fi fi-rr-search" matSuffix></i>
               <mat-autocomplete
                 #userAuto="matAutocomplete"
@@ -130,7 +130,7 @@
                       </span>
                       <span class="option-email">{{ user.email }}</span>
                       @if (user.organisme) {
-                        <span class="option-org">Actuellement: {{ user.organisme.nom_organisme }}</span>
+                        <span class="option-org">{{ 'modals.linkUserOrganisme.currently' | translate }}: {{ user.organisme.nom_organisme }}</span>
                       }
                     </div>
                   </mat-option>
@@ -138,9 +138,9 @@
                 @if (filteredUsers().length === 0) {
                   <mat-option disabled>
                     @if (availableUsersForAdd.length === 0) {
-                      Tous les utilisateurs sont deja associes
+                      {{ 'modals.linkUserOrganisme.allUsersAssigned' | translate }}
                     } @else {
-                      Aucun utilisateur trouve
+                      {{ 'modals.linkUserOrganisme.noUserFound' | translate }}
                     }
                   </mat-option>
                 }
@@ -153,8 +153,7 @@
         <div class="info-box">
           <i class="fi fi-rr-info"></i>
           <div>
-            <strong>Note:</strong> Un utilisateur ne peut appartenir qu'a un seul organisme.
-            L'ajout d'un utilisateur le transferera vers cet organisme.
+            {{ 'modals.linkUserOrganisme.note' | translate }}
           </div>
         </div>
 
@@ -173,18 +172,18 @@
         </div>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Organisme</mat-label>
+          <mat-label>{{ 'modals.linkUserOrganisme.organisme' | translate }}</mat-label>
           <mat-select [(ngModel)]="selectedOrganismeUuid">
-            <mat-option [value]="null">Aucun organisme</mat-option>
+            <mat-option [value]="null">{{ 'modals.linkUserOrganisme.noOrganisme' | translate }}</mat-option>
             @for (org of organismes(); track org.uuid_organisme) {
               <mat-option [value]="org.uuid_organisme">{{ org.nom_organisme }}</mat-option>
             }
           </mat-select>
           <mat-hint>
             @if (data.user?.organisme) {
-              Actuellement: {{ data.user?.organisme?.nom_organisme }}
+              {{ 'modals.linkUserOrganisme.currently' | translate }}: {{ data.user?.organisme?.nom_organisme }}
             } @else {
-              Aucun organisme actuellement
+              {{ 'modals.linkUserOrganisme.noOrganismeCurrent' | translate }}
             }
           </mat-hint>
         </mat-form-field>
@@ -195,7 +194,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" [disabled]="isLoading()">
-    Annuler
+    {{ 'common.actions.cancel' | translate }}
   </button>
   @if (mode === 'select-user') {
     <button
@@ -206,7 +205,7 @@
       @if (isLoading()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {
-        Enregistrer
+        {{ 'common.actions.save' | translate }}
       }
     </button>
   } @else {
@@ -218,7 +217,7 @@
       @if (isLoading()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {
-        Associer
+        {{ 'modals.linkUserOrganisme.associate' | translate }}
       }
     </button>
   }

@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Gerer les referents du plan</h2>
+<h2 mat-dialog-title>{{ 'modals.linkPlanReferent.title' | translate }}</h2>
 
 <mat-dialog-content>
   <div class="modal-form">
@@ -16,7 +16,7 @@
     @if (isLoadingData()) {
       <div class="loading-container">
         <mat-spinner diameter="32"></mat-spinner>
-        <p>Chargement des donnees...</p>
+        <p>{{ 'common.loading' | translate }}</p>
       </div>
     } @else {
       <!-- Error banner -->
@@ -39,13 +39,13 @@
       <div class="referents-section">
         <h3 class="section-title">
           <i class="fi fi-rr-user"></i>
-          Referents du plan ({{ visibleAssignments.length }})
+          {{ 'modals.linkPlanReferent.sections.currentReferents' | translate }} ({{ visibleAssignments.length }})
         </h3>
 
         @if (referentAssignments().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-info"></i>
-            <span>Aucun referent assigne a ce plan</span>
+            <span>{{ 'modals.linkPlanReferent.noReferent' | translate }}</span>
           </div>
         } @else {
           <div class="referents-list">
@@ -60,16 +60,16 @@
                 </div>
 
                 @if (assignment.isNew) {
-                  <span class="badge new-badge">Nouveau</span>
+                  <span class="badge new-badge">{{ 'modals.linkPlanReferent.badges.new' | translate }}</span>
                 }
                 @if (assignment.isDeleted) {
-                  <span class="badge deleted-badge">Supprime</span>
+                  <span class="badge deleted-badge">{{ 'modals.linkPlanReferent.badges.deleted' | translate }}</span>
                 }
 
                 @if (!assignment.isDeleted) {
                   <button class="btn-remove"
                           type="button"
-                          title="Retirer ce referent"
+                          [title]="'modals.linkPlanReferent.actions.removeReferent' | translate"
                           (click)="removeReferent(assignment)">
                     <i class="fi fi-rr-cross-small"></i>
                   </button>
@@ -78,7 +78,7 @@
                           type="button"
                           (click)="restoreReferent(assignment)">
                     <i class="fi fi-rr-undo"></i>
-                    Restaurer
+                    {{ 'modals.linkPlanReferent.actions.restore' | translate }}
                   </button>
                 }
               </div>
@@ -91,16 +91,16 @@
       <div class="add-referent-section">
         <h3 class="section-title">
           <i class="fi fi-rr-add"></i>
-          Ajouter un referent
+          {{ 'modals.linkPlanReferent.sections.addReferent' | translate }}
         </h3>
 
         <div class="add-referent-form">
           <mat-form-field appearance="outline" class="user-search-field">
-            <mat-label>Rechercher un utilisateur</mat-label>
+            <mat-label>{{ 'modals.linkPlanReferent.searchUser' | translate }}</mat-label>
             <input matInput
                    [formControl]="userControl"
                    [matAutocomplete]="userAuto"
-                   placeholder="Tapez pour rechercher...">
+                   [placeholder]="'modals.linkPlanReferent.searchPlaceholder' | translate">
             <mat-autocomplete #userAuto="matAutocomplete"
                               [displayWith]="displayUser"
                               (optionSelected)="addReferent($event.option.value)">
@@ -126,17 +126,14 @@
       <!-- Info box -->
       <div class="info-box">
         <i class="fi fi-rr-info"></i>
-        <span>
-          Les referents peuvent modifier et valider le plan de gestion.
-          Les modifications ne seront appliquees qu'apres avoir clique sur <strong>Enregistrer</strong>.
-        </span>
+        <span [innerHTML]="'modals.linkPlanReferent.infoText' | translate"></span>
       </div>
     }
   </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Annuler</button>
+  <button mat-button (click)="onCancel()">{{ 'common.actions.cancel' | translate }}</button>
   <button mat-raised-button
           color="primary"
           [disabled]="isLoading() || isLoadingData() || !hasChanges"
@@ -144,7 +141,7 @@
     @if (isLoading()) {
       <mat-spinner diameter="20"></mat-spinner>
     } @else {
-      Enregistrer
+      {{ 'common.actions.save' | translate }}
     }
   </button>
 </mat-dialog-actions>

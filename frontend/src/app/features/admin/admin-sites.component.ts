@@ -5,6 +5,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
@@ -63,7 +64,8 @@ interface DisplayOrganisme {
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   templateUrl: './admin-sites.component.html',
   styleUrl: './admin-sites.component.scss'
@@ -73,6 +75,7 @@ export class AdminSitesComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -129,7 +132,7 @@ export class AdminSitesComponent implements OnInit {
         this.loadRelatedDataForSites(mapped);
       },
       error: (error: Error) => {
-        this.snackBar.open(error.message, 'Fermer', { duration: 5000 });
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         this.isLoading.set(false);
       }
     });
@@ -259,7 +262,7 @@ export class AdminSitesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Site cree avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.sites.messages.created'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadSites();
       }
     });
@@ -281,7 +284,7 @@ export class AdminSitesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Site modifie avec succes', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.sites.messages.updated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadSites();
       }
     });
@@ -310,7 +313,7 @@ export class AdminSitesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success && result?.changed) {
-        this.snackBar.open('Utilisateurs du site mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.sites.messages.usersUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadSites();
       }
     });
@@ -338,7 +341,7 @@ export class AdminSitesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success && result?.changed) {
-        this.snackBar.open('Organismes du site mis a jour', 'Fermer', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('admin.sites.messages.organismesUpdated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadSites();
       }
     });
@@ -346,7 +349,7 @@ export class AdminSitesComponent implements OnInit {
 
   deleteSite(site: DisplaySite): void {
     // For now, show a message - site deletion is sensitive
-    this.snackBar.open('La suppression de site n\'est pas disponible ici. Utilisez l\'admin Django.', 'OK', { duration: 5000 });
+    this.snackBar.open(this.translate.instant('admin.sites.messages.deletionNotAvailable'), 'OK', { duration: 5000 });
   }
 
   // Helper methods for display

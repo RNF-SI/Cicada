@@ -1,0 +1,783 @@
+{
+  "common": {
+    "actions": {
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "add": "Ajouter",
+      "search": "Rechercher",
+      "filter": "Filtrer",
+      "close": "Fermer",
+      "confirm": "Confirmer",
+      "back": "Retour",
+      "view": "Voir",
+      "create": "Creer",
+      "update": "Mettre a jour",
+      "restore": "Restaurer",
+      "archive": "Archiver",
+      "validate": "Valider",
+      "associate": "Associer"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "pending": "En attente",
+      "approved": "Approuve",
+      "rejected": "Rejete",
+      "new": "Nouveau",
+      "deleted": "Supprime",
+      "draft": "Brouillon",
+      "valid": "Valide",
+      "archived": "Archive"
+    },
+    "loading": "Chargement des donnees...",
+    "none": "Aucun",
+    "messages": {
+      "loading": "Chargement...",
+      "noResults": "Aucun resultat",
+      "error": "Une erreur est survenue",
+      "success": "Operation reussie",
+      "confirmDelete": "Etes-vous sur de vouloir supprimer cet element ?"
+    },
+    "validation": {
+      "required": "Ce champ est requis",
+      "email": "Adresse email invalide",
+      "minLength": "Minimum {{min}} caracteres requis",
+      "maxLength": "Maximum {{max}} caracteres autorises",
+      "passwordMismatch": "Les mots de passe ne correspondent pas"
+    },
+    "pagination": {
+      "showing": "{{count}} sur {{total}}",
+      "noItems": "Aucun element"
+    },
+    "filters": {
+      "all": "Tous",
+      "allRoles": "Tous les roles",
+      "allOrganismes": "Tous les organismes",
+      "allStatus": "Tous les statuts",
+      "allTypes": "Tous les types"
+    },
+    "table": {
+      "actions": "Actions",
+      "noData": "Aucune donnee"
+    },
+    "date": {
+      "never": "Jamais"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Accedez a votre espace de gestion",
+      "username": "Identifiant ou email",
+      "usernamePlaceholder": "votre.identifiant ou email",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Votre mot de passe",
+      "submit": "Se connecter",
+      "loading": "Connexion en cours...",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "noAccount": "Pas encore inscrit ?",
+      "createAccount": "Creer un compte",
+      "backToHome": "Retour a l'accueil",
+      "errors": {
+        "usernameRequired": "L'identifiant ou l'email est requis",
+        "passwordRequired": "Le mot de passe est requis"
+      }
+    },
+    "register": {
+      "title": "Inscription",
+      "subtitle": "Creez votre compte pour acceder a l'application",
+      "firstName": "Prenom",
+      "firstNamePlaceholder": "Votre prenom",
+      "lastName": "Nom",
+      "lastNamePlaceholder": "Votre nom",
+      "email": "Adresse email",
+      "emailPlaceholder": "votre.email@exemple.fr",
+      "organisme": "Organisme",
+      "organismePlaceholder": "Selectionnez ou recherchez votre organisme",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Minimum 8 caracteres",
+      "confirmPassword": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Retapez votre mot de passe",
+      "justification": "Justification (optionnel)",
+      "justificationPlaceholder": "Expliquez pourquoi vous souhaitez rejoindre cet organisme...",
+      "justificationHint": "Cette information sera transmise a l'administrateur pour validation",
+      "infoBox": "Votre inscription sera soumise a validation par un administrateur de l'organisme choisi. Vous recevrez un email une fois votre demande traitee.",
+      "submit": "S'inscrire",
+      "loading": "Inscription en cours...",
+      "alreadyRegistered": "Deja inscrit ?",
+      "backToLogin": "Se connecter",
+      "backToHome": "Retour a l'accueil",
+      "errors": {
+        "firstNameRequired": "Le prenom est requis",
+        "lastNameRequired": "Le nom est requis",
+        "emailRequired": "L'email est requis",
+        "emailInvalid": "Veuillez entrer une adresse email valide",
+        "organismeRequired": "L'organisme est requis",
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Minimum 8 caracteres",
+        "confirmPasswordRequired": "Veuillez confirmer le mot de passe",
+        "passwordMismatch": "Les mots de passe ne correspondent pas",
+        "maxLength": "{{max}} caracteres maximum",
+        "emailAlreadyUsed": "Cette adresse email est deja utilisee."
+      }
+    },
+    "registrationPending": {
+      "title": "Demande en attente",
+      "message": "Votre demande d'inscription a ete envoyee. Vous recevrez un email une fois votre compte valide par un administrateur."
+    },
+    "logout": "Deconnexion"
+  },
+  "header": {
+    "administration": "Administration",
+    "profile": "Mon profil",
+    "settings": "Parametres",
+    "validations": "Validations",
+    "logout": "Deconnexion",
+    "login": "Se connecter",
+    "menu": "Menu",
+    "home": "Accueil",
+    "plans": "Plans de gestion",
+    "impersonation": {
+      "banner": "Mode visualisation",
+      "viewing": "Vous visualisez en tant que",
+      "connectedAs": "connecte en tant que",
+      "stopButton": "Revenir a mon compte"
+    }
+  },
+  "home": {
+    "heroTitle": "Biodiv', l'outil des plans de gestion",
+    "heroSubtitle": "Explorez les donnees du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
+    "exploration": {
+      "title": "Exploration des donnees",
+      "description": "Decouvrez blablabla, comparez blablabla, filtrez blablabla.."
+    },
+    "tiles": {
+      "plans": "Mes plans de gestion",
+      "sites": "Mes sites",
+      "zonages": "Zonages reglementaires",
+      "inventaires": "Mes inventaires et suivis"
+    },
+    "referentials": "Referentiels de donnees"
+  },
+  "admin": {
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "subtitle": {
+        "superAdmin": "Tous les utilisateurs de la plateforme",
+        "orgAdmin": "Utilisateurs de {{orgName}}"
+      },
+      "search": "Rechercher un utilisateur...",
+      "table": {
+        "user": "Utilisateur",
+        "email": "Email",
+        "organisme": "Organisme",
+        "role": "Role",
+        "sites": "Sites",
+        "plans": "Plans de gestion",
+        "status": "Statut",
+        "lastLogin": "Derniere connexion",
+        "actions": "Actions"
+      },
+      "roles": {
+        "super_admin": "Super Admin",
+        "admin_og": "Admin Org.",
+        "utilisateur": "Utilisateur"
+      },
+      "sites": {
+        "noSite": "Aucun site",
+        "referent": "Referent",
+        "others": "+{{count}} autres"
+      },
+      "plans": {
+        "noPlan": "Aucun plan"
+      },
+      "actions": {
+        "assignOrganisme": "Assigner un organisme",
+        "assignSite": "Assigner un site (referent)",
+        "removeFromOrganisme": "Retirer de l'organisme",
+        "activate": "Activer",
+        "deactivate": "Desactiver",
+        "viewAs": "Voir en tant que cet utilisateur"
+      },
+      "messages": {
+        "loading": "Chargement des utilisateurs...",
+        "noUsers": "Aucun utilisateur trouve",
+        "organismeUpdated": "Organisme mis a jour",
+        "sitesUpdated": "Sites de l'utilisateur mis a jour",
+        "userActivated": "Utilisateur active",
+        "userDeactivated": "Utilisateur desactive",
+        "cannotModify": "Vous ne pouvez pas modifier cet utilisateur",
+        "impersonationStarting": "Demarrage de la session en tant que {{name}}...",
+        "impersonationStarted": "Vous visualisez maintenant en tant que {{name}}",
+        "deletionNotAvailable": "La suppression d'utilisateur n'est pas disponible ici. Utilisez l'admin Django.",
+        "removedFromOrganisme": "Utilisateur retire de l'organisme et desactive"
+      },
+      "pagination": "{{count}} utilisateur(s) sur {{total}}",
+      "notAssigned": "Non assigne"
+    },
+    "plans": {
+      "title": "Gestion des plans de gestion",
+      "subtitle": {
+        "superAdmin": "Administration de tous les plans de gestion",
+        "orgAdmin": "Plans de gestion de votre organisme",
+        "user": "Mes plans de gestion assignes"
+      },
+      "search": "Rechercher un plan...",
+      "stats": {
+        "total": "Total",
+        "valides": "Valides",
+        "brouillons": "Brouillons",
+        "archives": "Archives"
+      },
+      "table": {
+        "name": "Nom du plan",
+        "status": "Statut",
+        "periode": "Periode",
+        "sites": "Sites",
+        "referents": "Referents",
+        "lastUpdate": "Derniere MAJ",
+        "actions": "Actions"
+      },
+      "status": {
+        "draft": "Brouillon",
+        "valide": "Valide",
+        "archive": "Archive"
+      },
+      "periode": {
+        "since": "Depuis {{year}}",
+        "undefined": "Non definie"
+      },
+      "actions": {
+        "view": "Voir le plan",
+        "manageSites": "Gerer les sites",
+        "manageReferents": "Gerer les referents",
+        "validate": "Valider le plan",
+        "archive": "Archiver",
+        "restore": "Restaurer en brouillon"
+      },
+      "empty": {
+        "noSite": "Aucun site",
+        "noReferent": "Aucun referent",
+        "noPlans": "Aucun plan de gestion trouve"
+      },
+      "others": "+{{count}} autres",
+      "messages": {
+        "loading": "Chargement des plans de gestion...",
+        "sitesUpdated": "Sites du plan mis a jour",
+        "referentsUpdated": "Referents du plan mis a jour",
+        "onlyDraftCanBeValidated": "Seuls les plans en brouillon peuvent etre valides",
+        "validated": "Plan valide avec succes",
+        "alreadyArchived": "Ce plan est deja archive",
+        "archived": "Plan archive avec succes",
+        "restored": "Plan restaure en brouillon"
+      },
+      "summary": "{{count}} plan(s) de gestion"
+    },
+    "sites": {
+      "title": "Gestion des sites",
+      "subtitle": {
+        "superAdmin": "Tous les espaces proteges",
+        "orgAdmin": "Sites de {{orgName}}",
+        "user": "Mes sites assignes"
+      },
+      "search": "Rechercher un site...",
+      "addSite": "Ajouter un site",
+      "table": {
+        "name": "Nom du site",
+        "type": "Type",
+        "organismes": "Organismes",
+        "users": "Utilisateurs",
+        "surface": "Surface",
+        "plans": "Plans",
+        "actions": "Actions"
+      },
+      "types": {
+        "RNN": "RNN - Reserve Naturelle Nationale",
+        "RNR": "RNR - Reserve Naturelle Regionale",
+        "PNR": "PNR - Parc Naturel Regional",
+        "ENS": "ENS - Espace Naturel Sensible"
+      },
+      "empty": {
+        "noOrganisme": "Aucun organisme",
+        "noUser": "Aucun utilisateur",
+        "noSites": "Aucun site trouve"
+      },
+      "principal": "Principal",
+      "actions": {
+        "manageUsers": "Gerer les utilisateurs",
+        "assignOrganisme": "Associer a un organisme"
+      },
+      "messages": {
+        "loading": "Chargement des sites...",
+        "created": "Site cree avec succes",
+        "updated": "Site modifie avec succes",
+        "usersUpdated": "Utilisateurs du site mis a jour",
+        "organismesUpdated": "Organismes du site mis a jour",
+        "deletionNotAvailable": "La suppression de site n'est pas disponible ici. Utilisez l'admin Django."
+      },
+      "others": "+{{count}} autres",
+      "referent": "Referent",
+      "summary": "{{count}} site(s) - Surface totale: {{surface}} ha"
+    },
+    "organismes": {
+      "title": "Gestion des organismes",
+      "subtitle": {
+        "superAdmin": "Tous les organismes gestionnaires",
+        "orgAdmin": "Votre organisme"
+      },
+      "search": "Rechercher un organisme...",
+      "addOrganisme": "Ajouter un organisme",
+      "table": {
+        "name": "Nom",
+        "city": "Ville",
+        "users": "Utilisateurs",
+        "sites": "Sites",
+        "actions": "Actions"
+      },
+      "empty": {
+        "noOrganismes": "Aucun organisme trouve"
+      },
+      "messages": {
+        "loading": "Chargement des organismes...",
+        "created": "Organisme cree avec succes",
+        "updated": "Organisme modifie avec succes",
+        "userLinked": "Utilisateur associe a l'organisme",
+        "siteLinked": "Site associe a l'organisme",
+        "siteCreated": "Site cree et associe a votre organisme"
+      },
+      "stats": {
+        "users": "{{count}} utilisateurs",
+        "sites": "{{count}} sites",
+        "plans": "{{count}} plans",
+        "usersLabel": "Utilisateurs",
+        "sitesLabel": "Sites",
+        "plansLabel": "Plans de gestion"
+      },
+      "actions": {
+        "edit": "Modifier",
+        "addUser": "Ajouter un utilisateur",
+        "addSite": "Ajouter un site",
+        "requestLink": "Demander un lien",
+        "createSite": "Creer un site"
+      },
+      "contact": {
+        "title": "Informations de contact",
+        "email": "Email",
+        "phone": "Telephone",
+        "address": "Adresse"
+      }
+    },
+    "validations": {
+      "title": "Demandes de validation",
+      "subtitle": "Traitez les demandes en attente",
+      "pending": "En attente",
+      "table": {
+        "type": "Type",
+        "requester": "Demandeur",
+        "target": "Cible",
+        "date": "Date",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "types": {
+        "user_registration": "Inscription",
+        "site_access": "Acces site",
+        "plan_access": "Acces plan",
+        "referent_validation": "Validation referent"
+      },
+      "actions": {
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "viewDetails": "Voir les details"
+      },
+      "empty": {
+        "noValidations": "Aucune demande de validation"
+      }
+    }
+  },
+  "modals": {
+    "deactivateUser": {
+      "title": "Desactiver l'utilisateur",
+      "warning": {
+        "title": "Attention",
+        "message": "La desactivation d'un utilisateur lui retirera l'acces a l'application. Il ne pourra plus se connecter."
+      },
+      "reason": {
+        "label": "Raison de la desactivation",
+        "placeholder": "Indiquez la raison de la desactivation (minimum 10 caracteres)...",
+        "hint": "{{count}} / 10 caracteres minimum"
+      },
+      "validation": {
+        "minLength": "Veuillez fournir une raison d'au moins 10 caracteres"
+      },
+      "confirm": "Desactiver"
+    },
+    "linkUserOrganisme": {
+      "titleManage": "Gerer les utilisateurs de l'organisme",
+      "titleAssociate": "Associer l'utilisateur a un organisme",
+      "usersSection": "Utilisateurs ({{count}})",
+      "emptyUsers": "Aucun utilisateur. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.",
+      "addUser": "Ajouter un utilisateur",
+      "searchUser": "Rechercher un utilisateur",
+      "searchPlaceholder": "Tapez pour rechercher...",
+      "allUsersAssigned": "Tous les utilisateurs sont deja associes",
+      "noUserFound": "Aucun utilisateur trouve",
+      "currently": "Actuellement",
+      "noOrganisme": "Aucun organisme",
+      "noOrganismeCurrent": "Aucun organisme actuellement",
+      "organisme": "Organisme",
+      "associate": "Associer",
+      "note": "Note: Un utilisateur ne peut appartenir qu'a un seul organisme. L'ajout d'un utilisateur le transferera vers cet organisme.",
+      "removeUser": "Retirer cet utilisateur",
+      "cancelRemoval": "Annuler la suppression",
+      "badges": {
+        "new": "Nouveau",
+        "deleted": "Supprime"
+      },
+      "messages": {
+        "userAdded": "Utilisateur \"{{name}}\" ajoute a la liste",
+        "removeError": "Erreur lors de la suppression: {{error}}",
+        "addError": "Erreur: {{error}}"
+      }
+    },
+    "linkUserSite": {
+      "titleManageSites": "Gerer les sites de l'utilisateur",
+      "titleManageUsers": "Gerer les utilisateurs du site",
+      "sitesSection": "Sites associes ({{count}})",
+      "usersSection": "Utilisateurs associes ({{count}})",
+      "siteUsers": "Utilisateurs du site",
+      "emptySites": "Aucun site associe. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "emptyUsers": "Aucun utilisateur associe. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.",
+      "addSite": "Ajouter un site",
+      "addUser": "Ajouter un utilisateur",
+      "searchSite": "Rechercher un site",
+      "searchUser": "Rechercher un utilisateur",
+      "searchPlaceholder": "Tapez pour rechercher...",
+      "allSitesAssigned": "Tous les sites sont deja associes",
+      "allUsersAssigned": "Tous les utilisateurs sont deja associes",
+      "noSiteFound": "Aucun site trouve",
+      "noUserFound": "Aucun utilisateur trouve",
+      "referent": "Referent",
+      "referentInfo": "Referent: peut gerer le site et ses plans de gestion.",
+      "asReferent": "Comme referent",
+      "referentHint": "Cochez pour ajouter l'utilisateur comme referent du site",
+      "defaultRoles": "Roles par defaut:",
+      "removeSite": "Retirer ce site",
+      "removeUser": "Retirer cet utilisateur",
+      "cancelRemoval": "Annuler la suppression",
+      "badges": {
+        "new": "Nouveau",
+        "modified": "Modifie",
+        "deleted": "Supprime"
+      },
+      "messages": {
+        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
+        "userAdded": "Utilisateur \"{{name}}\" ajoute a la liste",
+        "removeError": "Erreur lors de la suppression: {{error}}",
+        "error": "Erreur: {{error}}"
+      }
+    },
+    "linkPlanSite": {
+      "title": "Gerer les sites du plan",
+      "planSites": "Sites du plan ({{count}})",
+      "emptySites": "Aucun site associe a ce plan. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "addSite": "Ajouter un site",
+      "searchSite": "Rechercher un site",
+      "searchPlaceholder": "Tapez pour rechercher...",
+      "allSitesAssigned": "Tous les sites sont deja associes",
+      "noSiteFound": "Aucun site trouve",
+      "removeSite": "Retirer ce site",
+      "cancelRemoval": "Annuler la suppression",
+      "badges": {
+        "new": "Nouveau",
+        "deleted": "Supprime"
+      },
+      "messages": {
+        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
+        "addError": "Erreur lors de l'ajout des sites: {{error}}",
+        "removeError": "Erreur lors de la suppression: {{error}}"
+      }
+    },
+    "linkPlanReferent": {
+      "title": "Gerer les referents du plan",
+      "sections": {
+        "currentReferents": "Referents du plan",
+        "addReferent": "Ajouter un referent"
+      },
+      "noReferent": "Aucun referent assigne a ce plan",
+      "searchUser": "Rechercher un utilisateur",
+      "searchPlaceholder": "Tapez pour rechercher...",
+      "infoText": "Les referents peuvent modifier et valider le plan de gestion. Les modifications ne seront appliquees qu'apres avoir clique sur <strong>Enregistrer</strong>.",
+      "badges": {
+        "new": "Nouveau",
+        "deleted": "Supprime"
+      },
+      "actions": {
+        "removeReferent": "Retirer ce referent",
+        "restore": "Restaurer"
+      },
+      "messages": {
+        "referentAdded": "Referent \"{{name}}\" ajoute a la liste",
+        "addError": "Erreur lors de l'ajout des referents: {{error}}",
+        "removeError": "Erreur lors de la suppression: {{error}}"
+      }
+    },
+    "linkSiteOrganisme": {
+      "titleManageSites": "Gerer les sites de l'organisme",
+      "titleManageOrganismes": "Associer le site a un organisme",
+      "organismes": "Organismes ({{count}})",
+      "sites": "Sites ({{count}})",
+      "emptyOrganismes": "Aucun organisme associe a ce site.",
+      "emptySites": "Aucun site associe. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "addOrganisme": "Ajouter un organisme",
+      "addSite": "Ajouter un site",
+      "searchOrganisme": "Rechercher un organisme",
+      "searchSite": "Rechercher un site",
+      "searchPlaceholder": "Tapez pour rechercher...",
+      "allOrganismesAssigned": "Tous les organismes sont deja associes",
+      "allSitesAssigned": "Tous les sites sont deja associes",
+      "noOrganismeFound": "Aucun organisme trouve",
+      "noSiteFound": "Aucun site trouve",
+      "principal": "Principal",
+      "principalHint": "L'organisme principal est responsable du site",
+      "principalInfo": "Principal: responsable de la gestion du site.",
+      "asPrincipal": "Comme principal",
+      "defaultRoles": "Roles par defaut:",
+      "removeOrganisme": "Retirer cet organisme",
+      "removeSite": "Retirer ce site",
+      "cancelRemoval": "Annuler la suppression",
+      "badges": {
+        "new": "Nouveau",
+        "modified": "Modifie",
+        "deleted": "Supprime"
+      },
+      "messages": {
+        "organismeAdded": "Organisme \"{{name}}\" ajoute a la liste",
+        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
+        "removeError": "Erreur lors de la suppression: {{error}}",
+        "error": "Erreur: {{error}}"
+      }
+    },
+    "removeUserOrganisme": {
+      "title": "Retirer l'utilisateur de l'organisme",
+      "warning": {
+        "title": "Attention",
+        "message": "Cette action va retirer l'utilisateur de l'organisme et le desactiver."
+      },
+      "reason": {
+        "label": "Raison",
+        "placeholder": "Indiquez la raison (minimum 10 caracteres)...",
+        "hint": "{{count}} / 10 caracteres minimum"
+      },
+      "validation": {
+        "minLength": "Veuillez fournir une raison d'au moins 10 caracteres"
+      },
+      "confirm": "Retirer et desactiver"
+    },
+    "organismeForm": {
+      "titleCreate": "Nouvel organisme",
+      "titleEdit": "Modifier l'organisme",
+      "name": "Nom de l'organisme",
+      "namePlaceholder": "Ex: CEN Auvergne-Rhone-Alpes",
+      "parent": "Organisme parent",
+      "noParent": "Aucun (organisme principal)",
+      "address": "Adresse",
+      "addressPlaceholder": "Ex: 6 bis rue de la Gouge",
+      "postalCode": "Code postal",
+      "postalCodePlaceholder": "Ex: 21000",
+      "city": "Ville",
+      "cityPlaceholder": "Ex: Dijon",
+      "phone": "Telephone",
+      "phonePlaceholder": "Ex: 03 80 48 91 00",
+      "email": "Email",
+      "emailPlaceholder": "Ex: contact@organisme.fr",
+      "website": "Site web",
+      "websitePlaceholder": "Ex: https://www.organisme.fr",
+      "websiteHint": "L'URL doit commencer par http:// ou https://",
+      "validation": {
+        "postalCodeInvalid": "Code postal invalide (5 chiffres)"
+      }
+    },
+    "siteForm": {
+      "titleCreate": "Nouveau site",
+      "titleEdit": "Modifier le site",
+      "name": "Nom du site",
+      "namePlaceholder": "Ex: Reserve Naturelle de...",
+      "type": "Type de site",
+      "localCode": "Code local",
+      "localCodePlaceholder": "Ex: RNR-001",
+      "inpnCode": "Code INPN",
+      "inpnCodePlaceholder": "Ex: FR1234567",
+      "surface": "Surface officielle (ha)",
+      "surfacePlaceholder": "Ex: 1250.5",
+      "marine": "Site marin",
+      "overseas": "Outre-mer",
+      "active": "Actif",
+      "messages": {
+        "linkError": "Site cree mais erreur lors de la liaison: {{error}}"
+      },
+      "validation": {
+        "surfaceMin": "La surface doit etre positive"
+      }
+    },
+    "planForm": {
+      "titleCreate": "Nouveau plan de gestion",
+      "titleEdit": "Modifier le plan de gestion",
+      "sections": {
+        "generalInfo": "Informations generales",
+        "managementPeriod": "Periode de gestion",
+        "characteristics": "Caracteristiques",
+        "evaluationAndWriting": "Evaluation et redaction",
+        "associatedSites": "Sites associes",
+        "referents": "Referents",
+        "comment": "Commentaire"
+      },
+      "fields": {
+        "name": "Nom du plan",
+        "status": "Statut",
+        "version": "Version",
+        "editorName": "Nom du redacteur",
+        "startYear": "Annee de debut",
+        "endYear": "Annee de fin",
+        "sharedManagement": "Gestion partagee",
+        "ct88": "CT88",
+        "fireRisk": "Risque incendie",
+        "evaluationType": "Type d'evaluation",
+        "editorType": "Type de redacteur",
+        "comment": "Commentaire"
+      },
+      "placeholders": {
+        "name": "Plan de gestion 2024-2034 - Site XYZ",
+        "editorName": "Bureau d'etude XYZ",
+        "searchSite": "Rechercher un site...",
+        "searchUser": "Rechercher un utilisateur...",
+        "comment": "Informations complementaires..."
+      },
+      "validation": {
+        "nameRequired": "Le nom est requis"
+      },
+      "noSiteMatching": "Aucun site correspondant a \"{{query}}\"",
+      "noSiteAvailable": "Aucun site disponible",
+      "noUserMatching": "Aucun utilisateur correspondant a \"{{query}}\"",
+      "noUserAvailable": "Aucun utilisateur disponible"
+    },
+    "common": {
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "create": "Creer",
+      "loading": "Chargement..."
+    }
+  },
+  "plans": {
+    "list": {
+      "title": "Plans de gestion",
+      "subtitle": "Consultez et gerez vos plans de gestion",
+      "search": "Rechercher un plan...",
+      "empty": "Aucun plan de gestion",
+      "createPlan": "Creer un plan de gestion",
+      "newBlankPlan": "Nouveau plan vierge",
+      "duplicatePlan": "Dupliquer un plan existant",
+      "oldVersions": "Voir les anciennes versions",
+      "multisites": "multisites",
+      "tabs": {
+        "active": "Actifs",
+        "inactive": "Inactifs"
+      },
+      "table": {
+        "name": "Nom du plan de gestion",
+        "period": "Periode de validite",
+        "status": "Statut"
+      },
+      "actions": {
+        "follow": "Suivre",
+        "view": "Voir",
+        "editStatus": "Modifier le statut"
+      }
+    },
+    "detail": {
+      "title": "Detail du plan",
+      "tabs": {
+        "details": "Details et saisie",
+        "general": "Informations generales"
+      }
+    },
+    "status": {
+      "draft": "Brouillon",
+      "valide": "Valide",
+      "archive": "Archive",
+      "inProgress": "En cours de revision",
+      "midterm": "Evaluation mi-parcours"
+    }
+  },
+  "profile": {
+    "title": "Mon profil",
+    "subtitle": "Consultez vos informations et suivez vos demandes",
+    "backToHome": "Retour a l'accueil",
+    "tabs": {
+      "info": "Informations",
+      "requests": "Mes demandes"
+    },
+    "info": {
+      "role": "Role",
+      "identifier": "Identifiant",
+      "memberSince": "Membre depuis",
+      "lastLogin": "Derniere connexion"
+    },
+    "organisme": {
+      "title": "Mon organisme",
+      "name": "Nom",
+      "address": "Adresse",
+      "phone": "Telephone",
+      "email": "Email"
+    },
+    "requests": {
+      "empty": {
+        "title": "Aucune demande",
+        "message": "Vous n'avez fait aucune demande de validation pour le moment."
+      },
+      "description": "Retrouvez ici l'etat de vos demandes d'acces aux sites et plans de gestion.",
+      "table": {
+        "type": "Type",
+        "target": "Cible",
+        "date": "Demande",
+        "validatedAt": "Valide le",
+        "status": "Statut",
+        "validator": "Traite par"
+      },
+      "pending": "En attente",
+      "loadError": "Erreur lors du chargement des demandes"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "markAllRead": "Tout marquer comme lu",
+    "newNotifications": "{{count}} nouvelle(s) notification(s)"
+  },
+  "scores": {
+    "veryBad": "Tres mauvais",
+    "bad": "Mauvais",
+    "neutral": "Moyen",
+    "good": "Bon",
+    "veryGood": "Tres bon",
+    "noData": "Sans donnee"
+  },
+  "actionStatus": {
+    "planned": "Action prevue",
+    "plannedRealized": "Action prevue et realisee",
+    "plannedPartial": "Action prevue et partiellement realisee",
+    "realizedUnplanned": "Action realisee non prevue",
+    "partialUnplanned": "Action partiellement realisee non prevue"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Veuillez reessayer.",
+    "notFound": "Ressource non trouvee",
+    "serverError": "Erreur serveur. Veuillez reessayer.",
+    "unauthorized": "Vous n'etes pas autorise a effectuer cette action.",
+    "forbidden": "Acces refuse.",
+    "network": "Erreur de connexion. Verifiez votre connexion internet."
+  }
+}

@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminOrganisme, AdminSite, OrganismeSite } from '../../../../core/models/admin.model';
 
@@ -58,7 +59,8 @@ export interface LinkSiteOrganismeModalData {
     MatProgressSpinnerModule,
     MatInputModule,
     MatCheckboxModule,
-    MatIconModule
+    MatIconModule,
+    TranslateModule
   ],
   templateUrl: './link-site-organisme-modal.component.html',
   styleUrl: './link-site-organisme-modal.component.scss'
@@ -66,6 +68,7 @@ export interface LinkSiteOrganismeModalData {
 export class LinkSiteOrganismeModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly dialogRef = inject(MatDialogRef<LinkSiteOrganismeModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<LinkSiteOrganismeModalData>(MAT_DIALOG_DATA);
 
   isLoading = signal(false);
@@ -299,7 +302,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     this.newOrganismePrincipal = false;
     this.filterAvailableOrganismes('');
 
-    this.successMessage.set(`Organisme "${org.nom_organisme}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.organismeAdded', { name: org.nom_organisme }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -388,7 +391,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
     this.newSitePrincipal = false;
     this.filterAvailableSites('');
 
-    this.successMessage.set(`Site "${site.nom_site}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.siteAdded', { name: site.nom_site }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -512,7 +515,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.removeError', { error: error.message }));
           }
         });
       } else {
@@ -531,7 +534,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.error', { error: error.message }));
           }
         });
       }
@@ -592,7 +595,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.removeError', { error: error.message }));
           }
         });
       } else {
@@ -611,7 +614,7 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.error', { error: error.message }));
           }
         });
       }

@@ -2,6 +2,7 @@
 Serializers pour les notifications et validations.
 """
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
 
@@ -242,7 +243,7 @@ class ValidationApproveSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
         max_length=1000,
-        help_text="Commentaire optionnel"
+        help_text=_("Commentaire optionnel")
     )
 
 
@@ -252,7 +253,7 @@ class ValidationRejectSerializer(serializers.Serializer):
     comment = serializers.CharField(
         required=True,
         max_length=1000,
-        help_text="Motif du rejet (obligatoire)"
+        help_text=_("Motif du rejet (obligatoire)")
     )
 
 
@@ -260,39 +261,39 @@ class PublicRegistrationSerializer(serializers.Serializer):
     """Serializer pour l'inscription publique."""
 
     email = serializers.EmailField(
-        help_text="Adresse email (sera utilisee pour la connexion)"
+        help_text=_("Adresse email (sera utilisée pour la connexion)")
     )
     password = serializers.CharField(
         write_only=True,
         min_length=8,
-        help_text="Mot de passe (minimum 8 caracteres)"
+        help_text=_("Mot de passe (minimum 8 caractères)")
     )
     password_confirm = serializers.CharField(
         write_only=True,
-        help_text="Confirmation du mot de passe"
+        help_text=_("Confirmation du mot de passe")
     )
     nom_role = serializers.CharField(
         max_length=50,
         required=False,
         allow_blank=True,
-        help_text="Nom de famille"
+        help_text=_("Nom de famille")
     )
     prenom_role = serializers.CharField(
         max_length=50,
         required=False,
         allow_blank=True,
-        help_text="Prenom"
+        help_text=_("Prénom")
     )
     requested_organisme_id = serializers.IntegerField(
         required=False,
         allow_null=True,
-        help_text="ID de l'organisme demande"
+        help_text=_("ID de l'organisme demandé")
     )
     justification = serializers.CharField(
         required=False,
         allow_blank=True,
         max_length=2000,
-        help_text="Motif de la demande d'inscription"
+        help_text=_("Motif de la demande d'inscription")
     )
 
     def validate_email(self, value):
@@ -304,13 +305,13 @@ class PublicRegistrationSerializer(serializers.Serializer):
         # Verifier dans Role
         if Role.objects.filter(email__iexact=email_lower).exists():
             raise serializers.ValidationError(
-                "Cette adresse email est deja utilisee."
+                _("Cette adresse email est déjà utilisée.")
             )
 
         # Verifier dans PendingUser
         if PendingUser.objects.filter(email__iexact=email_lower).exists():
             raise serializers.ValidationError(
-                "Une demande d'inscription avec cette adresse est deja en attente."
+                _("Une demande d'inscription avec cette adresse est déjà en attente.")
             )
 
         return email_lower
@@ -319,7 +320,7 @@ class PublicRegistrationSerializer(serializers.Serializer):
         """Validation globale."""
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({
-                'password_confirm': "Les mots de passe ne correspondent pas."
+                'password_confirm': _("Les mots de passe ne correspondent pas.")
             })
 
         # Verifier que l'organisme existe si fourni
@@ -329,7 +330,7 @@ class PublicRegistrationSerializer(serializers.Serializer):
                 BibOrganismes.objects.get(id_organisme=data['requested_organisme_id'])
             except BibOrganismes.DoesNotExist:
                 raise serializers.ValidationError({
-                    'requested_organisme_id': "Organisme non trouve."
+                    'requested_organisme_id': _("Organisme non trouvé.")
                 })
 
         return data
@@ -382,7 +383,7 @@ class SiteAccessRequestSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
         max_length=2000,
-        help_text="Motif de la demande"
+        help_text=_("Motif de la demande")
     )
 
 
@@ -393,7 +394,7 @@ class PlanAccessRequestSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
         max_length=2000,
-        help_text="Motif de la demande"
+        help_text=_("Motif de la demande")
     )
 
 
@@ -403,5 +404,5 @@ class AdminDeactivationRequestSerializer(serializers.Serializer):
     justification = serializers.CharField(
         required=True,
         max_length=2000,
-        help_text="Motif de la demande (obligatoire)"
+        help_text=_("Motif de la demande (obligatoire)")
     )

@@ -1,9 +1,10 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Notification{% endblock %}</title>
+    <title>{% block title %}{% trans "Notification" %}{% endblock %}</title>
     <style>
         body {
             font-family: 'Nunito', Arial, sans-serif;
@@ -65,14 +66,14 @@
 </head>
 <body>
     <div class="header">
-        <h1>Outil Plan de Gestion</h1>
+        <h1>{% trans "Outil Plan de Gestion" %}</h1>
     </div>
     <div class="content">
         {% block content %}{% endblock %}
     </div>
     <div class="footer">
-        <p>Cet email a ete envoye automatiquement par l'Outil Plan de Gestion.</p>
-        <p>Merci de ne pas repondre a ce message.</p>
+        <p>{% trans "Cet email a été envoyé automatiquement par l'Outil Plan de Gestion." %}</p>
+        <p>{% trans "Merci de ne pas répondre à ce message." %}</p>
     </div>
 </body>
 </html>

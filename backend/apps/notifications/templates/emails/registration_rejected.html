@@ -1,38 +1,35 @@
 {% extends "emails/base.html" %}
+{% load i18n %}
 
-{% block title %}Demande d'inscription refusee{% endblock %}
+{% block title %}{% trans "Demande d'inscription refusée" %}{% endblock %}
 
 {% block content %}
-<h2>Demande d'inscription refusee</h2>
+<h2>{% trans "Demande d'inscription refusée" %}</h2>
 
-<p>Bonjour,</p>
+<p>{% trans "Bonjour," %}</p>
 
 <p>
-    Nous sommes au regret de vous informer que votre demande d'inscription
-    a l'Outil Plan de Gestion n'a pas ete approuvee.
+    {% trans "Nous sommes au regret de vous informer que votre demande d'inscription à l'Outil Plan de Gestion n'a pas été approuvée." %}
 </p>
 
 {% if reason %}
 <div class="warning-box">
-    <strong>Motif du refus :</strong><br>
+    <strong>{% trans "Motif du refus :" %}</strong><br>
     {{ reason }}
 </div>
 {% endif %}
 
 <p>
-    Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez
-    obtenir plus d'informations, veuillez contacter l'administrateur
-    de votre organisme.
+    {% trans "Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez obtenir plus d'informations, veuillez contacter l'administrateur de votre organisme." %}
 </p>
 
 <p>
-    Vous pouvez egalement soumettre une nouvelle demande d'inscription
-    si necessaire.
+    {% trans "Vous pouvez également soumettre une nouvelle demande d'inscription si nécessaire." %}
 </p>
 
 <p style="text-align: center;">
     <a href="{{ register_url }}" class="button">
-        Nouvelle inscription
+        {% trans "Nouvelle inscription" %}
     </a>
 </p>
 {% endblock %}

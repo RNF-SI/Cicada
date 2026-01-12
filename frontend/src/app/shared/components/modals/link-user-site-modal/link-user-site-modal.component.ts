@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite, AdminUser, UserSiteRelation } from '../../../../core/models/admin.model';
@@ -59,7 +60,8 @@ export interface LinkUserSiteModalData {
     MatProgressSpinnerModule,
     MatInputModule,
     MatCheckboxModule,
-    MatIconModule
+    MatIconModule,
+    TranslateModule
   ],
   templateUrl: './link-user-site-modal.component.html',
   styleUrl: './link-user-site-modal.component.scss'
@@ -68,6 +70,7 @@ export class LinkUserSiteModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<LinkUserSiteModalComponent>);
+  private readonly translate = inject(TranslateService);
   readonly data = inject<LinkUserSiteModalData>(MAT_DIALOG_DATA);
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -315,7 +318,7 @@ export class LinkUserSiteModalComponent implements OnInit {
     const userName = user.prenom_role && user.nom_role
       ? `${user.prenom_role} ${user.nom_role}`
       : user.email;
-    this.successMessage.set(`Utilisateur "${userName}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkUserSite.messages.userAdded', { name: userName }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -387,7 +390,7 @@ export class LinkUserSiteModalComponent implements OnInit {
     this.newSiteReferent = true;
     this.filterAvailableSites('');
 
-    this.successMessage.set(`Site "${site.nom_site}" ajoute a la liste`);
+    this.successMessage.set(this.translate.instant('modals.linkUserSite.messages.siteAdded', { name: site.nom_site }));
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
@@ -498,7 +501,7 @@ export class LinkUserSiteModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserSite.messages.removeError', { error: error.message }));
           }
         });
       } else {
@@ -517,7 +520,7 @@ export class LinkUserSiteModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserSite.messages.error', { error: error.message }));
           }
         });
       }
@@ -578,7 +581,7 @@ export class LinkUserSiteModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur lors de la suppression: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserSite.messages.removeError', { error: error.message }));
           }
         });
       } else {
@@ -597,7 +600,7 @@ export class LinkUserSiteModalComponent implements OnInit {
           error: (error: Error) => {
             hasError = true;
             this.isLoading.set(false);
-            this.errorMessage.set(`Erreur: ${error.message}`);
+            this.errorMessage.set(this.translate.instant('modals.linkUserSite.messages.error', { error: error.message }));
           }
         });
       }
