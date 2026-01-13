@@ -179,9 +179,11 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
 class ValidationRequestListSerializer(serializers.ModelSerializer):
     """Serializer simplifie pour les listes."""
 
+    requester_id = serializers.IntegerField(source='requester.id_role', read_only=True, allow_null=True)
     requester_name = serializers.SerializerMethodField()
     target_name = serializers.SerializerMethodField()
     validator_name = serializers.SerializerMethodField()
+    validator_comment = serializers.CharField(source='validation_comment', read_only=True)
     request_type_display = serializers.CharField(
         source='get_request_type_display',
         read_only=True
@@ -199,10 +201,12 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'request_type_display',
             'status',
             'status_display',
+            'requester_id',
             'requester_name',
             'target_name',
             'justification',
             'validator_name',
+            'validator_comment',
             'validated_at',
             'created_at',
         ]
@@ -218,13 +222,20 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         return "Inconnu"
 
     def get_target_name(self, obj):
-        """Nom de la cible (site, plan, utilisateur)."""
+        """Nom de la cible (site, plan, utilisateur, module)."""
         if obj.target_site:
             return f"Site: {obj.target_site.nom_site}"
         if obj.target_plan:
             return f"Plan: {obj.target_plan.nom}"
         if obj.target_user:
             return f"Utilisateur: {obj.target_user}"
+        if obj.target_module:
+            # Mapping des codes vers noms lisibles
+            module_names = {
+                'zonages': 'Zonages reglementaires',
+                'inventaires': 'Inventaires',
+            }
+            return module_names.get(obj.target_module, obj.target_module)
         if obj.requested_organisme:
             return f"Organisme: {obj.requested_organisme.nom_organisme}"
         return None
@@ -406,3 +417,60 @@ class AdminDeactivationRequestSerializer(serializers.Serializer):
         max_length=2000,
         help_text=_("Motif de la demande (obligatoire)")
     )
+
+
+class ModuleAccessRequestSerializer(serializers.Serializer):
+    """Serializer pour demander l'acces a un module."""
+
+    module_code = serializers.CharField(
+        required=True,
+        max_length=50,
+        help_text=_("Code du module (ex: zonages)")
+    )
+    justification = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        help_text=_("Motif de la demande")
+    )
+
+    def validate_module_code(self, value):
+        """Verifie que le code module est valide."""
+        valid_modules = ['zonages', 'inventaires']
+        if value not in valid_modules:
+            raise serializers.ValidationError(
+                _("Code module invalide. Valeurs acceptees: %(modules)s") % {'modules': ', '.join(valid_modules)}
+            )
+        return value
+
+
+class GrantModuleAccessSerializer(serializers.Serializer):
+    """Serializer pour octroyer l'acces a un module (admin)."""
+
+    user_id = serializers.IntegerField(
+        required=True,
+        help_text=_("ID de l'utilisateur")
+    )
+    module_code = serializers.CharField(
+        required=True,
+        max_length=50,
+        help_text=_("Code du module")
+    )
+
+    def validate_module_code(self, value):
+        """Verifie que le code module est valide."""
+        valid_modules = ['zonages', 'inventaires']
+        if value not in valid_modules:
+            raise serializers.ValidationError(
+                _("Code module invalide.")
+            )
+        return value
+
+    def validate_user_id(self, value):
+        """Verifie que l'utilisateur existe."""
+        from apps.users.models import Role
+        try:
+            Role.objects.get(id_role=value)
+        except Role.DoesNotExist:
+            raise serializers.ValidationError(_("Utilisateur non trouve."))
+        return value

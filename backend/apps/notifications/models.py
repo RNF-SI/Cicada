@@ -166,6 +166,7 @@ class ValidationRequest(models.Model):
         ('user_registration', _('Inscription utilisateur')),
         ('site_access', _('Accès à un site')),
         ('plan_access', _('Accès à un plan de gestion')),
+        ('module_access', _('Accès à un module')),
         ('admin_deactivation', _('Désactivation admin_og')),
         ('referent_validation', _('Validation référent site')),
     ]
@@ -228,6 +229,15 @@ class ValidationRequest(models.Model):
         blank=True,
         related_name='deactivation_requests',
         verbose_name=_('Utilisateur cible')
+    )
+
+    # Pour les acces module
+    target_module = models.CharField(
+        _('Module cible'),
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text=_('Code du module demandé (ex: zonages)')
     )
 
     # Pour les inscriptions

@@ -27,6 +27,8 @@ from .serializers import (
     SiteAccessRequestSerializer,
     PlanAccessRequestSerializer,
     AdminDeactivationRequestSerializer,
+    ModuleAccessRequestSerializer,
+    GrantModuleAccessSerializer,
 )
 from .services import NotificationService, ValidationService
 
@@ -379,6 +381,189 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         return Response({
             'status': 'cancelled',
             'message': 'La demande a ete annulee.'
+        })
+
+    @action(detail=False, methods=['post'])
+    def request_module_access(self, request):
+        """
+        POST /api/validations/request_module_access/
+        Demande l'acces a un module.
+        """
+        serializer = ModuleAccessRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        module_code = serializer.validated_data['module_code']
+        justification = serializer.validated_data.get('justification', '')
+
+        # Verifier qu'une demande n'existe pas deja pour ce module
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='module_access',
+            target_module=module_code,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande pour ce module est deja en attente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'a pas deja acces
+        already_approved = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='module_access',
+            target_module=module_code,
+            status='approved'
+        ).exists()
+
+        if already_approved:
+            return Response(
+                {'error': 'Vous avez deja acces a ce module.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer la demande
+        validation_request = ValidationRequest.objects.create(
+            request_type='module_access',
+            status='pending',
+            requester=request.user,
+            target_module=module_code,
+            justification=justification,
+        )
+
+        # Notifier les super_admins
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande d\'acces au module a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def grant_module_access(self, request):
+        """
+        POST /api/validations/grant_module_access/
+        Octroie l'acces a un module directement (super_admin uniquement).
+        """
+        # Verifier que c'est un super_admin
+        if not request.user.is_super_admin():
+            return Response(
+                {'error': 'Seul un super administrateur peut octroyer des acces.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = GrantModuleAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id = serializer.validated_data['user_id']
+        module_code = serializer.validated_data['module_code']
+
+        from apps.users.models import Role
+        target_user = Role.objects.get(id_role=user_id)
+
+        # Verifier que l'utilisateur n'a pas deja acces
+        already_approved = ValidationRequest.objects.filter(
+            requester=target_user,
+            request_type='module_access',
+            target_module=module_code,
+            status='approved'
+        ).exists()
+
+        if already_approved:
+            return Response(
+                {'error': 'Cet utilisateur a deja acces a ce module.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Annuler toute demande en attente pour ce module/utilisateur
+        ValidationRequest.objects.filter(
+            requester=target_user,
+            request_type='module_access',
+            target_module=module_code,
+            status='pending'
+        ).update(status='cancelled')
+
+        # Creer une demande directement approuvee
+        validation_request = ValidationRequest.objects.create(
+            request_type='module_access',
+            status='approved',
+            requester=target_user,
+            target_module=module_code,
+            justification='Acces octroye par administrateur',
+            validator=request.user,
+            validated_at=timezone.now(),
+        )
+
+        # Notifier l'utilisateur
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='validation_approved',
+            title='Acces module accorde',
+            message=f'Vous avez obtenu l\'acces au module {module_code}.',
+            related_validation=validation_request,
+        )
+
+        return Response({
+            'status': 'granted',
+            'message': f'Acces au module {module_code} octroye.',
+        })
+
+    @action(detail=False, methods=['post'])
+    def revoke_module_access(self, request):
+        """
+        POST /api/validations/revoke_module_access/
+        Revoque l'acces a un module (super_admin uniquement).
+        """
+        # Verifier que c'est un super_admin
+        if not request.user.is_super_admin():
+            return Response(
+                {'error': 'Seul un super administrateur peut revoquer des acces.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = GrantModuleAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id = serializer.validated_data['user_id']
+        module_code = serializer.validated_data['module_code']
+
+        from apps.users.models import Role
+        target_user = Role.objects.get(id_role=user_id)
+
+        # Trouver et rejeter la demande approuvee
+        approved_requests = ValidationRequest.objects.filter(
+            requester=target_user,
+            request_type='module_access',
+            target_module=module_code,
+            status='approved'
+        )
+
+        if not approved_requests.exists():
+            return Response(
+                {'error': 'Cet utilisateur n\'a pas acces a ce module.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Mettre a jour le statut en "rejected" pour indiquer la revocation
+        approved_requests.update(
+            status='rejected',
+            validator=request.user,
+            validation_comment='Acces revoque par administrateur',
+            validated_at=timezone.now()
+        )
+
+        # Notifier l'utilisateur
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='validation_rejected',
+            title='Acces module revoque',
+            message=f'Votre acces au module {module_code} a ete revoque.',
+        )
+
+        return Response({
+            'status': 'revoked',
+            'message': f'Acces au module {module_code} revoque.',
         })
 
 
