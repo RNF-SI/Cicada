@@ -404,3 +404,139 @@ class TestAuthenticationFlow:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {response2.data['access']}")
         me2 = api_client.get('/api/auth/me/')
         assert me2.data['email'] == user2.email
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestImpersonation:
+    """Tests for user impersonation feature."""
+
+    def test_start_impersonation_super_admin_can_impersonate(self, api_client, db):
+        """Test super admin can start impersonation session."""
+        super_admin = SuperAdminFactory()
+        super_admin.set_password('AdminPass123!')
+        super_admin.save()
+
+        target_user = RoleFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post(f'/api/auth/impersonate/{target_user.id_role}/', {
+            'reason': 'Support technique'
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'access' in response.data
+        assert 'refresh' in response.data
+        assert response.data['impersonation']['isImpersonating'] is True
+        assert response.data['user']['id'] == target_user.id_role
+
+    def test_start_impersonation_regular_user_denied(self, api_client, db):
+        """Test regular user cannot start impersonation."""
+        regular_user = RoleFactory()
+        target_user = RoleFactory()
+
+        api_client.force_authenticate(user=regular_user)
+        response = api_client.post(f'/api/auth/impersonate/{target_user.id_role}/')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_start_impersonation_admin_og_denied(self, api_client, db):
+        """Test admin organisme cannot start impersonation."""
+        admin_og = AdminOrganismeFactory()
+        target_user = RoleFactory()
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.post(f'/api/auth/impersonate/{target_user.id_role}/')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_cannot_impersonate_self(self, api_client, db):
+        """Test super admin cannot impersonate themselves."""
+        super_admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post(f'/api/auth/impersonate/{super_admin.id_role}/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'vous-meme' in response.data['detail'].lower()
+
+    def test_cannot_impersonate_another_super_admin(self, api_client, db):
+        """Test super admin cannot impersonate another super admin."""
+        super_admin1 = SuperAdminFactory()
+        super_admin2 = SuperAdminFactory()
+
+        api_client.force_authenticate(user=super_admin1)
+        response = api_client.post(f'/api/auth/impersonate/{super_admin2.id_role}/')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert 'super administrateur' in response.data['detail'].lower()
+
+    def test_impersonation_logs_super_admin_only(self, api_client, db):
+        """Test only super admin can view impersonation logs."""
+        super_admin = SuperAdminFactory()
+        regular_user = RoleFactory()
+
+        # Super admin can access
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.get('/api/auth/impersonation-logs/')
+        assert response.status_code == status.HTTP_200_OK
+
+        # Regular user cannot
+        api_client.force_authenticate(user=regular_user)
+        response = api_client.get('/api/auth/impersonation-logs/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_impersonation_logs_returns_list(self, api_client, db):
+        """Test impersonation logs endpoint returns proper structure."""
+        super_admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.get('/api/auth/impersonation-logs/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'count' in response.data
+        assert 'results' in response.data
+        assert isinstance(response.data['results'], list)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPublicStats:
+    """Tests for public statistics endpoint."""
+
+    def test_public_stats_accessible_without_auth(self, api_client, db):
+        """Test public stats endpoint is accessible without authentication."""
+        response = api_client.get('/api/auth/stats/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_public_stats_returns_counts(self, api_client, db):
+        """Test public stats returns expected count fields."""
+        response = api_client.get('/api/auth/stats/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'sites_count' in response.data
+        assert 'plans_count' in response.data
+        assert 'organismes_count' in response.data
+        assert isinstance(response.data['sites_count'], int)
+        assert isinstance(response.data['plans_count'], int)
+        assert isinstance(response.data['organismes_count'], int)
+
+    def test_public_stats_reflects_data(self, api_client, db):
+        """Test public stats counts reflect actual database data."""
+        from tests.factories.users import SiteFactory, OrganismeFactory
+        from tests.factories.plans import PlanGestionFactory, PlanGestionValideFactory
+
+        # Create some test data
+        SiteFactory.create_batch(3)  # 3 active sites
+        OrganismeFactory.create_batch(2)  # 2 organismes
+        PlanGestionValideFactory.create_batch(2)  # 2 valid plans
+        PlanGestionFactory(statut='draft')  # 1 draft plan (should not be counted)
+
+        response = api_client.get('/api/auth/stats/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['sites_count'] >= 3
+        assert response.data['organismes_count'] >= 2
+        # Only valid plans should be counted, not drafts
+        assert response.data['plans_count'] >= 2

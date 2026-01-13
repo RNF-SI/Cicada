@@ -1,16 +1,36 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
+import { of } from 'rxjs';
 import {
   DeactivateUserModalComponent,
   DeactivateUserModalData,
   DeactivateUserModalResult
 } from './deactivate-user-modal.component';
 
+// Fake translate loader that returns translations
+class FakeTranslateLoader implements TranslateLoader {
+  getTranslation(lang: string) {
+    return of({
+      'modals.deactivateUser.title': 'Desactiver utilisateur',
+      'modals.deactivateUser.warning.title': 'Attention',
+      'modals.deactivateUser.warning.message': 'Cette action lui retirera l\'acces',
+      'modals.deactivateUser.reason.label': 'Raison',
+      'modals.deactivateUser.reason.placeholder': 'Placeholder',
+      'modals.deactivateUser.reason.hint': 'Caracteres',
+      'modals.deactivateUser.confirm': 'Confirmer',
+      'modals.deactivateUser.validation.minLength': 'Veuillez fournir une raison d\'au moins 10 caracteres',
+      'common.actions.cancel': 'Annuler'
+    });
+  }
+}
+
 describe('DeactivateUserModalComponent', () => {
   let component: DeactivateUserModalComponent;
   let fixture: ComponentFixture<DeactivateUserModalComponent>;
   let dialogRef: jest.Mocked<MatDialogRef<DeactivateUserModalComponent>>;
+  let translateService: TranslateService;
 
   const mockData: DeactivateUserModalData = {
     userName: 'Jean Dupont',
@@ -25,13 +45,20 @@ describe('DeactivateUserModalComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         DeactivateUserModalComponent,
-        NoopAnimationsModule
+        NoopAnimationsModule,
+        TranslateModule.forRoot({
+          loader: { provide: TranslateLoader, useClass: FakeTranslateLoader },
+          defaultLanguage: 'fr'
+        })
       ],
       providers: [
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockData }
       ]
     }).compileComponents();
+
+    translateService = TestBed.inject(TranslateService);
+    translateService.use('fr');
 
     fixture = TestBed.createComponent(DeactivateUserModalComponent);
     component = fixture.componentInstance;
@@ -154,7 +181,7 @@ describe('DeactivateUserModalComponent', () => {
 
     it('should display warning message about deactivation consequences', () => {
       const compiled = fixture.nativeElement;
-      expect(compiled.textContent).toContain('lui retirera l\'acces');
+      expect(compiled.textContent).toContain('retirera l\'acces');
     });
 
     it('should have disabled confirm button when reason is invalid', () => {

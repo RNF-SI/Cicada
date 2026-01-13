@@ -265,6 +265,9 @@ class TestPlansCreateEndpoint:
     def test_create_plan_referent(self, api_client):
         """Test referent can create a plan."""
         referent = ReferentFactory()
+        site = SiteFactory()
+        # Make user a real referent by creating validated site assignment
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
 
         api_client.force_authenticate(user=referent)
         response = api_client.post('/api/plans/plans/', {
@@ -279,6 +282,9 @@ class TestPlansCreateEndpoint:
     def test_create_plan_sets_creator(self, api_client):
         """Test created plan has creator set."""
         referent = ReferentFactory()
+        site = SiteFactory()
+        # Make user a real referent by creating validated site assignment
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
 
         api_client.force_authenticate(user=referent)
         response = api_client.post('/api/plans/plans/', {

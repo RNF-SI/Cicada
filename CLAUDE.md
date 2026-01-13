@@ -233,9 +233,9 @@ docker-compose logs -f web
 
 | Stack | Framework | Tests | Couverture |
 |-------|-----------|-------|------------|
-| Backend | pytest + pytest-django + Factory Boy | 317 | 62% |
-| Frontend | Jest + jest-preset-angular | 55 | 100% (auth) |
-| **Total** | | **372** | |
+| Backend | pytest + pytest-django + Factory Boy | 356 | 56% |
+| Frontend | Jest + jest-preset-angular | 132 | 7% |
+| **Total** | | **488** | |
 
 #### Backend (pytest)
 
@@ -292,6 +292,10 @@ npm run test:coverage
 - `auth.service.spec.ts` - Login, logout, tokens, rôles, impersonation (27 tests)
 - `auth.guard.spec.ts` - authGuard, roleGuard, adminGuard, guestGuard (15 tests)
 - `auth.interceptor.spec.ts` - Injection token, refresh 401 (13 tests)
+- `deactivate-user-modal.component.spec.ts` - Modal de désactivation utilisateur (21 tests)
+- `score-icon.component.spec.ts` - Composant ScoreIcon (22 tests)
+- `action-icon.component.spec.ts` - Composant ActionIcon (10 tests)
+- `navigation-tile.component.spec.ts` - Composant NavigationTile (24 tests)
 
 #### CI/CD
 
