@@ -33,6 +33,12 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
   -H "Authorization: Bearer {access_token}"
 ```
 
+## 🧩 Fonctionnalités
+
+| Document | Description |
+|----------|-------------|
+| **[Explications fonctionnelles](FONCTIONNALITES.md)** | Logs, notifications, validations, impersonnation, modules, pages d'administration (droits par rôle), tests |
+
 ## 🛠️ Documentation technique
 
 | Document | Description |
@@ -53,15 +59,17 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ### Pour administrateurs système
 
-1. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-2. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
-3. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
+1. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
+2. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
+3. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
+4. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
 
 ### Pour gestionnaires d'espaces naturels
 
-1. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Utilisation de l'API
-2. **[Nomenclatures](NOMENCLATURES.md)** - Consultation des référentiels
-3. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
+1. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les notifications, validations, modules
+2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Utilisation de l'API
+3. **[Nomenclatures](NOMENCLATURES.md)** - Consultation des référentiels
+4. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
 
 ## 🔗 Liens utiles
 
@@ -72,4 +80,4 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ---
 
-**Mise à jour** : Novembre 2024 - API Plans de Gestion complètement opérationnelle
+**Mise à jour** : Janvier 2025 - Ajout des explications fonctionnelles
