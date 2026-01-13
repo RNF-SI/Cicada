@@ -14,7 +14,8 @@ Donnees creees:
     - Groupes Django avec permissions
     - Nomenclatures (types de site, evaluation, redacteur)
     - 3 Utilisateurs en attente d'inscription (PendingUser)
-    - 8 Demandes de validation (differents types et statuts)
+    - 10+ Demandes de validation (differents types et statuts)
+      - Inclut 3 demandes d'acces module (module_access)
     - 15+ Notifications (differents types)
 """
 from datetime import timedelta
@@ -258,13 +259,16 @@ class Command(BaseCommand):
         self.stdout.write('  - admin_og: demandes liees a son organisme')
         self.stdout.write('  - referent: demandes sur ses sites')
 
-        self.stdout.write('\nDemandes de validation (10 = 3 inscriptions + 7 autres):')
-        self.stdout.write('  Types: user_registration, site_access, plan_access, referent_validation, admin_deactivation')
+        self.stdout.write('\nDemandes de validation (13 = 3 inscriptions + 10 autres):')
+        self.stdout.write('  Types: user_registration, site_access, plan_access, referent_validation, admin_deactivation, module_access')
         self.stdout.write('  Statuts: pending, approved, rejected')
         self.stdout.write('  Dates de validation variees:')
         self.stdout.write('    - site_access approved: il y a 3 jours')
         self.stdout.write('    - plan_access rejected: il y a 1 semaine')
         self.stdout.write('    - referent_validation approved: il y a 2 semaines')
+        self.stdout.write('    - module_access approved (user_rnf -> zonages): il y a 5 jours')
+        self.stdout.write('    - module_access rejected (referent_vercors -> zonages): il y a 10 jours')
+        self.stdout.write('    - module_access pending (user_cen -> zonages): en attente')
 
         self.stdout.write('\nNotifications (15+):')
         self.stdout.write('  Types: validation_request, validation_approved, validation_rejected,')
@@ -1255,6 +1259,44 @@ class Command(BaseCommand):
                 'status': 'pending',
                 'justification': 'Depart de l\'organisation, besoin de transferer les responsabilites.',
             },
+
+            # =====================================================
+            # DEMANDES D'ACCES MODULE
+            # Validable par: super_admin UNIQUEMENT
+            # =====================================================
+
+            # Demande acces module zonages - en attente
+            # Validable par: admin@test.fr uniquement
+            {
+                'request_type': 'module_access',
+                'requester': user_cen,
+                'target_module': 'zonages',
+                'status': 'pending',
+                'justification': 'Je travaille sur les zonages reglementaires pour le Vercors.',
+            },
+            # Demande acces module zonages - approuvee
+            # user_rnf a maintenant acces au module zonages
+            {
+                'request_type': 'module_access',
+                'requester': user_rnf,
+                'target_module': 'zonages',
+                'status': 'approved',
+                'justification': 'Besoin d\'acces pour le suivi des zonages de la Camargue.',
+                'validator': admin,
+                'validation_comment': 'Acces accorde pour le projet Camargue.',
+                'validated_at': timezone.now() - timedelta(days=5),
+            },
+            # Demande acces module zonages - refusee
+            {
+                'request_type': 'module_access',
+                'requester': referent_vercors,
+                'target_module': 'zonages',
+                'status': 'rejected',
+                'justification': 'Je souhaite consulter les zonages.',
+                'validator': admin,
+                'validation_comment': 'Acces refuse: formation requise avant utilisation de ce module.',
+                'validated_at': timezone.now() - timedelta(days=10),
+            },
         ]
 
         validation_requests = []
@@ -1273,6 +1315,7 @@ class Command(BaseCommand):
                 target_site=vr_data.get('target_site'),
                 target_plan=vr_data.get('target_plan'),
                 target_user=vr_data.get('target_user'),
+                target_module=vr_data.get('target_module'),
                 defaults={
                     'status': vr_data['status'],
                     'justification': vr_data.get('justification'),
