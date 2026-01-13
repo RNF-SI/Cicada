@@ -26,8 +26,10 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../core/services/admin.service';
 import { ValidationService } from '../../../core/services/validation.service';
+import { ModuleService } from '../../../core/services/module.service';
 import { AdminUser } from '../../../core/models/admin.model';
-import { ValidationRequestListItem, ApplicationModule, ModuleCode } from '../../../core/models/notification.model';
+import { ValidationRequestListItem } from '../../../core/models/notification.model';
+import { Module } from '../../../core/models/module.model';
 import { debounceTime, Subject, switchMap, of } from 'rxjs';
 
 interface UserWithModuleAccess {
@@ -78,8 +80,18 @@ interface UserWithModuleAccess {
       <!-- Modules disponibles -->
       <section class="modules-overview">
         <h2 class="section-title">{{ 'admin.modules.availableModules' | translate }}</h2>
+        @if (modulesLoading()) {
+          <div class="loading-container">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+        } @else if (availableModules().length === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-apps"></i>
+            <p>{{ 'admin.modules.noModulesRequiringAccess' | translate }}</p>
+          </div>
+        } @else {
         <div class="modules-grid">
-          @for (module of availableModules; track module.code) {
+          @for (module of availableModules(); track module.code) {
             <div class="module-card">
               <div class="module-header">
                 <div class="module-icon">
@@ -109,6 +121,7 @@ interface UserWithModuleAccess {
             </div>
           }
         </div>
+        }
       </section>
 
       <!-- Section donner acces (visible quand un module est selectionne) -->
@@ -769,6 +782,7 @@ interface UserWithModuleAccess {
 export class AdminModulesComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly validationService = inject(ValidationService);
+  private readonly moduleService = inject(ModuleService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -778,8 +792,12 @@ export class AdminModulesComponent implements OnInit {
   readonly allRequests = signal<ValidationRequestListItem[]>([]);
   readonly allUsers = signal<AdminUser[]>([]);
 
+  // Modules disponibles (charges depuis l'API)
+  readonly availableModules = signal<Module[]>([]);
+  readonly modulesLoading = signal(false);
+
   // Section donner acces
-  readonly selectedModule = signal<ApplicationModule | null>(null);
+  readonly selectedModule = signal<Module | null>(null);
   readonly userSearchQuery = signal('');
   readonly searchResults = signal<UserWithModuleAccess[]>([]);
   readonly searchingUsers = signal(false);
@@ -791,18 +809,6 @@ export class AdminModulesComponent implements OnInit {
   // Colonnes du tableau
   readonly requestColumns = ['requester', 'module', 'date', 'justification', 'actions'];
 
-  // Modules disponibles
-  readonly availableModules: ApplicationModule[] = [
-    {
-      code: 'zonages',
-      name: 'Zonages reglementaires',
-      description: 'Acces aux zonages reglementaires et leur gestion',
-      icon: 'fi-rr-map',
-      route: '/zonages',
-      requiresAccess: true
-    }
-  ];
-
   // Demandes de module en attente
   readonly pendingModuleRequests = computed(() => {
     return this.allRequests().filter(
@@ -813,7 +819,25 @@ export class AdminModulesComponent implements OnInit {
   ngOnInit(): void {
     this.loadRequests();
     this.loadAllUsers();
+    this.loadModulesRequiringAccess();
     this.setupUserSearch();
+  }
+
+  /**
+   * Charge les modules necessitant un acces depuis l'API.
+   */
+  private loadModulesRequiringAccess(): void {
+    this.modulesLoading.set(true);
+    this.moduleService.getModulesRequiringAccess().subscribe({
+      next: (modules) => {
+        this.availableModules.set(modules);
+        this.modulesLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Erreur chargement modules:', error);
+        this.modulesLoading.set(false);
+      }
+    });
   }
 
   private setupUserSearch(): void {
@@ -885,11 +909,11 @@ export class AdminModulesComponent implements OnInit {
     });
   }
 
-  getModuleUserCount(moduleCode: ModuleCode): number {
+  getModuleUserCount(moduleCode: string): number {
     return this.allRequests().filter(
       r => r.request_type === 'module_access' &&
            r.status === 'approved' &&
-           r.target_name?.toLowerCase().includes(moduleCode)
+           r.target_name?.toLowerCase().includes(moduleCode.toLowerCase())
     ).length;
   }
 
@@ -926,7 +950,7 @@ export class AdminModulesComponent implements OnInit {
     }).filter(item => item.user);
   }
 
-  openGrantAccessSection(module: ApplicationModule): void {
+  openGrantAccessSection(module: Module): void {
     this.selectedModule.set(module);
     this.userSearchQuery.set('');
     this.searchResults.set([]);

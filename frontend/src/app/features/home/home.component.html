@@ -144,16 +144,22 @@
     <!-- ================================ -->
     @if (isAuthenticated()) {
       <section class="tiles-section">
-        <div class="tiles-grid" [class.tiles-grid--three]="visibleModules.length === 3" [class.tiles-grid--four]="visibleModules.length >= 4">
-          @for (module of visibleModules; track module.code) {
-            <app-navigation-tile
-              [title]="module.titleKey | translate"
-              [uicon]="module.icon"
-              [link]="module.link"
-              [color]="module.color">
-            </app-navigation-tile>
-          }
-        </div>
+        @if (modulesLoading()) {
+          <div class="modules-loading">
+            <span class="loading-text">Chargement des modules...</span>
+          </div>
+        } @else {
+          <div class="tiles-grid" [class.tiles-grid--three]="accessibleModules().length === 3" [class.tiles-grid--four]="accessibleModules().length >= 4">
+            @for (module of accessibleModules(); track module.code) {
+              <app-navigation-tile
+                [title]="module.name"
+                [uicon]="module.icon"
+                [link]="module.route"
+                [color]="module.color">
+              </app-navigation-tile>
+            }
+          </div>
+        }
       </section>
     }
 

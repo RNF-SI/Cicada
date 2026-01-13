@@ -439,6 +439,7 @@
         "message": "Cette gestion des acces aux modules est temporaire et constitue un debut de developpement. Elle sera amenee a evoluer significativement dans les prochaines versions."
       },
       "availableModules": "Modules disponibles",
+      "noModulesRequiringAccess": "Aucun module ne necessite de demande d'acces",
       "usersWithAccess": "utilisateur(s) avec acces",
       "pendingRequests": "Demandes en attente",
       "noPendingRequests": "Aucune demande d'acces module en attente",

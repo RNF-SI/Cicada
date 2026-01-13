@@ -16,14 +16,21 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ValidationService } from '../../core/services/validation.service';
+import { ModuleService } from '../../core/services/module.service';
+import { Module } from '../../core/models/module.model';
 import {
   ValidationRequestListItem,
   ValidationStatus,
   ValidationRequestType,
-  ApplicationModule,
-  ModuleCode
 } from '../../core/models/notification.model';
 import { ModuleAccessRequestDialogComponent, ModuleAccessRequestDialogData } from '../../shared/components/module-access-request-dialog/module-access-request-dialog.component';
+
+/**
+ * Interface pour un module avec son statut d'acces.
+ */
+interface ModuleWithStatus extends Module {
+  accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
+}
 
 @Component({
   selector: 'app-my-requests',
@@ -46,6 +53,7 @@ import { ModuleAccessRequestDialogComponent, ModuleAccessRequestDialogData } fro
 })
 export class MyRequestsComponent implements OnInit {
   private readonly validationService = inject(ValidationService);
+  private readonly moduleService = inject(ModuleService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(MatDialog);
@@ -54,25 +62,19 @@ export class MyRequestsComponent implements OnInit {
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
   readonly loadingRequests = signal(false);
 
+  // Modules necessitant un acces (charges depuis l'API)
+  readonly availableModules = signal<Module[]>([]);
+  readonly loadingModules = signal(false);
+
   // Colonnes du tableau des demandes
   readonly requestColumns = ['type', 'target', 'date', 'validated_at', 'status', 'validator', 'actions'];
-
-  // Modules disponibles pour les demandes d'acces
-  readonly availableModules: ApplicationModule[] = [
-    {
-      code: 'zonages',
-      name: 'Zonages reglementaires',
-      description: 'Acces aux zonages reglementaires et leur gestion',
-      icon: 'fi-rr-map',
-      route: '/zonages',
-      requiresAccess: true
-    }
-  ];
 
   // Modules avec statut d'acces calcule
   readonly modulesWithStatus = computed(() => {
     const requests = this.myRequests();
-    return this.availableModules.map(module => {
+    const modules = this.availableModules();
+
+    return modules.map(module => {
       const moduleRequests = requests.filter(
         r => r.request_type === 'module_access' && r.target_name === module.name
       );
@@ -92,12 +94,30 @@ export class MyRequestsComponent implements OnInit {
       return {
         ...module,
         accessStatus
-      };
+      } as ModuleWithStatus;
     }).filter(m => m.accessStatus !== 'granted'); // N'afficher que les modules sans acces
   });
 
   ngOnInit(): void {
     this.loadMyRequests();
+    this.loadModulesRequiringAccess();
+  }
+
+  /**
+   * Charge les modules necessitant un acces depuis l'API.
+   */
+  private loadModulesRequiringAccess(): void {
+    this.loadingModules.set(true);
+    this.moduleService.getModulesRequiringAccess().subscribe({
+      next: (modules) => {
+        this.availableModules.set(modules);
+        this.loadingModules.set(false);
+      },
+      error: (error) => {
+        console.error('Erreur chargement modules:', error);
+        this.loadingModules.set(false);
+      }
+    });
   }
 
   /**
@@ -196,7 +216,7 @@ export class MyRequestsComponent implements OnInit {
   /**
    * Ouvre le dialog de demande d'acces a un module.
    */
-  openModuleAccessDialog(module: ApplicationModule & { accessStatus: string }): void {
+  openModuleAccessDialog(module: ModuleWithStatus): void {
     const dialogRef = this.dialog.open(ModuleAccessRequestDialogComponent, {
       width: '500px',
       data: {
@@ -208,6 +228,7 @@ export class MyRequestsComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.loadMyRequests();
+        this.loadModulesRequiringAccess();
       }
     });
   }

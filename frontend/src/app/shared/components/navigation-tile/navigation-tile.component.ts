@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
-export type TileColor = 'primary' | 'salmon' | 'terra-cotta' | 'yellow';
+export type TileColor = 'primary' | 'salmon' | 'terra-cotta' | 'yellow' | 'pale-green';
 
 /**
  * NavigationTileComponent - Tuile de navigation réutilisable

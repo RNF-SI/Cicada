@@ -230,12 +230,13 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         if obj.target_user:
             return f"Utilisateur: {obj.target_user}"
         if obj.target_module:
-            # Mapping des codes vers noms lisibles
-            module_names = {
-                'zonages': 'Zonages reglementaires',
-                'inventaires': 'Inventaires',
-            }
-            return module_names.get(obj.target_module, obj.target_module)
+            # Recuperer le nom du module depuis la base de donnees
+            from apps.core.models import Module
+            try:
+                module = Module.objects.get(code=obj.target_module)
+                return module.name
+            except Module.DoesNotExist:
+                return obj.target_module
         if obj.requested_organisme:
             return f"Organisme: {obj.requested_organisme.nom_organisme}"
         return None
@@ -435,12 +436,27 @@ class ModuleAccessRequestSerializer(serializers.Serializer):
     )
 
     def validate_module_code(self, value):
-        """Verifie que le code module est valide."""
-        valid_modules = ['zonages', 'inventaires']
-        if value not in valid_modules:
+        """Verifie que le code module existe et necessite un acces."""
+        from apps.core.models import Module
+
+        try:
+            module = Module.objects.get(code=value, is_active=True)
+        except Module.DoesNotExist:
+            # Liste des modules valides pour le message d'erreur
+            valid_codes = list(Module.objects.filter(
+                is_active=True, requires_access=True
+            ).values_list('code', flat=True))
             raise serializers.ValidationError(
-                _("Code module invalide. Valeurs acceptees: %(modules)s") % {'modules': ', '.join(valid_modules)}
+                _("Code module invalide. Modules disponibles: %(modules)s") % {
+                    'modules': ', '.join(valid_codes) if valid_codes else 'aucun'
+                }
             )
+
+        if not module.requires_access:
+            raise serializers.ValidationError(
+                _("Ce module ne necessite pas de demande d'acces.")
+            )
+
         return value
 
 
@@ -458,12 +474,19 @@ class GrantModuleAccessSerializer(serializers.Serializer):
     )
 
     def validate_module_code(self, value):
-        """Verifie que le code module est valide."""
-        valid_modules = ['zonages', 'inventaires']
-        if value not in valid_modules:
+        """Verifie que le code module existe et necessite un acces."""
+        from apps.core.models import Module
+
+        try:
+            module = Module.objects.get(code=value, is_active=True)
+        except Module.DoesNotExist:
+            raise serializers.ValidationError(_("Code module invalide."))
+
+        if not module.requires_access:
             raise serializers.ValidationError(
-                _("Code module invalide.")
+                _("Ce module ne necessite pas de gestion d'acces.")
             )
+
         return value
 
     def validate_user_id(self, value):

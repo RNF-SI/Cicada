@@ -83,3 +83,94 @@ class TypeNomenclature(models.Model):
 
     def __str__(self):
         return self.label or self.mnemonique or f"Type {self.id_type}"
+
+
+class Module(models.Model):
+    """
+    Modele pour les modules applicatifs.
+    Definit les modules disponibles dans l'application et leurs caracteristiques.
+    Certains modules necessitent une demande d'acces (requires_access=True).
+    """
+
+    TILE_COLORS = [
+        ('primary', _('Primaire (bleu-vert)')),
+        ('salmon', _('Saumon')),
+        ('terra-cotta', _('Terra cotta')),
+        ('yellow', _('Jaune')),
+        ('pale-green', _('Vert pâle')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+
+    # Identification
+    code = models.CharField(
+        _('Code'),
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text=_('Code technique unique du module (ex: plans, sites, zonages)')
+    )
+    name = models.CharField(
+        _('Nom'),
+        max_length=100,
+        help_text=_('Nom affiche du module')
+    )
+    description = models.TextField(
+        _('Description'),
+        null=True,
+        blank=True,
+        help_text=_('Description du module')
+    )
+
+    # Affichage
+    icon = models.CharField(
+        _('Icône'),
+        max_length=100,
+        default='fi-rr-apps',
+        help_text=_('Classe CSS de l\'icone Flaticon (ex: fi-rr-document)')
+    )
+    color = models.CharField(
+        _('Couleur'),
+        max_length=20,
+        choices=TILE_COLORS,
+        default='primary',
+        help_text=_('Couleur de la tuile sur la page d\'accueil')
+    )
+    route = models.CharField(
+        _('Route'),
+        max_length=100,
+        help_text=_('Route Angular du module (ex: /plans)')
+    )
+
+    # Configuration d'acces
+    requires_access = models.BooleanField(
+        _('Nécessite un accès'),
+        default=False,
+        help_text=_('Si True, l\'utilisateur doit demander l\'acces a ce module')
+    )
+    is_active = models.BooleanField(
+        _('Actif'),
+        default=True,
+        help_text=_('Module visible et accessible')
+    )
+
+    # Ordre d'affichage
+    display_order = models.PositiveIntegerField(
+        _('Ordre d\'affichage'),
+        default=0,
+        help_text=_('Ordre d\'affichage sur la page d\'accueil (0 = premier)')
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('Mis à jour le'), auto_now=True)
+
+    class Meta:
+        db_table = 't_modules'
+        db_table_comment = 'Table des modules applicatifs'
+        ordering = ['display_order', 'name']
+        verbose_name = _('Module')
+        verbose_name_plural = _('Modules')
+
+    def __str__(self):
+        return self.name

@@ -189,6 +189,20 @@ $corner-size: 94px;
   margin-bottom: 32px;
 }
 
+.modules-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+
+  .loading-text {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    color: #949494;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+}
+
 .tiles-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
