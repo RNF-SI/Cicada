@@ -153,6 +153,13 @@ export class ValidationService {
     return this.http.post<ValidationActionResponse>(`${this.apiUrl}/revoke_module_access/`, data);
   }
 
+  /**
+   * Recupere la liste des modules auxquels l'utilisateur a acces.
+   */
+  getMyModuleAccess(): Observable<{ modules: string[] }> {
+    return this.http.get<{ modules: string[] }>(`${this.apiUrl}/my_module_access/`);
+  }
+
   // ==================== Inscription publique ====================
 
   /**

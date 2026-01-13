@@ -144,27 +144,15 @@
     <!-- ================================ -->
     @if (isAuthenticated()) {
       <section class="tiles-section">
-        <div class="tiles-grid tiles-grid--three">
-          <app-navigation-tile
-            [title]="'home.tiles.plans' | translate"
-            uicon="fi-rr-document"
-            link="/plans"
-            color="primary">
-          </app-navigation-tile>
-
-          <app-navigation-tile
-            [title]="'home.tiles.sites' | translate"
-            uicon="fi-rr-map-marker"
-            link="/sites"
-            color="salmon">
-          </app-navigation-tile>
-
-          <app-navigation-tile
-            [title]="'home.tiles.inventaires' | translate"
-            uicon="fi-rr-test-tube"
-            link="/inventaires"
-            color="yellow">
-          </app-navigation-tile>
+        <div class="tiles-grid" [class.tiles-grid--three]="visibleModules.length === 3" [class.tiles-grid--four]="visibleModules.length >= 4">
+          @for (module of visibleModules; track module.code) {
+            <app-navigation-tile
+              [title]="module.titleKey | translate"
+              [uicon]="module.icon"
+              [link]="module.link"
+              [color]="module.color">
+            </app-navigation-tile>
+          }
         </div>
       </section>
     }

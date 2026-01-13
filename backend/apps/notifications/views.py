@@ -566,6 +566,22 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
             'message': f'Acces au module {module_code} revoque.',
         })
 
+    @action(detail=False, methods=['get'])
+    def my_module_access(self, request):
+        """
+        GET /api/validations/my_module_access/
+        Retourne la liste des modules auxquels l'utilisateur a acces.
+        """
+        approved_modules = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='module_access',
+            status='approved'
+        ).values_list('target_module', flat=True)
+
+        return Response({
+            'modules': list(approved_modules)
+        })
+
 
 class PublicRegistrationView:
     """
