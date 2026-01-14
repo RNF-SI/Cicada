@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Outil Plan de Gestion** - Web application for managing conservation area management plans, developed for CEN (Conservatoire d'Espaces Naturels) and RNF (Réserves Naturelles de France).
+**CICADA** - Web application for managing conservation area management plans, developed for CEN (Conservatoire d'Espaces Naturels) and RNF (Réserves Naturelles de France).
 
 - **Current Status**: Plans de Gestion models implemented, Django admin configured
 - **Architecture Documentation**: See `claude.md` for detailed specifications
-- **Repository**: https://github.com/RNF-SI/outil_plan_de_gestion
+- **Repository**: https://github.com/RNF-SI/Cicada
 
 ## Technology Stack
 
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Angular 19+ with TypeScript 5+
 - Angular Material for UI components
 - Leaflet for interactive maps
-- **Design System**: Custom SCSS based on Kit UI Biodiv' France (11/2025)
+- **Design System**: Custom SCSS based on Kit UI CICADA (11/2025)
   - **Source de référence**: `KitUI/` (PNG des maquettes)
   - **Status**: ⚠️ 95% complet
   - **Fichiers SCSS**: 5 fichiers (~3000 lignes)
@@ -344,7 +344,7 @@ The Angular application follows a modular structure:
 - **shared module**: Reusable components, pipes, directives, design system components
 - **feature modules**: Plans, users, auth (lazy loaded)
 - **State management**: RxJS-based with services as stores
-- **Design System**: Custom SCSS implementing Kit UI Biodiv' France (11/2025)
+- **Design System**: Custom SCSS implementing Kit UI CICADA (11/2025)
   - Variables: `src/assets/scss/_variables.scss`
   - Typography: `src/assets/scss/_typography.scss`
   - Material overrides: `src/assets/scss/_material-overrides.scss`

@@ -1,6 +1,6 @@
 """
 Root conftest.py - Shared fixtures across all test modules.
-Configuration pytest pour le projet Outil Plan de Gestion.
+Configuration pytest pour le projet CICADA.
 """
 import pytest
 from django.test import Client

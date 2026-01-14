@@ -1,5 +1,5 @@
 """
-URL configuration for Outil Plan de Gestion project.
+URL configuration for CICADA project.
 """
 
 from django.contrib import admin
@@ -9,7 +9,7 @@ from django.http import JsonResponse
 
 def health_check(request):
     """Simple health check endpoint for Docker."""
-    return JsonResponse({'status': 'healthy', 'service': 'outil-plan-gestion'})
+    return JsonResponse({'status': 'healthy', 'service': 'cicada'})
 
 
 urlpatterns = [

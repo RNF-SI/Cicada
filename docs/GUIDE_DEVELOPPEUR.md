@@ -1,6 +1,6 @@
 # Guide Développeur
 
-Guide pratique pour le développement sur l'Outil Plan de Gestion.
+Guide pratique pour le développement sur CICADA.
 
 > **Voir aussi** : [README.md](../README.md) pour l'installation | [TESTING.md](TESTING.md) pour les tests
 

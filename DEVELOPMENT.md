@@ -1,6 +1,6 @@
 # 🔧 Guide de développement
 
-Guide technique pour développer sur l'Outil Plan de Gestion.
+Guide technique pour développer sur CICADA.
 
 ## 🚀 Installation développeur
 
@@ -15,8 +15,8 @@ Guide technique pour développer sur l'Outil Plan de Gestion.
 
 ```bash
 # 1. Cloner le projet
-git clone https://github.com/RNF-SI/outil_plan_de_gestion.git
-cd outil_plan_de_gestion
+git clone https://github.com/RNF-SI/Cicada.git
+cd Cicada
 
 # 2. Lancer l'environnement de développement
 docker-compose up -d
@@ -31,7 +31,7 @@ docker-compose up -d
 ### Structure du projet
 
 ```
-outil_plan_de_gestion/
+Cicada/
 ├── backend/                    # Application Django
 │   ├── apps/                   # Applications Django modulaires
 │   │   ├── core/              # Modèles partagés (nomenclatures)
@@ -1113,7 +1113,7 @@ docker-compose exec db psql -U outil_user -d outil_plan_gestion
 - ✅ #26 - Initialisation du projet Angular
 - ✅ #27 - Module d'authentification Angular (guards, interceptors, services)
 - ✅ #37 - Interface d'accueil
-- ✅ Design System SCSS (Kit UI Biodiv' France)
+- ✅ Design System SCSS (Kit UI CICADA)
 - ✅ Composants partagés (NavigationTile, ScoreIcon, ActionIcon, etc.)
 - ✅ Internationalisation (ngx-translate)
 - ⏳ #22 - Système de gestion des tokens API

@@ -1,5 +1,5 @@
 """
-Development settings for Outil Plan de Gestion project.
+Development settings for CICADA project.
 """
 
 from .base import *

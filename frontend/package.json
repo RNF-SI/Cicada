@@ -1,5 +1,5 @@
 {
-  "name": "outil-plan-gestion-frontend",
+  "name": "cicada-frontend",
   "version": "0.0.1",
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",

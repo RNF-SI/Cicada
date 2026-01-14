@@ -1,6 +1,6 @@
-# 📚 Documentation Outil Plan de Gestion
+# 📚 Documentation CICADA
 
-Index de la documentation pour l'Outil Plan de Gestion - Application web de gestion des plans de gestion d'espaces naturels.
+Index de la documentation pour CICADA - Application web de gestion des plans de gestion d'espaces naturels.
 
 ## 📋 Guides API
 
@@ -73,8 +73,8 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ## 🔗 Liens utiles
 
-- **Projet GitHub** : https://github.com/RNF-SI/outil_plan_de_gestion
-- **Issues** : https://github.com/RNF-SI/outil_plan_de_gestion/issues
+- **Projet GitHub** : https://github.com/RNF-SI/Cicada
+- **Issues** : https://github.com/RNF-SI/Cicada/issues
 - **Admin Django** : http://localhost:8000/admin/
 - **API Swagger** : http://localhost:8000/api/schema/swagger/ *(à venir)*
 

@@ -5,7 +5,7 @@ FROM node:18-alpine AS builder
 
 # Métadonnées
 LABEL maintainer="CEN/RNF"
-LABEL description="Frontend Angular pour Outil Plan de Gestion"
+LABEL description="Frontend Angular pour CICADA"
 
 # Répertoire de travail
 WORKDIR /app
@@ -33,7 +33,7 @@ COPY docker/apache/httpd.conf /usr/local/apache2/conf/httpd.conf
 COPY docker/apache/.htaccess /usr/local/apache2/htdocs/
 
 # Copie des fichiers buildés depuis le stage précédent
-COPY --from=builder /app/dist/outil-plan-gestion/ /usr/local/apache2/htdocs/
+COPY --from=builder /app/dist/cicada/ /usr/local/apache2/htdocs/
 
 # Port d'exposition
 EXPOSE 80

@@ -11,7 +11,7 @@ import { TranslationService } from './core/services/translation.service';
 })
 export class AppComponent implements OnInit {
   private translationService = inject(TranslationService);
-  title = 'Outil Plan de Gestion';
+  title = 'CICADA';
 
   ngOnInit(): void {
     this.translationService.initialize();

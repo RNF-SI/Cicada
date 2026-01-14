@@ -1,5 +1,5 @@
 """
-Base settings for Outil Plan de Gestion project.
+Base settings for CICADA project.
 """
 
 import os
@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.environ.get('POSTGRES_DB', 'outil_plan_gestion'),
+        'NAME': os.environ.get('POSTGRES_DB', 'cicada'),
         'USER': os.environ.get('POSTGRES_USER', 'outil_user'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'outil_password'),
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),

@@ -1,5 +1,5 @@
 """
-WSGI config for Outil Plan de Gestion project.
+WSGI config for CICADA project.
 """
 
 import os

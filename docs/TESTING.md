@@ -1,4 +1,4 @@
-# Guide des Tests - Outil Plan de Gestion
+# Guide des Tests - CICADA
 
 Ce document décrit la stratégie de tests, les outils utilisés, et les fonctionnalités couvertes par les tests automatisés.
 
@@ -25,7 +25,7 @@ Ce document décrit la stratégie de tests, les outils utilisés, et les fonctio
 ### Architecture des tests
 
 ```
-outil_plan_de_gestion/
+Cicada/
 ├── backend/
 │   ├── pytest.ini                 # Configuration pytest
 │   ├── conftest.py                # Fixtures globales
@@ -624,8 +624,8 @@ jobs:
 Ajouter au `README.md` :
 
 ```markdown
-![Tests](https://github.com/RNF-SI/outil_plan_de_gestion/workflows/Tests/badge.svg)
-[![codecov](https://codecov.io/gh/RNF-SI/outil_plan_de_gestion/branch/main/graph/badge.svg)](https://codecov.io/gh/RNF-SI/outil_plan_de_gestion)
+![Tests](https://github.com/RNF-SI/Cicada/workflows/Tests/badge.svg)
+[![codecov](https://codecov.io/gh/RNF-SI/Cicada/branch/main/graph/badge.svg)](https://codecov.io/gh/RNF-SI/Cicada)
 ```
 
 ### Configuration Codecov

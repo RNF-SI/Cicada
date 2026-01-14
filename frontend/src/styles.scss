@@ -1,5 +1,5 @@
-// Main Styles - Outil Plan de Gestion
-// Based on Kit UI Biodiv' France - November 2025
+// Main Styles - CICADA
+// Based on Kit UI CICADA - November 2025
 // IMPORTANT: @use rules must be written before any other rules
 
 // ============================================
@@ -56,7 +56,7 @@ html {
   @include mat.all-component-themes($theme);
 }
 
-// Override Material 3 color tokens with Biodiv' France colors (Kit UI 11/2025)
+// Override Material 3 color tokens with CICADA colors (Kit UI 11/2025)
 :root {
   // ============================================
   // PRIMARY COLOR (Bleu-vert #025359)

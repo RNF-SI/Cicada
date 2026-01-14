@@ -1,4 +1,4 @@
--- Script d'initialisation PostgreSQL pour Outil Plan de Gestion
+-- Script d'initialisation PostgreSQL pour CICADA
 
 -- Activation de l'extension PostGIS
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -44,4 +44,4 @@ SET lc_numeric TO 'fr_FR.UTF-8';
 SET lc_time TO 'fr_FR.UTF-8';
 
 -- Message de confirmation
-SELECT 'Base de données Outil Plan de Gestion initialisée avec succès' AS status;
+SELECT 'Base de données CICADA initialisée avec succès' AS status;

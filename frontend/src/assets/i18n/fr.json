@@ -152,7 +152,7 @@
     }
   },
   "home": {
-    "heroTitle": "Biodiv', l'outil des plans de gestion",
+    "heroTitle": "CICADA, l'outil des plans de gestion",
     "heroSubtitle": "Explorez les donnees du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
       "title": "Exploration des donnees",
@@ -166,10 +166,10 @@
     },
     "referentials": "Referentiels de donnees",
     "guest": {
-      "title": "Bienvenue sur Biodiv'",
+      "title": "Bienvenue sur CICADA",
       "description": {
         "intro": "L'outil collaboratif de gestion des espaces naturels proteges en France.",
-        "details": "Biodiv' accompagne les gestionnaires d'espaces naturels dans la redaction, le suivi et l'evaluation de leurs plans de gestion. Concu en partenariat avec les reseaux nationaux de conservation, l'outil permet de centraliser les donnees, suivre les indicateurs et partager les bonnes pratiques."
+        "details": "CICADA accompagne les gestionnaires d'espaces naturels dans la redaction, le suivi et l'evaluation de leurs plans de gestion. Concu en partenariat avec les reseaux nationaux de conservation, l'outil permet de centraliser les donnees, suivre les indicateurs et partager les bonnes pratiques."
       },
       "partners": {
         "label": "Un projet porte par"

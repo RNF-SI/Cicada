@@ -1,4 +1,4 @@
 """
-App de notifications et validations pour Outil Plan de Gestion.
+App de notifications et validations pour CICADA.
 """
 default_app_config = 'apps.notifications.apps.NotificationsConfig'

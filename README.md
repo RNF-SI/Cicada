@@ -1,6 +1,6 @@
-# 🌿 Outil Plan de Gestion
+# 🌿 CICADA
 
-Application web de gestion des plans de gestion d'espaces naturels développée pour le **CEN** (Conservatoire d'Espaces Naturels) et **RNF** (Réserves Naturelles de France).
+**CICADA** - Application web de gestion des plans de gestion d'espaces naturels développée pour le **CEN** (Conservatoire d'Espaces Naturels) et **RNF** (Réserves Naturelles de France).
 
 ## 🎯 Objectif
 
@@ -23,8 +23,8 @@ Centraliser et standardiser la gestion des plans de gestion des aires protégée
 
 1. **Cloner le repository**
    ```bash
-   git clone https://github.com/RNF-SI/outil_plan_de_gestion.git
-   cd outil_plan_de_gestion
+   git clone https://github.com/RNF-SI/Cicada.git
+   cd Cicada
    ```
 
 2. **Configurer l'environnement**
@@ -88,7 +88,7 @@ docker-compose build
 ### Structure du projet
 
 ```
-outil_plan_de_gestion/
+Cicada/
 ├── backend/              # Application Django
 │   ├── Dockerfile
 │   └── docker/
@@ -104,7 +104,7 @@ outil_plan_de_gestion/
 
 ## ⚡ Démarrage rapide
 
-1. **Cloner :** `git clone https://github.com/RNF-SI/outil_plan_de_gestion.git`
+1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git`
 2. **Lancer :** `docker-compose up -d`  
 3. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
 
@@ -175,5 +175,5 @@ Ce projet est sous licence GPL-3.0. Voir le fichier `LICENSE` pour plus de déta
 
 ## 📞 Support
 
-- **Issues** : https://github.com/RNF-SI/outil_plan_de_gestion/issues
-- **Project Board** : https://github.com/RNF-SI/outil_plan_de_gestion/projects/1
+- **Issues** : https://github.com/RNF-SI/Cicada/issues
+- **Project Board** : https://github.com/RNF-SI/Cicada/projects/1

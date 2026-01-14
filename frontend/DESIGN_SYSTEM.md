@@ -1,10 +1,10 @@
-# Design System - Outil Plan de Gestion
+# Design System - CICADA
 
 **Date de mise a jour**: 2025-12-09
-**Statut**: Complet, base sur Kit UI Biodiv' France 11/2025
+**Statut**: Complet, base sur Kit UI CICADA 11/2025
 **Source**: Kit UI Figma + PDF
 
-> Design system base sur **Angular Material 19** avec personnalisation **Biodiv' France**
+> Design system base sur **Angular Material 19** avec personnalisation **CICADA**
 
 ---
 
@@ -13,7 +13,7 @@
 **Approche** : Angular Material + Overrides cibles + Composants custom Kit UI
 
 - **Angular Material** : Composants de base (boutons, forms, tables, navigation, accordeons)
-- **Material Overrides** : Personnalisation complete avec couleurs Biodiv' France
+- **Material Overrides** : Personnalisation complete avec couleurs CICADA
 - **Composants Custom** : Jauges, indicateurs, tuiles, breadcrumb (specifiques Kit UI)
 
 ---
@@ -145,7 +145,7 @@ Le Kit UI indique les combinaisons accessibles :
 
 ### Header
 - Background: `#025359`
-- Logo Biodiv' France centre
+- Logo CICADA centre
 - Menu hamburger a gauche
 - Mon compte dropdown a droite
 - Administration lien (si admin)
@@ -357,7 +357,7 @@ frontend/src/assets/scss/
 
 ### Approche : Material + Composants Kit UI
 
-**Composants Material (avec overrides Biodiv' France)** :
+**Composants Material (avec overrides CICADA)** :
 - **Boutons** -> `mat-button`, `mat-raised-button`, `mat-stroked-button`
 - **Cards** -> `mat-card`
 - **Chips/Tags** -> `mat-chip`, `mat-chip-set`
@@ -398,12 +398,12 @@ frontend/src/assets/scss/
 @import 'assets/scss/filters';
 @import 'assets/scss/components';
 
-// 4. Material 3 Theme + Color Tokens Biodiv' France
+// 4. Material 3 Theme + Color Tokens CICADA
 $theme: mat.define-theme(...);
 html { @include mat.all-component-themes($theme); }
 :root { --mat-sys-primary: #025359; ... }
 
-// 5. Material Overrides (personnalisation Biodiv' France)
+// 5. Material Overrides (personnalisation CICADA)
 @import 'assets/scss/material-overrides';
 ```
 
@@ -587,7 +587,7 @@ html { @include mat.all-component-themes($theme); }
 
 - **5 fichiers SCSS**
 - **Architecture 100% Material** + composants custom Kit UI
-- **100% conforme** Kit UI Biodiv' France 11/2025
+- **100% conforme** Kit UI CICADA 11/2025
 - **WCAG AA** compliant
 - **Responsive** mobile/tablet/desktop
 
@@ -605,5 +605,5 @@ Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
 ---
 
 **Design System Status**: Complet
-**Source**: Kit UI Biodiv' France 11/2025 + Figma
+**Source**: Kit UI CICADA 11/2025 + Figma
 **Ready for Production**: Oui

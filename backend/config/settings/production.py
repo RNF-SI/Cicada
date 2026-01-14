@@ -1,5 +1,5 @@
 """
-Production settings for Outil Plan de Gestion project.
+Production settings for CICADA project.
 """
 
 from .base import *

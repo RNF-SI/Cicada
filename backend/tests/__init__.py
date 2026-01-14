@@ -1,3 +1,3 @@
 """
-Tests package for Outil Plan de Gestion.
+Tests package for CICADA.
 """

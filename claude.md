@@ -6,7 +6,7 @@ Application web développée pour le CEN (Conservatoire d'Espaces Naturels) et R
 
 
 ### Repository
-- **GitHub** : https://github.com/RNF-SI/outil_plan_de_gestion
+- **GitHub** : https://github.com/RNF-SI/Cicada
 - **Branches** : main (production), develop (développement), feature/* (fonctionnalités)
 
 ## 🛠️ Stack technique
@@ -48,7 +48,7 @@ Application web développée pour le CEN (Conservatoire d'Espaces Naturels) et R
 
 ### Structure du projet
 ```
-outil_plan_de_gestion/
+Cicada/
 ├── backend/
 │   ├── apps/
 │   │   ├── authentication/    # Gestion auth et permissions
@@ -621,9 +621,9 @@ def calculate_area(geometry: Polygon) -> float:
 
 ## 📞 Ressources et contacts
 
-- **Repo** : https://github.com/RNF-SI/outil_plan_de_gestion
-- **Project Board** : https://github.com/RNF-SI/outil_plan_de_gestion/projects/1
-- **Issues** : https://github.com/RNF-SI/outil_plan_de_gestion/issues
+- **Repo** : https://github.com/RNF-SI/Cicada
+- **Project Board** : https://github.com/RNF-SI/Cicada/projects/1
+- **Issues** : https://github.com/RNF-SI/Cicada/issues
 
 ---
 

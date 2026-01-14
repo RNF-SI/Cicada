@@ -2,10 +2,10 @@ services:
   # Base de données PostgreSQL avec PostGIS
   db:
     image: postgis/postgis:15-3.3-alpine
-    container_name: outil_pg_db
+    container_name: cicada_db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-outil_plan_gestion}
-      POSTGRES_USER: ${POSTGRES_USER:-outil_user}
+      POSTGRES_DB: ${POSTGRES_DB:-cicada}
+      POSTGRES_USER: ${POSTGRES_USER:-cicada_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outil_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
     volumes:
@@ -14,9 +14,9 @@ services:
     ports:
       - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outil_user} -d ${POSTGRES_DB:-outil_plan_gestion}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cicada_user} -d ${POSTGRES_DB:-cicada}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -24,14 +24,14 @@ services:
   # Cache Redis
   redis:
     image: redis:7-alpine
-    container_name: outil_pg_redis
+    container_name: cicada_redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
     volumes:
       - redis_data:/data
     ports:
       - "${REDIS_EXTERNAL_PORT:-6379}:6379"
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
@@ -43,11 +43,11 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: outil_pg_web
+    container_name: cicada_web
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
-      - DATABASE_URL=postgis://${POSTGRES_USER:-outil_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-outil_plan_gestion}
+      - DATABASE_URL=postgis://${POSTGRES_USER:-cicada_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-cicada}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
@@ -64,7 +64,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 30s
@@ -80,7 +80,7 @@ services:
   # Application Angular (Frontend) - Mode développement  
   frontend:
     image: node:18-alpine
-    container_name: outil_pg_frontend
+    container_name: cicada_frontend
     working_dir: /app
     volumes:
       - ./frontend:/app
@@ -91,7 +91,7 @@ services:
     depends_on:
       - web
     networks:
-      - outil_network
+      - cicada_network
     environment:
       - NODE_ENV=development
 
@@ -109,7 +109,7 @@ volumes:
     driver: local
 
 networks:
-  outil_network:
+  cicada_network:
     driver: bridge
     ipam:
       config:
