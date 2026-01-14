@@ -195,7 +195,7 @@ class Role(AbstractUser):
         return False
 
     class Meta:
-        db_table = 't_roles'
+        db_table = '"utilisateurs"."t_roles"'
         db_table_comment = 'Table des utilisateurs et groupes'
         verbose_name = _("Utilisateur")
         verbose_name_plural = _("Utilisateurs")
@@ -230,7 +230,7 @@ class BibOrganismes(models.Model):
     meta_update_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'bib_organismes'
+        db_table = '"utilisateurs"."bib_organismes"'
         db_table_comment = 'Table des organismes gestionnaires'
         verbose_name = _("Organisme")
         verbose_name_plural = _("Organismes")
@@ -268,10 +268,10 @@ class Site(models.Model):
     active = models.BooleanField(_("Actif"), default=True)
 
     class Meta:
-        db_table = 't_site'
-        db_table_comment = 'Table des sites'
-        verbose_name = _("Site")
-        verbose_name_plural = _("Sites")
+        db_table = '"referentiels"."t_espace_protege"'
+        db_table_comment = 'Table des espaces protégés'
+        verbose_name = _("Espace protégé")
+        verbose_name_plural = _("Espaces protégés")
 
     def __str__(self):
         return self.nom_site
@@ -297,11 +297,11 @@ class CorRoleSite(models.Model):
     conservateur = models.BooleanField(_("Conservateur"), default=False)
 
     class Meta:
-        db_table = 'cor_role_site'
-        db_table_comment = 'Liaison utilisateurs - sites'
+        db_table = '"utilisateurs"."cor_role_ep"'
+        db_table_comment = 'Liaison utilisateurs - espaces protégés'
         unique_together = ['id_site', 'id_role']
-        verbose_name = _("Utilisateur - Site")
-        verbose_name_plural = _("Utilisateurs - Sites")
+        verbose_name = _("Utilisateur - Espace protégé")
+        verbose_name_plural = _("Utilisateurs - Espaces protégés")
 
     def __str__(self):
         return f"{self.id_role} - {self.id_site}"
@@ -327,11 +327,11 @@ class CorOgSite(models.Model):
     principal = models.BooleanField(_("Gestionnaire principal"), default=False)
 
     class Meta:
-        db_table = 'cor_site_og'
-        db_table_comment = 'Liaison sites - organismes gestionnaires'
+        db_table = '"referentiels"."cor_ep_og"'
+        db_table_comment = 'Liaison espaces protégés - organismes gestionnaires'
         unique_together = ['id_site', 'uuid_og']
-        verbose_name = _("Site - Organisme")
-        verbose_name_plural = _("Sites - Organismes")
+        verbose_name = _("Espace protégé - Organisme")
+        verbose_name_plural = _("Espaces protégés - Organismes")
 
     def __str__(self):
         return f"{self.id_site} - {self.uuid_og}"

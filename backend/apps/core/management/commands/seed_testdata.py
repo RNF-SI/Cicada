@@ -7,6 +7,7 @@ Usage:
     python manage.py seed_testdata --dry-run # Affiche ce qui serait cree
 
 Donnees creees:
+    - 4 Modules applicatifs (plans, sites, inventaires, zonages)
     - 5 Organismes
     - 7 Sites (avec types de nomenclature)
     - 12 Utilisateurs (7 actifs + 3 inactifs + 2 en attente validation)
@@ -24,20 +25,61 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.gis.geos import Point, MultiPolygon, Polygon
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import Group, Permission
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.users.models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
-from apps.core.models import TypeNomenclature, Nomenclature
+from apps.core.models import TypeNomenclature, Nomenclature, Module
 from apps.plans.models import PlanGestion, CorSitePg
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
 
 DEFAULT_PASSWORD = 'Test123!'
 
+# Schemas requis pour l'architecture multi-schema Cicada
+REQUIRED_SCHEMAS = [
+    'utilisateurs',        # Users, organisations, cor_role_ep (GeoNature)
+    'referentiels',        # Sites/espaces proteges, cor_ep_og (ODASE)
+    'ref_nomenclatures',   # Types de nomenclature, nomenclatures (GeoNature)
+    'ref_geo',             # Referentiels geographiques (GeoNature) - futur
+    'general',             # Plans de gestion, cor_ep_pg (ODASE)
+    'fichiers',            # Fichiers attaches (ODASE)
+    'ccd_commons',         # Modules, logs impersonation (Cicada)
+    'ccd_notifications',   # Notifications, validations, pending users (Cicada)
+]
+
 
 class Command(BaseCommand):
     help = 'Cree ou supprime les donnees de test pour le developpement'
+
+    def _verify_schemas(self):
+        """
+        Verifie que tous les schemas requis existent dans la base de donnees.
+
+        Raises:
+            CommandError: Si un ou plusieurs schemas sont manquants.
+        """
+        self.stdout.write('\n--- Verification des schemas ---')
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT schema_name
+                FROM information_schema.schemata
+                WHERE schema_name = ANY(%s)
+            """, [REQUIRED_SCHEMAS])
+            existing_schemas = {row[0] for row in cursor.fetchall()}
+
+        missing_schemas = set(REQUIRED_SCHEMAS) - existing_schemas
+
+        if missing_schemas:
+            raise CommandError(
+                f"Schemas manquants: {', '.join(sorted(missing_schemas))}. "
+                f"Executez 'python manage.py migrate' pour creer les schemas."
+            )
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  {len(existing_schemas)} schemas verifies: {", ".join(sorted(existing_schemas))}'
+        ))
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -58,6 +100,9 @@ class Command(BaseCommand):
         if self.dry_run:
             self.stdout.write(self.style.WARNING('Mode dry-run: aucune modification ne sera effectuee'))
 
+        # Verifier que les schemas existent avant de continuer
+        self._verify_schemas()
+
         try:
             if options['reset']:
                 self.reset_test_data()
@@ -76,6 +121,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.MIGRATE_HEADING('\n=== Creation des donnees de test ==='))
 
+        modules = self._create_modules()
         nomenclatures = self._create_nomenclatures()
         groups = self._create_groups()
         organismes = self._create_organismes()
@@ -179,6 +225,12 @@ class Command(BaseCommand):
 
     def _show_dry_run_summary(self):
         """Affiche un resume des donnees qui seraient creees."""
+        self.stdout.write('\nModules (4):')
+        self.stdout.write('  - plans: Mes plans de gestion (primary)')
+        self.stdout.write('  - sites: Mes sites (salmon)')
+        self.stdout.write('  - inventaires: Mes inventaires et suivis (yellow)')
+        self.stdout.write('  - zonages: Zonages reglementaires (terra-cotta) [requires_access]')
+
         self.stdout.write('\nNomenclatures:')
         self.stdout.write('  - 3 types de nomenclature (site, evaluation, redacteur)')
         self.stdout.write('  - 5 types de site (RNN, RNR, PNR, ENS, APB)')
@@ -275,6 +327,76 @@ class Command(BaseCommand):
         self.stdout.write('  Types: validation_request, validation_approved, validation_rejected,')
         self.stdout.write('         user_associated_site, info, system_alert')
         self.stdout.write('  Priorites: low, medium, high, critical')
+
+    def _create_modules(self):
+        """
+        Cree les modules applicatifs.
+
+        Les modules sont normalement crees par la migration 0003_seed_modules.py,
+        mais cette methode assure qu'ils existent meme apres un reset complet.
+        """
+        self.stdout.write('\n--- Creation des modules ---')
+
+        modules_data = [
+            {
+                'code': 'plans',
+                'name': 'Mes plans de gestion',
+                'description': 'Gestion des plans de gestion des espaces naturels',
+                'icon': 'fi-rr-document',
+                'color': 'primary',
+                'route': '/plans',
+                'requires_access': False,
+                'is_active': True,
+                'display_order': 0,
+            },
+            {
+                'code': 'sites',
+                'name': 'Mes sites',
+                'description': 'Gestion des sites et espaces proteges',
+                'icon': 'fi-rr-map-marker',
+                'color': 'salmon',
+                'route': '/sites',
+                'requires_access': False,
+                'is_active': True,
+                'display_order': 1,
+            },
+            {
+                'code': 'inventaires',
+                'name': 'Mes inventaires et suivis',
+                'description': 'Gestion des inventaires et suivis naturalistes',
+                'icon': 'fi-rr-test-tube',
+                'color': 'yellow',
+                'route': '/inventaires',
+                'requires_access': False,
+                'is_active': True,
+                'display_order': 2,
+            },
+            {
+                'code': 'zonages',
+                'name': 'Zonages reglementaires',
+                'description': 'Acces aux zonages reglementaires et leur gestion',
+                'icon': 'fi-rr-map',
+                'color': 'terra-cotta',
+                'route': '/zonages',
+                'requires_access': True,
+                'is_active': True,
+                'display_order': 3,
+            },
+        ]
+
+        modules = []
+        for module_data in modules_data:
+            module, created = Module.objects.get_or_create(
+                code=module_data['code'],
+                defaults=module_data
+            )
+            modules.append(module)
+            if self.verbosity >= 2:
+                status = "cree" if created else "existant"
+                self.stdout.write(f"  [{status.upper()}] {module.code}: {module.name}")
+
+        self.stdout.write(self.style.SUCCESS(f'  {len(modules)} modules'))
+        return modules
 
     def _create_nomenclatures(self):
         """Cree les nomenclatures necessaires."""
@@ -1600,7 +1722,8 @@ class Command(BaseCommand):
         validation_requests_pending = ValidationRequest.objects.filter(status='pending').count()
         notifications_unread = Notification.objects.filter(read=False).count()
 
-        self.stdout.write(f'\n  Organismes:           {BibOrganismes.objects.count()}')
+        self.stdout.write(f'\n  Modules:              {Module.objects.count()}')
+        self.stdout.write(f'  Organismes:           {BibOrganismes.objects.count()}')
         self.stdout.write(f'  Sites:                {Site.objects.count()}')
         self.stdout.write(f'  Utilisateurs:         {Role.objects.count()} ({users_actifs} actifs, {users_pending} en attente, {users_inactifs} inactifs)')
         self.stdout.write(f'  Plans de gestion:     {PlanGestion.objects.count()} ({plans_actifs} actifs, {plans_archives} archives)')

@@ -38,8 +38,6 @@ def execute_insert_file(file_path, description):
             for statement in sql_content.split('\n'):
                 statement = statement.strip()
                 if statement and statement.startswith('INSERT INTO'):
-                    # Remplacer les références au schéma referentiels par public
-                    statement = statement.replace('INSERT INTO referentiels.', 'INSERT INTO ')
                     cursor.execute(statement)
             
         logger.info(f"✓ {description} exécuté avec succès")

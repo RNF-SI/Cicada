@@ -422,21 +422,50 @@ The backend follows a modular architecture with distinct Django apps:
 
 ### Database Schema Design
 
-The application uses PostgreSQL with PostGIS and follows a multi-schema approach:
+The application uses PostgreSQL with PostGIS and follows a multi-schema approach compatible with GeoNature and ODASE.
+The application is named **Cicada** (`ccd_` prefix for custom schemas).
 
-1. **utilisateurs schema**: User management
+1. **utilisateurs schema** (GeoNature compatible): User management
    - `t_roles`: User accounts with email as unique identifier
    - `bib_organismes`: Management organizations
    - `cor_role_ep`: User-Site relationships with permissions
+   - Django auth tables (auth_group, auth_permission, etc.)
 
-2. **referentiels schema**: Reference data
+2. **referentiels schema** (ODASE compatible): Protected areas
    - `t_espace_protege`: Protected areas with PostGIS geometries
+   - `cor_ep_og`: Organization-Site relationships
+
+3. **ref_nomenclatures schema** (GeoNature compatible): Reference data
+   - `bib_nomenclatures_types`: Nomenclature type definitions
    - `t_nomenclatures`: Reference lists and categories
 
-3. **general schema**: Application data
+4. **ref_geo schema** (GeoNature compatible): Geographic references
+   - Reserved for future use (administrative boundaries, communes, etc.)
+
+5. **general schema** (ODASE compatible): Management plans
    - `t_plan_gestion`: Management plans
-   - `cor_site_pg`: Many-to-many between plans and sites (renamed for terminology consistency)
-   - `cor_pg_fichier`: File attachments for management plans
+   - `cor_ep_pg`: Many-to-many between plans and sites
+   - `t_plan_gestion_referents`: Plan referents relationships
+
+6. **fichiers schema** (ODASE compatible): File attachments
+   - `t_fichiers`: File attachments for management plans
+
+7. **ccd_commons schema** (Cicada): Common utilities
+   - `t_modules`: Application modules
+   - `t_impersonation_log`: Admin impersonation audit
+
+8. **ccd_notifications schema** (Cicada): Notifications system
+   - `t_notifications`: User notifications
+   - `t_validation_requests`: Validation workflow
+   - `t_pending_users`: Registration requests
+
+**Database Configuration**:
+```python
+# search_path configured in settings/base.py
+OPTIONS = {
+    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,public'
+}
+```
 
 ### Frontend Architecture
 

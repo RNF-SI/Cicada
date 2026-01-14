@@ -128,7 +128,7 @@ class Notification(models.Model):
     )
 
     class Meta:
-        db_table = 't_notifications'
+        db_table = '"ccd_notifications"."t_notifications"'
         db_table_comment = 'Table des notifications utilisateurs'
         ordering = ['-created_at']
         verbose_name = _('Notification')
@@ -302,7 +302,7 @@ class ValidationRequest(models.Model):
     )
 
     class Meta:
-        db_table = 't_validation_requests'
+        db_table = '"ccd_notifications"."t_validation_requests"'
         db_table_comment = 'Table des demandes de validation'
         ordering = ['-created_at']
         verbose_name = _('Demande de validation')
@@ -408,7 +408,7 @@ class PendingUser(models.Model):
     )
 
     class Meta:
-        db_table = 't_pending_users'
+        db_table = '"ccd_notifications"."t_pending_users"'
         db_table_comment = 'Table des utilisateurs en attente de validation'
         verbose_name = _('Utilisateur en attente')
         verbose_name_plural = _('Utilisateurs en attente')

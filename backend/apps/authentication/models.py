@@ -58,7 +58,7 @@ class ImpersonationLog(models.Model):
     )
 
     class Meta:
-        db_table = 'auth_impersonation_log'
+        db_table = '"ccd_commons"."t_impersonation_log"'
         verbose_name = "Log d'impersonation"
         verbose_name_plural = "Logs d'impersonation"
         ordering = ['-started_at']

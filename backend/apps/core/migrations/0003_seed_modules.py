@@ -76,7 +76,7 @@ def remove_modules(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0003_add_module_model'),
+        ('core', '0002_initial'),
     ]
 
     operations = [

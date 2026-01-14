@@ -147,7 +147,7 @@ class PlanGestion(models.Model):
     )
 
     class Meta:
-        db_table = 't_plan_gestion'
+        db_table = '"general"."t_plan_gestion"'
         db_table_comment = 'Plans de gestion des espaces naturels'
         verbose_name = _("Plan de gestion")
         verbose_name_plural = _("Plans de gestion")
@@ -252,10 +252,10 @@ class CorSitePg(models.Model):
     )
 
     class Meta:
-        db_table = 'cor_site_pg'
-        db_table_comment = 'Liaison entre sites et plans de gestion'
-        verbose_name = _("Site - Plan de gestion")
-        verbose_name_plural = _("Sites - Plans de gestion")
+        db_table = '"general"."cor_ep_pg"'
+        db_table_comment = 'Liaison entre espaces protégés et plans de gestion'
+        verbose_name = _("Espace protégé - Plan de gestion")
+        verbose_name_plural = _("Espaces protégés - Plans de gestion")
         unique_together = ['site', 'plan_de_gestion']
         ordering = ['rang', 'site__nom_site']
 
@@ -360,7 +360,7 @@ class CorPgFichier(models.Model):
     )
 
     class Meta:
-        db_table = 'cor_pg_fichier'
+        db_table = '"fichiers"."t_fichiers"'
         db_table_comment = 'Fichiers associés aux plans de gestion'
         verbose_name = _("Fichier plan de gestion")
         verbose_name_plural = _("Fichiers plans de gestion")

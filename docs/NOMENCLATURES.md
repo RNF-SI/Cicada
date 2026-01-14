@@ -8,7 +8,7 @@ Les nomenclatures standardisent les référentiels utilisés dans les plans de g
 
 ## Structure des données
 
-### Types de nomenclatures (`referentiels.bib_nomenclatures_types`)
+### Types de nomenclatures (`ref_nomenclatures.bib_nomenclatures_types`)
 
 Table des catégories de nomenclatures :
 - **id_type** : Identifiant unique
@@ -18,7 +18,7 @@ Table des catégories de nomenclatures :
 - **source** : Source des données
 - **statut** : Statut de validation
 
-### Nomenclatures (`referentiels.t_nomenclatures`)
+### Nomenclatures (`ref_nomenclatures.t_nomenclatures`)
 
 Table des valeurs de nomenclatures :
 - **id_nomenclature** : Identifiant unique
@@ -146,7 +146,7 @@ Pour ajouter de nouvelles nomenclatures :
 
 ```python
 # Via l'admin Django ou directement en SQL
-INSERT INTO referentiels.bib_nomenclatures_types 
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types 
 VALUES (999, 'NOUVEAU_TYPE', 'Nouveau type de nomenclature', ...);
 ```
 
@@ -183,7 +183,17 @@ python test_nomenclatures.py
 ## Architecture technique
 
 ### Schéma PostgreSQL
-Les nomenclatures utilisent le schéma `referentiels` pour l'organisation logique.
+Les nomenclatures utilisent le schéma `ref_nomenclatures` pour la compatibilité GeoNature.
+
+L'application Cicada utilise 8 schémas PostgreSQL :
+- `utilisateurs` - Utilisateurs et organismes (GeoNature)
+- `referentiels` - Espaces protégés (ODASE)
+- `ref_nomenclatures` - Nomenclatures (GeoNature)
+- `ref_geo` - Référentiels géographiques (GeoNature) - futur
+- `general` - Plans de gestion (ODASE)
+- `fichiers` - Fichiers attachés (ODASE)
+- `ccd_commons` - Modules et logs (Cicada)
+- `ccd_notifications` - Notifications et validations (Cicada)
 
 ### Gestion des clés étrangères
 Relations automatiquement maintenues entre types et nomenclatures.

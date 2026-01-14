@@ -50,7 +50,7 @@ class Nomenclature(models.Model):
     actif = models.BooleanField(_("Actif"), default=True)
 
     class Meta:
-        db_table = 't_nomenclatures'
+        db_table = '"ref_nomenclatures"."t_nomenclatures"'
         verbose_name = _("Nomenclature")
         verbose_name_plural = _("Nomenclatures")
         managed = True
@@ -76,7 +76,7 @@ class TypeNomenclature(models.Model):
     date_maj = models.DateTimeField(_("Date de mise à jour"), null=True, blank=True)
 
     class Meta:
-        db_table = 'bib_nomenclatures_types'
+        db_table = '"ref_nomenclatures"."bib_nomenclatures_types"'
         verbose_name = _("Type de nomenclature")
         verbose_name_plural = _("Types de nomenclatures")
         managed = True
@@ -166,7 +166,7 @@ class Module(models.Model):
     updated_at = models.DateTimeField(_('Mis à jour le'), auto_now=True)
 
     class Meta:
-        db_table = 't_modules'
+        db_table = '"ccd_commons"."t_modules"'
         db_table_comment = 'Table des modules applicatifs'
         ordering = ['display_order', 'name']
         verbose_name = _('Module')
