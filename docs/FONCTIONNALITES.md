@@ -9,9 +9,10 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 3. [Validations](#3-validations)
 4. [Impersonnation](#4-impersonnation)
 5. [Modules](#5-modules)
-6. [Pages d'administration](#6-pages-dadministration)
-7. [Tests](#7-tests)
-8. [Améliorations prévues](#8-améliorations-prévues)
+6. [Gestion des Sites](#6-gestion-des-sites)
+7. [Pages d'administration](#7-pages-dadministration)
+8. [Tests](#8-tests)
+9. [Améliorations prévues](#9-améliorations-prévues)
 
 ---
 
@@ -327,7 +328,188 @@ Ce sont des fonctionnalités supplémentaires qui ne sont pas accessibles par d�
 
 ---
 
-## 6. Pages d'administration
+## 6. Gestion des Sites
+
+### Comment ça marche
+
+Le module Sites permet aux utilisateurs de visualiser, rechercher et demander l'accès aux espaces naturels protégés. Il offre également des fonctionnalités pour les référents et les administrateurs.
+
+### Page "Mes Sites" (`/sites`)
+
+Cette page présente un layout style GeoNature avec :
+- **Carte interactive à gauche** : Affiche la localisation de tous les sites accessibles
+- **Liste des sites à droite** : Tableau des sites auxquels l'utilisateur a accès
+
+#### Fonctionnalités disponibles
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Recherche** | Barre de recherche pour filtrer les sites par nom, type ou organisme |
+| **Accès rapide** | Clic sur un site pour accéder à sa fiche détaillée |
+| **Visualisation cartographique** | Zoom automatique sur les sites avec géométries disponibles |
+
+### Recherche et demande d'accès à un site
+
+Un utilisateur peut rechercher un site existant et demander l'accès via le bouton "Rechercher ou créer un site".
+
+#### Le flux de recherche
+
+1. L'utilisateur ouvre le dialog de recherche
+2. Il saisit au moins 2 caractères du nom du site
+3. Le système affiche **tous les sites actifs** correspondants, classés en deux catégories :
+   - **Sites de mon organisme** : Sites liés à l'organisme de l'utilisateur
+   - **Sites d'autres organismes** : Sites gérés par d'autres organismes
+
+#### Demande d'accès à un site de son organisme
+
+Pour les sites liés à son organisme, l'utilisateur peut :
+
+1. **Demander un accès simple** : Cliquer sur "Demander l'accès"
+2. **Demander un accès comme référent** : Cocher "Comme référent" avant de demander
+
+```
+Utilisateur → Demande d'accès → ValidationRequest (site_access)
+                                       ↓
+                    Notification aux référents du site + admin_og
+                                       ↓
+                         Approbation → CorRoleSite créé
+```
+
+**États possibles affichés :**
+
+| État | Icône | Description |
+|------|-------|-------------|
+| Accès accordé | ✓ Vert | L'utilisateur est déjà lié au site |
+| Demande en cours | ⏳ Orange | Une demande est en attente de validation |
+| Disponible | Bouton bleu | L'utilisateur peut demander l'accès |
+
+### Demande de lien site-organisme
+
+Pour les sites d'autres organismes, l'utilisateur peut demander à **lier ce site à son propre organisme**.
+
+#### Pourquoi cette fonctionnalité ?
+
+Certains espaces naturels sont cogérés par plusieurs organismes. Un utilisateur d'un organisme peut vouloir que son organisme soit également reconnu comme gestionnaire d'un site existant.
+
+#### Le flux de demande
+
+1. L'utilisateur clique sur "Lier à mon organisme" sur un site d'un autre organisme
+2. Un formulaire de justification apparaît (obligatoire)
+3. L'utilisateur explique pourquoi son organisme devrait être lié à ce site
+4. La demande est envoyée aux administrateurs de son propre organisme
+
+```
+Utilisateur → "Lier à mon organisme" → Justification obligatoire
+                                              ↓
+                          ValidationRequest (site_org_link)
+                                              ↓
+                              Notification admin_og du demandeur
+                                              ↓
+                         Approbation → CorOgSite créé (non principal)
+```
+
+**Important :** C'est l'admin de l'organisme du **demandeur** qui valide, car c'est lui qui décide si son organisme doit gérer ce site.
+
+### Création d'un nouveau site
+
+Si le site recherché n'existe pas, l'utilisateur peut le créer :
+
+1. Cliquer sur "Nouveau site" en bas du dialog de recherche
+2. Remplir le formulaire de création (nom, type, surface, etc.)
+3. Dessiner la géométrie sur la carte (optionnel)
+4. Le site est automatiquement lié à l'organisme de l'utilisateur
+
+### Page détail d'un site (`/sites/:id`)
+
+La page de détail affiche toutes les informations d'un site avec le même layout GeoNature.
+
+#### Informations affichées
+
+- **Carte** : Géométrie du site (polygone ou point)
+- **Informations générales** : Type, surface, codes (local, INPN), caractéristiques (marin, outre-mer)
+- **Organismes gestionnaires** : Liste des organismes liés au site
+- **Utilisateurs du site** : Liste des utilisateurs avec leurs rôles (référent, conservateur, utilisateur)
+- **Plans de gestion associés** : Plans liés à ce site
+
+#### Actions disponibles selon le rôle
+
+| Action | Utilisateur | Référent | Admin |
+|--------|:-----------:|:--------:|:-----:|
+| Voir les informations | ✅ | ✅ | ✅ |
+| Modifier le site | ❌ | ✅ | ✅ |
+| Gérer les utilisateurs | ❌ | ✅ | ✅ |
+| Demander à devenir référent | ✅ | ❌ | ❌ |
+
+### Demande pour devenir référent
+
+Un utilisateur qui a déjà accès à un site mais n'est pas référent peut **demander à le devenir**.
+
+#### Prérequis
+
+- L'utilisateur doit être lié au site (avoir un accès existant)
+- L'utilisateur ne doit pas déjà être référent du site
+
+#### Ce que permet d'être référent
+
+Le bouton "Devenir référent" affiche une infobulle explicative :
+
+> *"En tant que référent, vous pourrez : modifier les informations du site, gérer les utilisateurs, et valider les demandes d'accès."*
+
+#### Le flux de demande
+
+1. L'utilisateur clique sur "Devenir référent" sur la page détail du site
+2. Une `ValidationRequest` de type `referent_validation` est créée
+3. Les validateurs sont notifiés
+
+```
+Utilisateur avec accès → "Devenir référent"
+                                ↓
+                ValidationRequest (referent_validation)
+                                ↓
+     Notification aux : référents actuels + admin_og + super_admin
+                                ↓
+              Approbation → CorRoleSite.referent = True
+                           CorRoleSite.referent_valid = True
+```
+
+#### Qui peut valider ?
+
+| Validateur | Pourquoi |
+|------------|----------|
+| Référents actuels du site | Ils connaissent le site et peuvent évaluer si la personne est légitime |
+| Admin de l'organisme gestionnaire | Responsable de la gestion du site |
+| Super admin | Fallback si aucun autre validateur |
+
+#### États affichés sur le bouton
+
+| État | Affichage |
+|------|-----------|
+| Peut demander | Bouton vert "Devenir référent" |
+| Demande en cours | Bouton gris "Demande en cours" (désactivé) |
+| Déjà référent | Bouton non affiché (chip "Référent" visible) |
+
+### Droits du référent vs utilisateur simple
+
+| Capacité | Utilisateur | Référent |
+|----------|:-----------:|:--------:|
+| Voir le site | ✅ | ✅ |
+| Modifier les informations du site | ❌ | ✅ |
+| Ajouter/retirer des utilisateurs | ❌ | ✅ |
+| Valider les demandes d'accès | ❌ | ✅ |
+| Créer des plans de gestion pour ce site | ❌ | ✅ |
+
+### Récapitulatif des types de demandes liées aux sites
+
+| Type | Code | Déclencheur | Validateurs | Résultat si approuvé |
+|------|------|-------------|-------------|----------------------|
+| Accès site | `site_access` | Demande d'accès à un site de son organisme | Référents du site + admin_og | `CorRoleSite` créé |
+| Accès comme référent | `site_access` + flag | Demande d'accès avec option référent | Référents du site + admin_og | `CorRoleSite` créé avec `referent=True` |
+| Lien site-organisme | `site_org_link` | Demande de lier un site externe à son organisme | admin_og du demandeur | `CorOgSite` créé |
+| Devenir référent | `referent_validation` | Utilisateur lié veut devenir référent | Référents + admin_og + super_admin | `CorRoleSite.referent = True` |
+
+---
+
+## 7. Pages d'administration
 
 ### Comment ça marche
 
@@ -533,7 +715,7 @@ Le menu latéral de l'administration s'adapte automatiquement au rôle de l'util
 
 ---
 
-## 7. Tests
+## 8. Tests
 
 ### Comment ça marche
 
@@ -602,7 +784,7 @@ C'est le pourcentage de lignes de code exécutées par les tests.
 
 ---
 
-## 8. Améliorations prévues
+## 9. Améliorations prévues
 
 ### Interface d'administration des logs
 
@@ -677,4 +859,4 @@ Envoyer automatiquement une notification (et/ou email) aux super admins quand :
 
 ---
 
-**Mise à jour** : Janvier 2025
+**Mise à jour** : Janvier 2026

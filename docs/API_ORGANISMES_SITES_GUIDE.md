@@ -541,6 +541,142 @@ Liste des sites disponibles pour assignation à un organisme.
 
 ---
 
+### **GET /api/users/sites/search_all/**
+Recherche dans tous les sites actifs (y compris ceux d'autres organismes).
+Permet aux utilisateurs de trouver des sites pour demander un lien ou un accès.
+
+**Permissions :** Authentifié
+
+**Paramètres de requête :**
+- `search` : Terme de recherche (min 2 caractères)
+- `page_size` : Nombre de résultats (défaut: 100, max: 500)
+
+**Exemple :**
+```bash
+GET /api/users/sites/search_all/?search=camargue&page_size=20
+```
+
+**Réponse :**
+```json
+{
+  "count": 2,
+  "results": [
+    {
+      "id_site": 1,
+      "nom_site": "Réserve Naturelle de la Camargue",
+      "id_local": "RNN001",
+      "type_site_label": "Réserve Naturelle Nationale",
+      "surf_off": 13117.0,
+      "active": true,
+      "organismes": [
+        {"id_organisme": 1, "nom_organisme": "RNF"}
+      ],
+      "users": [
+        {"id_role": 5, "referent": true}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### **POST /api/users/sites/{id}/request_access/**
+Demande l'accès à un site de son organisme.
+
+**Permissions :** Authentifié
+
+**Payload :**
+```json
+{
+  "justification": "Je souhaite participer à la gestion de ce site.",
+  "request_as_referent": false
+}
+```
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `justification` | string | Non | Explication de la demande |
+| `request_as_referent` | boolean | Non | Demander l'accès comme référent (défaut: false) |
+
+**Réponse (201 Created) :**
+```json
+{
+  "id": 42,
+  "message": "Votre demande d'accès au site \"Camargue\" a été soumise."
+}
+```
+
+**Erreurs possibles :**
+- `409 Conflict` : Une demande est déjà en attente pour ce site
+- `400 Bad Request` : L'utilisateur a déjà accès à ce site
+
+---
+
+### **POST /api/users/sites/{id}/request_org_link/**
+Demande de lier un site d'un autre organisme à son propre organisme.
+
+**Permissions :** Authentifié (doit avoir un organisme)
+
+**Payload :**
+```json
+{
+  "justification": "Notre organisme cogère ce site depuis 2020."
+}
+```
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `justification` | string | Oui | Explication de la demande de lien |
+
+**Réponse (201 Created) :**
+```json
+{
+  "id": 43,
+  "message": "Votre demande de lien avec le site \"Vercors\" a été soumise."
+}
+```
+
+**Erreurs possibles :**
+- `409 Conflict` : Une demande de lien est déjà en attente
+- `400 Bad Request` : Le site est déjà lié à l'organisme de l'utilisateur
+- `400 Bad Request` : L'utilisateur n'est pas rattaché à un organisme
+
+---
+
+### **POST /api/users/sites/{id}/request_referent/**
+Demande à devenir référent d'un site auquel l'utilisateur a déjà accès.
+
+**Permissions :** Authentifié (doit être lié au site)
+
+**Payload :**
+```json
+{
+  "justification": "Je suis le gestionnaire principal de ce site depuis 3 ans."
+}
+```
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `justification` | string | Non | Explication de la demande |
+
+**Réponse (201 Created) :**
+```json
+{
+  "id": 44,
+  "message": "Votre demande pour devenir référent du site \"Camargue\" a été soumise."
+}
+```
+
+**Erreurs possibles :**
+- `409 Conflict` : Une demande est déjà en attente
+- `400 Bad Request` : L'utilisateur est déjà référent du site
+- `400 Bad Request` : L'utilisateur n'a pas accès au site (doit d'abord demander l'accès)
+
+**Note :** Le statut de référent permet de modifier les informations du site, gérer les utilisateurs et valider les demandes d'accès.
+
+---
+
 ### **GET /api/users/organismes/stats/**
 Statistiques des organismes.
 
