@@ -8,14 +8,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
-import { AdminSite, SiteCreatePayload } from '../../../../core/models/admin.model';
+import { AdminSite, SiteCreatePayload, GeoJSONGeometry } from '../../../../core/models/admin.model';
+import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
   organismeId?: number; // If provided, auto-link site to this organisme after creation
   principal?: boolean; // If true, set as principal site for the organisme
+  existingPolygon?: GeoJSONGeometry | null; // Existing polygon geometry
+  existingPoint?: GeoJSONGeometry | null; // Existing point geometry
 }
 
 interface SiteType {
@@ -37,7 +41,9 @@ interface SiteType {
     MatSelectModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    TranslateModule
+    MatTabsModule,
+    TranslateModule,
+    LeafletMapEditComponent
   ],
   templateUrl: './site-form-modal.component.html',
   styleUrl: './site-form-modal.component.scss'
@@ -55,6 +61,11 @@ export class SiteFormModalComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   siteTypes = signal<SiteType[]>([]);
 
+  // Geometry signals
+  polygonGeometry = signal<GeoJSONGeometry | null>(null);
+  pointGeometry = signal<GeoJSONGeometry | null>(null);
+  activeGeometryTab = signal<number>(0);
+
   get isEditMode(): boolean {
     return !!this.data?.site;
   }
@@ -62,16 +73,27 @@ export class SiteFormModalComponent implements OnInit {
   ngOnInit(): void {
     this.initForm();
     this.loadSiteTypes();
+
+    // Initialize geometry from data
+    if (this.data?.existingPolygon) {
+      this.polygonGeometry.set(this.data.existingPolygon);
+    }
+    if (this.data?.existingPoint) {
+      this.pointGeometry.set(this.data.existingPoint);
+    }
   }
 
   private initForm(): void {
     const site = this.data?.site;
 
+    // Pour le type de site, utiliser type_site.id_nomenclature (format SiteDetailSerializer)
+    const typeId = site?.type_site?.id_nomenclature || null;
+
     this.form = this.fb.group({
       nom_site: [site?.nom_site || '', [Validators.required, Validators.maxLength(255)]],
       id_local: [site?.id_local || '', Validators.maxLength(50)],
       id_inpn: [site?.id_inpn || '', Validators.maxLength(50)],
-      id_type_site: [site?.id_type_site || null],
+      id_type_site: [typeId],
       surf_off: [site?.surf_off || null, [Validators.min(0)]],
       marin: [site?.marin || false],
       outre_mer: [site?.outre_mer || false],
@@ -100,6 +122,27 @@ export class SiteFormModalComponent implements OnInit {
     });
   }
 
+  /**
+   * Called when polygon geometry changes on the map
+   */
+  onPolygonChange(geojson: any): void {
+    this.polygonGeometry.set(geojson);
+  }
+
+  /**
+   * Called when point geometry changes on the map
+   */
+  onPointChange(geojson: any): void {
+    this.pointGeometry.set(geojson);
+  }
+
+  /**
+   * Change the geometry tab
+   */
+  onGeometryTabChange(index: number): void {
+    this.activeGeometryTab.set(index);
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -113,11 +156,14 @@ export class SiteFormModalComponent implements OnInit {
       nom_site: this.form.value.nom_site,
       id_local: this.form.value.id_local || undefined,
       id_inpn: this.form.value.id_inpn || undefined,
-      id_type_site: this.form.value.id_type_site || undefined,
+      type_site_id: this.form.value.id_type_site || undefined,
       surf_off: this.form.value.surf_off || undefined,
       marin: this.form.value.marin,
       outre_mer: this.form.value.outre_mer,
-      active: this.form.value.active
+      active: this.form.value.active,
+      // Add geometry data
+      geom_geojson: this.polygonGeometry() || undefined,
+      geom_pt_geojson: this.pointGeometry() || undefined
     };
 
     if (this.isEditMode) {

@@ -1,0 +1,238 @@
+<h2 mat-dialog-title>
+  <i class="fi fi-rr-marker"></i>
+  {{ 'sites.findOrCreate.dialogTitle' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <!-- Message d'erreur -->
+  @if (errorMessage()) {
+    <div class="alert alert-error">
+      <i class="fi fi-rr-exclamation"></i>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Message de succès -->
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <i class="fi fi-rr-check"></i>
+      {{ successMessage() }}
+    </div>
+  }
+
+  <!-- Section 1: Créer un nouveau site (toujours visible en premier) -->
+  @if (hasOrganisme()) {
+    <div class="create-section create-section-primary">
+      <h4 class="create-title">
+        <i class="fi fi-rr-add"></i>
+        {{ 'sites.findOrCreate.createTitle' | translate }}
+      </h4>
+      <p class="create-description">
+        {{ 'sites.findOrCreate.createDescriptionSimple' | translate }}
+      </p>
+      <button mat-flat-button color="primary" class="btn-create" (click)="createNewSite()">
+        <i class="fi fi-rr-add"></i>
+        {{ 'sites.findOrCreate.createButton' | translate }}
+      </button>
+    </div>
+
+    <mat-divider class="divider"></mat-divider>
+  } @else {
+    <!-- Message si pas d'organisme -->
+    <div class="no-organisme-warning">
+      <i class="fi fi-rr-exclamation"></i>
+      <p>{{ 'sites.createSite.noOrganisme' | translate }}</p>
+    </div>
+
+    <mat-divider class="divider"></mat-divider>
+  }
+
+  <!-- Section 2: Rechercher un site existant -->
+  <div class="search-section">
+    <h4 class="search-title">
+      <i class="fi fi-rr-search"></i>
+      {{ 'sites.findOrCreate.searchTitle' | translate }}
+    </h4>
+
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'sites.findOrCreate.searchLabel' | translate }}</mat-label>
+      <input matInput
+             type="text"
+             [value]="searchTerm()"
+             (input)="onSearchChange($event)"
+             [placeholder]="'sites.findOrCreate.searchPlaceholder' | translate">
+      <i matSuffix class="fi fi-rr-search search-icon"></i>
+    </mat-form-field>
+
+    <p class="search-hint">{{ 'sites.findOrCreate.searchHint' | translate }}</p>
+
+    <!-- Spinner de recherche -->
+    @if (isSearching()) {
+      <div class="loading-search">
+        <mat-spinner diameter="24"></mat-spinner>
+        <span>{{ 'sites.findOrCreate.loading' | translate }}</span>
+      </div>
+    }
+
+    <!-- Résultats de recherche -->
+    @if (filteredSites().length > 0) {
+      <div class="search-results">
+        <!-- Section: Sites de mon organisme -->
+        @if (mySites().length > 0) {
+          <div class="results-category results-category-my-org">
+            <h5 class="category-title">
+              <i class="fi fi-rr-building"></i>
+              {{ 'sites.findOrCreate.mySitesTitle' | translate }}
+              <span class="badge badge-primary">{{ mySites().length }}</span>
+            </h5>
+            <p class="category-description">{{ 'sites.findOrCreate.mySitesDescription' | translate }}</p>
+
+            <div class="results-list">
+              @for (site of mySites(); track site.id_site) {
+                <div class="site-item site-item-my-org"
+                     [class.has-access]="site.hasAccess"
+                     [class.pending]="site.hasPendingRequest">
+                  <div class="site-info">
+                    <span class="site-name">{{ site.nom_site }}</span>
+                    @if (site.organismes && site.organismes.length > 0) {
+                      <span class="site-org">
+                        <i class="fi fi-rr-building"></i>
+                        {{ site.organismes[0].nom_organisme }}
+                      </span>
+                    }
+                  </div>
+
+                  <div class="site-actions">
+                    @if (site.hasAccess) {
+                      <div class="status-badge status-badge-success">
+                        <i class="fi fi-rr-check"></i>
+                        {{ 'sites.findOrCreate.alreadyAccess' | translate }}
+                      </div>
+                    } @else if (site.hasPendingRequest) {
+                      <div class="status-badge status-badge-warning">
+                        <i class="fi fi-rr-hourglass-end"></i>
+                        {{ 'sites.findOrCreate.pendingRequest' | translate }}
+                      </div>
+                    } @else if (site.canRequestAccess) {
+                      <div class="access-request-options">
+                        <mat-checkbox
+                          [checked]="isReferentRequest(site)"
+                          (change)="onReferentChange(site, $event.checked)"
+                          class="referent-checkbox">
+                          {{ 'sites.findOrCreate.asReferent' | translate }}
+                        </mat-checkbox>
+                        <button mat-flat-button
+                                color="primary"
+                                class="btn-request-access"
+                                [disabled]="isSubmitting()"
+                                (click)="requestAccess(site)">
+                          <i class="fi fi-rr-key"></i>
+                          {{ 'sites.findOrCreate.requestAccess' | translate }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Section: Sites d'autres organismes -->
+        @if (otherOrgSites().length > 0) {
+          <div class="results-category results-category-other-org">
+            <h5 class="category-title">
+              <i class="fi fi-rr-globe"></i>
+              {{ 'sites.findOrCreate.otherOrgSitesTitle' | translate }}
+              <span class="badge badge-secondary">{{ otherOrgSites().length }}</span>
+            </h5>
+            <p class="category-description">{{ 'sites.findOrCreate.otherOrgSitesDescription' | translate }}</p>
+
+            <div class="results-list">
+              @for (site of otherOrgSites(); track site.id_site) {
+                <div class="site-item site-item-other-org"
+                     [class.pending]="site.hasPendingOrgLink">
+                  <div class="site-info">
+                    <span class="site-name">{{ site.nom_site }}</span>
+                    @if (site.organismes && site.organismes.length > 0) {
+                      <span class="site-org site-org-other">
+                        <i class="fi fi-rr-globe"></i>
+                        {{ site.organismes[0].nom_organisme }}
+                      </span>
+                    }
+                  </div>
+
+                  <div class="site-actions">
+                    @if (site.hasPendingOrgLink) {
+                      <div class="status-badge status-badge-warning">
+                        <i class="fi fi-rr-hourglass-end"></i>
+                        {{ 'sites.findOrCreate.pendingOrgLink' | translate }}
+                      </div>
+                    } @else if (site.canRequestOrgLink) {
+                      <!-- Formulaire inline pour demander le lien -->
+                      @if (expandedOrgLinkSite() === site.id_site) {
+                        <div class="org-link-form">
+                          <mat-form-field appearance="outline" class="justification-field">
+                            <mat-label>{{ 'sites.findOrCreate.orgLinkJustificationLabel' | translate }}</mat-label>
+                            <textarea matInput
+                                      rows="2"
+                                      [value]="orgLinkJustification()"
+                                      (input)="onOrgLinkJustificationChange($event)"
+                                      [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
+                          </mat-form-field>
+                          <div class="org-link-form-actions">
+                            <button mat-button
+                                    type="button"
+                                    (click)="cancelOrgLinkRequest()">
+                              {{ 'common.actions.cancel' | translate }}
+                            </button>
+                            <button mat-flat-button
+                                    color="accent"
+                                    class="btn-submit-link"
+                                    [disabled]="isSubmitting() || !orgLinkJustification().trim()"
+                                    (click)="submitOrgLinkRequest(site)">
+                              <i class="fi fi-rr-paper-plane"></i>
+                              {{ 'sites.findOrCreate.submitOrgLink' | translate }}
+                            </button>
+                          </div>
+                        </div>
+                      } @else {
+                        <button mat-stroked-button
+                                color="accent"
+                                class="btn-link-org"
+                                [disabled]="isSubmitting()"
+                                (click)="startOrgLinkRequest(site)">
+                          <i class="fi fi-rr-link-alt"></i>
+                          {{ 'sites.findOrCreate.requestOrgLink' | translate }}
+                        </button>
+                      }
+                    } @else {
+                      <div class="status-badge status-badge-neutral">
+                        <i class="fi fi-rr-lock"></i>
+                        {{ 'sites.findOrCreate.notAvailable' | translate }}
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Message si recherche vide -->
+    @if (searchTerm().length >= 2 && filteredSites().length === 0 && !isSearching()) {
+      <div class="no-results">
+        <i class="fi fi-rr-search-alt"></i>
+        <p>{{ 'sites.findOrCreate.noResults' | translate }}</p>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">
+    {{ 'common.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

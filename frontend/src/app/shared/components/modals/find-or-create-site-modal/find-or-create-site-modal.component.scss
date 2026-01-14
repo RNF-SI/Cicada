@@ -1,0 +1,498 @@
+@use '../../../../../assets/scss/variables' as *;
+
+:host {
+  display: block;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $primary-color;
+  margin: 0;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $gray-lighter;
+
+  i {
+    font-size: 1.25rem;
+  }
+}
+
+mat-dialog-content {
+  padding-top: $spacing-md !important;
+  min-height: 300px;
+  max-height: 65vh;
+}
+
+// Alertes
+.alert {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-md;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &.alert-error {
+    background-color: rgba($error-color, 0.1);
+    color: $error-color;
+    border: 1px solid rgba($error-color, 0.3);
+  }
+
+  &.alert-success {
+    background-color: rgba($success-color, 0.1);
+    color: $success-color;
+    border: 1px solid rgba($success-color, 0.3);
+  }
+}
+
+// Champ de recherche
+.search-field {
+  width: 100%;
+  margin-bottom: $spacing-xs;
+
+  .search-icon {
+    color: $gray;
+  }
+}
+
+.search-hint {
+  font-size: 0.8rem;
+  color: $gray;
+  margin: 0 0 $spacing-md;
+}
+
+// Loading
+.loading-search {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  color: $gray;
+}
+
+// Résultats
+.search-results {
+  margin-top: $spacing-md;
+}
+
+// Catégories de résultats
+.results-category {
+  margin-bottom: $spacing-lg;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  &.results-category-my-org {
+    border: 1px solid rgba($primary-color, 0.2);
+    background-color: rgba($primary-color, 0.02);
+
+    .category-title {
+      color: $primary-color;
+
+      i {
+        color: $primary-color;
+      }
+    }
+
+    .site-item-my-org {
+      border-left: 3px solid $primary-color;
+    }
+  }
+
+  &.results-category-other-org {
+    border: 1px solid rgba($secondary-orange-salmon, 0.3);
+    background-color: rgba($secondary-orange-salmon, 0.02);
+
+    .category-title {
+      color: darken($secondary-orange-salmon, 15%);
+
+      i {
+        color: $secondary-orange-salmon;
+      }
+    }
+
+    .site-item-other-org {
+      border-left: 3px solid $secondary-orange-salmon;
+    }
+  }
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($gray-lighter, 0.5);
+
+  i {
+    font-size: 1rem;
+  }
+}
+
+.category-description {
+  font-size: 0.8rem;
+  color: $gray;
+  margin: 0;
+  padding: 0 $spacing-md $spacing-sm;
+}
+
+// Badges
+.badge {
+  padding: 2px 8px;
+  border-radius: $border-radius-pill;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &.badge-primary {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  &.badge-secondary {
+    background-color: $secondary-orange-salmon;
+    color: $white;
+  }
+}
+
+// Liste de résultats
+.results-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.site-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  background-color: $white;
+  transition: background-color 0.2s ease;
+  gap: $spacing-md;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $gray-lighter;
+  }
+
+  &:hover {
+    background-color: $gray-lighter;
+  }
+
+  &.has-access {
+    background-color: rgba($success-color, 0.05);
+  }
+
+  &.pending {
+    background-color: rgba($warning-color, 0.05);
+  }
+}
+
+.site-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.site-name {
+  font-weight: 600;
+  color: $gray-dark;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-org {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: $gray;
+
+  i {
+    font-size: 0.7rem;
+  }
+
+  &.site-org-other {
+    color: darken($secondary-orange-salmon, 10%);
+  }
+}
+
+.site-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+// Status badges (remplacent les chips)
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  i {
+    font-size: 0.7rem;
+  }
+
+  &.status-badge-success {
+    background-color: rgba($success-color, 0.15);
+    color: darken($success-color, 10%);
+  }
+
+  &.status-badge-warning {
+    background-color: rgba($warning-color, 0.15);
+    color: darken($warning-color, 15%);
+  }
+
+  &.status-badge-neutral {
+    background-color: $gray-lighter;
+    color: $gray;
+  }
+}
+
+// Options demande d'accès
+.access-request-options {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.referent-checkbox {
+  font-size: 0.85rem;
+
+  ::ng-deep .mdc-form-field {
+    label {
+      font-size: 0.85rem;
+      color: $gray-dark;
+    }
+  }
+}
+
+// Boutons stylisés
+.btn-create {
+  padding: $spacing-xs $spacing-md;
+
+  i {
+    margin-right: $spacing-xs;
+  }
+}
+
+.btn-request-access {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.85rem;
+  height: auto;
+  min-height: 32px;
+
+  i {
+    margin-right: $spacing-xs;
+    font-size: 0.8rem;
+  }
+}
+
+.btn-link-org {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.85rem;
+  height: auto;
+  min-height: 32px;
+  border-color: $secondary-orange-salmon;
+  color: darken($secondary-orange-salmon, 10%);
+
+  &:hover:not(:disabled) {
+    background-color: rgba($secondary-orange-salmon, 0.08);
+  }
+
+  i {
+    margin-right: $spacing-xs;
+    font-size: 0.8rem;
+  }
+}
+
+.btn-submit-link {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.85rem;
+
+  i {
+    margin-right: $spacing-xs;
+    font-size: 0.8rem;
+  }
+}
+
+// Formulaire de demande de lien
+.org-link-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  width: 100%;
+  max-width: 350px;
+  padding: $spacing-sm;
+  background-color: rgba($secondary-orange-salmon, 0.05);
+  border-radius: $border-radius-sm;
+  border: 1px solid rgba($secondary-orange-salmon, 0.2);
+}
+
+.justification-field {
+  width: 100%;
+
+  ::ng-deep {
+    .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+
+    textarea {
+      font-size: 0.85rem;
+      min-height: 50px;
+    }
+  }
+}
+
+.org-link-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-xs;
+}
+
+// Divider
+.divider {
+  margin: $spacing-lg 0;
+}
+
+// Section création
+.create-section {
+  background-color: rgba($primary-color, 0.05);
+  border: 1px dashed rgba($primary-color, 0.3);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+
+  &.create-section-primary {
+    background-color: rgba($primary-color, 0.08);
+    border: 1px solid rgba($primary-color, 0.2);
+
+    button {
+      margin-top: $spacing-xs;
+    }
+  }
+}
+
+// Section recherche
+.search-section {
+  margin-top: $spacing-sm;
+}
+
+.search-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $gray-dark;
+  margin: 0 0 $spacing-md;
+
+  i {
+    color: $primary-color;
+    font-size: 1rem;
+  }
+}
+
+.create-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $primary-color;
+  margin: 0 0 $spacing-xs;
+
+  i {
+    font-size: 1rem;
+  }
+}
+
+.create-description {
+  font-size: 0.85rem;
+  color: $gray;
+  margin: 0 0 $spacing-md;
+}
+
+// Warning pas d'organisme
+.no-organisme-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  background-color: rgba($warning-color, 0.1);
+  border: 1px solid rgba($warning-color, 0.3);
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  color: darken($warning-color, 10%);
+
+  i {
+    font-size: 1.25rem;
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+// Pas de résultats
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+  color: $gray;
+
+  i {
+    font-size: 2rem;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    margin: 0;
+    text-align: center;
+  }
+}
+
+// Actions du dialog
+mat-dialog-actions {
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-lighter;
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .site-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .site-actions {
+    width: 100%;
+  }
+
+  .access-request-options {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .org-link-form {
+    max-width: 100%;
+  }
+}
