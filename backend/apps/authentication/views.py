@@ -182,7 +182,7 @@ def start_impersonation_view(request, user_id):
             'is_active': target_user.active,
             'is_referent': target_user.is_referent(),
             'organisme': {
-                'id': target_user.id_organisme.id_organisme,
+                'id_organisme': target_user.id_organisme.id_organisme,
                 'nom_organisme': target_user.id_organisme.nom_organisme,
             } if target_user.id_organisme else None
         },
@@ -288,7 +288,7 @@ def stop_impersonation_view(request):
             'is_active': original_admin.active,
             'is_referent': original_admin.is_referent(),
             'organisme': {
-                'id': original_admin.id_organisme.id_organisme,
+                'id_organisme': original_admin.id_organisme.id_organisme,
                 'nom_organisme': original_admin.id_organisme.nom_organisme,
             } if original_admin.id_organisme else None
         },

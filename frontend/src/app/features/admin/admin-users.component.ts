@@ -240,7 +240,7 @@ export class AdminUsersComponent implements OnInit {
 
     // For non-super admin, only show users from their organisme
     if (!this.isSuperAdmin()) {
-      const currentOrgId = this.currentUser()?.organisme?.id;
+      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
       if (currentOrgId) {
         result = result.filter(user => user.organismeId === currentOrgId);
       }

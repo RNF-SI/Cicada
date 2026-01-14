@@ -186,12 +186,6 @@ class RoleCreateSerializer(serializers.ModelSerializer):
                 'password_confirm': _('Les mots de passe ne correspondent pas.')
             })
 
-        # Validation métier : Super admin ne peut pas être dans un organisme
-        if attrs.get('role_level') == 'super_admin' and attrs.get('id_organisme'):
-            raise serializers.ValidationError({
-                'uuid_organisme': _('Un Super Administrateur ne peut pas appartenir à un organisme.')
-            })
-
         # Validation métier : Admin organisme doit avoir un organisme
         if attrs.get('role_level') == 'admin_og' and not attrs.get('id_organisme'):
             raise serializers.ValidationError({
@@ -258,12 +252,6 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
         # Validation métier selon les nouvelles valeurs
         new_role_level = attrs.get('role_level', instance.role_level)
         new_organisme = attrs.get('id_organisme', instance.id_organisme)
-
-        # Super admin ne peut pas être dans un organisme
-        if new_role_level == 'super_admin' and new_organisme:
-            raise serializers.ValidationError({
-                'uuid_organisme': _('Un Super Administrateur ne peut pas appartenir à un organisme.')
-            })
 
         # Admin organisme doit avoir un organisme
         if new_role_level == 'admin_og' and not new_organisme:

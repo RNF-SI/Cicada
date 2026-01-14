@@ -144,7 +144,7 @@ export class RegisterComponent implements OnInit {
       password_confirm: formValue.confirmPassword,
       nom_role: formValue.nom,
       prenom_role: formValue.prenom,
-      requested_organisme_id: formValue.organisme?.id || null,
+      requested_organisme_id: formValue.organisme?.id_organisme || null,
       justification: formValue.justification || ''
     };
 

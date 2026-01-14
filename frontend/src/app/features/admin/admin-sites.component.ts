@@ -243,7 +243,7 @@ export class AdminSitesComponent implements OnInit {
     // For referents (is_referent && niveau_role === 'utilisateur'), the backend
     // returns only their assigned sites, so no additional filtering needed
     if (!this.isSuperAdmin() && this.isAdminOrganisme()) {
-      const currentOrgId = this.currentUser()?.organisme?.id;
+      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
       if (currentOrgId) {
         result = result.filter(site =>
           site.organismeId === currentOrgId ||

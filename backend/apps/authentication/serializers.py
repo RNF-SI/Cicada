@@ -100,7 +100,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                 'is_active': user.active,
                 'is_referent': user.is_referent(),
                 'organisme': {
-                    'id': user.id_organisme.id_organisme,
+                    'id_organisme': user.id_organisme.id_organisme,
                     'nom_organisme': user.id_organisme.nom_organisme,
                 } if user.id_organisme else None
             }
@@ -135,7 +135,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
         """Retourne les informations de l'organisme."""
         if obj.id_organisme:
             return {
-                'id': obj.id_organisme.id_organisme,
+                'id_organisme': obj.id_organisme.id_organisme,
                 'nom_organisme': obj.id_organisme.nom_organisme,
                 'ville_organisme': obj.id_organisme.ville_organisme
             }

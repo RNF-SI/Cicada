@@ -168,7 +168,7 @@
                     </button>
                   } @else {
                     <!-- Admin org: bouton pour retirer le lien avec l'organisme -->
-                    @if (user.organismeId === currentUser()?.organisme?.id) {
+                    @if (user.organismeId === currentUser()?.organisme?.id_organisme) {
                       <button class="btn-icon danger" [title]="'admin.users.actions.removeFromOrganisme' | translate" (click)="removeUserFromOrganisme(user)">
                         <i class="fi fi-rr-link-slash"></i>
                       </button>

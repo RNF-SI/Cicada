@@ -124,7 +124,7 @@ export class AdminPlansComponent implements OnInit {
 
     // For admin_og (not super_admin), filter by their organisme
     // For referents, the backend handles filtering to show their assigned plans
-    const currentOrgId = this.currentUser()?.organisme?.id;
+    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const organismeFilter = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId
       ? currentOrgId
       : undefined;

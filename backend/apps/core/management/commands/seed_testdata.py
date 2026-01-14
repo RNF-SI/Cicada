@@ -21,6 +21,7 @@ Donnees creees:
 from datetime import timedelta
 
 from django.contrib.auth.hashers import make_password
+from django.contrib.gis.geos import Point, MultiPolygon, Polygon
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import Group, Permission
 from django.db import transaction
@@ -510,8 +511,34 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  {len(organismes)} organismes'))
         return organismes
 
+    def _create_site_geometry(self, lon, lat, offset=0.05):
+        """
+        Cree une geometrie polygone et un point de reference pour un site.
+
+        Args:
+            lon: Longitude du centre (WGS84)
+            lat: Latitude du centre (WGS84)
+            offset: Taille approximative du polygone en degres (~5km par defaut)
+
+        Returns:
+            tuple: (MultiPolygon, Point)
+        """
+        # Creer un polygone rectangulaire autour du centre
+        coords = [
+            (lon - offset, lat - offset),
+            (lon + offset, lat - offset),
+            (lon + offset, lat + offset),
+            (lon - offset, lat + offset),
+            (lon - offset, lat - offset),  # Fermer le ring
+        ]
+        polygon = Polygon(coords, srid=4326)
+        multipolygon = MultiPolygon(polygon, srid=4326)
+        point = Point(lon, lat, srid=4326)
+
+        return multipolygon, point
+
     def _create_sites(self, organismes):
-        """Cree les sites de test."""
+        """Cree les sites de test avec geometries."""
         self.stdout.write('\n--- Creation des sites ---')
 
         # Recuperer les types de site par cd_nomenclature
@@ -519,6 +546,18 @@ class Command(BaseCommand):
         type_rnr = Nomenclature.objects.filter(cd_nomenclature='RNR').first()
         type_pnr = Nomenclature.objects.filter(cd_nomenclature='PNR').first()
         type_ens = Nomenclature.objects.filter(cd_nomenclature='ENS').first()
+
+        # Coordonnees reelles des sites naturels francais (lon, lat, offset)
+        # Format: (longitude, latitude, offset_polygon)
+        sites_coords = {
+            'Reserve Naturelle de la Camargue': (4.63, 43.45, 0.15),
+            'Reserve Naturelle des Aiguilles Rouges': (6.93, 45.98, 0.08),
+            'Reserve Naturelle Regionale du Grand-Voyeux': (2.88, 49.02, 0.03),
+            'Parc Naturel Regional du Vercors': (5.45, 44.95, 0.25),
+            'Espace Naturel Sensible des Marais de Brouage': (-1.05, 45.87, 0.06),
+            'Reserve Naturelle de Scandola': (8.55, 42.37, 0.05),
+            'Reserve Naturelle du Lac de Remoray': (6.21, 46.77, 0.04),
+        }
 
         sites_data = [
             {
@@ -603,10 +642,23 @@ class Command(BaseCommand):
         sites = []
         for site_data in sites_data:
             organismes_list = site_data.pop('organismes')
-            site, created = Site.objects.get_or_create(
+            site_name = site_data['nom_site']
+
+            # Ajouter la geometrie si les coordonnees sont disponibles
+            if site_name in sites_coords:
+                lon, lat, offset = sites_coords[site_name]
+                geom, geom_pt = self._create_site_geometry(lon, lat, offset)
+                site_data['geom'] = geom
+                site_data['geom_pt'] = geom_pt
+
+            site, created = Site.objects.update_or_create(
                 nom_site=site_data['nom_site'],
                 defaults=site_data
             )
+
+            if not created and self.verbosity >= 2:
+                self.stdout.write(f"  [MISE A JOUR] {site_name}")
+
             sites.append(site)
 
             # Lier aux organismes (le premier de la liste est le gestionnaire principal)

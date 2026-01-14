@@ -168,23 +168,26 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
 
 class SiteListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des sites."""
-    
+
     type_site = serializers.CharField(source='id_type_site.label', read_only=True)
+    type_site_label = serializers.CharField(source='id_type_site.label', read_only=True)
     organismes_count = serializers.SerializerMethodField()
     users_count = serializers.SerializerMethodField()
-    
+    organismes = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
+
     # Point de référence en GeoJSON simple
     geom_pt_geojson = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Site
         fields = [
             'id_site', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
-            'organismes_count', 'users_count'
+            'organismes_count', 'users_count', 'organismes', 'users'
         ]
-    
+
     def get_geom_pt_geojson(self, obj):
         """Point de référence en GeoJSON."""
         if obj.geom_pt:
@@ -193,81 +196,129 @@ class SiteListSerializer(serializers.ModelSerializer):
                 'coordinates': [obj.geom_pt.x, obj.geom_pt.y]
             }
         return None
-    
+
     def get_organismes_count(self, obj):
         """Nombre d'organismes gestionnaires."""
         return CorOgSite.objects.filter(id_site=obj).count()
-    
+
     def get_users_count(self, obj):
         """Nombre d'utilisateurs assignés."""
         return CorRoleSite.objects.filter(id_site=obj).count()
 
+    def get_organismes(self, obj):
+        """Organismes gestionnaires du site."""
+        cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
+        return [{
+            'id_organisme': cor.uuid_og.id_organisme,
+            'nom_organisme': cor.uuid_og.nom_organisme
+        } for cor in cor_orgs]
 
-class SiteGeoJSONSerializer(GeoFeatureModelSerializer):
-    """Serializer GeoJSON complet pour un site avec géométries."""
+    def get_users(self, obj):
+        """Utilisateurs assignés au site."""
+        cor_users = CorRoleSite.objects.filter(id_site=obj).select_related('id_role')
+        return [{
+            'id_role': cor.id_role.id_role,
+            'email': cor.id_role.email,
+            'nom_role': cor.id_role.nom_role,
+            'prenom_role': cor.id_role.prenom_role,
+            'referent': cor.referent
+        } for cor in cor_users]
+
+
+class SiteGeoJSONSerializer(serializers.ModelSerializer):
+    """
+    Serializer GeoJSON complet pour un site avec géométries.
+    Construit manuellement le format GeoJSON Feature car GeoFeatureModelSerializer
+    ne convertit pas correctement la géométrie en GeoJSON.
+    """
 
     type_site = serializers.SerializerMethodField()
+    type_site_label = serializers.SerializerMethodField()
     organismes_gestionnaires = serializers.SerializerMethodField()
     users_assignes = serializers.SerializerMethodField()
 
-    def get_type_site(self, obj):
-        """Type de site with None handling."""
-        return obj.id_type_site.label if obj.id_type_site else None
-    
     class Meta:
         model = Site
-        geo_field = 'geom'  # Champ géométrie principal
         fields = [
             'id_site', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'organismes_gestionnaires',
             'users_assignes', 'modif_adm', 'modif_geo'
         ]
-    
+
+    def get_type_site(self, obj):
+        """Type de site ID."""
+        return obj.id_type_site.id_nomenclature if obj.id_type_site else None
+
+    def get_type_site_label(self, obj):
+        """Type de site label."""
+        return obj.id_type_site.label if obj.id_type_site else None
+
     def get_organismes_gestionnaires(self, obj):
         """Organismes gestionnaires du site."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
         return [{
-            'organisme': {
-                'id_organisme': cor.uuid_og.id_organisme,
-                'nom_organisme': cor.uuid_og.nom_organisme
-            }
+            'id_organisme': cor.uuid_og.id_organisme,
+            'nom_organisme': cor.uuid_og.nom_organisme
         } for cor in cor_orgs]
-    
+
     def get_users_assignes(self, obj):
         """Utilisateurs assignés au site."""
         cor_users = CorRoleSite.objects.filter(id_site=obj).select_related('id_role')
         return [{
-            'user': {
-                'id_role': cor.id_role.id_role,
-                'nom_complet': f"{cor.id_role.prenom_role} {cor.id_role.nom_role}".strip(),
-                'email': cor.id_role.email
-            },
-            'referent': cor.referent,
-            'referent_valid': cor.referent_valid,
-            'conservateur': cor.conservateur
+            'id_role': cor.id_role.id_role,
+            'nom_complet': f"{cor.id_role.prenom_role} {cor.id_role.nom_role}".strip(),
+            'email': cor.id_role.email,
+            'referent': cor.referent
         } for cor in cor_users]
+
+    def to_representation(self, instance):
+        """
+        Convertit le site en GeoJSON Feature format.
+        """
+        import json
+
+        # Obtenir les propriétés standard
+        properties = super().to_representation(instance)
+
+        # Construire la géométrie GeoJSON
+        geometry = None
+        if instance.geom:
+            geometry = json.loads(instance.geom.geojson)
+
+        # Retourner au format GeoJSON Feature
+        return {
+            'type': 'Feature',
+            'id': instance.id_site,
+            'geometry': geometry,
+            'properties': properties
+        }
 
 
 class SiteDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un site sans GeoJSON complet."""
-    
+
     type_site = serializers.SerializerMethodField()
+    type_site_label = serializers.SerializerMethodField()
     organismes_gestionnaires = serializers.SerializerMethodField()
     users_assignes = serializers.SerializerMethodField()
-    
+
     # Géométries en format texte pour l'API standard
     geom_wkt = serializers.SerializerMethodField()
     geom_pt_wkt = serializers.SerializerMethodField()
-    
+
+    # Informations sur l'acces de l'utilisateur courant
+    current_user_is_referent = serializers.SerializerMethodField()
+    current_user_access = serializers.SerializerMethodField()
+
     class Meta:
         model = Site
         fields = [
             'id_site', 'id_local', 'id_inpn', 'nom_site',
-            'jonction_nom', 'surf_off', 'type_site', 'date_crea',
+            'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'date_crea',
             'marin', 'outre_mer', 'active', 'modif_adm', 'modif_geo',
             'geom_wkt', 'geom_pt_wkt', 'organismes_gestionnaires',
-            'users_assignes'
+            'users_assignes', 'current_user_is_referent', 'current_user_access'
         ]
     
     def get_type_site(self, obj):
@@ -279,7 +330,11 @@ class SiteDetailSerializer(serializers.ModelSerializer):
                 'cd_nomenclature': obj.id_type_site.cd_nomenclature
             }
         return None
-    
+
+    def get_type_site_label(self, obj):
+        """Label du type de site."""
+        return obj.id_type_site.label if obj.id_type_site else None
+
     def get_geom_wkt(self, obj):
         """Géométrie principale en WKT."""
         return obj.geom.wkt if obj.geom else None
@@ -315,6 +370,83 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             'referent_valid': cor.referent_valid,
             'conservateur': cor.conservateur
         } for cor in cor_users]
+
+    def get_current_user_is_referent(self, obj):
+        """Indique si l'utilisateur courant est référent du site."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+
+        user = request.user
+        # Super admin est considere comme referent de tous les sites
+        if user.is_superuser or user.role_level == 'super_admin':
+            return True
+
+        # Verifier si l'utilisateur est referent du site
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=user, id_site=obj)
+            return cor_role_site.referent and cor_role_site.referent_valid
+        except CorRoleSite.DoesNotExist:
+            pass
+
+        # Admin organisme gestionnaire du site
+        if user.role_level == 'admin_og' and user.id_organisme:
+            is_org_gestionnaire = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            return is_org_gestionnaire
+
+        return False
+
+    def get_current_user_access(self, obj):
+        """Retourne les informations d'acces de l'utilisateur courant au site."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+
+        user = request.user
+
+        # Super admin a tous les droits
+        if user.is_superuser or user.role_level == 'super_admin':
+            return {
+                'has_access': True,
+                'is_referent': True,
+                'is_conservateur': False,
+                'role_label': 'Super Administrateur'
+            }
+
+        # Verifier la relation utilisateur-site
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=user, id_site=obj)
+            is_referent = cor_role_site.referent and cor_role_site.referent_valid
+            role_label = 'Referent du site' if is_referent else 'Utilisateur du site'
+            if cor_role_site.conservateur:
+                role_label = 'Conservateur'
+            return {
+                'has_access': True,
+                'is_referent': is_referent,
+                'is_conservateur': cor_role_site.conservateur,
+                'role_label': role_label
+            }
+        except CorRoleSite.DoesNotExist:
+            pass
+
+        # Admin organisme gestionnaire
+        if user.role_level == 'admin_og' and user.id_organisme:
+            is_org_gestionnaire = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            if is_org_gestionnaire:
+                return {
+                    'has_access': True,
+                    'is_referent': True,
+                    'is_conservateur': False,
+                    'role_label': 'Administrateur Organisme'
+                }
+
+        return None
 
 
 class SiteCreateUpdateSerializer(serializers.ModelSerializer):

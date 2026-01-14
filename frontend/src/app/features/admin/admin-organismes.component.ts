@@ -70,12 +70,12 @@ export class AdminOrganismesComponent implements OnInit {
     if (!user?.organisme) return null;
 
     // Find organisme in list or create from user data
-    const found = this.organismes().find(org => org.id === user.organisme!.id);
+    const found = this.organismes().find(org => org.id === user.organisme!.id_organisme);
     if (found) return found;
 
     // Fallback: create from user data
     return {
-      id: user.organisme.id,
+      id: user.organisme.id_organisme,
       nom: user.organisme.nom_organisme,
       adresse: user.organisme.adresse_organisme,
       codePostal: user.organisme.cp_organisme,
