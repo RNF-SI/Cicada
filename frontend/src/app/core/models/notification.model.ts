@@ -28,7 +28,8 @@ export type ValidationRequestType =
   | 'plan_access'
   | 'module_access'
   | 'admin_deactivation'
-  | 'referent_validation';
+  | 'referent_validation'
+  | 'site_org_link';
 
 // Modules disponibles pour les demandes d'accès
 export type ModuleCode = 'zonages' | 'inventaires' | 'plans' | 'sites';
@@ -169,6 +170,7 @@ export interface ValidationRequestListItem {
   requester_id: number;
   requester_name: string;
   target_name?: string;
+  target_site_id?: number;
   justification?: string;
   validator_name?: string;
   validated_at?: string;
@@ -249,6 +251,7 @@ export interface ValidationRejectData {
  */
 export interface SiteAccessRequestData {
   justification?: string;
+  request_as_referent?: boolean;
 }
 
 /**

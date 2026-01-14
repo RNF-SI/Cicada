@@ -126,6 +126,20 @@ export class ValidationService {
   }
 
   /**
+   * Demande de lier un site a son organisme.
+   */
+  requestSiteOrgLink(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_org_link/`, data || {});
+  }
+
+  /**
+   * Demande a devenir referent d'un site.
+   */
+  requestReferent(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_referent/`, data || {});
+  }
+
+  /**
    * Demande l'acces a un plan de gestion.
    */
   requestPlanAccess(planId: number, data?: PlanAccessRequestData): Observable<ValidationRequest> {

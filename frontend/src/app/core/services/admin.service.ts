@@ -16,7 +16,9 @@ import {
   PaginatedResponse,
   PaginatedResponseNested,
   OrganismeSite,
-  SiteOrganisme
+  SiteOrganisme,
+  GeoJSONFeature,
+  GeoJSONFeatureCollection
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -160,6 +162,23 @@ export class AdminService {
   }
 
   /**
+   * Search all sites (including sites from other organisations).
+   * Used for site-org link requests.
+   * GET /api/users/sites/search_all/
+   */
+  searchAllSites(params?: { search?: string; page_size?: number }): Observable<PaginatedResponse<AdminSite>> {
+    let httpParams = new HttpParams();
+    if (params?.search) {
+      httpParams = httpParams.set('search', params.search);
+    }
+    if (params?.page_size) {
+      httpParams = httpParams.set('page_size', params.page_size.toString());
+    }
+    return this.http.get<PaginatedResponse<AdminSite>>(`${this.apiUrl}/sites/search_all/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Assign a user to a site with referent role
    */
   assignUserToSite(siteId: number, userId: number, referent: boolean = true): Observable<any> {
@@ -218,6 +237,39 @@ export class AdminService {
         map(res => res.results || res),
         catchError(this.handleError)
       );
+  }
+
+  // ==================== SITES GEOJSON ====================
+
+  /**
+   * Get a single site as GeoJSON Feature
+   * @param id Site ID
+   */
+  getSiteGeoJSON(id: number): Observable<GeoJSONFeature> {
+    return this.http.get<GeoJSONFeature>(`${this.apiUrl}/sites/${id}/geojson/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get all accessible sites as GeoJSON FeatureCollection
+   * Limited to 100 sites for performance
+   */
+  getSitesGeoJSON(): Observable<GeoJSONFeatureCollection> {
+    return this.http.get<GeoJSONFeatureCollection>(`${this.apiUrl}/sites/geojson_list/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get sites filtered by user access as GeoJSON
+   * @param userSitesOnly If true, only returns sites the user has access to
+   */
+  getSitesGeoJSONFiltered(params?: { userSitesOnly?: boolean }): Observable<GeoJSONFeatureCollection> {
+    let httpParams = new HttpParams();
+    if (params?.userSitesOnly) {
+      httpParams = httpParams.set('user_sites_only', 'true');
+    }
+    return this.http.get<GeoJSONFeatureCollection>(`${this.apiUrl}/sites/geojson_list/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
   }
 
   // ==================== USERS ====================
@@ -312,6 +364,7 @@ export class AdminService {
   getPlans(params?: {
     search?: string;
     page?: number;
+    page_size?: number;
     statut?: PlanStatut;
     organisme?: number;
     site?: number;
@@ -323,6 +376,9 @@ export class AdminService {
     if (params?.page) {
       httpParams = httpParams.set('page', params.page.toString());
     }
+    if (params?.page_size) {
+      httpParams = httpParams.set('page_size', params.page_size.toString());
+    }
     if (params?.statut) {
       httpParams = httpParams.set('statut', params.statut);
     }
@@ -330,7 +386,7 @@ export class AdminService {
       httpParams = httpParams.set('organisme', params.organisme.toString());
     }
     if (params?.site) {
-      httpParams = httpParams.set('site', params.site.toString());
+      httpParams = httpParams.set('site_id', params.site.toString());
     }
 
     return this.http.get<PaginatedResponse<AdminPlan>>(`${this.plansApiUrl}/plans/`, { params: httpParams })

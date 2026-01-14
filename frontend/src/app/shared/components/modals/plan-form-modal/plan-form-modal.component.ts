@@ -175,7 +175,7 @@ export class PlanFormModalComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id;
+    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const filterByOrg = !this.isSuperAdmin() && currentOrgId;
 
     // Load evaluation types

@@ -38,6 +38,25 @@ export interface OrganismeCreatePayload {
 }
 
 /**
+ * Informations d'acces de l'utilisateur courant a un site
+ */
+export interface SiteUserAccess {
+  has_access: boolean;
+  is_referent: boolean;
+  is_conservateur: boolean;
+  role_label: string;
+}
+
+/**
+ * Type de site (nomenclature) - retourné par le backend pour les détails
+ */
+export interface SiteTypeInfo {
+  id_nomenclature: number;
+  label: string;
+  cd_nomenclature: string;
+}
+
+/**
  * Site - model from API
  */
 export interface AdminSite {
@@ -45,7 +64,9 @@ export interface AdminSite {
   nom_site: string;
   id_local?: string;
   id_inpn?: string;
-  id_type_site?: number;
+  /** Type de site - objet complet (retourné par SiteDetailSerializer) */
+  type_site?: SiteTypeInfo | null;
+  /** Label du type de site (retourné par tous les serializers) */
   type_site_label?: string;
   surf_off?: number;
   marin?: boolean;
@@ -53,6 +74,9 @@ export interface AdminSite {
   active?: boolean;
   organismes?: AdminOrganisme[];
   users?: AdminUser[];
+  // Informations sur l'acces de l'utilisateur courant
+  current_user_is_referent?: boolean;
+  current_user_access?: SiteUserAccess;
 }
 
 /**
@@ -62,11 +86,66 @@ export interface SiteCreatePayload {
   nom_site: string;
   id_local?: string;
   id_inpn?: string;
-  id_type_site?: number;
+  /** ID de nomenclature pour le type de site (envoyé comme type_site_id au backend) */
+  type_site_id?: number;
   surf_off?: number;
   marin?: boolean;
   outre_mer?: boolean;
   active?: boolean;
+  /** Géométrie polygone au format GeoJSON */
+  geom_geojson?: GeoJSONGeometry | null;
+  /** Point de référence au format GeoJSON */
+  geom_pt_geojson?: GeoJSONGeometry | null;
+}
+
+// ==================== GEOJSON ====================
+
+/**
+ * Géométrie GeoJSON générique
+ */
+export interface GeoJSONGeometry {
+  type: string;
+  coordinates: any[];
+}
+
+/**
+ * Feature GeoJSON (un site avec sa géométrie)
+ */
+export interface GeoJSONFeature {
+  type: 'Feature';
+  id?: number;
+  geometry: GeoJSONGeometry | null;
+  properties: {
+    id_site: number;
+    nom_site: string;
+    id_local?: string;
+    id_inpn?: string;
+    type_site?: string;
+    surf_off?: number;
+    marin?: boolean;
+    outre_mer?: boolean;
+    active?: boolean;
+    organismes_gestionnaires?: Array<{
+      organisme: {
+        id_organisme: number;
+        nom_organisme: string;
+      };
+      principal: boolean;
+    }>;
+    [key: string]: any;
+  };
+}
+
+/**
+ * FeatureCollection GeoJSON (collection de sites)
+ */
+export interface GeoJSONFeatureCollection {
+  type: 'FeatureCollection';
+  features: GeoJSONFeature[];
+  properties?: {
+    count: number;
+    note?: string;
+  };
 }
 
 /**

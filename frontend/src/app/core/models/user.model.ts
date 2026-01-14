@@ -17,7 +17,8 @@ export interface User {
 }
 
 export interface Organisme {
-  id: number;
+  id_organisme: number;
+  uuid_organisme?: string;
   nom_organisme: string;
   adresse_organisme?: string;
   cp_organisme?: string;

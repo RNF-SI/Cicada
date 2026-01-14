@@ -150,20 +150,21 @@ export class LinkUserSiteModalComponent implements OnInit {
   private loadSitesAndAssignments(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id;
-    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
+    // Filtrer par l'organisme de l'utilisateur CIBLE (pas l'admin connecte)
+    // Un utilisateur ne peut etre lie qu'aux sites de son organisme
+    const targetUserOrgId = this.data.user?.organisme?.id_organisme;
 
-    // Load sites - if admin_org, only load sites from their organisme
-    if (filterByOrg) {
-      // Load sites linked to the organisme
-      this.adminService.getOrganismeSites(currentOrgId!).subscribe({
+    if (targetUserOrgId) {
+      // Charger uniquement les sites de l'organisme de l'utilisateur cible
+      this.adminService.getOrganismeSites(targetUserOrgId).subscribe({
         next: (orgSites) => {
           // Map organisme sites to AdminSite format
           const sites: AdminSite[] = orgSites.map(os => ({
             id_site: os.id_site,
             nom_site: os.nom_site,
             surf_off: os.surf_off,
-            active: true
+            type_site_label: os.type_site_label,
+            active: os.active !== false
           } as AdminSite));
           this.allSites.set(sites);
           this.initSiteAssignments();
@@ -174,17 +175,9 @@ export class LinkUserSiteModalComponent implements OnInit {
         }
       });
     } else {
-      // Super admin: load all sites
-      this.adminService.getSites().subscribe({
-        next: (response) => {
-          this.allSites.set(response.results);
-          this.initSiteAssignments();
-        },
-        error: (error: Error) => {
-          this.errorMessage.set(error.message);
-          this.isLoadingData.set(false);
-        }
-      });
+      // L'utilisateur n'a pas d'organisme - pas de sites disponibles
+      this.allSites.set([]);
+      this.initSiteAssignments();
     }
   }
 
@@ -211,15 +204,21 @@ export class LinkUserSiteModalComponent implements OnInit {
   private loadUsersAndAssignments(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id;
-    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
+    // Recuperer les IDs des organismes gestionnaires du site
+    const siteOrganismeIds = this.data.site?.organismes?.map(o => o.id_organisme) || [];
 
-    // Load users - if admin_org, only load users from their organisme
-    const params = filterByOrg ? { organisme: currentOrgId } : {};
-
-    this.adminService.getUsers(params).subscribe({
+    // Charger les utilisateurs - on charge tous puis on filtre cote client
+    // car l'API ne supporte pas le filtre multi-organismes
+    this.adminService.getUsers({ page_size: 500 }).subscribe({
       next: (response) => {
-        this.allUsers.set(response.results);
+        // Filtrer pour ne garder que les utilisateurs des organismes du site
+        let filteredUsers = response.results;
+        if (siteOrganismeIds.length > 0) {
+          filteredUsers = response.results.filter(user =>
+            user.organisme && siteOrganismeIds.includes(user.organisme.id_organisme)
+          );
+        }
+        this.allUsers.set(filteredUsers);
 
         // Initialize assignments from existing users of the site
         const existingAssignments: UserAssignment[] = (this.data.existingUsers || []).map(existingUser => {

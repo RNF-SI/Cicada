@@ -39,7 +39,8 @@
       "noResults": "Aucun resultat",
       "error": "Une erreur est survenue",
       "success": "Operation reussie",
-      "confirmDelete": "Etes-vous sur de vouloir supprimer cet element ?"
+      "confirmDelete": "Etes-vous sur de vouloir supprimer cet element ?",
+      "featureComingSoon": "Cette fonctionnalite sera disponible prochainement"
     },
     "validation": {
       "required": "Ce champ est requis",
@@ -420,7 +421,8 @@
         "site_access": "Acces site",
         "plan_access": "Acces plan",
         "module_access": "Acces module",
-        "referent_validation": "Validation referent"
+        "referent_validation": "Validation referent",
+        "site_org_link": "Lien site-organisme"
       },
       "actions": {
         "approve": "Approuver",
@@ -673,25 +675,29 @@
       }
     },
     "siteForm": {
-      "titleCreate": "Nouveau site",
-      "titleEdit": "Modifier le site",
-      "name": "Nom du site",
-      "namePlaceholder": "Ex: Reserve Naturelle de...",
-      "type": "Type de site",
-      "localCode": "Code local",
-      "localCodePlaceholder": "Ex: RNR-001",
-      "inpnCode": "Code INPN",
-      "inpnCodePlaceholder": "Ex: FR1234567",
-      "surface": "Surface officielle (ha)",
-      "surfacePlaceholder": "Ex: 1250.5",
-      "marine": "Site marin",
-      "overseas": "Outre-mer",
-      "active": "Actif",
+      "createTitle": "Nouveau site",
+      "editTitle": "Modifier le site",
+      "infoTitle": "Informations du site",
+      "fields": {
+        "name": "Nom du site",
+        "type": "Type de site",
+        "localId": "Identifiant local",
+        "inpnId": "Identifiant INPN",
+        "surface": "Surface officielle (ha)",
+        "marine": "Site marin",
+        "overseas": "Outre-mer",
+        "active": "Site actif"
+      },
+      "hints": {
+        "localId": "Code interne de reference",
+        "inpnId": "Code national INPN"
+      },
+      "errors": {
+        "nameRequired": "Le nom est requis",
+        "surfacePositive": "La surface doit etre positive"
+      },
       "messages": {
         "linkError": "Site cree mais erreur lors de la liaison: {{error}}"
-      },
-      "validation": {
-        "surfaceMin": "La surface doit etre positive"
       }
     },
     "planForm": {
@@ -896,32 +902,143 @@
   },
   "sites": {
     "title": "Sites",
-    "subtitle": "Decouvrez les espaces naturels proteges et demandez l'acces",
+    "subtitle": "Espaces naturels proteges",
     "backToHome": "Retour a l'accueil",
+    "tabs": {
+      "active": "Actifs",
+      "inactive": "Inactifs"
+    },
     "mySites": {
       "title": "Sites auxquels j'ai acces",
       "empty": "Vous n'avez acces a aucun site pour le moment.",
-      "referent": "Referent"
+      "referent": "Referent",
+      "access": "Acces",
+      "searchPlaceholder": "Rechercher un site...",
+      "noSearchResults": "Aucun site ne correspond a votre recherche.",
+      "clearSearch": "Effacer la recherche"
     },
     "allSites": {
       "title": "Tous les sites",
       "loginPrompt": "Connectez-vous pour demander l'acces a un site."
     },
     "requestAccess": {
-      "title": "Demander l'acces a un site",
-      "description": "Recherchez et demandez l'acces aux sites qui vous interessent.",
+      "title": "Demander l'acces a un autre site",
+      "description": "Vous pouvez demander l'acces aux autres sites de votre organisme.",
       "searchPlaceholder": "Rechercher un site...",
       "noResults": "Aucun site trouve",
       "button": "Demander l'acces",
       "pending": "Demande en attente",
-      "rejected": "Acces refuse"
+      "rejected": "Acces refuse",
+      "allAccess": "Vous avez deja acces a tous les sites de votre organisme."
+    },
+    "findOrCreate": {
+      "title": "Acceder ou creer un site",
+      "description": "Recherchez un site existant pour demander l'acces, ou creez-en un nouveau.",
+      "button": "Rechercher ou creer",
+      "dialogTitle": "Gerer mes sites",
+      "searchTitle": "Rechercher un site existant",
+      "searchLabel": "Nom du site",
+      "searchPlaceholder": "Rechercher un site...",
+      "searchHint": "Entrez au moins 2 caracteres pour rechercher un site et demander l'acces",
+      "loading": "Chargement des sites...",
+      "resultsTitle": "Sites trouves",
+      "alreadyAccess": "Vous avez acces",
+      "pendingRequest": "Demande en cours",
+      "requestAccess": "Demander l'acces",
+      "asReferent": "Comme referent",
+      "notAvailable": "Non disponible",
+      "accessRequested": "Demande d'acces envoyee pour {{ name }}",
+      "accessRequestedAsReferent": "Demande d'acces comme referent envoyee pour {{ name }}",
+      "noResults": "Aucun site ne correspond a votre recherche",
+      "createTitle": "Creer un nouveau site",
+      "createDescription": "Le site \"{{ name }}\" n'existe pas. Vous pouvez le creer.",
+      "createDescriptionSimple": "Creez un nouveau site pour votre organisme.",
+      "createButton": "Nouveau site",
+      "autoMessage": "Demande automatique via recherche de site",
+      "requestOrgLink": "Lier a mon organisme",
+      "pendingOrgLink": "Demande de lien en cours",
+      "orgLinkRequested": "Demande de lien avec le site {{ name }} envoyee",
+      "autoOrgLinkMessage": "Demande de lien site-organisme via recherche",
+      "mySitesTitle": "Sites de mon organisme",
+      "mySitesDescription": "Sites lies a votre organisme. Demandez l'acces pour y travailler.",
+      "otherOrgSitesTitle": "Sites d'autres organismes",
+      "otherOrgSitesDescription": "Sites appartenant a d'autres organismes. Demandez a les lier au votre.",
+      "orgLinkJustificationLabel": "Justification de la demande",
+      "orgLinkJustificationPlaceholder": "Expliquez pourquoi vous souhaitez lier ce site a votre organisme...",
+      "submitOrgLink": "Envoyer la demande"
+    },
+    "pendingSites": {
+      "title": "Demandes en attente",
+      "description": "Ces sites sont en attente de validation par un administrateur.",
+      "waiting": "En attente"
+    },
+    "createSite": {
+      "button": "Nouveau site",
+      "noOrganisme": "Vous devez etre rattache a un organisme pour creer un site.",
+      "success": "Le site a ete cree avec succes."
     },
     "table": {
       "name": "Nom du site",
       "type": "Type",
       "surface": "Surface",
       "organisme": "Organisme",
-      "status": "Statut"
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "map": {
+      "title": "Localisation",
+      "noData": "Aucune donnee geographique",
+      "loading": "Chargement de la carte..."
+    },
+    "detail": {
+      "title": "Fiche du site",
+      "map": "Localisation",
+      "info": "Informations",
+      "users": "Utilisateurs du site",
+      "manageUsers": "Gerer les utilisateurs",
+      "noUsers": "Aucun utilisateur assigne a ce site",
+      "associatedPlans": "Plans de gestion associes",
+      "documents": "Documents",
+      "organismes": "Organismes gestionnaires",
+      "noGeometry": "Geometrie non disponible",
+      "noPlans": "Aucun plan de gestion associe",
+      "noDocuments": "Aucun document",
+      "inactive": "Site inactif",
+      "menu": {
+        "overview": "Vue d'ensemble",
+        "info": "Informations",
+        "users": "Utilisateurs",
+        "plans": "Plans de gestion",
+        "documents": "Documents"
+      },
+      "fields": {
+        "type": "Type",
+        "surface": "Surface",
+        "idLocal": "Code local",
+        "idInpn": "Code INPN",
+        "marin": "Site marin",
+        "outreMer": "Outre-mer",
+        "organisme": "Organisme gestionnaire"
+      },
+      "yes": "Oui",
+      "no": "Non",
+      "requestReferent": "Devenir referent",
+      "referentRequestPending": "Demande en cours",
+      "referentRequestSent": "Votre demande pour devenir referent a ete envoyee",
+      "referentTooltip": "En tant que referent, vous pourrez : modifier les informations du site, gerer les utilisateurs, et valider les demandes d'acces."
+    },
+    "form": {
+      "geometry": {
+        "title": "Localisation du site",
+        "polygon": "Contour (polygone)",
+        "point": "Point de reference",
+        "drawHelp": "Utilisez les outils pour dessiner le contour du site",
+        "pointHelp": "Cliquez sur la carte pour placer le point de reference"
+      }
+    },
+    "actions": {
+      "view": "Voir le site",
+      "back": "Retour a la liste"
     }
   },
   "accessRequest": {
@@ -929,6 +1046,7 @@
       "titleSite": "Demander l'acces a un site",
       "titlePlan": "Demander l'acces a un plan",
       "targetLabel": "Cible",
+      "selectSite": "Selectionner un site",
       "justificationLabel": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'acces...",
       "justificationHint": "Cette information sera transmise aux administrateurs",

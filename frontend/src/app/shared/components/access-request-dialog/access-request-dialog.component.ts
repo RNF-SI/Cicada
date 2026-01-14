@@ -1,5 +1,8 @@
 /**
  * Dialog reutilisable pour les demandes d'acces aux sites et plans de gestion.
+ * Supporte deux modes:
+ * - Mode site unique: targetId et targetName fournis
+ * - Mode selection: selectableSites fournis (liste de sites a choisir)
  */
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -8,16 +11,25 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ValidationService } from '../../../core/services/validation.service';
 
+export interface SelectableSite {
+  id_site: number;
+  nom_site: string;
+}
+
 export interface AccessRequestDialogData {
   type: 'site' | 'plan';
-  targetId: number;
-  targetName: string;
+  // Mode 1: Site/Plan unique (existant)
+  targetId?: number;
+  targetName?: string;
+  // Mode 2: Selection parmi une liste (nouveau)
+  selectableSites?: SelectableSite[];
 }
 
 @Component({
@@ -30,6 +42,7 @@ export interface AccessRequestDialogData {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     TranslateModule
@@ -44,10 +57,23 @@ export interface AccessRequestDialogData {
     </h2>
 
     <mat-dialog-content>
-      <div class="target-info">
-        <span class="target-label">{{ 'accessRequest.dialog.targetLabel' | translate }}</span>
-        <span class="target-name">{{ data.targetName }}</span>
-      </div>
+      <!-- Mode selection: liste de sites -->
+      @if (isSelectionMode) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'accessRequest.dialog.selectSite' | translate }}</mat-label>
+          <mat-select [(ngModel)]="selectedSiteId" required>
+            @for (site of data.selectableSites; track site.id_site) {
+              <mat-option [value]="site.id_site">{{ site.nom_site }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      } @else {
+        <!-- Mode site unique -->
+        <div class="target-info">
+          <span class="target-label">{{ 'accessRequest.dialog.targetLabel' | translate }}</span>
+          <span class="target-name">{{ data.targetName }}</span>
+        </div>
+      }
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>{{ 'accessRequest.dialog.justificationLabel' | translate }}</mat-label>
@@ -69,7 +95,7 @@ export interface AccessRequestDialogData {
         mat-flat-button
         color="primary"
         (click)="submit()"
-        [disabled]="submitting"
+        [disabled]="submitting || !canSubmit"
       >
         @if (submitting) {
           <mat-spinner diameter="20"></mat-spinner>
@@ -130,15 +156,40 @@ export class AccessRequestDialogComponent {
 
   justification = '';
   submitting = false;
+  selectedSiteId: number | null = null;
+
+  /** Verifie si on est en mode selection */
+  get isSelectionMode(): boolean {
+    return !!(this.data.selectableSites && this.data.selectableSites.length > 0);
+  }
+
+  /** Verifie si le formulaire peut etre soumis */
+  get canSubmit(): boolean {
+    if (this.isSelectionMode) {
+      return this.selectedSiteId !== null;
+    }
+    return this.data.targetId !== undefined;
+  }
+
+  /** Obtient l'ID cible (soit de la selection, soit du data) */
+  private getTargetId(): number {
+    if (this.isSelectionMode && this.selectedSiteId !== null) {
+      return this.selectedSiteId;
+    }
+    return this.data.targetId!;
+  }
 
   submit(): void {
+    if (!this.canSubmit) return;
+
     this.submitting = true;
 
     const requestData = this.justification ? { justification: this.justification } : undefined;
+    const targetId = this.getTargetId();
 
     const request$ = this.data.type === 'site'
-      ? this.validationService.requestSiteAccess(this.data.targetId, requestData)
-      : this.validationService.requestPlanAccess(this.data.targetId, requestData);
+      ? this.validationService.requestSiteAccess(targetId, requestData)
+      : this.validationService.requestPlanAccess(targetId, requestData);
 
     request$.subscribe({
       next: () => {

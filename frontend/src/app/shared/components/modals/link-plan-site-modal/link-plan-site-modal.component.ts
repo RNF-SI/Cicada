@@ -105,7 +105,7 @@ export class LinkPlanSiteModalComponent implements OnInit {
   private loadSitesAndAssignments(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id;
+    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const filterByOrg = !this.isSuperAdmin() && currentOrgId;
 
     // Load sites - if admin_org, only load sites from their organisme
