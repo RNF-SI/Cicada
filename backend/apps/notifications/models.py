@@ -169,6 +169,7 @@ class ValidationRequest(models.Model):
         ('module_access', _('Accès à un module')),
         ('admin_deactivation', _('Désactivation admin_og')),
         ('referent_validation', _('Validation référent site')),
+        ('site_org_link', _('Lien site-organisme')),
     ]
 
     STATUS_CHOICES = [
@@ -261,6 +262,13 @@ class ValidationRequest(models.Model):
         null=True,
         blank=True,
         help_text=_('Motif de la demande')
+    )
+
+    # Pour les demandes d'accès site : demande comme référent ou simple membre
+    request_as_referent = models.BooleanField(
+        _('Demande comme référent'),
+        default=False,
+        help_text=_("Si vrai, l'utilisateur demande à être référent du site")
     )
 
     # Validation

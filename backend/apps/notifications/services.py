@@ -115,6 +115,15 @@ class NotificationService:
             target_name = str(validation_request.target_user) if validation_request.target_user else "un administrateur"
             return f"{requester_name} demande la desactivation de {target_name}."
 
+        elif validation_request.request_type == 'site_org_link':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
+            return f"{requester_name} demande a lier le site {site_name} a {org_name}."
+
+        elif validation_request.request_type == 'referent_validation':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            return f"{requester_name} demande a devenir referent du site {site_name}."
+
         return f"Nouvelle demande de {requester_name}."
 
     @staticmethod
@@ -408,6 +417,10 @@ class ValidationService:
         elif validation_request.request_type == 'referent_validation':
             validators = ValidationService._get_site_access_validators(validation_request)
 
+        elif validation_request.request_type == 'site_org_link':
+            # Validateurs: admin_og de l'organisme demandeur
+            validators = ValidationService._get_org_link_validators(validation_request)
+
         # Fallback: si aucun validateur trouve, super_admin
         if not validators:
             validators = set(Role.objects.filter(
@@ -424,6 +437,29 @@ class ValidationService:
 
         if validation_request.requested_organisme:
             # admin_og de l'organisme demande
+            admin_ogs = Role.objects.filter(
+                id_organisme=validation_request.requested_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            validators.update(admin_ogs)
+
+        # Si pas d'admin_og, super_admin
+        if not validators:
+            validators.update(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        return validators
+
+    @staticmethod
+    def _get_org_link_validators(validation_request):
+        """Validateurs pour un lien site-organisme."""
+        validators = set()
+
+        # Valide par l'admin_og de l'organisme demandeur
+        if validation_request.requested_organisme:
             admin_ogs = Role.objects.filter(
                 id_organisme=validation_request.requested_organisme,
                 role_level='admin_og',
@@ -712,13 +748,16 @@ class ValidationService:
         if validation_request.request_type != 'site_access':
             raise ValueError("Cette demande n'est pas un acces site")
 
+        # Determiner si l'utilisateur a demande a etre referent
+        is_referent = validation_request.request_as_referent
+
         # Creer ou mettre a jour CorRoleSite
         CorRoleSite.objects.update_or_create(
             id_site=validation_request.target_site,
             id_role=validation_request.requester,
             defaults={
-                'referent': False,
-                'referent_valid': False,
+                'referent': is_referent,
+                'referent_valid': is_referent,  # Valide automatiquement si approuve
                 'conservateur': False,
             }
         )
@@ -753,6 +792,76 @@ class ValidationService:
         # Ajouter comme referent du plan
         if not plan.referents.filter(id_role=requester.id_role).exists():
             plan.referents.add(requester)
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_site_org_link(validation_request, validator, comment=None):
+        """
+        Approuve un lien site-organisme et cree la liaison.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'site_org_link':
+            raise ValueError("Cette demande n'est pas un lien site-organisme")
+
+        # Creer le lien CorOgSite (non principal par defaut)
+        CorOgSite.objects.get_or_create(
+            id_site=validation_request.target_site,
+            uuid_og=validation_request.requested_organisme,
+            defaults={
+                'principal': False,
+            }
+        )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_referent_validation(validation_request, validator, comment=None):
+        """
+        Approuve une demande de devenir referent et met a jour la liaison.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'referent_validation':
+            raise ValueError("Cette demande n'est pas une demande de referent")
+
+        site = validation_request.target_site
+        requester = validation_request.requester
+
+        if not site or not requester:
+            raise ValueError("Site ou demandeur manquant")
+
+        # Verifier que l'utilisateur est bien lie au site
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_site=site, id_role=requester)
+        except CorRoleSite.DoesNotExist:
+            raise ValueError("L'utilisateur n'est pas lie a ce site")
+
+        # Mettre a jour le statut referent
+        cor_role_site.referent = True
+        cor_role_site.referent_valid = True
+        cor_role_site.save()
 
         # Approuver la demande
         validation_request.approve(validator, comment)

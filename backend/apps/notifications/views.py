@@ -286,6 +286,18 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         request.user,
                         comment
                     )
+                elif validation_request.request_type == 'site_org_link':
+                    ValidationService.approve_site_org_link(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'referent_validation':
+                    ValidationService.approve_referent_validation(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
                 else:
                     # Approbation generique
                     validation_request.approve(request.user, comment)

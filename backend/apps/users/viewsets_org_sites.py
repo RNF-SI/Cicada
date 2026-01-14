@@ -403,15 +403,20 @@ class SiteViewSet(viewsets.ModelViewSet):
             return queryset.select_related('id_type_site')
         
         else:
-            # Utilisateur normal voit les sites de son organisme
+            # Utilisateur normal voit les sites assignés + sites de son organisme
+            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
+
             if user.id_organisme:
                 org_sites = CorOgSite.objects.filter(
                     uuid_og=user.id_organisme
                 ).values_list('id_site', flat=True)
-                
-                return Site.objects.filter(id_site__in=org_sites).select_related('id_type_site')
-        
-        return Site.objects.none()
+
+                return Site.objects.filter(
+                    Q(id_site__in=assigned_sites) | Q(id_site__in=org_sites)
+                ).distinct().select_related('id_type_site')
+
+            # Utilisateur sans organisme voit uniquement ses sites assignés
+            return Site.objects.filter(id_site__in=assigned_sites).select_related('id_type_site')
     
     def get_object(self):
         """Vérification des permissions d'objet."""
@@ -444,23 +449,28 @@ class SiteViewSet(viewsets.ModelViewSet):
     def geojson_list(self, request):
         """Retourne tous les sites visibles au format GeoJSON."""
         queryset = self.filter_queryset(self.get_queryset())
-        
+
         # Limiter à 100 sites pour les performances
         if queryset.count() > 100:
             queryset = queryset[:100]
-        
-        serializer = SiteGeoJSONSerializer(queryset, many=True)
-        
+
+        # Sérialiser chaque site individuellement pour obtenir une vraie liste
+        # GeoFeatureModelSerializer avec many=True retourne un OrderedDict
+        features = []
+        for site in queryset:
+            serializer = SiteGeoJSONSerializer(site)
+            features.append(serializer.data)
+
         # Encapsuler dans une FeatureCollection GeoJSON
         geojson_data = {
             'type': 'FeatureCollection',
-            'features': serializer.data,
+            'features': features,
             'properties': {
-                'count': len(serializer.data),
+                'count': len(features),
                 'note': 'Limité à 100 sites pour les performances'
             }
         }
-        
+
         return Response(geojson_data)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
@@ -681,6 +691,70 @@ class SiteViewSet(viewsets.ModelViewSet):
             'surface_totale_ha': round(surface_totale, 2)
         })
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def search_all(self, request):
+        """
+        Recherche dans tous les sites actifs.
+        Permet aux utilisateurs de trouver des sites d'autres organismes
+        pour demander un lien site-organisme.
+        GET /api/users/sites/search_all/
+
+        Query params:
+        - search: terme de recherche (min 2 caractères)
+        - page_size: nombre de résultats (défaut: 100, max: 500)
+        """
+        search = request.query_params.get('search', '').strip()
+
+        # Retourner tous les sites actifs
+        sites = Site.objects.filter(active=True).select_related('id_type_site').order_by('nom_site')
+
+        # Filtrage par recherche si fourni
+        if search and len(search) >= 2:
+            sites = sites.filter(
+                Q(nom_site__icontains=search) |
+                Q(id_local__icontains=search) |
+                Q(id_inpn__icontains=search)
+            )
+
+        # Pagination
+        page_size = min(int(request.query_params.get('page_size', 100)), 500)
+        sites = sites[:page_size]
+
+        # Construire la réponse avec les organismes liés
+        sites_data = []
+        for site in sites:
+            # Récupérer les organismes liés à ce site
+            organismes = []
+            for cor in CorOgSite.objects.filter(id_site=site).select_related('uuid_og'):
+                organismes.append({
+                    'id_organisme': cor.uuid_og.id_organisme,
+                    'nom_organisme': cor.uuid_og.nom_organisme
+                })
+
+            # Récupérer les utilisateurs liés (pour vérifier l'accès côté frontend)
+            users = []
+            for cor in CorRoleSite.objects.filter(id_site=site).select_related('id_role'):
+                users.append({
+                    'id_role': cor.id_role.id_role,
+                    'referent': cor.referent
+                })
+
+            sites_data.append({
+                'id_site': site.id_site,
+                'nom_site': site.nom_site,
+                'id_local': site.id_local,
+                'type_site_label': site.id_type_site.label if site.id_type_site else None,
+                'surf_off': site.surf_off,
+                'active': site.active,
+                'organismes': organismes,
+                'users': users
+            })
+
+        return Response({
+            'count': len(sites_data),
+            'results': sites_data
+        })
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme])
     def available_for_assignment(self, request):
         """
@@ -720,3 +794,200 @@ class SiteViewSet(viewsets.ModelViewSet):
             'count': len(sites_data),
             'results': sites_data
         })
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def request_access(self, request, pk=None):
+        """
+        Demande l'acces a un site.
+        POST /api/users/sites/{id}/request_access/
+        Body: {
+            "justification": "...",  (optionnel)
+            "request_as_referent": true/false  (optionnel, defaut: false)
+        }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        site = get_object_or_404(Site, id_site=pk)
+
+        # Verifier qu'une demande n'existe pas deja pour ce site
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='site_access',
+            target_site=site,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande pour ce site est deja en attente.'},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Verifier que l'utilisateur n'a pas deja acces
+        already_linked = CorRoleSite.objects.filter(
+            id_role=request.user,
+            id_site=site
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Vous avez deja acces a ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Recuperer les parametres
+        justification = request.data.get('justification', '')
+        request_as_referent = request.data.get('request_as_referent', False)
+
+        # Creer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='site_access',
+            status='pending',
+            requester=request.user,
+            target_site=site,
+            justification=justification,
+            request_as_referent=request_as_referent,
+        )
+
+        # Notifier les valideurs (referents du site ou admins de l'organisme)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': f'Votre demande d\'acces au site "{site.nom_site}" a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def request_referent(self, request, pk=None):
+        """
+        Demande a devenir referent d'un site auquel l'utilisateur a deja acces.
+        POST /api/users/sites/{id}/request_referent/
+        Body: {
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        site = get_object_or_404(Site, id_site=pk)
+
+        # Verifier que l'utilisateur est lie au site
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=request.user, id_site=site)
+        except CorRoleSite.DoesNotExist:
+            return Response(
+                {'error': 'Vous devez d\'abord avoir acces au site pour demander a devenir referent.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'est pas deja referent valide
+        if cor_role_site.referent and cor_role_site.referent_valid:
+            return Response(
+                {'error': 'Vous etes deja referent de ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='referent_validation',
+            target_site=site,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande pour devenir referent est deja en attente.'},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Recuperer la justification
+        justification = request.data.get('justification', '')
+
+        # Creer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='referent_validation',
+            status='pending',
+            requester=request.user,
+            target_site=site,
+            justification=justification,
+        )
+
+        # Notifier les valideurs (referents du site, admin de l'organisme, super admin)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': f'Votre demande pour devenir referent du site "{site.nom_site}" a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def request_org_link(self, request, pk=None):
+        """
+        Demande de lier un site d'un autre organisme a son propre organisme.
+        POST /api/users/sites/{id}/request_org_link/
+        Body: {
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        site = get_object_or_404(Site, id_site=pk)
+
+        # Verifier que l'utilisateur a un organisme
+        user_organisme = request.user.id_organisme
+        if not user_organisme:
+            return Response(
+                {'error': 'Vous devez etre rattache a un organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le site n'est pas deja lie a l'organisme de l'utilisateur
+        already_linked = CorOgSite.objects.filter(
+            id_site=site,
+            uuid_og=user_organisme
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Ce site est deja lie a votre organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='site_org_link',
+            target_site=site,
+            requested_organisme=user_organisme,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande de lien pour ce site est deja en attente.'},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Recuperer la justification
+        justification = request.data.get('justification', '')
+
+        # Creer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='site_org_link',
+            status='pending',
+            requester=request.user,
+            target_site=site,
+            requested_organisme=user_organisme,
+            justification=justification,
+        )
+
+        # Notifier les valideurs (admin de l'organisme du demandeur)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': f'Votre demande de lien avec le site "{site.nom_site}" a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
