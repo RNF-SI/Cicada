@@ -193,3 +193,29 @@ $action-partial-unplanned: $gray-dark;        // Partiellement réalisée non pr
 $priority-1: $error-color;           // Priorité 1 (rouge)
 $priority-2: $warning-color;         // Priorité 2 (orange)
 $priority-3: $score-neutral;         // Priorité 3 (jaune)
+
+// ============================================
+// MODULE THEMES (cohérence avec tuiles d'accueil)
+// ============================================
+
+// Couleurs de fond de page par module (version claire)
+$module-bg-primary: $beige;                              // Plans de gestion
+$module-bg-salmon: #FDF5F2;                              // Sites (version très claire de salmon)
+$module-bg-terra-cotta: #FDF3F4;                         // Module terra cotta (si utilisé)
+$module-bg-yellow: #FFFBF5;                              // Module jaune (si utilisé)
+$module-bg-pale-green: #F5FAF7;                          // Module vert pâle (si utilisé)
+
+// Couleurs d'accent par module (pour hero, badges, bordures)
+$module-accent-primary: $primary-color;                  // Plans de gestion
+$module-accent-salmon: $secondary-orange-salmon;         // Sites
+$module-accent-terra-cotta: $secondary-terra-cotta;      // Module terra cotta
+$module-accent-yellow: $secondary-yellow;                // Module jaune
+$module-accent-pale-green: $secondary-pale-green;        // Module vert pâle
+
+// ============================================
+// MODULE SITES - Variables spécifiques
+// ============================================
+$sites-page-bg: $module-bg-salmon;
+$sites-accent: $module-accent-salmon;
+$sites-hero-bg: $sites-accent;
+$sites-badge-bg: $sites-accent;

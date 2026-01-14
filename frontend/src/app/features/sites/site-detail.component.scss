@@ -7,12 +7,12 @@
 :host {
   display: block;
   min-height: 100vh;
-  background-color: $beige;
+  background-color: $sites-page-bg;
 }
 
 .site-detail-page {
   min-height: calc(100vh - 64px);
-  background-color: $beige;
+  background-color: $sites-page-bg;
 }
 
 // ============================================
@@ -21,7 +21,7 @@
 
 .hero-section {
   position: relative;
-  background-color: $primary-color;
+  background-color: $sites-accent;
   border-radius: 0 0 20px 20px;
   margin: 0 72px;
   padding: 32px 38px 32px;
@@ -52,13 +52,17 @@
   z-index: 1;
 }
 
-// Breadcrumb
+// Breadcrumb - Fil d'Ariane (surcharge du style global de _components.scss)
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
   margin-bottom: $spacing-lg;
   height: 48px;
+  // Surcharge du style global qui met un fond primary
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .breadcrumb-home {
@@ -95,7 +99,7 @@
     left: 50%;
     width: 1px;
     height: 18px;
-    background-color: $white;
+    background-color: $black;
   }
 
   &::after {
@@ -105,25 +109,25 @@
     left: 50%;
     width: 1px;
     height: 18px;
-    background-color: $white;
+    background-color: $black;
   }
 }
 
 .breadcrumb-link {
-  color: rgba($white, 0.8);
+  color: rgba($black, 0.7);
   font-size: $font-size-base;
   font-family: $font-family;
   text-decoration: none;
   transition: color $transition-fast;
 
   &:hover {
-    color: $white;
+    color: $black;
     text-decoration: underline;
   }
 }
 
 .breadcrumb-current {
-  color: $white;
+  color: $black;
   font-size: $font-size-base;
   font-family: $font-family;
   font-weight: $font-weight-bold;
@@ -144,7 +148,7 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  color: $white;
+  color: $black;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -157,7 +161,7 @@
 }
 
 h1 {
-  color: $white;
+  color: $black;
   font-size: $font-size-h1;
   font-weight: $font-weight-bold;
   font-family: $font-family;
@@ -237,8 +241,8 @@ h1 {
   align-items: center;
   gap: $spacing-xs;
   padding: 10px 24px;
-  background-color: $white;
-  color: $primary-color;
+  background-color: $primary-color;
+  color: $white;
   border: none;
   border-radius: 80px;
   font-family: $font-family;
@@ -253,6 +257,7 @@ h1 {
   }
 
   &:hover {
+    background-color: $primary-hover;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 }
