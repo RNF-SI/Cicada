@@ -1,0 +1,336 @@
+@import 'variables';
+
+// Impersonation Banner
+.impersonation-banner {
+  background: linear-gradient(135deg, $warning-color 0%, darken($warning-color, 10%) 100%);
+  color: $white;
+  padding: $spacing-xs $spacing-md;
+  position: sticky;
+  top: 0;
+  z-index: $z-index-sticky + 1;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba($black, 0.15);
+}
+
+.impersonation-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+
+  > i {
+    font-size: 18px;
+  }
+}
+
+.impersonation-text {
+  font-family: $font-family;
+  font-size: $font-size-small;
+
+  strong {
+    font-weight: $font-weight-bold;
+  }
+}
+
+.impersonation-info {
+  opacity: 0.85;
+  font-size: $font-size-small - 1px;
+}
+
+.stop-impersonation-btn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  background-color: rgba($white, 0.2);
+  color: $white;
+  border: 1px solid rgba($white, 0.4);
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  margin-left: $spacing-sm;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: rgba($white, 0.3);
+    border-color: $white;
+  }
+}
+
+.header {
+  background-color: $white;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: $z-index-sticky;
+  width: 100%;
+
+  &.with-impersonation {
+    top: 0; // Header is no longer sticky when banner is shown
+    position: relative;
+  }
+}
+
+.header-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+// Hamburger menu button - positioned at far left of viewport
+.hamburger-btn {
+  position: absolute;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $primary-color;
+  font-size: 24px;
+  padding: 0;
+
+  &:hover {
+    color: $primary-hover;
+  }
+}
+
+// Logo centered
+.header-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-img {
+  height: 48px;
+  width: auto;
+}
+
+// Navigation - positioned at far right of viewport (68px from right edge as per Figma)
+.header-nav {
+  position: absolute;
+  right: 68px;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  color: $primary-color;
+  text-decoration: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  border-radius: $border-radius-md;
+  transition: background-color $transition-fast;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+}
+
+// Administration button
+.admin-btn {
+  i {
+    font-size: 20px;
+  }
+
+  .btn-text {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.user-menu-trigger {
+  .user-icon {
+    font-size: 20px;
+  }
+
+  .user-name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+  }
+
+  .chevron {
+    font-size: 20px;
+  }
+}
+
+// Dropdown menu styles
+.menu-user-info {
+  padding: $spacing-sm $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-user-name {
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.menu-user-email {
+  font-family: $font-family;
+  font-size: 12px;
+  color: $gray-dark;
+}
+
+.menu-icon {
+  font-size: 16px;
+  margin-right: $spacing-xs;
+  color: $primary-color;
+}
+
+.logout-item {
+  color: $error-color;
+
+  .menu-icon {
+    color: $error-color;
+  }
+}
+
+::ng-deep .mat-mdc-menu-item {
+  font-family: $font-family;
+  font-size: 14px;
+  color: $black;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+}
+
+// Mobile menu overlay
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba($black, 0.5);
+  z-index: $z-index-modal-backdrop;
+}
+
+// Mobile menu
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+  background-color: $white;
+  z-index: $z-index-modal;
+  box-shadow: $shadow-heavy;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $gray-light;
+}
+
+.mobile-menu-title {
+  font-family: $font-family;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $gray-dark;
+  font-size: 16px;
+
+  &:hover {
+    color: $black;
+  }
+}
+
+.mobile-menu-content {
+  flex: 1;
+  padding: $spacing-md 0;
+  overflow-y: auto;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  color: $black;
+  text-decoration: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  transition: background-color $transition-fast;
+
+  i {
+    font-size: 20px;
+    color: $primary-color;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+
+  &.active {
+    background-color: $primary-color;
+    color: $white;
+
+    i {
+      color: $white;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-tablet) {
+  .hamburger-btn {
+    left: $spacing-md;
+  }
+
+  .header-nav {
+    right: $spacing-md;
+  }
+
+  .user-name,
+  .btn-text {
+    display: none;
+  }
+
+  .nav-link {
+    padding: $spacing-xs;
+  }
+}

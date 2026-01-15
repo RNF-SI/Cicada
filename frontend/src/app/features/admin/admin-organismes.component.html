@@ -1,0 +1,199 @@
+<div class="admin-organismes">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>{{ 'admin.organismes.title' | translate }}</h1>
+      <p class="subtitle">
+        @if (isSuperAdmin()) {
+          {{ 'admin.organismes.subtitle.superAdmin' | translate }}
+        } @else {
+          {{ 'admin.organismes.subtitle.orgAdmin' | translate }}
+        }
+      </p>
+    </div>
+    @if (isSuperAdmin()) {
+      <button class="btn-primary" (click)="openAddOrganismeModal()">
+        <i class="fi fi-rr-building"></i>
+        <span>{{ 'admin.organismes.addOrganisme' | translate }}</span>
+      </button>
+    }
+  </header>
+
+  <!-- Search (Super Admin only) -->
+  @if (isSuperAdmin()) {
+    <div class="filters-bar">
+      <div class="search-box">
+        <i class="fi fi-rr-search"></i>
+        <input
+          type="text"
+          [placeholder]="'admin.organismes.search' | translate"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="filterOrganismes()"
+        />
+      </div>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'admin.organismes.messages.loading' | translate }}</p>
+    </div>
+  } @else {
+    <!-- Organismes Grid / Single View -->
+    @if (isSuperAdmin()) {
+      <!-- Grid view for super admin -->
+      <div class="organismes-grid">
+        @for (org of filteredOrganismes(); track org.id) {
+          <div class="organisme-card">
+            <div class="card-header">
+              <h3>{{ org.nom }}</h3>
+              <span class="status-badge" [class.active]="org.isActive" [class.inactive]="!org.isActive">
+                {{ (org.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
+              </span>
+            </div>
+
+            <div class="card-stats">
+              <div class="stat">
+                <i class="fi fi-rr-users"></i>
+                <span>{{ 'admin.organismes.stats.users' | translate:{ count: org.nbUtilisateurs } }}</span>
+              </div>
+              <div class="stat">
+                <i class="fi fi-rr-marker"></i>
+                <span>{{ 'admin.organismes.stats.sites' | translate:{ count: org.nbSites } }}</span>
+              </div>
+              <div class="stat">
+                <i class="fi fi-rr-document"></i>
+                <span>{{ 'admin.organismes.stats.plans' | translate:{ count: org.nbPlans } }}</span>
+              </div>
+            </div>
+
+            <div class="card-info">
+              @if (org.email) {
+                <div class="info-row">
+                  <i class="fi fi-rr-envelope"></i>
+                  <span>{{ org.email }}</span>
+                </div>
+              }
+              @if (org.telephone) {
+                <div class="info-row">
+                  <i class="fi fi-rr-phone-call"></i>
+                  <span>{{ org.telephone }}</span>
+                </div>
+              }
+              @if (org.ville) {
+                <div class="info-row">
+                  <i class="fi fi-rr-marker"></i>
+                  <span>{{ org.codePostal }} {{ org.ville }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="card-actions">
+              <button class="btn-secondary" (click)="editOrganisme(org)" [title]="'admin.organismes.actions.edit' | translate">
+                <i class="fi fi-rr-pencil"></i>
+                <span>{{ 'admin.organismes.actions.edit' | translate }}</span>
+              </button>
+              <button class="btn-icon-secondary" (click)="openAddUserModal(org)" [title]="'admin.organismes.actions.addUser' | translate">
+                <i class="fi fi-rr-user-add"></i>
+              </button>
+              <button class="btn-icon-secondary" (click)="openAddSiteModal(org)" [title]="'admin.organismes.actions.addSite' | translate">
+                <i class="fi fi-rr-map-marker-plus"></i>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (filteredOrganismes().length === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-building"></i>
+            <p>{{ 'admin.organismes.empty.noOrganismes' | translate }}</p>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Single organisme view for admin_og -->
+      @if (currentOrganisme()) {
+        <div class="organisme-detail">
+          <div class="detail-header">
+            <div class="org-icon">
+              <i class="fi fi-rr-building"></i>
+            </div>
+            <div class="org-info">
+              <h2>{{ currentOrganisme()!.nom }}</h2>
+              <span class="status-badge active">{{ 'common.status.active' | translate }}</span>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" (click)="openAddSiteModal(currentOrganisme()!)"
+                      matTooltipPosition="below">
+                <i class="fi fi-rr-link"></i>
+                <span>{{ 'admin.organismes.actions.requestLink' | translate }}</span>
+              </button>
+              <button class="btn-primary" (click)="openCreateSiteModal(currentOrganisme()!)" [title]="'admin.organismes.actions.createSite' | translate">
+                <i class="fi fi-rr-add"></i>
+                <span>{{ 'admin.organismes.actions.createSite' | translate }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-section stats-section">
+              <h3>{{ 'admin.plans.stats.total' | translate }}</h3>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <span class="stat-value">{{ currentOrganisme()!.nbUtilisateurs }}</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.usersLabel' | translate }}</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-value">{{ currentOrganisme()!.nbSites }}</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.sitesLabel' | translate }}</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-value">{{ currentOrganisme()!.nbPlans }}</span>
+                  <span class="stat-label">{{ 'admin.organismes.stats.plansLabel' | translate }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section contact-section">
+              <h3>{{ 'admin.organismes.contact.title' | translate }}</h3>
+              <div class="contact-info">
+                @if (currentOrganisme()!.email) {
+                  <div class="contact-row">
+                    <i class="fi fi-rr-envelope"></i>
+                    <div>
+                      <span class="label">{{ 'admin.organismes.contact.email' | translate }}</span>
+                      <span class="value">{{ currentOrganisme()!.email }}</span>
+                    </div>
+                  </div>
+                }
+                @if (currentOrganisme()!.telephone) {
+                  <div class="contact-row">
+                    <i class="fi fi-rr-phone-call"></i>
+                    <div>
+                      <span class="label">{{ 'admin.organismes.contact.phone' | translate }}</span>
+                      <span class="value">{{ currentOrganisme()!.telephone }}</span>
+                    </div>
+                  </div>
+                }
+                @if (currentOrganisme()!.adresse) {
+                  <div class="contact-row">
+                    <i class="fi fi-rr-marker"></i>
+                    <div>
+                      <span class="label">{{ 'admin.organismes.contact.address' | translate }}</span>
+                      <span class="value">
+                        {{ currentOrganisme()!.adresse }}<br>
+                        {{ currentOrganisme()!.codePostal }} {{ currentOrganisme()!.ville }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

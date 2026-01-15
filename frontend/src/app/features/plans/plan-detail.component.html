@@ -1,0 +1,242 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Layout avec sidebar -->
+<div class="plan-detail-layout">
+  <!-- Sidebar Menu -->
+  <aside class="plan-sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">PLAN DE GESTION</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of menuItems(); track item.label) {
+        <div class="menu-item-wrapper">
+          <button
+            class="menu-item"
+            [class.active]="activeMenuItem() === item.route"
+            [class.has-children]="item.children"
+            (click)="toggleMenu(item)">
+            <i class="fi" [class]="item.icon"></i>
+            <span>{{ item.label }}</span>
+            @if (item.children) {
+              <i class="fi fi-rr-angle-small-down chevron" [class.expanded]="item.expanded"></i>
+            }
+          </button>
+
+          @if (item.children && item.expanded) {
+            <div class="submenu">
+              @for (child of item.children; track child.label) {
+                <button
+                  class="submenu-item"
+                  [class.active]="activeMenuItem() === child.route"
+                  (click)="navigateToChild(child)">
+                  {{ child.label }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="plan-main">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <!-- Fil d'Ariane -->
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <span class="breadcrumb-separator"></span>
+          <a routerLink="/plans" class="breadcrumb-link">Plans de gestion</a>
+          <span class="breadcrumb-chevron">
+            <i class="fi fi-rr-angle-small-right"></i>
+          </span>
+          <span class="breadcrumb-current">{{ plan()?.nom }}</span>
+        </nav>
+
+        <!-- Info du plan -->
+        @if (plan(); as p) {
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-document"></i>
+              <span>PLAN DE GESTION</span>
+            </div>
+            <h1 class="plan-title">{{ p.nom }}</h1>
+
+            <div class="plan-meta">
+              <div class="meta-row">
+                <span class="meta-label">Dates :</span>
+                <span class="meta-value">{{ p.dateDebut }}-{{ p.dateFin }}</span>
+                <span class="meta-separator">|</span>
+                <span class="meta-label">Organisme rédacteur :</span>
+                <span class="meta-value">{{ p.organismeRedacteur }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Niveau d'évaluation :</span>
+                <span class="meta-value">{{ p.niveauEvaluation }}</span>
+                <span class="meta-separator">|</span>
+                <span class="meta-label">CT88 :</span>
+                <span class="meta-value">{{ p.ct88 ? 'Oui' : 'Non' }}</span>
+                <span class="meta-separator">|</span>
+                <span class="meta-label">Rang :</span>
+                <span class="meta-value">{{ p.rang }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Surface :</span>
+                <span class="meta-value">{{ p.surface | number }} ha</span>
+                <span class="meta-separator">|</span>
+                <span class="meta-label">Identifiant CdR OFB :</span>
+                <span class="meta-value">{{ p.identifiantCdrOfb }}</span>
+                <span class="meta-separator">|</span>
+                <span class="meta-label">Statut :</span>
+                <span class="meta-value status">{{ p.statut }}</span>
+              </div>
+            </div>
+
+            <button class="btn-generate">
+              <i class="fi fi-rr-download"></i>
+              <span>Générer</span>
+              <i class="fi fi-rr-angle-small-down"></i>
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Content Section -->
+    <section class="content-section">
+      <div class="content-grid">
+        <!-- Colonne principale - Synthèse -->
+        <div class="main-column">
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="fi fi-rr-document section-icon"></i>
+                <h2>Synthèse</h2>
+              </div>
+              <a href="#" class="section-link">
+                Voir en détails
+                <i class="fi fi-rr-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Accordéons -->
+            <div class="accordions">
+              <div class="accordion">
+                <button class="accordion-header">
+                  <span class="accordion-dot"></span>
+                  <span class="accordion-title">Enjeux et Facteurs clés de réussite</span>
+                  <i class="fi fi-rr-plus-small accordion-icon"></i>
+                </button>
+              </div>
+
+              <div class="accordion">
+                <button class="accordion-header">
+                  <span class="accordion-dot"></span>
+                  <span class="accordion-title">Objectifs long terme</span>
+                  <i class="fi fi-rr-plus-small accordion-icon"></i>
+                </button>
+              </div>
+
+              <div class="accordion">
+                <button class="accordion-header">
+                  <span class="accordion-dot"></span>
+                  <span class="accordion-title">Objectifs opérationnels</span>
+                  <i class="fi fi-rr-plus-small accordion-icon"></i>
+                </button>
+              </div>
+
+              <div class="accordion expanded">
+                <button class="accordion-header">
+                  <span class="accordion-dot"></span>
+                  <span class="accordion-title">Actions et suivis</span>
+                  <i class="fi fi-rr-minus-small accordion-icon"></i>
+                </button>
+                <div class="accordion-content">
+                  <p class="accordion-placeholder">Contenu des actions et suivis...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne secondaire - Site, Mindmap, Documents -->
+        <div class="side-column">
+          <!-- Site -->
+          <div class="section-card compact">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="fi fi-rr-marker section-icon"></i>
+                <h3>Site</h3>
+              </div>
+            </div>
+            <div class="map-placeholder">
+              <i class="fi fi-rr-map"></i>
+              <span>Carte du site</span>
+            </div>
+          </div>
+
+          <!-- Mindmap -->
+          <div class="section-card compact">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="fi fi-rr-mind-share section-icon"></i>
+                <h3>Mindmap</h3>
+              </div>
+            </div>
+            <div class="mindmap-placeholder">
+              <i class="fi fi-rr-chart-tree"></i>
+              <span>Visualisation mindmap</span>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="section-card compact">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="fi fi-rr-folder section-icon"></i>
+                <h3>Documents</h3>
+              </div>
+            </div>
+            <div class="documents-list">
+              <div class="document-item">
+                <i class="fi fi-rr-file-pdf"></i>
+                <span>Pdg - Partie 1</span>
+                <button class="btn-download">
+                  <i class="fi fi-rr-download"></i>
+                </button>
+              </div>
+              <div class="document-item">
+                <i class="fi fi-rr-file-pdf"></i>
+                <span>Pdg - Partie 2</span>
+                <button class="btn-download">
+                  <i class="fi fi-rr-download"></i>
+                </button>
+              </div>
+              <div class="document-item">
+                <i class="fi fi-rr-file-pdf"></i>
+                <span>Pdg - Annexes</span>
+                <button class="btn-download">
+                  <i class="fi fi-rr-download"></i>
+                </button>
+              </div>
+              <button class="btn-add-document">
+                <i class="fi fi-rr-upload"></i>
+                <span>Ajouter</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

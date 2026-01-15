@@ -1,0 +1,1 @@
+# Package pour toutes les applications Django du projet

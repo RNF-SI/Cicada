@@ -1,0 +1,89 @@
+@import 'variables';
+
+.gauge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 117px;
+}
+
+.gauge-track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  background-color: $gray-light;
+}
+
+.gauge-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: $primary-color;
+  transition: width 0.3s ease;
+}
+
+.gauge-pointer {
+  position: absolute;
+  top: -4px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid $primary-color;
+  transform: translateX(-50%);
+}
+
+// Not started - no fill, pointer at start
+.gauge-not-started {
+  .gauge-fill {
+    width: 0;
+  }
+  .gauge-pointer {
+    left: 0 !important;
+  }
+}
+
+// In progress - partial fill
+.gauge-in-progress {
+  .gauge-fill {
+    background-color: $primary-color;
+  }
+  .gauge-pointer {
+    border-top-color: $primary-color;
+  }
+}
+
+// Completed - full fill, red color
+.gauge-completed {
+  .gauge-fill {
+    width: 100% !important;
+    background-color: $secondary-terra-cotta;
+  }
+  .gauge-pointer {
+    left: 100% !important;
+    border-top-color: $secondary-terra-cotta;
+  }
+}
+
+// Exceeded - full fill with overflow indicator
+.gauge-exceeded {
+  .gauge-fill {
+    width: 100% !important;
+    background-color: $secondary-terra-cotta;
+  }
+  .gauge-pointer {
+    left: 100% !important;
+    border-top-color: $secondary-terra-cotta;
+  }
+}
+
+.gauge-overflow {
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+
+  svg {
+    transform: rotate(90deg);
+  }
+}

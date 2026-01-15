@@ -1,0 +1,176 @@
+"""
+Modèles de base partagés par toute l'application.
+"""
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+
+class Nomenclature(models.Model):
+    """
+    Modele pour les nomenclatures et referentiels.
+    Table t_nomenclatures dans le schema referentiels.
+    Structure adaptee aux donnees ODASE.
+
+    - cd_nomenclature: Code technique unique (ex: 'RNN', 'RNR', 'PNR')
+    - mnemonique: Mnemonique metier pour retrouver facilement les elements
+    - label: Label affiche a l'utilisateur
+    """
+
+    id_nomenclature = models.AutoField(primary_key=True)
+    id_type = models.ForeignKey(
+        'TypeNomenclature',
+        on_delete=models.CASCADE,
+        verbose_name=_("Type de nomenclature"),
+        null=True,
+        blank=True,
+        db_column='id_type'
+    )
+    cd_nomenclature = models.CharField(
+        _("Code nomenclature"),
+        max_length=50,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_("Code technique unique de la nomenclature (ex: RNN, RNR, PNR)")
+    )
+    mnemonique = models.CharField(
+        _("Mnémonique"),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("Mnémonique métier pour retrouver facilement les éléments")
+    )
+    label = models.CharField(_("Label"), max_length=255, null=True, blank=True)
+    definition = models.TextField(_("Définition"), null=True, blank=True)
+    source = models.CharField(_("Source"), max_length=255, null=True, blank=True)
+    statut = models.CharField(_("Statut"), max_length=50, null=True, blank=True)
+    hierarchy = models.CharField(_("Hiérarchie"), max_length=255, null=True, blank=True)
+    date_ajout = models.DateTimeField(_("Date d'ajout"), null=True, blank=True)
+    date_maj = models.DateTimeField(_("Date de mise à jour"), null=True, blank=True)
+    actif = models.BooleanField(_("Actif"), default=True)
+
+    class Meta:
+        db_table = '"ref_nomenclatures"."t_nomenclatures"'
+        verbose_name = _("Nomenclature")
+        verbose_name_plural = _("Nomenclatures")
+        managed = True
+
+    def __str__(self):
+        return self.label or self.mnemonique or f"Nomenclature {self.id_nomenclature}"
+
+
+class TypeNomenclature(models.Model):
+    """
+    Types de nomenclatures.
+    Table bib_nomenclatures_types dans le schéma referentiels.
+    Structure adaptée aux données ODASE.
+    """
+
+    id_type = models.AutoField(primary_key=True)
+    mnemonique = models.CharField(_("Mnémonique"), max_length=255, null=True, blank=True)
+    label = models.CharField(_("Label"), max_length=255, null=True, blank=True)
+    definition = models.TextField(_("Définition"), null=True, blank=True)
+    source = models.CharField(_("Source"), max_length=255, null=True, blank=True)
+    statut = models.CharField(_("Statut"), max_length=50, null=True, blank=True)
+    date_ajout = models.DateTimeField(_("Date d'ajout"), null=True, blank=True)
+    date_maj = models.DateTimeField(_("Date de mise à jour"), null=True, blank=True)
+
+    class Meta:
+        db_table = '"ref_nomenclatures"."bib_nomenclatures_types"'
+        verbose_name = _("Type de nomenclature")
+        verbose_name_plural = _("Types de nomenclatures")
+        managed = True
+
+    def __str__(self):
+        return self.label or self.mnemonique or f"Type {self.id_type}"
+
+
+class Module(models.Model):
+    """
+    Modele pour les modules applicatifs.
+    Definit les modules disponibles dans l'application et leurs caracteristiques.
+    Certains modules necessitent une demande d'acces (requires_access=True).
+    """
+
+    TILE_COLORS = [
+        ('primary', _('Primaire (bleu-vert)')),
+        ('salmon', _('Saumon')),
+        ('terra-cotta', _('Terra cotta')),
+        ('yellow', _('Jaune')),
+        ('pale-green', _('Vert pâle')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+
+    # Identification
+    code = models.CharField(
+        _('Code'),
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text=_('Code technique unique du module (ex: plans, sites, zonages)')
+    )
+    name = models.CharField(
+        _('Nom'),
+        max_length=100,
+        help_text=_('Nom affiche du module')
+    )
+    description = models.TextField(
+        _('Description'),
+        null=True,
+        blank=True,
+        help_text=_('Description du module')
+    )
+
+    # Affichage
+    icon = models.CharField(
+        _('Icône'),
+        max_length=100,
+        default='fi-rr-apps',
+        help_text=_('Classe CSS de l\'icone Flaticon (ex: fi-rr-document)')
+    )
+    color = models.CharField(
+        _('Couleur'),
+        max_length=20,
+        choices=TILE_COLORS,
+        default='primary',
+        help_text=_('Couleur de la tuile sur la page d\'accueil')
+    )
+    route = models.CharField(
+        _('Route'),
+        max_length=100,
+        help_text=_('Route Angular du module (ex: /plans)')
+    )
+
+    # Configuration d'acces
+    requires_access = models.BooleanField(
+        _('Nécessite un accès'),
+        default=False,
+        help_text=_('Si True, l\'utilisateur doit demander l\'acces a ce module')
+    )
+    is_active = models.BooleanField(
+        _('Actif'),
+        default=True,
+        help_text=_('Module visible et accessible')
+    )
+
+    # Ordre d'affichage
+    display_order = models.PositiveIntegerField(
+        _('Ordre d\'affichage'),
+        default=0,
+        help_text=_('Ordre d\'affichage sur la page d\'accueil (0 = premier)')
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('Mis à jour le'), auto_now=True)
+
+    class Meta:
+        db_table = '"ccd_commons"."t_modules"'
+        db_table_comment = 'Table des modules applicatifs'
+        ordering = ['display_order', 'name']
+        verbose_name = _('Module')
+        verbose_name_plural = _('Modules')
+
+    def __str__(self):
+        return self.name

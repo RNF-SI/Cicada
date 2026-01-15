@@ -1,14 +1,43 @@
-# Requirements Django minimales pour tester Docker
-Django>=5.0.0
-djangorestframework>=3.14.0
-psycopg[binary]>=3.1.0
-django-cors-headers>=4.3.0
-celery>=5.3.0
-redis>=5.0.0
+# Core Django
+Django==5.0.8
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+django-filter==23.3
+psycopg[binary]==3.1.19
+django-cors-headers==4.3.1
 
-# PostGIS
-GDAL>=3.4.0
-Pillow>=10.0.0
+# PostGIS support
+GDAL==3.7.3
+Pillow==10.4.0
+djangorestframework-gis==1.0
 
-# Variables d'environnement
-python-decouple>=3.8
+# API nested routes (optionnel)
+drf-nested-routers==0.93.4
+
+# Task queue (pour V1)
+celery==5.3.4
+redis==5.0.1
+
+# Environment management  
+python-decouple==3.8
+
+# Development tools
+django-extensions==3.2.3
+
+# API documentation (optionnel)
+drf-spectacular==0.27.2
+
+# Testing
+pytest==7.4.4
+pytest-django==4.8.0
+pytest-cov==4.1.0
+factory-boy==3.3.1
+requests==2.31.0
+
+# Code quality
+black==23.12.1
+isort==5.13.2
+flake8==6.1.0
+
+# Logging
+python-json-logger==2.0.7

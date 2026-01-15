@@ -1,0 +1,482 @@
+@import 'variables';
+
+.admin-users {
+  width: 100%;
+}
+
+// Header
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    font-size: $font-size-h2;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $primary-color;
+    margin: 0 0 $spacing-xxs;
+  }
+
+  .subtitle {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+}
+
+// Loading
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+// Text utilities
+.text-muted {
+  color: $gray;
+  font-style: italic;
+}
+
+// Filters
+.filters-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  min-width: 300px;
+
+  i {
+    font-size: 16px;
+    color: $gray-dark;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    outline: none;
+
+    &::placeholder {
+      color: $gray;
+    }
+  }
+}
+
+.filters {
+  display: flex;
+  gap: $spacing-sm;
+
+  select {
+    padding: $spacing-xs $spacing-md;
+    background-color: $white;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-md;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    cursor: pointer;
+    outline: none;
+
+    &:focus {
+      border-color: $primary-color;
+    }
+  }
+}
+
+// Table
+.table-container {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  overflow: visible;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: $font-family;
+  table-layout: auto;
+
+  th, td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  // Colonnes qui peuvent wrapper leur contenu
+  td.sites-cell,
+  td.plans-cell {
+    white-space: normal;
+    min-width: 180px;
+  }
+
+  thead {
+    th {
+      background-color: $primary-color;
+      color: $white;
+      font-weight: $font-weight-bold;
+      font-size: $font-size-base;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $gray-light;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.odd {
+        background-color: #f9f9f9;
+      }
+
+      &:hover {
+        background-color: rgba($primary-color, 0.03);
+      }
+    }
+
+    td {
+      font-size: $font-size-base;
+      color: $black;
+    }
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: $primary-color;
+  color: $white;
+  border-radius: $border-radius-round;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+}
+
+.user-name {
+  font-weight: $font-weight-bold;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+
+  &.role-super_admin {
+    background-color: rgba($error-color, 0.1);
+    color: $error-color;
+  }
+
+  &.role-admin_og {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+
+  &.role-referent {
+    background-color: rgba($secondary-yellow, 0.3);
+    color: darken($secondary-yellow, 30%);
+  }
+
+  &.role-utilisateur {
+    background-color: $gray-light;
+    color: $gray-dark;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+
+  &.active {
+    background-color: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+
+  &.inactive {
+    background-color: rgba($error-color, 0.1);
+    color: $error-color;
+  }
+}
+
+// Sites column
+.sites-cell {
+  max-width: 250px;
+}
+
+.sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.site-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px $spacing-xs;
+  background-color: rgba($primary-color, 0.08);
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+  max-width: 220px;
+
+  i {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .site-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .role-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: $border-radius-round;
+    margin-left: 2px;
+    flex-shrink: 0;
+
+    &.referent {
+      background-color: $secondary-yellow;
+      color: darken($secondary-yellow, 35%);
+    }
+  }
+}
+
+.sites-more {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+  cursor: help;
+  padding: 2px 0;
+}
+
+// Plans column
+.plans-cell {
+  max-width: 250px;
+}
+
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px $spacing-xs;
+  background-color: rgba($secondary-pale-green, 0.4);
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  color: darken($secondary-pale-green, 35%);
+  max-width: 220px;
+
+  i {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .plan-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .role-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: $border-radius-round;
+    margin-left: 2px;
+    flex-shrink: 0;
+
+    &.referent {
+      background-color: $secondary-yellow;
+      color: darken($secondary-yellow, 35%);
+    }
+  }
+}
+
+.plans-more {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+  cursor: help;
+  padding: 2px 0;
+}
+
+.date-cell {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.actions-cell {
+  display: flex;
+  gap: $spacing-xxs;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  cursor: pointer;
+  border-radius: $border-radius-sm;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+
+  &.danger {
+    color: $error-color;
+
+    &:hover {
+      background-color: rgba($error-color, 0.1);
+    }
+  }
+
+  &.impersonate {
+    color: $info-color;
+
+    &:hover {
+      background-color: rgba($info-color, 0.15);
+    }
+  }
+}
+
+.empty-cell {
+  text-align: center;
+  padding: $spacing-xl !important;
+  color: $gray-dark;
+}
+
+// Pagination
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $spacing-md;
+}
+
+.pagination-info {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+// Responsive
+@media (max-width: $breakpoint-desktop) {
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .filters {
+    flex-wrap: wrap;
+
+    select {
+      flex: 1;
+      min-width: 150px;
+    }
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .page-header {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .users-table {
+    min-width: 1200px;
+  }
+}

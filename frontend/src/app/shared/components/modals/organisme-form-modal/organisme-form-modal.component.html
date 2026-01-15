@@ -1,0 +1,94 @@
+<h2 mat-dialog-title>
+  @if (isEditMode) {
+    {{ 'modals.organismeForm.titleEdit' | translate }}
+  } @else {
+    {{ 'modals.organismeForm.titleCreate' | translate }}
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" class="organisme-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'modals.organismeForm.name' | translate }} *</mat-label>
+      <input matInput formControlName="nom_organisme" [placeholder]="'modals.organismeForm.namePlaceholder' | translate">
+      @if (form.get('nom_organisme')?.hasError('required') && form.get('nom_organisme')?.touched) {
+        <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'modals.organismeForm.parent' | translate }}</mat-label>
+      <mat-select formControlName="parent_id">
+        <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
+        @for (org of parentOrganismes(); track org.id_organisme) {
+          <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'modals.organismeForm.address' | translate }}</mat-label>
+        <input matInput formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
+      </mat-form-field>
+    </div>
+
+    <div class="form-row two-columns">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'modals.organismeForm.postalCode' | translate }}</mat-label>
+        <input matInput formControlName="cp_organisme" [placeholder]="'modals.organismeForm.postalCodePlaceholder' | translate">
+        @if (form.get('cp_organisme')?.hasError('pattern') && form.get('cp_organisme')?.touched) {
+          <mat-error>{{ 'modals.organismeForm.validation.postalCodeInvalid' | translate }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'modals.organismeForm.city' | translate }}</mat-label>
+        <input matInput formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
+      </mat-form-field>
+    </div>
+
+    <div class="form-row two-columns">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'modals.organismeForm.phone' | translate }}</mat-label>
+        <input matInput formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'modals.organismeForm.email' | translate }}</mat-label>
+        <input matInput type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
+        @if (form.get('email_organisme')?.hasError('email') && form.get('email_organisme')?.touched) {
+          <mat-error>{{ 'common.validation.emailInvalid' | translate }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'modals.organismeForm.website' | translate }}</mat-label>
+      <input matInput formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
+      <mat-hint>{{ 'modals.organismeForm.websiteHint' | translate }}</mat-hint>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="isLoading()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else if (isEditMode) {
+      {{ 'common.actions.save' | translate }}
+    } @else {
+      {{ 'common.actions.create' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,415 @@
+/* CSS personnalisé pour l'interface admin Django */
+
+/* Améliorations générales de l'interface */
+.admin-interface-enhanced {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Actions en masse - styles améliorés */
+.actions {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.actions select, .actions button {
+    margin-right: 10px;
+    padding: 5px 10px;
+    border-radius: 3px;
+}
+
+.actions button[name="index"] {
+    background: #007bff;
+    color: white;
+    border: 1px solid #0056b3;
+}
+
+.actions button[name="index"]:hover {
+    background: #0056b3;
+}
+
+/* Liste d'objets - amélioration de l'affichage */
+.results table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.results th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.results td {
+    padding: 8px;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: top;
+}
+
+.results tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Status indicators */
+.status-active {
+    color: #28a745 !important;
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+.status-warning {
+    color: #ffc107 !important;
+    font-weight: bold;
+}
+
+.status-info {
+    color: #17a2b8 !important;
+    font-weight: bold;
+}
+
+/* Filtres latéraux améliorés */
+#changelist-filter h2 {
+    background: #417690;
+    color: white;
+    padding: 8px 10px;
+    margin: 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: normal;
+}
+
+#changelist-filter h3 {
+    color: #666;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 10px 10px 5px;
+}
+
+#changelist-filter ul {
+    margin: 0 0 15px;
+    padding-left: 0;
+}
+
+#changelist-filter li {
+    list-style-type: none;
+    margin-left: 0;
+    padding: 2px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+#changelist-filter li:hover {
+    background: #f0f0f0;
+}
+
+#changelist-filter a {
+    color: #447e9b;
+    text-decoration: none;
+    display: block;
+    padding: 3px 0;
+}
+
+#changelist-filter a:hover {
+    color: #036;
+}
+
+/* Recherche améliorée */
+#searchbar {
+    width: 300px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#searchbar:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+/* Inlines améliorés */
+.inline-group {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.inline-group h2 {
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    margin: 0;
+    padding: 10px 15px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.inline-related {
+    border: none;
+}
+
+.inline-related fieldset {
+    border: 1px solid #eee;
+    margin: 5px;
+    border-radius: 3px;
+}
+
+.inline-related fieldset.module {
+    background: #fbfbfb;
+}
+
+.inline-related h3 {
+    background: #f0f0f0;
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Tableaux inline */
+.inline-group .tabular {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.inline-group .tabular thead th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.inline-group .tabular tbody tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+/* Messages d'information */
+.messagelist {
+    margin: 0 0 20px;
+    padding: 0;
+    list-style: none;
+}
+
+.messagelist li {
+    margin: 5px 0;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-weight: normal;
+}
+
+.messagelist .success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.messagelist .error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.messagelist .warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+/* Boutons d'action personnalisés */
+.btn-activate {
+    background: #28a745;
+    color: white;
+    border: 1px solid #1e7e34;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-block;
+    margin: 2px;
+}
+
+.btn-activate:hover {
+    background: #1e7e34;
+    color: white;
+}
+
+.btn-deactivate {
+    background: #dc3545;
+    color: white;
+    border: 1px solid #c82333;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-block;
+    margin: 2px;
+}
+
+.btn-deactivate:hover {
+    background: #c82333;
+    color: white;
+}
+
+.btn-export {
+    background: #007bff;
+    color: white;
+    border: 1px solid #0056b3;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-block;
+    margin: 2px;
+}
+
+.btn-export:hover {
+    background: #0056b3;
+    color: white;
+}
+
+/* Compteurs et statistiques */
+.count-badge {
+    background: #007bff;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.count-badge.success {
+    background: #28a745;
+}
+
+.count-badge.warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.count-badge.danger {
+    background: #dc3545;
+}
+
+/* Responsive améliorations */
+@media (max-width: 768px) {
+    #searchbar {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .results table {
+        font-size: 12px;
+    }
+    
+    .results th, .results td {
+        padding: 5px;
+    }
+    
+    .actions {
+        text-align: center;
+    }
+    
+    .actions select, .actions button {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+
+/* Amélioration des fieldsets */
+fieldset.module {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+fieldset.module h2 {
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    color: #495057;
+    font-weight: 600;
+    margin: 0;
+    padding: 10px 15px;
+    border-radius: 4px 4px 0 0;
+}
+
+fieldset.module .form-row {
+    border-bottom: 1px solid #f1f1f1;
+    padding: 8px 15px;
+}
+
+fieldset.module .form-row:last-child {
+    border-bottom: none;
+}
+
+/* Amélioration des liens */
+a.related-lookup, a.add-another {
+    color: #007bff;
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+a.related-lookup:hover, a.add-another:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Indicateurs visuels spéciaux */
+.priority-high {
+    border-left: 4px solid #dc3545;
+    padding-left: 10px;
+}
+
+.priority-medium {
+    border-left: 4px solid #ffc107;
+    padding-left: 10px;
+}
+
+.priority-low {
+    border-left: 4px solid #28a745;
+    padding-left: 10px;
+}
+
+/* Animation subtile pour les changements */
+.results tr {
+    transition: background-color 0.2s ease;
+}
+
+.btn-activate, .btn-deactivate, .btn-export {
+    transition: background-color 0.2s ease;
+}
+
+/* Amélioration des formulaires */
+.form-row .help {
+    color: #6c757d;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.form-row label {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Styles pour les erreurs */
+ul.errorlist {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px 0;
+    list-style-type: none;
+}
+
+ul.errorlist li {
+    font-size: 12px;
+    margin: 2px 0;
+}

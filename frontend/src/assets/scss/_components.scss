@@ -1,0 +1,914 @@
+// Custom Components - CICADA
+// Components specific to Kit UI CICADA - November 2025
+// These components are NOT available in Angular Material
+
+@import 'variables';
+
+// ============================================
+// JAUGES DE PROGRESSION (Kit UI)
+// ============================================
+
+.gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+  color: $black;
+
+  &-bar {
+    display: flex;
+    align-items: center;
+    width: 100px;
+    height: 8px;
+    background-color: $gray-lighter;
+    border-radius: $border-radius-sm;
+    overflow: hidden;
+    position: relative;
+
+    &-fill {
+      height: 100%;
+      border-radius: $border-radius-sm;
+      transition: width $transition-base;
+    }
+  }
+
+  // Non démarrée
+  &.gauge-not-started {
+    .gauge-bar-fill {
+      width: 0;
+      background-color: $gauge-not-started;
+    }
+  }
+
+  // Mi-parcours
+  &.gauge-mid-progress {
+    .gauge-bar-fill {
+      background-color: $gauge-mid-progress;
+    }
+
+    .gauge-bar::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      background-color: $gauge-mid-progress;
+      border-radius: 0 $border-radius-sm $border-radius-sm 0;
+    }
+  }
+
+  // Parcours terminé
+  &.gauge-completed {
+    .gauge-bar-fill {
+      width: 100%;
+      background-color: $gauge-completed;
+    }
+  }
+
+  // Parcours dépassé (rouge pointillé)
+  &.gauge-exceeded {
+    .gauge-bar-fill {
+      width: 100%;
+      background: repeating-linear-gradient(
+        90deg,
+        $gauge-exceeded 0px,
+        $gauge-exceeded 6px,
+        transparent 6px,
+        transparent 10px
+      );
+    }
+
+    &::after {
+      content: '▸';
+      color: $gauge-exceeded;
+      margin-left: $spacing-xxs;
+    }
+  }
+}
+
+// ============================================
+// INDICATEURS D'ACTIONS (Kit UI)
+// ============================================
+
+.action-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+
+  &-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // Action prévue (drapeau)
+  &.action-planned {
+    .action-indicator-icon {
+      color: $action-planned;
+    }
+
+    &::before {
+      content: '⚑';
+      color: $action-planned;
+    }
+  }
+
+  // Action prévue et réalisée (étoile pleine)
+  &.action-planned-realized {
+    &::before {
+      content: '★';
+      color: $action-planned-realized;
+    }
+  }
+
+  // Action prévue et partiellement réalisée (étoile mi-pleine)
+  &.action-planned-partial {
+    &::before {
+      content: '☆';
+      color: $action-planned-partial;
+      background: linear-gradient(90deg, $action-planned-partial 50%, transparent 50%);
+      -webkit-background-clip: text;
+    }
+  }
+
+  // Action réalisée non prévue (rond plein)
+  &.action-realized-unplanned {
+    &::before {
+      content: '●';
+      color: $action-realized-unplanned;
+    }
+  }
+
+  // Action partiellement réalisée non prévue (rond mi-plein)
+  &.action-partial-unplanned {
+    &::before {
+      content: '◐';
+      color: $action-partial-unplanned;
+    }
+  }
+}
+
+// ============================================
+// SCORES (Kit UI - Smileys)
+// ============================================
+
+.score-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: $border-radius-round;
+  font-size: 16px;
+
+  &.score-very-bad {
+    background-color: $score-very-bad;
+    &::before { content: '😠'; }
+  }
+
+  &.score-bad {
+    background-color: $score-bad;
+    &::before { content: '😟'; }
+  }
+
+  &.score-neutral {
+    background-color: $score-neutral;
+    &::before { content: '😐'; }
+  }
+
+  &.score-good {
+    background-color: $score-good;
+    &::before { content: '🙂'; }
+  }
+
+  &.score-very-good {
+    background-color: $score-very-good;
+    &::before { content: '😀'; }
+  }
+
+  &.score-no-data {
+    background-color: $gray;
+    &::before { content: '/'; font-size: 12px; }
+  }
+}
+
+// ============================================
+// TUILES ASYMÉTRIQUES (Kit UI)
+// ============================================
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  background-color: $white;
+  border-radius: $tile-border-radius;  // 0 20px 20px 0
+  box-shadow: $shadow-medium;
+  overflow: hidden;
+  transition: box-shadow $transition-base, transform $transition-base;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: $shadow-heavy;
+    transform: translateY(-2px);
+  }
+
+  &-image {
+    position: relative;
+    height: 120px;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+
+    // Image abstraite overlay (vagues)
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba($primary-color, 0.7) 0%, rgba($secondary-pale-green, 0.5) 100%);
+    }
+
+    // Icon centered
+    &-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: $white;
+      font-size: 32px;
+      z-index: 1;
+    }
+  }
+
+  &-content {
+    padding: $spacing-md;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &-title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin: 0;
+  }
+
+  &-arrow {
+    color: $primary-color;
+    font-size: 20px;
+
+    &::after {
+      content: '→';
+    }
+  }
+}
+
+// ============================================
+// BLOC INFO CONSEIL (Kit UI)
+// ============================================
+
+.info-block {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $beige;
+  border-radius: $border-radius-md;
+
+  &-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $secondary-yellow;
+    font-size: 20px;
+
+    &::before {
+      content: '💡';
+    }
+  }
+
+  &-content {
+    flex: 1;
+
+    &-title {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $black;
+      margin: 0 0 $spacing-xxs;
+    }
+
+    &-text {
+      font-size: $font-size-base;
+      color: $gray-dark;
+      margin: 0;
+    }
+  }
+
+  // Variants
+  &.info-block-success {
+    border-left: $border-width-accent solid $success-color;
+
+    .info-block-icon {
+      color: $success-color;
+      &::before { content: '✓'; }
+    }
+  }
+
+  &.info-block-warning {
+    border-left: $border-width-accent solid $warning-color;
+
+    .info-block-icon {
+      color: $warning-color;
+      &::before { content: '⚠'; }
+    }
+  }
+
+  &.info-block-error {
+    border-left: $border-width-accent solid $error-color;
+
+    .info-block-icon {
+      color: $error-color;
+      &::before { content: '✕'; }
+    }
+  }
+}
+
+// ============================================
+// FIL D'ARIANE / BREADCRUMB (Kit UI)
+// ============================================
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $primary-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+
+  &-home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: $white;
+    border-radius: $border-radius-round;
+    color: $primary-color;
+
+    mat-icon, .material-icons {
+      font-size: 18px;
+    }
+  }
+
+  &-separator {
+    color: $white;
+    opacity: 0.6;
+
+    &::after {
+      content: '›';
+    }
+  }
+
+  &-item {
+    color: $white;
+    text-decoration: none;
+    transition: opacity $transition-fast;
+
+    &:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    &.active {
+      font-weight: $font-weight-bold;
+    }
+  }
+}
+
+// ============================================
+// BARRE D'ACTION FIXÉE (Kit UI)
+// ============================================
+
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-xl;
+  background-color: $primary-color;
+  z-index: $z-index-fixed;
+
+  // On desktop with sidebar
+  &.with-sidebar {
+    left: $sidebar-width;
+  }
+
+  &.with-sidebar-collapsed {
+    left: $sidebar-collapsed-width;
+  }
+}
+
+// ============================================
+// MENU LATÉRAL (Kit UI)
+// ============================================
+
+.sidebar-menu {
+  &-section {
+    padding: $spacing-md 0;
+
+    &-title {
+      font-size: $font-size-small;
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-subtitle;
+      color: rgba($white, 0.6);
+      padding: $spacing-xs $spacing-lg;
+      margin-bottom: $spacing-xs;
+    }
+  }
+
+  &-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-lg;
+    color: $white;
+    text-decoration: none;
+    transition: background-color $transition-fast;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba($white, 0.08);
+    }
+
+    &.active {
+      background-color: $white;
+      color: $primary-color;
+      border-radius: 0 $border-radius-pill 0 0;
+
+      .sidebar-menu-item-icon {
+        color: $primary-color;
+      }
+    }
+
+    &-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    &-text {
+      font-size: $font-size-base;
+    }
+
+    // Submenu items
+    &.submenu {
+      padding-left: $spacing-xxl;
+      font-size: $font-size-small;
+
+      &::before {
+        content: '';
+        width: 4px;
+        height: 4px;
+        background-color: currentColor;
+        border-radius: $border-radius-round;
+        margin-right: $spacing-xs;
+      }
+
+      &.active {
+        color: $primary-color;
+        background-color: $white;
+
+        &::before {
+          background-color: $primary-color;
+        }
+      }
+    }
+  }
+
+  // Accordion/dropdown in sidebar
+  &-dropdown {
+    &-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: $spacing-sm $spacing-lg;
+      color: $white;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background-color $transition-fast;
+
+      &:hover {
+        background-color: rgba($white, 0.08);
+      }
+
+      &.active {
+        background-color: $white;
+        color: $primary-color;
+      }
+
+      &-icon {
+        transition: transform $transition-fast;
+      }
+
+      &.open .sidebar-menu-dropdown-toggle-icon {
+        transform: rotate(180deg);
+      }
+    }
+
+    &-content {
+      overflow: hidden;
+      transition: max-height $transition-base;
+      max-height: 0;
+
+      &.open {
+        max-height: 500px;
+      }
+    }
+  }
+}
+
+// ============================================
+// CONTRÔLES SEGMENTÉS (Kit UI)
+// ============================================
+
+.segmented-control {
+  display: inline-flex;
+  border-radius: $border-radius-pill;
+  overflow: hidden;
+  border: 2px solid $primary-color;
+
+  &-option {
+    padding: $spacing-xs $spacing-md;
+    background-color: transparent;
+    color: $primary-color;
+    border: none;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:not(:last-child) {
+      border-right: 1px solid $primary-color;
+    }
+
+    &:hover:not(.active) {
+      background-color: rgba($primary-color, 0.08);
+    }
+
+    &.active {
+      background-color: $primary-color;
+      color: $white;
+    }
+  }
+}
+
+// ============================================
+// LISTE À PUCES PERSONNALISÉE (Kit UI)
+// ============================================
+
+.list-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  &-item {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    padding: $spacing-xs 0;
+    color: $black;
+    font-size: $font-size-base;
+    cursor: pointer;
+    transition: color $transition-fast;
+
+    &::before {
+      content: '╋';
+      color: $error-color;
+      font-weight: $font-weight-bold;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      color: $primary-color;
+      text-decoration: underline;
+    }
+
+    // Item states
+    &.clickable:hover {
+      color: $primary-color;
+    }
+  }
+}
+
+// ============================================
+// DOCUMENTS LIST (Kit UI)
+// ============================================
+
+.documents-list {
+  &-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    color: $primary-color;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-md;
+
+    mat-icon, .material-icons {
+      font-size: 24px;
+    }
+  }
+
+  &-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $gray-lighter;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &-name {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      color: $black;
+      font-size: $font-size-base;
+
+      &::before {
+        content: '╋';
+        color: $error-color;
+      }
+    }
+
+    &-action {
+      color: $primary-color;
+      cursor: pointer;
+
+      &:hover {
+        color: $primary-hover;
+      }
+    }
+  }
+
+  &-add {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-top: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    border: 2px solid $primary-color;
+    border-radius: $border-radius-pill;
+    color: $primary-color;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    background: none;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+    }
+  }
+}
+
+// ============================================
+// PAGINATION CUSTOM (Kit UI)
+// ============================================
+
+.pagination-custom {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+
+  &-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    background-color: $white;
+    color: $black;
+    font-size: $font-size-base;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover:not([disabled]):not(.active) {
+      background-color: $gray-lighter;
+    }
+
+    &.active {
+      background-color: $primary-color;
+      border-color: $primary-color;
+      color: $white;
+    }
+
+    &[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &.nav {
+      color: $primary-color;
+    }
+  }
+
+  &-ellipsis {
+    padding: 0 $spacing-xs;
+    color: $gray-dark;
+  }
+}
+
+// ============================================
+// UICONS (Flaticon) - Utility Classes
+// ============================================
+// Usage: <i class="fi fi-rr-home"></i>
+// Documentation: https://www.flaticon.com/uicons
+
+// Base icon styles
+[class^="fi-"],
+[class*=" fi-"] {
+  font-size: inherit;
+  line-height: 1;
+}
+
+// Icon sizes
+.icon-xs {
+  font-size: 12px;
+}
+
+.icon-sm {
+  font-size: 16px;
+}
+
+.icon-md {
+  font-size: 20px;
+}
+
+.icon-lg {
+  font-size: 24px;
+}
+
+.icon-xl {
+  font-size: 32px;
+}
+
+.icon-xxl {
+  font-size: 48px;
+}
+
+// Icon colors
+.icon-primary {
+  color: $primary-color;
+}
+
+.icon-secondary {
+  color: $gray-dark;
+}
+
+.icon-success {
+  color: $success-color;
+}
+
+.icon-warning {
+  color: $warning-color;
+}
+
+.icon-error {
+  color: $error-color;
+}
+
+.icon-info {
+  color: $info-color;
+}
+
+.icon-white {
+  color: $white;
+}
+
+.icon-muted {
+  color: $gray;
+}
+
+// Icon with text helper
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  [class^="fi-"],
+  [class*=" fi-"] {
+    flex-shrink: 0;
+  }
+}
+
+// Icon button (clickable icon)
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: $border-radius-sm;
+  background: transparent;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $gray-lighter;
+    color: $primary-color;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  &.icon-btn-primary {
+    background-color: $primary-color;
+    color: $white;
+
+    &:hover {
+      background-color: $primary-hover;
+    }
+  }
+
+  &.icon-btn-sm {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  &.icon-btn-lg {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+// Icon circle (icon in colored circle)
+.icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $border-radius-round;
+  background-color: $gray-lighter;
+  color: $primary-color;
+
+  &.icon-circle-primary {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  &.icon-circle-success {
+    background-color: rgba($success-color, 0.15);
+    color: $success-color;
+  }
+
+  &.icon-circle-warning {
+    background-color: rgba($warning-color, 0.15);
+    color: $warning-color;
+  }
+
+  &.icon-circle-error {
+    background-color: rgba($error-color, 0.15);
+    color: $error-color;
+  }
+
+  &.icon-circle-sm {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  &.icon-circle-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+}

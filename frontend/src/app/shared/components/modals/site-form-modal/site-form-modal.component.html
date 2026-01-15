@@ -1,0 +1,141 @@
+<h2 mat-dialog-title>
+  @if (isEditMode) {
+    {{ 'modals.siteForm.editTitle' | translate }}
+  } @else {
+    {{ 'modals.siteForm.createTitle' | translate }}
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="site-form-layout">
+    <!-- Colonne Gauche: Carte -->
+    <div class="map-column">
+      <h3 class="column-title">
+        <i class="fi fi-rr-map-marker"></i>
+        {{ 'sites.form.geometry.title' | translate }}
+      </h3>
+
+      <mat-tab-group (selectedIndexChange)="onGeometryTabChange($event)">
+        <!-- Tab Contour (Polygone) -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <i class="fi fi-rr-draw-polygon tab-icon"></i>
+            {{ 'sites.form.geometry.polygon' | translate }}
+          </ng-template>
+          <div class="map-container">
+            <app-leaflet-map-edit
+              [existingGeometry]="polygonGeometry()"
+              [geometryType]="'polygon'"
+              [height]="'100%'"
+              (geometryChange)="onPolygonChange($event)">
+            </app-leaflet-map-edit>
+          </div>
+          <p class="map-help">{{ 'sites.form.geometry.drawHelp' | translate }}</p>
+        </mat-tab>
+
+        <!-- Tab Point de reference -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <i class="fi fi-rr-marker tab-icon"></i>
+            {{ 'sites.form.geometry.point' | translate }}
+          </ng-template>
+          <div class="map-container">
+            <app-leaflet-map-edit
+              [existingGeometry]="pointGeometry()"
+              [geometryType]="'point'"
+              [height]="'100%'"
+              (geometryChange)="onPointChange($event)">
+            </app-leaflet-map-edit>
+          </div>
+          <p class="map-help">{{ 'sites.form.geometry.pointHelp' | translate }}</p>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <!-- Colonne Droite: Formulaire -->
+    <div class="form-column">
+      <h3 class="column-title">
+        <i class="fi fi-rr-info"></i>
+        {{ 'modals.siteForm.infoTitle' | translate }}
+      </h3>
+
+      <form [formGroup]="form" class="site-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.siteForm.fields.name' | translate }} *</mat-label>
+          <input matInput formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue">
+          @if (form.get('nom_site')?.hasError('required') && form.get('nom_site')?.touched) {
+            <mat-error>{{ 'modals.siteForm.errors.nameRequired' | translate }}</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="form-row two-columns">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.siteForm.fields.localId' | translate }}</mat-label>
+            <input matInput formControlName="id_local" placeholder="Ex: RN13">
+            <mat-hint>{{ 'modals.siteForm.hints.localId' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.siteForm.fields.inpnId' | translate }}</mat-label>
+            <input matInput formControlName="id_inpn" placeholder="Ex: FR3600013">
+            <mat-hint>{{ 'modals.siteForm.hints.inpnId' | translate }}</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row two-columns">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.siteForm.fields.type' | translate }}</mat-label>
+            <mat-select formControlName="id_type_site">
+              <mat-option [value]="null">-- {{ 'common.actions.select' | translate }} --</mat-option>
+              @if (isLoadingTypes()) {
+                <mat-option disabled>{{ 'common.status.loading' | translate }}...</mat-option>
+              } @else {
+                @for (type of siteTypes(); track type.id_nomenclature) {
+                  <mat-option [value]="type.id_nomenclature">
+                    {{ type.label }} ({{ type.cd_nomenclature }})
+                  </mat-option>
+                }
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.siteForm.fields.surface' | translate }}</mat-label>
+            <input matInput type="number" formControlName="surf_off" placeholder="Ex: 1500">
+            @if (form.get('surf_off')?.hasError('min')) {
+              <mat-error>{{ 'modals.siteForm.errors.surfacePositive' | translate }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="checkbox-row">
+          <mat-checkbox formControlName="marin">{{ 'modals.siteForm.fields.marine' | translate }}</mat-checkbox>
+          <mat-checkbox formControlName="outre_mer">{{ 'modals.siteForm.fields.overseas' | translate }}</mat-checkbox>
+          <mat-checkbox formControlName="active">{{ 'modals.siteForm.fields.active' | translate }}</mat-checkbox>
+        </div>
+      </form>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="isLoading()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else if (isEditMode) {
+      {{ 'common.actions.save' | translate }}
+    } @else {
+      {{ 'common.actions.create' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

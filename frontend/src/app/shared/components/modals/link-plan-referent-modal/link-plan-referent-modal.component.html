@@ -1,0 +1,147 @@
+<h2 mat-dialog-title>{{ 'modals.linkPlanReferent.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <div class="modal-form">
+    <!-- Plan info header -->
+    <div class="plan-info">
+      <div class="plan-icon">
+        <i class="fi fi-rr-document"></i>
+      </div>
+      <div class="plan-details">
+        <span class="plan-name">{{ data.plan.nom }}</span>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else {
+      <!-- Error banner -->
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <!-- Success banner -->
+      @if (successMessage()) {
+        <div class="success-banner">
+          <i class="fi fi-rr-check-circle"></i>
+          <span>{{ successMessage() }}</span>
+        </div>
+      }
+
+      <!-- Current referents section -->
+      <div class="referents-section">
+        <h3 class="section-title">
+          <i class="fi fi-rr-user"></i>
+          {{ 'modals.linkPlanReferent.sections.currentReferents' | translate }} ({{ visibleAssignments.length }})
+        </h3>
+
+        @if (referentAssignments().length === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            <span>{{ 'modals.linkPlanReferent.noReferent' | translate }}</span>
+          </div>
+        } @else {
+          <div class="referents-list">
+            @for (assignment of referentAssignments(); track assignment.user.id_role) {
+              <div class="referent-item"
+                   [class.is-new]="assignment.isNew"
+                   [class.is-deleted]="assignment.isDeleted">
+                <div class="referent-item-info">
+                  <i class="fi fi-rr-user"></i>
+                  <span class="referent-name">{{ getUserDisplayName(assignment.user) }}</span>
+                  <span class="referent-email">({{ assignment.user.email }})</span>
+                </div>
+
+                @if (assignment.isNew) {
+                  <span class="badge new-badge">{{ 'modals.linkPlanReferent.badges.new' | translate }}</span>
+                }
+                @if (assignment.isDeleted) {
+                  <span class="badge deleted-badge">{{ 'modals.linkPlanReferent.badges.deleted' | translate }}</span>
+                }
+
+                @if (!assignment.isDeleted) {
+                  <button class="btn-remove"
+                          type="button"
+                          [title]="'modals.linkPlanReferent.actions.removeReferent' | translate"
+                          (click)="removeReferent(assignment)">
+                    <i class="fi fi-rr-cross-small"></i>
+                  </button>
+                } @else {
+                  <button class="btn-restore"
+                          type="button"
+                          (click)="restoreReferent(assignment)">
+                    <i class="fi fi-rr-undo"></i>
+                    {{ 'modals.linkPlanReferent.actions.restore' | translate }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Add referent section -->
+      <div class="add-referent-section">
+        <h3 class="section-title">
+          <i class="fi fi-rr-add"></i>
+          {{ 'modals.linkPlanReferent.sections.addReferent' | translate }}
+        </h3>
+
+        <div class="add-referent-form">
+          <mat-form-field appearance="outline" class="user-search-field">
+            <mat-label>{{ 'modals.linkPlanReferent.searchUser' | translate }}</mat-label>
+            <input matInput
+                   [formControl]="userControl"
+                   [matAutocomplete]="userAuto"
+                   [placeholder]="'modals.linkPlanReferent.searchPlaceholder' | translate">
+            <mat-autocomplete #userAuto="matAutocomplete"
+                              [displayWith]="displayUser"
+                              (optionSelected)="addReferent($event.option.value)">
+              @for (user of filteredUsers(); track user.id_role) {
+                <mat-option [value]="user">
+                  <div class="autocomplete-option">
+                    <span class="option-name">
+                      @if (user.prenom_role && user.nom_role) {
+                        {{ user.prenom_role }} {{ user.nom_role }}
+                      } @else {
+                        {{ user.email }}
+                      }
+                    </span>
+                    <span class="option-email">{{ user.email }}</span>
+                  </div>
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div class="info-box">
+        <i class="fi fi-rr-info"></i>
+        <span [innerHTML]="'modals.linkPlanReferent.infoText' | translate"></span>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'common.actions.cancel' | translate }}</button>
+  <button mat-raised-button
+          color="primary"
+          [disabled]="isLoading() || isLoadingData() || !hasChanges"
+          (click)="onSave()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      {{ 'common.actions.save' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

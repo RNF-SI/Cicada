@@ -1,0 +1,25 @@
+{% extends "emails/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Demande d'inscription en attente" %}{% endblock %}
+
+{% block content %}
+<h2>{% trans "Demande d'inscription reçue" %}</h2>
+
+<p>{% blocktrans %}Bonjour {{ nom_complet }},{% endblocktrans %}</p>
+
+<p>{% trans "Nous avons bien reçu votre demande d'inscription à CICADA." %}</p>
+
+<div class="info-box">
+    <strong>{% trans "Votre demande est en attente de validation." %}</strong><br>
+    {% trans "Un administrateur va examiner votre demande et vous serez notifié par email lorsque celle-ci sera traitée." %}
+</div>
+
+<p>
+    {% trans "En attendant, vous pouvez vérifier le statut de votre demande à tout moment en vous rendant sur la page de connexion." %}
+</p>
+
+<p>
+    {% trans "Si vous n'avez pas effectué cette demande, vous pouvez ignorer cet email." %}
+</p>
+{% endblock %}

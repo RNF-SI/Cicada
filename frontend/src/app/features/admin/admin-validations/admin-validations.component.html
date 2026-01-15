@@ -1,0 +1,160 @@
+<div class="admin-validations">
+  <header class="page-header">
+    <h1>Validations</h1>
+    <p class="subtitle">Gerez les demandes de validation en attente</p>
+  </header>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Statut</mat-label>
+      <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+        @for (option of statusOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Type de demande</mat-label>
+      <mat-select [(ngModel)]="typeFilter" (selectionChange)="applyFilters()">
+        @for (option of typeOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- Tableau -->
+    @if (validations().length === 0) {
+      <div class="empty-state">
+        <i class="fi fi-rr-check-circle empty-icon"></i>
+        <h3>Aucune demande</h3>
+        <p>Il n'y a aucune demande de validation correspondant a vos criteres.</p>
+      </div>
+    } @else {
+      <table mat-table [dataSource]="validations()" class="validations-table">
+        <!-- Type -->
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let validation">
+            <span class="type-badge">
+              <i class="fi" [ngClass]="getTypeIcon(validation.request_type)"></i>
+              {{ validation.request_type_display }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Demandeur -->
+        <ng-container matColumnDef="requester">
+          <th mat-header-cell *matHeaderCellDef>Demandeur</th>
+          <td mat-cell *matCellDef="let validation">
+            {{ validation.requester_name }}
+          </td>
+        </ng-container>
+
+        <!-- Cible -->
+        <ng-container matColumnDef="target">
+          <th mat-header-cell *matHeaderCellDef>Cible</th>
+          <td mat-cell *matCellDef="let validation">
+            {{ validation.target_name || '-' }}
+          </td>
+        </ng-container>
+
+        <!-- Date de demande -->
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>Demande</th>
+          <td mat-cell *matCellDef="let validation">
+            {{ formatDate(validation.created_at) }}
+          </td>
+        </ng-container>
+
+        <!-- Date de validation -->
+        <ng-container matColumnDef="validated_at">
+          <th mat-header-cell *matHeaderCellDef>Valide le</th>
+          <td mat-cell *matCellDef="let validation">
+            @if (validation.validated_at) {
+              {{ formatDate(validation.validated_at) }}
+            } @else {
+              <span class="pending-label">-</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Statut -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let validation">
+            <mat-chip [ngClass]="getStatusClass(validation.status)">
+              {{ validation.status_display }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Validateur -->
+        <ng-container matColumnDef="validator">
+          <th mat-header-cell *matHeaderCellDef>Valide par</th>
+          <td mat-cell *matCellDef="let validation">
+            @if (validation.validator_name) {
+              <span class="validator-info">
+                <i class="fi fi-rr-user-check validator-icon"></i>
+                {{ validation.validator_name }}
+              </span>
+            } @else {
+              <span class="pending-label">-</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let validation">
+            <div class="actions-cell">
+              @if (validation.status === 'pending') {
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="quickApprove(validation, $event)"
+                  matTooltip="Approuver"
+                >
+                  <i class="fi fi-rr-check"></i>
+                </button>
+              }
+              <button
+                mat-icon-button
+                (click)="openDetail(validation)"
+                matTooltip="Voir les details"
+              >
+                <i class="fi fi-rr-eye"></i>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          (click)="openDetail(row)"
+          class="clickable-row"
+        ></tr>
+      </table>
+
+      <!-- Pagination -->
+      <mat-paginator
+        [length]="totalCount()"
+        [pageSize]="pageSize"
+        [pageIndex]="currentPage() - 1"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+</div>

@@ -1,0 +1,263 @@
+<div class="plan-form-modal">
+  <h2 mat-dialog-title>{{ isEditMode ? ('modals.planForm.titleEdit' | translate) : ('modals.planForm.titleCreate' | translate) }}</h2>
+
+  <mat-dialog-content>
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else {
+      <form [formGroup]="form" class="plan-form">
+        <!-- Error message -->
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <i class="fi fi-rr-exclamation"></i>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <!-- Section: Informations generales -->
+        <div class="form-section">
+          <h3 class="section-title">{{ 'modals.planForm.sections.generalInfo' | translate }}</h3>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.name' | translate }}</mat-label>
+            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+            @if (form.get('nom')?.hasError('required')) {
+              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="form-row-3">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.status' | translate }}</mat-label>
+              <mat-select formControlName="statut">
+                <mat-option value="draft">{{ 'common.status.draft' | translate }}</mat-option>
+                <mat-option value="valide">{{ 'common.status.valid' | translate }}</mat-option>
+                <mat-option value="archive">{{ 'common.status.archived' | translate }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.version' | translate }}</mat-label>
+              <input matInput formControlName="version" placeholder="1.0">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.editorName' | translate }}</mat-label>
+              <input matInput formControlName="redacteur_nom" [placeholder]="'modals.planForm.placeholders.editorName' | translate">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Section: Periode et Caracteristiques -->
+        <div class="form-section">
+          <div class="form-row">
+            <div>
+              <h3 class="section-title">{{ 'modals.planForm.sections.managementPeriod' | translate }}</h3>
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'modals.planForm.fields.startYear' | translate }}</mat-label>
+                  <input matInput type="number" formControlName="annee_debut">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'modals.planForm.fields.endYear' | translate }}</mat-label>
+                  <input matInput type="number" formControlName="annee_fin">
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="section-title">{{ 'modals.planForm.sections.characteristics' | translate }}</h3>
+              <div class="checkboxes-row">
+                <mat-checkbox formControlName="gestion_partagee">
+                  {{ 'modals.planForm.fields.sharedManagement' | translate }}
+                </mat-checkbox>
+
+                <mat-checkbox formControlName="ct88">
+                  {{ 'modals.planForm.fields.ct88' | translate }}
+                </mat-checkbox>
+
+                <mat-checkbox formControlName="risque_incendie">
+                  {{ 'modals.planForm.fields.fireRisk' | translate }}
+                </mat-checkbox>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Evaluation et redaction -->
+        <div class="form-section">
+          <h3 class="section-title">{{ 'modals.planForm.sections.evaluationAndWriting' | translate }}</h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.evaluationType' | translate }}</mat-label>
+              <mat-select formControlName="id_evaluation">
+                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
+                @for (type of evaluationTypes(); track type.id_nomenclature) {
+                  <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
+              <mat-select formControlName="id_redacteur_type">
+                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
+                @for (type of redacteurTypes(); track type.id_nomenclature) {
+                  <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Section: Sites et Referents (two columns) -->
+        <div class="form-section">
+          <div class="two-columns">
+            <!-- Sites Column -->
+            <div>
+              <h3 class="section-title">
+                <i class="fi fi-rr-marker"></i>
+                {{ 'modals.planForm.sections.associatedSites' | translate }}
+                <span class="count-badge">{{ getSelectedSitesCount() }}</span>
+              </h3>
+
+              <div class="search-box">
+                <i class="fi fi-rr-search"></i>
+                <input
+                  type="text"
+                  [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
+                  [(ngModel)]="siteSearchQuery"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="filterSites()"
+                />
+              </div>
+
+              <div class="selection-list">
+                @for (site of filteredSites(); track site.id) {
+                  <div
+                    class="selection-item"
+                    [class.selected]="isSiteSelected(site.id)"
+                    (click)="toggleSite(site.id)"
+                  >
+                    <div class="item-info">
+                      <i class="fi fi-rr-marker"></i>
+                      <span class="item-name">{{ site.nom }}</span>
+                      @if (site.type) {
+                        <span class="item-type">{{ site.type }}</span>
+                      }
+                    </div>
+                    <div class="item-checkbox">
+                      @if (isSiteSelected(site.id)) {
+                        <i class="fi fi-rr-check"></i>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (filteredSites().length === 0) {
+                  <p class="no-items">
+                    @if (siteSearchQuery) {
+                      {{ 'modals.planForm.noSiteMatching' | translate:{ query: siteSearchQuery } }}
+                    } @else {
+                      {{ 'modals.planForm.noSiteAvailable' | translate }}
+                    }
+                  </p>
+                }
+              </div>
+            </div>
+
+            <!-- Referents Column -->
+            <div>
+              <h3 class="section-title">
+                <i class="fi fi-rr-user"></i>
+                {{ 'modals.planForm.sections.referents' | translate }}
+                <span class="count-badge">{{ getSelectedReferentsCount() }}</span>
+              </h3>
+
+              <div class="search-box">
+                <i class="fi fi-rr-search"></i>
+                <input
+                  type="text"
+                  [placeholder]="'modals.planForm.placeholders.searchUser' | translate"
+                  [(ngModel)]="userSearchQuery"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="filterUsers()"
+                />
+              </div>
+
+              <div class="selection-list">
+                @for (user of filteredUsers(); track user.id) {
+                  <div
+                    class="selection-item"
+                    [class.selected]="isReferentSelected(user.id)"
+                    (click)="toggleReferent(user.id)"
+                  >
+                    <div class="item-info">
+                      <i class="fi fi-rr-user"></i>
+                      <span class="item-name">{{ user.nom }}</span>
+                      <span class="item-email">{{ user.email }}</span>
+                      @if (user.role) {
+                        <span class="item-role">{{ user.role }}</span>
+                      }
+                    </div>
+                    <div class="item-checkbox">
+                      @if (isReferentSelected(user.id)) {
+                        <i class="fi fi-rr-check"></i>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (filteredUsers().length === 0) {
+                  <p class="no-items">
+                    @if (userSearchQuery) {
+                      {{ 'modals.planForm.noUserMatching' | translate:{ query: userSearchQuery } }}
+                    } @else {
+                      {{ 'modals.planForm.noUserAvailable' | translate }}
+                    }
+                  </p>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Commentaire -->
+        <div class="form-section">
+          <h3 class="section-title">{{ 'modals.planForm.sections.comment' | translate }}</h3>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.comment' | translate }}</mat-label>
+            <textarea
+              matInput
+              formControlName="commentaire"
+              rows="3"
+              [placeholder]="'modals.planForm.placeholders.comment' | translate"
+            ></textarea>
+          </mat-form-field>
+        </div>
+      </form>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSubmit()"
+      [disabled]="isLoading() || isLoadingData()"
+    >
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        {{ isEditMode ? ('common.actions.edit' | translate) : ('common.actions.create' | translate) }}
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

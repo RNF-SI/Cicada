@@ -1,0 +1,131 @@
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
+  padding-top: 16px;
+
+  @media (max-width: 500px) {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+// User info header
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #025359;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #212529;
+}
+
+.user-email {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+// Warning box
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fef3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  color: #856404;
+
+  i {
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  strong {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+// Reason section
+.reason-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reason-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #212529;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 13px;
+
+  i {
+    font-size: 14px;
+  }
+}
+
+// Dialog overrides
+mat-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+
+  button {
+    min-width: 100px;
+  }
+}

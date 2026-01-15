@@ -1,0 +1,139 @@
+// Variables locales (référence au design system)
+$primary-color: #025359;
+$secondary-yellow: #FEC180;
+$secondary-salmon: #F5B399;
+$secondary-terra-cotta: #B74D5D;
+$secondary-pale-green: #C0E3CF;
+$white: #FFFFFF;
+$beige: #F8F5F1;
+$gray: #949494;
+$gray-light: #DADADA;
+
+.ellipse-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// ===================
+// SIZES
+// ===================
+.size-xs {
+  width: 32px;
+  height: 32px;
+
+  .ellipse-icon {
+    font-size: 14px;
+  }
+}
+
+.size-sm {
+  width: 48px;
+  height: 48px;
+
+  .ellipse-icon {
+    font-size: 18px;
+  }
+}
+
+.size-md {
+  width: 64px;
+  height: 64px;
+
+  .ellipse-icon {
+    font-size: 22px;
+  }
+}
+
+.size-lg {
+  width: 80px;
+  height: 80px;
+
+  .ellipse-icon {
+    font-size: 28px;
+  }
+}
+
+.size-xl {
+  width: 96px;
+  height: 96px;
+
+  .ellipse-icon {
+    font-size: 36px;
+  }
+}
+
+// ===================
+// ELLIPSE COLORS
+// ===================
+.bg-primary {
+  background-color: $primary-color;
+}
+
+.bg-salmon {
+  background-color: $secondary-salmon;
+}
+
+.bg-terra-cotta {
+  background-color: $secondary-terra-cotta;
+}
+
+.bg-yellow {
+  background-color: $secondary-yellow;
+}
+
+.bg-pale-green {
+  background-color: $secondary-pale-green;
+}
+
+.bg-white {
+  background-color: $white;
+}
+
+.bg-beige {
+  background-color: $beige;
+}
+
+.bg-gray {
+  background-color: $gray;
+}
+
+.bg-gray-light {
+  background-color: $gray-light;
+}
+
+// ===================
+// ICON COLORS
+// ===================
+.ellipse-icon {
+  position: relative;
+  z-index: 2;
+  line-height: 1;
+}
+
+.icon-white .ellipse-icon {
+  color: $white;
+}
+
+.icon-primary .ellipse-icon {
+  color: $primary-color;
+}
+
+// ===================
+// BORDER & SHADOW
+// ===================
+.with-border {
+  border: 3px solid $white;
+}
+
+.with-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+// Cas spécial: ellipse blanche avec bordure → bordure grise
+.bg-white.with-border {
+  border-color: $gray-light;
+}

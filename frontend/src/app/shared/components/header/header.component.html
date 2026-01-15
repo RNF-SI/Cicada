@@ -1,0 +1,126 @@
+<!-- Impersonation Banner -->
+@if (isImpersonating()) {
+  <div class="impersonation-banner">
+    <div class="impersonation-content">
+      <i class="fi fi-rr-eye"></i>
+      <span class="impersonation-text">
+        <strong>{{ 'header.impersonation.banner' | translate }}</strong> - {{ 'header.impersonation.viewing' | translate }} <strong>{{ userDisplayName }}</strong>
+        <span class="impersonation-info">({{ 'header.impersonation.connectedAs' | translate }} {{ originalUserDisplayName }})</span>
+      </span>
+      <button class="stop-impersonation-btn" (click)="stopImpersonation()">
+        <i class="fi fi-rr-cross-circle"></i>
+        {{ 'header.impersonation.stopButton' | translate }}
+      </button>
+    </div>
+  </div>
+}
+
+<header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()">
+  <div class="header-content">
+    <!-- Hamburger Menu - Hidden on home page -->
+    @if (!isHomePage()) {
+      <button class="hamburger-btn" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
+        <i class="fi fi-rr-menu-burger"></i>
+      </button>
+    }
+
+    <!-- Logo centered -->
+    <a routerLink="/" class="header-logo">
+      <img src="assets/images/logo-cicada.svg" alt="CICADA" class="logo-img" />
+    </a>
+
+    <!-- Navigation -->
+    <nav class="header-nav">
+      @if (isAuthenticated()) {
+        <!-- Administration button - opens in new window (except during impersonation) -->
+        @if (canAccessAdmin()) {
+          <a (click)="openAdmin()" class="nav-link admin-btn" role="button" tabindex="0">
+            <i class="fi fi-rr-settings-sliders"></i>
+            <span class="btn-text">{{ 'header.administration' | translate }}</span>
+          </a>
+        }
+
+        <!-- Notification bell -->
+        <app-notification-bell></app-notification-bell>
+
+        <!-- User menu -->
+        <button mat-button [matMenuTriggerFor]="userMenu" class="nav-link user-menu-trigger">
+          <i class="fi fi-rr-user user-icon"></i>
+          <span class="user-name">{{ userDisplayName }}</span>
+          <i class="fi fi-rr-angle-small-down chevron"></i>
+        </button>
+
+        <mat-menu #userMenu="matMenu" class="user-dropdown-menu">
+          <div class="menu-user-info">
+            <span class="menu-user-name">{{ userDisplayName }}</span>
+            <span class="menu-user-email">{{ currentUser()?.email }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <button mat-menu-item routerLink="/profile">
+            <i class="fi fi-rr-user menu-icon"></i>
+            <span>{{ 'header.profile' | translate }}</span>
+          </button>
+          <button mat-menu-item routerLink="/mes-demandes">
+            <i class="fi fi-rr-time-past menu-icon"></i>
+            <span>{{ 'header.myRequests' | translate }}</span>
+          </button>
+          <button mat-menu-item routerLink="/settings">
+            <i class="fi fi-rr-settings menu-icon"></i>
+            <span>{{ 'header.settings' | translate }}</span>
+          </button>
+          @if (canAccessAdmin()) {
+            <mat-divider></mat-divider>
+            <button mat-menu-item routerLink="/administration/validations">
+              <i class="fi fi-rr-check-circle menu-icon"></i>
+              <span>{{ 'header.validations' | translate }}</span>
+            </button>
+          }
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="logout()" class="logout-item">
+            <i class="fi fi-rr-sign-out-alt menu-icon"></i>
+            <span>{{ 'header.logout' | translate }}</span>
+          </button>
+        </mat-menu>
+      } @else {
+        <!-- Guest user - Login button -->
+        <a routerLink="/auth/login" class="nav-link login-btn">
+          <i class="fi fi-rr-sign-in-alt user-icon"></i>
+          <span class="user-name">{{ 'header.login' | translate }}</span>
+        </a>
+      }
+    </nav>
+  </div>
+</header>
+
+<!-- Mobile Menu Overlay -->
+@if (menuOpen) {
+  <div class="menu-overlay" (click)="toggleMenu()"></div>
+  <nav class="mobile-menu">
+    <div class="mobile-menu-header">
+      <span class="mobile-menu-title">{{ 'header.menu' | translate }}</span>
+      <button class="close-btn" (click)="toggleMenu()">
+        <i class="fi fi-rr-cross"></i>
+      </button>
+    </div>
+    <div class="mobile-menu-content">
+      <a routerLink="/accueil" class="mobile-menu-item" (click)="toggleMenu()">
+        <i class="fi fi-rr-home"></i>
+        <span>{{ 'header.home' | translate }}</span>
+      </a>
+      <a routerLink="/plans" class="mobile-menu-item" (click)="toggleMenu()">
+        <i class="fi fi-rr-document"></i>
+        <span>{{ 'header.plans' | translate }}</span>
+      </a>
+      <a routerLink="/sites" class="mobile-menu-item" (click)="toggleMenu()">
+        <i class="fi fi-rr-marker"></i>
+        <span>{{ 'header.sites' | translate }}</span>
+      </a>
+      @if (isAuthenticated() && canAccessAdmin()) {
+        <a (click)="openAdmin(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
+          <i class="fi fi-rr-settings-sliders"></i>
+          <span>{{ 'header.administration' | translate }}</span>
+        </a>
+      }
+    </div>
+  </nav>
+}

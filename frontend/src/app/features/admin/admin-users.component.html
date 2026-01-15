@@ -1,0 +1,222 @@
+<div class="admin-users">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>{{ 'admin.users.title' | translate }}</h1>
+      <p class="subtitle">
+        @if (isSuperAdmin()) {
+          {{ 'admin.users.subtitle.superAdmin' | translate }}
+        } @else {
+          {{ 'admin.users.subtitle.orgAdmin' | translate:{ orgName: currentOrganismeName() } }}
+        }
+      </p>
+    </div>
+    <!-- No add user button - users are created via Django admin -->
+  </header>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input
+        type="text"
+        [placeholder]="'admin.users.search' | translate"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="filterUsers()"
+      />
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="filterRole" (ngModelChange)="filterUsers()">
+        <option value="">{{ 'common.filters.allRoles' | translate }}</option>
+        <option value="super_admin">{{ 'admin.users.roles.super_admin' | translate }}</option>
+        <option value="admin_og">{{ 'admin.users.roles.admin_og' | translate }}</option>
+        <option value="utilisateur">{{ 'admin.users.roles.utilisateur' | translate }}</option>
+      </select>
+
+      @if (isSuperAdmin()) {
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterUsers()">
+          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
+          @for (org of organismes(); track org.id) {
+            <option [value]="org.id">{{ org.nom }}</option>
+          }
+        </select>
+      }
+
+      <select [(ngModel)]="filterStatus" (ngModelChange)="filterUsers()">
+        <option value="">{{ 'common.filters.allStatus' | translate }}</option>
+        <option value="active">{{ 'common.status.active' | translate }}</option>
+        <option value="inactive">{{ 'common.status.inactive' | translate }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'admin.users.messages.loading' | translate }}</p>
+    </div>
+  } @else {
+    <!-- Users Table -->
+    <div class="table-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>{{ 'admin.users.table.user' | translate }}</th>
+            <th>{{ 'admin.users.table.email' | translate }}</th>
+            @if (isSuperAdmin()) {
+              <th>{{ 'admin.users.table.organisme' | translate }}</th>
+            }
+            <th>{{ 'admin.users.table.role' | translate }}</th>
+            <th>{{ 'admin.users.table.sites' | translate }}</th>
+            <th>{{ 'admin.users.table.plans' | translate }}</th>
+            <th>{{ 'admin.users.table.status' | translate }}</th>
+            <th>{{ 'admin.users.table.lastLogin' | translate }}</th>
+            <th>{{ 'admin.users.table.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers(); track user.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <td class="user-cell">
+                <div class="user-avatar">{{ getInitials(user) }}</div>
+                <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+              </td>
+              <td>{{ user.email }}</td>
+              @if (isSuperAdmin()) {
+                <td>
+                  @if (user.organisme !== 'Non assigne') {
+                    {{ user.organisme }}
+                  } @else {
+                    <span class="text-muted">{{ 'admin.users.notAssigned' | translate }}</span>
+                  }
+                </td>
+              }
+              <td>
+                <span class="role-badge" [class]="'role-' + user.role">
+                  {{ getRoleLabel(user.role) }}
+                </span>
+              </td>
+              <td class="sites-cell">
+                @if (user.sites.length === 0) {
+                  <span class="text-muted">{{ 'admin.users.sites.noSite' | translate }}</span>
+                } @else if (user.sites.length === 1) {
+                  <span class="site-chip" [matTooltip]="user.sites[0].nom + (user.sites[0].isReferent ? ' - ' + ('admin.users.sites.referent' | translate) : '')">
+                    <i class="fi fi-rr-marker"></i>
+                    <span class="site-name">{{ user.sites[0].nom }}</span>
+                    @if (user.sites[0].isReferent) {
+                      <span class="role-indicator referent" [title]="'admin.users.sites.referent' | translate">R</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="sites-list">
+                    @for (site of user.sites.slice(0, 2); track site.id) {
+                      <span class="site-chip" [matTooltip]="site.nom + (site.isReferent ? ' - ' + ('admin.users.sites.referent' | translate) : '')">
+                        <i class="fi fi-rr-marker"></i>
+                        <span class="site-name">{{ site.nom }}</span>
+                        @if (site.isReferent) {
+                          <span class="role-indicator referent" [title]="'admin.users.sites.referent' | translate">R</span>
+                        }
+                      </span>
+                    }
+                    @if (user.sites.length > 2) {
+                      <span class="sites-more" [matTooltip]="getOtherSitesNames(user.sites)">
+                        {{ 'admin.users.sites.others' | translate:{ count: user.sites.length - 2 } }}
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+              <td class="plans-cell">
+                @if (user.plans.length === 0) {
+                  <span class="text-muted">{{ 'admin.users.plans.noPlan' | translate }}</span>
+                } @else if (user.plans.length === 1) {
+                  <span class="plan-chip" [matTooltip]="user.plans[0].nom">
+                    <i class="fi fi-rr-document"></i>
+                    <span class="plan-name">{{ user.plans[0].nom }}</span>
+                    <span class="role-indicator referent" [title]="'admin.users.sites.referent' | translate">R</span>
+                  </span>
+                } @else {
+                  <div class="plans-list">
+                    @for (plan of user.plans.slice(0, 2); track plan.id) {
+                      <span class="plan-chip" [matTooltip]="plan.nom">
+                        <i class="fi fi-rr-document"></i>
+                        <span class="plan-name">{{ plan.nom }}</span>
+                        <span class="role-indicator referent" [title]="'admin.users.sites.referent' | translate">R</span>
+                      </span>
+                    }
+                    @if (user.plans.length > 2) {
+                      <span class="plans-more" [matTooltip]="getOtherPlansNames(user.plans)">
+                        {{ 'admin.users.sites.others' | translate:{ count: user.plans.length - 2 } }}
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+              <td>
+                <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                  {{ (user.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
+                </span>
+              </td>
+              <td class="date-cell">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
+              <td class="actions-cell">
+                @if (canManageUser(user)) {
+                  @if (isSuperAdmin()) {
+                    <button class="btn-icon" [title]="'admin.users.actions.assignOrganisme' | translate" (click)="openAssignOrganismeModal(user)">
+                      <i class="fi fi-rr-building"></i>
+                    </button>
+                  } @else {
+                    <!-- Admin org: bouton pour retirer le lien avec l'organisme -->
+                    @if (user.organismeId === currentUser()?.organisme?.id_organisme) {
+                      <button class="btn-icon danger" [title]="'admin.users.actions.removeFromOrganisme' | translate" (click)="removeUserFromOrganisme(user)">
+                        <i class="fi fi-rr-link-slash"></i>
+                      </button>
+                    }
+                  }
+                  <button class="btn-icon" [title]="'admin.users.actions.assignSite' | translate" (click)="openAssignSiteModal(user)">
+                    <i class="fi fi-rr-marker"></i>
+                  </button>
+                  @if (isSuperAdmin()) {
+                    <button
+                      class="btn-icon"
+                      [class.danger]="user.isActive"
+                      [title]="(user.isActive ? 'admin.users.actions.deactivate' : 'admin.users.actions.activate') | translate"
+                      (click)="toggleUserStatus(user)">
+                      <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
+                    </button>
+                  }
+                }
+                <!-- Impersonation button (super admin only, not for other super admins) -->
+                @if (canImpersonateUser(user)) {
+                  <button
+                    class="btn-icon impersonate"
+                    [title]="'admin.users.actions.viewAs' | translate"
+                    [matTooltip]="('admin.users.actions.viewAs' | translate) + ' ' + user.prenom + ' ' + user.nom"
+                    (click)="startImpersonation(user)">
+                    <i class="fi fi-rr-eye"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+
+          @if (filteredUsers().length === 0) {
+            <tr>
+              <td [attr.colspan]="isSuperAdmin() ? 9 : 8" class="empty-cell">
+                {{ 'admin.users.messages.noUsers' | translate }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="pagination-info">
+        {{ 'admin.users.pagination' | translate:{ count: filteredUsers().length, total: users().length } }}
+      </span>
+    </div>
+  }
+</div>

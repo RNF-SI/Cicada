@@ -1,0 +1,270 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Main Content -->
+<main class="site-detail-page">
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (site()) {
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <!-- Fil d'Ariane -->
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" title="Retour a l'accueil">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <span class="breadcrumb-separator"></span>
+          <a routerLink="/sites" class="breadcrumb-link">{{ 'sites.title' | translate }}</a>
+          <span class="breadcrumb-separator"></span>
+          <span class="breadcrumb-current">{{ site()!.nom_site }}</span>
+        </nav>
+
+        <!-- Titre et metadonnees -->
+        <div class="title-section">
+          <div class="title-left">
+            <div class="subtitle">
+              <i class="fi fi-rr-marker"></i>
+              <span>{{ site()!.type_site_label || 'Site' }}</span>
+            </div>
+            <h1>{{ site()!.nom_site }}</h1>
+            <div class="status-badges">
+              @if (site()!.active === false) {
+                <mat-chip class="status-inactive">
+                  <i class="fi fi-rr-ban chip-icon"></i>
+                  {{ 'sites.detail.inactive' | translate }}
+                </mat-chip>
+              }
+              @if (site()!.current_user_access) {
+                <mat-chip [class]="isReferent() ? 'status-referent' : 'status-user'">
+                  <i class="fi" [class.fi-rr-star]="isReferent()" [class.fi-rr-user]="!isReferent()"></i>
+                  {{ site()!.current_user_access!.role_label }}
+                </mat-chip>
+              }
+            </div>
+          </div>
+          <div class="title-right">
+            @if (isReferent()) {
+              <button class="btn-edit" (click)="editSite()">
+                <i class="fi fi-rr-edit"></i>
+                <span>{{ 'common.actions.edit' | translate }}</span>
+              </button>
+            }
+            @if (canRequestReferent()) {
+              @if (hasPendingReferentRequest()) {
+                <button class="btn-pending" disabled
+                        [matTooltip]="'sites.detail.referentTooltip' | translate"
+                        matTooltipPosition="below">
+                  <i class="fi fi-rr-time-fast"></i>
+                  <span>{{ 'sites.detail.referentRequestPending' | translate }}</span>
+                </button>
+              } @else {
+                <button class="btn-request-referent" (click)="requestReferent()" [disabled]="requestingReferent()"
+                        [matTooltip]="'sites.detail.referentTooltip' | translate"
+                        matTooltipPosition="below"
+                        matTooltipClass="referent-tooltip">
+                  @if (requestingReferent()) {
+                    <mat-spinner diameter="16"></mat-spinner>
+                  } @else {
+                    <i class="fi fi-rr-star"></i>
+                  }
+                  <span>{{ 'sites.detail.requestReferent' | translate }}</span>
+                </button>
+              }
+            }
+            <button class="btn-back" (click)="goBack()">
+              <i class="fi fi-rr-arrow-left"></i>
+              <span>{{ 'common.actions.back' | translate }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Layout GeoNature: Carte a gauche, Contenu a droite -->
+    <div class="geonature-layout">
+      <!-- Carte (gauche) -->
+      <div class="map-column">
+        <div class="map-container">
+          @if (mapGeoJSON() && mapGeoJSON()!.features.length > 0) {
+            <app-leaflet-map
+              [geojsonData]="mapGeoJSON()"
+              [height]="'100%'"
+              [fitBounds]="true"
+              [showControls]="true">
+            </app-leaflet-map>
+          } @else {
+            <div class="no-geometry">
+              <i class="fi fi-rr-map-marker-cross"></i>
+              <p>{{ 'sites.detail.noGeometry' | translate }}</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Contenu (droite) -->
+      <div class="content-column">
+        <!-- Menu sidebar (visuel) -->
+        <nav class="sidebar-menu">
+          @for (item of menuItems; track item.id) {
+            <button
+              class="sidebar-menu-item"
+              [class.active]="activeMenuItem() === item.id"
+              (click)="setActiveMenuItem(item.id)">
+              <i class="fi {{ item.icon }}"></i>
+              <span>{{ item.label | translate }}</span>
+            </button>
+          }
+        </nav>
+
+        <!-- Contenu selon menu actif -->
+        <div class="content-panel">
+          <!-- Vue d'ensemble -->
+          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'info') {
+            <section class="info-section">
+              <h2 class="section-title">
+                <i class="fi fi-rr-info"></i>
+                {{ 'sites.detail.info' | translate }}
+              </h2>
+
+              <div class="info-grid">
+                @for (info of siteInfo(); track info.label) {
+                  <div class="info-item">
+                    <div class="info-icon">
+                      <i class="fi {{ info.icon }}"></i>
+                    </div>
+                    <div class="info-content">
+                      <span class="info-label">{{ info.label | translate }}</span>
+                      <span class="info-value">{{ info.value }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Organismes gestionnaires -->
+              @if (site()!.organismes && site()!.organismes!.length > 0) {
+                <div class="organismes-section">
+                  <h3 class="subsection-title">
+                    <i class="fi fi-rr-building"></i>
+                    {{ 'sites.detail.organismes' | translate }}
+                  </h3>
+                  <div class="organismes-list">
+                    @for (org of site()!.organismes; track org.id_organisme) {
+                      <mat-chip class="organisme-chip">
+                        {{ org.nom_organisme }}
+                      </mat-chip>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+          }
+
+          <!-- Utilisateurs du site -->
+          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'users') {
+            <section class="users-section">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <i class="fi fi-rr-users"></i>
+                  {{ 'sites.detail.users' | translate }}
+                  <span class="badge">{{ siteUsers().length }}</span>
+                </h2>
+                @if (isReferent()) {
+                  <button class="btn-manage" (click)="manageUsers()">
+                    <i class="fi fi-rr-settings"></i>
+                    <span>{{ 'sites.detail.manageUsers' | translate }}</span>
+                  </button>
+                }
+              </div>
+
+              @if (siteUsers().length === 0) {
+                <div class="empty-state empty-state--small">
+                  <i class="fi fi-rr-users empty-icon"></i>
+                  <p>{{ 'sites.detail.noUsers' | translate }}</p>
+                </div>
+              } @else {
+                <div class="users-list">
+                  @for (ua of siteUsers(); track ua.user.id_role) {
+                    <div class="user-card">
+                      <div class="user-avatar">
+                        <i class="fi fi-rr-user"></i>
+                      </div>
+                      <div class="user-info">
+                        <span class="user-name">{{ getUserDisplayName(ua.user) }}</span>
+                        <span class="user-email">{{ ua.user.email }}</span>
+                        @if (ua.user.organisme) {
+                          <span class="user-org">{{ ua.user.organisme }}</span>
+                        }
+                      </div>
+                      <div class="user-role">
+                        <mat-chip [class]="getUserRoleClass(ua)">
+                          {{ getUserRoleLabel(ua) }}
+                        </mat-chip>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          }
+
+          <!-- Plans de gestion -->
+          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'plans') {
+            <section class="plans-section">
+              <h2 class="section-title">
+                <i class="fi fi-rr-document"></i>
+                {{ 'sites.detail.associatedPlans' | translate }}
+                <span class="badge">{{ associatedPlans().length }}</span>
+              </h2>
+
+              @if (associatedPlans().length === 0) {
+                <div class="empty-state">
+                  <i class="fi fi-rr-document empty-icon"></i>
+                  <p>{{ 'sites.detail.noPlans' | translate }}</p>
+                </div>
+              } @else {
+                <div class="plans-list">
+                  @for (plan of associatedPlans(); track plan.id_pg) {
+                    <div class="plan-card" (click)="viewPlan(plan)">
+                      <div class="plan-info">
+                        <span class="plan-name">{{ plan.nom }}</span>
+                        <span class="plan-period">{{ formatPlanPeriod(plan) }}</span>
+                      </div>
+                      <div class="plan-actions">
+                        <mat-chip [class]="getPlanStatusClass(plan.statut)">
+                          {{ getPlanStatusLabel(plan.statut) }}
+                        </mat-chip>
+                        <i class="fi fi-rr-angle-right"></i>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          }
+
+          <!-- Documents -->
+          @if (activeMenuItem() === 'documents') {
+            <section class="documents-section">
+              <h2 class="section-title">
+                <i class="fi fi-rr-folder"></i>
+                {{ 'sites.detail.documents' | translate }}
+              </h2>
+
+              <div class="empty-state">
+                <i class="fi fi-rr-folder empty-icon"></i>
+                <p>{{ 'sites.detail.noDocuments' | translate }}</p>
+              </div>
+            </section>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</main>

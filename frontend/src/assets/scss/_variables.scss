@@ -1,0 +1,221 @@
+// Design System Variables - CICADA
+// Based on Kit UI CICADA - November 2025
+
+// ============================================
+// COLORS (Kit UI 11/2025)
+// ============================================
+
+// Primary Color - Bleu-vert
+$primary-color: #025359;  // Boutons & actions, navigation, titres
+$primary-hover: lighten($primary-color, 8%);
+$primary-active: lighten($primary-color, 15%);
+
+// Secondary Colors
+$secondary-yellow: #FEC180;       // Jaune (décoratif/fond)
+$secondary-orange-salmon: #F5B399; // Orange saumon (décoratif/fond)
+$secondary-terra-cotta: #B74D5D;  // Terra Cotta (AA sur fond blanc)
+$secondary-pale-green: #C0E3CF;   // Vert pâle (décoratif/fond)
+
+// Status Colors
+$success-color: #04854B;  // Vert - Succès (AA)
+$error-color: #E12329;    // Rouge - Erreur (AA)
+$warning-color: #FA9965;  // Orange - Warning
+$info-color: #81C9D8;     // Bleu ciel - Info
+
+// Score Colors (pour jauges et indicateurs)
+$score-very-bad: #FF7579;   // Rouge clair - Très mauvais (décoratif/fond)
+$score-bad: #FA9965;        // Orange - Mauvais (décoratif/fond)
+$score-neutral: #F7D35C;    // Jaune moutarde - Score neutre (décoratif/fond)
+$score-good: #82DB8A;       // Vert clair - Bon score (décoratif/fond)
+$score-very-good: #81C9D8;  // Bleu ciel - Très bon score (décoratif/fond)
+
+// Neutral Colors
+$black: #343433;          // Textes
+$gray-dark: #746F6E;      // Textes mention (AA)
+$gray: #C6C6C6;           // États inactifs
+$gray-light: #E4E4E4;     // Filets séparateurs tableau
+$gray-lighter: #E4E4E4;   // Background tableau
+$beige: #F8F5F1;          // Background
+$white: #FFFFFF;
+
+// Background Colors
+$bg-info-light: #F8F5F1;  // Beige pour blocs info (remplace rose pâle)
+
+// ============================================
+// TYPOGRAPHY (Kit UI 11/2025)
+// ============================================
+
+// Font Family
+$font-family: 'Nunito', sans-serif;
+
+// Font Sizes (Kit UI specs)
+$font-size-h1: 48px;
+$font-size-h2: 32px;
+$font-size-h3: 24px;
+$font-size-h4: 20px;
+$font-size-subtitle: 15px;  // Subtitle: Bold, uppercase, letter-spacing 20%
+$font-size-base: 15px;      // Texte standard
+$font-size-small: 13px;     // Texte mention
+
+// Line Heights (Kit UI specs)
+$line-height-h1: 72px;
+$line-height-h2: 48px;
+$line-height-h3: 36px;
+$line-height-h4: 30px;
+$line-height-base: 24px;
+$line-height-small: 19px;
+
+// Font Weights
+$font-weight-regular: 400;
+$font-weight-bold: 700;
+
+// Letter Spacing
+$letter-spacing-subtitle: 0.2em;  // 20% for subtitle (uppercase)
+
+// ============================================
+// SPACING
+// ============================================
+
+$spacing-xxs: 4px;
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// ============================================
+// BORDERS & RADIUS (Kit UI 11/2025)
+// ============================================
+
+$border-radius-sm: 4px;      // Tables, inputs
+$border-radius-md: 8px;
+$border-radius-lg: 16px;     // Tags
+$border-radius-xl: 20px;     // Tuiles (asymétriques)
+$border-radius-pill: 24px;   // Boutons pill
+$border-radius-round: 50%;   // Boutons icône
+
+// Tuiles asymétriques (Kit UI spec: 20px bas-gauche et haut-droit)
+$tile-border-radius: 0 $border-radius-xl $border-radius-xl 0;
+
+$border-width: 1px;
+$border-width-thick: 2px;
+$border-width-accent: 4px;
+
+// ============================================
+// SHADOWS
+// ============================================
+
+$shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+$shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+// ============================================
+// TRANSITIONS
+// ============================================
+
+$transition-fast: 150ms ease-in-out;
+$transition-base: 250ms ease-in-out;
+$transition-slow: 350ms ease-in-out;
+
+// ============================================
+// BREAKPOINTS
+// ============================================
+
+$breakpoint-mobile: 576px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1440px;
+
+// ============================================
+// Z-INDEX
+// ============================================
+
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// ============================================
+// COMPONENTS SPECIFIC
+// ============================================
+
+// Navigation
+$nav-height: 64px;
+$sidebar-width: 250px;
+$sidebar-collapsed-width: 64px;
+
+// Buttons
+$btn-padding-y: $spacing-sm;
+$btn-padding-x: $spacing-lg;
+$btn-padding-sm-y: $spacing-xs;
+$btn-padding-sm-x: $spacing-md;
+$btn-padding-lg-y: $spacing-md;
+$btn-padding-lg-x: $spacing-xl;
+$btn-icon-size: 40px;
+
+// Inputs
+$input-padding-y: $spacing-sm;
+$input-padding-x: $spacing-md;
+$input-border-color: $gray;
+$input-focus-color: $primary-color;
+$input-error-color: $error-color;
+
+// Cards
+$card-padding: $spacing-lg;
+$card-border-radius: $border-radius-md;
+
+// Tables
+$table-header-bg: $primary-color;
+$table-border-color: $gray-lighter;
+
+// ============================================
+// KIT UI SPECIFIC COMPONENTS
+// ============================================
+
+// Jauges de progression (4 états)
+$gauge-not-started: $gray;           // Non démarrée
+$gauge-mid-progress: $primary-color; // Mi-parcours
+$gauge-completed: $error-color;      // Parcours terminé (rouge)
+$gauge-exceeded: $error-color;       // Parcours dépassé (rouge pointillé)
+
+// Indicateurs d'actions (5 types)
+$action-planned: $primary-color;              // Action prévue (drapeau plein)
+$action-planned-realized: $primary-color;     // Prévue et réalisée (étoile pleine)
+$action-planned-partial: $primary-color;      // Prévue et partiellement réalisée (étoile mi-pleine)
+$action-realized-unplanned: $gray-dark;       // Réalisée non prévue (rond plein)
+$action-partial-unplanned: $gray-dark;        // Partiellement réalisée non prévue (rond mi-plein)
+
+// Priority tags
+$priority-1: $error-color;           // Priorité 1 (rouge)
+$priority-2: $warning-color;         // Priorité 2 (orange)
+$priority-3: $score-neutral;         // Priorité 3 (jaune)
+
+// ============================================
+// MODULE THEMES (cohérence avec tuiles d'accueil)
+// ============================================
+
+// Couleurs de fond de page par module (version claire)
+$module-bg-primary: $beige;                              // Plans de gestion
+$module-bg-salmon: #FDF5F2;                              // Sites (version très claire de salmon)
+$module-bg-terra-cotta: #FDF3F4;                         // Module terra cotta (si utilisé)
+$module-bg-yellow: #FFFBF5;                              // Module jaune (si utilisé)
+$module-bg-pale-green: #F5FAF7;                          // Module vert pâle (si utilisé)
+
+// Couleurs d'accent par module (pour hero, badges, bordures)
+$module-accent-primary: $primary-color;                  // Plans de gestion
+$module-accent-salmon: $secondary-orange-salmon;         // Sites
+$module-accent-terra-cotta: $secondary-terra-cotta;      // Module terra cotta
+$module-accent-yellow: $secondary-yellow;                // Module jaune
+$module-accent-pale-green: $secondary-pale-green;        // Module vert pâle
+
+// ============================================
+// MODULE SITES - Variables spécifiques
+// ============================================
+$sites-page-bg: $module-bg-salmon;
+$sites-accent: $module-accent-salmon;
+$sites-hero-bg: $sites-accent;
+$sites-badge-bg: $sites-accent;

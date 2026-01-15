@@ -1,0 +1,50 @@
+<!-- Impersonation Banner -->
+@if (isImpersonating()) {
+  <div class="impersonation-banner">
+    <div class="impersonation-content">
+      <i class="fi fi-rr-eye"></i>
+      <span class="impersonation-text">
+        <strong>Mode visualisation</strong> - Vous visualisez en tant que <strong>{{ userDisplayName }}</strong>
+        <span class="impersonation-info">(connecte en tant que {{ originalUserDisplayName }})</span>
+      </span>
+      <button class="stop-impersonation-btn" (click)="stopImpersonation()">
+        <i class="fi fi-rr-cross-circle"></i>
+        Revenir a mon compte
+      </button>
+    </div>
+  </div>
+}
+
+<div class="admin-layout" [class.with-impersonation]="isImpersonating()">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-header">
+      <h2>Administration</h2>
+      <span class="role-badge">{{ roleLabel() }}</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of visibleNavItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          class="nav-item">
+          <i class="fi" [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <a routerLink="/accueil" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        <span>Retour à l'accueil</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

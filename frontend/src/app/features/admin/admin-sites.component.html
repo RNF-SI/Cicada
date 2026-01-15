@@ -1,0 +1,190 @@
+<div class="admin-sites">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>{{ 'admin.sites.title' | translate }}</h1>
+      <p class="subtitle">
+        @if (isSuperAdmin()) {
+          {{ 'admin.sites.subtitle.superAdmin' | translate }}
+        } @else if (isAdminOrganisme()) {
+          {{ 'admin.sites.subtitle.orgAdmin' | translate:{ orgName: currentOrganismeName() } }}
+        } @else {
+          {{ 'admin.sites.subtitle.user' | translate }}
+        }
+      </p>
+    </div>
+    @if (isSuperAdmin()) {
+      <button class="btn-primary" (click)="openAddSiteModal()">
+        <i class="fi fi-rr-map-marker-plus"></i>
+        <span>{{ 'admin.sites.addSite' | translate }}</span>
+      </button>
+    }
+  </header>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input
+        type="text"
+        [placeholder]="'admin.sites.search' | translate"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="filterSites()"
+      />
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="filterType" (ngModelChange)="filterSites()">
+        <option value="">{{ 'common.filters.allTypes' | translate }}</option>
+        <option value="RNN">{{ 'admin.sites.types.RNN' | translate }}</option>
+        <option value="RNR">{{ 'admin.sites.types.RNR' | translate }}</option>
+        <option value="PNR">{{ 'admin.sites.types.PNR' | translate }}</option>
+        <option value="ENS">{{ 'admin.sites.types.ENS' | translate }}</option>
+      </select>
+
+      @if (isSuperAdmin()) {
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterSites()">
+          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
+          @for (org of organismes(); track org.id) {
+            <option [value]="org.id">{{ org.nom }}</option>
+          }
+        </select>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'admin.sites.messages.loading' | translate }}</p>
+    </div>
+  } @else {
+    <!-- Sites Table -->
+    <div class="table-container">
+      <table class="sites-table">
+        <thead>
+          <tr>
+            <th>{{ 'admin.sites.table.name' | translate }}</th>
+            <th>{{ 'admin.sites.table.type' | translate }}</th>
+            <th>{{ 'admin.sites.table.organismes' | translate }}</th>
+            <th>{{ 'admin.sites.table.users' | translate }}</th>
+            <th>{{ 'admin.sites.table.surface' | translate }}</th>
+            <th>{{ 'admin.sites.table.plans' | translate }}</th>
+            <th>{{ 'admin.sites.table.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (site of filteredSites(); track site.id; let odd = $odd) {
+            <tr [class.odd]="odd">
+              <td class="name-cell">
+                <i class="fi fi-rr-marker site-icon"></i>
+                <span class="site-name">{{ site.nom }}</span>
+              </td>
+              <td>
+                <span class="type-badge">{{ site.type }}</span>
+              </td>
+              <td class="organismes-cell">
+                @if (site.organismes.length === 0) {
+                  <span class="text-muted">{{ 'admin.sites.empty.noOrganisme' | translate }}</span>
+                } @else if (site.organismes.length === 1) {
+                  <span class="org-chip" [class.principal]="site.organismes[0].principal"
+                        [matTooltip]="site.organismes[0].nom + (site.organismes[0].principal ? ' (' + ('admin.sites.principal' | translate) + ')' : '')">
+                    <i class="fi fi-rr-building"></i>
+                    <span class="org-name">{{ site.organismes[0].nom }}</span>
+                    @if (site.organismes[0].principal) {
+                      <span class="principal-indicator" [title]="'admin.sites.principal' | translate">P</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="orgs-list">
+                    @for (org of site.organismes.slice(0, 2); track org.id) {
+                      <span class="org-chip" [class.principal]="org.principal"
+                            [matTooltip]="org.nom + (org.principal ? ' (' + ('admin.sites.principal' | translate) + ')' : '')">
+                        <i class="fi fi-rr-building"></i>
+                        <span class="org-name">{{ org.nom }}</span>
+                        @if (org.principal) {
+                          <span class="principal-indicator" [title]="'admin.sites.principal' | translate">P</span>
+                        }
+                      </span>
+                    }
+                    @if (site.organismes.length > 2) {
+                      <span class="orgs-more" [matTooltip]="getOtherOrganismesNames(site.organismes)">
+                        {{ 'admin.sites.others' | translate:{ count: site.organismes.length - 2 } }}
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+              <td class="users-cell">
+                @if (site.users.length === 0) {
+                  <span class="text-muted">{{ 'admin.sites.empty.noUser' | translate }}</span>
+                } @else if (site.users.length === 1) {
+                  <span class="user-chip" [matTooltip]="site.users[0].nom + (site.users[0].isReferent ? ' - ' + ('admin.sites.referent' | translate) : '')">
+                    <i class="fi fi-rr-user"></i>
+                    <span class="user-name">{{ site.users[0].nom }}</span>
+                    @if (site.users[0].isReferent) {
+                      <span class="role-indicator referent" [title]="'admin.sites.referent' | translate">R</span>
+                    }
+                  </span>
+                } @else {
+                  <div class="users-list">
+                    @for (user of site.users.slice(0, 2); track user.id) {
+                      <span class="user-chip" [matTooltip]="user.nom + (user.isReferent ? ' - ' + ('admin.sites.referent' | translate) : '')">
+                        <i class="fi fi-rr-user"></i>
+                        <span class="user-name">{{ user.nom }}</span>
+                        @if (user.isReferent) {
+                          <span class="role-indicator referent" [title]="'admin.sites.referent' | translate">R</span>
+                        }
+                      </span>
+                    }
+                    @if (site.users.length > 2) {
+                      <span class="users-more" [matTooltip]="getOtherUsersNames(site.users)">
+                        {{ 'admin.sites.others' | translate:{ count: site.users.length - 2 } }}
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+              <td>
+                @if (site.surface) {
+                  {{ site.surface | number:'1.0-0' }} ha
+                } @else {
+                  -
+                }
+              </td>
+              <td>{{ site.nbPlans }}</td>
+              <td class="actions-cell">
+                @if (isAdminOrganisme()) {
+                  <button class="btn-icon" [title]="'admin.sites.actions.manageUsers' | translate" (click)="openAddReferentModal(site)">
+                    <i class="fi fi-rr-user-add"></i>
+                  </button>
+                }
+                @if (isSuperAdmin()) {
+                  <button class="btn-icon" [title]="'admin.sites.actions.assignOrganisme' | translate" (click)="openAssignOrganismeModal(site)">
+                    <i class="fi fi-rr-building"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+
+          @if (filteredSites().length === 0) {
+            <tr>
+              <td colspan="7" class="empty-cell">
+                {{ 'admin.sites.empty.noSites' | translate }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <span class="summary-text">
+        {{ 'admin.sites.summary' | translate:{ count: filteredSites().length, surface: (totalSurface() | number:'1.0-0') } }}
+      </span>
+    </div>
+  }
+</div>

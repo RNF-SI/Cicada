@@ -1,0 +1,422 @@
+@import 'variables';
+
+.admin-organismes {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Header
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    font-size: $font-size-h2;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $primary-color;
+    margin: 0 0 $spacing-xxs;
+  }
+
+  .subtitle {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-md;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+}
+
+.btn-icon-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
+  color: $primary-color;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// Loading
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+// Filters
+.filters-bar {
+  margin-bottom: $spacing-lg;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  max-width: 400px;
+
+  i {
+    font-size: 16px;
+    color: $gray-dark;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    outline: none;
+
+    &::placeholder {
+      color: $gray;
+    }
+  }
+}
+
+// Grid View (Super Admin)
+.organismes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: $spacing-lg;
+}
+
+.organisme-card {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $primary-color;
+    margin: 0;
+    flex: 1;
+    padding-right: $spacing-sm;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  white-space: nowrap;
+
+  &.active {
+    background-color: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+
+  &.inactive {
+    background-color: rgba($error-color, 0.1);
+    color: $error-color;
+  }
+}
+
+.card-stats {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-sm 0;
+  border-top: 1px solid $gray-light;
+  border-bottom: 1px solid $gray-light;
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    font-size: $font-size-small;
+    color: $gray-dark;
+
+    i {
+      font-size: 14px;
+      color: $primary-color;
+    }
+  }
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+
+  i {
+    font-size: 14px;
+    color: $gray;
+    width: 16px;
+  }
+}
+
+.card-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: auto;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+
+  i {
+    font-size: 48px;
+    color: $gray;
+    margin-bottom: $spacing-md;
+  }
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+// Single Organisme View (Admin Org)
+.organisme-detail {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  padding: $spacing-xl;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1px solid $gray-light;
+  margin-bottom: $spacing-lg;
+}
+
+.org-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background-color: rgba($primary-color, 0.1);
+  border-radius: $border-radius-round;
+  color: $primary-color;
+  font-size: 28px;
+}
+
+.org-info {
+  flex: 1;
+
+  h2 {
+    font-size: $font-size-h3;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-xl;
+}
+
+.detail-section {
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $black;
+    margin: 0 0 $spacing-md;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+}
+
+.stat-card {
+  background-color: $beige;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  color: $primary-color;
+  line-height: 1;
+}
+
+.stat-label {
+  display: block;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin-top: $spacing-xxs;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.contact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+
+  i {
+    font-size: 20px;
+    color: $primary-color;
+    margin-top: 2px;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+
+  .value {
+    font-size: $font-size-base;
+    color: $black;
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-desktop) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .page-header {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .organismes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}

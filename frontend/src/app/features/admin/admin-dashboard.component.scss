@@ -1,0 +1,399 @@
+@import 'variables';
+
+.admin-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Header
+.dashboard-header {
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    font-size: $font-size-h2;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .welcome-message {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+
+    .scope-info {
+      color: $primary-color;
+      font-weight: $font-weight-bold;
+    }
+  }
+}
+
+// Loading
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+// Error Banner
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  background-color: rgba($error-color, 0.1);
+  border: 1px solid $error-color;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-lg;
+  color: $error-color;
+
+  i {
+    font-size: 20px;
+  }
+
+  span {
+    flex: 1;
+    font-size: $font-size-base;
+  }
+
+  .retry-btn {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-md;
+    background-color: $error-color;
+    color: $white;
+    border: none;
+    border-radius: $border-radius-md;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background-color: darken($error-color, 10%);
+    }
+  }
+}
+
+// Stats Section
+.stats-section {
+  margin-bottom: $spacing-xl;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-md;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: $border-radius-round;
+  font-size: 24px;
+
+  &.plans {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+
+  &.active {
+    background-color: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+
+  &.users {
+    background-color: rgba($secondary-yellow, 0.2);
+    color: darken($secondary-yellow, 20%);
+  }
+
+  &.sites {
+    background-color: rgba($secondary-terra-cotta, 0.1);
+    color: $secondary-terra-cotta;
+  }
+
+  &.organismes {
+    background-color: rgba($secondary-pale-green, 0.3);
+    color: darken($secondary-pale-green, 30%);
+  }
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  color: $black;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin-top: $spacing-xxs;
+}
+
+// Actions Section
+.actions-section {
+  margin-bottom: $spacing-xl;
+
+  h2 {
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $black;
+    margin: 0 0 $spacing-md;
+  }
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-md;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  background-color: $white;
+  border: 2px solid $gray-light;
+  border-radius: $border-radius-md;
+  text-decoration: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 28px;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// Activity Section
+.activity-section {
+  margin-bottom: $spacing-xl;
+
+  h2 {
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $black;
+    margin: 0 0 $spacing-md;
+  }
+}
+
+.activity-list {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  overflow: hidden;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $gray-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $border-radius-round;
+  flex-shrink: 0;
+
+  &.plan_created {
+    background-color: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+
+  &.plan_updated {
+    background-color: rgba($info-color, 0.2);
+    color: darken($info-color, 20%);
+  }
+
+  &.user_added {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+
+  &.site_modified {
+    background-color: rgba($secondary-terra-cotta, 0.1);
+    color: $secondary-terra-cotta;
+  }
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-description {
+  font-size: $font-size-base;
+  color: $black;
+  margin: 0 0 $spacing-xxs;
+}
+
+.activity-meta {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.no-activity {
+  padding: $spacing-xl;
+  text-align: center;
+  color: $gray-dark;
+}
+
+// Organismes Overview (Super Admin)
+.organismes-overview {
+  h2 {
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    font-family: $font-family;
+    color: $black;
+    margin: 0 0 $spacing-md;
+  }
+}
+
+.organismes-table-container {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  overflow: hidden;
+}
+
+.organismes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: $font-family;
+
+  th, td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+  }
+
+  thead {
+    th {
+      background-color: $beige;
+      font-weight: $font-weight-bold;
+      font-size: $font-size-small;
+      color: $gray-dark;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $gray-light;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: rgba($primary-color, 0.02);
+      }
+    }
+
+    td {
+      font-size: $font-size-base;
+      color: $black;
+    }
+  }
+}
+
+.btn-table {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  cursor: pointer;
+  border-radius: $border-radius-sm;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-desktop) {
+  .stats-grid,
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .stats-grid,
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: $spacing-md;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .stat-value {
+    font-size: $font-size-h3;
+  }
+}

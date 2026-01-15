@@ -1,0 +1,274 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Main Content -->
+<main class="sites-page">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-background">
+      <div class="hero-pattern"></div>
+    </div>
+
+    <div class="hero-content">
+      <!-- Fil d'Ariane -->
+      <nav class="breadcrumb" aria-label="Fil d'Ariane">
+        <a routerLink="/accueil" class="breadcrumb-home" title="Retour a l'accueil">
+          <i class="fi fi-rr-home"></i>
+        </a>
+        <span class="breadcrumb-separator"></span>
+        <span class="breadcrumb-current">{{ 'sites.title' | translate }}</span>
+      </nav>
+
+      <!-- Titre -->
+      <div class="title-section">
+        <div class="title-left">
+          <div class="subtitle">
+            <i class="fi fi-rr-marker"></i>
+            <span>{{ 'sites.subtitle' | translate }}</span>
+          </div>
+          <h1>{{ 'sites.title' | translate }}</h1>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- GeoNature Layout -->
+    <div class="geonature-layout">
+      <!-- Colonne carte (gauche) -->
+      <div class="map-column">
+        <div class="map-container">
+          @if (hasMapFeatures()) {
+            <app-leaflet-map
+              [geojsonData]="mapGeoJSON()"
+              [height]="'100%'"
+              [fitBounds]="true"
+              [showControls]="true"
+              [showFullscreen]="true"
+              (featureClick)="onMapFeatureClick($event)">
+            </app-leaflet-map>
+          } @else {
+            <div class="no-geometry">
+              <i class="fi fi-rr-map-marker-cross"></i>
+              <p>{{ 'sites.map.noData' | translate }}</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Colonne contenu (droite) -->
+      <div class="content-column">
+        <div class="content-panel">
+          <!-- Section Mes Sites -->
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-check-circle"></i>
+              {{ 'sites.mySites.title' | translate }}
+              <span class="badge">{{ displayedMySites().length }}</span>
+              @if (searchTerm() && mySites().length !== displayedMySites().length) {
+                <span class="search-count">/ {{ mySites().length }}</span>
+              }
+            </h2>
+
+            <!-- Barre de recherche -->
+            @if (mySites().length > 0) {
+              <div class="search-bar">
+                <i class="fi fi-rr-search search-icon"></i>
+                <input
+                  type="text"
+                  class="search-input"
+                  [value]="searchTerm()"
+                  (input)="onSearchChange($event)"
+                  [placeholder]="'sites.mySites.searchPlaceholder' | translate">
+                @if (searchTerm()) {
+                  <button class="search-clear" (click)="clearSearch()">
+                    <i class="fi fi-rr-cross-small"></i>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          @if (mySites().length === 0) {
+            <!-- Aucun site -->
+            <div class="empty-state">
+              <i class="fi fi-rr-marker empty-icon"></i>
+              <p>{{ 'sites.mySites.empty' | translate }}</p>
+            </div>
+          } @else if (displayedMySites().length === 0 && searchTerm()) {
+            <!-- Aucun résultat de recherche -->
+            <div class="empty-state empty-search">
+              <i class="fi fi-rr-search-alt empty-icon"></i>
+              <p>{{ 'sites.mySites.noSearchResults' | translate }}</p>
+              <button class="btn-clear-search" (click)="clearSearch()">
+                {{ 'sites.mySites.clearSearch' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="table-container">
+              <table class="sites-table">
+                <thead>
+                  <tr>
+                    <th class="col-name">{{ 'sites.table.name' | translate }}</th>
+                    <th class="col-type">{{ 'sites.table.type' | translate }}</th>
+                    <th class="col-surface">{{ 'sites.table.surface' | translate }}</th>
+                    <th class="col-organisme">{{ 'sites.table.organisme' | translate }}</th>
+                    <th class="col-status">{{ 'sites.table.status' | translate }}</th>
+                    <th class="col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (site of paginatedMySites(); track site.id_site; let i = $index) {
+                    <tr [class.odd]="i % 2 === 1">
+                      <td class="col-name">
+                        <span class="site-name">{{ site.nom_site }}</span>
+                      </td>
+                      <td class="col-type">
+                        <mat-chip class="type-chip">{{ site.type_site_label || '-' }}</mat-chip>
+                      </td>
+                      <td class="col-surface">{{ formatSurface(site.surf_off) }}</td>
+                      <td class="col-organisme">
+                        @if (site.organismes && site.organismes.length > 0) {
+                          {{ site.organismes[0].nom_organisme }}
+                          @if (site.organismes.length > 1) {
+                            <span class="others">+{{ site.organismes.length - 1 }}</span>
+                          }
+                        } @else {
+                          -
+                        }
+                      </td>
+                      <td class="col-status">
+                        @if (site.isReferent) {
+                          <mat-chip class="status-success">
+                            <i class="fi fi-rr-star chip-icon"></i>
+                            {{ 'sites.mySites.referent' | translate }}
+                          </mat-chip>
+                        } @else {
+                          <mat-chip class="status-info">
+                            <i class="fi fi-rr-check chip-icon"></i>
+                            {{ 'sites.mySites.access' | translate }}
+                          </mat-chip>
+                        }
+                      </td>
+                      <td class="col-actions">
+                        <button class="btn-action" (click)="viewSite(site)">
+                          <span>{{ 'common.actions.view' | translate }}</span>
+                          <i class="fi fi-rr-eye"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (totalPages() > 1) {
+              <div class="pagination">
+                <button
+                  class="pagination-btn"
+                  [disabled]="currentPage() === 1"
+                  (click)="previousPage()">
+                  <i class="fi fi-rr-angle-left"></i>
+                </button>
+
+                @for (page of paginationPages(); track page) {
+                  @if (isPageNumber(page)) {
+                    <button
+                      class="pagination-btn"
+                      [class.active]="currentPage() === page"
+                      (click)="goToPage(page)">
+                      {{ page }}
+                    </button>
+                  } @else {
+                    <span class="pagination-ellipsis">...</span>
+                  }
+                }
+
+                <button
+                  class="pagination-btn"
+                  [disabled]="currentPage() === totalPages()"
+                  (click)="nextPage()">
+                  <i class="fi fi-rr-angle-right"></i>
+                </button>
+              </div>
+            }
+          }
+
+          <!-- Section Sites en attente de validation -->
+          @if (pendingSites().length > 0) {
+            <div class="pending-sites-section">
+              <h3 class="subsection-title">
+                <i class="fi fi-rr-hourglass-end"></i>
+                {{ 'sites.pendingSites.title' | translate }}
+                <span class="badge badge-warning">{{ pendingSites().length }}</span>
+              </h3>
+              <p class="section-description">{{ 'sites.pendingSites.description' | translate }}</p>
+
+              <div class="table-container table-pending">
+                <table class="sites-table">
+                  <thead>
+                    <tr>
+                      <th class="col-name">{{ 'sites.table.name' | translate }}</th>
+                      <th class="col-type">{{ 'sites.table.type' | translate }}</th>
+                      <th class="col-organisme">{{ 'sites.table.organisme' | translate }}</th>
+                      <th class="col-status">{{ 'sites.table.status' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (site of pendingSites(); track site.id_site; let i = $index) {
+                      <tr [class.odd]="i % 2 === 1">
+                        <td class="col-name">
+                          <span class="site-name">{{ site.nom_site }}</span>
+                        </td>
+                        <td class="col-type">
+                          @if (site.type_site_label) {
+                            <mat-chip class="type-chip">{{ site.type_site_label }}</mat-chip>
+                          } @else {
+                            -
+                          }
+                        </td>
+                        <td class="col-organisme">
+                          @if (site.organismes && site.organismes.length > 0) {
+                            {{ site.organismes[0].nom_organisme }}
+                          } @else {
+                            -
+                          }
+                        </td>
+                        <td class="col-status">
+                          <mat-chip class="status-warning">
+                            <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                            {{ 'sites.pendingSites.waiting' | translate }}
+                          </mat-chip>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+
+          <!-- Section Acceder ou creer un site -->
+          <div class="request-access-section">
+            <h3 class="subsection-title">
+              <i class="fi fi-rr-search"></i>
+              {{ 'sites.findOrCreate.title' | translate }}
+            </h3>
+            <p class="section-description">{{ 'sites.findOrCreate.description' | translate }}</p>
+
+            <button class="btn-request" (click)="openFindOrCreateSiteDialog()">
+              <i class="fi fi-rr-search"></i>
+              {{ 'sites.findOrCreate.button' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</main>

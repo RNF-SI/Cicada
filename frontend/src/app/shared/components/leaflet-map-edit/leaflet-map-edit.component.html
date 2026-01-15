@@ -1,0 +1,37 @@
+<div class="leaflet-map-edit-wrapper" [style.height]="height">
+  <!-- Conteneur de la carte -->
+  <div #mapContainer class="map-container"></div>
+
+  <!-- Barre d'outils personnalisée -->
+  <div class="map-toolbar">
+    <button
+      type="button"
+      class="toolbar-btn"
+      (click)="clearAll()"
+      title="Effacer tout">
+      <i class="fi fi-rr-trash"></i>
+    </button>
+    <button
+      type="button"
+      class="toolbar-btn"
+      (click)="recenter()"
+      title="Recentrer">
+      <i class="fi fi-rr-expand-arrows-alt"></i>
+    </button>
+  </div>
+
+  <!-- Instructions -->
+  <div class="map-instructions">
+    @if (geometryType === 'polygon') {
+      <span>
+        <i class="fi fi-rr-pencil"></i>
+        Dessinez le contour : cliquez point par point, puis double-cliquez ou cliquez sur le 1er point pour fermer
+      </span>
+    } @else {
+      <span>
+        <i class="fi fi-rr-marker"></i>
+        Cliquez sur la carte pour placer le point
+      </span>
+    }
+  </div>
+</div>

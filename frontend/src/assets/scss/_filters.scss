@@ -1,0 +1,739 @@
+// Filters & Pagination Components - CICADA
+
+@import 'variables';
+
+// ============================================
+// FILTER PANEL
+// ============================================
+
+.filter-panel {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-light;
+  margin-bottom: $spacing-lg;
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: $spacing-md;
+    border-bottom: $border-width solid $gray-lighter;
+    margin-bottom: $spacing-md;
+
+    .filter-title {
+      color: $primary-color;
+      font-size: $font-size-h4;
+      font-weight: $font-weight-bold;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: $spacing-xs;
+
+      .btn-clear {
+        color: $gray-dark;
+        font-size: $font-size-small;
+        text-decoration: underline;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: $spacing-xxs $spacing-sm;
+        transition: color $transition-fast;
+
+        &:hover {
+          color: $primary-color;
+        }
+      }
+    }
+  }
+
+  .filter-body {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .filter-group {
+      .filter-label {
+        display: block;
+        color: $gray-dark;
+        font-size: $font-size-base;
+        font-weight: $font-weight-bold;
+        margin-bottom: $spacing-xs;
+      }
+    }
+  }
+
+  .filter-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: $border-width solid $gray-lighter;
+    margin-top: $spacing-md;
+  }
+
+  // Horizontal layout
+  &.filter-panel-horizontal {
+    .filter-body {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-end;
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+    }
+  }
+
+  // Collapsible filter panel
+  &.filter-panel-collapsible {
+    .filter-header {
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background-color: $gray-lighter;
+        margin: 0 (-$spacing-lg);
+        padding-left: $spacing-lg;
+        padding-right: $spacing-lg;
+        border-radius: $border-radius-sm;
+      }
+
+      .collapse-icon {
+        transition: transform $transition-base;
+      }
+
+      &.collapsed .collapse-icon {
+        transform: rotate(-90deg);
+      }
+    }
+
+    .filter-body {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height $transition-base ease-out;
+    }
+
+    &.collapsed .filter-body {
+      max-height: 0;
+      margin: 0;
+    }
+  }
+}
+
+// ============================================
+// FILTER CHIPS / ACTIVE FILTERS
+// ============================================
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  background-color: lighten($primary-color, 48%);
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-lg;
+
+  .active-filters-label {
+    color: $primary-color;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    margin-right: $spacing-xs;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xxs $spacing-sm;
+    background-color: $primary-color;
+    color: $white;
+    font-size: $font-size-small;
+    border-radius: $border-radius-lg;
+    white-space: nowrap;
+
+    .chip-label {
+      font-weight: $font-weight-bold;
+      margin-right: $spacing-xxs;
+    }
+
+    .chip-value {
+      font-weight: $font-weight-regular;
+    }
+
+    .chip-remove {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0;
+      margin-left: $spacing-xxs;
+      background: none;
+      border: none;
+      color: $white;
+      opacity: 0.8;
+      transition: opacity $transition-fast;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  .clear-all-filters {
+    margin-left: auto;
+    color: $primary-color;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: $spacing-xxs $spacing-sm;
+
+    &:hover {
+      color: darken($primary-color, 10%);
+    }
+  }
+
+  &:empty {
+    display: none;
+  }
+}
+
+// ============================================
+// SIDEBAR FILTERS
+// ============================================
+
+.sidebar-filters {
+  width: 280px;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-light;
+  height: fit-content;
+  position: sticky;
+  top: $nav-height + $spacing-lg;
+
+  @media (max-width: $breakpoint-tablet) {
+    width: 100%;
+    position: static;
+    margin-bottom: $spacing-lg;
+  }
+
+  .sidebar-filter-section {
+    padding: $spacing-md 0;
+    border-bottom: $border-width solid $gray-lighter;
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .section-title {
+      color: $primary-color;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      margin: 0 0 $spacing-sm 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .section-count {
+        color: $gray-dark;
+        font-size: $font-size-small;
+        font-weight: $font-weight-regular;
+      }
+    }
+
+    .filter-options {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+  }
+}
+
+// ============================================
+// SEARCH & FILTER BAR
+// ============================================
+
+.search-filter-bar {
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-end;
+  padding: $spacing-lg;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  margin-bottom: $spacing-lg;
+
+  @media (max-width: $breakpoint-tablet) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input-wrapper {
+    flex: 2;
+    min-width: 300px;
+
+    @media (max-width: $breakpoint-tablet) {
+      min-width: 100%;
+    }
+  }
+
+  .filter-select-wrapper {
+    flex: 1;
+    min-width: 200px;
+
+    @media (max-width: $breakpoint-tablet) {
+      min-width: 100%;
+    }
+  }
+
+  .filter-button {
+    flex-shrink: 0;
+  }
+}
+
+// ============================================
+// QUICK FILTERS (Buttons)
+// ============================================
+
+.quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-lg;
+
+  .quick-filter-btn {
+    padding: $spacing-xs $spacing-md;
+    background-color: $white;
+    color: $gray-dark;
+    font-size: $font-size-small;
+    font-weight: $font-weight-regular;
+    border: $border-width solid $gray-light;
+    border-radius: $border-radius-xl;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $primary-color;
+      color: $primary-color;
+      background-color: lighten($primary-color, 48%);
+    }
+
+    &.active {
+      background-color: $primary-color;
+      color: $white;
+      border-color: $primary-color;
+      font-weight: $font-weight-bold;
+    }
+
+    &[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .filter-count {
+      margin-left: $spacing-xxs;
+      opacity: 0.7;
+    }
+  }
+}
+
+// ============================================
+// PAGINATION
+// ============================================
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  margin-top: $spacing-lg;
+
+  @media (max-width: $breakpoint-mobile) {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .pagination-info {
+    color: $gray-dark;
+    font-size: $font-size-small;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .info-text {
+      white-space: nowrap;
+    }
+
+    .per-page-selector {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+
+      select {
+        padding: $spacing-xxs $spacing-sm;
+        border: $border-width solid $gray-light;
+        border-radius: $border-radius-sm;
+        font-size: $font-size-small;
+        background-color: $white;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+        }
+      }
+    }
+  }
+
+  .pagination {
+    display: flex;
+    gap: $spacing-xxs;
+    align-items: center;
+
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 $spacing-sm;
+      font-size: $font-size-base;
+      font-weight: $font-weight-regular;
+      color: $gray-dark;
+      background-color: $white;
+      border: $border-width solid $gray-light;
+      border-radius: $border-radius-sm;
+      cursor: pointer;
+      transition: all $transition-fast;
+      text-decoration: none;
+
+      &:hover:not(.active):not([disabled]) {
+        color: $primary-color;
+        border-color: $primary-color;
+        background-color: lighten($primary-color, 48%);
+      }
+
+      &.active {
+        color: $white;
+        background-color: $primary-color;
+        border-color: $primary-color;
+        font-weight: $font-weight-bold;
+      }
+
+      &[disabled] {
+        color: $gray-light;
+        background-color: $gray-lighter;
+        border-color: $gray-lighter;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      &.page-ellipsis {
+        border: none;
+        background: none;
+        cursor: default;
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+// Simple pagination (just prev/next)
+.pagination-simple {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md 0;
+
+  .pagination-info {
+    color: $gray-dark;
+    font-size: $font-size-small;
+  }
+
+  .pagination-nav {
+    display: flex;
+    gap: $spacing-sm;
+  }
+}
+
+// Infinite scroll indicator
+.infinite-scroll-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: $spacing-lg;
+  color: $gray-dark;
+  font-size: $font-size-small;
+
+  .loading-spinner {
+    margin-right: $spacing-sm;
+  }
+}
+
+// ============================================
+// SORT CONTROLS
+// ============================================
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+
+  .sort-label {
+    color: $gray-dark;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+  }
+
+  .sort-select {
+    padding: $spacing-xs $spacing-md;
+    border: $border-width solid $gray-light;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-small;
+    background-color: $white;
+    cursor: pointer;
+    min-width: 200px;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  .sort-direction {
+    display: flex;
+    gap: $spacing-xxs;
+
+    .sort-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: $border-width solid $gray-light;
+      border-radius: $border-radius-sm;
+      background-color: $white;
+      color: $gray-dark;
+      cursor: pointer;
+      transition: all $transition-fast;
+
+      &:hover {
+        border-color: $primary-color;
+        color: $primary-color;
+        background-color: lighten($primary-color, 48%);
+      }
+
+      &.active {
+        background-color: $primary-color;
+        color: $white;
+        border-color: $primary-color;
+      }
+    }
+  }
+}
+
+// ============================================
+// VIEW SWITCHER (Grid/List)
+// ============================================
+
+.view-switcher {
+  display: flex;
+  gap: $spacing-xxs;
+  background-color: $gray-lighter;
+  padding: $spacing-xxs;
+  border-radius: $border-radius-sm;
+
+  .view-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: $gray-dark;
+    border: none;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover:not(.active) {
+      color: $primary-color;
+      background-color: $white;
+    }
+
+    &.active {
+      background-color: $white;
+      color: $primary-color;
+      box-shadow: $shadow-light;
+    }
+  }
+}
+
+// ============================================
+// FILTER DRAWER (Mobile)
+// ============================================
+
+.filter-drawer {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 320px;
+  max-width: 90vw;
+  height: 100vh;
+  background-color: $white;
+  box-shadow: $shadow-heavy;
+  z-index: $z-index-modal;
+  transition: right $transition-base;
+  overflow-y: auto;
+
+  &.open {
+    right: 0;
+  }
+
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-lg;
+    border-bottom: $border-width solid $gray-lighter;
+    position: sticky;
+    top: 0;
+    background-color: $white;
+    z-index: 1;
+
+    .drawer-title {
+      color: $primary-color;
+      font-size: $font-size-h4;
+      font-weight: $font-weight-bold;
+      margin: 0;
+    }
+
+    .drawer-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: $gray-dark;
+      cursor: pointer;
+      border-radius: $border-radius-sm;
+      transition: all $transition-fast;
+
+      &:hover {
+        background-color: $gray-lighter;
+        color: $primary-color;
+      }
+    }
+  }
+
+  .drawer-body {
+    padding: $spacing-lg;
+  }
+
+  .drawer-footer {
+    padding: $spacing-lg;
+    border-top: $border-width solid $gray-lighter;
+    position: sticky;
+    bottom: 0;
+    background-color: $white;
+    display: flex;
+    gap: $spacing-md;
+
+    .btn {
+      flex: 1;
+    }
+  }
+}
+
+.filter-drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba($black, 0.5);
+  z-index: $z-index-modal - 1;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-base, visibility $transition-base;
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// ============================================
+// RESULTS HEADER
+// ============================================
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  background-color: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+
+  .results-info {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+
+    .results-count {
+      color: $primary-color;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+
+      .count-number {
+        color: $primary-color;
+      }
+    }
+
+    .results-time {
+      color: $gray;
+      font-size: $font-size-small;
+    }
+  }
+
+  .results-controls {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: $breakpoint-mobile) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .results-controls {
+      justify-content: space-between;
+    }
+  }
+}

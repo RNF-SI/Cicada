@@ -1,0 +1,87 @@
+<div class="login-page">
+  <div class="login-container">
+    <div class="login-header">
+      <img src="assets/images/logo-cicada.svg" alt="CICADA" class="logo">
+      <h1>{{ 'auth.login.title' | translate }}</h1>
+      <p class="subtitle">{{ 'auth.login.subtitle' | translate }}</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'auth.login.username' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          formControlName="username"
+          [placeholder]="'auth.login.usernamePlaceholder' | translate"
+          autocomplete="username"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-user"></i>
+        </mat-icon>
+        @if (loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched) {
+          <mat-error>{{ 'auth.login.errors.usernameRequired' | translate }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'auth.login.password' | translate }}</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          [placeholder]="'auth.login.passwordPlaceholder' | translate"
+          autocomplete="current-password"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-lock"></i>
+        </mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="togglePasswordVisibility()"
+          [attr.aria-label]="(hidePassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
+        >
+          <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
+        </button>
+        @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+          <mat-error>{{ 'auth.login.errors.passwordRequired' | translate }}</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="submit-button"
+        [disabled]="loginForm.invalid || isLoading()"
+      >
+        @if (isLoading()) {
+          <mat-spinner diameter="20" color="accent"></mat-spinner>
+          <span>{{ 'auth.login.loading' | translate }}</span>
+        } @else {
+          <span>{{ 'auth.login.submit' | translate }}</span>
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p class="register-link">
+        {{ 'auth.login.noAccount' | translate }}
+        <a routerLink="/auth/register">{{ 'auth.login.createAccount' | translate }}</a>
+      </p>
+      <a routerLink="/accueil" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        {{ 'auth.login.backToHome' | translate }}
+      </a>
+    </div>
+  </div>
+</div>

@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 # Métadonnées
 LABEL maintainer="CEN/RNF"
-LABEL description="Backend Django pour Outil Plan de Gestion"
+LABEL description="Backend Django pour CICADA"
 
 # Variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1

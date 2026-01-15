@@ -1,0 +1,294 @@
+// ============================================
+// SITES COMMON STYLES
+// Shared styles between sites-list and site-detail
+// ============================================
+
+// Page layout
+@mixin sites-page-host {
+  display: block;
+  min-height: 100vh;
+  background-color: $sites-page-bg;
+}
+
+@mixin sites-page-container {
+  min-height: calc(100vh - 64px);
+  background-color: $sites-page-bg;
+}
+
+// Hero section
+@mixin sites-hero-section {
+  position: relative;
+  background-color: $sites-accent;
+  border-radius: 0 0 20px 20px;
+  margin: 0 72px;
+  padding: 32px 38px;
+  overflow: hidden;
+}
+
+@mixin sites-hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+@mixin sites-hero-pattern {
+  position: absolute;
+  right: -100px;
+  top: -100px;
+  width: 1000px;
+  height: 1000px;
+  background-image: url('/assets/images/data-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.2;
+  transform: rotate(180deg);
+}
+
+// Breadcrumb
+@mixin sites-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+@mixin sites-breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $white;
+  border-radius: 50%;
+  color: $primary-color;
+  text-decoration: none;
+  transition: transform $transition-fast;
+  flex-shrink: 0;
+  i { font-size: 24px; }
+  &:hover { transform: scale(1.05); }
+}
+
+@mixin sites-breadcrumb-separator {
+  position: relative;
+  width: 16px;
+  height: 48px;
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: 1px;
+    height: 18px;
+    background-color: $black;
+  }
+  &::before { top: 0; }
+  &::after { bottom: 0; }
+}
+
+// Title section
+@mixin sites-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+@mixin sites-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $black;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-xs;
+  i { font-size: 15px; }
+}
+
+@mixin sites-h1 {
+  color: $black;
+  font-size: $font-size-h1;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: $line-height-h1;
+  margin: 0;
+}
+
+// Layout GeoNature
+@mixin sites-geonature-layout {
+  display: flex;
+  gap: $spacing-lg;
+  padding: $spacing-lg 72px $spacing-xl;
+  min-height: calc(100vh - 280px);
+}
+
+@mixin sites-map-column {
+  flex: 0 0 40%;
+  max-width: 40%;
+}
+
+@mixin sites-map-container {
+  position: sticky;
+  top: 80px;
+  height: calc(100vh - 350px);
+  min-height: 380px;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: $white;
+}
+
+@mixin sites-no-geometry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: $gray-lighter;
+  color: $gray-dark;
+  i {
+    font-size: 64px;
+    color: $gray-light;
+    margin-bottom: $spacing-md;
+  }
+  p {
+    font-family: $font-family;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+}
+
+@mixin sites-content-column {
+  flex: 1;
+  min-width: 0;
+}
+
+@mixin sites-content-panel {
+  background-color: $white;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+// Section title
+@mixin sites-section-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0;
+  i {
+    font-size: 20px;
+    color: $primary-color;
+  }
+}
+
+@mixin sites-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background-color: $primary-color;
+  color: $white;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  border-radius: 12px;
+  margin-left: $spacing-xs;
+}
+
+// Empty state
+@mixin sites-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+@mixin sites-empty-icon {
+  font-size: 48px;
+  color: $gray-light;
+  margin-bottom: $spacing-md;
+}
+
+// Loading
+@mixin sites-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+// Responsive mixins
+@mixin sites-responsive-desktop {
+  .hero-section {
+    margin: 0 24px;
+    padding: 24px;
+  }
+  .geonature-layout {
+    padding: $spacing-lg 24px;
+  }
+}
+
+@mixin sites-responsive-tablet {
+  .hero-section {
+    margin: 0 16px;
+    padding: 16px;
+  }
+  .geonature-layout {
+    flex-direction: column;
+    padding: $spacing-md 16px;
+  }
+  .map-column {
+    flex: none;
+    max-width: 100%;
+    order: 2;
+  }
+  .map-container {
+    position: static;
+    height: 300px;
+    min-height: 250px;
+  }
+  .content-column { order: 1; }
+  h1 {
+    font-size: 28px;
+    line-height: 36px;
+  }
+  .breadcrumb { height: 40px; }
+  .breadcrumb-home {
+    width: 40px;
+    height: 40px;
+    i { font-size: 20px; }
+  }
+  .breadcrumb-separator {
+    height: 40px;
+    &::before, &::after { height: 14px; }
+  }
+  .content-panel { padding: $spacing-md; }
+}
+
+@mixin sites-responsive-mobile {
+  .hero-section {
+    margin: 0 8px;
+    padding: 12px;
+    border-radius: 0 0 12px 12px;
+  }
+  .geonature-layout { padding: $spacing-sm 8px; }
+  h1 {
+    font-size: 22px;
+    line-height: 28px;
+  }
+  .subtitle {
+    font-size: $font-size-small;
+    letter-spacing: 2px;
+  }
+}

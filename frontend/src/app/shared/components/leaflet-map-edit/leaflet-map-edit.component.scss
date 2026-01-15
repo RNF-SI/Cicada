@@ -1,0 +1,221 @@
+@import 'variables';
+
+.leaflet-map-edit-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+  background-color: $gray-lighter;
+  border: 1px solid $gray-light;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+// Barre d'outils personnalisée
+.map-toolbar {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: $white;
+  border: 2px solid rgba($primary-color, 0.2);
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  color: $primary-color;
+
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+    border-color: $primary-color;
+  }
+
+  i {
+    font-size: 16px;
+  }
+}
+
+// Instructions en bas
+.map-instructions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-xs $spacing-md;
+  background: linear-gradient(transparent, rgba($black, 0.7));
+  color: $white;
+  font-size: $font-size-small;
+  z-index: 500;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  i {
+    font-size: 14px;
+  }
+}
+
+// Styles Leaflet Draw personnalisés
+:host ::ng-deep {
+  .leaflet-container {
+    font-family: $font-family;
+  }
+
+  // Toolbar de dessin
+  .leaflet-draw-toolbar {
+    a {
+      background-color: $white;
+      border-color: rgba($primary-color, 0.2);
+
+      &:hover {
+        background-color: $primary-color;
+
+        .sr-only {
+          color: $white;
+        }
+      }
+
+      &.leaflet-draw-toolbar-button-enabled {
+        background-color: $primary-color;
+      }
+    }
+  }
+
+  // Actions toolbar (save, cancel)
+  .leaflet-draw-actions {
+    background-color: $primary-color;
+    border-radius: $border-radius-sm;
+
+    a {
+      color: $white;
+      font-size: $font-size-small;
+
+      &:hover {
+        background-color: darken($primary-color, 10%);
+      }
+    }
+
+    li:first-child a {
+      border-radius: $border-radius-sm 0 0 $border-radius-sm;
+    }
+
+    li:last-child a {
+      border-radius: 0 $border-radius-sm $border-radius-sm 0;
+    }
+  }
+
+  // Edit toolbar
+  .leaflet-draw-edit-edit,
+  .leaflet-draw-edit-remove {
+    background-color: $white;
+
+    &:hover {
+      background-color: $secondary-yellow;
+    }
+
+    &.leaflet-draw-toolbar-button-enabled {
+      background-color: $secondary-yellow;
+    }
+  }
+
+  // Tooltip du dessin
+  .leaflet-draw-tooltip {
+    background-color: $primary-color;
+    border: none;
+    color: $white;
+    font-size: $font-size-small;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    box-shadow: $shadow-medium;
+
+    &:before {
+      border-right-color: $primary-color;
+    }
+  }
+
+  .leaflet-draw-tooltip-single {
+    margin-top: -12px;
+  }
+
+  // Vertices (points d'édition)
+  .leaflet-editing-icon {
+    border-radius: 50%;
+    border: 2px solid $primary-color;
+    background-color: $white;
+  }
+
+  // Contrôles de zoom
+  .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: $shadow-light;
+
+    a {
+      background-color: $white !important;
+      color: $primary-color !important;
+      border: none !important;
+      width: 32px !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      font-size: 18px !important;
+
+      &:hover {
+        background-color: $primary-color !important;
+        color: $white !important;
+      }
+    }
+
+    .leaflet-control-zoom-in {
+      border-radius: $border-radius-sm $border-radius-sm 0 0 !important;
+    }
+
+    .leaflet-control-zoom-out {
+      border-radius: 0 0 $border-radius-sm $border-radius-sm !important;
+    }
+  }
+
+  // Attribution
+  .leaflet-control-attribution {
+    background: rgba($white, 0.8) !important;
+    font-size: 10px;
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-tablet) {
+  .map-toolbar {
+    top: $spacing-xs;
+    right: $spacing-xs;
+  }
+
+  .toolbar-btn {
+    width: 28px;
+    height: 28px;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  .map-instructions {
+    font-size: 11px;
+    padding: $spacing-xs $spacing-sm;
+  }
+}

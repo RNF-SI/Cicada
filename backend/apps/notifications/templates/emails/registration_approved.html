@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Votre compte a été validé" %}{% endblock %}
+
+{% block content %}
+<h2>{% trans "Bienvenue sur CICADA !" %}</h2>
+
+<p>{% blocktrans %}Bonjour {{ nom_complet }},{% endblocktrans %}</p>
+
+<p>
+    {% trans "Bonne nouvelle ! Votre demande d'inscription a été approuvée." %}
+    {% trans "Vous pouvez maintenant vous connecter à l'application." %}
+</p>
+
+<p style="text-align: center;">
+    <a href="{{ login_url }}" class="button">
+        {% trans "Se connecter" %}
+    </a>
+</p>
+
+<div class="info-box">
+    <strong>{% trans "Vos identifiants de connexion :" %}</strong><br>
+    {% trans "Email" %} : {{ email }}
+</div>
+
+<p>
+    {% trans "Si vous avez des questions, n'hésitez pas à contacter votre administrateur." %}
+</p>
+{% endblock %}

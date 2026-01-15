@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>{{ 'modals.deactivateUser.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <div class="modal-form">
+    <!-- User info header -->
+    <div class="user-info">
+      <div class="user-avatar">
+        {{ data.userName.charAt(0).toUpperCase() }}
+      </div>
+      <div class="user-details">
+        <span class="user-name">{{ data.userName }}</span>
+        <span class="user-email">{{ data.userEmail }}</span>
+      </div>
+    </div>
+
+    <!-- Warning message -->
+    <div class="warning-box">
+      <i class="fi fi-rr-exclamation"></i>
+      <div>
+        <strong>{{ 'modals.deactivateUser.warning.title' | translate }}</strong>
+        <p>{{ 'modals.deactivateUser.warning.message' | translate }}</p>
+      </div>
+    </div>
+
+    <!-- Reason field -->
+    <div class="reason-section">
+      <label class="reason-label">{{ 'modals.deactivateUser.reason.label' | translate }} *</label>
+      <mat-form-field appearance="outline" class="full-width">
+        <textarea
+          matInput
+          [(ngModel)]="reason"
+          [placeholder]="'modals.deactivateUser.reason.placeholder' | translate"
+          rows="3"
+        ></textarea>
+        <mat-hint>{{ 'modals.deactivateUser.reason.hint' | translate:{ count: reason.length } }}</mat-hint>
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="error-message">
+          <i class="fi fi-rr-exclamation"></i>
+          {{ errorMessage() }}
+        </div>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'common.actions.cancel' | translate }}</button>
+  <button mat-raised-button
+          color="warn"
+          [disabled]="!isValid"
+          (click)="onConfirm()">
+    {{ 'modals.deactivateUser.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,43 @@
+<div
+  class="leaflet-map-wrapper"
+  [class.fullscreen]="isFullscreen()"
+  [style.height]="isFullscreen() ? '100vh' : height">
+
+  <!-- Conteneur de la carte -->
+  <div #mapContainer class="map-container"></div>
+
+  <!-- Boutons de contrôle personnalisés -->
+  <div class="map-controls">
+    <!-- Bouton recentrer -->
+    <button
+      type="button"
+      class="map-control-btn"
+      (click)="recenter()"
+      title="Recentrer la carte">
+      <i class="fi fi-rr-expand-arrows-alt"></i>
+    </button>
+
+    <!-- Bouton plein écran (si activé) -->
+    @if (showFullscreen) {
+      <button
+        type="button"
+        class="map-control-btn"
+        (click)="toggleFullscreen()"
+        [title]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'">
+        @if (isFullscreen()) {
+          <i class="fi fi-rr-compress"></i>
+        } @else {
+          <i class="fi fi-rr-expand"></i>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Message si pas de données -->
+  @if (!geojsonData) {
+    <div class="no-data-overlay">
+      <i class="fi fi-rr-map-marker-cross"></i>
+      <span>Aucune donnée géographique</span>
+    </div>
+  }
+</div>

@@ -1,0 +1,79 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% trans "Notification" %}{% endblock %}</title>
+    <style>
+        body {
+            font-family: 'Nunito', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #025359;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #025359;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .button:hover {
+            background-color: #034e52;
+        }
+        .info-box {
+            background-color: #e7f3f3;
+            border-left: 4px solid #025359;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background-color: #fff3e0;
+            border-left: 4px solid #FA9965;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{% trans "CICADA" %}</h1>
+    </div>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+    <div class="footer">
+        <p>{% trans "Cet email a été envoyé automatiquement par CICADA." %}</p>
+        <p>{% trans "Merci de ne pas répondre à ce message." %}</p>
+    </div>
+</body>
+</html>

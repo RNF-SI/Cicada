@@ -1,0 +1,347 @@
+// Main Styles - CICADA
+// Based on Kit UI CICADA - November 2025
+// IMPORTANT: @use rules must be written before any other rules
+
+// ============================================
+// ANGULAR MATERIAL
+// ============================================
+
+// Angular Material (must be first with @use)
+@use '@angular/material' as mat;
+
+// Angular Material 19 core styles
+@include mat.core();
+
+// ============================================
+// DESIGN SYSTEM BASE
+// ============================================
+
+// Variables (design tokens: colors, spacing, typography, etc.)
+@import 'assets/scss/variables';
+
+// Typography system (Nunito font, headings, text styles)
+@import 'assets/scss/typography';
+
+// ============================================
+// CUSTOM COMPONENTS (Not in Material)
+// ============================================
+
+// Advanced filters (filter panels, active filters, pagination, sort controls)
+@import 'assets/scss/filters';
+
+// Kit UI custom components (jauges, indicateurs, tuiles, breadcrumb, etc.)
+@import 'assets/scss/components';
+
+// ============================================
+// MATERIAL DESIGN 3 THEME - BIODIV' FRANCE
+// Based on Kit UI 11/2025
+// ============================================
+
+// Define custom theme using Material 3 color system
+// Primary: Bleu-vert (#025359)
+// Secondary: Jaune (#FEC180)
+// Tertiary: Orange saumon (#F5B399)
+// Error: Rouge (#E12329)
+
+$theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$blue-palette,
+    tertiary: mat.$yellow-palette,
+  ),
+));
+
+// Apply the theme to all Material components (M3 requires a selector wrapper)
+html {
+  @include mat.all-component-themes($theme);
+}
+
+// Override Material 3 color tokens with CICADA colors (Kit UI 11/2025)
+:root {
+  // ============================================
+  // PRIMARY COLOR (Bleu-vert #025359)
+  // ============================================
+  --mat-sys-primary: #{$primary-color};
+  --mat-sys-on-primary: #{$white};
+  --mat-sys-primary-container: #{$secondary-pale-green};
+  --mat-sys-on-primary-container: #{$primary-color};
+  // Primary fixed (M3 - pour surfaces étendues)
+  --mat-sys-primary-fixed: #{lighten($primary-color, 35%)};
+  --mat-sys-primary-fixed-dim: #{lighten($primary-color, 25%)};
+  --mat-sys-on-primary-fixed: #{$primary-color};
+  --mat-sys-on-primary-fixed-variant: #{darken($primary-color, 10%)};
+
+  // ============================================
+  // SECONDARY COLOR (Jaune #FEC180)
+  // ============================================
+  --mat-sys-secondary: #{$secondary-yellow};
+  --mat-sys-on-secondary: #{$black};
+  --mat-sys-secondary-container: #{lighten($secondary-yellow, 15%)};
+  --mat-sys-on-secondary-container: #{darken($secondary-yellow, 40%)};
+  // Secondary fixed (M3)
+  --mat-sys-secondary-fixed: #{lighten($secondary-yellow, 10%)};
+  --mat-sys-secondary-fixed-dim: #{$secondary-yellow};
+  --mat-sys-on-secondary-fixed: #{$black};
+  --mat-sys-on-secondary-fixed-variant: #{darken($secondary-yellow, 30%)};
+
+  // ============================================
+  // TERTIARY COLOR (Orange saumon #F5B399)
+  // ============================================
+  --mat-sys-tertiary: #{$secondary-orange-salmon};
+  --mat-sys-on-tertiary: #{$black};
+  --mat-sys-tertiary-container: #{lighten($secondary-orange-salmon, 15%)};
+  --mat-sys-on-tertiary-container: #{darken($secondary-orange-salmon, 30%)};
+  // Tertiary fixed (M3)
+  --mat-sys-tertiary-fixed: #{lighten($secondary-orange-salmon, 10%)};
+  --mat-sys-tertiary-fixed-dim: #{$secondary-orange-salmon};
+  --mat-sys-on-tertiary-fixed: #{$black};
+  --mat-sys-on-tertiary-fixed-variant: #{darken($secondary-orange-salmon, 20%)};
+
+  // ============================================
+  // ERROR COLOR (Rouge #E12329)
+  // ============================================
+  --mat-sys-error: #{$error-color};
+  --mat-sys-on-error: #{$white};
+  --mat-sys-error-container: #{lighten($error-color, 35%)};
+  --mat-sys-on-error-container: #{darken($error-color, 10%)};
+
+  // ============================================
+  // SURFACE COLORS (M3)
+  // ============================================
+  --mat-sys-surface: #{$white};
+  --mat-sys-on-surface: #{$black};
+  --mat-sys-surface-variant: #{$gray-lighter};
+  --mat-sys-on-surface-variant: #{$gray-dark};
+  // Surface levels (M3 elevation tones)
+  --mat-sys-surface-dim: #{$beige};
+  --mat-sys-surface-bright: #{$white};
+  --mat-sys-surface-container-lowest: #{$white};
+  --mat-sys-surface-container-low: #{lighten($beige, 2%)};
+  --mat-sys-surface-container: #{$beige};
+  --mat-sys-surface-container-high: #{darken($beige, 3%)};
+  --mat-sys-surface-container-highest: #{darken($beige, 6%)};
+  // Surface tint (M3 - pour les élévations)
+  --mat-sys-surface-tint: #{$primary-color};
+
+  // ============================================
+  // INVERSE COLORS (M3 - pour dark surfaces)
+  // ============================================
+  --mat-sys-inverse-surface: #{$primary-color};
+  --mat-sys-inverse-on-surface: #{$white};
+  --mat-sys-inverse-primary: #{$secondary-pale-green};
+
+  // ============================================
+  // BACKGROUND
+  // ============================================
+  --mat-sys-background: #{$beige};
+  --mat-sys-on-background: #{$black};
+
+  // ============================================
+  // OUTLINE
+  // ============================================
+  --mat-sys-outline: #{$gray};
+  --mat-sys-outline-variant: #{$gray-light};
+
+  // ============================================
+  // SCRIM & SHADOW (M3)
+  // ============================================
+  --mat-sys-scrim: #{rgba($black, 0.5)};
+  --mat-sys-shadow: #{$black};
+
+  // ============================================
+  // ÉTATS INTERACTIFS (Kit UI)
+  // ============================================
+  --mat-sys-state-hover-opacity: 0.08;
+  --mat-sys-state-focus-opacity: 0.12;
+  --mat-sys-state-pressed-opacity: 0.16;
+  --mat-sys-state-dragged-opacity: 0.16;
+
+  // ============================================
+  // STATUS COLORS (Kit UI 11/2025)
+  // ============================================
+  --color-success: #{$success-color};
+  --color-info: #{$info-color};
+  --color-warning: #{$warning-color};
+  --color-error: #{$error-color};
+
+  // ============================================
+  // SCORE COLORS (Kit UI 11/2025)
+  // ============================================
+  --color-score-very-bad: #{$score-very-bad};
+  --color-score-bad: #{$score-bad};
+  --color-score-neutral: #{$score-neutral};
+  --color-score-good: #{$score-good};
+  --color-score-very-good: #{$score-very-good};
+
+  // ============================================
+  // SECONDARY COLORS FOR DECORATIVE USE
+  // ============================================
+  --color-terra-cotta: #{$secondary-terra-cotta};
+  --color-pale-green: #{$secondary-pale-green};
+}
+
+// Material component overrides (must come after theme application)
+@import 'assets/scss/material-overrides';
+
+// ============================================
+// GLOBAL STYLES
+// ============================================
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: $beige;
+}
+
+// ============================================
+// UTILITY CLASSES
+// ============================================
+
+// Spacing utilities
+@each $size, $value in (
+  'xxs': $spacing-xxs,
+  'xs': $spacing-xs,
+  'sm': $spacing-sm,
+  'md': $spacing-md,
+  'lg': $spacing-lg,
+  'xl': $spacing-xl,
+  'xxl': $spacing-xxl
+) {
+  .m-#{$size} { margin: $value !important; }
+  .mt-#{$size} { margin-top: $value !important; }
+  .mr-#{$size} { margin-right: $value !important; }
+  .mb-#{$size} { margin-bottom: $value !important; }
+  .ml-#{$size} { margin-left: $value !important; }
+  .mx-#{$size} { margin-left: $value !important; margin-right: $value !important; }
+  .my-#{$size} { margin-top: $value !important; margin-bottom: $value !important; }
+  
+  .p-#{$size} { padding: $value !important; }
+  .pt-#{$size} { padding-top: $value !important; }
+  .pr-#{$size} { padding-right: $value !important; }
+  .pb-#{$size} { padding-bottom: $value !important; }
+  .pl-#{$size} { padding-left: $value !important; }
+  .px-#{$size} { padding-left: $value !important; padding-right: $value !important; }
+  .py-#{$size} { padding-top: $value !important; padding-bottom: $value !important; }
+}
+
+// Display utilities
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-inline { display: inline !important; }
+.d-inline-block { display: inline-block !important; }
+.d-flex { display: flex !important; }
+.d-inline-flex { display: inline-flex !important; }
+.d-grid { display: grid !important; }
+
+// Flex utilities
+.flex-row { flex-direction: row !important; }
+.flex-column { flex-direction: column !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.flex-nowrap { flex-wrap: nowrap !important; }
+.justify-content-start { justify-content: flex-start !important; }
+.justify-content-end { justify-content: flex-end !important; }
+.justify-content-center { justify-content: center !important; }
+.justify-content-between { justify-content: space-between !important; }
+.justify-content-around { justify-content: space-around !important; }
+.align-items-start { align-items: flex-start !important; }
+.align-items-end { align-items: flex-end !important; }
+.align-items-center { align-items: center !important; }
+.align-items-baseline { align-items: baseline !important; }
+.align-items-stretch { align-items: stretch !important; }
+
+// Position utilities
+.position-static { position: static !important; }
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+.position-sticky { position: sticky !important; }
+
+// Width/Height utilities
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.mw-100 { max-width: 100% !important; }
+.mh-100 { max-height: 100% !important; }
+
+// Background utilities (Kit UI 11/2025)
+.bg-primary { background-color: $primary-color !important; }
+.bg-secondary-yellow { background-color: $secondary-yellow !important; }
+.bg-secondary-orange { background-color: $secondary-orange-salmon !important; }
+.bg-secondary-green { background-color: $secondary-pale-green !important; }
+.bg-terra-cotta { background-color: $secondary-terra-cotta !important; }
+.bg-success { background-color: $success-color !important; }
+.bg-error { background-color: $error-color !important; }
+.bg-warning { background-color: $warning-color !important; }
+.bg-info { background-color: $info-color !important; }
+.bg-light { background-color: $gray-lighter !important; }
+.bg-beige { background-color: $beige !important; }
+.bg-white { background-color: $white !important; }
+
+// Score background utilities (Kit UI 11/2025)
+.bg-score-very-bad { background-color: $score-very-bad !important; }
+.bg-score-bad { background-color: $score-bad !important; }
+.bg-score-neutral { background-color: $score-neutral !important; }
+.bg-score-good { background-color: $score-good !important; }
+.bg-score-very-good { background-color: $score-very-good !important; }
+
+// Border utilities
+.border { border: $border-width solid $gray-light !important; }
+.border-0 { border: 0 !important; }
+.border-top { border-top: $border-width solid $gray-light !important; }
+.border-right { border-right: $border-width solid $gray-light !important; }
+.border-bottom { border-bottom: $border-width solid $gray-light !important; }
+.border-left { border-left: $border-width solid $gray-light !important; }
+
+// Border radius utilities
+.rounded-0 { border-radius: 0 !important; }
+.rounded-sm { border-radius: $border-radius-sm !important; }
+.rounded { border-radius: $border-radius-md !important; }
+.rounded-lg { border-radius: $border-radius-lg !important; }
+.rounded-xl { border-radius: $border-radius-xl !important; }
+.rounded-circle { border-radius: $border-radius-round !important; }
+
+// Shadow utilities
+.shadow-none { box-shadow: none !important; }
+.shadow-sm { box-shadow: $shadow-light !important; }
+.shadow { box-shadow: $shadow-medium !important; }
+.shadow-lg { box-shadow: $shadow-heavy !important; }
+
+// Overflow utilities
+.overflow-auto { overflow: auto !important; }
+.overflow-hidden { overflow: hidden !important; }
+.overflow-visible { overflow: visible !important; }
+.overflow-scroll { overflow: scroll !important; }
+
+// Cursor utilities
+.cursor-pointer { cursor: pointer !important; }
+.cursor-not-allowed { cursor: not-allowed !important; }
+.cursor-default { cursor: default !important; }
+
+// ============================================
+// RESPONSIVE UTILITIES
+// ============================================
+
+@media (max-width: $breakpoint-mobile) {
+  .d-mobile-none { display: none !important; }
+  .d-mobile-block { display: block !important; }
+  .d-mobile-flex { display: flex !important; }
+}
+
+@media (min-width: $breakpoint-tablet) {
+  .d-tablet-none { display: none !important; }
+  .d-tablet-block { display: block !important; }
+  .d-tablet-flex { display: flex !important; }
+}
+
+@media (min-width: $breakpoint-desktop) {
+  .d-desktop-none { display: none !important; }
+  .d-desktop-block { display: block !important; }
+  .d-desktop-flex { display: flex !important; }
+}

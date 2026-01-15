@@ -1,0 +1,13 @@
+<div
+  class="ellipse-container"
+  [ngClass]="[
+    'size-' + size,
+    'bg-' + ellipseColor,
+    'icon-' + iconColor,
+    showBorder ? 'with-border' : '',
+    showShadow ? 'with-shadow' : ''
+  ]"
+>
+  <!-- Icon centered on ellipse -->
+  <i [class]="'fi ' + icon + ' ellipse-icon'"></i>
+</div>

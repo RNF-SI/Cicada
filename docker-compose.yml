@@ -2,21 +2,21 @@ services:
   # Base de données PostgreSQL avec PostGIS
   db:
     image: postgis/postgis:15-3.3-alpine
-    container_name: outil_pg_db
+    container_name: cicada_db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-outil_plan_gestion}
-      POSTGRES_USER: ${POSTGRES_USER:-outil_user}
+      POSTGRES_DB: ${POSTGRES_DB:-cicada}
+      POSTGRES_USER: ${POSTGRES_USER:-cicada_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outil_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outil_user} -d ${POSTGRES_DB:-outil_plan_gestion}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cicada_user} -d ${POSTGRES_DB:-cicada}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -24,14 +24,14 @@ services:
   # Cache Redis
   redis:
     image: redis:7-alpine
-    container_name: outil_pg_redis
+    container_name: cicada_redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
     volumes:
       - redis_data:/data
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
@@ -43,11 +43,11 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: outil_pg_web
+    container_name: cicada_web
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
-      - DATABASE_URL=postgis://${POSTGRES_USER:-outil_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-outil_plan_gestion}
+      - DATABASE_URL=postgis://${POSTGRES_USER:-cicada_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-cicada}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
@@ -55,6 +55,7 @@ services:
       - ./backend:/app
       - media_files:/app/media
       - static_files:/app/static
+      - logs_data:/app/logs
     ports:
       - "${DJANGO_PORT:-8000}:8000"
     depends_on:
@@ -63,7 +64,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - outil_network
+      - cicada_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 30s
@@ -71,28 +72,28 @@ services:
       retries: 3
     command: >
       sh -c "python manage.py migrate &&
+             python import_nomenclatures.py &&
+             python create_superuser.py &&
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
 
-  # Application Angular (Frontend) 
+  # Application Angular (Frontend) - Mode développement  
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: outil_pg_frontend
+    image: node:18-alpine
+    container_name: cicada_frontend
+    working_dir: /app
     volumes:
-      - static_files:/usr/local/apache2/htdocs/static
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-4200}:4200"
+    command: sh -c "npm install && npm run start:docker"
     depends_on:
       - web
     networks:
-      - outil_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - cicada_network
+    environment:
+      - NODE_ENV=development
 
 
 volumes:
@@ -104,9 +105,11 @@ volumes:
     driver: local
   static_files:
     driver: local
+  logs_data:
+    driver: local
 
 networks:
-  outil_network:
+  cicada_network:
     driver: bridge
     ipam:
       config:

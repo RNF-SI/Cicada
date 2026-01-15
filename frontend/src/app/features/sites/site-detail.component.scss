@@ -1,0 +1,150 @@
+@import 'variables';
+@import 'sites-common';
+
+:host { @include sites-page-host; }
+.site-detail-page { @include sites-page-container; }
+.hero-section { @include sites-hero-section; }
+.hero-background { @include sites-hero-background; }
+.hero-pattern { @include sites-hero-pattern; }
+.hero-content { position: relative; z-index: 1; }
+.breadcrumb { @include sites-breadcrumb; }
+.breadcrumb-home { @include sites-breadcrumb-home; }
+.breadcrumb-separator { @include sites-breadcrumb-separator; }
+.breadcrumb-link { color: rgba($black, 0.7); font-size: $font-size-base; font-family: $font-family; text-decoration: none; &:hover { color: $black; text-decoration: underline; } }
+.breadcrumb-current { color: $black; font-size: $font-size-base; font-family: $font-family; font-weight: $font-weight-bold; }
+.title-section { @include sites-title-section; }
+.title-left { flex: 1; }
+.subtitle { @include sites-subtitle; }
+h1 { @include sites-h1; }
+.geonature-layout { @include sites-geonature-layout; }
+.map-column { @include sites-map-column; }
+.map-container { @include sites-map-container; }
+::ng-deep app-leaflet-map { display: block; height: 100%; }
+.no-geometry { @include sites-no-geometry; }
+.content-column { @include sites-content-column; }
+.content-panel { @include sites-content-panel; }
+.section-title { @include sites-section-title; margin: 0 0 $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; }
+.badge { @include sites-badge; }
+.loading-container { @include sites-loading-container; min-height: 400px; }
+.empty-state { @include sites-empty-state; }
+.empty-state--small { padding: 24px; }
+.empty-icon { @include sites-empty-icon; }
+.empty-state p { font-family: $font-family; font-size: $font-size-base; color: $gray-dark; margin: 0; }
+
+// Status badges
+.status-badges { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-top: $spacing-sm; }
+.status-inactive { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+.status-referent { background-color: $secondary-yellow !important; color: $black !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; } }
+.status-user { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; } }
+.chip-icon { font-size: 12px; margin-right: 4px; }
+
+// Title right buttons
+.title-right { display: flex; align-items: center; gap: $spacing-sm; }
+.btn-edit, .btn-back, .btn-request-referent, .btn-pending {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 80px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+  i { font-size: 20px; }
+}
+.btn-edit { background-color: $secondary-yellow; color: $black; &:hover { background-color: darken($secondary-yellow, 10%); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } }
+.btn-back { background-color: $primary-color; color: $white; &:hover { background-color: $primary-hover; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } }
+.btn-request-referent { background-color: $secondary-pale-green; color: $black; mat-spinner { margin-right: 4px; } &:hover:not(:disabled) { background-color: darken($secondary-pale-green, 10%); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } &:disabled { opacity: 0.7; cursor: not-allowed; } }
+.btn-pending { background-color: $gray-light; color: $gray-dark; cursor: default; }
+
+// Sidebar menu
+.sidebar-menu { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 1px solid $gray-light; }
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  cursor: pointer;
+  i { font-size: 14px; }
+  &:hover { border-color: $primary-color; color: $primary-color; }
+  &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
+}
+
+// Subsection title
+.subsection-title { display: flex; align-items: center; gap: $spacing-sm; font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; margin: $spacing-lg 0 $spacing-md; i { font-size: 16px; color: $primary-color; } }
+
+// Info section
+.info-section { margin-bottom: $spacing-xl; }
+.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: $spacing-md; }
+.info-item { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; }
+.info-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background-color: $white; border-radius: 50%; flex-shrink: 0; i { font-size: 18px; color: $primary-color; } }
+.info-content { display: flex; flex-direction: column; gap: 2px; }
+.info-label { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
+.info-value { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
+.organismes-section { margin-top: $spacing-lg; }
+.organismes-list { display: flex; flex-wrap: wrap; gap: $spacing-xs; }
+.organisme-chip { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; }
+
+// Users section
+.users-section { margin-bottom: $spacing-xl; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; .section-title { margin: 0; padding-bottom: 0; border-bottom: none; } }
+.btn-manage { display: flex; align-items: center; gap: $spacing-xs; padding: 8px 16px; background-color: $primary-color; color: $white; border: none; border-radius: $border-radius-pill; font-family: $font-family; font-size: $font-size-small; font-weight: $font-weight-bold; cursor: pointer; i { font-size: 14px; } &:hover { background-color: $primary-hover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); } }
+.users-list { display: flex; flex-direction: column; gap: $spacing-sm; }
+.user-card { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; &:hover { background-color: rgba($primary-color, 0.05); } }
+.user-avatar { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: $white; border-radius: 50%; flex-shrink: 0; i { font-size: 20px; color: $primary-color; } }
+.user-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.user-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
+.user-email { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-org { font-family: $font-family; font-size: $font-size-small; color: $gray; font-style: italic; }
+.user-role { flex-shrink: 0; }
+.role-referent { background-color: $secondary-yellow !important; color: $black !important; font-size: 12px; }
+.role-conservateur { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; }
+.role-user { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+
+// Plans section
+.plans-section { margin-bottom: $spacing-xl; }
+.plans-list { display: flex; flex-direction: column; gap: $spacing-sm; }
+.plan-card { display: flex; justify-content: space-between; align-items: center; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; cursor: pointer; &:hover { background-color: rgba($primary-color, 0.08); transform: translateX(4px); } }
+.plan-info { display: flex; flex-direction: column; gap: 2px; }
+.plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
+.plan-period { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
+.plan-actions { display: flex; align-items: center; gap: $spacing-md; i { font-size: 16px; color: $primary-color; } }
+.status-success { background-color: $score-good !important; color: $black !important; font-size: 12px; }
+.status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; font-size: 12px; }
+.status-neutre { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+
+// Documents section
+.documents-section { margin-bottom: $spacing-xl; }
+
+// Tooltip
+::ng-deep .referent-tooltip { font-size: 13px !important; max-width: 300px !important; white-space: normal !important; line-height: 1.4 !important; text-align: center !important; }
+
+// Responsive
+@media (max-width: $breakpoint-desktop) {
+  @include sites-responsive-desktop;
+  .map-column { flex: 0 0 50%; max-width: 50%; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: $breakpoint-tablet) {
+  @include sites-responsive-tablet;
+  .title-section { flex-direction: column; gap: $spacing-md; }
+  .breadcrumb { flex-wrap: wrap; }
+  .sidebar-menu { justify-content: center; }
+}
+@media (max-width: $breakpoint-mobile) {
+  @include sites-responsive-mobile;
+  .btn-back { padding: 8px 16px; font-size: $font-size-small; }
+  .sidebar-menu-item { padding: $spacing-xs $spacing-sm; font-size: 12px; }
+  .section-title { font-size: $font-size-base; }
+  .info-item { padding: $spacing-sm; }
+  .info-icon { width: 32px; height: 32px; i { font-size: 14px; } }
+}

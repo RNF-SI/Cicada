@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "outil-plan-gestion": {
+    "cicada": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,14 +17,21 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/outil-plan-gestion",
+            "outputPath": "dist/cicada",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": ["src/favicon.ico", "src/assets"],
-            "styles": ["src/styles.scss"],
-            "scripts": []
+            "styles": [
+              "node_modules/leaflet/dist/leaflet.css",
+              "node_modules/leaflet-draw/dist/leaflet.draw.css",
+              "src/styles.scss"
+            ],
+            "scripts": [],
+            "stylePreprocessorOptions": {
+              "includePaths": ["src/assets/scss"]
+            }
           },
           "configurations": {
             "production": {
@@ -36,8 +43,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kB",
-                  "maximumError": "4kB"
+                  "maximumWarning": "8kB",
+                  "maximumError": "12kB"
                 }
               ],
               "outputHashing": "all"
@@ -46,13 +53,20 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "cicada:build",
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
-              "buildTarget": "outil-plan-gestion:build:production"
+              "buildTarget": "cicada:build:production"
             }
           }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }

@@ -1,0 +1,13 @@
+<div class="gauge" [class]="gaugeClass()">
+  <div class="gauge-track">
+    <div class="gauge-fill" [style.width.%]="fillPercentage()"></div>
+    <div class="gauge-pointer" [style.left.%]="pointerPosition()"></div>
+  </div>
+  @if (status === 'exceeded') {
+    <div class="gauge-overflow">
+      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+        <path d="M4.5 0L8.5 4.5L4.5 9L0.5 4.5L4.5 0Z" fill="#B74D5D"/>
+      </svg>
+    </div>
+  }
+</div>
