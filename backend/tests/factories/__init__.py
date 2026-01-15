@@ -21,6 +21,14 @@ from tests.factories.core import (
     TypeNomenclatureFactory,
     NomenclatureFactory,
 )
+from tests.factories.notifications import (
+    NotificationFactory,
+    ValidationRequestFactory,
+    ReferentValidationRequestFactory,
+    SiteAccessRequestFactory,
+    UserRegistrationRequestFactory,
+    PendingUserFactory,
+)
 
 __all__ = [
     # Users factories
@@ -40,4 +48,11 @@ __all__ = [
     # Core factories
     'TypeNomenclatureFactory',
     'NomenclatureFactory',
+    # Notifications factories
+    'NotificationFactory',
+    'ValidationRequestFactory',
+    'ReferentValidationRequestFactory',
+    'SiteAccessRequestFactory',
+    'UserRegistrationRequestFactory',
+    'PendingUserFactory',
 ]
