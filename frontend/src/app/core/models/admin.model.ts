@@ -72,7 +72,8 @@ export interface AdminSite {
   marin?: boolean;
   outre_mer?: boolean;
   active?: boolean;
-  organismes?: AdminOrganisme[];
+  /** Organismes gestionnaires du site */
+  organismes?: SiteOrganisme[];
   users?: AdminUser[];
   // Informations sur l'acces de l'utilisateur courant
   current_user_is_referent?: boolean;
@@ -231,7 +232,8 @@ export interface SiteOrganisme {
   nom_organisme: string;
   ville_organisme?: string;
   email_organisme?: string;
-  principal: boolean;
+  /** Indique si c'est l'organisme principal/gestionnaire du site */
+  principal?: boolean;
 }
 
 /**

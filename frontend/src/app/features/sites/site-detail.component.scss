@@ -18,7 +18,7 @@
 h1 { @include sites-h1; }
 .geonature-layout { @include sites-geonature-layout; }
 .map-column { @include sites-map-column; }
-.map-container { @include sites-map-container; }
+.map-container { @include sites-map-container; position: relative; }
 ::ng-deep app-leaflet-map { display: block; height: 100%; }
 .no-geometry { @include sites-no-geometry; }
 .content-column { @include sites-content-column; }
@@ -90,14 +90,70 @@ h1 { @include sites-h1; }
 .info-content { display: flex; flex-direction: column; gap: 2px; }
 .info-label { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .info-value { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
-.organismes-section { margin-top: $spacing-lg; }
-.organismes-list { display: flex; flex-wrap: wrap; gap: $spacing-xs; }
-.organisme-chip { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; }
+// Organismes section
+.organismes-section { margin-bottom: $spacing-xl; }
+.organismes-cards { display: flex; flex-direction: column; gap: $spacing-sm; }
+.organisme-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  &:hover { background-color: rgba($primary-color, 0.05); }
+}
+.organisme-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background-color: $white;
+  border-radius: 50%;
+  flex-shrink: 0;
+  i { font-size: 20px; color: $primary-color; }
+}
+.organisme-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.organisme-name {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+.organisme-city {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+.organisme-role { flex-shrink: 0; }
+.role-principal {
+  background-color: $secondary-yellow !important;
+  color: $black !important;
+  font-size: 12px;
+  i { font-size: 12px; margin-right: 4px; }
+}
+.role-gestionnaire {
+  background-color: $secondary-pale-green !important;
+  color: $black !important;
+  font-size: 12px;
+}
 
 // Users section
 .users-section { margin-bottom: $spacing-xl; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; .section-title { margin: 0; padding-bottom: 0; border-bottom: none; } }
+.section-actions { display: flex; gap: $spacing-sm; }
 .btn-manage { display: flex; align-items: center; gap: $spacing-xs; padding: 8px 16px; background-color: $primary-color; color: $white; border: none; border-radius: $border-radius-pill; font-family: $font-family; font-size: $font-size-small; font-weight: $font-weight-bold; cursor: pointer; i { font-size: 14px; } &:hover { background-color: $primary-hover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); } }
+.btn-invite { display: flex; align-items: center; gap: $spacing-xs; padding: 8px 16px; background-color: $white; color: $primary-color; border: 2px solid $primary-color; border-radius: $border-radius-pill; font-family: $font-family; font-size: $font-size-small; font-weight: $font-weight-bold; cursor: pointer; i { font-size: 14px; } &:hover { background-color: $primary-color; color: $white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); } }
+
+// Subsection header (for organismes)
+.subsection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-md; }
+.empty-text { color: $gray-dark; font-size: $font-size-small; font-style: italic; }
 .users-list { display: flex; flex-direction: column; gap: $spacing-sm; }
 .user-card { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; &:hover { background-color: rgba($primary-color, 0.05); } }
 .user-avatar { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: $white; border-radius: 50%; flex-shrink: 0; i { font-size: 20px; color: $primary-color; } }
@@ -124,6 +180,111 @@ h1 { @include sites-h1; }
 
 // Documents section
 .documents-section { margin-bottom: $spacing-xl; }
+
+// Map toolbar for shapefile import
+.map-toolbar {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.btn-import-shapefile {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 10px 16px;
+  background-color: $white;
+  color: $primary-color;
+  border: 2px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+
+  i { font-size: 16px; }
+  mat-spinner { margin-right: 4px; }
+
+  &:hover:not(:disabled) {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.import-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.btn-save-geometry {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 10px 16px;
+  background-color: $success-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+
+  i { font-size: 16px; }
+  mat-spinner { margin-right: 4px; }
+
+  &:hover:not(:disabled) {
+    background-color: darken($success-color, 10%);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.btn-cancel-import {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 10px 16px;
+  background-color: $white;
+  color: $error-color;
+  border: 2px solid $error-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+
+  i { font-size: 14px; }
+
+  &:hover:not(:disabled) {
+    background-color: $error-color;
+    color: $white;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
 
 // Tooltip
 ::ng-deep .referent-tooltip { font-size: 13px !important; max-width: 300px !important; white-space: normal !important; line-height: 1.4 !important; text-align: center !important; }
