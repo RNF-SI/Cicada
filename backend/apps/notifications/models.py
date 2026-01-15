@@ -164,12 +164,15 @@ class ValidationRequest(models.Model):
 
     REQUEST_TYPES = [
         ('user_registration', _('Inscription utilisateur')),
+        ('site_creation', _('Création de site')),
         ('site_access', _('Accès à un site')),
         ('plan_access', _('Accès à un plan de gestion')),
         ('module_access', _('Accès à un module')),
         ('admin_deactivation', _('Désactivation admin_og')),
         ('referent_validation', _('Validation référent site')),
         ('site_org_link', _('Lien site-organisme')),
+        ('invite_org_to_site', _('Invitation organisme vers site')),
+        ('invite_user_to_site', _('Invitation utilisateur vers site')),
     ]
 
     STATUS_CHOICES = [

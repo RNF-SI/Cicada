@@ -330,14 +330,17 @@ class OrganismeViewSet(viewsets.ModelViewSet):
 class SiteViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des sites.
-    
+
     Permissions:
     - Liste/Détail: Authentifié (filtrage selon rôle)
-    - Création: Admin Organisme+
+    - Création: Authentifié (le site doit être validé par admin_og/super_admin)
     - Modification: Référent du site OU Admin de l'organisme gestionnaire OU Super Admin
     - Suppression: Admin Organisme+ (dans son scope)
+
+    Note: La création de site déclenche un workflow de validation.
+    Le créateur devient automatiquement référent une fois le site validé.
     """
-    
+
     pagination_class = StandardPagination
     filterset_class = SiteFilter
     search_fields = ['nom_site', 'id_local', 'id_inpn']
@@ -358,14 +361,15 @@ class SiteViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Permissions selon l'action."""
         if self.action in ['create']:
-            permission_classes = [IsAdminOrganisme]
+            # Tout utilisateur authentifié peut créer un site (soumis à validation)
+            permission_classes = [permissions.IsAuthenticated]
         elif self.action in ['update', 'partial_update']:
             permission_classes = [IsReferent]  # Vérifié dans get_object
         elif self.action in ['destroy']:
             permission_classes = [IsAdminOrganisme]  # Vérifié dans get_object
         else:
             permission_classes = [permissions.IsAuthenticated]
-        
+
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
@@ -377,12 +381,17 @@ class SiteViewSet(viewsets.ModelViewSet):
             return Site.objects.all().select_related('id_type_site')
         
         elif user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme voit les sites de son organisme
-            managed_sites = CorOgSite.objects.filter(
+            # Admin organisme voit les sites de son organisme + ses sites personnellement assignés
+            org_sites = CorOgSite.objects.filter(
                 uuid_og=user.id_organisme
             ).values_list('id_site', flat=True)
-            
-            return Site.objects.filter(id_site__in=managed_sites).select_related('id_type_site')
+
+            # Ajouter les sites personnellement assignés (ex: référent d'un site d'un autre organisme)
+            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
+
+            return Site.objects.filter(
+                Q(id_site__in=org_sites) | Q(id_site__in=assigned_sites)
+            ).distinct().select_related('id_type_site')
         
         elif user.is_referent():
             # Référent voit les sites qui lui sont assignés + sites de son organisme
@@ -422,22 +431,88 @@ class SiteViewSet(viewsets.ModelViewSet):
         """Vérification des permissions d'objet."""
         obj = super().get_object()
         user = self.request.user
-        
+
         # Super admin peut tout faire
         if user.is_super_admin():
             return obj
-        
+
         # Pour modification/suppression, vérifier permissions spécifiques
         if self.action in ['update', 'partial_update', 'destroy']:
             if user.can_manage_site(obj):
                 return obj
-            
+
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Vous n'avez pas la permission de modifier ce site.")
-        
+
         # Pour lecture, utiliser get_queryset
         return obj
-    
+
+    def create(self, request, *args, **kwargs):
+        """
+        Création de site avec workflow de validation.
+        - Super admin: site créé actif immédiatement, créateur devient référent
+        - Autres: site créé inactif, demande de validation créée
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+
+        if user.is_super_admin():
+            # Super admin: création directe sans validation
+            site = serializer.save(active=True)
+
+            # Le super admin devient référent du site
+            CorRoleSite.objects.create(
+                id_site=site,
+                id_role=user,
+                referent=True,
+                referent_valid=True,
+                conservateur=False,
+            )
+
+            # Lier l'organisme du créateur si existe
+            if user.id_organisme:
+                CorOgSite.objects.get_or_create(
+                    id_site=site,
+                    uuid_og=user.id_organisme,
+                    defaults={'principal': True}
+                )
+
+            # Réponse standard pour super admin
+            response_serializer = SiteDetailSerializer(site, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Autres utilisateurs: site inactif + demande de validation
+            site = serializer.save(active=False)
+
+            # Créer la demande de validation
+            validation_request = ValidationRequest.objects.create(
+                request_type='site_creation',
+                status='pending',
+                requester=user,
+                target_site=site,
+                justification=f"Création du site {site.nom_site}",
+            )
+
+            # Notifier les validateurs (admin_og de l'organisme du créateur + super_admin)
+            NotificationService.notify_validators(validation_request)
+
+            # Réponse avec indication de validation en attente
+            response_serializer = SiteDetailSerializer(site, context={'request': request})
+            response_data = response_serializer.data
+            response_data['validation_pending'] = True
+            response_data['validation_request_id'] = validation_request.id
+            response_data['message'] = (
+                f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
+            )
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['get'])
     def geojson(self, request, pk=None):
         """Retourne le site au format GeoJSON complet."""
@@ -487,7 +562,9 @@ class SiteViewSet(viewsets.ModelViewSet):
         
         user_id = request.data.get('user_id')
         referent = request.data.get('referent', False)
-        referent_valid = request.data.get('referent_valid', False)
+        # Si referent=True et referent_valid n'est pas explicitement passé,
+        # on considère que l'assignation directe par un admin valide automatiquement le statut
+        referent_valid = request.data.get('referent_valid', referent)
         conservateur = request.data.get('conservateur', False)
         
         if not user_id:
@@ -990,4 +1067,211 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response({
             'id': validation_request.id,
             'message': f'Votre demande de lien avec le site "{site.nom_site}" a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def invite_organisme(self, request, pk=None):
+        """
+        Invite un organisme a rejoindre le site (referent uniquement).
+        POST /api/users/sites/{id}/invite_organisme/
+        Body: {
+            "organisme_id": 123,
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        site = get_object_or_404(Site, id_site=pk)
+
+        # Verifier que l'utilisateur est referent du site ou super_admin
+        is_super_admin = request.user.is_super_admin()
+        is_referent = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=request.user,
+            referent=True,
+            referent_valid=True
+        ).exists()
+
+        if not is_super_admin and not is_referent:
+            return Response(
+                {'error': 'Seuls les referents du site peuvent inviter des organismes.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Recuperer l'organisme a inviter
+        organisme_id = request.data.get('organisme_id')
+        if not organisme_id:
+            return Response(
+                {'error': 'L\'ID de l\'organisme est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            organisme = BibOrganismes.objects.get(id_organisme=organisme_id)
+        except BibOrganismes.DoesNotExist:
+            return Response(
+                {'error': 'Organisme non trouve.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que l'organisme n'est pas deja lie au site
+        already_linked = CorOgSite.objects.filter(
+            id_site=site,
+            uuid_og=organisme
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Cet organisme est deja lie a ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='invite_org_to_site',
+            target_site=site,
+            requested_organisme=organisme,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une invitation pour cet organisme est deja en attente.'},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Recuperer la justification
+        justification = request.data.get('justification', '')
+
+        # Creer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='invite_org_to_site',
+            status='pending',
+            requester=request.user,
+            target_site=site,
+            requested_organisme=organisme,
+            justification=justification,
+        )
+
+        # Notifier les valideurs (admin de l'organisme invite)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': f'Votre invitation pour "{organisme.nom_organisme}" a rejoindre le site "{site.nom_site}" a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def invite_user(self, request, pk=None):
+        """
+        Invite un utilisateur d'un organisme lie a rejoindre le site (referent uniquement).
+        POST /api/users/sites/{id}/invite_user/
+        Body: {
+            "user_id": 123,
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        site = get_object_or_404(Site, id_site=pk)
+
+        # Verifier que l'utilisateur est referent du site ou super_admin
+        is_super_admin = request.user.is_super_admin()
+        is_referent = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=request.user,
+            referent=True,
+            referent_valid=True
+        ).exists()
+
+        if not is_super_admin and not is_referent:
+            return Response(
+                {'error': 'Seuls les referents du site peuvent inviter des utilisateurs.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Recuperer l'utilisateur a inviter
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'L\'ID de l\'utilisateur est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_user = Role.objects.get(id_role=user_id)
+        except Role.DoesNotExist:
+            return Response(
+                {'error': 'Utilisateur non trouve.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que l'utilisateur a un organisme
+        if not target_user.id_organisme:
+            return Response(
+                {'error': 'L\'utilisateur doit appartenir a un organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'organisme de l'utilisateur est lie au site
+        org_linked = CorOgSite.objects.filter(
+            id_site=site,
+            uuid_og=target_user.id_organisme
+        ).exists()
+
+        if not org_linked:
+            return Response(
+                {'error': 'L\'organisme de l\'utilisateur doit d\'abord etre lie au site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'est pas deja lie au site
+        already_linked = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=target_user
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Cet utilisateur est deja lie a ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='invite_user_to_site',
+            target_site=site,
+            target_user=target_user,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une invitation pour cet utilisateur est deja en attente.'},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Recuperer la justification
+        justification = request.data.get('justification', '')
+
+        # Creer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='invite_user_to_site',
+            status='pending',
+            requester=request.user,
+            target_site=site,
+            target_user=target_user,
+            justification=justification,
+        )
+
+        # Notifier les valideurs (admin de l'organisme de l'utilisateur invite)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': f'Votre invitation pour "{target_user}" a rejoindre le site "{site.nom_site}" a ete soumise.',
         }, status=status.HTTP_201_CREATED)

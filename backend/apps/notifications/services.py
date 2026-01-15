@@ -120,9 +120,23 @@ class NotificationService:
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
             return f"{requester_name} demande a lier le site {site_name} a {org_name}."
 
+        elif validation_request.request_type == 'site_creation':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un nouveau site"
+            return f"{requester_name} a cree le site {site_name} et demande sa validation."
+
         elif validation_request.request_type == 'referent_validation':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             return f"{requester_name} demande a devenir referent du site {site_name}."
+
+        elif validation_request.request_type == 'invite_org_to_site':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "votre organisme"
+            return f"{requester_name} invite {org_name} a rejoindre le site {site_name}."
+
+        elif validation_request.request_type == 'invite_user_to_site':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            target_user_name = str(validation_request.target_user) if validation_request.target_user else "un utilisateur"
+            return f"{requester_name} invite {target_user_name} a rejoindre le site {site_name}."
 
         return f"Nouvelle demande de {requester_name}."
 
@@ -417,9 +431,20 @@ class ValidationService:
         elif validation_request.request_type == 'referent_validation':
             validators = ValidationService._get_site_access_validators(validation_request)
 
+        elif validation_request.request_type == 'site_creation':
+            validators = ValidationService._get_site_creation_validators(validation_request)
+
         elif validation_request.request_type == 'site_org_link':
             # Validateurs: admin_og de l'organisme demandeur
             validators = ValidationService._get_org_link_validators(validation_request)
+
+        elif validation_request.request_type == 'invite_org_to_site':
+            # Validateurs: admin_og de l'organisme invite
+            validators = ValidationService._get_invite_org_validators(validation_request)
+
+        elif validation_request.request_type == 'invite_user_to_site':
+            # Validateurs: admin_og de l'organisme de l'utilisateur invite
+            validators = ValidationService._get_invite_user_validators(validation_request)
 
         # Fallback: si aucun validateur trouve, super_admin
         if not validators:
@@ -473,6 +498,83 @@ class ValidationService:
                 role_level='super_admin',
                 active=True
             ))
+
+        return validators
+
+    @staticmethod
+    def _get_invite_org_validators(validation_request):
+        """
+        Validateurs pour une invitation d'organisme vers un site.
+        Valide par l'admin_og de l'organisme invite.
+        """
+        validators = set()
+
+        # L'organisme invite est dans requested_organisme
+        if validation_request.requested_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=validation_request.requested_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            validators.update(admin_ogs)
+
+        # Si pas d'admin_og, super_admin
+        if not validators:
+            validators.update(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        return validators
+
+    @staticmethod
+    def _get_invite_user_validators(validation_request):
+        """
+        Validateurs pour une invitation d'utilisateur vers un site.
+        Valide par l'admin_og de l'organisme de l'utilisateur invite.
+        """
+        validators = set()
+
+        # L'utilisateur invite est dans target_user
+        if validation_request.target_user and validation_request.target_user.id_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=validation_request.target_user.id_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            validators.update(admin_ogs)
+
+        # Si pas d'admin_og, super_admin
+        if not validators:
+            validators.update(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        return validators
+
+    @staticmethod
+    def _get_site_creation_validators(validation_request):
+        """
+        Validateurs pour une creation de site.
+        Valide par l'admin_og de l'organisme du createur + super_admin.
+        """
+        validators = set()
+
+        # Admin_og de l'organisme du createur
+        if validation_request.requester and validation_request.requester.id_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=validation_request.requester.id_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            validators.update(admin_ogs)
+
+        # Toujours ajouter les super_admin (ils peuvent valider aussi)
+        validators.update(Role.objects.filter(
+            role_level='super_admin',
+            active=True
+        ))
 
         return validators
 
@@ -868,6 +970,158 @@ class ValidationService:
 
         # Notifier le demandeur
         NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_invite_org_to_site(validation_request, validator, comment=None):
+        """
+        Approuve une invitation d'organisme vers un site et cree la liaison.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'invite_org_to_site':
+            raise ValueError("Cette demande n'est pas une invitation d'organisme")
+
+        site = validation_request.target_site
+        organisme = validation_request.requested_organisme
+
+        if not site or not organisme:
+            raise ValueError("Site ou organisme manquant")
+
+        # Creer le lien CorOgSite (non principal par defaut)
+        CorOgSite.objects.get_or_create(
+            id_site=site,
+            uuid_og=organisme,
+            defaults={
+                'principal': False,
+            }
+        )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_invite_user_to_site(validation_request, validator, comment=None):
+        """
+        Approuve une invitation d'utilisateur vers un site et cree la liaison.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'invite_user_to_site':
+            raise ValueError("Cette demande n'est pas une invitation d'utilisateur")
+
+        site = validation_request.target_site
+        user = validation_request.target_user
+
+        if not site or not user:
+            raise ValueError("Site ou utilisateur manquant")
+
+        # Creer le lien CorRoleSite (non referent par defaut)
+        CorRoleSite.objects.get_or_create(
+            id_site=site,
+            id_role=user,
+            defaults={
+                'referent': False,
+                'referent_valid': False,
+                'conservateur': False,
+            }
+        )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier l'utilisateur invite qu'il a ete ajoute au site
+        NotificationService.create_notification(
+            recipient=user,
+            notification_type='user_associated_site',
+            title="Acces au site accorde",
+            message=f"Vous avez ete ajoute au site {site.nom_site} par {validation_request.requester}.",
+            priority='medium',
+            related_site=site,
+            send_email=True
+        )
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_site_creation(validation_request, validator, comment=None):
+        """
+        Approuve une creation de site et active le site.
+        Le createur devient automatiquement referent du site.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'site_creation':
+            raise ValueError("Cette demande n'est pas une creation de site")
+
+        site = validation_request.target_site
+        requester = validation_request.requester
+
+        if not site or not requester:
+            raise ValueError("Site ou createur manquant")
+
+        # Activer le site
+        site.active = True
+        site.save(update_fields=['active'])
+
+        # Creer ou mettre a jour CorRoleSite avec le createur comme referent
+        CorRoleSite.objects.update_or_create(
+            id_site=site,
+            id_role=requester,
+            defaults={
+                'referent': True,
+                'referent_valid': True,
+                'conservateur': False,
+            }
+        )
+
+        # Lier l'organisme du createur au site si pas deja fait
+        if requester.id_organisme:
+            # Verifier si un organisme principal existe deja
+            has_principal = CorOgSite.objects.filter(id_site=site, principal=True).exists()
+            CorOgSite.objects.get_or_create(
+                id_site=site,
+                uuid_og=requester.id_organisme,
+                defaults={
+                    'principal': not has_principal,  # Premier organisme = principal
+                }
+            )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le createur
+        NotificationService.create_notification(
+            recipient=requester,
+            notification_type='validation_approved',
+            title="Site valide",
+            message=f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent.",
+            priority='high',
+            related_site=site,
+            action_url=f'/sites/{site.id_site}',
+            send_email=True
+        )
 
         # Notifier les autres validateurs
         NotificationService.notify_other_validators(validation_request, validator, approved=True)

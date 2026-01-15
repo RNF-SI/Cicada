@@ -298,6 +298,24 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         request.user,
                         comment
                     )
+                elif validation_request.request_type == 'invite_org_to_site':
+                    ValidationService.approve_invite_org_to_site(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'invite_user_to_site':
+                    ValidationService.approve_invite_user_to_site(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'site_creation':
+                    ValidationService.approve_site_creation(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
                 else:
                     # Approbation generique
                     validation_request.approve(request.user, comment)
