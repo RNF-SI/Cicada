@@ -24,12 +24,15 @@ export type NotificationPriority = 'low' | 'medium' | 'high' | 'critical';
 // Types de demandes de validation
 export type ValidationRequestType =
   | 'user_registration'
+  | 'site_creation'
   | 'site_access'
   | 'plan_access'
   | 'module_access'
   | 'admin_deactivation'
   | 'referent_validation'
-  | 'site_org_link';
+  | 'site_org_link'
+  | 'invite_org_to_site'
+  | 'invite_user_to_site';
 
 // Modules disponibles pour les demandes d'accès
 export type ModuleCode = 'zonages' | 'inventaires' | 'plans' | 'sites';

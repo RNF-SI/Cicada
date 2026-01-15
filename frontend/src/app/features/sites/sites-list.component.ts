@@ -87,6 +87,7 @@ export class SitesListComponent implements OnInit {
   // Donnees
   readonly allSites = signal<SiteWithAccess[]>([]);
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
+  readonly pendingSiteCreations = signal<ValidationRequestListItem[]>([]);
   readonly mapData = signal<GeoJSONFeatureCollection | null>(null);
   readonly loading = signal(false);
 
@@ -209,6 +210,11 @@ export class SitesListComponent implements OnInit {
     }).subscribe({
       next: ({ sites, geojson, requests }) => {
         this.myRequests.set(requests.filter(r => r.request_type === 'site_access'));
+
+        // Filtrer les demandes de création de site en attente
+        this.pendingSiteCreations.set(
+          requests.filter(r => r.request_type === 'site_creation' && r.status === 'pending')
+        );
 
         if (geojson) {
           this.mapData.set(geojson);
@@ -414,12 +420,21 @@ export class SitesListComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open(
-          this.translate.instant('sites.createSite.success'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
+      if (result?.site) {
+        // Check if site creation is pending validation
+        if (result.validationPending) {
+          this.snackBar.open(
+            result.message || this.translate.instant('sites.createSite.pendingValidation'),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(
+            this.translate.instant('sites.createSite.success'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+        }
         this.loadData();
       }
     });

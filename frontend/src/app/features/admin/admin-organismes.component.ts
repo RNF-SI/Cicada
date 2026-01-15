@@ -246,8 +246,16 @@ export class AdminOrganismesComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open(this.translate.instant('admin.organismes.messages.siteCreated'), this.translate.instant('common.actions.close'), { duration: 3000 });
+      if (result?.site) {
+        if (result.validationPending) {
+          this.snackBar.open(
+            result.message || this.translate.instant('sites.createSite.pendingValidation'),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(this.translate.instant('admin.organismes.messages.siteCreated'), this.translate.instant('common.actions.close'), { duration: 3000 });
+        }
         this.loadOrganismes();
       }
     });

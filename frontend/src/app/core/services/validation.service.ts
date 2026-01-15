@@ -140,6 +140,20 @@ export class ValidationService {
   }
 
   /**
+   * Invite un organisme a rejoindre un site (referent uniquement).
+   */
+  inviteOrganismeToSite(siteId: number, data: { organisme_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteId}/invite_organisme/`, data);
+  }
+
+  /**
+   * Invite un utilisateur a rejoindre un site (referent uniquement).
+   */
+  inviteUserToSite(siteId: number, data: { user_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteId}/invite_user/`, data);
+  }
+
+  /**
    * Demande l'acces a un plan de gestion.
    */
   requestPlanAccess(planId: number, data?: PlanAccessRequestData): Observable<ValidationRequest> {

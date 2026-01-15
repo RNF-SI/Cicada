@@ -15,48 +15,25 @@
   }
 
   <div class="site-form-layout">
-    <!-- Colonne Gauche: Carte -->
+    <!-- Colonne Gauche: Carte unique avec outils polygone + point -->
     <div class="map-column">
       <h3 class="column-title">
         <i class="fi fi-rr-map-marker"></i>
         {{ 'sites.form.geometry.title' | translate }}
       </h3>
 
-      <mat-tab-group (selectedIndexChange)="onGeometryTabChange($event)">
-        <!-- Tab Contour (Polygone) -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <i class="fi fi-rr-draw-polygon tab-icon"></i>
-            {{ 'sites.form.geometry.polygon' | translate }}
-          </ng-template>
-          <div class="map-container">
-            <app-leaflet-map-edit
-              [existingGeometry]="polygonGeometry()"
-              [geometryType]="'polygon'"
-              [height]="'100%'"
-              (geometryChange)="onPolygonChange($event)">
-            </app-leaflet-map-edit>
-          </div>
-          <p class="map-help">{{ 'sites.form.geometry.drawHelp' | translate }}</p>
-        </mat-tab>
-
-        <!-- Tab Point de reference -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <i class="fi fi-rr-marker tab-icon"></i>
-            {{ 'sites.form.geometry.point' | translate }}
-          </ng-template>
-          <div class="map-container">
-            <app-leaflet-map-edit
-              [existingGeometry]="pointGeometry()"
-              [geometryType]="'point'"
-              [height]="'100%'"
-              (geometryChange)="onPointChange($event)">
-            </app-leaflet-map-edit>
-          </div>
-          <p class="map-help">{{ 'sites.form.geometry.pointHelp' | translate }}</p>
-        </mat-tab>
-      </mat-tab-group>
+      <div class="map-container">
+        <app-leaflet-map-edit
+          [existingGeometry]="polygonGeometry()"
+          [existingPointGeometry]="pointGeometry()"
+          [geometryType]="'both'"
+          [enableShapefileImport]="true"
+          [height]="'100%'"
+          (geometryChange)="onPolygonChange($event)"
+          (pointGeometryChange)="onPointChange($event)">
+        </app-leaflet-map-edit>
+      </div>
+      <p class="map-help">{{ 'sites.form.geometry.bothHelp' | translate }}</p>
     </div>
 
     <!-- Colonne Droite: Formulaire -->

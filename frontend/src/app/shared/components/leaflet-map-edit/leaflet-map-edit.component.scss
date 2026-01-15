@@ -39,15 +39,42 @@
   transition: all $transition-fast;
   color: $primary-color;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: $primary-color;
     color: $white;
     border-color: $primary-color;
   }
 
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   i {
     font-size: 16px;
   }
+
+  mat-spinner {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+.toolbar-btn-import {
+  border-color: $secondary-yellow;
+
+  &:hover:not(:disabled) {
+    background-color: $secondary-yellow;
+    color: $black;
+    border-color: $secondary-yellow;
+  }
+}
+
+.toolbar-separator {
+  width: 100%;
+  height: 1px;
+  background-color: $gray-light;
+  margin: $spacing-xxs 0;
 }
 
 // Instructions en bas
@@ -66,10 +93,16 @@
     display: flex;
     align-items: center;
     gap: $spacing-xs;
+    flex-wrap: wrap;
   }
 
   i {
     font-size: 14px;
+  }
+
+  .separator {
+    color: rgba($white, 0.5);
+    margin: 0 $spacing-xs;
   }
 }
 

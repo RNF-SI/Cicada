@@ -170,7 +170,7 @@ export class SiteFormModalComponent implements OnInit {
       this.adminService.updateSite(this.data!.site!.id_site, payload).subscribe({
         next: (site) => {
           this.isLoading.set(false);
-          this.dialogRef.close(site);
+          this.dialogRef.close({ site, validationPending: false });
         },
         error: (error: Error) => {
           this.isLoading.set(false);
@@ -180,29 +180,37 @@ export class SiteFormModalComponent implements OnInit {
     } else {
       // Create site and optionally link to organisme
       this.adminService.createSite(payload).subscribe({
-        next: (site) => {
-          // If organismeId is provided, auto-link the site
-          if (this.data?.organismeId) {
+        next: (response: any) => {
+          // Check if validation is pending (response from backend includes this flag)
+          const validationPending = response.validation_pending || false;
+
+          // If organismeId is provided, auto-link the site (only if site is active)
+          if (this.data?.organismeId && !validationPending) {
             this.adminService.assignSiteToOrganisme(
               this.data.organismeId,
-              site.id_site,
+              response.id_site,
               this.data.principal || false
             ).subscribe({
               next: () => {
                 this.isLoading.set(false);
-                this.dialogRef.close(site);
+                this.dialogRef.close({ site: response, validationPending: false });
               },
               error: (error: Error) => {
                 // Site was created but linking failed - still close with site
                 this.isLoading.set(false);
                 this.errorMessage.set(this.translate.instant('modals.siteForm.messages.linkError', { error: error.message }));
                 // Still close after a delay to show the message
-                setTimeout(() => this.dialogRef.close(site), 2000);
+                setTimeout(() => this.dialogRef.close({ site: response, validationPending: false }), 2000);
               }
             });
           } else {
             this.isLoading.set(false);
-            this.dialogRef.close(site);
+            // Pass validation status along with site data
+            this.dialogRef.close({
+              site: response,
+              validationPending,
+              message: response.message
+            });
           }
         },
         error: (error: Error) => {

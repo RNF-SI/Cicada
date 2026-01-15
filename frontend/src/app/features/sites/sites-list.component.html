@@ -200,7 +200,39 @@
             }
           }
 
-          <!-- Section Sites en attente de validation -->
+          <!-- Section Sites en attente de validation de création -->
+          @if (pendingSiteCreations().length > 0) {
+            <div class="pending-creations-section">
+              <h3 class="subsection-title">
+                <i class="fi fi-rr-time-add"></i>
+                {{ 'sites.pendingCreations.title' | translate }}
+                <span class="badge badge-warning">{{ pendingSiteCreations().length }}</span>
+              </h3>
+              <p class="section-description">{{ 'sites.pendingCreations.description' | translate }}</p>
+
+              <div class="pending-creations-cards">
+                @for (request of pendingSiteCreations(); track request.id) {
+                  <div class="pending-creation-card">
+                    <div class="card-icon">
+                      <i class="fi fi-rr-marker"></i>
+                    </div>
+                    <div class="card-content">
+                      <span class="card-title">{{ request.target_name || 'Site sans nom' }}</span>
+                      <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <div class="card-status">
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'sites.pendingCreations.awaitingValidation' | translate }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Section Sites en attente de validation d'accès -->
           @if (pendingSites().length > 0) {
             <div class="pending-sites-section">
               <h3 class="subsection-title">
