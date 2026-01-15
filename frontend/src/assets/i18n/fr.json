@@ -634,6 +634,23 @@
         "error": "Erreur: {{error}}"
       }
     },
+    "invite": {
+      "titleOrganisme": "Inviter un organisme",
+      "titleUser": "Inviter un utilisateur",
+      "descriptionOrganisme": "Envoyez une invitation a un organisme pour qu'il rejoigne le site \"{{site}}\". L'administrateur de cet organisme devra valider l'invitation.",
+      "descriptionUser": "Envoyez une invitation a un utilisateur pour qu'il rejoigne le site \"{{site}}\". L'administrateur de son organisme devra valider l'invitation.",
+      "userRestriction": "Seuls les utilisateurs appartenant a un organisme deja lie au site peuvent etre invites.",
+      "searchOrganisme": "Rechercher un organisme",
+      "searchUser": "Rechercher un utilisateur",
+      "selectRequired": "Veuillez selectionner un element",
+      "justification": "Justification (optionnel)",
+      "justificationPlaceholder": "Expliquez pourquoi vous souhaitez inviter cet organisme/utilisateur...",
+      "justificationHint": "Cette justification sera visible par le validateur",
+      "send": "Envoyer l'invitation",
+      "success": "Invitation envoyee avec succes",
+      "error": "Erreur lors de l'envoi de l'invitation",
+      "noLinkedOrganismes": "Aucun organisme n'est lie a ce site. Invitez d'abord un organisme avant de pouvoir inviter ses utilisateurs."
+    },
     "removeUserOrganisme": {
       "title": "Retirer l'utilisateur de l'organisme",
       "warning": {
@@ -649,6 +666,30 @@
         "minLength": "Veuillez fournir une raison d'au moins 10 caracteres"
       },
       "confirm": "Retirer et desactiver"
+    },
+    "manageSiteUsers": {
+      "title": "Gerer les utilisateurs du site",
+      "linkedOrganismes": "{{count}} organisme(s) lie(s)",
+      "noLinkedOrganismes": "Aucun organisme n'est lie a ce site. Les utilisateurs ne peuvent etre ajoutes qu'a partir des organismes lies au site.",
+      "addUser": "Ajouter un utilisateur",
+      "filterByOrganisme": "Filtrer par organisme",
+      "allOrganismes": "Tous les organismes",
+      "searchUser": "Rechercher un utilisateur",
+      "searchPlaceholder": "Tapez le nom ou l'email...",
+      "addAsReferent": "Ajouter comme referent",
+      "currentUsers": "Utilisateurs actuels",
+      "noUsers": "Aucun utilisateur associe a ce site",
+      "noUsersFound": "Aucun utilisateur trouve",
+      "referent": "Referent",
+      "referentTooltip": "Le referent peut gerer le site et ses plans",
+      "removeUser": "Retirer cet utilisateur",
+      "restoreUser": "Annuler le retrait",
+      "willBeRemoved": "Sera retire",
+      "new": "Nouveau",
+      "modified": "Modifie",
+      "messages": {
+        "userAdded": "{{name}} a ete ajoute a la liste"
+      }
     },
     "organismeForm": {
       "titleCreate": "Nouvel organisme",
@@ -967,15 +1008,22 @@
       "orgLinkJustificationPlaceholder": "Expliquez pourquoi vous souhaitez lier ce site a votre organisme...",
       "submitOrgLink": "Envoyer la demande"
     },
+    "pendingCreations": {
+      "title": "Sites en attente de validation",
+      "description": "Ces sites que vous avez crees sont en attente de validation par un administrateur.",
+      "requestedOn": "Demande le",
+      "awaitingValidation": "En attente de validation"
+    },
     "pendingSites": {
-      "title": "Demandes en attente",
-      "description": "Ces sites sont en attente de validation par un administrateur.",
+      "title": "Demandes d'acces en attente",
+      "description": "Ces demandes d'acces a des sites sont en attente de validation par un administrateur.",
       "waiting": "En attente"
     },
     "createSite": {
       "button": "Nouveau site",
       "noOrganisme": "Vous devez etre rattache a un organisme pour creer un site.",
-      "success": "Le site a ete cree avec succes."
+      "success": "Le site a ete cree avec succes.",
+      "pendingValidation": "Le site a ete cree et est en attente de validation. Vous deviendrez automatiquement referent une fois le site valide."
     },
     "table": {
       "name": "Nom du site",
@@ -996,6 +1044,7 @@
       "info": "Informations",
       "users": "Utilisateurs du site",
       "manageUsers": "Gerer les utilisateurs",
+      "manageUsersTooltip": "Ajouter, retirer ou modifier les utilisateurs du site",
       "noUsers": "Aucun utilisateur assigne a ce site",
       "associatedPlans": "Plans de gestion associes",
       "documents": "Documents",
@@ -1007,6 +1056,7 @@
       "menu": {
         "overview": "Vue d'ensemble",
         "info": "Informations",
+        "organismes": "Organismes",
         "users": "Utilisateurs",
         "plans": "Plans de gestion",
         "documents": "Documents"
@@ -1025,7 +1075,25 @@
       "requestReferent": "Devenir referent",
       "referentRequestPending": "Demande en cours",
       "referentRequestSent": "Votre demande pour devenir referent a ete envoyee",
-      "referentTooltip": "En tant que referent, vous pourrez : modifier les informations du site, gerer les utilisateurs, et valider les demandes d'acces."
+      "referentTooltip": "En tant que referent, vous pourrez : modifier les informations du site, gerer les utilisateurs, et valider les demandes d'acces.",
+      "shapefile": {
+        "import": "Importer Shapefile",
+        "tooltip": "Importer un fichier shapefile (.zip ou .shp) pour definir les limites du site",
+        "save": "Sauvegarder",
+        "cancel": "Annuler",
+        "imported": "Shapefile importe avec succes. Verifiez la geometrie sur la carte puis sauvegardez.",
+        "saved": "Geometrie du site mise a jour avec succes",
+        "error": "Erreur lors de l'import du shapefile. Verifiez le format du fichier.",
+        "saveError": "Erreur lors de la sauvegarde de la geometrie",
+        "invalidFormat": "Format de fichier invalide. Utilisez un fichier .zip ou .shp",
+        "noGeometry": "Aucune geometrie valide trouvee dans le fichier"
+      },
+      "invite": "Inviter",
+      "inviteOrganisme": "Inviter un organisme a rejoindre ce site",
+      "inviteUser": "Inviter un utilisateur d'un organisme lie",
+      "noOrganismes": "Aucun organisme gestionnaire",
+      "principalOrg": "Principal",
+      "gestionnaireOrg": "Gestionnaire"
     },
     "form": {
       "geometry": {
@@ -1033,7 +1101,11 @@
         "polygon": "Contour (polygone)",
         "point": "Point de reference",
         "drawHelp": "Utilisez les outils pour dessiner le contour du site",
-        "pointHelp": "Cliquez sur la carte pour placer le point de reference"
+        "pointHelp": "Cliquez sur la carte pour placer le point de reference",
+        "bothHelp": "Utilisez les outils a gauche pour dessiner le contour (polygone/rectangle) ou placer un point de reference (marqueur)",
+        "importShapefile": "Importer un fichier Shapefile (.zip ou .shp)",
+        "clearAll": "Effacer tout",
+        "recenter": "Recentrer la carte"
       }
     },
     "actions": {
