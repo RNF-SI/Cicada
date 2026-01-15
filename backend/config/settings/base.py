@@ -82,8 +82,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': os.environ.get('POSTGRES_DB', 'cicada'),
-        'USER': os.environ.get('POSTGRES_USER', 'outil_user'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'outil_password'),
+        'USER': os.environ.get('POSTGRES_USER', 'cicada_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'cicada_password'),
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {

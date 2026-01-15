@@ -241,7 +241,7 @@ docker-compose exec web python manage.py seed_testdata --reset   # Supprimer don
 docker-compose exec web python manage.py seed_testdata --dry-run # Aperçu des données
 
 # Base de données
-docker-compose exec db psql -U outil_user -d outil_plan_gestion  # Console PostgreSQL
+docker-compose exec db psql -U cicada_user -d cicada  # Console PostgreSQL
 
 # Logs et debug
 docker-compose logs -f web      # Logs Django
@@ -1006,7 +1006,7 @@ docker-compose logs frontend | grep "not found"
 **Conteneur unhealthy :**
 ```bash
 # Vérifier le healthcheck
-docker inspect outil_pg_web | grep -A 10 Health
+docker inspect cicada_web | grep -A 10 Health
 
 # Causes fréquentes :
 # - Serveur démarre mais endpoint de healthcheck non accessible
@@ -1073,7 +1073,7 @@ dclogs-frontend   # Logs du frontend
 
 ```bash
 # Console PostgreSQL
-docker-compose exec db psql -U outil_user -d outil_plan_gestion
+docker-compose exec db psql -U cicada_user -d cicada
 
 # Vérifier les tables
 \dt
