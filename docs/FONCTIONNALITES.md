@@ -416,8 +416,43 @@ Si le site recherché n'existe pas, l'utilisateur peut le créer :
 
 1. Cliquer sur "Nouveau site" en bas du dialog de recherche
 2. Remplir le formulaire de création (nom, type, surface, etc.)
-3. Dessiner la géométrie sur la carte (optionnel)
-4. Le site est automatiquement lié à l'organisme de l'utilisateur
+3. Dessiner la géométrie sur la carte (polygone en GeoJSON)
+4. Soumettre le formulaire
+
+#### Workflow de validation de création
+
+La création d'un site nécessite une validation par un administrateur :
+
+```
+Utilisateur → Formulaire création → ValidationRequest (site_creation)
+                                            ↓
+                         Notification aux admin_og + super_admin
+                                            ↓
+                              Approbation → Site créé + CorOgSite
+```
+
+**Données stockées dans la demande :**
+- Nom du site, type, surface, codes (local, INPN)
+- Géométrie en format GeoJSON
+- Caractéristiques (marin, outre-mer)
+- Organisme demandeur (automatiquement lié si approuvé)
+
+**Si approuvé :**
+- Le site est créé avec les informations fournies
+- Un lien `CorOgSite` est créé avec l'organisme du demandeur (comme principal)
+- Le demandeur reçoit une notification de confirmation
+
+**Si rejeté :**
+- Le demandeur reçoit une notification avec le motif du refus
+- Il peut refaire une demande avec des corrections
+
+#### Sites en attente de validation
+
+Sur la page "Mes Sites" (`/sites`), l'utilisateur voit une section spéciale affichant ses demandes de création en attente :
+
+- **Titre** : "Sites en attente de validation"
+- **Contenu** : Cartes avec le nom du site demandé et la date de la demande
+- **Visibilité** : Uniquement visible si l'utilisateur a des demandes en cours
 
 ### Page détail d'un site (`/sites/:id`)
 
@@ -438,7 +473,62 @@ La page de détail affiche toutes les informations d'un site avec le même layou
 | Voir les informations | ✅ | ✅ | ✅ |
 | Modifier le site | ❌ | ✅ | ✅ |
 | Gérer les utilisateurs | ❌ | ✅ | ✅ |
+| Inviter un organisme | ❌ | ✅ | ✅ |
 | Demander à devenir référent | ✅ | ❌ | ❌ |
+
+### Gestion unifiée des utilisateurs du site
+
+Le bouton "Gérer les utilisateurs" ouvre un modal unifié permettant de gérer tous les utilisateurs du site.
+
+#### Fonctionnalités du modal
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Info site** | Affiche le nom du site et le nombre d'organismes liés |
+| **Filtre par organisme** | Dropdown pour filtrer les utilisateurs par organisme (si plusieurs organismes liés) |
+| **Recherche utilisateur** | Autocomplete pour chercher parmi les utilisateurs des organismes liés |
+| **Ajout comme référent** | Checkbox pour ajouter directement un utilisateur comme référent |
+| **Liste des utilisateurs** | Affiche tous les utilisateurs actuels avec leurs rôles |
+| **Actions par utilisateur** | Toggle référent, retirer un utilisateur |
+
+#### Indicateurs visuels
+
+- **Badge "Nouveau"** : Affiché à côté du nom des utilisateurs nouvellement ajoutés
+- **Badge "Modifié"** : Affiché si le statut référent a été modifié
+- **Animation** : Les nouveaux utilisateurs sont mis en évidence avec une bordure verte et une animation
+- **Notification** : Message de confirmation affiché en haut du modal lors d'un ajout
+
+#### Flux d'ajout d'un utilisateur
+
+1. Le référent ouvre le modal "Gérer les utilisateurs"
+2. Il filtre éventuellement par organisme
+3. Il recherche l'utilisateur souhaité dans l'autocomplete
+4. Il coche "Ajouter comme référent" si nécessaire
+5. Il sélectionne l'utilisateur → ajout immédiat à la liste
+6. Il clique sur "Enregistrer" pour sauvegarder tous les changements
+
+**Important :** Seuls les utilisateurs appartenant à des organismes **déjà liés au site** peuvent être ajoutés directement. Pour ajouter des utilisateurs d'autres organismes, il faut d'abord inviter leur organisme.
+
+### Invitation d'un organisme
+
+Le bouton "Inviter" dans la section "Organismes gestionnaires" permet d'inviter un nouvel organisme à rejoindre le site.
+
+#### Flux d'invitation
+
+```
+Référent → "Inviter" → Sélection organisme + justification
+                                    ↓
+                    ValidationRequest (invite_org_to_site)
+                                    ↓
+                      Notification à l'admin_og de l'organisme invité
+                                    ↓
+                         Approbation → CorOgSite créé
+```
+
+**Si approuvé :**
+- Un lien `CorOgSite` est créé (non principal)
+- Les utilisateurs de cet organisme peuvent maintenant être ajoutés au site
+- Le référent qui a invité reçoit une notification de confirmation
 
 ### Demande pour devenir référent
 
@@ -502,9 +592,11 @@ Utilisateur avec accès → "Devenir référent"
 
 | Type | Code | Déclencheur | Validateurs | Résultat si approuvé |
 |------|------|-------------|-------------|----------------------|
+| Création de site | `site_creation` | Formulaire de création d'un nouveau site | admin_og + super_admin | Site créé + `CorOgSite` |
 | Accès site | `site_access` | Demande d'accès à un site de son organisme | Référents du site + admin_og | `CorRoleSite` créé |
 | Accès comme référent | `site_access` + flag | Demande d'accès avec option référent | Référents du site + admin_og | `CorRoleSite` créé avec `referent=True` |
 | Lien site-organisme | `site_org_link` | Demande de lier un site externe à son organisme | admin_og du demandeur | `CorOgSite` créé |
+| Invitation organisme | `invite_org_to_site` | Référent invite un organisme sur son site | admin_og de l'organisme invité | `CorOgSite` créé |
 | Devenir référent | `referent_validation` | Utilisateur lié veut devenir référent | Référents + admin_og + super_admin | `CorRoleSite.referent = True` |
 
 ---
