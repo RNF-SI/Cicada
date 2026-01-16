@@ -13,9 +13,27 @@ logger = logging.getLogger(__name__)
 def notify_user_site_association(sender, instance, created, **kwargs):
     """
     Notifie un utilisateur lorsqu'il est associe a un site.
+    Evite les doublons si une notification similaire existe deja (ex: via validation).
     """
     if created:
         from .services import NotificationService
+        from .models import Notification
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # Verifier si une notification similaire existe deja (creee dans les 30 derniers secondes)
+        # Cela evite les doublons quand l'association vient d'une validation approuvee
+        recent_threshold = timezone.now() - timedelta(seconds=30)
+        existing = Notification.objects.filter(
+            recipient=instance.id_role,
+            related_site=instance.id_site,
+            notification_type='user_associated_site',
+            created_at__gte=recent_threshold
+        ).exists()
+
+        if existing:
+            logger.debug(f"Skipping duplicate notification for user {instance.id_role} site {instance.id_site}")
+            return
 
         NotificationService.create_notification(
             recipient=instance.id_role,

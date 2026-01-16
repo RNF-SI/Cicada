@@ -101,19 +101,22 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def poll(self, request):
         """
         Endpoint de polling pour les mises a jour.
-        Utiliser ?since=<timestamp> pour n'obtenir que les nouvelles.
+        Utiliser ?since=<timestamp> pour detecter les nouvelles notifications.
+        Retourne toujours les 10 dernieres notifications (non filtrees par since).
         """
         since_param = request.query_params.get('since')
-        queryset = self.get_queryset()
+        base_queryset = self.get_queryset()
 
+        # Calculer has_updates base sur since
+        has_updates = True
         if since_param:
             try:
                 since = timezone.datetime.fromisoformat(since_param)
-                queryset = queryset.filter(created_at__gt=since)
+                has_updates = base_queryset.filter(created_at__gt=since).exists()
             except ValueError:
                 pass
 
-        unread_count = self.get_queryset().filter(read=False).count()
+        unread_count = base_queryset.filter(read=False).count()
 
         # Compteur de validations en attente
         pending_validations = 0
@@ -122,8 +125,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
                 request.user
             ).count()
 
+        # Toujours retourner les 10 dernieres notifications (pas filtrees par since)
         notifications = NotificationListSerializer(
-            queryset[:10],
+            base_queryset[:10],
             many=True
         ).data
 
@@ -131,7 +135,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
             'notifications': notifications,
             'unread_count': unread_count,
             'pending_validations': pending_validations,
-            'has_updates': queryset.exists(),
+            'has_updates': has_updates,
             'timestamp': timezone.now().isoformat(),
         })
 

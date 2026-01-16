@@ -1031,6 +1031,7 @@ class ValidationService:
             raise ValueError("Site ou utilisateur manquant")
 
         # Creer le lien CorRoleSite (non referent par defaut)
+        # Note: Le signal post_save sur CorRoleSite notifiera automatiquement l'utilisateur
         CorRoleSite.objects.get_or_create(
             id_site=site,
             id_role=user,
@@ -1044,19 +1045,8 @@ class ValidationService:
         # Approuver la demande
         validation_request.approve(validator, comment)
 
-        # Notifier le demandeur
+        # Notifier le demandeur (l'admin qui a cree l'invitation)
         NotificationService.notify_validation_result(validation_request, approved=True)
-
-        # Notifier l'utilisateur invite qu'il a ete ajoute au site
-        NotificationService.create_notification(
-            recipient=user,
-            notification_type='user_associated_site',
-            title="Acces au site accorde",
-            message=f"Vous avez ete ajoute au site {site.nom_site} par {validation_request.requester}.",
-            priority='medium',
-            related_site=site,
-            send_email=True
-        )
 
         # Notifier les autres validateurs
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
