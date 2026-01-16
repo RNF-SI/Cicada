@@ -883,6 +883,17 @@
   border-radius: $border-radius-sm;
 }
 
+// Tooltip multiligne (pour les aides détaillées)
+.multiline-tooltip {
+  .mdc-tooltip__surface {
+    white-space: pre-line !important;
+    text-align: left !important;
+    max-width: 280px !important;
+    line-height: 1.5 !important;
+    padding: $spacing-sm !important;
+  }
+}
+
 // ============================================
 // PROGRESS BAR & SPINNER
 // ============================================

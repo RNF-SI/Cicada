@@ -44,7 +44,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   private readonly translate = inject(TranslateService);
 
   @ViewChild('mapContainer') mapContainer!: ElementRef;
-  @ViewChild('shapefileInput') shapefileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('geometryFileInput') geometryFileInput!: ElementRef<HTMLInputElement>;
 
   /** Géométrie existante à éditer (GeoJSON) - polygone */
   @Input() existingGeometry: any = null;
@@ -64,8 +64,8 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   /** Coordonnées du centre [lat, lng] */
   @Input() center: [number, number] = [46.227638, 2.213749];
 
-  /** Activer l'import de fichiers shapefile */
-  @Input() enableShapefileImport: boolean = false;
+  /** Activer l'import de fichiers géographiques (GeoJSON, Shapefile) */
+  @Input() enableGeometryImport: boolean = false;
 
   /** État de l'import shapefile */
   readonly isImporting = signal(false);
@@ -604,21 +604,23 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   // ===================
-  // Import Shapefile
+  // Import de fichiers géographiques (GeoJSON, Shapefile)
   // ===================
 
   /**
-   * Déclenche le sélecteur de fichier shapefile.
+   * Déclenche le sélecteur de fichier.
    */
-  triggerShapefileImport(): void {
-    this.shapefileInput?.nativeElement?.click();
+  triggerGeometryImport(): void {
+    this.geometryFileInput?.nativeElement?.click();
   }
 
   /**
-   * Gère la sélection d'un fichier shapefile.
-   * Supporte les fichiers .zip (contenant .shp, .dbf, .prj) ou .shp direct.
+   * Gère la sélection d'un fichier géographique.
+   * Supporte les fichiers :
+   * - GeoJSON : .geojson, .json
+   * - Shapefile : .zip (contenant .shp, .dbf, .prj) ou .shp direct
    */
-  async onShapefileSelected(event: Event): Promise<void> {
+  async onGeometryFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
@@ -626,9 +628,11 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
     // Vérifier l'extension
     const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension !== 'zip' && extension !== 'shp') {
+    const supportedExtensions = ['geojson', 'json', 'zip', 'shp'];
+
+    if (!extension || !supportedExtensions.includes(extension)) {
       this.snackBar.open(
-        this.translate.instant('sites.detail.shapefile.invalidFormat'),
+        this.translate.instant('sites.form.geometry.import.invalidFormat'),
         this.translate.instant('common.actions.close'),
         { duration: 5000 }
       );
@@ -638,14 +642,20 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     this.isImporting.set(true);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
       let geojson: any;
 
-      if (extension === 'zip') {
+      // Traitement selon le type de fichier
+      if (extension === 'geojson' || extension === 'json') {
+        // Fichier GeoJSON - lire comme texte et parser
+        const text = await file.text();
+        geojson = JSON.parse(text);
+      } else if (extension === 'zip') {
         // Fichier ZIP contenant tous les fichiers shapefile
+        const arrayBuffer = await file.arrayBuffer();
         geojson = await shp.parseZip(arrayBuffer);
-      } else {
+      } else if (extension === 'shp') {
         // Fichier .shp seul - parser les géométries
+        const arrayBuffer = await file.arrayBuffer();
         const geometries = shp.parseShp(arrayBuffer);
         if (geometries && geometries.length > 0) {
           geojson = {
@@ -667,14 +677,14 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       this.processImportedGeometry(geojson);
 
       this.snackBar.open(
-        this.translate.instant('sites.detail.shapefile.imported'),
+        this.translate.instant('sites.form.geometry.import.success'),
         this.translate.instant('common.actions.close'),
         { duration: 3000 }
       );
     } catch (error) {
-      console.error('Erreur import shapefile:', error);
+      console.error('Erreur import géométrie:', error);
       this.snackBar.open(
-        this.translate.instant('sites.detail.shapefile.error'),
+        this.translate.instant('sites.form.geometry.import.error'),
         this.translate.instant('common.actions.close'),
         { duration: 5000 }
       );
@@ -726,7 +736,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
     if (!geometry) {
       this.snackBar.open(
-        this.translate.instant('sites.detail.shapefile.noGeometry'),
+        this.translate.instant('sites.form.geometry.import.noGeometry'),
         this.translate.instant('common.actions.close'),
         { duration: 5000 }
       );

@@ -2,26 +2,27 @@
   <!-- Conteneur de la carte -->
   <div #mapContainer class="map-container"></div>
 
-  <!-- Input caché pour l'import shapefile -->
-  @if (enableShapefileImport) {
+  <!-- Input caché pour l'import de fichiers géographiques -->
+  @if (enableGeometryImport) {
     <input
-      #shapefileInput
+      #geometryFileInput
       type="file"
-      accept=".zip,.shp"
-      (change)="onShapefileSelected($event)"
+      accept=".geojson,.json,.zip,.shp"
+      (change)="onGeometryFileSelected($event)"
       hidden>
   }
 
   <!-- Barre d'outils personnalisée -->
   <div class="map-toolbar">
-    @if (enableShapefileImport) {
+    @if (enableGeometryImport) {
       <button
         type="button"
         class="toolbar-btn toolbar-btn-import"
-        (click)="triggerShapefileImport()"
+        (click)="triggerGeometryImport()"
         [disabled]="isImporting()"
-        [matTooltip]="'sites.form.geometry.importShapefile' | translate"
-        matTooltipPosition="left">
+        [matTooltip]="'sites.form.geometry.import.tooltip' | translate"
+        matTooltipPosition="left"
+        matTooltipClass="multiline-tooltip">
         @if (isImporting()) {
           <mat-spinner diameter="16"></mat-spinner>
         } @else {

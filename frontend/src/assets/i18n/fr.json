@@ -1103,9 +1103,17 @@
         "drawHelp": "Utilisez les outils pour dessiner le contour du site",
         "pointHelp": "Cliquez sur la carte pour placer le point de reference",
         "bothHelp": "Utilisez les outils a gauche pour dessiner le contour (polygone/rectangle) ou placer un point de reference (marqueur)",
+        "importFile": "Importer un fichier (GeoJSON, Shapefile)",
         "importShapefile": "Importer un fichier Shapefile (.zip ou .shp)",
         "clearAll": "Effacer tout",
-        "recenter": "Recentrer la carte"
+        "recenter": "Recentrer la carte",
+        "import": {
+          "tooltip": "Importer un fichier geographique\n\n• GeoJSON (.geojson, .json)\n• Shapefile : fichier ZIP contenant\n  .shp, .shx, .dbf et .prj",
+          "success": "Geometrie importee avec succes",
+          "error": "Erreur lors de l'import. Verifiez le format du fichier.",
+          "invalidFormat": "Format invalide. Utilisez .geojson, .json, .zip ou .shp",
+          "noGeometry": "Aucune geometrie valide trouvee dans le fichier"
+        }
       }
     },
     "actions": {
