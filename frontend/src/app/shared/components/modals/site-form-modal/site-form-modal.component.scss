@@ -1,25 +1,142 @@
 @import 'variables';
 
 // ============================================
-// TWO-COLUMN LAYOUT
+// THREE-COLUMN LAYOUT (conditional)
 // ============================================
 
 .site-form-layout {
   display: flex;
   gap: $spacing-lg;
-  min-width: 900px;
+  min-width: 850px;
+  transition: all 0.3s ease;
+
+  // When suggestions panel is visible - expand to fill dialog
+  &.has-suggestions {
+    min-width: 1250px;
+  }
 }
 
 // Colonne carte (gauche)
 .map-column {
-  flex: 0 0 50%;
-  max-width: 50%;
+  flex: 1 1 45%;
+  min-width: 350px;
+  transition: flex 0.3s ease;
+
+  .has-suggestions & {
+    flex: 1 1 35%;
+    min-width: 300px;
+  }
 }
 
-// Colonne formulaire (droite)
+// Colonne formulaire (centre)
 .form-column {
+  flex: 1 1 45%;
+  min-width: 350px;
+  transition: flex 0.3s ease;
+
+  .has-suggestions & {
+    flex: 1 1 35%;
+    min-width: 300px;
+  }
+}
+
+// Colonne suggestions (droite, conditionnelle)
+.suggestions-column {
+  flex: 0 0 340px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba($secondary-yellow, 0.08) 0%, rgba($secondary-orange-salmon, 0.08) 100%);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  border-left: 3px solid $secondary-orange-salmon;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+
+  i {
+    font-size: 18px;
+    color: $secondary-terra-cotta;
+  }
+
+  span {
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $secondary-terra-cotta;
+  }
+}
+
+.suggestions-subtitle {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin: 0 0 $spacing-md;
+  line-height: $line-height-base;
+}
+
+.suggestions-list {
   flex: 1;
-  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-height: 380px;
+  padding-right: $spacing-xs;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($gray-light, 0.3);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $gray;
+    border-radius: 2px;
+  }
+}
+
+.suggestions-footer {
+  margin-top: $spacing-md;
+  padding-top: $spacing-sm;
+  border-top: 1px dashed rgba($gray, 0.3);
+
+  .btn-ignore {
+    width: 100%;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    color: $gray-dark;
+
+    i {
+      margin-right: $spacing-xs;
+      font-size: 14px;
+    }
+
+    &:hover {
+      color: $primary-color;
+      background-color: rgba($primary-color, 0.05);
+    }
+  }
 }
 
 .column-title {
@@ -46,6 +163,10 @@
   border-radius: $border-radius-sm;
   overflow: hidden;
   border: 1px solid $gray-light;
+
+  .has-suggestions & {
+    height: 400px;
+  }
 }
 
 ::ng-deep app-leaflet-map-edit {
@@ -126,6 +247,76 @@
 }
 
 // ============================================
+// INPN BLOCKING ALERT (inline in form)
+// ============================================
+
+.inpn-alert {
+  background: linear-gradient(135deg, rgba($error-color, 0.06) 0%, rgba($error-color, 0.12) 100%);
+  border: 1px solid rgba($error-color, 0.3);
+  border-left: 4px solid $error-color;
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.inpn-alert-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+
+  i {
+    font-size: 16px;
+    color: $error-color;
+  }
+
+  span {
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $error-color;
+  }
+}
+
+.inpn-alert-site {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+
+  strong {
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $primary-color;
+  }
+
+  .site-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background-color: $primary-color;
+    color: $white;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    border-radius: $border-radius-pill;
+  }
+}
+
+.inpn-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  button {
+    i {
+      margin-right: $spacing-xs;
+      font-size: 12px;
+    }
+  }
+}
+
+// ============================================
 // ERROR BANNER
 // ============================================
 
@@ -142,6 +333,250 @@
 
   i {
     font-size: 18px;
+  }
+}
+
+// ============================================
+// DUPLICATE SITE CARD (shared template)
+// ============================================
+
+.duplicate-site {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background-color: $white;
+  border-radius: $border-radius-sm;
+  border: 1px solid $gray-light;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: 0 2px 8px rgba($primary-color, 0.1);
+  }
+
+  // Compact mode for suggestions column
+  &.compact {
+    padding: $spacing-sm;
+    gap: $spacing-xs;
+  }
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .compact & {
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+}
+
+.site-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  font-family: $font-family;
+  flex: 1;
+  min-width: 0;
+
+  .site-name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    line-height: $line-height-base;
+    margin: 0;
+
+    .compact & {
+      font-size: $font-size-small;
+    }
+  }
+
+  .site-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-xs $spacing-sm;
+
+    .compact & {
+      gap: $spacing-xs;
+    }
+  }
+
+  .site-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: $white;
+    background-color: $primary-color;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: $border-radius-pill;
+
+    .compact & {
+      font-size: 9px;
+      padding: 1px 5px;
+    }
+  }
+
+  .site-inpn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: $gray-dark;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    background-color: $beige;
+    padding: 2px 6px;
+    border-radius: $border-radius-sm;
+
+    &::before {
+      content: 'INPN';
+      font-size: 9px;
+      font-weight: $font-weight-bold;
+      color: $primary-color;
+      text-transform: uppercase;
+    }
+
+    .compact & {
+      font-size: 11px;
+      padding: 1px 4px;
+
+      &::before {
+        font-size: 8px;
+      }
+    }
+  }
+
+  .site-surface {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: $gray-dark;
+    font-size: $font-size-small;
+
+    i {
+      font-size: 12px;
+      color: $secondary-pale-green;
+    }
+  }
+
+  .site-orgs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: $gray-dark;
+    font-size: $font-size-small;
+    margin-top: $spacing-xs;
+
+    i {
+      font-size: 14px;
+      color: $secondary-orange-salmon;
+    }
+  }
+}
+
+.site-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: $border-radius-pill;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+
+    i {
+      font-size: 12px;
+    }
+
+    &.status-has-access {
+      background-color: rgba($success-color, 0.1);
+      color: $success-color;
+    }
+
+    &.status-your-org {
+      background-color: rgba($info-color, 0.2);
+      color: darken($info-color, 25%);
+    }
+
+    .compact & {
+      padding: 2px 6px;
+      font-size: 11px;
+
+      i {
+        font-size: 10px;
+      }
+    }
+  }
+}
+
+.duplicate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1px dashed $gray-light;
+
+  button {
+    i {
+      margin-right: 6px;
+      font-size: 14px;
+    }
+  }
+
+  // Compact mode: stack buttons vertically
+  &.compact {
+    flex-direction: column;
+    gap: $spacing-xs;
+    padding-top: $spacing-xs;
+
+    button {
+      width: 100%;
+      font-size: 12px;
+      padding: 6px 12px;
+      min-height: 32px;
+      white-space: nowrap;
+      text-align: center;
+      justify-content: center;
+
+      i {
+        margin-right: 6px;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+    }
+  }
+}
+
+.checking-duplicates {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($info-color, 0.1);
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  margin-bottom: $spacing-md;
+
+  mat-spinner {
+    ::ng-deep circle {
+      stroke: $primary-color;
+    }
   }
 }
 
@@ -179,14 +614,36 @@ mat-dialog-actions {
   .site-form-layout {
     min-width: auto;
     flex-direction: column;
+
+    &.has-suggestions {
+      min-width: auto;
+    }
   }
 
-  .map-column {
+  .map-column,
+  .has-suggestions .map-column {
     flex: none;
     max-width: 100%;
+    min-width: auto;
   }
 
-  .map-container {
+  .form-column,
+  .has-suggestions .form-column {
+    flex: none;
+    min-width: auto;
+  }
+
+  .suggestions-column {
+    flex: none;
+    max-width: 100%;
+    min-width: auto;
+    border-left: none;
+    border-top: 3px solid $secondary-orange-salmon;
+    margin-top: $spacing-md;
+  }
+
+  .map-container,
+  .has-suggestions .map-container {
     height: 250px;
   }
 }
@@ -205,5 +662,11 @@ mat-dialog-actions {
   .checkbox-row {
     flex-direction: column;
     gap: $spacing-sm;
+  }
+
+  .duplicate-actions.compact {
+    button {
+      font-size: 11px;
+    }
   }
 }

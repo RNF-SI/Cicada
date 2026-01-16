@@ -735,10 +735,25 @@
       },
       "errors": {
         "nameRequired": "Le nom est requis",
-        "surfacePositive": "La surface doit etre positive"
+        "surfacePositive": "La surface doit etre positive",
+        "inpnDuplicate": "Ce code INPN est deja utilise par un autre site."
       },
       "messages": {
         "linkError": "Site cree mais erreur lors de la liaison: {{error}}"
+      },
+      "duplicates": {
+        "inpnUsed": "Ce code INPN est deja utilise par un site existant",
+        "similarFound": "Des sites avec un nom similaire existent deja",
+        "suggestionsTitle": "Sites existants",
+        "requestAccess": "Demander l'acces",
+        "linkAndAccess": "Lier mon organisme et demander l'acces",
+        "linkOnly": "Lier mon organisme uniquement",
+        "alreadyAccess": "Acces actif",
+        "yourOrg": "Votre organisme",
+        "andOthers": "et {{count}} autre(s)",
+        "continueCreation": "Ignorer et creer un nouveau site",
+        "ignoreSuggestions": "Ignorer les suggestions",
+        "checking": "Recherche de sites similaires..."
       }
     },
     "planForm": {

@@ -419,6 +419,80 @@ Si le site recherché n'existe pas, l'utilisateur peut le créer :
 3. Dessiner la géométrie sur la carte (polygone en GeoJSON)
 4. Soumettre le formulaire
 
+#### Détection des doublons lors de la création
+
+Lors de la saisie du nom du site ou de l'identifiant INPN, le système recherche automatiquement les sites existants similaires pour éviter les doublons.
+
+##### Fonctionnement
+
+1. **Recherche automatique** : Après 500ms de saisie (debounce), le système interroge l'API `/api/sites/check-duplicates/`
+2. **Deux types de correspondances** :
+   - **Correspondance exacte INPN** (bloquante) : Un site avec le même identifiant INPN existe déjà
+   - **Noms similaires** (informative) : Des sites avec un nom proche existent
+
+##### Affichage des résultats
+
+Le formulaire de création s'adapte automatiquement :
+
+| Situation | Affichage |
+|-----------|-----------|
+| Aucun doublon | Formulaire standard à 2 colonnes (carte + formulaire) |
+| Doublons détectés | Formulaire à 3 colonnes avec panneau "Sites existants" à droite |
+
+##### Panneau "Sites existants"
+
+Quand des sites similaires sont trouvés, un panneau apparaît à droite du formulaire affichant :
+
+- **Titre** : "Sites existants"
+- **Sous-titre** : "Des sites avec un nom similaire existent déjà"
+- **Liste des sites** : Cartes compactes avec nom, type, identifiant INPN
+
+##### Actions disponibles pour chaque site suggéré
+
+L'utilisateur peut interagir avec les sites existants au lieu de créer un doublon :
+
+| Situation | Boutons affichés |
+|-----------|------------------|
+| **Site géré par mon organisme** | "Demander l'accès" |
+| **Site géré par un autre organisme** | "Lier mon organisme et demander l'accès" + "Lier mon organisme uniquement" |
+| **J'ai déjà accès** | Badge "Accès actif" (aucune action) |
+
+##### Description des actions
+
+| Action | Description | Résultat |
+|--------|-------------|----------|
+| **Demander l'accès** | L'organisme gère déjà le site, l'utilisateur demande un accès personnel | `ValidationRequest` de type `site_access` |
+| **Lier mon organisme et demander l'accès** | L'organisme ne gère pas le site, l'utilisateur demande à la fois le lien organisme-site ET son accès personnel | `ValidationRequest` de type `site_org_link` avec flag `also_request_access` |
+| **Lier mon organisme uniquement** | L'organisme ne gère pas le site, l'utilisateur demande seulement le lien organisme-site (sans accès personnel) | `ValidationRequest` de type `site_org_link` |
+
+##### Correspondance exacte INPN (bloquante)
+
+Si l'identifiant INPN saisi correspond exactement à un site existant :
+
+1. Une **alerte bloquante** s'affiche dans le formulaire
+2. Le bouton "Créer" est **désactivé**
+3. L'utilisateur **doit** choisir une action sur le site existant (lier ou demander l'accès)
+
+```
+Utilisateur saisit "FR3600013"
+        ↓
+API trouve le site "Réserve de Camargue" avec cet INPN
+        ↓
+Alerte : "Ce code INPN est déjà utilisé par un site existant"
+        ↓
+Boutons : [Lier mon organisme et demander l'accès] [Lier mon organisme uniquement]
+```
+
+##### Ignorer les suggestions
+
+Si l'utilisateur est certain que son site est nouveau malgré les similarités de nom :
+
+1. Cliquer sur "Ignorer les suggestions" en bas du panneau
+2. Le panneau disparaît
+3. La création peut continuer normalement
+
+**Note** : Si l'utilisateur modifie à nouveau le nom ou l'INPN, la vérification se relance automatiquement.
+
 #### Workflow de validation de création
 
 La création d'un site nécessite une validation par un administrateur :
