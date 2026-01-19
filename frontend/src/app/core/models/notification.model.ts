@@ -178,6 +178,7 @@ export interface ValidationRequestListItem {
   target_site_id?: number;
   justification?: string;
   validator_name?: string;
+  validator_comment?: string;
   validated_at?: string;
   created_at: string;
   /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */

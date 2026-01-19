@@ -129,7 +129,7 @@
               }
               <button
                 mat-icon-button
-                (click)="openDetail(validation)"
+                (click)="openDetail(validation); $event.stopPropagation()"
                 matTooltip="Voir les details"
               >
                 <i class="fi fi-rr-eye"></i>
