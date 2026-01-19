@@ -118,9 +118,8 @@ export class SitesListComponent implements OnInit {
   // Sites auxquels l'utilisateur est directement lie (via CorRoleSite)
   readonly mySites = computed(() => {
     // Filtre les sites où l'utilisateur a un lien direct (CorRoleSite)
-    // Pour super_admin, isDirectlyLinked est false pour tous les sites mais accessStatus est 'granted'
-    // donc on utilise aussi accessStatus
-    return this.allSites().filter(s => s.isDirectlyLinked || s.accessStatus === 'granted');
+    // isDirectlyLinked = true si l'utilisateur a une entrée dans CorRoleSite pour ce site
+    return this.allSites().filter(s => s.isDirectlyLinked);
   });
 
   // Sites de l'organisme de l'utilisateur (tous les sites lies a son OG)

@@ -822,9 +822,9 @@ class Command(BaseCommand):
                 'role_level': 'super_admin',
                 'is_staff': True,
                 'is_superuser': True,
-                'id_organisme': None,
+                'id_organisme': organismes[0],  # RNF
                 'groups': ['Super Administrateurs'],
-                'sites_referent': []
+                'sites_referent': [sites[0]]  # Camargue
             },
             {
                 'email': 'admin.rnf@test.fr',
@@ -1740,7 +1740,7 @@ class Command(BaseCommand):
         self.stdout.write('''
   | Identifiant     | Email                      | Role            | Organisme   |
   |-----------------|----------------------------|-----------------|-------------|
-  | super_admin     | admin@test.fr              | Super Admin     | -           |
+  | super_admin     | admin@test.fr              | Super Admin     | RNF         |
   | admin_rnf       | admin.rnf@test.fr          | Admin Organisme | RNF         |
   | admin_cen       | admin.cen@test.fr          | Admin Organisme | CEN AURA    |
   | ref_camargue    | referent.camargue@test.fr  | Referent        | RNF         |

@@ -623,7 +623,7 @@ Run `docker-compose exec web python manage.py seed_testdata` to create:
 - **7 Users** with different roles:
   | Email | Role | Organization | Notes |
   |-------|------|--------------|-------|
-  | admin@test.fr | Super Admin | - | |
+  | admin@test.fr | Super Admin | RNF | Site referent (Camargue) |
   | admin.rnf@test.fr | Admin Organisme | RNF | |
   | admin.cen@test.fr | Admin Organisme | CEN AURA | |
   | referent.camargue@test.fr | Utilisateur | RNF | Site referent (Camargue) |
