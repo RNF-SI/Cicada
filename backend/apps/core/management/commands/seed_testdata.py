@@ -399,34 +399,38 @@ class Command(BaseCommand):
         return modules
 
     def _create_nomenclatures(self):
-        """Cree les nomenclatures necessaires."""
+        """
+        Cree les nomenclatures necessaires.
+        Aligne sur les fichiers SQL officiels (nomenclatures_data/*.sql).
+        """
         self.stdout.write('\n--- Creation des nomenclatures ---')
 
-        # Type de site
+        # Types de nomenclature (alignes sur types_inserts.sql)
         type_site, _ = TypeNomenclature.objects.get_or_create(
             id_type=1,
-            defaults={'mnemonique': 'TYPE_SITE', 'label': 'Type de site'}
+            defaults={'mnemonique': 'Espace naturel', 'label': "Type d'espace naturel"}
         )
 
-        # Type d'evaluation
         type_eval, _ = TypeNomenclature.objects.get_or_create(
             id_type=2,
-            defaults={'mnemonique': 'TYPE_EVALUATION', 'label': "Type d'evaluation"}
+            defaults={'mnemonique': 'Evaluation PG', 'label': "Niveau d'evaluation des plans de gestion"}
         )
 
-        # Type de redacteur
         type_redac, _ = TypeNomenclature.objects.get_or_create(
             id_type=3,
-            defaults={'mnemonique': 'TYPE_REDACTEUR', 'label': 'Type de redacteur'}
+            defaults={'mnemonique': 'Redacteur type', 'label': "Type de redacteur d'un plan de gestion"}
         )
 
-        # Nomenclatures de type de site
+        # Nomenclatures de type de site (alignees sur nomenclatures_inserts.sql)
+        # Note: Dans les fichiers SQL, cd_nomenclature est NULL, on utilise mnemonique
         site_types = [
-            {'id': 42, 'cd': 'RNN', 'mnemonique': 'TYPE_SITE_RNN', 'label': 'Reserve Naturelle Nationale'},
-            {'id': 43, 'cd': 'RNR', 'mnemonique': 'TYPE_SITE_RNR', 'label': 'Reserve Naturelle Regionale'},
-            {'id': 44, 'cd': 'PNR', 'mnemonique': 'TYPE_SITE_PNR', 'label': 'Parc Naturel Regional'},
-            {'id': 45, 'cd': 'ENS', 'mnemonique': 'TYPE_SITE_ENS', 'label': 'Espace Naturel Sensible'},
-            {'id': 46, 'cd': 'APB', 'mnemonique': 'TYPE_SITE_APB', 'label': 'Arrete de Protection de Biotope'},
+            {'id': 42, 'mnemonique': 'RNN', 'label': 'Reserve Naturelle Nationale'},
+            {'id': 43, 'mnemonique': 'RNR', 'label': 'Reserve Naturelle Regionale'},
+            {'id': 44, 'mnemonique': 'RNC', 'label': 'Reserve Naturelle de Corse'},
+            {'id': 93, 'mnemonique': 'PPRN', 'label': 'Perimetre de protection de reserve naturelle'},
+            {'id': 600, 'mnemonique': 'PNR', 'label': 'Parc Naturel Regional'},
+            {'id': 601, 'mnemonique': 'ENS', 'label': 'Espace Naturel Sensible'},
+            {'id': 602, 'mnemonique': 'APB', 'label': 'Arrete de Protection de Biotope'},
         ]
 
         for st in site_types:
@@ -434,20 +438,20 @@ class Command(BaseCommand):
                 id_nomenclature=st['id'],
                 defaults={
                     'id_type': type_site,
-                    'cd_nomenclature': st['cd'],
+                    'cd_nomenclature': None,
                     'mnemonique': st['mnemonique'],
                     'label': st['label'],
                     'actif': True
                 }
             )
             if self.verbosity >= 2:
-                self.stdout.write(f"  Type de site: {st['label']} (cd: {st['cd']})")
+                self.stdout.write(f"  Type de site: {st['label']} ({st['mnemonique']})")
 
-        # Nomenclatures d'evaluation
+        # Nomenclatures d'evaluation (alignees sur nomenclatures_inserts.sql)
         eval_types = [
-            {'id': 50, 'cd': 'EVAL_INT', 'mnemonique': 'EVALUATION_INTERMEDIAIRE', 'label': 'Evaluation intermediaire'},
-            {'id': 51, 'cd': 'EVAL_FIN', 'mnemonique': 'EVALUATION_FINALE', 'label': 'Evaluation finale'},
-            {'id': 52, 'cd': 'EVAL_EX', 'mnemonique': 'EVALUATION_EX_POST', 'label': 'Evaluation ex-post'},
+            {'id': 45, 'mnemonique': 'Aucune', 'label': 'Aucune evaluation', 'hierarchy': '1'},
+            {'id': 47, 'mnemonique': 'Intermediaire', 'label': 'Evaluation intermediaire', 'hierarchy': '2'},
+            {'id': 46, 'mnemonique': 'Finale', 'label': 'Evaluation finale', 'hierarchy': '3'},
         ]
 
         for et in eval_types:
@@ -455,20 +459,21 @@ class Command(BaseCommand):
                 id_nomenclature=et['id'],
                 defaults={
                     'id_type': type_eval,
-                    'cd_nomenclature': et['cd'],
+                    'cd_nomenclature': None,
                     'mnemonique': et['mnemonique'],
                     'label': et['label'],
+                    'hierarchy': et.get('hierarchy'),
                     'actif': True
                 }
             )
             if self.verbosity >= 2:
-                self.stdout.write(f"  Type evaluation: {et['label']} (cd: {et['cd']})")
+                self.stdout.write(f"  Type evaluation: {et['label']} ({et['mnemonique']})")
 
-        # Nomenclatures de redacteur
+        # Nomenclatures de redacteur (alignees sur nomenclatures_inserts.sql)
         redac_types = [
-            {'id': 60, 'cd': 'REDAC_GEST', 'mnemonique': 'REDACTEUR_GESTIONNAIRE', 'label': 'Gestionnaire'},
-            {'id': 61, 'cd': 'REDAC_BE', 'mnemonique': 'REDACTEUR_BUREAU_ETUDE', 'label': "Bureau d'etude"},
-            {'id': 62, 'cd': 'REDAC_AUTRE', 'mnemonique': 'REDACTEUR_AUTRE', 'label': 'Autre'},
+            {'id': 48, 'mnemonique': 'OG', 'label': 'Organisme Gestionnaire'},
+            {'id': 603, 'mnemonique': 'BE', 'label': "Bureau d'etudes"},
+            {'id': 50, 'mnemonique': 'Autre', 'label': 'Autre'},
         ]
 
         for rt in redac_types:
@@ -476,14 +481,14 @@ class Command(BaseCommand):
                 id_nomenclature=rt['id'],
                 defaults={
                     'id_type': type_redac,
-                    'cd_nomenclature': rt['cd'],
+                    'cd_nomenclature': None,
                     'mnemonique': rt['mnemonique'],
                     'label': rt['label'],
                     'actif': True
                 }
             )
             if self.verbosity >= 2:
-                self.stdout.write(f"  Type redacteur: {rt['label']} (cd: {rt['cd']})")
+                self.stdout.write(f"  Type redacteur: {rt['label']} ({rt['mnemonique']})")
 
         self.stdout.write(self.style.SUCCESS('  Nomenclatures creees'))
         return {'type_site': type_site, 'type_eval': type_eval, 'type_redac': type_redac}
@@ -663,11 +668,11 @@ class Command(BaseCommand):
         """Cree les sites de test avec geometries."""
         self.stdout.write('\n--- Creation des sites ---')
 
-        # Recuperer les types de site par cd_nomenclature
-        type_rnn = Nomenclature.objects.filter(cd_nomenclature='RNN').first()
-        type_rnr = Nomenclature.objects.filter(cd_nomenclature='RNR').first()
-        type_pnr = Nomenclature.objects.filter(cd_nomenclature='PNR').first()
-        type_ens = Nomenclature.objects.filter(cd_nomenclature='ENS').first()
+        # Recuperer les types de site par mnemonique (aligne sur fichiers SQL)
+        type_rnn = Nomenclature.objects.filter(mnemonique='RNN').first()
+        type_rnr = Nomenclature.objects.filter(mnemonique='RNR').first()
+        type_pnr = Nomenclature.objects.filter(mnemonique='PNR').first()
+        type_ens = Nomenclature.objects.filter(mnemonique='ENS').first()
 
         # Coordonnees reelles des sites naturels francais (lon, lat, offset)
         # Format: (longitude, latitude, offset_polygon)
@@ -1021,11 +1026,11 @@ class Command(BaseCommand):
         """Cree les plans de gestion de test."""
         self.stdout.write('\n--- Creation des plans de gestion ---')
 
-        # Recuperer les nomenclatures par cd_nomenclature
-        eval_int = Nomenclature.objects.filter(cd_nomenclature='EVAL_INT').first()
-        eval_fin = Nomenclature.objects.filter(cd_nomenclature='EVAL_FIN').first()
-        redac_gest = Nomenclature.objects.filter(cd_nomenclature='REDAC_GEST').first()
-        redac_be = Nomenclature.objects.filter(cd_nomenclature='REDAC_BE').first()
+        # Recuperer les nomenclatures par mnemonique (aligne sur fichiers SQL)
+        eval_int = Nomenclature.objects.filter(mnemonique='Intermediaire').first()
+        eval_fin = Nomenclature.objects.filter(mnemonique='Finale').first()
+        redac_gest = Nomenclature.objects.filter(mnemonique='OG').first()
+        redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
 
         # Recuperer l'admin pour la creation
         admin = users[0]
@@ -1471,6 +1476,126 @@ class Command(BaseCommand):
                 'validation_comment': 'Acces refuse: formation requise avant utilisation de ce module.',
                 'validated_at': timezone.now() - timedelta(days=10),
             },
+
+            # =====================================================
+            # CREATION DE SITE
+            # Validable par: super_admin, admin_og
+            # =====================================================
+
+            # Demande creation site - en attente
+            # Validable par: admin@test.fr, admin.cen@test.fr
+            {
+                'request_type': 'site_creation',
+                'requester': user_cen,
+                'status': 'pending',
+                'justification': 'Je souhaite creer un nouveau site pour la Tourbiere du Mont Bar dans le Puy-de-Dome.',
+            },
+            # Demande creation site - approuvee il y a 1 mois
+            {
+                'request_type': 'site_creation',
+                'requester': referent_vercors,
+                'status': 'approved',
+                'justification': 'Nouveau site ENS dans les Hautes-Alpes.',
+                'validator': admin,
+                'validation_comment': 'Site cree avec succes. Bienvenue!',
+                'validated_at': timezone.now() - timedelta(days=30),
+            },
+
+            # =====================================================
+            # LIEN SITE-ORGANISME
+            # Validable par: super_admin, admin_og gestionnaire du site
+            # =====================================================
+
+            # Demande lien site-organisme - en attente
+            # Validable par: admin@test.fr, admin.rnf@test.fr (RNF gere Scandola)
+            {
+                'request_type': 'site_org_link',
+                'requester': admin_cen,
+                'target_site': sites[5],  # Scandola (gestionnaire: RNF)
+                'requested_organisme': organismes[1],  # CEN AURA souhaite etre lie
+                'status': 'pending',
+                'justification': 'Notre organisme participe a un projet de suivi inter-regional.',
+            },
+            # Demande lien site-organisme - approuvee il y a 2 semaines
+            {
+                'request_type': 'site_org_link',
+                'requester': admin_rnf,
+                'target_site': sites[3],  # Vercors (gestionnaire: CEN AURA)
+                'requested_organisme': organismes[0],  # RNF souhaite etre lie
+                'status': 'approved',
+                'justification': 'Partenariat pour le suivi de la faune alpine.',
+                'validator': admin_cen,
+                'validation_comment': 'Partenariat valide. Bienvenue!',
+                'validated_at': timezone.now() - timedelta(days=14),
+            },
+
+            # =====================================================
+            # INVITATION ORGANISME VERS SITE
+            # Validable par: admin_og de l'organisme invite
+            # =====================================================
+
+            # Invitation organisme - en attente
+            # Validable par: admin.cen@test.fr (admin CEN AURA invite)
+            {
+                'request_type': 'invite_org_to_site',
+                'requester': referent_camargue,  # Referent du site Camargue invite
+                'target_site': sites[0],  # Camargue
+                'requested_organisme': organismes[1],  # CEN AURA est invite
+                'status': 'pending',
+                'justification': 'Nous invitons CEN AURA a participer au projet de suivi des flamants roses.',
+            },
+            # Invitation organisme - acceptee il y a 3 semaines
+            {
+                'request_type': 'invite_org_to_site',
+                'requester': admin_rnf,
+                'target_site': sites[1],  # Aiguilles Rouges
+                'requested_organisme': organismes[3],  # Parc Ecrins
+                'status': 'approved',
+                'justification': 'Invitation pour collaboration scientifique.',
+                'validator': admin,  # super_admin peut aussi valider
+                'validation_comment': 'Collaboration acceptee.',
+                'validated_at': timezone.now() - timedelta(days=21),
+            },
+
+            # =====================================================
+            # INVITATION UTILISATEUR VERS SITE
+            # Validable par: l'utilisateur invite lui-meme
+            # =====================================================
+
+            # Invitation utilisateur - en attente
+            # Validable par: user.cen@test.fr (l'utilisateur invite)
+            {
+                'request_type': 'invite_user_to_site',
+                'requester': referent_camargue,  # Referent invite un utilisateur
+                'target_site': sites[0],  # Camargue
+                'target_user': user_cen,  # L'utilisateur CEN est invite
+                'status': 'pending',
+                'justification': 'Nous vous invitons a rejoindre l\'equipe du site Camargue pour le projet biodiversite.',
+            },
+            # Invitation utilisateur - acceptee il y a 5 jours
+            {
+                'request_type': 'invite_user_to_site',
+                'requester': admin_rnf,
+                'target_site': sites[6],  # Lac de Remoray
+                'target_user': user_rnf,
+                'status': 'approved',
+                'justification': 'Invitation a rejoindre l\'equipe du Lac de Remoray.',
+                'validator': user_rnf,  # L'utilisateur invite accepte lui-meme
+                'validation_comment': 'J\'accepte avec plaisir de rejoindre cette equipe!',
+                'validated_at': timezone.now() - timedelta(days=5),
+            },
+            # Invitation utilisateur - refusee il y a 1 semaine
+            {
+                'request_type': 'invite_user_to_site',
+                'requester': referent_vercors,
+                'target_site': sites[3],  # Vercors
+                'target_user': user_rnf,
+                'status': 'rejected',
+                'justification': 'Invitation a participer au suivi floristique.',
+                'validator': user_rnf,  # L'utilisateur decline
+                'validation_comment': 'Merci pour l\'invitation mais je ne suis pas disponible actuellement.',
+                'validated_at': timezone.now() - timedelta(days=7),
+            },
         ]
 
         validation_requests = []
@@ -1672,6 +1797,58 @@ class Command(BaseCommand):
                 'message': 'Le site de Scandola n\'a plus d\'utilisateur referent assigne.',
                 'priority': 'critical',
                 'related_site': sites[5],
+                'read': False,
+            },
+
+            # Notifications de type 'welcome' (bienvenue apres inscription)
+            {
+                'recipient': user_cen,
+                'notification_type': 'welcome',
+                'title': 'Bienvenue sur CICADA!',
+                'message': 'Votre compte a ete active. Vous pouvez maintenant acceder a toutes les fonctionnalites de la plateforme.',
+                'priority': 'medium',
+                'read': True,
+            },
+
+            # Notifications de type 'user_removed_site' (retrait d'un site)
+            {
+                'recipient': user_rnf,
+                'notification_type': 'user_removed_site',
+                'title': 'Acces retire',
+                'message': 'Votre acces au site du Lac de Remoray a ete retire par l\'administrateur.',
+                'priority': 'medium',
+                'related_site': sites[6],
+                'read': False,
+            },
+
+            # Notifications de type 'user_removed_plan' (retrait d'un plan)
+            {
+                'recipient': referent_vercors,
+                'notification_type': 'user_removed_plan',
+                'title': 'Retrait du plan de gestion',
+                'message': 'Vous n\'etes plus referent du plan de gestion 2018-2028 des Aiguilles Rouges.',
+                'priority': 'medium',
+                'related_plan': plans[1],
+                'read': True,
+            },
+
+            # Notifications de type 'account_deactivated' (compte desactive)
+            {
+                'recipient': admin_rnf,
+                'notification_type': 'account_deactivated',
+                'title': 'Compte utilisateur desactive',
+                'message': 'Le compte de Jean Martin (ancien.rnf@test.fr) a ete desactive suite a son depart.',
+                'priority': 'high',
+                'read': True,
+            },
+
+            # Notifications de type 'account_activated' (compte reactive)
+            {
+                'recipient': admin_cen,
+                'notification_type': 'account_activated',
+                'title': 'Compte utilisateur reactive',
+                'message': 'Le compte de Marie Dupont a ete reactive apres verification de son identite.',
+                'priority': 'medium',
                 'read': False,
             },
         ]

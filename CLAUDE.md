@@ -332,7 +332,8 @@ backend/tests/
     ├── test_api_auth.py
     ├── test_api_users.py
     ├── test_api_org_sites.py
-    └── test_api_plans.py
+    ├── test_api_plans.py
+    └── test_site_duplicates.py  # Détection doublons INPN et noms similaires
 ```
 
 #### Frontend (Jest)
@@ -596,11 +597,16 @@ Angular application with:
   - Hierarchical structure support (parent organizations)
   - Contact information management
 
-- **Sites**: 
+- **Sites**:
   - Geospatial support with interactive maps (PostGIS)
   - Site classification (RNN, RNR, PNR, ENS, etc.)
   - Surface area and geographic coordinates
   - Organization-Site relationships inline
+  - **Contrainte unicité INPN** : Le champ `id_inpn` est unique en base de données
+  - **Détection de doublons** lors de la création :
+    - Si le code INPN saisi existe déjà → **alerte bloquante** avec message "Ce code INPN est déjà utilisé par un site existant"
+    - Si le nom est similaire à un site existant → **suggestions non bloquantes** de sites similaires
+    - L'utilisateur peut demander l'accès au site existant ou lier son organisme
 
 - **Nomenclatures**: 
   - Reference data management
