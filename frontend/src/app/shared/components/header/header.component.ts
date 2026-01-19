@@ -7,6 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ImpersonationGuardService } from '../../../core/services/impersonation-guard.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
@@ -21,6 +22,7 @@ import { NotificationBellComponent } from '../notification-bell/notification-bel
 export class HeaderComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly impersonationGuard = inject(ImpersonationGuardService);
 
   // Menu state
   menuOpen = false;
@@ -48,6 +50,7 @@ export class HeaderComponent {
   // Impersonation state
   readonly isImpersonating = this.authService.isImpersonating;
   readonly impersonationInfo = this.authService.impersonationInfo;
+  readonly isReadOnly = this.impersonationGuard.isReadOnly;
 
   get userDisplayName(): string {
     return this.authService.getUserDisplayName();

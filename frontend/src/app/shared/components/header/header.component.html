@@ -1,12 +1,18 @@
 <!-- Impersonation Banner -->
 @if (isImpersonating()) {
-  <div class="impersonation-banner">
+  <div class="impersonation-banner" [class.read-only]="isReadOnly()">
     <div class="impersonation-content">
       <i class="fi fi-rr-eye"></i>
       <span class="impersonation-text">
         <strong>{{ 'header.impersonation.banner' | translate }}</strong> - {{ 'header.impersonation.viewing' | translate }} <strong>{{ userDisplayName }}</strong>
         <span class="impersonation-info">({{ 'header.impersonation.connectedAs' | translate }} {{ originalUserDisplayName }})</span>
       </span>
+      @if (isReadOnly()) {
+        <span class="read-only-badge">
+          <i class="fi fi-rr-lock"></i>
+          {{ 'header.impersonation.readOnlyMode' | translate }}
+        </span>
+      }
       <button class="stop-impersonation-btn" (click)="stopImpersonation()">
         <i class="fi fi-rr-cross-circle"></i>
         {{ 'header.impersonation.stopButton' | translate }}

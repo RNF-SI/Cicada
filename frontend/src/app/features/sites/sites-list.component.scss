@@ -22,7 +22,20 @@ h1 { @include sites-h1; }
 .no-geometry { @include sites-no-geometry; }
 .content-column { @include sites-content-column; }
 .content-panel { @include sites-content-panel; }
-.section-header { display: flex; justify-content: space-between; align-items: center; gap: $spacing-md; margin-bottom: $spacing-md; flex-wrap: wrap; }
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.section-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
 .section-title { @include sites-section-title; }
 .badge { @include sites-badge; }
 .loading-container { @include sites-loading-container; }

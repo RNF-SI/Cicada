@@ -66,17 +66,42 @@
         <div class="content-panel">
           <!-- Section Mes Sites -->
           <div class="section-header">
-            <h2 class="section-title">
-              <i class="fi fi-rr-check-circle"></i>
-              {{ 'sites.mySites.title' | translate }}
-              <span class="badge">{{ displayedMySites().length }}</span>
-              @if (searchTerm() && mySites().length !== displayedMySites().length) {
-                <span class="search-count">/ {{ mySites().length }}</span>
+            <div class="section-header-top">
+              <h2 class="section-title">
+                <i class="fi fi-rr-check-circle"></i>
+                @switch (viewScope()) {
+                  @case ('mine') {
+                    {{ 'sites.mySites.title' | translate }}
+                  }
+                  @case ('organisme') {
+                    {{ 'sites.organismesSites.title' | translate }}
+                  }
+                  @case ('all') {
+                    {{ 'sites.allSites.title' | translate }}
+                  }
+                }
+                <span class="badge">{{ displayedMySites().length }}</span>
+                @if (searchTerm() && scopedSites().length !== displayedMySites().length) {
+                  <span class="search-count">/ {{ scopedSites().length }}</span>
+                }
+              </h2>
+
+              <!-- Toggle de scope (visible pour admin_og et super_admin) -->
+              @if (showScopeToggle()) {
+                <app-view-scope-toggle
+                  [currentScope]="viewScope()"
+                  [showAllOption]="isSuperAdmin()"
+                  [showOrganismeOption]="true"
+                  mineLabel="Mes sites"
+                  organismeLabel="Mon organisme"
+                  allLabel="Tous les sites"
+                  (scopeChange)="onScopeChange($event)">
+                </app-view-scope-toggle>
               }
-            </h2>
+            </div>
 
             <!-- Barre de recherche -->
-            @if (mySites().length > 0) {
+            @if (scopedSites().length > 0) {
               <div class="search-bar">
                 <i class="fi fi-rr-search search-icon"></i>
                 <input
@@ -94,11 +119,23 @@
             }
           </div>
 
-          @if (mySites().length === 0) {
-            <!-- Aucun site -->
+          @if (scopedSites().length === 0) {
+            <!-- Aucun site dans le scope sélectionné -->
             <div class="empty-state">
               <i class="fi fi-rr-marker empty-icon"></i>
-              <p>{{ 'sites.mySites.empty' | translate }}</p>
+              <p>
+                @switch (viewScope()) {
+                  @case ('mine') {
+                    {{ 'sites.mySites.empty' | translate }}
+                  }
+                  @case ('organisme') {
+                    {{ 'sites.organismesSites.empty' | translate }}
+                  }
+                  @case ('all') {
+                    {{ 'sites.allSites.empty' | translate }}
+                  }
+                }
+              </p>
             </div>
           } @else if (displayedMySites().length === 0 && searchTerm()) {
             <!-- Aucun résultat de recherche -->

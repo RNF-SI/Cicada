@@ -148,7 +148,9 @@
       "banner": "Mode visualisation",
       "viewing": "Vous visualisez en tant que",
       "connectedAs": "connecte en tant que",
-      "stopButton": "Revenir a mon compte"
+      "stopButton": "Revenir a mon compte",
+      "readOnlyError": "Les modifications sont desactivees pendant l'impersonnation. Mode consultation uniquement.",
+      "readOnlyMode": "Mode lecture seule"
     }
   },
   "home": {
@@ -973,8 +975,13 @@
       "noSearchResults": "Aucun site ne correspond a votre recherche.",
       "clearSearch": "Effacer la recherche"
     },
+    "organismesSites": {
+      "title": "Sites de mon organisme",
+      "empty": "Aucun site n'est associe a votre organisme."
+    },
     "allSites": {
       "title": "Tous les sites",
+      "empty": "Aucun site dans l'application.",
       "loginPrompt": "Connectez-vous pour demander l'acces a un site."
     },
     "requestAccess": {

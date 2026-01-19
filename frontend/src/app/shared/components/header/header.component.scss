@@ -66,6 +66,30 @@
   }
 }
 
+// Badge "Mode lecture seule"
+.read-only-badge {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  background-color: rgba($error-color, 0.9);
+  color: $white;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  margin-left: $spacing-xs;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+// Bandeau en mode lecture seule (couleur différente)
+.impersonation-banner.read-only {
+  background: linear-gradient(135deg, $error-color 0%, darken($error-color, 10%) 100%);
+}
+
 .header {
   background-color: $white;
   height: 64px;

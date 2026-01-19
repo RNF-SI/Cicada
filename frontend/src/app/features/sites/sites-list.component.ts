@@ -32,6 +32,7 @@ import { SiteFormModalComponent, SiteFormModalData } from '../../shared/componen
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
+import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 
 interface SiteUserRelation {
   id_role: number;
@@ -48,6 +49,8 @@ interface SiteWithUsers extends Omit<AdminSite, 'users'> {
 interface SiteWithAccess extends SiteWithUsers {
   accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
   isReferent: boolean;
+  /** Indique si l'utilisateur est directement lie au site (via CorRoleSite) */
+  isDirectlyLinked: boolean;
 }
 
 @Component({
@@ -70,7 +73,8 @@ interface SiteWithAccess extends SiteWithUsers {
     MatDialogModule,
     TranslateModule,
     HeaderComponent,
-    LeafletMapComponent
+    LeafletMapComponent,
+    ViewScopeToggleComponent
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'
@@ -91,6 +95,16 @@ export class SitesListComponent implements OnInit {
   readonly mapData = signal<GeoJSONFeatureCollection | null>(null);
   readonly loading = signal(false);
 
+  // Scope d'affichage (mes sites / sites OG / tous)
+  readonly viewScope = signal<ViewScope>('mine');
+
+  // Permissions pour le toggle
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+
+  // Afficher le toggle si l'utilisateur est admin_og ou super_admin
+  readonly showScopeToggle = computed(() => this.isAdminOrganisme());
+
   // Recherche
   readonly searchTerm = signal('');
 
@@ -101,9 +115,23 @@ export class SitesListComponent implements OnInit {
   // Colonnes du tableau
   readonly tableColumns = ['name', 'type', 'surface', 'organisme', 'status', 'actions'];
 
-  // Sites auxquels l'utilisateur a acces
+  // Sites auxquels l'utilisateur est directement lie (via CorRoleSite)
   readonly mySites = computed(() => {
-    return this.allSites().filter(s => s.accessStatus === 'granted');
+    // Filtre les sites où l'utilisateur a un lien direct (CorRoleSite)
+    // Pour super_admin, isDirectlyLinked est false pour tous les sites mais accessStatus est 'granted'
+    // donc on utilise aussi accessStatus
+    return this.allSites().filter(s => s.isDirectlyLinked || s.accessStatus === 'granted');
+  });
+
+  // Sites de l'organisme de l'utilisateur (tous les sites lies a son OG)
+  readonly organismeSites = computed(() => {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser?.organisme?.id_organisme) return [];
+    const userOrgId = currentUser.organisme.id_organisme;
+
+    return this.allSites().filter(site =>
+      site.organismes?.some(o => o.id_organisme === userOrgId)
+    );
   });
 
   // Sites en attente de validation (demandes pending)
@@ -111,10 +139,25 @@ export class SitesListComponent implements OnInit {
     return this.allSites().filter(s => s.accessStatus === 'pending');
   });
 
+  // Sites affiches selon le scope selectionne
+  readonly scopedSites = computed(() => {
+    const scope = this.viewScope();
+    switch (scope) {
+      case 'mine':
+        return this.mySites();
+      case 'organisme':
+        return this.organismeSites();
+      case 'all':
+        return this.allSites();
+      default:
+        return this.mySites();
+    }
+  });
+
   // Sites affiches (filtrés par recherche)
   readonly displayedMySites = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
-    const sites = this.mySites();
+    const sites = this.scopedSites();
 
     if (!term) return sites;
 
@@ -169,9 +212,9 @@ export class SitesListComponent implements OnInit {
       .map(s => ({ id_site: s.id_site, nom_site: s.nom_site }));
   });
 
-  // GeoJSON filtré pour la carte (mes sites uniquement)
+  // GeoJSON filtré pour la carte (selon le scope sélectionné)
   readonly mapGeoJSON = computed(() => {
-    const mySiteIds = this.mySites().map(s => s.id_site);
+    const scopedSiteIds = this.scopedSites().map(s => s.id_site);
     const fullData = this.mapData();
 
     // Vérifier que fullData existe et que features est bien un tableau
@@ -182,7 +225,7 @@ export class SitesListComponent implements OnInit {
     return {
       type: 'FeatureCollection' as const,
       features: fullData.features.filter(f =>
-        mySiteIds.includes(f.properties?.id_site)
+        scopedSiteIds.includes(f.properties?.id_site)
       )
     };
   });
@@ -282,9 +325,19 @@ export class SitesListComponent implements OnInit {
       return {
         ...site,
         accessStatus,
-        isReferent: isSuperAdmin || userLink?.referent || false
+        isReferent: isSuperAdmin || userLink?.referent || false,
+        isDirectlyLinked: !!isUserLinked
       };
     });
+  }
+
+  /**
+   * Gère le changement de scope d'affichage.
+   */
+  onScopeChange(scope: ViewScope): void {
+    this.viewScope.set(scope);
+    // Reset pagination lors du changement de scope
+    this.currentPage.set(1);
   }
 
   /**
@@ -410,7 +463,7 @@ export class SitesListComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {

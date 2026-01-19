@@ -504,6 +504,87 @@ L'impersonnation permet à un super admin de "devenir" temporairement un autre u
 | Protection super admins | Impossible d'impersonner un autre super admin (protection contre l'escalade) |
 | Traçabilité complète | Tout est tracé : qui, qui, quand, combien de temps, depuis quelle IP |
 
+### Mode lecture seule en production
+
+En mode **production**, les modifications (POST, PUT, PATCH, DELETE) sont **bloquées** pendant l'impersonnation. Cela permet de :
+- Consulter l'application comme un utilisateur sans risque de modification
+- Garantir la traçabilité : aucune action ne peut être effectuée au nom d'un autre
+- Protéger les données en production
+
+En mode **développement**, les modifications sont autorisées pour faciliter les tests.
+
+#### Indicateurs visuels
+
+Quand le mode lecture seule est actif, l'utilisateur voit clairement qu'il ne peut pas modifier :
+
+| Élément | Mode normal | Mode lecture seule |
+|---------|-------------|-------------------|
+| **Couleur du bandeau** | Orange (warning) | Rouge (error) |
+| **Badge** | Aucun | "Mode lecture seule" avec icône 🔒 |
+| **Clic sur action** | Action exécutée | Message snackbar d'erreur |
+
+#### Comportement technique
+
+1. **Intercepteur HTTP** (`impersonation.interceptor.ts`) :
+   - Intercepte toutes les requêtes sortantes
+   - Bloque les méthodes POST, PUT, PATCH, DELETE si en mode lecture seule
+   - Autorise toujours GET, HEAD, OPTIONS
+   - Autorise certains endpoints critiques (stop-impersonation, refresh, logout)
+
+2. **Service `ImpersonationGuardService`** :
+   - Signal `isReadOnly` : true si impersonnation + modifications bloquées
+   - Signal `canModify` : inverse pour faciliter les bindings
+   - Méthode `checkCanModify()` : vérifie et affiche un message si bloqué
+
+3. **Requêtes bloquées** :
+   - Ne sont jamais envoyées au serveur
+   - Retournent une erreur HTTP 403 locale
+   - Affichent un snackbar explicatif à l'utilisateur
+
+#### Configuration
+
+| Mode | Fichier | `allowImpersonationModifications` | Comportement |
+|------|---------|-----------------------------------|--------------|
+| Développement | `environment.ts` | `true` | Modifications autorisées |
+| Production | `environment.prod.ts` | `false` | Consultation uniquement |
+
+#### Utilisation dans les composants
+
+Pour désactiver visuellement un bouton en mode lecture seule :
+
+```typescript
+// Dans le composant
+import { ImpersonationGuardService } from '@core/services/impersonation-guard.service';
+
+readonly impersonationGuard = inject(ImpersonationGuardService);
+readonly canModify = this.impersonationGuard.canModify;
+
+// Vérification avant action
+onSave() {
+  if (!this.impersonationGuard.checkCanModify()) return;
+  // ... continuer avec la sauvegarde
+}
+```
+
+```html
+<!-- Dans le template -->
+<button [disabled]="!canModify()" (click)="onSave()">Enregistrer</button>
+```
+
+#### Activer les modifications en production (urgence)
+
+Dans des situations exceptionnelles où vous devez effectuer des modifications en impersonnation en production, vous pouvez modifier temporairement la valeur de `allowImpersonationModifications` dans le fichier `environment.prod.ts` avant le build :
+
+```typescript
+// environment.prod.ts - Modification temporaire (NON recommandé)
+export const environment = {
+  production: true,
+  allowImpersonationModifications: true  // ⚠️ À remettre à false après
+};
+```
+
+**Recommandation** : Ne pas activer cette option en production. Si des modifications sont nécessaires, utilisez votre propre compte admin ou demandez à l'utilisateur de le faire lui-même.
+
 ---
 
 ## 5. Modules
@@ -568,6 +649,26 @@ Cette page présente un layout style GeoNature avec :
 | **Recherche** | Barre de recherche pour filtrer les sites par nom, type ou organisme |
 | **Accès rapide** | Clic sur un site pour accéder à sa fiche détaillée |
 | **Visualisation cartographique** | Zoom automatique sur les sites avec géométries disponibles |
+| **Toggle de scope** | Basculer entre différents niveaux d'affichage (mes sites / sites de l'organisme / tous) |
+
+#### Toggle de scope d'affichage (admin_og et super_admin)
+
+Les administrateurs d'organisme et super administrateurs disposent d'un toggle permettant de changer le scope d'affichage des sites :
+
+| Scope | Icône | Description | Accessible par |
+|-------|-------|-------------|----------------|
+| **Mes sites** | 👤 | Sites auxquels l'utilisateur est directement lié (via CorRoleSite) | admin_og, super_admin |
+| **Mon organisme** | 🏢 | Tous les sites gérés par l'organisme de l'utilisateur (via CorOgSite) | admin_og, super_admin |
+| **Tous les sites** | 🌍 | Tous les sites de l'application | super_admin uniquement |
+
+**Comportement :**
+- Le scope par défaut est "Mes sites"
+- La carte et le tableau se mettent à jour automatiquement lors du changement de scope
+- La pagination et la recherche s'appliquent au scope sélectionné
+- Le compteur dans le badge reflète le nombre de sites du scope actuel
+
+**Architecture réutilisable :**
+Le composant `ViewScopeToggleComponent` est conçu pour être réutilisé sur d'autres modules (ex: Plans de Gestion). Il accepte des labels personnalisés et des options configurables pour s'adapter à différents contextes.
 
 ### Recherche et demande d'accès à un site
 

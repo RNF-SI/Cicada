@@ -209,7 +209,9 @@ $corner-size: 94px;
   gap: 24px;
 
   &--three {
-    grid-template-columns: repeat(3, 1fr);
+    // Centrer les 3 tuiles en utilisant une grille avec largeur fixe
+    grid-template-columns: repeat(3, minmax(0, 300px));
+    justify-content: center;
   }
 
   &--four {
