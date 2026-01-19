@@ -49,6 +49,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Badge compteur filtres actifs
     - Composant input +/- (fréquence)
 
+### Règles d'utilisation du Design System (IMPORTANT)
+
+**Ces règles doivent être suivies automatiquement pour tout code Angular/SCSS :**
+
+#### Boutons Angular Material
+- **Bouton primaire (action principale)**: `mat-flat-button color="primary"`
+  - Fond: `$primary-color` (#025359)
+  - Texte: blanc
+  - Exemple: `<button mat-flat-button color="primary">Créer</button>`
+
+- **Bouton secondaire (action alternative)**: `mat-stroked-button`
+  - Bordure: `$primary-color` (#025359)
+  - Texte: `$primary-color` (#025359)
+  - Au hover: fond `$primary-color`, texte blanc
+  - Exemple: `<button mat-stroked-button>Annuler</button>`
+
+- **Bouton tertiaire (action discrète)**: `mat-button`
+  - Texte: `$primary-color` (#025359)
+  - Sans bordure ni fond
+  - Exemple: `<button mat-button>En savoir plus</button>`
+
+- **Tailles**: Ajouter `.btn-sm` ou `.btn-lg` pour les variantes
+
+#### Couleurs à utiliser
+| Usage | Variable SCSS | Hex | Ne pas utiliser |
+|-------|---------------|-----|-----------------|
+| Actions, titres, liens | `$primary-color` | #025359 | Bleu Material (#3f51b5), autres bleus |
+| Accent décoratif | `$secondary-yellow` | #FEC180 | - |
+| Warnings visuels | `$secondary-orange-salmon` | #F5B399 | - |
+| Erreurs bloquantes | `$error-color` | #E12329 | - |
+| Succès | `$success-color` | #04854B | - |
+| Texte principal | `$black` | #343433 | #000000 |
+| Texte secondaire | `$gray-dark` | #746F6E | - |
+
+#### Modales (MatDialog)
+- **Largeur standard**: `width: '1300px', maxWidth: '95vw', maxHeight: '90vh'`
+- **Éviter**: `width: '600px'` (trop étroit pour les layouts complexes)
+
+#### Configuration du thème Material (CRITIQUE)
+Le thème Angular Material est configuré dans `src/styles.scss`:
+- **Palette de base**: `mat.$cyan-palette` (la plus proche de #025359)
+- **Tokens CSS personnalisés**: Définis dans `:root` pour forcer #025359
+- **NE JAMAIS** utiliser `mat.$blue-palette` ou d'autres palettes bleues
+- Les tokens spécifiques aux composants (boutons, checkboxes, etc.) sont définis dans `styles.scss` et `_material-overrides.scss`
+
+**Si les boutons/checkboxes affichent une couleur bleue au lieu de #025359:**
+1. Vérifier que le thème utilise `mat.$cyan-palette` (pas `mat.$blue-palette`)
+2. Vérifier les tokens CSS dans `:root` de `styles.scss`
+3. Les overrides sont dans `_material-overrides.scss`
+
+#### Dans les fichiers SCSS de composants
+- Toujours importer: `@import 'variables';`
+- Utiliser les variables SCSS, jamais les valeurs hex directement
+- **Les couleurs sont gérées globalement** - éviter les overrides `!important` dans les composants
+- Si absolument nécessaire, utiliser les tokens CSS Material:
+```scss
+.my-component {
+  --mdc-filled-button-container-color: #{$primary-color};
+  --mdc-checkbox-selected-icon-color: #{$primary-color};
+}
+```
+
 ### Composants Angular Réutilisables
 
 Les composants standalone sont dans `frontend/src/app/shared/components/`.

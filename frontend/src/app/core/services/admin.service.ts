@@ -18,7 +18,8 @@ import {
   OrganismeSite,
   SiteOrganisme,
   GeoJSONFeature,
-  GeoJSONFeatureCollection
+  GeoJSONFeatureCollection,
+  DuplicateCheckResult
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -225,6 +226,26 @@ export class AdminService {
    */
   updateSite(id: number, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
     return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${id}/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Check for duplicate sites by INPN code or name
+   * GET /api/users/sites/check_duplicates/
+   * @param params - nom_site: search by similar names, id_inpn: exact INPN match, exclude_id: site to exclude (edit mode)
+   */
+  checkDuplicates(params: { nom_site?: string; id_inpn?: string; exclude_id?: number }): Observable<DuplicateCheckResult> {
+    let httpParams = new HttpParams();
+    if (params.nom_site) {
+      httpParams = httpParams.set('nom_site', params.nom_site);
+    }
+    if (params.id_inpn) {
+      httpParams = httpParams.set('id_inpn', params.id_inpn);
+    }
+    if (params.exclude_id) {
+      httpParams = httpParams.set('exclude_id', params.exclude_id.toString());
+    }
+    return this.http.get<DuplicateCheckResult>(`${this.apiUrl}/sites/check_duplicates/`, { params: httpParams })
       .pipe(catchError(this.handleError));
   }
 

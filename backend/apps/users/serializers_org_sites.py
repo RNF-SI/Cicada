@@ -494,6 +494,20 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("La surface ne peut pas être négative."))
         return value
 
+    def validate_id_inpn(self, value):
+        """Valide l'unicité du code INPN."""
+        if value:
+            value = value.strip()
+            existing = Site.objects.filter(id_inpn=value)
+            if self.instance:
+                existing = existing.exclude(id_site=self.instance.id_site)
+            if existing.exists():
+                site = existing.first()
+                raise serializers.ValidationError(
+                    _("Ce code INPN est déjà utilisé par le site \"%(site)s\".") % {'site': site.nom_site}
+                )
+        return value if value else None
+
     def validate_geom_geojson(self, value):
         """Valide la géométrie GeoJSON."""
         if value is not None:

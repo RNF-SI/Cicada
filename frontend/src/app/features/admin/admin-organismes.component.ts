@@ -238,7 +238,9 @@ export class AdminOrganismesComponent implements OnInit {
    */
   openCreateSiteModal(org: DisplayOrganisme): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px',
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
       data: {
         organismeId: org.id,
         principal: true // New site is principal by default for admin_og

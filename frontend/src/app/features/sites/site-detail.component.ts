@@ -329,7 +329,7 @@ export class SiteDetailComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {

@@ -247,7 +247,7 @@ class Site(models.Model):
     
     id_site = models.AutoField(primary_key=True)
     id_local = models.CharField(_("Identifiant local"), max_length=50, null=True, blank=True)
-    id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True)
+    id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True, unique=True)
     id_type_site = models.ForeignKey(
         'core.Nomenclature',  # À créer dans core app
         on_delete=models.PROTECT,

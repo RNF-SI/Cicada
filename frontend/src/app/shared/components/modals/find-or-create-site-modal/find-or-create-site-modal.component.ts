@@ -321,7 +321,7 @@ export class FindOrCreateSiteModalComponent {
 
     // Ouvrir le dialogue de création de site
     const createDialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {

@@ -257,7 +257,9 @@ export class AdminSitesComponent implements OnInit {
 
   openAddSiteModal(): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px'
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -278,7 +280,9 @@ export class AdminSitesComponent implements OnInit {
 
   editSite(site: DisplaySite): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px',
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
       data: {
         site: {
           id_site: site.id,

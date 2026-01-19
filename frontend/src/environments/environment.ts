@@ -13,5 +13,5 @@ export const environment = {
    * En mode développement, c'est activé pour permettre les tests.
    * En mode production, c'est désactivé par défaut pour la sécurité.
    */
-  allowImpersonationModifications: false
+  allowImpersonationModifications: true
 };

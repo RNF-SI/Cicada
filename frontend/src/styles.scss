@@ -43,11 +43,12 @@
 // Tertiary: Orange saumon (#F5B399)
 // Error: Rouge (#E12329)
 
+// Use cyan palette as base (closest to our teal #025359)
 $theme: mat.define-theme((
   color: (
     theme-type: light,
-    primary: mat.$blue-palette,
-    tertiary: mat.$yellow-palette,
+    primary: mat.$cyan-palette,
+    tertiary: mat.$orange-palette,
   ),
 ));
 
@@ -178,10 +179,182 @@ html {
   // ============================================
   --color-terra-cotta: #{$secondary-terra-cotta};
   --color-pale-green: #{$secondary-pale-green};
+
+  // ============================================
+  // MATERIAL COMPONENT-SPECIFIC TOKENS
+  // Force primary color (#025359) on all components
+  // ============================================
+
+  // Buttons (filled/flat)
+  --mdc-filled-button-container-color: #{$primary-color};
+  --mdc-filled-button-label-text-color: #{$white};
+  --mdc-filled-button-icon-color: #{$white};
+  --mat-filled-button-state-layer-color: #{$white};
+  --mat-filled-button-ripple-color: #{rgba($white, 0.12)};
+  --mat-filled-button-icon-color: #{$white};
+
+  // Buttons (outlined/stroked)
+  --mdc-outlined-button-outline-color: #{$primary-color};
+  --mdc-outlined-button-label-text-color: #{$primary-color};
+  --mdc-outlined-button-icon-color: #{$primary-color};
+  --mat-outlined-button-state-layer-color: #{$primary-color};
+  --mat-outlined-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-outlined-button-icon-color: #{$primary-color};
+
+  // Buttons (text)
+  --mdc-text-button-label-text-color: #{$primary-color};
+  --mdc-text-button-icon-color: #{$primary-color};
+  --mat-text-button-state-layer-color: #{$primary-color};
+  --mat-text-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-text-button-icon-color: #{$primary-color};
+
+  // Checkbox - CRITICAL: checkmark must be WHITE on teal background
+  --mdc-checkbox-selected-checkmark-color: #{$white};
+  --mdc-checkbox-selected-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-focus-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-hover-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-pressed-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-focus-state-layer-color: #{$primary-color};
+  --mdc-checkbox-selected-hover-state-layer-color: #{$primary-color};
+  --mdc-checkbox-selected-pressed-state-layer-color: #{$primary-color};
+  --mdc-checkbox-unselected-icon-color: #{$gray};
+  --mdc-checkbox-unselected-focus-icon-color: #{$gray-dark};
+  --mdc-checkbox-unselected-hover-icon-color: #{$primary-color};
+  --mdc-checkbox-unselected-pressed-icon-color: #{$primary-color};
+  --mat-checkbox-label-text-color: #{$black};
+  // Additional checkbox tokens for M3
+  --mat-checkbox-checked-checkmark-color: #{$white};
+  --mat-checkbox-disabled-label-color: #{$gray};
+
+  // Radio button
+  --mdc-radio-selected-icon-color: #{$primary-color};
+  --mdc-radio-selected-focus-icon-color: #{$primary-color};
+  --mdc-radio-selected-hover-icon-color: #{$primary-color};
+  --mdc-radio-selected-pressed-icon-color: #{$primary-color};
+  --mdc-radio-unselected-icon-color: #{$gray};
+  --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
+  --mdc-radio-unselected-hover-icon-color: #{$primary-color};
+  --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
+  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+
+  // Slide toggle - Track (background)
+  --mdc-switch-selected-track-color: #{$primary-color};
+  --mdc-switch-selected-hover-track-color: #{darken($primary-color, 5%)};
+  --mdc-switch-selected-focus-track-color: #{$primary-color};
+  --mdc-switch-selected-pressed-track-color: #{darken($primary-color, 5%)};
+  --mdc-switch-unselected-track-color: #{$gray-light};
+  --mdc-switch-unselected-hover-track-color: #{$gray};
+  --mdc-switch-unselected-focus-track-color: #{$gray-light};
+  --mdc-switch-unselected-pressed-track-color: #{$gray};
+
+  // Slide toggle - Handle (knob) - MUST be white/contrasting when selected
+  --mdc-switch-selected-handle-color: #{$white};
+  --mdc-switch-selected-hover-handle-color: #{$white};
+  --mdc-switch-selected-focus-handle-color: #{$white};
+  --mdc-switch-selected-pressed-handle-color: #{$white};
+  --mdc-switch-unselected-handle-color: #{$white};
+  --mdc-switch-unselected-hover-handle-color: #{$white};
+  --mdc-switch-unselected-focus-handle-color: #{$white};
+  --mdc-switch-unselected-pressed-handle-color: #{$white};
+  --mdc-switch-handle-surface-color: #{$white};
+
+  // Slide toggle - Icon on handle (optional)
+  --mdc-switch-selected-icon-color: #{$primary-color};
+  --mdc-switch-unselected-icon-color: #{$gray};
+
+  // Progress spinner
+  --mdc-circular-progress-active-indicator-color: #{$primary-color};
+
+  // Progress bar
+  --mdc-linear-progress-active-indicator-color: #{$primary-color};
+
+  // Form field (focus/hover states)
+  --mdc-outlined-text-field-focus-outline-color: #{$primary-color};
+  --mdc-outlined-text-field-hover-outline-color: #{$primary-color};
+  --mdc-outlined-text-field-focus-label-text-color: #{$primary-color};
+  --mat-form-field-focus-select-arrow-color: #{$primary-color};
+
+  // Select
+  --mat-select-focused-arrow-color: #{$primary-color};
+  --mat-option-selected-state-label-text-color: #{$primary-color};
+  --mat-option-label-text-color: #{$black};
+
+  // FAB
+  --mdc-fab-container-color: #{$primary-color};
+  --mat-fab-foreground-color: #{$white};
+  --mdc-fab-small-container-color: #{$primary-color};
+  --mat-fab-small-foreground-color: #{$white};
 }
 
 // Material component overrides (must come after theme application)
 @import 'assets/scss/material-overrides';
+
+// ============================================
+// GLOBAL REINFORCEMENT STYLES
+// These styles ensure buttons/checkboxes work correctly everywhere
+// (modals, dialogs, overlays, etc.)
+// ============================================
+
+// Force white text/icons in ALL primary filled buttons
+.mat-mdc-raised-button[color="primary"],
+.mat-mdc-flat-button[color="primary"],
+.mat-mdc-unelevated-button[color="primary"],
+button[mat-flat-button][color="primary"],
+button[mat-raised-button][color="primary"] {
+  color: $white !important;
+
+  .mdc-button__label {
+    color: $white !important;
+  }
+
+  // All icons white
+  i, .mat-icon, [class*="fi-"], [class^="fi-"] {
+    color: $white !important;
+  }
+
+  // Flaticon pseudo-elements
+  [class*="fi-"]::before {
+    color: $white !important;
+  }
+}
+
+// Force checkbox checkmark to be white when checked
+.mat-mdc-checkbox.mat-mdc-checkbox-checked,
+.mat-mdc-checkbox .mdc-checkbox--selected {
+  .mdc-checkbox__checkmark {
+    color: $white !important;
+  }
+
+  .mdc-checkbox__checkmark-path {
+    stroke: $white !important;
+  }
+
+  .mdc-checkbox__background {
+    background-color: $primary-color !important;
+    border-color: $primary-color !important;
+  }
+}
+
+// CDK Overlay (for modals/dialogs) - ensure styles apply
+.cdk-overlay-container {
+  // Primary buttons in modals
+  .mat-mdc-raised-button[color="primary"],
+  .mat-mdc-flat-button[color="primary"],
+  button[mat-flat-button][color="primary"] {
+    background-color: $primary-color !important;
+    color: $white !important;
+
+    * {
+      color: $white !important;
+    }
+  }
+
+  // Checkboxes in modals
+  .mat-mdc-checkbox.mat-mdc-checkbox-checked .mdc-checkbox__checkmark {
+    color: $white !important;
+  }
+}
 
 // ============================================
 // GLOBAL STYLES
