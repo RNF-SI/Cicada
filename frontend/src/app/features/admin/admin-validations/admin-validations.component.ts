@@ -5,6 +5,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -55,6 +56,7 @@ export class AdminValidationsComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
 
   // Etat
   readonly loading = signal(false);
@@ -89,6 +91,31 @@ export class AdminValidationsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadValidations();
+
+    // Verifier si un query param 'open' est present pour ouvrir directement une validation
+    this.route.queryParams.subscribe(params => {
+      const openId = params['open'];
+      if (openId) {
+        this.openValidationById(parseInt(openId, 10));
+      }
+    });
+  }
+
+  /**
+   * Ouvre le dialog de detail pour une validation par son ID.
+   * Utilise quand on arrive depuis une notification avec ?open=id
+   */
+  private openValidationById(validationId: number): void {
+    const dialogRef = this.dialog.open(ValidationDetailDialogComponent, {
+      width: '600px',
+      data: { validationId }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'updated') {
+        this.loadValidations();
+      }
+    });
   }
 
   /**

@@ -90,6 +90,16 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Appele quand le menu des notifications s'ouvre.
+   * Marque automatiquement toutes les notifications comme lues.
+   */
+  onMenuOpened(): void {
+    if (this.notificationService.unreadCount() > 0) {
+      this.notificationService.markAllAsRead().subscribe();
+    }
+  }
+
+  /**
    * Navigue vers la page des validations.
    */
   goToValidations(): void {

@@ -88,7 +88,7 @@ class NotificationService:
                 message=NotificationService._build_validation_message(validation_request),
                 priority='high',
                 related_validation=validation_request,
-                action_url=f"/administration/validations/{validation_request.id}",
+                action_url=f"/administration/validations?open={validation_request.id}",
                 send_email=True
             )
 

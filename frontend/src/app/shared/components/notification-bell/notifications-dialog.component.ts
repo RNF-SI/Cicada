@@ -474,6 +474,18 @@ export class NotificationsDialogComponent implements OnInit {
         this.hasMore.set(response.next !== null);
         this.currentPage = 1;
         this.loading.set(false);
+
+        // Marquer automatiquement toutes les notifications comme lues a l'ouverture
+        if (response.results.some(n => !n.read)) {
+          this.notificationService.markAllAsRead().subscribe({
+            next: () => {
+              // Mettre a jour la liste locale pour refleter l'etat "lu"
+              this.notifications.update(list =>
+                list.map(n => ({ ...n, read: true }))
+              );
+            }
+          });
+        }
       },
       error: () => {
         this.loading.set(false);

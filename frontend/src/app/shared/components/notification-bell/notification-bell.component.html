@@ -2,6 +2,7 @@
 <button
   mat-button
   [matMenuTriggerFor]="notificationMenu"
+  (menuOpened)="onMenuOpened()"
   class="notification-bell-btn"
   aria-label="Notifications"
 >

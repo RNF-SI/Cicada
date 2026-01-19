@@ -1533,7 +1533,7 @@ class Command(BaseCommand):
                 'title': 'Nouvelle demande d\'inscription',
                 'message': 'Marc Lefebvre souhaite rejoindre votre organisme RNF. Veuillez examiner sa demande.',
                 'priority': 'high',
-                'action_url': '/admin/validations',
+                'action_url': '/administration/validations',
                 'read': False,
             },
             {
@@ -1544,7 +1544,7 @@ class Command(BaseCommand):
                 'priority': 'medium',
                 'related_user': user_rnf,
                 'related_plan': plans[0],
-                'action_url': '/admin/validations',
+                'action_url': '/administration/validations',
                 'read': False,
             },
             {
@@ -1572,7 +1572,7 @@ class Command(BaseCommand):
                 'title': 'Nouvelle demande d\'inscription',
                 'message': 'Lea Simon souhaite rejoindre votre organisme CEN AURA.',
                 'priority': 'high',
-                'action_url': '/admin/validations',
+                'action_url': '/administration/validations',
                 'read': False,
             },
             {

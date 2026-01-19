@@ -76,16 +76,133 @@ Le système de notifications informe les utilisateurs des événements important
 
 L'application Angular interroge le serveur toutes les 30 secondes pour récupérer les nouvelles notifications. Elle utilise un paramètre `since=timestamp` pour ne récupérer que les notifications plus récentes que la dernière vérification.
 
+### Le badge de la cloche (compteur)
+
+Le badge affiché sur la cloche représente la **somme de deux compteurs distincts** :
+
+| Compteur | Ce qu'il compte | Comment il diminue |
+|----------|-----------------|-------------------|
+| **Notifications non lues** | Nouvelles notifications (validations approuvées, associations, etc.) | Automatiquement quand l'utilisateur ouvre le menu de notifications |
+| **Validations en attente** | Demandes de validation à traiter (inscriptions, accès sites, etc.) | Quand l'utilisateur **approuve ou rejette** une demande |
+
+**Exemple :**
+- Badge affiche "15"
+- L'utilisateur ouvre la cloche → les notifications sont marquées comme lues
+- Badge affiche maintenant "5" (les 5 validations en attente restantes)
+- L'utilisateur va dans `/administration/validations` et approuve 2 demandes
+- Badge affiche "3"
+
+**Important :** Les validations en attente ne sont pas des "notifications" au sens strict. Elles représentent des demandes qui nécessitent une action de l'utilisateur (approuver/rejeter). C'est pourquoi elles ne sont pas marquées comme "lues" à l'ouverture du menu.
+
 ### Les signaux Django
 
-Certaines notifications sont créées automatiquement quand des événements se produisent en base de données :
+Certaines notifications sont créées automatiquement quand des événements se produisent en base de données (via les signaux Django `post_save`, `post_delete`, `m2m_changed`).
 
-| Événement | Notification |
-|-----------|--------------|
-| Utilisateur ajouté à un site | "Vous avez été ajouté au site X" |
-| Utilisateur retiré d'un site | "Vous avez été retiré du site X" |
-| Site sans utilisateurs | Alerte aux super admins |
-| Nouvelle demande de validation | Notification aux validateurs concernés |
+### Tableau récapitulatif des notifications
+
+Ce tableau liste **tous les cas** où une notification est envoyée dans l'application.
+
+#### Légende
+
+- **Destinataire** : Qui reçoit la notification
+- **Type** : Type technique de la notification (voir modèle `Notification`)
+- **Priorité** : `low`, `medium`, `high`, `critical`
+- **Email** : ✅ = email automatique, ❌ = in-app uniquement
+- **Déclencheur** : Signal Django ou appel de service
+
+#### Notifications de validation
+
+| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
+|-----------|--------------|------|----------|:-----:|-------------|
+| Nouvelle demande d'inscription | Admin_og de l'organisme OU Super_admin | `validation_request` | high | ✅ | Signal `post_save` sur `ValidationRequest` |
+| Inscription approuvée | Nouvel utilisateur | `welcome` + `validation_approved` | high | ✅ | Service `ValidationService.approve_registration()` |
+| Inscription rejetée | Demandeur (email direct) | Email uniquement | - | ✅ | Service `ValidationService.reject_request()` |
+| Demande d'accès site approuvée | Demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_site_access()` |
+| Demande d'accès plan approuvée | Demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_plan_access()` |
+| Demande référent validée | Demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_referent_validation()` |
+| Demande lien site-organisme approuvée | Admin_og demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_site_org_link()` |
+| Demande création site approuvée | Créateur du site | `validation_approved` | high | ✅ | Service `ValidationService.approve_site_creation()` |
+| Demande invitation organisme approuvée | Admin_og demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_org_to_site()` |
+| Demande invitation utilisateur approuvée | Admin ayant invité | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_user_to_site()` |
+| Demande rejetée (tous types) | Demandeur | `validation_rejected` | high | ✅ | Service `ValidationService.reject_request()` |
+| Demande déjà traitée par un autre | Autres validateurs | `info` | low | ❌ | Service `NotificationService.notify_other_validators()` |
+
+#### Notifications d'accès modules
+
+| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
+|-----------|--------------|------|----------|:-----:|-------------|
+| Accès module accordé | Utilisateur ciblé | `validation_approved` | medium | ❌ | ViewSet `ValidationRequestViewSet.grant_module_access()` |
+| Accès module révoqué | Utilisateur ciblé | `validation_rejected` | medium | ❌ | ViewSet `ValidationRequestViewSet.revoke_module_access()` |
+
+#### Notifications d'associations
+
+| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
+|-----------|--------------|------|----------|:-----:|-------------|
+| Utilisateur ajouté à un site | Utilisateur associé | `user_associated_site` | medium | ❌ | Signal `post_save` sur `CorRoleSite` |
+| Utilisateur retiré d'un site | Utilisateur retiré | `user_removed_site` | medium | ❌ | Signal `post_delete` sur `CorRoleSite` |
+| Utilisateur ajouté comme référent plan | Utilisateur ajouté | `user_associated_plan` | medium | ❌ | Signal `m2m_changed` sur `PlanGestion.referents` |
+
+#### Notifications de statut utilisateur
+
+| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
+|-----------|--------------|------|----------|:-----:|-------------|
+| Compte désactivé | Utilisateur désactivé | `account_deactivated` | critical | ✅ | Signal `post_save` sur `Role` (changement `active=False`) |
+| Compte désactivé (info admin) | Super_admins | `account_deactivated` | high | ✅ | Signal `post_save` sur `Role` |
+
+#### Alertes système (tâches périodiques Celery)
+
+| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
+|-----------|--------------|------|----------|:-----:|-------------|
+| Site orphelin (sans utilisateurs) | Super_admins + Admin_og des organismes gestionnaires | `site_orphaned` | high | ✅ | Signal `post_delete` sur `CorRoleSite` + Tâche Celery quotidienne |
+| Organisme sans administrateur | Super_admins | `organisme_no_admin` | critical | ✅ | Tâche Celery quotidienne |
+
+### Types de notifications disponibles
+
+Le modèle `Notification` définit les types suivants :
+
+| Type | Label | Description |
+|------|-------|-------------|
+| `welcome` | Bienvenue | Notification de bienvenue après inscription approuvée |
+| `validation_request` | Demande de validation | Nouvelle demande à traiter |
+| `validation_approved` | Validation approuvée | Demande approuvée |
+| `validation_rejected` | Validation rejetée | Demande rejetée |
+| `user_associated_site` | Utilisateur associé à un site | Ajout à un site |
+| `user_associated_plan` | Utilisateur associé à un plan | Ajout comme référent plan |
+| `user_removed_site` | Utilisateur retiré d'un site | Retrait d'un site |
+| `user_removed_plan` | Utilisateur retiré d'un plan | Retrait comme référent plan |
+| `account_deactivated` | Compte désactivé | Compte utilisateur désactivé |
+| `account_activated` | Compte activé | Compte utilisateur réactivé |
+| `site_orphaned` | Site sans utilisateurs | Alerte site orphelin |
+| `organisme_no_admin` | Organisme sans administrateur | Alerte absence d'admin_og |
+| `system_alert` | Alerte système | Alerte technique |
+| `info` | Information | Information générale |
+
+### Niveaux de priorité et envoi d'email
+
+| Priorité | Envoi email automatique | Cas d'usage |
+|----------|:-----------------------:|-------------|
+| `low` | ❌ | Informations secondaires |
+| `medium` | ❌ | Événements normaux (associations) |
+| `high` | ✅ | Demandes de validation, approbations |
+| `critical` | ✅ | Désactivation de compte, alertes système |
+
+**Règle** : Les notifications avec priorité `high` ou `critical` déclenchent automatiquement l'envoi d'un email via Celery.
+
+### Tâches Celery périodiques
+
+| Tâche | Fréquence | Description |
+|-------|-----------|-------------|
+| `check_orphaned_sites` | Quotidienne | Détecte les sites sans utilisateurs |
+| `check_organismes_without_admin` | Quotidienne | Détecte les organismes sans admin_og |
+| `cleanup_old_notifications` | Quotidienne | Supprime les notifications lues > 90 jours |
+| `cleanup_expired_pending_users` | Quotidienne | Marque comme expirées les inscriptions > 30 jours |
+
+### Protection contre les doublons
+
+Le système inclut une protection contre les notifications en double :
+- **Associations site** : Vérification des doublons dans les 30 dernières secondes
+- **Sites orphelins** : Maximum une notification par site et par semaine
+- **Organismes sans admin** : Maximum une notification par organisme et par semaine
 
 ---
 
@@ -221,16 +338,120 @@ Le validateur consulte la demande et peut :
 
 ---
 
-### Qui peut valider quoi ?
+### Tableau récapitulatif des validations par rôle
 
-Le système détermine automatiquement les validateurs selon le type de demande :
+Ce tableau détaille **tous les types de demandes de validation**, qui peut les créer, qui peut les valider, et leur résultat.
 
-| Type de demande | Validateurs |
-|-----------------|-------------|
-| Inscription | Admin de l'organisme demandé, sinon super admin |
-| Accès site | Référents du site + admins des organismes gestionnaires |
-| Accès plan | Référents du plan + référents des sites du plan + admins org |
-| Accès module | Super admin uniquement |
+#### Types de demandes disponibles
+
+| Code technique | Label | Description |
+|----------------|-------|-------------|
+| `user_registration` | Inscription utilisateur | Demande de création de compte |
+| `site_access` | Accès à un site | Demande d'accès à un site existant |
+| `plan_access` | Accès à un plan | Demande d'accès/référent à un plan de gestion |
+| `module_access` | Accès à un module | Demande d'accès aux modules optionnels (zonages, inventaires) |
+| `referent_validation` | Devenir référent | Demande pour devenir référent d'un site |
+| `site_creation` | Création de site | Demande de création d'un nouveau site |
+| `site_org_link` | Lien site-organisme | Demande pour lier un site externe à son organisme |
+| `invite_org_to_site` | Invitation organisme | Invitation d'un organisme à rejoindre un site |
+| `invite_user_to_site` | Invitation utilisateur | Invitation d'un utilisateur à rejoindre un site |
+
+#### Qui peut créer quelle demande ?
+
+| Type de demande | Visiteur | Utilisateur | Référent | Admin_og | Super_admin |
+|-----------------|:--------:|:-----------:|:--------:|:--------:|:-----------:|
+| `user_registration` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `site_access` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `plan_access` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `module_access` | ❌ | ✅ | ✅ | ✅ | ❌ |
+| `referent_validation` | ❌ | ✅ ¹ | ✅ ¹ | ✅ ¹ | ✅ ¹ |
+| `site_creation` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `site_org_link` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
+| `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
+
+¹ L'utilisateur doit déjà avoir accès au site (être lié via `CorRoleSite`)
+² L'utilisateur doit être référent du site concerné
+
+#### Qui peut valider quelle demande ?
+
+| Type de demande | Référent site | Référent plan | Admin_og | Super_admin | Condition |
+|-----------------|:-------------:|:-------------:|:--------:|:-----------:|-----------|
+| `user_registration` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme demandé |
+| `site_access` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site ciblé, ³ Admin d'un org gestionnaire |
+| `plan_access` | ✅ ⁴ | ✅ | ✅ ³ | ✅ | ⁴ Référent d'un site du plan |
+| `module_access` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
+| `referent_validation` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site ciblé |
+| `site_creation` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
+| `site_org_link` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
+| `invite_org_to_site` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme invité |
+| `invite_user_to_site` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site, ³ Admin org gestionnaire |
+
+#### Résultat de chaque validation
+
+| Type de demande | Si approuvé | Si rejeté |
+|-----------------|-------------|-----------|
+| `user_registration` | Compte `Role` créé depuis `PendingUser`, email de bienvenue | Email de rejet, `PendingUser` conservé (historique) |
+| `site_access` | `CorRoleSite` créé (avec `referent=True` si demandé) | Notification avec motif du refus |
+| `plan_access` | Utilisateur ajouté à `plan.referents` | Notification avec motif du refus |
+| `module_access` | Accès accordé (vérifié via `ValidationRequest.approved`) | Notification de refus |
+| `referent_validation` | `CorRoleSite.referent = True` et `referent_valid = True` | Notification avec motif du refus |
+| `site_creation` | Site créé + `CorOgSite` avec l'organisme du demandeur | Notification avec motif du refus |
+| `site_org_link` | `CorOgSite` créé (non principal) | Notification avec motif du refus |
+| `invite_org_to_site` | `CorOgSite` créé pour l'organisme invité | Notification avec motif du refus |
+| `invite_user_to_site` | `CorRoleSite` créé pour l'utilisateur invité | Notification avec motif du refus |
+
+#### Hiérarchie de validation (ordre de priorité)
+
+Pour la plupart des demandes, le système notifie les validateurs dans un ordre de priorité. Le premier qui valide clôture la demande.
+
+**Accès site (`site_access`)** :
+1. Référents valides du site (`referent=True` ET `referent_valid=True`)
+2. Admins des organismes gestionnaires du site
+3. Super admins (fallback)
+
+**Accès plan (`plan_access`)** :
+1. Référents actuels du plan (`plan.referents`)
+2. Référents valides des sites liés au plan
+3. Admins des organismes gestionnaires des sites du plan
+4. Super admins (fallback)
+
+**Inscription (`user_registration`)** :
+1. Admins de l'organisme demandé
+2. Super admins (fallback si aucun admin_og)
+
+**Création de site / Lien site-organisme** :
+1. Admins de l'organisme du demandeur
+2. Super admins (fallback)
+
+**Invitation organisme (`invite_org_to_site`)** :
+1. Admins de l'organisme invité (c'est lui qui décide de rejoindre)
+2. Super admins (fallback)
+
+#### Matrice des permissions par rôle
+
+| Action | Utilisateur | Référent | Admin_og | Super_admin |
+|--------|:-----------:|:--------:|:--------:|:-----------:|
+| **Voir ses propres demandes** | ✅ | ✅ | ✅ | ✅ |
+| **Voir les demandes à valider** | ❌ | ✅ ¹ | ✅ ² | ✅ |
+| **Approuver une demande** | ❌ | ✅ ¹ | ✅ ² | ✅ |
+| **Rejeter une demande** | ❌ | ✅ ¹ | ✅ ² | ✅ |
+| **Annuler sa propre demande** | ✅ | ✅ | ✅ | ✅ |
+| **Octroyer accès module (direct)** | ❌ | ❌ | ❌ | ✅ |
+| **Révoquer accès module** | ❌ | ❌ | ❌ | ✅ |
+
+¹ Limité aux demandes concernant ses sites/plans
+² Limité aux demandes concernant son organisme ou ses sites
+
+#### Statuts des demandes
+
+| Statut | Code | Description |
+|--------|------|-------------|
+| En attente | `pending` | Demande créée, en attente de validation |
+| Approuvée | `approved` | Demande validée par un validateur |
+| Rejetée | `rejected` | Demande refusée par un validateur |
+| Annulée | `cancelled` | Demande annulée par le demandeur |
+| Expirée | `expired` | Demande non traitée dans le délai (inscriptions > 30 jours) |
 
 ### Protection contre les doubles validations
 

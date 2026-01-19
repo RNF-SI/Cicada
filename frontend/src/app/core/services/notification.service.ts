@@ -45,6 +45,10 @@ export class NotificationService implements OnDestroy {
   private pollingDestroy$ = new Subject<void>();
   private isPolling = false;
 
+  // Protection contre les race conditions
+  // Timestamp de la derniere action de marquage (pour ignorer les polls obsoletes)
+  private lastMarkActionTimestamp = 0;
+
   ngOnDestroy(): void {
     this.stopPolling();
   }
@@ -83,8 +87,10 @@ export class NotificationService implements OnDestroy {
 
   /**
    * Effectue un poll pour les nouvelles notifications.
+   * Utilise un timestamp pour eviter les race conditions avec les actions de marquage.
    */
   poll(): Observable<NotificationPollResponse> {
+    const pollStartTime = Date.now();
     let params = new HttpParams();
     const lastTimestamp = this.lastPollTimestampSignal();
     if (lastTimestamp) {
@@ -93,17 +99,24 @@ export class NotificationService implements OnDestroy {
 
     return this.http.get<NotificationPollResponse>(`${this.apiUrl}/poll/`, { params }).pipe(
       tap(response => {
+        // Toujours mettre a jour les notifications et le timestamp
         this.notificationsSignal.set(response.notifications);
-        this.unreadCountSignal.set(response.unread_count);
         this.pendingValidationsSignal.set(response.pending_validations);
         this.lastPollTimestampSignal.set(response.timestamp);
+
+        // Ne mettre a jour le compteur que si ce poll a demarre APRES la derniere action
+        // Cela evite qu'un poll obsolete ecrase le compteur apres un markAllAsRead()
+        if (pollStartTime > this.lastMarkActionTimestamp) {
+          this.unreadCountSignal.set(response.unread_count);
+        }
       }),
       catchError(error => {
         console.error('Polling error:', error);
+        // En cas d'erreur, conserver les valeurs actuelles (ne pas forcer a 0)
         return of({
-          notifications: [],
-          unread_count: 0,
-          pending_validations: 0,
+          notifications: this.notificationsSignal(),
+          unread_count: this.unreadCountSignal(),
+          pending_validations: this.pendingValidationsSignal(),
           has_updates: false,
           timestamp: new Date().toISOString()
         });
@@ -146,12 +159,16 @@ export class NotificationService implements OnDestroy {
 
   /**
    * Marque une notification comme lue.
+   * Utilise le compteur retourne par le backend pour garantir la coherence.
    */
-  markAsRead(id: number): Observable<{ status: string }> {
-    return this.http.post<{ status: string }>(`${this.apiUrl}/${id}/mark_read/`, {}).pipe(
-      tap(() => {
-        // Mettre a jour le compteur
-        this.unreadCountSignal.update(count => Math.max(0, count - 1));
+  markAsRead(id: number): Observable<{ status: string; unread_count: number }> {
+    // Enregistrer le timestamp AVANT l'appel pour bloquer les polls en cours
+    this.lastMarkActionTimestamp = Date.now();
+
+    return this.http.post<{ status: string; unread_count: number }>(`${this.apiUrl}/${id}/mark_read/`, {}).pipe(
+      tap(response => {
+        // Utiliser le compteur reel retourne par le backend
+        this.unreadCountSignal.set(response.unread_count);
         // Mettre a jour la liste
         this.notificationsSignal.update(notifications =>
           notifications.map(n => n.id === id ? { ...n, read: true } : n)
@@ -162,11 +179,18 @@ export class NotificationService implements OnDestroy {
 
   /**
    * Marque toutes les notifications comme lues.
+   * Utilise le compteur retourne par le backend pour garantir la coherence.
    */
-  markAllAsRead(): Observable<{ status: string }> {
-    return this.http.post<{ status: string }>(`${this.apiUrl}/mark_all_read/`, {}).pipe(
-      tap(() => {
-        this.unreadCountSignal.set(0);
+  markAllAsRead(): Observable<{ status: string; unread_count: number; updated_count: number }> {
+    // Enregistrer le timestamp AVANT l'appel pour bloquer les polls en cours
+    this.lastMarkActionTimestamp = Date.now();
+
+    return this.http.post<{ status: string; unread_count: number; updated_count: number }>(
+      `${this.apiUrl}/mark_all_read/`, {}
+    ).pipe(
+      tap(response => {
+        // Utiliser le compteur reel retourne par le backend (devrait etre 0)
+        this.unreadCountSignal.set(response.unread_count);
         this.notificationsSignal.update(notifications =>
           notifications.map(n => ({ ...n, read: true }))
         );

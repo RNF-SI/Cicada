@@ -86,16 +86,24 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Marque une notification comme lue."""
         notification = self.get_object()
         notification.mark_as_read()
-        return Response({'status': 'ok'})
+        # Retourner le compteur reel pour synchronisation frontend
+        unread_count = self.get_queryset().filter(read=False).count()
+        return Response({'status': 'ok', 'unread_count': unread_count})
 
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):
         """Marque toutes les notifications comme lues."""
-        self.get_queryset().filter(read=False).update(
+        updated_count = self.get_queryset().filter(read=False).update(
             read=True,
             read_at=timezone.now()
         )
-        return Response({'status': 'ok'})
+        # Retourner le compteur reel apres mise a jour (devrait etre 0)
+        unread_count = self.get_queryset().filter(read=False).count()
+        return Response({
+            'status': 'ok',
+            'updated_count': updated_count,
+            'unread_count': unread_count
+        })
 
     @action(detail=False, methods=['get'])
     def poll(self, request):
