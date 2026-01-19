@@ -97,6 +97,8 @@ export interface SiteCreatePayload {
   geom_geojson?: GeoJSONGeometry | null;
   /** Point de référence au format GeoJSON */
   geom_pt_geojson?: GeoJSONGeometry | null;
+  /** Demander à devenir référent (seulement pour la création par utilisateur non-admin) */
+  request_as_referent?: boolean;
 }
 
 // ==================== GEOJSON ====================
@@ -359,4 +361,37 @@ export interface RedacteurType {
   id_nomenclature: number;
   cd_nomenclature: string;
   label: string;
+}
+
+// ==================== DUPLICATE DETECTION ====================
+
+/**
+ * Site retourné par l'endpoint de vérification des doublons
+ */
+export interface DuplicateSite {
+  id_site: number;
+  nom_site: string;
+  id_inpn: string | null;
+  id_local: string | null;
+  type_site_label: string | null;
+  surf_off: number | null;
+  organismes: Array<{
+    id_organisme: number;
+    nom_organisme: string;
+    principal: boolean;
+  }>;
+  /** Indique si le site appartient à l'organisme de l'utilisateur */
+  is_user_org: boolean;
+  /** Indique si l'utilisateur a déjà accès au site */
+  has_access: boolean;
+}
+
+/**
+ * Résultat de la vérification des doublons de site
+ */
+export interface DuplicateCheckResult {
+  /** Site avec code INPN identique (bloquant) */
+  exact_inpn_match: DuplicateSite | null;
+  /** Sites avec noms similaires (avertissement) */
+  similar_names: DuplicateSite[];
 }

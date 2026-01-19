@@ -186,15 +186,32 @@ export class AdminValidationsComponent implements OnInit {
   }
 
   /**
+   * Vérifie si une demande nécessite le choix référent/utilisateur.
+   * Dans ce cas, on force l'ouverture du dialog au lieu d'approuver directement.
+   */
+  private requiresReferentChoice(validation: ValidationRequestListItem): boolean {
+    return (validation.request_type === 'site_creation' || validation.request_type === 'site_access')
+           && validation.request_as_referent === true;
+  }
+
+  /**
    * Approuve une demande rapidement.
+   * Si la demande nécessite un choix référent/utilisateur, ouvre le dialog à la place.
    */
   quickApprove(validation: ValidationRequestListItem, event: Event): void {
     event.stopPropagation();
+
+    // Si la demande nécessite un choix référent/utilisateur, ouvrir le dialog
+    if (this.requiresReferentChoice(validation)) {
+      this.openDetail(validation);
+      return;
+    }
 
     this.validationService.approveRequest(validation.id).subscribe({
       next: () => {
         this.snackBar.open('Demande approuvee', 'OK', { duration: 3000 });
         this.loadValidations();
+        this.notificationService.refresh().subscribe();
       },
       error: (error) => {
         this.snackBar.open(error.error?.error || 'Erreur lors de l\'approbation', 'Fermer', {

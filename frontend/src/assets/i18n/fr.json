@@ -429,7 +429,9 @@
       "actions": {
         "approve": "Approuver",
         "reject": "Rejeter",
-        "viewDetails": "Voir les details"
+        "viewDetails": "Voir les details",
+        "approveAsReferent": "Approuver (referent)",
+        "approveAsUser": "Approuver (utilisateur)"
       },
       "empty": {
         "noValidations": "Aucune demande de validation"
@@ -729,11 +731,13 @@
         "surface": "Surface officielle (ha)",
         "marine": "Site marin",
         "overseas": "Outre-mer",
-        "active": "Site actif"
+        "active": "Site actif",
+        "requestAsReferent": "Demander a devenir referent de ce site"
       },
       "hints": {
         "localId": "Code interne de reference",
-        "inpnId": "Code national INPN"
+        "inpnId": "Code national INPN",
+        "requestAsReferent": "En tant que referent, vous pourrez gerer les acces et inviter d'autres utilisateurs sur ce site"
       },
       "errors": {
         "nameRequired": "Le nom est requis",

@@ -136,6 +136,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'validated_at',
             'pending_user_info',
             'can_validate',
+            'request_as_referent',
             'created_at',
             'updated_at',
         ]
@@ -211,6 +212,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'validator_comment',
             'validated_at',
             'created_at',
+            'request_as_referent',
         ]
 
     def get_requester_name(self, obj):
@@ -258,6 +260,12 @@ class ValidationApproveSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=1000,
         help_text=_("Commentaire optionnel")
+    )
+    approve_as_referent = serializers.BooleanField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text=_("Si defini, surcharge le choix du demandeur pour le statut referent")
     )
 
 

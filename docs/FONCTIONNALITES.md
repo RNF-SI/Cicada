@@ -815,6 +815,21 @@ Si l'utilisateur est certain que son site est nouveau malgré les similarités d
 
 **Note** : Si l'utilisateur modifie à nouveau le nom ou l'INPN, la vérification se relance automatiquement.
 
+#### Option "Demander à devenir référent"
+
+Lors de la création d'un site, l'utilisateur peut choisir s'il souhaite devenir référent du site :
+
+| Option | Description |
+|--------|-------------|
+| **Checkbox cochée** (défaut) | L'utilisateur deviendra référent du site une fois validé |
+| **Checkbox décochée** | L'utilisateur aura un simple accès utilisateur au site |
+
+Cette option permet à un utilisateur de créer un site sans forcément vouloir en être le référent (par exemple, pour préparer un site pour un collègue).
+
+**Message affiché selon l'option :**
+- Si référent : *"Vous deviendrez automatiquement référent du site une fois celui-ci validé"*
+- Si utilisateur simple : *"Vous obtiendrez un accès utilisateur au site une fois celui-ci validé"*
+
 #### Workflow de validation de création
 
 La création d'un site nécessite une validation par un administrateur :
@@ -832,11 +847,41 @@ Utilisateur → Formulaire création → ValidationRequest (site_creation)
 - Géométrie en format GeoJSON
 - Caractéristiques (marin, outre-mer)
 - Organisme demandeur (automatiquement lié si approuvé)
+- **Flag `request_as_referent`** : Indique si le demandeur veut devenir référent
+
+**Options d'approbation pour le validateur :**
+
+Quand le demandeur a coché "Devenir référent", le validateur voit deux boutons d'approbation :
+
+| Bouton | Effet |
+|--------|-------|
+| **Approuver (référent)** | Le demandeur devient référent du site |
+| **Approuver (utilisateur)** | Le demandeur obtient un simple accès utilisateur |
+
+Cela permet au validateur de refuser le statut de référent tout en acceptant la création du site (par exemple, si le demandeur n'a pas l'expérience nécessaire pour être référent).
+
+**Comportement du bouton "Valider" rapide :**
+
+Dans la liste des validations, le bouton "Valider" (icône ✓) se comporte différemment selon le type de demande :
+
+| Type de demande | Comportement du bouton rapide |
+|-----------------|-------------------------------|
+| Demande standard (inscription, accès plan, etc.) | Approuve directement la demande |
+| Création/accès site avec demande référent | **Ouvre le dialog** pour permettre le choix référent/utilisateur |
+
+Cette distinction garantit que le validateur fait un choix conscient lorsque l'utilisateur a demandé à devenir référent.
+
+**Affichage dans le dialog :**
+
+Quand le dialog s'ouvre pour une demande avec `request_as_referent=true`, une bannière informative indique clairement la demande de l'utilisateur :
+
+> *"**Demande de l'utilisateur :** [Nom] souhaite devenir **référent** de ce site. Vous pouvez approuver la demande en tant que référent ou en tant qu'utilisateur simple."*
 
 **Si approuvé :**
 - Le site est créé avec les informations fournies
 - Un lien `CorOgSite` est créé avec l'organisme du demandeur (comme principal)
-- Le demandeur reçoit une notification de confirmation
+- Un lien `CorRoleSite` est créé avec le statut (référent ou utilisateur) choisi par le validateur
+- Le demandeur reçoit une notification de confirmation indiquant son rôle
 
 **Si rejeté :**
 - Le demandeur reçoit une notification avec le motif du refus

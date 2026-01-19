@@ -278,6 +278,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 serializer = ValidationApproveSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comment = serializer.validated_data.get('comment')
+                approve_as_referent = serializer.validated_data.get('approve_as_referent')
 
                 # Traiter selon le type
                 if validation_request.request_type == 'user_registration':
@@ -290,7 +291,8 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                     ValidationService.approve_site_access(
                         validation_request,
                         request.user,
-                        comment
+                        comment,
+                        override_referent=approve_as_referent
                     )
                 elif validation_request.request_type == 'plan_access':
                     ValidationService.approve_plan_access(
@@ -326,7 +328,8 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                     ValidationService.approve_site_creation(
                         validation_request,
                         request.user,
-                        comment
+                        comment,
+                        override_referent=approve_as_referent
                     )
                 else:
                     # Approbation generique

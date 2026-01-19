@@ -145,6 +145,8 @@ export interface ValidationRequest {
   validated_at?: string;
   pending_user_info?: PendingUserInfo;
   can_validate?: boolean;
+  /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
+  request_as_referent?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -178,6 +180,8 @@ export interface ValidationRequestListItem {
   validator_name?: string;
   validated_at?: string;
   created_at: string;
+  /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
+  request_as_referent?: boolean;
 }
 
 /**
@@ -240,6 +244,8 @@ export interface RegistrationStatusResponse {
  */
 export interface ValidationApproveData {
   comment?: string;
+  /** Si défini, surcharge le choix du demandeur pour le statut référent */
+  approve_as_referent?: boolean;
 }
 
 /**

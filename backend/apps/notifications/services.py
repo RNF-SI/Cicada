@@ -838,7 +838,7 @@ class ValidationService:
         return user
 
     @staticmethod
-    def approve_site_access(validation_request, validator, comment=None):
+    def approve_site_access(validation_request, validator, comment=None, override_referent=None):
         """
         Approuve un acces site et cree la liaison.
 
@@ -846,12 +846,16 @@ class ValidationService:
             validation_request: ValidationRequest
             validator: Role qui approuve
             comment: Commentaire optionnel
+            override_referent: Si defini, surcharge request_as_referent (bool)
         """
         if validation_request.request_type != 'site_access':
             raise ValueError("Cette demande n'est pas un acces site")
 
-        # Determiner si l'utilisateur a demande a etre referent
-        is_referent = validation_request.request_as_referent
+        # Determiner si l'utilisateur devient referent
+        if override_referent is not None:
+            is_referent = override_referent
+        else:
+            is_referent = validation_request.request_as_referent
 
         # Creer ou mettre a jour CorRoleSite
         CorRoleSite.objects.update_or_create(
@@ -1052,15 +1056,16 @@ class ValidationService:
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
 
     @staticmethod
-    def approve_site_creation(validation_request, validator, comment=None):
+    def approve_site_creation(validation_request, validator, comment=None, override_referent=None):
         """
         Approuve une creation de site et active le site.
-        Le createur devient automatiquement referent du site.
+        Le createur devient referent ou simple utilisateur selon request_as_referent.
 
         Args:
             validation_request: ValidationRequest
             validator: Role qui approuve
             comment: Commentaire optionnel
+            override_referent: Si defini, surcharge request_as_referent (bool)
         """
         if validation_request.request_type != 'site_creation':
             raise ValueError("Cette demande n'est pas une creation de site")
@@ -1071,17 +1076,23 @@ class ValidationService:
         if not site or not requester:
             raise ValueError("Site ou createur manquant")
 
+        # Determiner si l'utilisateur devient referent
+        if override_referent is not None:
+            is_referent = override_referent
+        else:
+            is_referent = validation_request.request_as_referent
+
         # Activer le site
         site.active = True
         site.save(update_fields=['active'])
 
-        # Creer ou mettre a jour CorRoleSite avec le createur comme referent
+        # Creer ou mettre a jour CorRoleSite avec le createur
         CorRoleSite.objects.update_or_create(
             id_site=site,
             id_role=requester,
             defaults={
-                'referent': True,
-                'referent_valid': True,
+                'referent': is_referent,
+                'referent_valid': is_referent,
                 'conservateur': False,
             }
         )
@@ -1102,11 +1113,16 @@ class ValidationService:
         validation_request.approve(validator, comment)
 
         # Notifier le createur
+        if is_referent:
+            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent."
+        else:
+            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous avez acces au site en tant qu'utilisateur."
+
         NotificationService.create_notification(
             recipient=requester,
             notification_type='validation_approved',
             title="Site valide",
-            message=f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent.",
+            message=message,
             priority='high',
             related_site=site,
             action_url=f'/sites/{site.id_site}',

@@ -489,6 +489,9 @@ class SiteViewSet(viewsets.ModelViewSet):
             # Autres utilisateurs: site inactif + demande de validation
             site = serializer.save(active=False)
 
+            # Récupérer request_as_referent (défaut: True pour compatibilité ascendante)
+            request_as_referent = request.data.get('request_as_referent', True)
+
             # Créer la demande de validation
             validation_request = ValidationRequest.objects.create(
                 request_type='site_creation',
@@ -496,6 +499,7 @@ class SiteViewSet(viewsets.ModelViewSet):
                 requester=user,
                 target_site=site,
                 justification=f"Création du site {site.nom_site}",
+                request_as_referent=request_as_referent,
             )
 
             # Notifier les validateurs (admin_og de l'organisme du créateur + super_admin)
@@ -506,10 +510,16 @@ class SiteViewSet(viewsets.ModelViewSet):
             response_data = response_serializer.data
             response_data['validation_pending'] = True
             response_data['validation_request_id'] = validation_request.id
-            response_data['message'] = (
-                f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
-                "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
-            )
+            if request_as_referent:
+                response_data['message'] = (
+                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                    "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
+                )
+            else:
+                response_data['message'] = (
+                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                    "Vous obtiendrez un accès utilisateur au site une fois celui-ci validé."
+                )
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -767,6 +777,92 @@ class SiteViewSet(viewsets.ModelViewSet):
             'sites_outre_mer': sites_outre_mer,
             'surface_totale_ha': round(surface_totale, 2)
         })
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def check_duplicates(self, request):
+        """
+        Vérifie les doublons potentiels pour un site.
+        GET /api/users/sites/check_duplicates/?nom_site=...&id_inpn=...
+
+        Query params:
+        - nom_site: nom du site à vérifier (recherche des noms similaires)
+        - id_inpn: code INPN à vérifier (recherche exacte)
+        - exclude_id: ID du site à exclure (pour édition)
+
+        Retourne:
+        - exact_inpn_match: Site avec code INPN identique (bloquant)
+        - similar_names: Liste des sites avec noms similaires (avertissement)
+        """
+        nom_site = request.query_params.get('nom_site', '').strip()
+        id_inpn = request.query_params.get('id_inpn', '').strip()
+        exclude_id = request.query_params.get('exclude_id', None)
+
+        user = request.user
+        user_org = user.id_organisme
+
+        # Initialiser la réponse
+        result = {
+            'exact_inpn_match': None,
+            'similar_names': []
+        }
+
+        # Exclure le site courant si en mode édition
+        base_queryset = Site.objects.filter(active=True).select_related('id_type_site')
+        if exclude_id:
+            try:
+                base_queryset = base_queryset.exclude(id_site=int(exclude_id))
+            except (ValueError, TypeError):
+                pass
+
+        # 1. Recherche exacte par code INPN
+        if id_inpn:
+            inpn_match = base_queryset.filter(id_inpn=id_inpn).first()
+            if inpn_match:
+                result['exact_inpn_match'] = self._build_duplicate_site_data(inpn_match, user, user_org)
+
+        # 2. Recherche par nom similaire (si nom_site >= 3 caractères)
+        if nom_site and len(nom_site) >= 3:
+            # Recherche insensible à la casse
+            similar_sites = base_queryset.filter(
+                nom_site__icontains=nom_site
+            ).exclude(
+                id_site=result['exact_inpn_match']['id_site'] if result['exact_inpn_match'] else -1
+            )[:10]
+
+            for site in similar_sites:
+                result['similar_names'].append(self._build_duplicate_site_data(site, user, user_org))
+
+        return Response(result)
+
+    def _build_duplicate_site_data(self, site, user, user_org):
+        """Construit les données d'un site pour la réponse de vérification de doublons."""
+        # Récupérer les organismes liés
+        organismes = []
+        is_user_org = False
+        for cor in CorOgSite.objects.filter(id_site=site).select_related('uuid_og'):
+            org = cor.uuid_og
+            organismes.append({
+                'id_organisme': org.id_organisme,
+                'nom_organisme': org.nom_organisme,
+                'principal': cor.principal
+            })
+            if user_org and org.id_organisme == user_org.id_organisme:
+                is_user_org = True
+
+        # Vérifier si l'utilisateur a déjà accès au site
+        has_access = CorRoleSite.objects.filter(id_role=user, id_site=site).exists()
+
+        return {
+            'id_site': site.id_site,
+            'nom_site': site.nom_site,
+            'id_inpn': site.id_inpn,
+            'id_local': site.id_local,
+            'type_site_label': site.id_type_site.label if site.id_type_site else None,
+            'surf_off': site.surf_off,
+            'organismes': organismes,
+            'is_user_org': is_user_org,
+            'has_access': has_access
+        }
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def search_all(self, request):

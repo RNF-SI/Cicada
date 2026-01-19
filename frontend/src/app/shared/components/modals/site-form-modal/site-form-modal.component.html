@@ -215,6 +215,16 @@
           <mat-checkbox formControlName="outre_mer">{{ 'modals.siteForm.fields.overseas' | translate }}</mat-checkbox>
           <mat-checkbox formControlName="active">{{ 'modals.siteForm.fields.active' | translate }}</mat-checkbox>
         </div>
+
+        <!-- Checkbox for referent request (only in create mode) -->
+        @if (!isEditMode) {
+          <div class="referent-request-section">
+            <mat-checkbox formControlName="requestAsReferent">
+              {{ 'modals.siteForm.fields.requestAsReferent' | translate }}
+            </mat-checkbox>
+            <p class="help-text">{{ 'modals.siteForm.hints.requestAsReferent' | translate }}</p>
+          </div>
+        }
       </form>
     </div>
 
