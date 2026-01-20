@@ -248,98 +248,163 @@
   }
 }
 
-// Mobile menu overlay
-.menu-overlay {
+// =====================================================
+// SIDEBAR MENU (Figma design)
+// =====================================================
+
+// Overlay
+.sidebar-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba($black, 0.5);
   z-index: $z-index-modal-backdrop;
+  backdrop-filter: blur(2px);
 }
 
-// Mobile menu
-.mobile-menu {
+// Sidebar container - fond bleu primaire
+.sidebar-menu {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   width: 280px;
-  max-width: 80vw;
-  background-color: $white;
+  max-width: 85vw;
+  background-color: $primary-color;
   z-index: $z-index-modal;
   box-shadow: $shadow-heavy;
   display: flex;
   flex-direction: column;
-}
+  transform: translateX(-100%);
+  padding-top: $spacing-md;
 
-.mobile-menu-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $spacing-md $spacing-lg;
-  border-bottom: 1px solid $gray-light;
-}
-
-.mobile-menu-title {
-  font-family: $font-family;
-  font-size: $font-size-h4;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-}
-
-.close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: $gray-dark;
-  font-size: 16px;
-
-  &:hover {
-    color: $black;
+  &.open {
+    transform: translateX(0);
   }
 }
 
-.mobile-menu-content {
+// Close button - positioned top left
+.sidebar-close-btn {
+  position: absolute;
+  top: $spacing-md;
+  left: $spacing-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $white;
+  font-size: 16px;
+  padding: 0;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+// MENU label
+.sidebar-label {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: $spacing-xl $spacing-lg $spacing-md;
+  margin-top: $spacing-md;
+}
+
+// Sidebar content
+.sidebar-content {
   flex: 1;
-  padding: $spacing-md 0;
+  padding: 0;
   overflow-y: auto;
 }
 
-.mobile-menu-item {
+// Sidebar navigation items
+.sidebar-item {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-lg;
-  color: $black;
+  color: $white;
   text-decoration: none;
   font-family: $font-family;
   font-size: $font-size-base;
-  transition: background-color $transition-fast;
+  font-weight: $font-weight-regular;
+  transition: all $transition-fast;
+  cursor: pointer;
+  position: relative;
 
   i {
-    font-size: 20px;
-    color: $primary-color;
+    font-size: 18px;
+    color: $white;
+    width: 24px;
+    text-align: center;
   }
 
-  &:hover {
-    background-color: rgba($primary-color, 0.08);
+  span {
+    flex: 1;
+  }
+
+  &:hover:not(.disabled) {
+    background-color: rgba($white, 0.1);
   }
 
   &.active {
-    background-color: $primary-color;
-    color: $white;
+    background-color: rgba($white, 0.15);
+    font-weight: $font-weight-medium;
 
-    i {
-      color: $white;
+    // Active indicator bar on left
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background-color: $white;
     }
+  }
+
+  // Disabled/coming soon items
+  &.disabled {
+    cursor: default;
+    opacity: 0.5;
   }
 }
 
-// Responsive
+// Coming soon badge - horizontally and vertically centered
+.coming-soon-badge {
+  font-size: 9px;
+  padding: 3px 8px;
+  background-color: rgba($white, 0.2);
+  color: $white;
+  border-radius: $border-radius-pill;
+  white-space: nowrap;
+  font-weight: $font-weight-regular;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+// External link icon for Administration
+.external-icon {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+// =====================================================
+// RESPONSIVE
+// =====================================================
+
 @media (max-width: $breakpoint-tablet) {
   .hamburger-btn {
     left: $spacing-md;
@@ -356,5 +421,32 @@
 
   .nav-link {
     padding: $spacing-xs;
+  }
+
+  .sidebar-menu {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .sidebar-header {
+    padding: $spacing-sm $spacing-md;
+  }
+
+  .sidebar-logo {
+    height: 32px;
+  }
+
+  .sidebar-item {
+    padding: $spacing-sm $spacing-md;
+  }
+
+  .sidebar-section-title {
+    padding: $spacing-xs $spacing-md $spacing-sm;
+  }
+
+  .sidebar-footer {
+    padding: $spacing-sm $spacing-md;
   }
 }

@@ -151,6 +151,18 @@
       "stopButton": "Revenir a mon compte",
       "readOnlyError": "Les modifications sont desactivees pendant l'impersonnation. Mode consultation uniquement.",
       "readOnlyMode": "Mode lecture seule"
+    },
+    "sidebar": {
+      "home": "Accueil",
+      "plans": "Plans de gestion",
+      "sites": "Sites",
+      "dataCollection": "Collecte de donnees",
+      "zonages": "Zonages reglementaires",
+      "exploration": "Exploration des donnees",
+      "adminPanel": "Panneau d'administration",
+      "validations": "Gestion des validations",
+      "comingSoon": "A venir",
+      "comingSoonShort": "Prochainement"
     }
   },
   "home": {
