@@ -29,7 +29,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.users.models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
-from apps.core.models import TypeNomenclature, Nomenclature, Module
+from apps.core.models import TypeNomenclature, Nomenclature, Module, ErrorLog
 from apps.plans.models import PlanGestion, CorSitePg
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
@@ -131,6 +131,7 @@ class Command(BaseCommand):
         pending_users = self._create_pending_users(organismes)
         validation_requests = self._create_validation_requests(users, sites, plans, organismes)
         notifications = self._create_notifications(users, sites, plans, validation_requests, organismes)
+        error_logs = self._create_error_logs(users)
 
         self._print_summary()
 
@@ -140,6 +141,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING('\n=== Suppression des donnees de test ==='))
 
         if self.dry_run:
+            self.stdout.write('Logs d\'erreur: tous seraient supprimes')
             self.stdout.write('Notifications: toutes seraient supprimees')
             self.stdout.write('Demandes de validation: toutes seraient supprimees')
             self.stdout.write('Utilisateurs en attente: tous seraient supprimes')
@@ -165,6 +167,10 @@ class Command(BaseCommand):
         pre_save.disconnect(notif_signals.track_validation_status, sender=ValidationRequest)
 
         self.stdout.write('  Signaux de notifications desactives')
+
+        # Supprimer les logs d'erreur
+        error_logs_deleted = ErrorLog.objects.all().delete()[0]
+        self.stdout.write(f'  Logs d\'erreur supprimes: {error_logs_deleted}')
 
         # Supprimer les notifications
         notifs_deleted = Notification.objects.all().delete()[0]
@@ -327,6 +333,14 @@ class Command(BaseCommand):
         self.stdout.write('  Types: validation_request, validation_approved, validation_rejected,')
         self.stdout.write('         user_associated_site, info, system_alert')
         self.stdout.write('  Priorites: low, medium, high, critical')
+
+        self.stdout.write('\nLogs d\'erreur (8):')
+        self.stdout.write('  Niveaux: WARNING, ERROR, CRITICAL')
+        self.stdout.write('  - 3 WARNING (avertissements)')
+        self.stdout.write('  - 3 ERROR (erreurs standards)')
+        self.stdout.write('  - 2 CRITICAL (erreurs critiques)')
+        self.stdout.write('  - 4 non acquittes, 4 acquittes')
+        self.stdout.write('  - Dates variees sur les 7 derniers jours')
 
     def _create_modules(self):
         """
@@ -1884,6 +1898,209 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  {len(notifications)} notifications'))
         return notifications
 
+    def _create_error_logs(self, users):
+        """
+        Cree des logs d'erreur de test.
+
+        Cree 8 logs avec differents niveaux (WARNING, ERROR, CRITICAL),
+        certains acquittes, certains non, avec des dates variees.
+        """
+        self.stdout.write('\n--- Creation des logs d\'erreur ---')
+
+        now = timezone.now()
+        # users est une liste avec l'ordre defini dans _create_users:
+        # 0: super_admin, 1: admin_rnf, 2: admin_cen, 3: ref_camargue,
+        # 4: ref_vercors, 5: user_rnf, 6: user_cen, 7+: inactifs
+        admin = users[0]  # super_admin
+        admin_rnf = users[1]  # admin.rnf@test.fr
+        user_rnf = users[5]  # user.rnf@test.fr
+        user_cen = users[6]  # user.cen@test.fr
+
+        error_logs_data = [
+            # WARNING - non acquitte, recent
+            {
+                'level': 'WARNING',
+                'message': 'Tentative de connexion avec un token expire',
+                'logger_name': 'apps.authentication.views',
+                'correlation_id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+                'user': user_rnf,
+                'path': '/api/auth/me/',
+                'method': 'GET',
+                'exception_type': None,
+                'stack_trace': None,
+                'context': {'token_expired_at': '2024-01-15T10:30:00Z', 'user_agent': 'Mozilla/5.0'},
+                'acknowledged': False,
+                'acknowledged_by': None,
+                'acknowledged_at': None,
+                'created_at': now - timedelta(hours=2),
+            },
+            # WARNING - acquitte
+            {
+                'level': 'WARNING',
+                'message': 'Rate limit atteint pour l\'utilisateur',
+                'logger_name': 'apps.core.middleware.throttling',
+                'correlation_id': 'b2c3d4e5-f6a7-8901-bcde-f23456789012',
+                'user': user_cen,
+                'path': '/api/plans/',
+                'method': 'GET',
+                'exception_type': None,
+                'stack_trace': None,
+                'context': {'requests_count': 150, 'limit': 100, 'window': '1h'},
+                'acknowledged': True,
+                'acknowledged_by': admin,
+                'acknowledged_at': now - timedelta(days=2),
+                'created_at': now - timedelta(days=3),
+            },
+            # WARNING - non acquitte
+            {
+                'level': 'WARNING',
+                'message': 'Fichier temporaire non supprime apres upload',
+                'logger_name': 'apps.plans.views',
+                'correlation_id': 'c3d4e5f6-a7b8-9012-cdef-345678901234',
+                'user': admin_rnf,
+                'path': '/api/plans/files/upload/',
+                'method': 'POST',
+                'exception_type': None,
+                'stack_trace': None,
+                'context': {'temp_file': '/tmp/upload_xyz123.pdf', 'size_bytes': 2456789},
+                'acknowledged': False,
+                'acknowledged_by': None,
+                'acknowledged_at': None,
+                'created_at': now - timedelta(days=1),
+            },
+            # ERROR - non acquitte, recent
+            {
+                'level': 'ERROR',
+                'message': 'Erreur de validation lors de la creation du plan de gestion',
+                'logger_name': 'apps.plans.serializers',
+                'correlation_id': 'd4e5f6a7-b8c9-0123-defa-456789012345',
+                'user': user_rnf,
+                'path': '/api/plans/plans/',
+                'method': 'POST',
+                'exception_type': 'ValidationError',
+                'stack_trace': '''Traceback (most recent call last):
+  File "/app/apps/plans/views.py", line 145, in create
+    serializer.is_valid(raise_exception=True)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'date_fin': ['La date de fin doit etre superieure a la date de debut.']}''',
+                'context': {'plan_data': {'nom': 'Plan test', 'date_debut': '2025-01-01', 'date_fin': '2024-01-01'}},
+                'acknowledged': False,
+                'acknowledged_by': None,
+                'acknowledged_at': None,
+                'created_at': now - timedelta(hours=6),
+            },
+            # ERROR - acquitte
+            {
+                'level': 'ERROR',
+                'message': 'Impossible de generer le PDF du plan de gestion',
+                'logger_name': 'apps.plans.pdf_generator',
+                'correlation_id': 'e5f6a7b8-c9d0-1234-efab-567890123456',
+                'user': admin_rnf,
+                'path': '/api/plans/plans/15/export-pdf/',
+                'method': 'GET',
+                'exception_type': 'PDFGenerationError',
+                'stack_trace': '''Traceback (most recent call last):
+  File "/app/apps/plans/pdf_generator.py", line 89, in generate
+    self._render_template()
+  File "/app/apps/plans/pdf_generator.py", line 156, in _render_template
+    raise PDFGenerationError("Template rendering failed")
+apps.plans.exceptions.PDFGenerationError: Template rendering failed''',
+                'context': {'plan_id': 15, 'template': 'plan_gestion_v2.html'},
+                'acknowledged': True,
+                'acknowledged_by': admin,
+                'acknowledged_at': now - timedelta(days=1),
+                'created_at': now - timedelta(days=2),
+            },
+            # ERROR - acquitte
+            {
+                'level': 'ERROR',
+                'message': 'Timeout lors de la connexion au service externe INPN',
+                'logger_name': 'apps.core.services.inpn',
+                'correlation_id': 'f6a7b8c9-d0e1-2345-fabc-678901234567',
+                'user': None,
+                'path': '/api/sites/sync-inpn/',
+                'method': 'POST',
+                'exception_type': 'requests.exceptions.Timeout',
+                'stack_trace': '''Traceback (most recent call last):
+  File "/app/apps/core/services/inpn.py", line 45, in sync_sites
+    response = requests.get(url, timeout=30)
+  File "/usr/local/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request('get', url, **kwargs)
+requests.exceptions.Timeout: HTTPSConnectionPool: Read timed out.''',
+                'context': {'service_url': 'https://inpn.mnhn.fr/api/v1/sites', 'timeout': 30},
+                'acknowledged': True,
+                'acknowledged_by': admin,
+                'acknowledged_at': now - timedelta(days=4),
+                'created_at': now - timedelta(days=5),
+            },
+            # CRITICAL - non acquitte
+            {
+                'level': 'CRITICAL',
+                'message': 'Echec de la connexion a la base de donnees',
+                'logger_name': 'django.db.backends',
+                'correlation_id': 'a7b8c9d0-e1f2-3456-abcd-789012345678',
+                'user': None,
+                'path': None,
+                'method': None,
+                'exception_type': 'psycopg2.OperationalError',
+                'stack_trace': '''Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/db/backends/base/base.py", line 289, in ensure_connection
+    self.connect()
+  File "/usr/local/lib/python3.11/site-packages/django/db/backends/base/base.py", line 270, in connect
+    self.connection = self.get_new_connection(conn_params)
+psycopg2.OperationalError: could not connect to server: Connection refused
+    Is the server running on host "db" (172.18.0.2) and accepting TCP/IP connections on port 5432?''',
+                'context': {'host': 'db', 'port': 5432, 'database': 'cicada'},
+                'acknowledged': False,
+                'acknowledged_by': None,
+                'acknowledged_at': None,
+                'created_at': now - timedelta(days=1, hours=5),
+            },
+            # CRITICAL - acquitte
+            {
+                'level': 'CRITICAL',
+                'message': 'Espace disque insuffisant pour le stockage des fichiers',
+                'logger_name': 'apps.core.storage',
+                'correlation_id': 'b8c9d0e1-f2a3-4567-bcde-890123456789',
+                'user': admin_rnf,
+                'path': '/api/plans/files/upload/',
+                'method': 'POST',
+                'exception_type': 'OSError',
+                'stack_trace': '''Traceback (most recent call last):
+  File "/app/apps/core/storage.py", line 78, in save
+    self._check_disk_space()
+  File "/app/apps/core/storage.py", line 92, in _check_disk_space
+    raise OSError("Insufficient disk space")
+OSError: [Errno 28] No space left on device: '/app/media/plans/files/'
+Disk usage: 98.5% (available: 512MB, required: 2GB)''',
+                'context': {'disk_usage_percent': 98.5, 'available_mb': 512, 'required_mb': 2048},
+                'acknowledged': True,
+                'acknowledged_by': admin,
+                'acknowledged_at': now - timedelta(days=6),
+                'created_at': now - timedelta(days=7),
+            },
+        ]
+
+        error_logs = []
+        for log_data in error_logs_data:
+            # Extraire created_at pour le definir manuellement
+            created_at = log_data.pop('created_at')
+
+            log = ErrorLog.objects.create(**log_data)
+            # Mettre a jour created_at manuellement (auto_now_add empeche de le definir a la creation)
+            ErrorLog.objects.filter(pk=log.pk).update(created_at=created_at)
+            log.refresh_from_db()
+
+            error_logs.append(log)
+
+            if self.verbosity >= 2:
+                ack_status = "[ACK]" if log.acknowledged else "[NON ACK]"
+                self.stdout.write(f"  [CREE] {log.level} - {log.message[:50]}... {ack_status}")
+
+        self.stdout.write(self.style.SUCCESS(f'  {len(error_logs)} logs d\'erreur'))
+        return error_logs
+
     def _print_summary(self):
         """Affiche un resume des donnees creees."""
         self.stdout.write('\n' + '=' * 70)
@@ -1909,6 +2126,8 @@ class Command(BaseCommand):
         self.stdout.write(f'  Inscriptions attente: {pending_users_count}')
         self.stdout.write(f'  Validations:          {ValidationRequest.objects.count()} ({validation_requests_pending} en attente)')
         self.stdout.write(f'  Notifications:        {Notification.objects.count()} ({notifications_unread} non lues)')
+        error_logs_unack = ErrorLog.objects.filter(acknowledged=False).count()
+        self.stdout.write(f'  Logs d\'erreur:        {ErrorLog.objects.count()} ({error_logs_unack} non acquittes)')
 
         self.stdout.write('\n' + '-' * 70)
         self.stdout.write('UTILISATEURS DE TEST ACTIFS')

@@ -1,7 +1,8 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ErrorLogService } from '../../core/services/error-log.service';
 
 // Note: 'referent' is an access level (is_referent computed), not a role level
 type AccessLevel = 'referent' | 'admin_og' | 'super_admin';
@@ -13,6 +14,7 @@ interface NavItem {
   minRole?: AccessLevel;
   maxRole?: AccessLevel; // Exclusive to this role and below
   exactRole?: 'admin_og' | 'super_admin'; // Only for this exact role (not referent since it's not a role)
+  badgeSignal?: string; // Name of signal to use for badge count (e.g., 'errorLogCount')
 }
 
 @Component({
@@ -22,13 +24,17 @@ interface NavItem {
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss'
 })
-export class AdminLayoutComponent {
+export class AdminLayoutComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly errorLogService = inject(ErrorLogService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+
+  // Signal pour le badge des logs d'erreur
+  readonly errorLogCount = this.errorLogService.unacknowledgedCount;
 
   // Impersonation state
   readonly isImpersonating = this.authService.isImpersonating;
@@ -40,6 +46,17 @@ export class AdminLayoutComponent {
 
   get originalUserDisplayName(): string {
     return this.authService.getOriginalUserDisplayName();
+  }
+
+  ngOnInit(): void {
+    // Demarrer le rafraichissement du badge si super_admin
+    if (this.isSuperAdmin()) {
+      this.errorLogService.startAutoRefresh(60000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.errorLogService.stopAutoRefresh();
   }
 
   stopImpersonation(): void {
@@ -65,7 +82,8 @@ export class AdminLayoutComponent {
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
-    { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' }
+    { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' },
+    { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' }
   ];
 
   visibleNavItems = computed(() => {

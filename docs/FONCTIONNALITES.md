@@ -1084,6 +1084,7 @@ utilisateur (pas d'accès à l'administration)
 | **Sites** | `/admin/sites` | ✅ | ✅ | ✅ | ❌ |
 | **Plans de gestion** | `/admin/plans` | ✅ | ✅ | ✅ | ❌ |
 | **Accès modules** | `/admin/modules` | ✅ | ❌ | ❌ | ❌ |
+| **Logs erreurs** | `/admin/logs` | ✅ | ❌ | ❌ | ❌ |
 
 ### Redirection automatique
 
@@ -1221,6 +1222,60 @@ Gestion des accès aux modules optionnels (zonages, inventaires) :
 - **Voir les demandes** d'accès en attente
 - **Approuver/rejeter** les demandes
 
+#### Logs erreurs (super_admin uniquement)
+
+Surveillance et gestion des erreurs applicatives. Cette page permet de :
+
+**Consulter les erreurs** :
+- **Liste paginée** des erreurs avec tri par date (plus récentes en premier)
+- **Filtrer** par niveau (Warning, Error, Critical), statut d'acquittement, type d'exception
+- **Rechercher** dans les messages ou par ID de corrélation
+- **Cliquer sur une ligne** pour voir le détail complet
+
+**Informations affichées** :
+
+| Colonne | Description |
+|---------|-------------|
+| Niveau | Warning (orange), Error (rouge), Critical (bleu-vert) |
+| Message | Description de l'erreur + type d'exception si applicable |
+| Chemin | URL et méthode HTTP (GET, POST, etc.) de la requête |
+| Utilisateur | Qui a déclenché l'erreur (si authentifié) |
+| ID Corrélation | UUID unique pour tracer la requête dans tous les logs |
+| Date | Date et heure de l'erreur |
+| Statut | "Non acquitté" ou "Acquitté" avec nom de l'acquitteur |
+
+**Détail d'une erreur** :
+
+En cliquant sur une ligne, un dialogue s'ouvre avec :
+- Toutes les informations du tableau
+- **Stack trace complet** : la trace d'exécution technique
+- **Contexte** : données additionnelles (JSON) capturées au moment de l'erreur
+- Bouton pour **acquitter** l'erreur directement depuis le détail
+
+**Acquitter les erreurs** :
+
+L'acquittement permet de marquer une erreur comme "vue et traitée" :
+- **Acquitter une erreur** : clic sur l'icône ✓ dans la colonne Actions
+- **Acquitter en lot** : bouton "Acquitter tout" pour acquitter toutes les erreurs filtrées
+- L'acquittement enregistre **qui** a acquitté et **quand**
+
+**Badge dans le menu** :
+
+Un badge rouge apparaît à côté de "Logs erreurs" dans le menu latéral, indiquant le **nombre d'erreurs non acquittées**. Ce compteur se rafraîchit automatiquement toutes les minutes.
+
+**Nettoyage automatique** :
+
+Une tâche planifiée (Celery) s'exécute tous les jours à 3h du matin pour supprimer :
+- Les erreurs **acquittées** de plus de **30 jours**
+- Les erreurs **non acquittées** de plus de **90 jours**
+
+**Cas d'usage typiques** :
+
+1. **Détecter un bug** : Une erreur apparaît plusieurs fois → investiguer via le stack trace
+2. **Tracer une requête** : Copier l'ID de corrélation et chercher dans les fichiers de logs serveur
+3. **Nettoyer après correction** : Acquitter les erreurs une fois le bug corrigé
+4. **Surveiller la santé** : Vérifier régulièrement qu'il n'y a pas d'erreurs critiques non traitées
+
 ### Menu de navigation
 
 Le menu latéral de l'administration s'adapte automatiquement au rôle de l'utilisateur connecté. Seules les pages accessibles sont affichées :
@@ -1233,6 +1288,7 @@ Le menu latéral de l'administration s'adapte automatiquement au rôle de l'util
 - Sites
 - Plans de gestion
 - Accès modules
+- Logs erreurs
 
 **Pour un admin_og** :
 - Validations

@@ -1,0 +1,219 @@
+<div class="admin-logs">
+  <header class="page-header">
+    <div class="header-content">
+      <h1>{{ 'admin.logs.title' | translate }}</h1>
+      <p class="subtitle">{{ 'admin.logs.subtitle' | translate }}</p>
+    </div>
+    <div class="header-actions">
+      @if (errorLogs().length > 0 && acknowledgedFilter !== 'true') {
+        <button
+          mat-stroked-button
+          (click)="acknowledgeAll()"
+          [matTooltip]="'admin.logs.actions.acknowledgeAllTooltip' | translate"
+        >
+          <i class="fi fi-rr-check-double"></i>
+          {{ 'admin.logs.actions.acknowledgeAll' | translate }}
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'admin.logs.filters.level' | translate }}</mat-label>
+      <mat-select [(ngModel)]="levelFilter" (selectionChange)="applyFilters()">
+        @for (option of levelOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'admin.logs.filters.acknowledged' | translate }}</mat-label>
+      <mat-select [(ngModel)]="acknowledgedFilter" (selectionChange)="applyFilters()">
+        @for (option of acknowledgedOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field search-field">
+      <mat-label>{{ 'admin.logs.filters.search' | translate }}</mat-label>
+      <input
+        matInput
+        [(ngModel)]="searchFilter"
+        (keyup.enter)="applyFilters()"
+        [placeholder]="'admin.logs.filters.searchPlaceholder' | translate"
+      >
+      @if (searchFilter) {
+        <button matSuffix mat-icon-button (click)="searchFilter = ''; applyFilters()">
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      }
+    </mat-form-field>
+
+    <button mat-icon-button (click)="applyFilters()" [matTooltip]="'common.actions.search' | translate">
+      <i class="fi fi-rr-search"></i>
+    </button>
+
+    @if (levelFilter || acknowledgedFilter || searchFilter) {
+      <button mat-button (click)="resetFilters()">
+        <i class="fi fi-rr-refresh"></i>
+        {{ 'admin.logs.filters.reset' | translate }}
+      </button>
+    }
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- Tableau -->
+    @if (errorLogs().length === 0) {
+      <div class="empty-state">
+        <i class="fi fi-rr-check-circle empty-icon"></i>
+        <h3>{{ 'admin.logs.empty.title' | translate }}</h3>
+        <p>{{ 'admin.logs.empty.message' | translate }}</p>
+      </div>
+    } @else {
+      <table mat-table [dataSource]="errorLogs()" class="logs-table">
+        <!-- Niveau -->
+        <ng-container matColumnDef="level">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.level' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            <mat-chip [ngClass]="getLevelClass(log.level)">
+              <i class="fi" [ngClass]="getLevelIcon(log.level)"></i>
+              {{ log.level_display }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Message -->
+        <ng-container matColumnDef="message">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.message' | translate }}</th>
+          <td mat-cell *matCellDef="let log" class="message-cell">
+            <span [matTooltip]="log.message" matTooltipClass="message-tooltip">
+              {{ truncateMessage(log.message) }}
+            </span>
+            @if (log.exception_type) {
+              <span class="exception-type">{{ log.exception_type }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Path -->
+        <ng-container matColumnDef="path">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.path' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            @if (log.path) {
+              <span class="path-info">
+                <span class="method-badge">{{ log.method || 'GET' }}</span>
+                {{ log.path }}
+              </span>
+            } @else {
+              <span class="no-data">-</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Utilisateur -->
+        <ng-container matColumnDef="user">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.user' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            @if (log.user_name) {
+              {{ log.user_name }}
+            } @else {
+              <span class="no-data">-</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Correlation ID -->
+        <ng-container matColumnDef="correlation_id">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.correlationId' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            @if (log.correlation_id) {
+              <span class="correlation-id" [matTooltip]="log.correlation_id">
+                {{ log.correlation_id.substring(0, 8) }}...
+              </span>
+            } @else {
+              <span class="no-data">-</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Date -->
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.date' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            {{ formatDate(log.created_at) }}
+          </td>
+        </ng-container>
+
+        <!-- Statut acquittement -->
+        <ng-container matColumnDef="acknowledged">
+          <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.status' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            @if (log.acknowledged) {
+              <span class="acknowledged-badge">
+                <i class="fi fi-rr-check"></i>
+                {{ 'admin.logs.status.acknowledged' | translate }}
+              </span>
+            } @else {
+              <span class="unacknowledged-badge">
+                {{ 'admin.logs.status.unacknowledged' | translate }}
+              </span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>{{ 'common.table.actions' | translate }}</th>
+          <td mat-cell *matCellDef="let log">
+            <div class="actions-cell">
+              @if (!log.acknowledged) {
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="quickAcknowledge(log, $event)"
+                  [matTooltip]="'admin.logs.actions.acknowledge' | translate"
+                >
+                  <i class="fi fi-rr-check"></i>
+                </button>
+              }
+              <button
+                mat-icon-button
+                (click)="openDetail(log); $event.stopPropagation()"
+                [matTooltip]="'admin.logs.actions.viewDetail' | translate"
+              >
+                <i class="fi fi-rr-eye"></i>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          (click)="openDetail(row)"
+          class="clickable-row"
+          [class.acknowledged-row]="row.acknowledged"
+        ></tr>
+      </table>
+
+      <!-- Pagination -->
+      <mat-paginator
+        [length]="totalCount()"
+        [pageSize]="pageSize"
+        [pageIndex]="currentPage() - 1"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+</div>

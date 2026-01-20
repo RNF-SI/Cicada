@@ -473,6 +473,58 @@
         "accessGranted": "Acces accorde a {{user}}",
         "accessRevoked": "Acces retire a {{user}}"
       }
+    },
+    "logs": {
+      "title": "Logs d'erreurs",
+      "subtitle": "Consultez et acquittez les erreurs applicatives",
+      "table": {
+        "level": "Niveau",
+        "message": "Message",
+        "path": "Chemin",
+        "user": "Utilisateur",
+        "correlationId": "ID Correlation",
+        "date": "Date",
+        "status": "Statut"
+      },
+      "filters": {
+        "level": "Niveau",
+        "acknowledged": "Statut",
+        "search": "Recherche",
+        "searchPlaceholder": "Rechercher par message, correlation ID ou chemin...",
+        "reset": "Reinitialiser"
+      },
+      "status": {
+        "acknowledged": "Acquitte",
+        "unacknowledged": "Non acquitte"
+      },
+      "actions": {
+        "acknowledge": "Acquitter",
+        "acknowledgeAll": "Tout acquitter",
+        "acknowledgeAllTooltip": "Acquitter tous les logs non acquittes correspondant aux filtres",
+        "viewDetail": "Voir le detail"
+      },
+      "empty": {
+        "title": "Aucune erreur",
+        "message": "Aucune erreur ne correspond a vos criteres de recherche."
+      },
+      "detail": {
+        "title": "Detail de l'erreur",
+        "message": "Message",
+        "requestInfo": "Informations de la requete",
+        "path": "Chemin",
+        "user": "Utilisateur",
+        "correlationId": "ID de correlation",
+        "logger": "Logger",
+        "exception": "Exception",
+        "context": "Contexte additionnel",
+        "acknowledgedBy": "Acquitte par"
+      },
+      "messages": {
+        "loadError": "Erreur lors du chargement des logs",
+        "acknowledged": "Erreur acquittee",
+        "acknowledgedAll": "{{count}} erreur(s) acquittee(s)",
+        "acknowledgeError": "Erreur lors de l'acquittement"
+      }
     }
   },
   "modals": {

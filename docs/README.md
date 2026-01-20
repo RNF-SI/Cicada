@@ -39,11 +39,18 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 |----------|-------------|
 | **[Explications fonctionnelles](FONCTIONNALITES.md)** | Logs, notifications, validations, impersonnation, modules, pages d'administration (droits par rôle), tests |
 
+## 🎨 Design System
+
+| Document | Description |
+|----------|-------------|
+| **[Design System](DESIGN_SYSTEM.md)** | Couleurs, accessibilité WCAG AA, chips, typographie |
+
 ## 🛠️ Documentation technique
 
 | Document | Description |
 |----------|-------------|
 | **[Guide Développeur](GUIDE_DEVELOPPEUR.md)** | Commandes, permissions, logs, i18n, styles |
+| **[Design System](DESIGN_SYSTEM.md)** | Palette de couleurs, règles d'accessibilité, composants |
 | **[Tests](TESTING.md)** | Guide complet des tests (pytest, Jest) |
 | **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
 | **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
@@ -52,10 +59,11 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ### Pour développeurs frontend
 
-1. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
-2. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
-3. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
-4. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
+1. **[Design System](DESIGN_SYSTEM.md)** - Couleurs, accessibilité, composants visuels
+2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
+3. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
+4. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
+5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
 
 ### Pour administrateurs système
 
@@ -80,4 +88,4 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ---
 
-**Mise à jour** : Janvier 2025 - Ajout des explications fonctionnelles
+**Mise à jour** : Janvier 2025 - Ajout du Design System et des explications fonctionnelles

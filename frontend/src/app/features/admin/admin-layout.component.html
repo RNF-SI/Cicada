@@ -31,6 +31,9 @@
           class="nav-item">
           <i class="fi" [class]="item.icon"></i>
           <span>{{ item.label }}</span>
+          @if (item.badgeSignal === 'errorLogCount' && errorLogCount() > 0) {
+            <span class="badge">{{ errorLogCount() > 99 ? '99+' : errorLogCount() }}</span>
+          }
         </a>
       }
     </nav>

@@ -11,6 +11,7 @@ import { AdminSitesComponent } from './admin-sites.component';
 import { AdminPlansComponent } from './admin-plans.component';
 import { AdminValidationsComponent } from './admin-validations/admin-validations.component';
 import { AdminModulesComponent } from './admin-modules/admin-modules.component';
+import { AdminLogsComponent } from './admin-logs/admin-logs.component';
 
 /**
  * Admin Routes Configuration
@@ -91,6 +92,11 @@ export const ADMIN_ROUTES: Routes = [
         path: 'modules',
         component: AdminModulesComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage module access
+      },
+      {
+        path: 'logs',
+        component: AdminLogsComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin can view error logs
       }
     ]
   }

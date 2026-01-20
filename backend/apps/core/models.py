@@ -85,6 +85,127 @@ class TypeNomenclature(models.Model):
         return self.label or self.mnemonique or f"Type {self.id_type}"
 
 
+class ErrorLog(models.Model):
+    """
+    Modele pour stocker les logs d'erreurs applicatifs.
+    Permet aux super admins de consulter et acquitter les erreurs via l'interface.
+    Table t_error_logs dans le schema ccd_commons.
+    """
+
+    LEVEL_CHOICES = [
+        ('WARNING', _('Avertissement')),
+        ('ERROR', _('Erreur')),
+        ('CRITICAL', _('Critique')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    level = models.CharField(
+        _('Niveau'),
+        max_length=10,
+        choices=LEVEL_CHOICES,
+        db_index=True
+    )
+    message = models.TextField(_('Message'))
+    logger_name = models.CharField(
+        _('Logger'),
+        max_length=255,
+        null=True,
+        blank=True
+    )
+    correlation_id = models.CharField(
+        _('ID de correlation'),
+        max_length=36,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_('UUID de correlation pour tracer les requetes')
+    )
+
+    # Contexte de la requete HTTP
+    user = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('Utilisateur'),
+        related_name='error_logs'
+    )
+    path = models.CharField(
+        _('URL'),
+        max_length=500,
+        null=True,
+        blank=True
+    )
+    method = models.CharField(
+        _('Methode HTTP'),
+        max_length=10,
+        null=True,
+        blank=True
+    )
+
+    # Information sur l'exception
+    exception_type = models.CharField(
+        _("Type d'exception"),
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True
+    )
+    stack_trace = models.TextField(
+        _('Stack trace'),
+        null=True,
+        blank=True
+    )
+    context = models.JSONField(
+        _('Contexte additionnel'),
+        default=dict,
+        blank=True
+    )
+
+    # Acquittement
+    acknowledged = models.BooleanField(
+        _('Acquitte'),
+        default=False,
+        db_index=True
+    )
+    acknowledged_by = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('Acquitte par'),
+        related_name='acknowledged_error_logs'
+    )
+    acknowledged_at = models.DateTimeField(
+        _('Acquitte le'),
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        _('Date de creation'),
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        db_table = '"ccd_commons"."t_error_logs"'
+        verbose_name = _("Log d'erreur")
+        verbose_name_plural = _("Logs d'erreurs")
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.level}] {self.message[:50]}..."
+
+    def acknowledge(self, user):
+        """Acquitte cette erreur par l'utilisateur specifie."""
+        from django.utils import timezone
+        self.acknowledged = True
+        self.acknowledged_by = user
+        self.acknowledged_at = timezone.now()
+        self.save(update_fields=['acknowledged', 'acknowledged_by', 'acknowledged_at'])
+
+
 class Module(models.Model):
     """
     Modele pour les modules applicatifs.

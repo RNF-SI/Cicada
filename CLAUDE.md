@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Scores: #FF7579, #FA9965, #F7D35C, #82DB8A, #81C9D8
     - Status: #04854B (Succès), #E12329 (Erreur), #FA9965 (Warning), #81C9D8 (Info)
   - **Font**: Nunito (Google Font)
-  - **Accessibilité**: WCAG AA compliant
+  - **Accessibilité**: WCAG AA compliant - voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) pour les règles détaillées
   - **Responsive**: Mobile, Tablet, Desktop
   - **Icônes**:
     - **Uicons by Flaticon**: CDN intégré (Rounded Regular - `fi-rr-*`)

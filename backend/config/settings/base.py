@@ -200,6 +200,18 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
+# Celery Beat - Taches periodiques
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Nettoyage des anciens logs d'erreur - tous les jours a 3h du matin
+    'cleanup-old-error-logs': {
+        'task': 'core.cleanup_old_error_logs',
+        'schedule': crontab(hour=3, minute=0),
+        'kwargs': {'days': 90, 'acknowledged_days': 30},
+    },
+}
+
 # Email backend (sera configure differemment en dev/prod)
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@outil-plan-gestion.fr')
@@ -294,6 +306,11 @@ LOGGING = {
             'formatter': 'json',
             'filters': ['correlation_id'],
         },
+        # Handler pour stocker les erreurs en base de donnees
+        'db_errors': {
+            'level': 'ERROR',
+            'class': 'apps.core.logging_handlers.DatabaseLogHandler',
+        },
     },
     'loggers': {
         # Logger racine
@@ -303,7 +320,7 @@ LOGGING = {
         },
         # Logger pour les applications
         'apps': {
-            'handlers': ['console'],
+            'handlers': ['console', 'db_errors'],
             'level': LOG_LEVEL,
             'propagate': False,
         },
@@ -315,7 +332,7 @@ LOGGING = {
         },
         # Logger pour les requetes Django (dev only)
         'django.request': {
-            'handlers': ['console'],
+            'handlers': ['console', 'db_errors'],
             'level': 'INFO',
             'propagate': False,
         },
