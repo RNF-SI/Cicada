@@ -157,7 +157,10 @@ export class ValidationService {
    * Demande l'acces a un plan de gestion.
    */
   requestPlanAccess(planId: number, data?: PlanAccessRequestData): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/plans/plans/${planId}/request_access/`, data || {});
+    return this.http.post<ValidationRequest>(`${this.apiUrl}/request_plan_access/`, {
+      plan_id: planId,
+      ...data
+    });
   }
 
   /**
