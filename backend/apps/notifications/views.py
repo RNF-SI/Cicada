@@ -27,6 +27,8 @@ from .serializers import (
     SiteAccessRequestSerializer,
     PlanAccessRequestSerializer,
     AdminDeactivationRequestSerializer,
+    AdminPromotionRequestSerializer,
+    AdminDemotionRequestSerializer,
     ModuleAccessRequestSerializer,
     GrantModuleAccessSerializer,
 )
@@ -331,6 +333,24 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         comment,
                         override_referent=approve_as_referent
                     )
+                elif validation_request.request_type == 'admin_deactivation':
+                    ValidationService.approve_admin_deactivation(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'admin_promotion':
+                    ValidationService.approve_admin_promotion(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'admin_demotion':
+                    ValidationService.approve_admin_demotion(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
                 else:
                     # Approbation generique
                     validation_request.approve(request.user, comment)
@@ -427,6 +447,322 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
             'status': 'cancelled',
             'message': 'La demande a ete annulee.'
         })
+
+    @action(detail=False, methods=['post'])
+    def request_plan_access(self, request):
+        """
+        POST /api/validations/request_plan_access/
+        Demande l'acces a un plan de gestion.
+        """
+        serializer = PlanAccessRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        plan_id = request.data.get('plan_id')
+        justification = serializer.validated_data.get('justification', '')
+
+        # Verifier que plan_id est fourni
+        if not plan_id:
+            return Response(
+                {'error': 'L\'identifiant du plan est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.plans.models import PlanGestion
+
+        # Recuperer le plan
+        try:
+            plan = PlanGestion.objects.get(id_pg=plan_id)
+        except PlanGestion.DoesNotExist:
+            return Response(
+                {'error': 'Plan de gestion introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que l'utilisateur n'a pas deja acces (n'est pas referent)
+        if plan.referents.filter(id_role=request.user.id_role).exists():
+            return Response(
+                {'error': 'Vous avez deja acces a ce plan de gestion.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            requester=request.user,
+            request_type='plan_access',
+            target_plan=plan,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande d\'acces a ce plan est deja en attente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer la demande
+        validation_request = ValidationRequest.objects.create(
+            request_type='plan_access',
+            status='pending',
+            requester=request.user,
+            target_plan=plan,
+            justification=justification,
+        )
+
+        # Notifier les validateurs (referents du plan + admin_og des sites)
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande d\'acces au plan de gestion a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def request_admin_deactivation(self, request):
+        """
+        POST /api/validations/request_admin_deactivation/
+        Demande la desactivation d'un admin_og par un autre admin_og.
+        Seuls les super_admin peuvent valider cette demande.
+        """
+        serializer = AdminDeactivationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_user_id = request.data.get('target_user_id')
+        justification = serializer.validated_data['justification']
+
+        # Verifier que target_user_id est fourni
+        if not target_user_id:
+            return Response(
+                {'error': 'L\'identifiant de l\'utilisateur cible est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.users.models import Role
+
+        # Recuperer l'utilisateur cible
+        try:
+            target_user = Role.objects.get(id_role=target_user_id)
+        except Role.DoesNotExist:
+            return Response(
+                {'error': 'Utilisateur cible introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que le demandeur est admin_og ou super_admin
+        if not (request.user.is_super_admin() or request.user.role_level == 'admin_og'):
+            return Response(
+                {'error': 'Seuls les administrateurs peuvent demander la desactivation d\'un autre administrateur.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verifier que la cible est admin_og
+        if target_user.role_level != 'admin_og':
+            return Response(
+                {'error': 'Seule la desactivation d\'un admin_og peut etre demandee via ce processus.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pour admin_og, verifier que la cible est du meme organisme
+        if request.user.role_level == 'admin_og':
+            if target_user.id_organisme != request.user.id_organisme:
+                return Response(
+                    {'error': 'Vous ne pouvez demander la desactivation que d\'un administrateur de votre organisme.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            request_type='admin_deactivation',
+            target_user=target_user,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande de desactivation pour cet administrateur est deja en attente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer la demande
+        validation_request = ValidationRequest.objects.create(
+            request_type='admin_deactivation',
+            status='pending',
+            requester=request.user,
+            target_user=target_user,
+            requested_organisme=target_user.id_organisme,
+            justification=justification,
+        )
+
+        # Notifier les super_admins
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande de desactivation a ete soumise aux super administrateurs.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def request_admin_promotion(self, request):
+        """
+        POST /api/validations/request_admin_promotion/
+        Demande la promotion d'un utilisateur en admin_og.
+        Seuls les super_admin peuvent valider cette demande.
+        """
+        serializer = AdminPromotionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_user_id = request.data.get('target_user_id')
+        justification = serializer.validated_data['justification']
+
+        if not target_user_id:
+            return Response(
+                {'error': 'L\'identifiant de l\'utilisateur cible est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.users.models import Role
+
+        try:
+            target_user = Role.objects.get(id_role=target_user_id)
+        except Role.DoesNotExist:
+            return Response(
+                {'error': 'Utilisateur cible introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que le demandeur est admin_og ou super_admin
+        if not (request.user.is_super_admin() or request.user.role_level == 'admin_og'):
+            return Response(
+                {'error': 'Seuls les administrateurs peuvent demander la promotion d\'un utilisateur.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verifier que la cible est un utilisateur simple (pas deja admin)
+        if target_user.role_level != 'utilisateur':
+            return Response(
+                {'error': 'Seul un utilisateur simple peut etre promu admin_og.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pour admin_og, verifier que la cible est du meme organisme
+        if request.user.role_level == 'admin_og':
+            if target_user.id_organisme != request.user.id_organisme:
+                return Response(
+                    {'error': 'Vous ne pouvez promouvoir que des utilisateurs de votre organisme.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            request_type='admin_promotion',
+            target_user=target_user,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande de promotion pour cet utilisateur est deja en attente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer la demande
+        validation_request = ValidationRequest.objects.create(
+            request_type='admin_promotion',
+            status='pending',
+            requester=request.user,
+            target_user=target_user,
+            requested_organisme=target_user.id_organisme,
+            justification=justification,
+        )
+
+        # Notifier les super_admins
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande de promotion a ete soumise aux super administrateurs.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def request_admin_demotion(self, request):
+        """
+        POST /api/validations/request_admin_demotion/
+        Demande la retrogradation d'un admin_og en utilisateur simple.
+        Seuls les super_admin peuvent valider cette demande.
+        """
+        serializer = AdminDemotionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_user_id = request.data.get('target_user_id')
+        justification = serializer.validated_data['justification']
+
+        if not target_user_id:
+            return Response(
+                {'error': 'L\'identifiant de l\'utilisateur cible est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.users.models import Role
+
+        try:
+            target_user = Role.objects.get(id_role=target_user_id)
+        except Role.DoesNotExist:
+            return Response(
+                {'error': 'Utilisateur cible introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que le demandeur est admin_og ou super_admin
+        if not (request.user.is_super_admin() or request.user.role_level == 'admin_og'):
+            return Response(
+                {'error': 'Seuls les administrateurs peuvent demander la retrogradation d\'un admin_og.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verifier que la cible est admin_og
+        if target_user.role_level != 'admin_og':
+            return Response(
+                {'error': 'Seule la retrogradation d\'un admin_og peut etre demandee.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pour admin_og, verifier que la cible est du meme organisme
+        if request.user.role_level == 'admin_og':
+            if target_user.id_organisme != request.user.id_organisme:
+                return Response(
+                    {'error': 'Vous ne pouvez demander la retrogradation que d\'un administrateur de votre organisme.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            request_type='admin_demotion',
+            target_user=target_user,
+            status='pending'
+        ).exists()
+
+        if existing:
+            return Response(
+                {'error': 'Une demande de retrogradation pour cet administrateur est deja en attente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer la demande
+        validation_request = ValidationRequest.objects.create(
+            request_type='admin_demotion',
+            status='pending',
+            requester=request.user,
+            target_user=target_user,
+            requested_organisme=target_user.id_organisme,
+            justification=justification,
+        )
+
+        # Notifier les super_admins
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande de retrogradation a ete soumise aux super administrateurs.',
+        }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
     def request_module_access(self, request):

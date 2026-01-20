@@ -355,6 +355,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_link` | Lien site-organisme | Demande pour lier un site externe à son organisme |
 | `invite_org_to_site` | Invitation organisme | Invitation d'un organisme à rejoindre un site |
 | `invite_user_to_site` | Invitation utilisateur | Invitation d'un utilisateur à rejoindre un site |
+| `admin_promotion` | Promotion admin_og | Demande de promotion d'un utilisateur en admin_og |
+| `admin_demotion` | Rétrogradation admin_og | Demande de rétrogradation d'un admin_og en utilisateur |
 
 #### Qui peut créer quelle demande ?
 
@@ -369,9 +371,12 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_link` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
 | `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
+| `admin_promotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
+| `admin_demotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 
 ¹ L'utilisateur doit déjà avoir accès au site (être lié via `CorRoleSite`)
 ² L'utilisateur doit être référent du site concerné
+³ Admin_og peut demander pour les utilisateurs de son organisme uniquement
 
 #### Qui peut valider quelle demande ?
 
@@ -386,6 +391,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_link` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
 | `invite_org_to_site` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme invité |
 | `invite_user_to_site` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site, ³ Admin org gestionnaire |
+| `admin_promotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
+| `admin_demotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
 
 #### Résultat de chaque validation
 
@@ -400,6 +407,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_link` | `CorOgSite` créé (non principal) | Notification avec motif du refus |
 | `invite_org_to_site` | `CorOgSite` créé pour l'organisme invité | Notification avec motif du refus |
 | `invite_user_to_site` | `CorRoleSite` créé pour l'utilisateur invité | Notification avec motif du refus |
+| `admin_promotion` | `role_level` changé en `admin_og`, notification au nouvel admin | Notification avec motif du refus |
+| `admin_demotion` | `role_level` changé en `utilisateur`, notification à l'ancien admin | Notification avec motif du refus |
 
 #### Hiérarchie de validation (ordre de priorité)
 
@@ -427,6 +436,11 @@ Pour la plupart des demandes, le système notifie les validateurs dans un ordre 
 **Invitation organisme (`invite_org_to_site`)** :
 1. Admins de l'organisme invité (c'est lui qui décide de rejoindre)
 2. Super admins (fallback)
+
+**Changement de rôle admin (`admin_promotion`, `admin_demotion`)** :
+1. Super admins uniquement (pas de fallback)
+
+> Note : Ces demandes sont sensibles car elles affectent les droits d'administration. Seuls les super admins peuvent les valider.
 
 #### Matrice des permissions par rôle
 
@@ -1161,8 +1175,31 @@ Gestion des comptes utilisateurs :
 - **Liste et recherche** des utilisateurs
 - **Assigner** un utilisateur à un organisme
 - **Lier** un utilisateur à des sites (avec option référent)
+- **Demander une promotion/rétrogradation admin** (vers super_admin)
 - **Activer/désactiver** un compte
 - **Impersonner** (super_admin uniquement)
+
+**Changement de rôle admin :**
+
+Les admin_og et super_admin peuvent demander le changement de rôle d'un utilisateur via deux boutons dans la colonne Actions :
+
+| Bouton | Icône | Action | Disponible pour |
+|--------|-------|--------|-----------------|
+| **Promotion** | ↑ (vert) | Demande de promotion en admin_og | Utilisateurs simples du même organisme |
+| **Rétrogradation** | ↓ (orange) | Demande de rétrogradation en utilisateur | Admin_og du même organisme |
+
+**Règles de visibilité des boutons :**
+- On ne peut pas modifier son propre rôle
+- L'utilisateur cible doit être actif
+- Pour un admin_og : uniquement les utilisateurs de son organisme
+- Pour un super_admin : tous les utilisateurs
+
+**Flux de demande :**
+1. L'admin clique sur le bouton promotion ou rétrogradation
+2. Une modal s'ouvre avec les informations de l'utilisateur
+3. L'admin saisit une justification (minimum 10 caractères)
+4. La demande est envoyée aux super_admins pour validation
+5. Une fois validée, le `role_level` de l'utilisateur est modifié
 
 Filtrage des données :
 - `super_admin` : Voit tous les utilisateurs
@@ -1448,4 +1485,4 @@ Envoyer automatiquement une notification (et/ou email) aux super admins quand :
 
 ---
 
-**Mise à jour** : Janvier 2026
+**Mise à jour** : Janvier 2026 (Ajout changement de rôle admin)

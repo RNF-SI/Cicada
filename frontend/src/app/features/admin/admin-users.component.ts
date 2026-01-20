@@ -17,8 +17,11 @@ import {
   DeactivateUserModalComponent,
   DeactivateUserModalResult,
   RemoveUserOrganismeModalComponent,
-  RemoveUserOrganismeModalResult
+  RemoveUserOrganismeModalResult,
+  AdminRoleChangeModalComponent,
+  AdminRoleChangeModalResult
 } from '../../shared/components/modals';
+import { ValidationService } from '../../core/services/validation.service';
 
 // Interface for display site
 interface DisplaySite {
@@ -73,6 +76,7 @@ interface DisplayOrganisme {
 export class AdminUsersComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
+  private readonly validationService = inject(ValidationService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
@@ -470,6 +474,130 @@ export class AdminUsersComponent implements OnInit {
       },
       error: (error: Error) => {
         this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
+      }
+    });
+  }
+
+  /**
+   * Check if current admin can request promotion for the user
+   * Admin_og can only promote users from their own organisme
+   */
+  canRequestPromotion(user: DisplayUser): boolean {
+    // Cannot promote yourself
+    if (user.id === this.currentUser()?.id) {
+      return false;
+    }
+    // User must be a simple utilisateur
+    if (user.role !== 'utilisateur') {
+      return false;
+    }
+    // User must be active
+    if (!user.isActive) {
+      return false;
+    }
+    // For admin_og, must be same organisme
+    if (!this.isSuperAdmin()) {
+      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
+      if (user.organismeId !== currentOrgId) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if current admin can request demotion for the user
+   * Admin_og can only demote admin_og from their own organisme
+   */
+  canRequestDemotion(user: DisplayUser): boolean {
+    // Cannot demote yourself
+    if (user.id === this.currentUser()?.id) {
+      return false;
+    }
+    // User must be an admin_og
+    if (user.role !== 'admin_og') {
+      return false;
+    }
+    // User must be active
+    if (!user.isActive) {
+      return false;
+    }
+    // For admin_og, must be same organisme
+    if (!this.isSuperAdmin()) {
+      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
+      if (user.organismeId !== currentOrgId) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Open modal to request admin promotion
+   */
+  requestAdminPromotion(user: DisplayUser): void {
+    const dialogRef = this.dialog.open(AdminRoleChangeModalComponent, {
+      width: '500px',
+      data: {
+        type: 'promotion',
+        userName: `${user.prenom} ${user.nom}`.trim() || user.email,
+        userEmail: user.email
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((result: AdminRoleChangeModalResult) => {
+      if (result?.confirmed && result.justification) {
+        this.validationService.requestAdminPromotion(user.id, result.justification).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('modals.adminRoleChange.messages.promotionSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          },
+          error: (error: { error?: { error?: string } }) => {
+            this.snackBar.open(
+              error.error?.error || this.translate.instant('modals.adminRoleChange.messages.error'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Open modal to request admin demotion
+   */
+  requestAdminDemotion(user: DisplayUser): void {
+    const dialogRef = this.dialog.open(AdminRoleChangeModalComponent, {
+      width: '500px',
+      data: {
+        type: 'demotion',
+        userName: `${user.prenom} ${user.nom}`.trim() || user.email,
+        userEmail: user.email
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((result: AdminRoleChangeModalResult) => {
+      if (result?.confirmed && result.justification) {
+        this.validationService.requestAdminDemotion(user.id, result.justification).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('modals.adminRoleChange.messages.demotionSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          },
+          error: (error: { error?: { error?: string } }) => {
+            this.snackBar.open(
+              error.error?.error || this.translate.instant('modals.adminRoleChange.messages.error'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          }
+        });
       }
     });
   }

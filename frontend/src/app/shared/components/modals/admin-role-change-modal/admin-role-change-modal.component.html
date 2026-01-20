@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>{{ titleKey | translate }}</h2>
+
+<mat-dialog-content>
+  <div class="modal-form">
+    <!-- User info header -->
+    <div class="user-info">
+      <div class="user-avatar">
+        {{ data.userName.charAt(0).toUpperCase() }}
+      </div>
+      <div class="user-details">
+        <span class="user-name">{{ data.userName }}</span>
+        <span class="user-email">{{ data.userEmail }}</span>
+      </div>
+    </div>
+
+    <!-- Info message -->
+    <div class="info-box" [class.promotion]="isPromotion" [class.demotion]="!isPromotion">
+      <i class="fi" [class.fi-rr-arrow-up]="isPromotion" [class.fi-rr-arrow-down]="!isPromotion"></i>
+      <div>
+        <strong>{{ (isPromotion ? 'modals.adminRoleChange.promotion.infoTitle' : 'modals.adminRoleChange.demotion.infoTitle') | translate }}</strong>
+        <p>{{ warningMessageKey | translate }}</p>
+      </div>
+    </div>
+
+    <!-- Super admin approval notice -->
+    <div class="notice-box">
+      <i class="fi fi-rr-shield-check"></i>
+      <p>{{ 'modals.adminRoleChange.superAdminNotice' | translate }}</p>
+    </div>
+
+    <!-- Justification field -->
+    <div class="justification-section">
+      <label class="justification-label">{{ 'modals.adminRoleChange.justification.label' | translate }} *</label>
+      <mat-form-field appearance="outline" class="full-width">
+        <textarea
+          matInput
+          [(ngModel)]="justification"
+          [placeholder]="'modals.adminRoleChange.justification.placeholder' | translate"
+          rows="3"
+        ></textarea>
+        <mat-hint>{{ 'modals.adminRoleChange.justification.hint' | translate:{ count: justification.length } }}</mat-hint>
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="error-message">
+          <i class="fi fi-rr-exclamation"></i>
+          {{ errorMessage() }}
+        </div>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'common.actions.cancel' | translate }}</button>
+  <button mat-flat-button
+          color="primary"
+          [disabled]="!isValid"
+          (click)="onConfirm()">
+    {{ confirmButtonKey | translate }}
+  </button>
+</mat-dialog-actions>

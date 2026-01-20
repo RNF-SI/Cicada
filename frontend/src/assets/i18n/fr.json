@@ -248,7 +248,9 @@
         "removeFromOrganisme": "Retirer de l'organisme",
         "activate": "Activer",
         "deactivate": "Desactiver",
-        "viewAs": "Voir en tant que cet utilisateur"
+        "viewAs": "Voir en tant que cet utilisateur",
+        "requestPromotion": "Demander la promotion en admin",
+        "requestDemotion": "Demander la retrogradation"
       },
       "messages": {
         "loading": "Chargement des utilisateurs...",
@@ -261,7 +263,11 @@
         "impersonationStarting": "Demarrage de la session en tant que {{name}}...",
         "impersonationStarted": "Vous visualisez maintenant en tant que {{name}}",
         "deletionNotAvailable": "La suppression d'utilisateur n'est pas disponible ici. Utilisez l'admin Django.",
-        "removedFromOrganisme": "Utilisateur retire de l'organisme et desactive"
+        "removedFromOrganisme": "Utilisateur retire de l'organisme et desactive",
+        "promotionRequested": "Demande de promotion soumise aux super administrateurs",
+        "demotionRequested": "Demande de retrogradation soumise aux super administrateurs",
+        "promotionError": "Erreur lors de la demande de promotion",
+        "demotionError": "Erreur lors de la demande de retrogradation"
       },
       "pagination": "{{count}} utilisateur(s) sur {{total}}",
       "notAssigned": "Non assigne"
@@ -757,6 +763,34 @@
       "modified": "Modifie",
       "messages": {
         "userAdded": "{{name}} a ete ajoute a la liste"
+      }
+    },
+    "adminRoleChange": {
+      "promotion": {
+        "title": "Demander la promotion en administrateur",
+        "infoTitle": "Promotion en administrateur",
+        "warning": "Cet utilisateur deviendra administrateur de l'organisme et pourra gerer les utilisateurs et les demandes d'acces.",
+        "confirm": "Soumettre la demande"
+      },
+      "demotion": {
+        "title": "Demander la retrogradation",
+        "infoTitle": "Retrogradation en utilisateur",
+        "warning": "Cet administrateur perdra ses droits de gestion et redeviendra un utilisateur simple.",
+        "confirm": "Soumettre la demande"
+      },
+      "superAdminNotice": "Cette demande sera soumise aux super administrateurs pour validation.",
+      "justification": {
+        "label": "Justification",
+        "placeholder": "Expliquez pourquoi cette modification de role est necessaire (minimum 10 caracteres)...",
+        "hint": "{{count}} / 10 caracteres minimum"
+      },
+      "validation": {
+        "minLength": "Veuillez fournir une justification d'au moins 10 caracteres"
+      },
+      "messages": {
+        "promotionSuccess": "Demande de promotion soumise avec succes",
+        "demotionSuccess": "Demande de retrogradation soumise avec succes",
+        "error": "Erreur lors de la soumission de la demande"
       }
     },
     "organismeForm": {

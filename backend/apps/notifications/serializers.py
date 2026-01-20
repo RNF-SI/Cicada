@@ -430,6 +430,26 @@ class AdminDeactivationRequestSerializer(serializers.Serializer):
     )
 
 
+class AdminPromotionRequestSerializer(serializers.Serializer):
+    """Serializer pour demander la promotion d'un utilisateur en admin_og."""
+
+    justification = serializers.CharField(
+        required=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire)")
+    )
+
+
+class AdminDemotionRequestSerializer(serializers.Serializer):
+    """Serializer pour demander la retrogradation d'un admin_og en utilisateur."""
+
+    justification = serializers.CharField(
+        required=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire)")
+    )
+
+
 class ModuleAccessRequestSerializer(serializers.Serializer):
     """Serializer pour demander l'acces a un module."""
 

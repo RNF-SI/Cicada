@@ -115,6 +115,14 @@ class NotificationService:
             target_name = str(validation_request.target_user) if validation_request.target_user else "un administrateur"
             return f"{requester_name} demande la desactivation de {target_name}."
 
+        elif validation_request.request_type == 'admin_promotion':
+            target_name = str(validation_request.target_user) if validation_request.target_user else "un utilisateur"
+            return f"{requester_name} demande la promotion de {target_name} en administrateur."
+
+        elif validation_request.request_type == 'admin_demotion':
+            target_name = str(validation_request.target_user) if validation_request.target_user else "un administrateur"
+            return f"{requester_name} demande la retrogradation de {target_name} en utilisateur simple."
+
         elif validation_request.request_type == 'site_org_link':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
@@ -422,6 +430,20 @@ class ValidationService:
             validators = ValidationService._get_plan_access_validators(validation_request)
 
         elif validation_request.request_type == 'admin_deactivation':
+            # Seuls les super_admin peuvent valider
+            validators = set(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        elif validation_request.request_type == 'admin_promotion':
+            # Seuls les super_admin peuvent valider
+            validators = set(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        elif validation_request.request_type == 'admin_demotion':
             # Seuls les super_admin peuvent valider
             validators = set(Role.objects.filter(
                 role_level='super_admin',
@@ -1126,6 +1148,182 @@ class ValidationService:
             priority='high',
             related_site=site,
             action_url=f'/sites/{site.id_site}',
+            send_email=True
+        )
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_admin_deactivation(validation_request, validator, comment=None):
+        """
+        Approuve une demande de desactivation d'admin_og et desactive l'utilisateur.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve (doit etre super_admin)
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'admin_deactivation':
+            raise ValueError("Cette demande n'est pas une desactivation d'admin")
+
+        target_user = validation_request.target_user
+        if not target_user:
+            raise ValueError("Utilisateur cible manquant")
+
+        # Verifier que le validateur est super_admin
+        if not validator.is_super_admin():
+            raise ValueError("Seul un super administrateur peut approuver cette demande")
+
+        # Desactiver l'utilisateur cible
+        target_user.active = False
+        target_user.save(update_fields=['active'])
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier l'utilisateur desactive
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='account_deactivated',
+            title="Votre compte a ete desactive",
+            message=f"Suite a une demande de {validation_request.requester}, "
+                    f"votre compte administrateur a ete desactive par un super administrateur.",
+            priority='critical',
+            related_user=validator,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        # Notifier le demandeur
+        NotificationService.create_notification(
+            recipient=validation_request.requester,
+            notification_type='validation_approved',
+            title="Demande de desactivation approuvee",
+            message=f"Votre demande de desactivation de {target_user} a ete approuvee.",
+            priority='high',
+            related_user=target_user,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_admin_promotion(validation_request, validator, comment=None):
+        """
+        Approuve une demande de promotion d'un utilisateur en admin_og.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve (doit etre super_admin)
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'admin_promotion':
+            raise ValueError("Cette demande n'est pas une promotion admin_og")
+
+        target_user = validation_request.target_user
+        if not target_user:
+            raise ValueError("Utilisateur cible manquant")
+
+        # Verifier que le validateur est super_admin
+        if not validator.is_super_admin():
+            raise ValueError("Seul un super administrateur peut approuver cette demande")
+
+        # Verifier que l'utilisateur est bien utilisateur simple
+        if target_user.role_level != 'utilisateur':
+            raise ValueError("Cet utilisateur n'est pas un utilisateur simple")
+
+        # Promouvoir l'utilisateur en admin_og
+        target_user.role_level = 'admin_og'
+        target_user.save(update_fields=['role_level'])
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier l'utilisateur promu
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='role_changed',
+            title="Vous etes maintenant administrateur",
+            message=f"Suite a une demande de {validation_request.requester}, "
+                    f"vous avez ete promu administrateur de votre organisme.",
+            priority='high',
+            related_user=validator,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        # Notifier le demandeur
+        NotificationService.create_notification(
+            recipient=validation_request.requester,
+            notification_type='validation_approved',
+            title="Demande de promotion approuvee",
+            message=f"Votre demande de promotion de {target_user} en administrateur a ete approuvee.",
+            priority='high',
+            related_user=target_user,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_admin_demotion(validation_request, validator, comment=None):
+        """
+        Approuve une demande de retrogradation d'un admin_og en utilisateur simple.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve (doit etre super_admin)
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'admin_demotion':
+            raise ValueError("Cette demande n'est pas une retrogradation admin_og")
+
+        target_user = validation_request.target_user
+        if not target_user:
+            raise ValueError("Utilisateur cible manquant")
+
+        # Verifier que le validateur est super_admin
+        if not validator.is_super_admin():
+            raise ValueError("Seul un super administrateur peut approuver cette demande")
+
+        # Verifier que l'utilisateur est bien admin_og
+        if target_user.role_level != 'admin_og':
+            raise ValueError("Cet utilisateur n'est pas un admin_og")
+
+        # Retrograder l'utilisateur en utilisateur simple
+        target_user.role_level = 'utilisateur'
+        target_user.save(update_fields=['role_level'])
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier l'utilisateur retrograde
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='role_changed',
+            title="Changement de role",
+            message=f"Suite a une demande de {validation_request.requester}, "
+                    f"vous n'etes plus administrateur de votre organisme.",
+            priority='high',
+            related_user=validator,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        # Notifier le demandeur
+        NotificationService.create_notification(
+            recipient=validation_request.requester,
+            notification_type='validation_approved',
+            title="Demande de retrogradation approuvee",
+            message=f"Votre demande de retrogradation de {target_user} a ete approuvee.",
+            priority='high',
+            related_user=target_user,
+            related_validation=validation_request,
             send_email=True
         )
 

@@ -204,4 +204,26 @@ export class ValidationService {
     const params = new HttpParams().set('email', email);
     return this.http.get<RegistrationStatusResponse>(`${this.authUrl}/registration-status/`, { params });
   }
+
+  // ==================== Gestion des roles admin ====================
+
+  /**
+   * Demande la promotion d'un utilisateur en admin_og.
+   */
+  requestAdminPromotion(targetUserId: number, justification: string): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`${this.apiUrl}/request_admin_promotion/`, {
+      target_user_id: targetUserId,
+      justification
+    });
+  }
+
+  /**
+   * Demande la retrogradation d'un admin_og en utilisateur simple.
+   */
+  requestAdminDemotion(targetUserId: number, justification: string): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`${this.apiUrl}/request_admin_demotion/`, {
+      target_user_id: targetUserId,
+      justification
+    });
+  }
 }

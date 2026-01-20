@@ -169,6 +169,8 @@ class ValidationRequest(models.Model):
         ('plan_access', _('Accès à un plan de gestion')),
         ('module_access', _('Accès à un module')),
         ('admin_deactivation', _('Désactivation admin_og')),
+        ('admin_promotion', _('Promotion admin_og')),
+        ('admin_demotion', _('Rétrogradation admin_og')),
         ('referent_validation', _('Validation référent site')),
         ('site_org_link', _('Lien site-organisme')),
         ('invite_org_to_site', _('Invitation organisme vers site')),
