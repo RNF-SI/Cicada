@@ -193,8 +193,12 @@ def send_registration_rejected_email(self, email, reason=None):
 @shared_task
 def check_orphaned_sites():
     """
-    Tache periodique pour verifier les sites sans utilisateurs.
-    A executer quotidiennement.
+    Tache d'audit hebdomadaire pour verifier les sites sans utilisateurs.
+
+    Note: La detection en temps reel est faite par les signaux Django
+    dans apps/users/signals.py (post_delete sur CorRoleSite, post_save sur Role).
+    Cette tache sert de filet de securite pour detecter les cas manques
+    (imports directs en base, migrations, etc.).
     """
     from apps.users.models import Site, CorRoleSite
     from .services import NotificationService
@@ -227,8 +231,12 @@ def check_orphaned_sites():
 @shared_task
 def check_organismes_without_admin():
     """
-    Tache periodique pour verifier les organismes sans admin_og.
-    A executer quotidiennement.
+    Tache d'audit hebdomadaire pour verifier les organismes sans admin_og.
+
+    Note: La detection en temps reel est faite par les signaux Django
+    dans apps/users/signals.py (post_save et post_delete sur Role).
+    Cette tache sert de filet de securite pour detecter les cas manques
+    (imports directs en base, migrations, etc.).
     """
     from apps.users.models import BibOrganismes, Role
     from .services import NotificationService
@@ -310,3 +318,44 @@ def cleanup_expired_pending_users():
 
     if count:
         logger.info(f"Expired {count} pending registrations")
+
+
+@shared_task
+def process_deletion_requests():
+    """
+    Tache periodique pour traiter les demandes de suppression de compte (RGPD).
+    Anonymise les comptes apres le delai de grace de 30 jours.
+    """
+    from apps.users.models import Role
+    from .services import NotificationService
+
+    # Trouver tous les utilisateurs eligibles a l'anonymisation
+    users_to_anonymize = []
+    for user in Role.objects.filter(
+        deletion_requested_at__isnull=False,
+        is_anonymized=False
+    ):
+        if user.can_be_anonymized():
+            users_to_anonymize.append(user)
+
+    anonymized_count = 0
+    for user in users_to_anonymize:
+        try:
+            user.anonymize()
+            anonymized_count += 1
+            logger.info(f"Anonymized user account: {user.id_role}")
+        except Exception as e:
+            logger.error(f"Error anonymizing user {user.id_role}: {e}")
+
+    if anonymized_count:
+        logger.info(f"Anonymized {anonymized_count} user accounts (RGPD)")
+
+        # Notifier les super admins du nombre de comptes anonymises
+        for admin in Role.objects.filter(role_level='super_admin', active=True):
+            NotificationService.create_notification(
+                recipient=admin,
+                notification_type='system_alert',
+                title="Comptes anonymises (RGPD)",
+                message=f"{anonymized_count} compte(s) ont ete anonymise(s) suite a des demandes de suppression.",
+                priority='low'
+            )

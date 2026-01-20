@@ -188,14 +188,160 @@ Le modèle `Notification` définit les types suivants :
 
 **Règle** : Les notifications avec priorité `high` ou `critical` déclenchent automatiquement l'envoi d'un email via Celery.
 
-### Tâches Celery périodiques
+### Détection en temps réel (Signaux Django)
 
-| Tâche | Fréquence | Description |
-|-------|-----------|-------------|
-| `check_orphaned_sites` | Quotidienne | Détecte les sites sans utilisateurs |
-| `check_organismes_without_admin` | Quotidienne | Détecte les organismes sans admin_og |
-| `cleanup_old_notifications` | Quotidienne | Supprime les notifications lues > 90 jours |
-| `cleanup_expired_pending_users` | Quotidienne | Marque comme expirées les inscriptions > 30 jours |
+Les problèmes critiques sont détectés **immédiatement** via les signaux Django (`apps/users/signals.py`) :
+
+| Événement déclencheur | Signal | Vérification effectuée |
+|----------------------|--------|------------------------|
+| Un admin_og est rétrogradé/désactivé | `post_save` sur `Role` | L'organisme a-t-il encore un admin_og ? |
+| Un admin_og est supprimé | `post_delete` sur `Role` | L'organisme a-t-il encore un admin_og ? |
+| Un utilisateur est retiré d'un site | `post_delete` sur `CorRoleSite` | Le site a-t-il encore des utilisateurs ? |
+| Un utilisateur lié à des sites est désactivé | `post_save` sur `Role` | Ses sites ont-ils encore des utilisateurs actifs ? |
+
+**Avantages** : Notification immédiate, pas d'attente jusqu'au lendemain matin.
+
+### Tâches Celery Beat (tâches planifiées)
+
+#### Architecture Celery
+
+**Celery** est un gestionnaire de tâches asynchrones qui permet d'exécuter des opérations en arrière-plan (envoi d'emails, traitements longs). **Celery Beat** est le planificateur qui déclenche les tâches périodiques selon un calendrier défini.
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Django Web    │────▶│      Redis      │◀────│  Celery Worker  │
+│   (Producer)    │     │   (Message      │     │  (Consumer)     │
+└─────────────────┘     │    Broker)      │     └─────────────────┘
+                        └─────────────────┘
+                               ▲
+                               │
+                        ┌──────┴──────┐
+                        │ Celery Beat │
+                        │ (Scheduler) │
+                        └─────────────┘
+```
+
+**Composants** :
+- **Redis** : File de messages (broker) entre Django et les workers
+- **Celery Worker** : Processus qui exécute les tâches en arrière-plan
+- **Celery Beat** : Planificateur qui envoie les tâches périodiques au broker
+
+#### Démarrage avec Docker
+
+```bash
+# Développement - Démarrer le worker Celery
+docker-compose exec web celery -A config worker -l info
+
+# Développement - Démarrer le planificateur Beat (dans un autre terminal)
+docker-compose exec web celery -A config beat -l info
+
+# Production - Utiliser un docker-compose.prod.yml avec services dédiés
+```
+
+**Configuration** (`config/settings/base.py`) :
+```python
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_TIMEZONE = 'Europe/Paris'
+```
+
+#### Liste des tâches planifiées
+
+| Tâche | Fréquence | Heure | Description |
+|-------|-----------|-------|-------------|
+| `cleanup_old_error_logs` | Quotidienne | 3h00 | Nettoie les logs d'erreurs |
+| `cleanup_old_notifications` | Quotidienne | 4h00 | Supprime les notifications lues > 90 jours |
+| `cleanup_expired_pending_users` | Quotidienne | 5h00 | Expire les inscriptions en attente > 30 jours |
+| `process_deletion_requests` | Quotidienne | 6h00 | Anonymise les comptes (RGPD) après délai de grâce |
+| `check_organismes_without_admin` | Hebdomadaire | Lundi 8h00 | Audit des organismes sans admin_og |
+| `check_orphaned_sites` | Hebdomadaire | Lundi 8h30 | Audit des sites sans utilisateurs |
+
+#### Détail des tâches
+
+##### 1. `check_organismes_without_admin` (audit hebdomadaire)
+
+**Fichier** : `apps/notifications/tasks.py:231-268`
+
+**Ce qu'elle fait** :
+1. Parcourt tous les organismes de la base de données
+2. Pour chaque organisme, vérifie s'il existe au moins un `admin_og` actif
+3. Si aucun admin_og trouvé → envoie une notification **CRITIQUE** aux super_admins
+4. Anti-spam : ne renvoie pas si une notification identique existe dans les 7 derniers jours
+
+**Pourquoi c'est important** : Un organisme sans administrateur ne peut plus :
+- Gérer ses utilisateurs
+- Valider les demandes d'inscription
+- Administrer ses sites
+
+**Note** : La détection en temps réel est assurée par les signaux Django. Cette tâche sert de filet de sécurité.
+
+##### 2. `check_orphaned_sites` (audit hebdomadaire)
+
+**Fichier** : `apps/notifications/tasks.py:193-228`
+
+**Ce qu'elle fait** :
+1. Identifie les sites actifs qui n'ont aucun utilisateur dans `CorRoleSite`
+2. Notifie les super_admins + les admin_og des organismes gestionnaires du site
+3. Anti-spam : pas de doublon dans les 7 jours
+
+**Pourquoi c'est important** : Un site sans utilisateur :
+- Ne peut plus être géré
+- Ses données peuvent devenir obsolètes
+- Aucun référent pour répondre aux demandes d'accès
+
+##### 3. `cleanup_old_notifications` (quotidienne)
+
+**Fichier** : `apps/notifications/tasks.py:271-289`
+
+**Ce qu'elle fait** :
+- Supprime les notifications **lues** de plus de 90 jours
+- Conserve les notifications non lues indéfiniment
+
+**Objectif** : Éviter l'accumulation de données obsolètes en base.
+
+##### 4. `cleanup_expired_pending_users` (quotidienne)
+
+**Fichier** : `apps/notifications/tasks.py:292-320`
+
+**Ce qu'elle fait** :
+1. Identifie les `ValidationRequest` de type `user_registration` en status `pending` depuis plus de 30 jours
+2. Passe leur statut à `expired`
+3. Supprime les `PendingUser` associés
+
+**Objectif** : Nettoyer les inscriptions abandonnées ou non traitées.
+
+##### 5. `process_deletion_requests` (quotidienne - RGPD)
+
+**Fichier** : `apps/notifications/tasks.py:323-361`
+
+**Ce qu'elle fait** :
+1. Identifie les utilisateurs avec `deletion_requested_at` non nul et `is_anonymized=False`
+2. Vérifie si le délai de grâce de 30 jours est écoulé (`can_be_anonymized()`)
+3. Anonymise le compte : email → `anonymized_X@deleted.local`, nom → "Utilisateur Anonymisé"
+4. Notifie les super_admins du nombre de comptes anonymisés
+
+**Conformité RGPD** : Permet aux utilisateurs d'exercer leur droit à l'effacement tout en conservant l'intégrité référentielle des données.
+
+##### 6. `cleanup_old_error_logs` (quotidienne)
+
+**Fichier** : `apps/core/tasks.py`
+
+**Ce qu'elle fait** :
+- Supprime les logs d'erreurs de plus de 90 jours
+- Supprime les logs acquittés de plus de 30 jours
+
+#### Tâches asynchrones (non planifiées)
+
+Ces tâches sont déclenchées à la demande par le code Django :
+
+| Tâche | Déclencheur | Description |
+|-------|-------------|-------------|
+| `send_notification_email` | Création de notification avec `send_email=True` | Envoie l'email de notification |
+| `send_registration_pending_email` | Nouvelle inscription | Email de confirmation d'inscription |
+| `send_registration_approved_email` | Validation d'inscription | Email de bienvenue |
+| `send_registration_rejected_email` | Rejet d'inscription | Email de notification de rejet |
+
+**Retry automatique** : Ces tâches ont 3 tentatives avec backoff exponentiel en cas d'échec.
 
 ### Protection contre les doublons
 

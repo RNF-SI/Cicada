@@ -210,6 +210,35 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=0),
         'kwargs': {'days': 90, 'acknowledged_days': 30},
     },
+    # Audit hebdomadaire des organismes sans admin - tous les lundis a 8h
+    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
+    # Cette tache sert de filet de securite pour detecter les cas manques
+    'check-organismes-no-admin': {
+        'task': 'apps.notifications.tasks.check_organismes_without_admin',
+        'schedule': crontab(hour=8, minute=0, day_of_week=1),  # Lundi
+    },
+    # Audit hebdomadaire des sites orphelins - tous les lundis a 8h30
+    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
+    # Cette tache sert de filet de securite pour detecter les cas manques
+    'check-orphaned-sites': {
+        'task': 'apps.notifications.tasks.check_orphaned_sites',
+        'schedule': crontab(hour=8, minute=30, day_of_week=1),  # Lundi
+    },
+    # Nettoyage des anciennes notifications - tous les jours a 4h
+    'cleanup-old-notifications': {
+        'task': 'apps.notifications.tasks.cleanup_old_notifications',
+        'schedule': crontab(hour=4, minute=0),
+    },
+    # Expiration des inscriptions en attente - tous les jours a 5h
+    'cleanup-expired-pending-users': {
+        'task': 'apps.notifications.tasks.cleanup_expired_pending_users',
+        'schedule': crontab(hour=5, minute=0),
+    },
+    # Traitement des demandes de suppression RGPD - tous les jours a 6h
+    'process-deletion-requests': {
+        'task': 'apps.notifications.tasks.process_deletion_requests',
+        'schedule': crontab(hour=6, minute=0),
+    },
 }
 
 # Email backend (sera configure differemment en dev/prod)
