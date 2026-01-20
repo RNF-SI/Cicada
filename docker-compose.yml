@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cicada}
       POSTGRES_USER: ${POSTGRES_USER:-cicada_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outil_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cicada_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -40,14 +40,20 @@ services:
 
   # Application Django (Backend)
   web:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cicada_web
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
-      - DATABASE_URL=postgis://${POSTGRES_USER:-cicada_user}:${POSTGRES_PASSWORD:-outil_password}@db:5432/${POSTGRES_DB:-cicada}
+      # Variables de connexion DB (utilisées par Django settings)
+      - POSTGRES_DB=${POSTGRES_DB:-cicada}
+      - POSTGRES_USER=${POSTGRES_USER:-cicada_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      # Redis
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}

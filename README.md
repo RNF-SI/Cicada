@@ -27,18 +27,25 @@ Centraliser et standardiser la gestion des plans de gestion des aires protégée
    cd Cicada
    ```
 
-2. **Configurer l'environnement**
+2. **(Optionnel) Configurer l'environnement**
    ```bash
    cp .env.example .env
-   # Éditez le fichier .env selon vos besoins
+   # Éditez le fichier .env pour personnaliser ports, mots de passe, etc.
    ```
+   > Les valeurs par défaut permettent de démarrer sans `.env` en développement.
 
 3. **Lancer l'application**
    ```bash
    docker-compose up -d
    ```
 
-4. **Accéder à l'application**
+4. **Attendre l'initialisation** (~30 secondes pour les migrations)
+   ```bash
+   docker-compose logs -f web
+   # Attendre "Starting development server at http://0.0.0.0:8000/"
+   ```
+
+5. **Accéder à l'application**
    - Backend Django API : http://localhost:8000
    - Interface d'administration : http://localhost:8000/admin (login: `admin` / `admin`)
    - Frontend Angular : http://localhost:4200 *(à venir)*
@@ -104,9 +111,12 @@ Cicada/
 
 ## ⚡ Démarrage rapide
 
-1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git`
-2. **Lancer :** `docker-compose up -d`  
-3. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
+1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git && cd Cicada`
+2. **Lancer :** `docker-compose up -d`
+3. **Attendre** que les migrations s'exécutent (~30 secondes) : `docker-compose logs -f web`
+4. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
+
+> **Note :** Le fichier `.env` est **optionnel** pour le développement. Les valeurs par défaut permettent de démarrer immédiatement. Pour personnaliser (ports, mots de passe), copiez `.env.example` vers `.env`.
 
 L'interface d'administration permet de gérer utilisateurs, organismes, sites et nomenclatures avec des données de test pré-chargées.
 
