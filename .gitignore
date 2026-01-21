@@ -78,3 +78,6 @@ design_system/*
 captures_maquettes/*
 
 KitUI/*
+# Fichiers generes
+backend/static/
+backend/celerybeat-schedule
