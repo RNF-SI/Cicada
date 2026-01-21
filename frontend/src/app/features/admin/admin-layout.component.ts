@@ -53,6 +53,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     if (this.isSuperAdmin()) {
       this.errorLogService.startAutoRefresh(60000);
     }
+    // Note: La fermeture des modales sur navigation est gérée dans AppComponent
   }
 
   ngOnDestroy(): void {

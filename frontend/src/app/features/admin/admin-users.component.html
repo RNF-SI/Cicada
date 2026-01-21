@@ -195,7 +195,6 @@
                   @if (canRequestPromotion(user)) {
                     <button
                       class="btn-icon promote"
-                      [title]="'admin.users.actions.requestPromotion' | translate"
                       [matTooltip]="'admin.users.actions.requestPromotion' | translate"
                       (click)="requestAdminPromotion(user)">
                       <i class="fi fi-rr-arrow-up"></i>
@@ -204,7 +203,6 @@
                   @if (canRequestDemotion(user)) {
                     <button
                       class="btn-icon demote"
-                      [title]="'admin.users.actions.requestDemotion' | translate"
                       [matTooltip]="'admin.users.actions.requestDemotion' | translate"
                       (click)="requestAdminDemotion(user)">
                       <i class="fi fi-rr-arrow-down"></i>
@@ -224,7 +222,6 @@
                 @if (canImpersonateUser(user)) {
                   <button
                     class="btn-icon impersonate"
-                    [title]="'admin.users.actions.viewAs' | translate"
                     [matTooltip]="('admin.users.actions.viewAs' | translate) + ' ' + user.prenom + ' ' + user.nom"
                     (click)="startImpersonation(user)">
                     <i class="fi fi-rr-eye"></i>
