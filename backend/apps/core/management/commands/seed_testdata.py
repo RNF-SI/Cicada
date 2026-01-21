@@ -152,11 +152,12 @@ class Command(BaseCommand):
             return
 
         # Desactiver les signaux pour eviter la creation de notifications pendant la suppression
-        from django.db.models.signals import post_save, post_delete, pre_save, m2m_changed
+        from django.db.models.signals import post_save, post_delete, pre_save, pre_delete, m2m_changed
         from apps.notifications import signals as notif_signals
+        from apps.users import signals as user_signals
         from apps.users.models import CorRoleSite
 
-        # Deconnecter tous les signaux de notifications
+        # Deconnecter les signaux de apps.notifications.signals
         post_save.disconnect(notif_signals.notify_user_site_association, sender=CorRoleSite)
         post_delete.disconnect(notif_signals.check_site_orphaned_on_user_removal, sender=CorRoleSite)
         post_delete.disconnect(notif_signals.notify_user_removed_from_site, sender=CorRoleSite)
@@ -165,6 +166,15 @@ class Command(BaseCommand):
         post_save.disconnect(notif_signals.notify_new_validation_request, sender=ValidationRequest)
         post_save.disconnect(notif_signals.handle_validation_result, sender=ValidationRequest)
         pre_save.disconnect(notif_signals.track_validation_status, sender=ValidationRequest)
+
+        # Deconnecter les signaux de apps.users.signals (detection temps reel)
+        pre_delete.disconnect(user_signals.notify_users_before_organisme_delete, sender=BibOrganismes)
+        pre_delete.disconnect(user_signals.notify_users_before_site_delete, sender=Site)
+        post_save.disconnect(user_signals.handle_user_deactivation, sender=Role)
+        post_save.disconnect(user_signals.check_organisme_admin_after_role_change, sender=Role)
+        post_delete.disconnect(user_signals.check_organisme_admin_after_role_delete, sender=Role)
+        post_delete.disconnect(user_signals.check_site_orphaned_after_user_removed, sender=CorRoleSite)
+        post_save.disconnect(user_signals.check_sites_after_user_deactivation, sender=Role)
 
         self.stdout.write('  Signaux de notifications desactives')
 
@@ -216,7 +226,7 @@ class Command(BaseCommand):
         orgs_deleted = BibOrganismes.objects.filter(nom_organisme__in=test_organismes).delete()[0]
         self.stdout.write(f'  Organismes supprimes: {orgs_deleted}')
 
-        # Reconnecter les signaux
+        # Reconnecter les signaux de apps.notifications.signals
         post_save.connect(notif_signals.notify_user_site_association, sender=CorRoleSite)
         post_delete.connect(notif_signals.check_site_orphaned_on_user_removal, sender=CorRoleSite)
         post_delete.connect(notif_signals.notify_user_removed_from_site, sender=CorRoleSite)
@@ -225,6 +235,15 @@ class Command(BaseCommand):
         post_save.connect(notif_signals.notify_new_validation_request, sender=ValidationRequest)
         post_save.connect(notif_signals.handle_validation_result, sender=ValidationRequest)
         pre_save.connect(notif_signals.track_validation_status, sender=ValidationRequest)
+
+        # Reconnecter les signaux de apps.users.signals
+        pre_delete.connect(user_signals.notify_users_before_organisme_delete, sender=BibOrganismes)
+        pre_delete.connect(user_signals.notify_users_before_site_delete, sender=Site)
+        post_save.connect(user_signals.handle_user_deactivation, sender=Role)
+        post_save.connect(user_signals.check_organisme_admin_after_role_change, sender=Role)
+        post_delete.connect(user_signals.check_organisme_admin_after_role_delete, sender=Role)
+        post_delete.connect(user_signals.check_site_orphaned_after_user_removed, sender=CorRoleSite)
+        post_save.connect(user_signals.check_sites_after_user_deactivation, sender=Role)
 
         self.stdout.write('  Signaux de notifications reactives')
         self.stdout.write(self.style.SUCCESS('\nDonnees de test supprimees avec succes!'))
@@ -987,6 +1006,35 @@ class Command(BaseCommand):
                 'active': True,
                 'pending_validation': True  # En attente de validation
             },
+            # Utilisateurs avec suppression de compte demandee (RGPD)
+            {
+                'email': 'deletion.recent@test.fr',
+                'nom_role': 'Fournier',
+                'prenom_role': 'Nicolas',
+                'identifiant': 'deletion_recent',
+                'role_level': 'utilisateur',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': organismes[0],  # RNF
+                'groups': ['Utilisateurs'],
+                'sites_referent': [],
+                'active': False,
+                'deletion_requested_days_ago': 5  # Demande recente (5 jours)
+            },
+            {
+                'email': 'deletion.old@test.fr',
+                'nom_role': 'Blanc',
+                'prenom_role': 'Isabelle',
+                'identifiant': 'deletion_old',
+                'role_level': 'utilisateur',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': organismes[1],  # CEN AURA
+                'groups': ['Utilisateurs'],
+                'sites_referent': [],
+                'active': False,
+                'deletion_requested_days_ago': 25  # Demande ancienne (25 jours, bientot anonymise)
+            },
         ]
 
         users = []
@@ -995,6 +1043,12 @@ class Command(BaseCommand):
             sites_referent = user_data.pop('sites_referent')
             is_active = user_data.pop('active', True)  # Valeur par defaut: True
             is_pending = user_data.pop('pending_validation', False)
+            deletion_days_ago = user_data.pop('deletion_requested_days_ago', None)
+
+            # Calculer la date de demande de suppression si specifie
+            deletion_requested_at = None
+            if deletion_days_ago is not None:
+                deletion_requested_at = timezone.now() - timedelta(days=deletion_days_ago)
 
             user, created = Role.objects.update_or_create(
                 email=user_data['email'],
@@ -1008,6 +1062,7 @@ class Command(BaseCommand):
                     'id_organisme': user_data['id_organisme'],
                     'active': is_active,
                     'pending_validation': is_pending,
+                    'deletion_requested_at': deletion_requested_at,
                 }
             )
 
