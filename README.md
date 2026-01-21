@@ -56,7 +56,7 @@ Centraliser et standardiser la gestion des plans de gestion des aires protégée
 # Démarrer l'application
 docker-compose up -d
 
-# Arrêter l'application  
+# Arrêter l'application
 docker-compose down
 
 # Voir les logs
@@ -65,6 +65,35 @@ docker-compose logs -f
 # Reconstruire après modifications
 docker-compose build
 ```
+
+### Configuration des variables d'environnement
+
+Le fichier `.env` est **optionnel en développement** grâce aux valeurs par défaut cohérentes définies dans `docker-compose.yml`.
+
+#### Valeurs par défaut (sans .env)
+
+| Variable | Valeur par défaut | Description |
+|----------|-------------------|-------------|
+| `POSTGRES_DB` | `cicada` | Nom de la base de données |
+| `POSTGRES_USER` | `cicada_user` | Utilisateur PostgreSQL |
+| `POSTGRES_PASSWORD` | `cicada_password` | Mot de passe PostgreSQL |
+| `DJANGO_PORT` | `8000` | Port du backend |
+| `FRONTEND_PORT` | `4200` | Port du frontend |
+| `REDIS_PASSWORD` | `redis_password` | Mot de passe Redis |
+
+#### Quand utiliser un fichier .env ?
+
+- **Développement local** : Pas nécessaire, les défauts fonctionnent
+- **Personnalisation** : Pour changer les ports ou mots de passe
+- **Production** : **Obligatoire** - utilisez des mots de passe sécurisés et `DEBUG=False`
+
+Pour personnaliser :
+```bash
+cp .env.example .env
+# Éditez .env selon vos besoins
+```
+
+> ⚠️ **Production** : Ne jamais utiliser les valeurs par défaut. Générez des mots de passe forts et une nouvelle `SECRET_KEY`.
 
 ## 🏗️ Architecture
 
