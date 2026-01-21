@@ -15,7 +15,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -24,7 +23,6 @@ import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   ActivityLogListItem,
-  ActivityTab,
   ActivityFilters,
   DEFAULT_TAB_CONFIGS,
   ACTION_ICONS,
@@ -48,7 +46,6 @@ import {
     MatInputModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
-    MatBadgeModule,
     MatTooltipModule,
     MatExpansionModule,
     TranslateModule
@@ -70,7 +67,6 @@ export class ActivityComponent implements OnInit {
 
   // Onglet actif
   readonly currentTab = this.activityService.currentTab;
-  readonly tabsCounts = this.activityService.tabsCounts;
 
   // User info
   readonly currentUser = this.authService.currentUser;
@@ -108,15 +104,7 @@ export class ActivityComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadTabsCounts();
     this.loadData();
-  }
-
-  /**
-   * Charge les compteurs d'onglets.
-   */
-  loadTabsCounts(): void {
-    this.activityService.getTabsCounts().subscribe();
   }
 
   /**
@@ -290,17 +278,6 @@ export class ActivityComponent implements OnInit {
       'file_delete': 'action-remove',
     };
     return classes[action] || 'action-default';
-  }
-
-  /**
-   * Obtient le compteur d'un onglet.
-   */
-  getTabCount(tabId: ActivityTab): number | null {
-    const counts = this.tabsCounts();
-    if (!counts) return null;
-
-    const count = counts[tabId as keyof typeof counts];
-    return typeof count === 'number' ? count : null;
   }
 
   /**

@@ -23,9 +23,6 @@
           <div class="tab-label">
             <i [class]="tab.icon"></i>
             <span>{{ tab.labelKey | translate }}</span>
-            @if (getTabCount(tab.id) !== null && getTabCount(tab.id)! > 0) {
-              <span class="tab-badge">{{ getTabCount(tab.id) }}</span>
-            }
           </div>
         </ng-template>
       </mat-tab>
