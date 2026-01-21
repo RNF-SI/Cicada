@@ -214,16 +214,6 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       }
     };
 
-    // Options de style pour le rectangle
-    const rectangleOptions: L.DrawOptions.RectangleOptions = {
-      shapeOptions: {
-        color: this.primaryColor,
-        weight: 2,
-        fillColor: this.fillColor,
-        fillOpacity: 0.3
-      }
-    };
-
     // Options selon le type de géométrie
     const showPolygonTools = this.geometryType === 'polygon' || this.geometryType === 'both';
     const showPointTools = this.geometryType === 'point' || this.geometryType === 'both';
@@ -232,7 +222,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       position: 'topleft',
       draw: {
         polygon: showPolygonTools ? polygonOptions : false,
-        rectangle: showPolygonTools ? rectangleOptions : false,
+        rectangle: false,  // Désactivé - seuls les polygones et points sont autorisés
         circle: false,
         circlemarker: false,
         marker: showPointTools ? {} : false,
