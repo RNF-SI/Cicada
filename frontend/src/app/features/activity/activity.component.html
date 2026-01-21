@@ -32,9 +32,8 @@
     }
   </mat-tab-group>
 
-  <!-- Filters (not shown for notifications tab) -->
-  @if (currentTab() !== 'notifications') {
-    <div class="filters-bar">
+  <!-- Filters -->
+  <div class="filters-bar">
       <mat-form-field appearance="outline" class="search-field">
         <mat-label>{{ 'common.actions.search' | translate }}</mat-label>
         <input matInput [(ngModel)]="searchQuery" (keyup.enter)="applyFilters()">
@@ -53,14 +52,13 @@
         </mat-select>
       </mat-form-field>
 
-      @if (searchQuery || entityTypeFilter || actionFilter) {
-        <button mat-button (click)="resetFilters(); applyFilters()">
-          <i class="fi-rr-cross-small"></i>
-          {{ 'common.actions.reset' | translate }}
-        </button>
-      }
-    </div>
-  }
+    @if (searchQuery || entityTypeFilter || actionFilter) {
+      <button mat-button (click)="resetFilters(); applyFilters()">
+        <i class="fi-rr-cross-small"></i>
+        {{ 'common.actions.reset' | translate }}
+      </button>
+    }
+  </div>
 
   <!-- Content -->
   <div class="content-area">
@@ -69,48 +67,8 @@
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else {
-      <!-- Notifications tab -->
-      @if (currentTab() === 'notifications') {
-        <div class="notifications-content">
-          @if (notifications().length > 0) {
-            <div class="notifications-actions">
-              <button mat-stroked-button (click)="markAllNotificationsAsRead()">
-                <i class="fi-rr-check-double"></i>
-                {{ 'activity.markAllRead' | translate }}
-              </button>
-            </div>
-
-            <div class="notifications-list">
-              @for (notification of notifications(); track notification.id) {
-                <div
-                  class="notification-item"
-                  [class.unread]="!notification.read"
-                  (click)="markNotificationAsRead(notification)"
-                >
-                  <div class="notification-icon">
-                    <i [class]="getNotificationIcon(notification.notification_type)"></i>
-                  </div>
-                  <div class="notification-content">
-                    <h4>{{ notification.title }}</h4>
-                    <p>{{ notification.message }}</p>
-                    <span class="notification-time">{{ formatTime(notification.created_at) }}</span>
-                  </div>
-                  @if (!notification.read) {
-                    <div class="unread-indicator"></div>
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="empty-state">
-              <i class="fi-rr-bell"></i>
-              <p>{{ 'activity.noNotifications' | translate }}</p>
-            </div>
-          }
-        </div>
-      } @else {
-        <!-- Activity timeline -->
-        <div class="timeline-content">
+      <!-- Activity timeline -->
+      <div class="timeline-content">
           @if (groupedActivities().size > 0) {
             @for (group of groupedActivities() | keyvalue; track group.key) {
               <div class="timeline-group">
@@ -166,7 +124,6 @@
             </div>
           }
         </div>
-      }
 
       <!-- Pagination -->
       @if (totalCount() > pageSize) {

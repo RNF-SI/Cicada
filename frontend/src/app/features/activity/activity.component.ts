@@ -22,18 +22,15 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
-import { NotificationService } from '../../core/services/notification.service';
 import {
   ActivityLogListItem,
   ActivityTab,
-  ActivityTabConfig,
   ActivityFilters,
   DEFAULT_TAB_CONFIGS,
   ACTION_ICONS,
   ENTITY_TYPE_ICONS,
   VALIDATION_ACTION_ICONS
 } from '../../core/models/activity.model';
-import { NotificationListItem } from '../../core/models/notification.model';
 
 @Component({
   selector: 'app-activity',
@@ -62,13 +59,11 @@ import { NotificationListItem } from '../../core/models/notification.model';
 export class ActivityComponent implements OnInit {
   private readonly activityService = inject(ActivityService);
   private readonly authService = inject(AuthService);
-  private readonly notificationService = inject(NotificationService);
   private readonly translate = inject(TranslateService);
 
   // Etat
   readonly loading = this.activityService.loading;
   readonly activities = signal<ActivityLogListItem[]>([]);
-  readonly notifications = signal<NotificationListItem[]>([]);
   readonly totalCount = signal(0);
   readonly currentPage = signal(1);
   readonly pageSize = 20;
@@ -95,7 +90,6 @@ export class ActivityComponent implements OnInit {
     return DEFAULT_TAB_CONFIGS.filter(tab => {
       if (tab.superAdminOnly && !this.isSuperAdmin()) return false;
       if (tab.adminOnly && !this.isAdminOrganisme()) return false;
-      // L'onglet notifications est toujours visible
       return true;
     });
   });
@@ -131,13 +125,6 @@ export class ActivityComponent implements OnInit {
   loadData(): void {
     const tab = this.currentTab();
 
-    // Si onglet notifications, charger les notifications
-    if (tab === 'notifications') {
-      this.loadNotifications();
-      return;
-    }
-
-    // Sinon charger les activites
     const filters: ActivityFilters = {
       page: this.currentPage()
     };
@@ -159,21 +146,6 @@ export class ActivityComponent implements OnInit {
       },
       error: (error) => {
         console.error('Erreur chargement activites:', error);
-      }
-    });
-  }
-
-  /**
-   * Charge les notifications pour l'onglet Notifications.
-   */
-  loadNotifications(): void {
-    this.notificationService.getNotifications(this.currentPage()).subscribe({
-      next: (response) => {
-        this.notifications.set(response.results);
-        this.totalCount.set(response.count);
-      },
-      error: (error) => {
-        console.error('Erreur chargement notifications:', error);
       }
     });
   }
@@ -377,47 +349,4 @@ export class ActivityComponent implements OnInit {
     }
   }
 
-  /**
-   * Marque une notification comme lue.
-   */
-  markNotificationAsRead(notification: NotificationListItem): void {
-    if (!notification.read) {
-      this.notificationService.markAsRead(notification.id).subscribe(() => {
-        this.loadTabsCounts();
-      });
-    }
-  }
-
-  /**
-   * Marque toutes les notifications comme lues.
-   */
-  markAllNotificationsAsRead(): void {
-    this.notificationService.markAllAsRead().subscribe(() => {
-      this.loadData();
-      this.loadTabsCounts();
-    });
-  }
-
-  /**
-   * Obtient l'icone d'un type de notification.
-   */
-  getNotificationIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'validation_request': 'fi-rr-check-circle',
-      'validation_approved': 'fi-rr-check',
-      'validation_rejected': 'fi-rr-cross',
-      'user_associated_site': 'fi-rr-user-add',
-      'user_associated_plan': 'fi-rr-document-signed',
-      'user_removed_site': 'fi-rr-user-remove',
-      'user_removed_plan': 'fi-rr-document',
-      'account_deactivated': 'fi-rr-user-slash',
-      'account_activated': 'fi-rr-user-check',
-      'site_orphaned': 'fi-rr-exclamation',
-      'organisme_no_admin': 'fi-rr-building',
-      'system_alert': 'fi-rr-bell-ring',
-      'info': 'fi-rr-info',
-      'welcome': 'fi-rr-hand-wave',
-    };
-    return icons[type] || 'fi-rr-bell';
-  }
 }
