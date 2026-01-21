@@ -324,10 +324,11 @@ docker-compose exec web pytest tests/integration/test_api_users.py::TestUsersLis
 **Structure des tests backend :**
 ```
 backend/tests/
-├── factories/           # Factory Boy (UserFactory, PlanGestionFactory, etc.)
+├── factories/           # Factory Boy (UserFactory, PlanGestionFactory, ActivityLogFactory, etc.)
 ├── apps/               # Tests unitaires
 │   ├── users/          # test_models.py, test_permissions.py, test_middleware.py
-│   └── plans/          # test_views.py, test_filters.py
+│   ├── plans/          # test_views.py, test_filters.py
+│   └── core/           # test_activity.py (45 tests - model, service, API, signals)
 └── integration/        # Tests API
     ├── test_api_auth.py
     ├── test_api_users.py
@@ -827,6 +828,46 @@ class UsersConfig(AppConfig):
   - `POST /api/notifications/{id}/read/` - Mark notification as read
   - `POST /api/notifications/read-all/` - Mark all as read
 
+**API REST Activity (Historique d'activité):**
+- Unified activity timeline API at `/api/activity/`
+- Entity types: `site`, `plan`, `user`, `organisme`, `validation`
+- Action types: `create`, `update`, `delete`, `add_member`, `remove_member`, `add_referent`, `remove_referent`, `status_change`, `activate`, `deactivate`, `rgpd_request`, `rgpd_cancelled`, `rgpd_anonymized`, etc.
+- Visibility levels: `public`, `admin`, `system`
+- Filtering by user role:
+  | Rôle | Accès |
+  |------|-------|
+  | super_admin | Tout (y compris RGPD et système) |
+  | admin_og | Activité de son organisme |
+  | référent | Activité de ses sites/plans |
+  | utilisateur | Ses notifications + sites où il est membre |
+
+- Endpoints:
+  - `GET /api/activity/` - List activities (paginated, filtered by role)
+  - `GET /api/activity/{id}/` - Single activity detail
+  - `GET /api/activity/my_sites/` - Activities for user's sites
+  - `GET /api/activity/my_plans/` - Activities for user's plans
+  - `GET /api/activity/validations/` - Validation-related activities (admin_og+)
+  - `GET /api/activity/rgpd/` - RGPD activities (super_admin only)
+  - `GET /api/activity/system/` - System activities (super_admin only)
+  - `GET /api/activity/stats/` - Activity statistics
+  - `GET /api/activity/tabs_counts/` - Counts per tab/category
+
+- Filters:
+  - `entity_type` - Filter by entity type (site, plan, user, etc.)
+  - `action` - Filter by action type
+  - `site_id` - Filter by related site
+  - `plan_id` - Filter by related plan
+  - `since` - Filter by date (ISO format)
+  - `search` - Text search in description/entity_name
+
+- Backend components:
+  - Model: `apps/core/models.py` → `ActivityLog`
+  - Service: `apps/core/services.py` → `ActivityService`
+  - Signals: `apps/core/activity_signals.py` (auto-logging on model changes)
+  - API: `apps/core/views.py` → `ActivityViewSet`
+
+- Tests: `tests/apps/core/test_activity.py` (45 tests)
+
 ### Frontend Features
 
 **Page Profil (`/profile`):**
@@ -850,6 +891,26 @@ class UsersConfig(AppConfig):
 - Composant `NotificationBellComponent` dans le header
 - Compteur de notifications non lues
 - Dialog avec liste des notifications et marquage comme lu
+- Lien "Voir tout" vers `/activite`
+
+**Page Activité (`/activite`):**
+- Timeline unifiée des activités, notifications et validations
+- Onglets dynamiques selon le rôle de l'utilisateur:
+  - **Tous les utilisateurs**: "Tout", "Mes sites", "Mes plans", "Notifications"
+  - **Admin organisme+**: + "Validations"
+  - **Super admin**: + "RGPD", "Système"
+- Filtres par type d'entité, action, recherche textuelle
+- Groupement chronologique ("Aujourd'hui", "Hier", "Cette semaine", etc.)
+- Icônes et couleurs par type d'action (création=vert, modification=bleu, suppression=rouge)
+- Pagination avec scroll infini
+- Liens vers les entités concernées
+
+Fichiers frontend:
+- Route: `frontend/src/app/features/activity/activity.routes.ts`
+- Composant principal: `frontend/src/app/features/activity/activity.component.ts`
+- Service: `frontend/src/app/core/services/activity.service.ts`
+- Modèles: `frontend/src/app/core/models/activity.model.ts`
+- Traductions: `frontend/src/assets/i18n/fr.json` (clés `activity.*`)
 
 ## Internationalisation (i18n)
 
