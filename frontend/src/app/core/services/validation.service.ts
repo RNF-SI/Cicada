@@ -34,6 +34,22 @@ export interface ValidationFilters {
   page?: number;
 }
 
+/**
+ * Interface pour les options de type/statut retournées par l'API.
+ */
+export interface ValidationTypeOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Réponse de l'endpoint /api/validations/types/
+ */
+export interface ValidationTypesResponse {
+  request_types: ValidationTypeOption[];
+  statuses: ValidationTypeOption[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -78,6 +94,14 @@ export class ValidationService {
         this.notificationService.updatePendingValidationsCount(response.pending_count);
       })
     );
+  }
+
+  /**
+   * Recupere les types de demandes et statuts disponibles.
+   * Permet de synchroniser dynamiquement les filtres avec le backend.
+   */
+  getTypes(): Observable<ValidationTypesResponse> {
+    return this.http.get<ValidationTypesResponse>(`${this.apiUrl}/types/`);
   }
 
   /**

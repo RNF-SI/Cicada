@@ -19,7 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { ValidationService, ValidationFilters } from '../../../core/services/validation.service';
+import { ValidationService, ValidationFilters, ValidationTypeOption } from '../../../core/services/validation.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import {
   ValidationRequestListItem,
@@ -72,24 +72,16 @@ export class AdminValidationsComponent implements OnInit {
   // Colonnes du tableau
   readonly displayedColumns = ['type', 'requester', 'target', 'date', 'validated_at', 'status', 'validator', 'actions'];
 
-  // Options de filtres
-  readonly statusOptions = [
-    { value: '', label: 'Tous les statuts' },
-    { value: 'pending', label: 'En attente' },
-    { value: 'approved', label: 'Approuve' },
-    { value: 'rejected', label: 'Rejete' },
-    { value: 'cancelled', label: 'Annule' },
-  ];
-
-  readonly typeOptions = [
-    { value: '', label: 'Tous les types' },
-    { value: 'user_registration', label: 'Inscription' },
-    { value: 'site_access', label: 'Acces site' },
-    { value: 'plan_access', label: 'Acces plan' },
-    { value: 'admin_deactivation', label: 'Desactivation admin' },
-  ];
+  // Options de filtres (chargées dynamiquement depuis l'API)
+  readonly statusOptions = signal<ValidationTypeOption[]>([
+    { value: '', label: 'Tous les statuts' }
+  ]);
+  readonly typeOptions = signal<ValidationTypeOption[]>([
+    { value: '', label: 'Tous les types' }
+  ]);
 
   ngOnInit(): void {
+    this.loadTypes();
     this.loadValidations();
 
     // Verifier si un query param 'open' est present pour ouvrir directement une validation
@@ -97,6 +89,28 @@ export class AdminValidationsComponent implements OnInit {
       const openId = params['open'];
       if (openId) {
         this.openValidationById(parseInt(openId, 10));
+      }
+    });
+  }
+
+  /**
+   * Charge les types et statuts depuis l'API.
+   */
+  private loadTypes(): void {
+    this.validationService.getTypes().subscribe({
+      next: (response) => {
+        // Ajouter l'option "Tous" au début de chaque liste
+        this.statusOptions.set([
+          { value: '', label: 'Tous les statuts' },
+          ...response.statuses
+        ]);
+        this.typeOptions.set([
+          { value: '', label: 'Tous les types' },
+          ...response.request_types
+        ]);
+      },
+      error: (error) => {
+        console.error('Erreur chargement des types:', error);
       }
     });
   }
@@ -241,10 +255,17 @@ export class AdminValidationsComponent implements OnInit {
   getTypeIcon(type: ValidationRequestType): string {
     const icons: Record<string, string> = {
       'user_registration': 'fi-rr-user-add',
+      'site_creation': 'fi-rr-marker-plus',
       'site_access': 'fi-rr-marker',
       'plan_access': 'fi-rr-document',
+      'module_access': 'fi-rr-apps',
       'admin_deactivation': 'fi-rr-user-slash',
-      'referent_validation': 'fi-rr-check',
+      'admin_promotion': 'fi-rr-user-crown',
+      'admin_demotion': 'fi-rr-user-minus',
+      'referent_validation': 'fi-rr-badge-check',
+      'site_org_link': 'fi-rr-link',
+      'invite_org_to_site': 'fi-rr-building',
+      'invite_user_to_site': 'fi-rr-user-add',
     };
     return icons[type] || 'fi-rr-check-circle';
   }

@@ -12,6 +12,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { ValidationService } from '../../../core/services/validation.service';
 import { ValidationRequest, ValidationStatus, ValidationRequestType } from '../../../core/models/notification.model';
@@ -33,7 +34,8 @@ interface DialogData {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   template: `
     <h2 mat-dialog-title>
@@ -84,6 +86,14 @@ interface DialogData {
             <div class="detail-row">
               <span class="detail-label">Site</span>
               <span class="detail-value">{{ validation()!.target_site!.nom_site }}</span>
+            </div>
+          }
+
+          <!-- Avertissement pour les demandes de creation de site -->
+          @if (validation()!.request_type === 'site_creation') {
+            <div class="duplicate-warning">
+              <i class="fi fi-rr-exclamation-triangle"></i>
+              <span>{{ 'admin.validations.warnings.checkDuplicateSite' | translate }}</span>
             </div>
           }
 
@@ -261,8 +271,8 @@ interface DialogData {
     }
 
     mat-dialog-content {
-      min-width: 500px;
-      max-height: 70vh;
+      min-width: 420px;
+      max-height: 65vh;
     }
 
     .loading-container {
@@ -274,7 +284,7 @@ interface DialogData {
     .detail-content {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .detail-row {
@@ -302,11 +312,11 @@ interface DialogData {
 
         &.justification {
           background: v.$gray-light;
-          padding: 8px 12px;
+          padding: 6px 10px;
           border-radius: 6px;
           white-space: pre-wrap;
-          font-size: 13px;
-          max-height: 80px;
+          font-size: 12px;
+          max-height: 50px;
           overflow-y: auto;
         }
       }
@@ -455,6 +465,30 @@ interface DialogData {
         strong {
           color: v.$primary-color;
         }
+      }
+    }
+
+    .duplicate-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: rgba(v.$warning-color, 0.12);
+      border: 1px solid rgba(v.$warning-color, 0.4);
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+
+      > i {
+        font-size: 16px;
+        color: darken(v.$warning-color, 10%);
+        flex-shrink: 0;
+      }
+
+      > span {
+        color: darken(v.$warning-color, 20%);
+        font-weight: 500;
       }
     }
   `]
@@ -615,10 +649,17 @@ export class ValidationDetailDialogComponent implements OnInit {
 
     const icons: Record<string, string> = {
       'user_registration': 'fi-rr-user-add',
+      'site_creation': 'fi-rr-marker-plus',
       'site_access': 'fi-rr-marker',
       'plan_access': 'fi-rr-document',
+      'module_access': 'fi-rr-apps',
       'admin_deactivation': 'fi-rr-user-slash',
-      'referent_validation': 'fi-rr-check',
+      'admin_promotion': 'fi-rr-user-crown',
+      'admin_demotion': 'fi-rr-user-minus',
+      'referent_validation': 'fi-rr-badge-check',
+      'site_org_link': 'fi-rr-link',
+      'invite_org_to_site': 'fi-rr-building',
+      'invite_user_to_site': 'fi-rr-user-add',
     };
     return icons[type] || 'fi-rr-check-circle';
   }

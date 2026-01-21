@@ -9,7 +9,7 @@
     <mat-form-field appearance="outline" class="filter-field">
       <mat-label>Statut</mat-label>
       <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
-        @for (option of statusOptions; track option.value) {
+        @for (option of statusOptions(); track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
         }
       </mat-select>
@@ -18,7 +18,7 @@
     <mat-form-field appearance="outline" class="filter-field">
       <mat-label>Type de demande</mat-label>
       <mat-select [(ngModel)]="typeFilter" (selectionChange)="applyFilters()">
-        @for (option of typeOptions; track option.value) {
+        @for (option of typeOptions(); track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
         }
       </mat-select>
