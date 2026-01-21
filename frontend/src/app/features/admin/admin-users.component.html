@@ -47,6 +47,7 @@
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="active">{{ 'common.status.active' | translate }}</option>
         <option value="inactive">{{ 'common.status.inactive' | translate }}</option>
+        <option value="deletion_pending">{{ 'admin.users.status.deletionPending' | translate }}</option>
       </select>
     </div>
   </div>
@@ -155,9 +156,22 @@
                 }
               </td>
               <td>
-                <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
-                  {{ (user.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
-                </span>
+                @if (user.deletionRequestedAt) {
+                  <span class="status-badge deletion-pending" [matTooltip]="'admin.users.status.deletionTooltip' | translate:{ days: user.daysUntilDeletion }">
+                    <i class="fi fi-rr-trash"></i>
+                    {{ 'admin.users.status.deletionPending' | translate }}
+                    <span class="days-badge">{{ user.daysUntilDeletion }}j</span>
+                  </span>
+                } @else if (user.isAnonymized) {
+                  <span class="status-badge anonymized">
+                    <i class="fi fi-rr-user-slash"></i>
+                    {{ 'admin.users.status.anonymized' | translate }}
+                  </span>
+                } @else {
+                  <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                    {{ (user.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
+                  </span>
+                }
               </td>
               <td class="date-cell">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
               <td class="actions-cell">

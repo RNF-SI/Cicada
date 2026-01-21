@@ -29,6 +29,8 @@ export type ValidationRequestType =
   | 'plan_access'
   | 'module_access'
   | 'admin_deactivation'
+  | 'admin_promotion'
+  | 'admin_demotion'
   | 'referent_validation'
   | 'site_org_link'
   | 'invite_org_to_site'

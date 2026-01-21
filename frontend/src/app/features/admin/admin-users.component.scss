@@ -245,7 +245,9 @@
 }
 
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-small;
@@ -258,6 +260,39 @@
   &.inactive {
     background-color: rgba($error-color, 0.1);
     color: $error-color;
+  }
+
+  &.deletion-pending {
+    background-color: rgba($warning-color, 0.15);
+    color: darken($warning-color, 15%);
+
+    i {
+      font-size: 12px;
+    }
+
+    .days-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 18px;
+      padding: 0 4px;
+      background-color: $warning-color;
+      color: $white;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: $font-weight-bold;
+      margin-left: 2px;
+    }
+  }
+
+  &.anonymized {
+    background-color: rgba($gray, 0.15);
+    color: $gray-dark;
+
+    i {
+      font-size: 12px;
+    }
   }
 }
 

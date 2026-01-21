@@ -51,6 +51,10 @@ interface DisplayUser {
   lastLogin?: string;
   sites: DisplaySite[];
   plans: DisplayPlan[];
+  // RGPD fields
+  deletionRequestedAt?: string | null;
+  isAnonymized: boolean;
+  daysUntilDeletion?: number;
 }
 
 interface DisplayOrganisme {
@@ -181,6 +185,16 @@ export class AdminUsersComponent implements OnInit {
       statut: plan.statut
     }));
 
+    // Calculate days until deletion (30 days grace period)
+    let daysUntilDeletion: number | undefined;
+    if (user.deletion_requested_at) {
+      const requestDate = new Date(user.deletion_requested_at);
+      const deletionDate = new Date(requestDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      daysUntilDeletion = Math.ceil((deletionDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      if (daysUntilDeletion < 0) daysUntilDeletion = 0;
+    }
+
     return {
       id: user.id_role,
       email: user.email,
@@ -193,7 +207,10 @@ export class AdminUsersComponent implements OnInit {
       isActive: user.active,
       lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined,
       sites,
-      plans
+      plans,
+      deletionRequestedAt: user.deletion_requested_at,
+      isAnonymized: user.is_anonymized || false,
+      daysUntilDeletion
     };
   }
 
@@ -238,8 +255,12 @@ export class AdminUsersComponent implements OnInit {
 
     // Filter by status
     if (this.filterStatus) {
-      const isActive = this.filterStatus === 'active';
-      result = result.filter(user => user.isActive === isActive);
+      if (this.filterStatus === 'deletion_pending') {
+        result = result.filter(user => user.deletionRequestedAt != null);
+      } else {
+        const isActive = this.filterStatus === 'active';
+        result = result.filter(user => user.isActive === isActive && !user.deletionRequestedAt);
+      }
     }
 
     // For non-super admin, only show users from their organisme

@@ -192,6 +192,10 @@ export interface AdminUser {
   last_login?: string;
   sites_lies?: UserSiteRelation[];
   plans_referent?: UserPlanRelation[];
+  // RGPD fields
+  deletion_requested_at?: string | null;
+  is_anonymized?: boolean;
+  anonymized_at?: string | null;
 }
 
 /**

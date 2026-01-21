@@ -689,3 +689,205 @@ class TestUsersPermissionsEndpoint:
         """Test permissions endpoint requires authentication."""
         response = api_client.get('/api/users/permissions/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDDeletion:
+    """Tests for RGPD account deletion functionality."""
+
+    def test_request_deletion_success(self, api_client):
+        """Test user can request account deletion."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'requested'
+        assert 'message' in response.data
+
+        # Verify user is deactivated and deletion_requested_at is set
+        user.refresh_from_db()
+        assert user.active is False
+        assert user.deletion_requested_at is not None
+
+    def test_request_deletion_unauthenticated(self, api_client):
+        """Test unauthenticated user cannot request deletion."""
+        response = api_client.post('/api/users/users/request_deletion/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_request_deletion_already_pending(self, api_client):
+        """Test user cannot request deletion twice."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_request_deletion_already_anonymized(self, api_client):
+        """Test anonymized user cannot request deletion."""
+        user = RoleFactory(
+            active=False,
+            is_anonymized=True,
+            email='anonymized_test@deleted.local'
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_success(self, api_client):
+        """Test user can cancel deletion request."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'cancelled'
+
+        # Verify user is reactivated
+        user.refresh_from_db()
+        assert user.active is True
+        assert user.deletion_requested_at is None
+
+    def test_cancel_deletion_no_pending_request(self, api_client):
+        """Test cancel fails when no deletion is pending."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_already_anonymized(self, api_client):
+        """Test cancel fails for anonymized accounts."""
+        from django.utils import timezone
+        user = RoleFactory(
+            active=False,
+            is_anonymized=True,
+            email='anonymized_test2@deleted.local'
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_unauthenticated(self, api_client):
+        """Test unauthenticated user cannot cancel deletion."""
+        response = api_client.post('/api/users/users/cancel_deletion/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_me_returns_deletion_info(self, api_client):
+        """Test /me endpoint returns deletion_requested_at field."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/me/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'deletion_requested_at' in response.data
+        assert response.data['deletion_requested_at'] is not None
+
+    def test_me_returns_anonymized_info(self, api_client):
+        """Test /me endpoint returns is_anonymized field."""
+        user = RoleFactory()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/me/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'is_anonymized' in response.data
+        assert response.data['is_anonymized'] is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDModelMethods:
+    """Tests for RGPD model methods on User."""
+
+    def test_request_deletion_method(self):
+        """Test Role.request_deletion() method."""
+        user = RoleFactory(active=True)
+
+        user.request_deletion()
+
+        assert user.active is False
+        assert user.deletion_requested_at is not None
+
+    def test_anonymize_method(self):
+        """Test Role.anonymize() method."""
+        from django.utils import timezone
+        user = RoleFactory(
+            email='marie.dupont@test.fr',
+            nom_role='Dupont',
+            prenom_role='Marie',
+            active=False
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        user.anonymize()
+
+        assert user.is_anonymized is True
+        assert user.anonymized_at is not None
+        assert 'anonymized_' in user.email
+        assert '@deleted.local' in user.email
+        assert user.nom_role == 'Utilisateur'
+        assert user.prenom_role == 'Anonymise'
+
+    def test_can_be_anonymized_no_request(self):
+        """Test can_be_anonymized returns False when no deletion requested."""
+        user = RoleFactory(active=True)
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_already_anonymized(self):
+        """Test can_be_anonymized returns False when already anonymized."""
+        from django.utils import timezone
+        user = RoleFactory(
+            is_anonymized=True,
+            email='anonymized_123@deleted.local'
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_within_grace_period(self):
+        """Test can_be_anonymized returns False within 30-day grace period."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_after_grace_period(self):
+        """Test can_be_anonymized returns True after 30-day grace period."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now() - timedelta(days=31)
+        user.save()
+
+        assert user.can_be_anonymized() is True
