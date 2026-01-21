@@ -9,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
 from apps.users.models import Role, Site, BibOrganismes
 from apps.plans.models import PlanGestion
@@ -46,6 +46,39 @@ class CustomTokenObtainPairView(APIView):
             {'detail': 'Donnees invalides', 'errors': errors},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    Vue personnalisee pour le refresh de token JWT.
+    Verifie que l'utilisateur est toujours actif avant de generer un nouveau token.
+
+    POST /api/auth/refresh/
+    Body: {"refresh": "refresh_token"}
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Appeler d'abord la methode parent pour valider le token
+        response = super().post(request, *args, **kwargs)
+
+        # Si le refresh a reussi, verifier que l'utilisateur est actif
+        if response.status_code == 200:
+            try:
+                # Decoder le nouveau token d'acces pour obtenir l'user_id
+                access_token = AccessToken(response.data['access'])
+                user_id = access_token.get('user_id')
+
+                # Verifier que l'utilisateur existe et est actif
+                user = Role.objects.filter(id_role=user_id).first()
+                if user is None:
+                    raise InvalidToken({'detail': 'Utilisateur introuvable.'})
+                if not user.active:
+                    raise InvalidToken({'detail': 'Ce compte a ete desactive. Veuillez contacter un administrateur.'})
+
+            except Role.DoesNotExist:
+                raise InvalidToken({'detail': 'Utilisateur introuvable.'})
+
+        return response
 
 
 @api_view(['POST'])

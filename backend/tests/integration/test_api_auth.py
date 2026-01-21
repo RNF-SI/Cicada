@@ -268,6 +268,32 @@ class TestTokenRefresh:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_refresh_token_blocked_for_disabled_user(self, api_client, db):
+        """Test token refresh is blocked for users disabled after login."""
+        # Create active user and login
+        user = RoleFactory(active=True)
+        user.set_password('Password123!')
+        user.save()
+
+        login_response = api_client.post('/api/auth/login/', {
+            'username': user.email,
+            'password': 'Password123!'
+        })
+        assert login_response.status_code == status.HTTP_200_OK
+        refresh_token = login_response.data['refresh']
+
+        # Deactivate the user
+        user.active = False
+        user.save()
+
+        # Try to refresh token - should be blocked
+        response = api_client.post('/api/auth/refresh/', {
+            'refresh': refresh_token
+        })
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert 'desactive' in response.data.get('detail', '').lower()
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
