@@ -18,7 +18,7 @@ class OrganismeBasicSerializer(serializers.Serializer):
 class PlanGestionBasicSerializer(serializers.Serializer):
     """Serializer basique pour les plans de gestion (inline)."""
     id = serializers.IntegerField(source='id_pg')
-    nom = serializers.CharField(source='nom')
+    nom = serializers.CharField()
 
 
 class NotificationSerializer(serializers.ModelSerializer):

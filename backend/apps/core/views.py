@@ -3,7 +3,7 @@ Views pour les modeles du core.
 """
 from datetime import timedelta
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
@@ -12,10 +12,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from apps.users.permissions import IsSuperAdmin
-from apps.notifications.models import ValidationRequest
+from apps.users.permissions import IsSuperAdmin, IsAdminOrganisme
+from apps.notifications.models import ValidationRequest, Notification
+from apps.users.models import CorRoleSite, CorOgSite
 
-from .models import Module, ErrorLog
+from .models import Module, ErrorLog, ActivityLog
 from .serializers import (
     ModuleSerializer,
     ModuleListSerializer,
@@ -23,6 +24,9 @@ from .serializers import (
     ErrorLogListSerializer,
     ErrorLogDetailSerializer,
     ErrorLogStatsSerializer,
+    ActivityLogListSerializer,
+    ActivityLogDetailSerializer,
+    ActivityLogStatsSerializer,
 )
 
 
@@ -333,3 +337,382 @@ class ErrorLogViewSet(viewsets.ReadOnlyModelViewSet):
         """
         count = ErrorLog.objects.filter(acknowledged=False).count()
         return Response({'count': count})
+
+
+# =============================================================================
+# ActivityLog ViewSet
+# =============================================================================
+
+class ActivityLogFilter(filters.FilterSet):
+    """Filtres pour les logs d'activite."""
+
+    entity_type = filters.ChoiceFilter(choices=ActivityLog.ENTITY_TYPES)
+    action = filters.ChoiceFilter(choices=ActivityLog.ACTION_TYPES)
+    visibility = filters.ChoiceFilter(choices=ActivityLog.VISIBILITY_LEVELS)
+    site_id = filters.NumberFilter(field_name='related_site__id_site')
+    plan_id = filters.NumberFilter(field_name='related_plan__id_pg')
+    organisme_id = filters.NumberFilter(field_name='related_organisme__id_organisme')
+    user_id = filters.NumberFilter(field_name='related_user__id_role')
+    actor_id = filters.NumberFilter(field_name='actor__id_role')
+    date_from = filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    date_to = filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    search = filters.CharFilter(method='filter_search')
+
+    class Meta:
+        model = ActivityLog
+        fields = ['entity_type', 'action', 'visibility']
+
+    def filter_search(self, queryset, name, value):
+        """Recherche dans la description et le nom de l'entite."""
+        return queryset.filter(
+            Q(description__icontains=value) |
+            Q(entity_name__icontains=value) |
+            Q(actor_name__icontains=value)
+        )
+
+
+class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet pour la consultation de l'historique d'activite.
+
+    Filtrage automatique selon le role de l'utilisateur:
+    - super_admin: Tout (y compris system et rgpd)
+    - admin_og: Activite de son organisme (public + admin)
+    - referent: Activite de ses sites/plans (public uniquement)
+    - utilisateur: Ses notifications uniquement
+
+    Endpoints:
+    - GET /api/activity/ - Liste paginee avec filtres (filtree par role)
+    - GET /api/activity/{id}/ - Detail d'une activite
+    - GET /api/activity/my_sites/ - Activite sur mes sites
+    - GET /api/activity/my_plans/ - Activite sur mes plans
+    - GET /api/activity/stats/ - Statistiques
+    - GET /api/activity/tabs_counts/ - Compteurs pour les onglets
+    """
+
+    queryset = ActivityLog.objects.all()
+    permission_classes = [IsAuthenticated]
+    filterset_class = ActivityLogFilter
+    ordering_fields = ['created_at', 'entity_type', 'action']
+    ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ActivityLogDetailSerializer
+        return ActivityLogListSerializer
+
+    def get_queryset(self):
+        """
+        Filtre les activites selon le role de l'utilisateur.
+        """
+        user = self.request.user
+        queryset = ActivityLog.objects.select_related(
+            'actor', 'related_site', 'related_plan', 'related_organisme', 'related_user'
+        )
+
+        # Super admin voit tout
+        if user.is_super_admin():
+            return queryset
+
+        # Admin organisme voit public + admin de son organisme
+        if user.is_admin_organisme() and user.id_organisme:
+            return queryset.filter(
+                Q(visibility='public') |
+                Q(visibility='admin', related_organisme=user.id_organisme)
+            )
+
+        # Utilisateur standard : seulement les activites publiques liees a ses sites/plans
+        user_site_ids = CorRoleSite.objects.filter(
+            id_role=user
+        ).values_list('id_site_id', flat=True)
+
+        user_plan_ids = user.plans_referents.values_list('id_pg', flat=True)
+
+        return queryset.filter(
+            visibility='public'
+        ).filter(
+            Q(related_site_id__in=user_site_ids) |
+            Q(related_plan_id__in=user_plan_ids) |
+            Q(related_user=user) |
+            Q(actor=user)
+        )
+
+    @action(detail=False, methods=['get'])
+    def my_sites(self, request):
+        """
+        GET /api/activity/my_sites/
+        Activite sur les sites de l'utilisateur.
+        """
+        user = request.user
+
+        # Recuperer les sites de l'utilisateur
+        if user.is_super_admin():
+            queryset = self.get_queryset().filter(entity_type='site')
+        elif user.is_admin_organisme() and user.id_organisme:
+            # Sites de l'organisme
+            org_site_ids = CorOgSite.objects.filter(
+                uuid_og=user.id_organisme
+            ).values_list('id_site_id', flat=True)
+            queryset = self.get_queryset().filter(
+                entity_type='site',
+                related_site_id__in=org_site_ids
+            )
+        else:
+            user_site_ids = CorRoleSite.objects.filter(
+                id_role=user
+            ).values_list('id_site_id', flat=True)
+            queryset = self.get_queryset().filter(
+                entity_type='site',
+                related_site_id__in=user_site_ids
+            )
+
+        # Appliquer les filtres
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def my_plans(self, request):
+        """
+        GET /api/activity/my_plans/
+        Activite sur les plans de l'utilisateur.
+        """
+        user = request.user
+
+        if user.is_super_admin():
+            queryset = self.get_queryset().filter(entity_type='plan')
+        elif user.is_admin_organisme() and user.id_organisme:
+            # Plans lies aux sites de l'organisme
+            org_site_ids = CorOgSite.objects.filter(
+                uuid_og=user.id_organisme
+            ).values_list('id_site_id', flat=True)
+            from apps.plans.models import CorSitePg
+            org_plan_ids = CorSitePg.objects.filter(
+                site_id__in=org_site_ids
+            ).values_list('plan_de_gestion_id', flat=True)
+            queryset = self.get_queryset().filter(
+                entity_type='plan',
+                related_plan_id__in=org_plan_ids
+            )
+        else:
+            user_plan_ids = user.plans_referents.values_list('id_pg', flat=True)
+            queryset = self.get_queryset().filter(
+                entity_type='plan',
+                related_plan_id__in=user_plan_ids
+            )
+
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def rgpd(self, request):
+        """
+        GET /api/activity/rgpd/
+        Activite RGPD (super_admin only).
+        """
+        if not request.user.is_super_admin():
+            return Response(
+                {'detail': 'Acces reserve aux super administrateurs.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = ActivityLog.objects.filter(
+            action__in=['rgpd_request', 'rgpd_cancelled', 'rgpd_anonymized']
+        ).select_related('actor', 'related_user')
+
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def system(self, request):
+        """
+        GET /api/activity/system/
+        Activite systeme (super_admin only).
+        """
+        if not request.user.is_super_admin():
+            return Response(
+                {'detail': 'Acces reserve aux super administrateurs.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = ActivityLog.objects.filter(
+            visibility='system'
+        ).select_related('actor', 'related_site', 'related_plan', 'related_organisme')
+
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def validations(self, request):
+        """
+        GET /api/activity/validations/
+        Activite liee aux validations (admin_og+).
+        """
+        user = request.user
+        if not user.is_admin_organisme():
+            return Response(
+                {'detail': 'Acces reserve aux administrateurs.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = self.get_queryset().filter(
+            entity_type='validation'
+        )
+
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """
+        GET /api/activity/stats/
+        Statistiques sur l'activite visible par l'utilisateur.
+        """
+        queryset = self.get_queryset()
+
+        # Par type d'entite
+        by_type = dict(
+            queryset
+            .values('entity_type')
+            .annotate(count=Count('id'))
+            .values_list('entity_type', 'count')
+        )
+
+        # Par action
+        by_action = dict(
+            queryset
+            .values('action')
+            .annotate(count=Count('id'))
+            .values_list('action', 'count')
+        )
+
+        # Par jour (30 derniers jours)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        by_day = list(
+            queryset
+            .filter(created_at__gte=thirty_days_ago)
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+            .values('date', 'count')
+        )
+
+        for item in by_day:
+            item['date'] = item['date'].isoformat()
+
+        return Response({
+            'total': queryset.count(),
+            'by_type': by_type,
+            'by_action': by_action,
+            'by_day': by_day,
+        })
+
+    @action(detail=False, methods=['get'])
+    def tabs_counts(self, request):
+        """
+        GET /api/activity/tabs_counts/
+        Compteurs pour les onglets de la page activite.
+        """
+        user = request.user
+        base_queryset = self.get_queryset()
+
+        # Compteur general
+        all_count = base_queryset.count()
+
+        # Sites
+        if user.is_super_admin():
+            sites_count = base_queryset.filter(entity_type='site').count()
+            plans_count = base_queryset.filter(entity_type='plan').count()
+        elif user.is_admin_organisme() and user.id_organisme:
+            org_site_ids = CorOgSite.objects.filter(
+                uuid_og=user.id_organisme
+            ).values_list('id_site_id', flat=True)
+            sites_count = base_queryset.filter(
+                entity_type='site',
+                related_site_id__in=org_site_ids
+            ).count()
+            from apps.plans.models import CorSitePg
+            org_plan_ids = CorSitePg.objects.filter(
+                site_id__in=org_site_ids
+            ).values_list('plan_de_gestion_id', flat=True)
+            plans_count = base_queryset.filter(
+                entity_type='plan',
+                related_plan_id__in=org_plan_ids
+            ).count()
+        else:
+            user_site_ids = CorRoleSite.objects.filter(
+                id_role=user
+            ).values_list('id_site_id', flat=True)
+            sites_count = base_queryset.filter(
+                entity_type='site',
+                related_site_id__in=user_site_ids
+            ).count()
+            user_plan_ids = user.plans_referents.values_list('id_pg', flat=True)
+            plans_count = base_queryset.filter(
+                entity_type='plan',
+                related_plan_id__in=user_plan_ids
+            ).count()
+
+        # Notifications (non lues)
+        notifications_count = Notification.objects.filter(
+            recipient=user,
+            read=False
+        ).count()
+
+        result = {
+            'all': all_count,
+            'my_sites': sites_count,
+            'my_plans': plans_count,
+            'notifications': notifications_count,
+        }
+
+        # Validations (admin_og+)
+        if user.is_admin_organisme():
+            validations_count = base_queryset.filter(entity_type='validation').count()
+            result['validations'] = validations_count
+
+        # System et RGPD (super_admin)
+        if user.is_super_admin():
+            system_count = ActivityLog.objects.filter(visibility='system').count()
+            rgpd_count = ActivityLog.objects.filter(
+                action__in=['rgpd_request', 'rgpd_cancelled', 'rgpd_anonymized']
+            ).count()
+            result['system'] = system_count
+            result['rgpd'] = rgpd_count
+
+        return Response(result)

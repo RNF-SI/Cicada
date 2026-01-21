@@ -7,13 +7,14 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 1. [Système de Logs](#1-système-de-logs)
 2. [Notifications](#2-notifications)
 3. [Validations](#3-validations)
-4. [Impersonnation](#4-impersonnation)
-5. [Modules](#5-modules)
-6. [Gestion des Sites](#6-gestion-des-sites)
-7. [Pages d'administration](#7-pages-dadministration)
-8. [RGPD - Suppression de compte](#8-rgpd---suppression-de-compte)
-9. [Tests](#9-tests)
-10. [Améliorations prévues](#10-améliorations-prévues)
+4. [Historique d'activité](#4-historique-dactivité)
+5. [Impersonnation](#5-impersonnation)
+6. [Modules](#6-modules)
+7. [Gestion des Sites](#7-gestion-des-sites)
+8. [Pages d'administration](#8-pages-dadministration)
+9. [RGPD - Suppression de compte](#9-rgpd---suppression-de-compte)
+10. [Tests](#10-tests)
+11. [Améliorations prévues](#11-améliorations-prévues)
 
 ---
 
@@ -665,7 +666,66 @@ Quand un validateur clique sur "Approuver", le système verrouille la demande en
 
 ---
 
-## 4. Impersonnation
+## 4. Historique d'activité
+
+### Comment ça marche
+
+L'historique d'activité fournit une timeline unifiée de tout ce qui se passe sur les sites, plans et utilisateurs. Contrairement aux notifications (qui sont destinées à informer un utilisateur spécifique), l'historique d'activité trace l'ensemble des actions sur les entités.
+
+### Différence avec les notifications
+
+| Aspect | Notification | ActivityLog |
+|--------|--------------|-------------|
+| **Focus** | Utilisateur (destinataire) | Entité (site, plan, user) |
+| **Durée** | Temporaire (expire, supprimable) | Permanent (audit) |
+| **Contenu** | Message simple | Détails des changements |
+| **Accès** | Pull par utilisateur | Query par entité/rôle |
+
+### Ce qui est tracé
+
+Le système enregistre automatiquement les activités suivantes :
+
+| Type d'entité | Actions tracées |
+|---------------|-----------------|
+| **Site** | Création, modification, suppression |
+| **Plan de gestion** | Création, modification, suppression, changement de statut |
+| **Utilisateur** | Activation, désactivation, changements de rôle |
+| **Membre site** | Ajout, retrait, nomination référent |
+| **Référent plan** | Ajout, retrait |
+| **Validation** | Approbation, rejet |
+| **RGPD** | Demande de suppression, annulation, anonymisation |
+
+### Signaux automatiques
+
+Les activités sont enregistrées automatiquement via les signaux Django (`apps/core/activity_signals.py`). Quand un site est modifié, un plan créé, ou un utilisateur ajouté à un site, le système enregistre l'événement sans intervention du code métier.
+
+### Visibilité par rôle
+
+L'API filtre les activités visibles selon le rôle de l'utilisateur :
+
+| Rôle | Ce qu'il voit |
+|------|---------------|
+| **Super admin** | Tout, y compris RGPD et alertes système |
+| **Admin organisme** | Activités de son organisme et des sites gérés |
+| **Référent** | Activités de ses sites et plans |
+| **Utilisateur** | Activités des sites où il est membre |
+
+### Frontend : Page `/activite`
+
+La page d'activité présente une timeline avec des onglets dynamiques selon le rôle :
+- **Tous** : Tout, Mes sites, Mes plans, Notifications
+- **Admin** : + Validations
+- **Super admin** : + RGPD, Système
+
+Les activités sont groupées chronologiquement (Aujourd'hui, Hier, Cette semaine, Ce mois, Plus ancien) avec des icônes et couleurs selon le type d'action.
+
+### Documentation technique
+
+Voir le guide complet : [docs/API_ACTIVITY_GUIDE.md](API_ACTIVITY_GUIDE.md)
+
+---
+
+## 5. Impersonnation
 
 ### Comment ça marche
 
@@ -793,7 +853,7 @@ export const environment = {
 
 ---
 
-## 5. Modules
+## 6. Modules
 
 ### Comment ça marche
 
@@ -836,7 +896,7 @@ Ce sont des fonctionnalités supplémentaires qui ne sont pas accessibles par d�
 
 ---
 
-## 6. Gestion des Sites
+## 7. Gestion des Sites
 
 ### Comment ça marche
 
@@ -1248,7 +1308,7 @@ Utilisateur avec accès → "Devenir référent"
 
 ---
 
-## 7. Pages d'administration
+## 8. Pages d'administration
 
 ### Comment ça marche
 
@@ -1533,7 +1593,7 @@ Le menu latéral de l'administration s'adapte automatiquement au rôle de l'util
 
 ---
 
-## 8. RGPD - Suppression de compte
+## 9. RGPD - Suppression de compte
 
 ### Comment ça marche
 
@@ -1755,7 +1815,7 @@ Les clés de traduction sont dans `frontend/src/assets/i18n/fr.json` sous `profi
 
 ---
 
-## 9. Tests
+## 10. Tests
 
 ### Comment ça marche
 
@@ -1824,7 +1884,7 @@ C'est le pourcentage de lignes de code exécutées par les tests.
 
 ---
 
-## 10. Améliorations prévues
+## 11. Améliorations prévues
 
 ### Interface d'administration des logs
 

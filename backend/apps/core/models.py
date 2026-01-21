@@ -295,3 +295,177 @@ class Module(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ActivityLog(models.Model):
+    """
+    Modele pour l'historique d'activite.
+    Trace toutes les actions sur les entites du systeme (sites, plans, users, organismes).
+    Separe des Notifications : l'activite est permanente (audit), les notifications sont temporaires.
+    Table t_activity_logs dans le schema ccd_commons.
+    """
+
+    ENTITY_TYPES = [
+        ('site', _('Site')),
+        ('plan', _('Plan de gestion')),
+        ('user', _('Utilisateur')),
+        ('organisme', _('Organisme')),
+        ('validation', _('Demande de validation')),
+    ]
+
+    ACTION_TYPES = [
+        ('create', _('Création')),
+        ('update', _('Modification')),
+        ('delete', _('Suppression')),
+        ('add_member', _('Ajout membre')),
+        ('remove_member', _('Retrait membre')),
+        ('add_referent', _('Ajout référent')),
+        ('remove_referent', _('Retrait référent')),
+        ('status_change', _('Changement statut')),
+        ('activate', _('Activation')),
+        ('deactivate', _('Désactivation')),
+        ('rgpd_request', _('Demande RGPD')),
+        ('rgpd_cancelled', _('Annulation RGPD')),
+        ('rgpd_anonymized', _('Anonymisation RGPD')),
+        ('access_granted', _('Accès accordé')),
+        ('access_revoked', _('Accès révoqué')),
+        ('validation_approved', _('Validation approuvée')),
+        ('validation_rejected', _('Validation rejetée')),
+        ('file_upload', _('Téléversement fichier')),
+        ('file_delete', _('Suppression fichier')),
+    ]
+
+    VISIBILITY_LEVELS = [
+        ('public', _('Public')),  # Visible a tous les concernes
+        ('admin', _('Admin')),    # Visible aux admins de l'organisme
+        ('system', _('Système')), # Visible super_admin uniquement
+    ]
+
+    id = models.AutoField(primary_key=True)
+
+    # Type d'entite concernee
+    entity_type = models.CharField(
+        _("Type d'entité"),
+        max_length=20,
+        choices=ENTITY_TYPES,
+        db_index=True
+    )
+    entity_id = models.IntegerField(
+        _("ID de l'entité"),
+        db_index=True
+    )
+    entity_name = models.CharField(
+        _("Nom de l'entité"),
+        max_length=255,
+        help_text=_("Denormalise pour affichage meme apres suppression de l'entite")
+    )
+
+    # Acteur (qui a effectue l'action)
+    actor = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activities_performed',
+        verbose_name=_('Acteur')
+    )
+    actor_name = models.CharField(
+        _("Nom de l'acteur"),
+        max_length=255,
+        help_text=_("Denormalise pour affichage meme apres suppression de l'acteur")
+    )
+
+    # Action effectuee
+    action = models.CharField(
+        _('Action'),
+        max_length=30,
+        choices=ACTION_TYPES,
+        db_index=True
+    )
+    description = models.TextField(
+        _('Description'),
+        help_text=_("Description lisible de l'action")
+    )
+
+    # Relations optionnelles pour faciliter le filtrage
+    related_site = models.ForeignKey(
+        'users.Site',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_logs',
+        verbose_name=_('Site lié')
+    )
+    related_plan = models.ForeignKey(
+        'plans.PlanGestion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_logs',
+        verbose_name=_('Plan lié')
+    )
+    related_organisme = models.ForeignKey(
+        'users.BibOrganismes',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_logs',
+        verbose_name=_('Organisme lié')
+    )
+    related_user = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_logs_about_me',
+        verbose_name=_('Utilisateur lié')
+    )
+
+    # Details des changements
+    changes = models.JSONField(
+        _('Changements'),
+        default=dict,
+        blank=True,
+        help_text=_("Détail des modifications: {field: {old: value, new: value}}")
+    )
+    metadata = models.JSONField(
+        _('Métadonnées'),
+        default=dict,
+        blank=True,
+        help_text=_("Contexte additionnel")
+    )
+
+    # Visibilite
+    visibility = models.CharField(
+        _('Visibilité'),
+        max_length=10,
+        choices=VISIBILITY_LEVELS,
+        default='public',
+        db_index=True
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(
+        _('Date'),
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        db_table = '"ccd_commons"."t_activity_logs"'
+        db_table_comment = "Table de l'historique d'activité"
+        ordering = ['-created_at']
+        verbose_name = _("Log d'activité")
+        verbose_name_plural = _("Logs d'activité")
+        indexes = [
+            models.Index(fields=['entity_type', 'entity_id', '-created_at']),
+            models.Index(fields=['actor', '-created_at']),
+            models.Index(fields=['related_site', '-created_at']),
+            models.Index(fields=['related_plan', '-created_at']),
+            models.Index(fields=['related_organisme', '-created_at']),
+            models.Index(fields=['action', '-created_at']),
+            models.Index(fields=['visibility', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"[{self.action}] {self.entity_type}:{self.entity_name} par {self.actor_name}"

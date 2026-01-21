@@ -20,6 +20,7 @@ from tests.factories.plans import (
 from tests.factories.core import (
     TypeNomenclatureFactory,
     NomenclatureFactory,
+    ActivityLogFactory,
 )
 from tests.factories.notifications import (
     NotificationFactory,
@@ -48,6 +49,7 @@ __all__ = [
     # Core factories
     'TypeNomenclatureFactory',
     'NomenclatureFactory',
+    'ActivityLogFactory',
     # Notifications factories
     'NotificationFactory',
     'ValidationRequestFactory',

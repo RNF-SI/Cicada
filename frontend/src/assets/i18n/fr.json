@@ -18,7 +18,8 @@
       "archive": "Archiver",
       "validate": "Valider",
       "associate": "Associer",
-      "searching": "Recherche en cours"
+      "searching": "Recherche en cours",
+      "reset": "Reinitialiser"
     },
     "status": {
       "active": "Actif",
@@ -66,7 +67,9 @@
     },
     "date": {
       "never": "Jamais"
-    }
+    },
+    "all": "Tout",
+    "reset": "Reinitialiser"
   },
   "auth": {
     "login": {
@@ -458,6 +461,9 @@
       },
       "empty": {
         "noValidations": "Aucune demande de validation"
+      },
+      "warnings": {
+        "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas deja dans l'application pour eviter les doublons."
       }
     },
     "modules": {
@@ -1302,6 +1308,62 @@
     "empty": "Aucune notification",
     "markAllRead": "Tout marquer comme lu",
     "newNotifications": "{{count}} nouvelle(s) notification(s)"
+  },
+  "activity": {
+    "title": "Activite",
+    "subtitle": "Historique des actions et notifications",
+    "backToHome": "Retour a l'accueil",
+    "tabs": {
+      "all": "Tout",
+      "mySites": "Mes sites",
+      "myPlans": "Mes plans",
+      "notifications": "Notifications",
+      "validations": "Validations",
+      "system": "Systeme",
+      "rgpd": "RGPD"
+    },
+    "filters": {
+      "entityType": "Type d'entite",
+      "action": "Action"
+    },
+    "entityTypes": {
+      "site": "Site",
+      "plan": "Plan de gestion",
+      "user": "Utilisateur",
+      "organisme": "Organisme",
+      "validation": "Demande de validation"
+    },
+    "actions": {
+      "create": "Creation",
+      "update": "Modification",
+      "delete": "Suppression",
+      "add_member": "Ajout membre",
+      "remove_member": "Retrait membre",
+      "add_referent": "Ajout referent",
+      "remove_referent": "Retrait referent",
+      "status_change": "Changement de statut",
+      "activate": "Activation",
+      "deactivate": "Desactivation",
+      "rgpd_request": "Demande RGPD",
+      "rgpd_cancelled": "Annulation RGPD",
+      "rgpd_anonymized": "Anonymisation RGPD",
+      "access_granted": "Acces accorde",
+      "access_revoked": "Acces retire",
+      "validation_approved": "Validation approuvee",
+      "validation_rejected": "Validation rejetee",
+      "file_upload": "Fichier ajoute",
+      "file_delete": "Fichier supprime"
+    },
+    "timeline": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "older": "Plus ancien"
+    },
+    "noActivity": "Aucune activite a afficher",
+    "noNotifications": "Aucune notification",
+    "markAllRead": "Tout marquer comme lu"
   },
   "scores": {
     "veryBad": "Tres mauvais",

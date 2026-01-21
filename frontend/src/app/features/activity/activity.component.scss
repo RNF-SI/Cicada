@@ -1,0 +1,522 @@
+@import 'variables';
+
+.activity-page {
+  padding: $spacing-lg;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Back link
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $primary-color;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  transition: opacity 0.2s;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+// Header
+.page-header {
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    color: $primary-color;
+    margin-bottom: $spacing-xs;
+  }
+
+  .subtitle {
+    color: $gray-dark;
+    font-size: 1rem;
+  }
+}
+
+// Tabs
+.activity-tabs {
+  margin-bottom: $spacing-lg;
+
+  .tab-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    i {
+      font-size: 1rem;
+    }
+
+    .tab-badge {
+      background-color: $primary-color;
+      color: white;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: $border-radius-pill;
+      min-width: 20px;
+      text-align: center;
+    }
+  }
+
+  ::ng-deep {
+    .mat-mdc-tab-labels {
+      gap: $spacing-sm;
+    }
+
+    .mat-mdc-tab {
+      min-width: auto;
+      padding: 0 $spacing-md;
+    }
+
+    .mdc-tab--active .tab-badge {
+      background-color: $secondary-yellow;
+      color: $black;
+    }
+  }
+}
+
+// Filters
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+
+  .search-field {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+  }
+
+  .filter-field {
+    min-width: 180px;
+  }
+
+  ::ng-deep {
+    .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+  }
+}
+
+// Content area
+.content-area {
+  min-height: 400px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+// Empty state
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  text-align: center;
+  color: $gray-dark;
+
+  i {
+    font-size: 3rem;
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 1rem;
+  }
+}
+
+// Timeline
+.timeline-content {
+  .timeline-group {
+    margin-bottom: $spacing-xl;
+
+    .group-header {
+      color: $primary-color;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+      padding-bottom: $spacing-xs;
+      border-bottom: 2px solid $gray-lighter;
+    }
+  }
+
+  .timeline-items {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    &:last-child {
+      .marker-line {
+        display: none;
+      }
+    }
+  }
+
+  .timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+
+    .marker-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: $border-radius-round;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: $gray-lighter;
+      color: $gray-dark;
+
+      i {
+        font-size: 0.875rem;
+      }
+    }
+
+    .marker-line {
+      flex: 1;
+      width: 2px;
+      background-color: $gray-lighter;
+      margin-top: $spacing-xs;
+    }
+  }
+
+  // Action-specific marker colors
+  .action-create .marker-icon {
+    background-color: rgba($success-color, 0.15);
+    color: $success-color;
+  }
+
+  .action-update .marker-icon {
+    background-color: rgba($info-color, 0.15);
+    color: $info-color;
+  }
+
+  .action-delete .marker-icon {
+    background-color: rgba($error-color, 0.15);
+    color: $error-color;
+  }
+
+  .action-add .marker-icon {
+    background-color: rgba($success-color, 0.15);
+    color: $success-color;
+  }
+
+  .action-remove .marker-icon {
+    background-color: rgba($error-color, 0.15);
+    color: $error-color;
+  }
+
+  .action-status .marker-icon {
+    background-color: rgba($secondary-yellow, 0.3);
+    color: darken($secondary-yellow, 30%);
+  }
+
+  .action-activate .marker-icon {
+    background-color: rgba($success-color, 0.15);
+    color: $success-color;
+  }
+
+  .action-deactivate .marker-icon {
+    background-color: rgba($error-color, 0.15);
+    color: $error-color;
+  }
+
+  .action-warning .marker-icon {
+    background-color: rgba($warning-color, 0.15);
+    color: $warning-color;
+  }
+
+  .action-info .marker-icon {
+    background-color: rgba($info-color, 0.15);
+    color: $info-color;
+  }
+
+  // Validation-specific action colors
+  .action-validation-pending .marker-icon {
+    background-color: rgba($secondary-yellow, 0.3);
+    color: darken($secondary-yellow, 25%);
+  }
+
+  .action-validation-approved .marker-icon {
+    background-color: rgba($success-color, 0.15);
+    color: $success-color;
+  }
+
+  .action-validation-rejected .marker-icon {
+    background-color: rgba($error-color, 0.15);
+    color: $error-color;
+  }
+
+  .timeline-card {
+    flex: 1;
+    background-color: $white;
+    border: 1px solid $gray-lighter;
+    border-radius: $border-radius-md;
+    padding: $spacing-md;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: $shadow-light;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-xs;
+
+    .entity-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .entity-type {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xxs;
+        font-size: 0.75rem;
+        color: $gray-dark;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+
+        i {
+          font-size: 0.75rem;
+        }
+      }
+
+      .entity-name {
+        font-weight: 600;
+        color: $black;
+      }
+    }
+
+    .time {
+      font-size: 0.75rem;
+      color: $gray;
+      white-space: nowrap;
+    }
+  }
+
+  .description {
+    color: $gray-dark;
+    font-size: 0.875rem;
+    margin-bottom: $spacing-sm;
+    line-height: 1.5;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .actor {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xxs;
+      font-size: 0.75rem;
+      color: $gray;
+
+      i {
+        font-size: 0.75rem;
+      }
+    }
+
+    .view-link {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xxs;
+      font-size: 0.75rem;
+      color: $primary-color;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      i {
+        font-size: 0.625rem;
+      }
+    }
+  }
+}
+
+// Notifications
+.notifications-content {
+  .notifications-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: $spacing-md;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+    }
+  }
+
+  .notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background-color: $white;
+    border: 1px solid $gray-lighter;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      box-shadow: $shadow-light;
+    }
+
+    &.unread {
+      background-color: rgba($primary-color, 0.03);
+      border-color: rgba($primary-color, 0.2);
+    }
+
+    .notification-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: $border-radius-round;
+      background-color: $gray-lighter;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      i {
+        font-size: 1rem;
+        color: $gray-dark;
+      }
+    }
+
+    .notification-content {
+      flex: 1;
+      min-width: 0;
+
+      h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: $black;
+        margin-bottom: $spacing-xxs;
+      }
+
+      p {
+        font-size: 0.875rem;
+        color: $gray-dark;
+        line-height: 1.5;
+        margin-bottom: $spacing-xs;
+      }
+
+      .notification-time {
+        font-size: 0.75rem;
+        color: $gray;
+      }
+    }
+
+    .unread-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: $border-radius-round;
+      background-color: $primary-color;
+      flex-shrink: 0;
+    }
+  }
+}
+
+// Pagination
+mat-paginator {
+  margin-top: $spacing-lg;
+  background-color: transparent;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .activity-page {
+    padding: $spacing-md;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+
+    .search-field,
+    .filter-field {
+      max-width: none;
+      width: 100%;
+    }
+  }
+
+  .activity-tabs {
+    ::ng-deep {
+      .mat-mdc-tab-labels {
+        flex-wrap: wrap;
+      }
+    }
+  }
+
+  .timeline-content {
+    .timeline-item {
+      gap: $spacing-sm;
+    }
+
+    .timeline-marker {
+      width: 24px;
+
+      .marker-icon {
+        width: 24px;
+        height: 24px;
+
+        i {
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    .card-header {
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      .time {
+        align-self: flex-start;
+      }
+    }
+
+    .card-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-xs;
+    }
+  }
+}

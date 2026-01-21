@@ -29,7 +29,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.users.models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
-from apps.core.models import TypeNomenclature, Nomenclature, Module, ErrorLog
+from apps.core.models import TypeNomenclature, Nomenclature, Module, ErrorLog, ActivityLog
 from apps.plans.models import PlanGestion, CorSitePg
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
@@ -132,6 +132,7 @@ class Command(BaseCommand):
         validation_requests = self._create_validation_requests(users, sites, plans, organismes)
         notifications = self._create_notifications(users, sites, plans, validation_requests, organismes)
         error_logs = self._create_error_logs(users)
+        activity_logs = self._create_activity_logs(users, sites, plans, organismes, validation_requests)
 
         self._print_summary()
 
@@ -155,7 +156,9 @@ class Command(BaseCommand):
         from django.db.models.signals import post_save, post_delete, pre_save, pre_delete, m2m_changed
         from apps.notifications import signals as notif_signals
         from apps.users import signals as user_signals
+        from apps.core import activity_signals
         from apps.users.models import CorRoleSite
+        from apps.plans.models import PlanGestion
 
         # Deconnecter les signaux de apps.notifications.signals
         post_save.disconnect(notif_signals.notify_user_site_association, sender=CorRoleSite)
@@ -176,7 +179,31 @@ class Command(BaseCommand):
         post_delete.disconnect(user_signals.check_site_orphaned_after_user_removed, sender=CorRoleSite)
         post_save.disconnect(user_signals.check_sites_after_user_deactivation, sender=Role)
 
-        self.stdout.write('  Signaux de notifications desactives')
+        # Deconnecter les signaux de apps.core.activity_signals (historique d'activite)
+        pre_save.disconnect(activity_signals.track_site_previous_values, sender=Site)
+        post_save.disconnect(activity_signals.log_site_activity_on_save, sender=Site)
+        pre_delete.disconnect(activity_signals.log_site_activity_on_delete, sender=Site)
+        pre_save.disconnect(activity_signals.track_plan_previous_values, sender=PlanGestion)
+        post_save.disconnect(activity_signals.log_plan_activity_on_save, sender=PlanGestion)
+        pre_delete.disconnect(activity_signals.log_plan_activity_on_delete, sender=PlanGestion)
+        pre_save.disconnect(activity_signals.track_cor_role_site_previous_values, sender=CorRoleSite)
+        post_save.disconnect(activity_signals.log_member_activity_on_save, sender=CorRoleSite)
+        post_delete.disconnect(activity_signals.log_member_activity_on_delete, sender=CorRoleSite)
+        m2m_changed.disconnect(activity_signals.log_plan_referent_activity, sender=PlanGestion.referents.through)
+        pre_save.disconnect(activity_signals.track_user_previous_values, sender=Role)
+        post_save.disconnect(activity_signals.log_user_activity_on_save, sender=Role)
+        pre_save.disconnect(activity_signals.track_organisme_previous_values, sender=BibOrganismes)
+        post_save.disconnect(activity_signals.log_organisme_activity_on_save, sender=BibOrganismes)
+        pre_delete.disconnect(activity_signals.log_organisme_activity_on_delete, sender=BibOrganismes)
+        pre_save.disconnect(activity_signals.track_validation_previous_status, sender=ValidationRequest)
+        post_save.disconnect(activity_signals.log_validation_activity_on_save, sender=ValidationRequest)
+
+        self.stdout.write('  Signaux de notifications et activite desactives')
+
+        # Supprimer les logs d'activite
+        from apps.core.models import ActivityLog
+        activity_logs_deleted = ActivityLog.objects.all().delete()[0]
+        self.stdout.write(f'  Logs d\'activite supprimes: {activity_logs_deleted}')
 
         # Supprimer les logs d'erreur
         error_logs_deleted = ErrorLog.objects.all().delete()[0]
@@ -245,7 +272,26 @@ class Command(BaseCommand):
         post_delete.connect(user_signals.check_site_orphaned_after_user_removed, sender=CorRoleSite)
         post_save.connect(user_signals.check_sites_after_user_deactivation, sender=Role)
 
-        self.stdout.write('  Signaux de notifications reactives')
+        # Reconnecter les signaux de apps.core.activity_signals
+        pre_save.connect(activity_signals.track_site_previous_values, sender=Site)
+        post_save.connect(activity_signals.log_site_activity_on_save, sender=Site)
+        pre_delete.connect(activity_signals.log_site_activity_on_delete, sender=Site)
+        pre_save.connect(activity_signals.track_plan_previous_values, sender=PlanGestion)
+        post_save.connect(activity_signals.log_plan_activity_on_save, sender=PlanGestion)
+        pre_delete.connect(activity_signals.log_plan_activity_on_delete, sender=PlanGestion)
+        pre_save.connect(activity_signals.track_cor_role_site_previous_values, sender=CorRoleSite)
+        post_save.connect(activity_signals.log_member_activity_on_save, sender=CorRoleSite)
+        post_delete.connect(activity_signals.log_member_activity_on_delete, sender=CorRoleSite)
+        m2m_changed.connect(activity_signals.log_plan_referent_activity, sender=PlanGestion.referents.through)
+        pre_save.connect(activity_signals.track_user_previous_values, sender=Role)
+        post_save.connect(activity_signals.log_user_activity_on_save, sender=Role)
+        pre_save.connect(activity_signals.track_organisme_previous_values, sender=BibOrganismes)
+        post_save.connect(activity_signals.log_organisme_activity_on_save, sender=BibOrganismes)
+        pre_delete.connect(activity_signals.log_organisme_activity_on_delete, sender=BibOrganismes)
+        pre_save.connect(activity_signals.track_validation_previous_status, sender=ValidationRequest)
+        post_save.connect(activity_signals.log_validation_activity_on_save, sender=ValidationRequest)
+
+        self.stdout.write('  Signaux de notifications et activite reactives')
         self.stdout.write(self.style.SUCCESS('\nDonnees de test supprimees avec succes!'))
 
     def _show_dry_run_summary(self):
@@ -2156,6 +2202,440 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
         self.stdout.write(self.style.SUCCESS(f'  {len(error_logs)} logs d\'erreur'))
         return error_logs
 
+    def _create_activity_logs(self, users, sites, plans, organismes, validation_requests):
+        """
+        Cree des logs d'activite de test.
+
+        Cree des activites variees avec differentes visibilites:
+        - public: activites normales (create, update, add_member, etc.)
+        - admin: activites de validation
+        - system: activites RGPD et alertes systeme
+        """
+        self.stdout.write('\n--- Creation des logs d\'activite ---')
+
+        now = timezone.now()
+        # users est une liste avec l'ordre defini dans _create_users:
+        # 0: super_admin, 1: admin_rnf, 2: admin_cen, 3: ref_camargue,
+        # 4: ref_vercors, 5: user_rnf, 6: user_cen, 7+: inactifs
+        super_admin = users[0]
+        admin_rnf = users[1]
+        admin_cen = users[2]
+        ref_camargue = users[3]
+        ref_vercors = users[4]
+        user_rnf = users[5]
+        user_cen = users[6]
+
+        # Sites: 0=Camargue, 1=AiguillesRouges, 2=GrandVoyeux, 3=Vercors, 4=Brouage, 5=Scandola, 6=Remoray
+        site_camargue = sites[0] if len(sites) > 0 else None
+        site_vercors = sites[3] if len(sites) > 3 else None
+        site_aiguilles = sites[1] if len(sites) > 1 else None
+
+        # Plans: on prend les premiers disponibles
+        plan1 = plans[0] if len(plans) > 0 else None
+        plan2 = plans[1] if len(plans) > 1 else None
+
+        # Organismes: 0=RNF, 1=CEN_AURA, 2=DREAL, 3=Ecrins, 4=OFB
+        org_rnf = organismes[0] if len(organismes) > 0 else None
+        org_cen = organismes[1] if len(organismes) > 1 else None
+
+        activity_logs_data = [
+            # ============================================
+            # ACTIVITES RGPD (visibility='system') - pour super_admin uniquement
+            # ============================================
+            {
+                'entity_type': 'user',
+                'entity_id': user_rnf.id_role,
+                'entity_name': user_rnf.get_full_name() or user_rnf.email,
+                'actor': user_rnf,
+                'actor_name': user_rnf.get_full_name() or user_rnf.email,
+                'action': 'rgpd_request',
+                'description': f"{user_rnf.email} a demandé la suppression de son compte",
+                'related_user': user_rnf,
+                'related_organisme': org_rnf,
+                'metadata': {'reason': 'Ne souhaite plus utiliser le service', 'grace_period_days': 30},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=25),
+            },
+            {
+                'entity_type': 'user',
+                'entity_id': user_cen.id_role,
+                'entity_name': user_cen.get_full_name() or user_cen.email,
+                'actor': user_cen,
+                'actor_name': user_cen.get_full_name() or user_cen.email,
+                'action': 'rgpd_request',
+                'description': f"{user_cen.email} a demandé la suppression de son compte",
+                'related_user': user_cen,
+                'related_organisme': org_cen,
+                'metadata': {'reason': 'Changement de poste'},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=15),
+            },
+            {
+                'entity_type': 'user',
+                'entity_id': user_cen.id_role,
+                'entity_name': user_cen.get_full_name() or user_cen.email,
+                'actor': user_cen,
+                'actor_name': user_cen.get_full_name() or user_cen.email,
+                'action': 'rgpd_cancelled',
+                'description': f"{user_cen.email} a annulé sa demande de suppression de compte",
+                'related_user': user_cen,
+                'related_organisme': org_cen,
+                'metadata': {'cancelled_after_days': 5},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=10),
+            },
+            # Utilisateur anonymise (simule un cas passe)
+            {
+                'entity_type': 'user',
+                'entity_id': 99999,  # ID fictif d'un utilisateur anonymise
+                'entity_name': 'Utilisateur anonymisé #99999',
+                'actor': None,
+                'actor_name': 'Système',
+                'action': 'rgpd_anonymized',
+                'description': "Compte utilisateur anonymisé suite à l'expiration du délai de grâce RGPD",
+                'related_user': None,
+                'related_organisme': org_rnf,
+                'metadata': {'original_email_hash': 'sha256:abc123...', 'anonymized_fields': ['email', 'nom', 'prenom']},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=60),
+            },
+
+            # ============================================
+            # ALERTES SYSTEME (visibility='system') - pour super_admin uniquement
+            # ============================================
+            {
+                'entity_type': 'site',
+                'entity_id': site_aiguilles.id_site if site_aiguilles else 1,
+                'entity_name': site_aiguilles.nom_site if site_aiguilles else 'Site orphelin',
+                'actor': None,
+                'actor_name': 'Système',
+                'action': 'status_change',
+                'description': "Alerte: Site sans utilisateurs actifs détecté (site orphelin)",
+                'related_site': site_aiguilles,
+                'related_organisme': org_rnf,
+                'metadata': {'alert_type': 'site_orphaned', 'last_user_removed_at': str(now - timedelta(days=5))},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=5),
+            },
+            {
+                'entity_type': 'organisme',
+                'entity_id': org_cen.id_organisme if org_cen else 1,
+                'entity_name': org_cen.nom_organisme if org_cen else 'Organisme test',
+                'actor': None,
+                'actor_name': 'Système',
+                'action': 'status_change',
+                'description': "Alerte: Organisme sans administrateur détecté",
+                'related_organisme': org_cen,
+                'metadata': {'alert_type': 'organisme_no_admin', 'previous_admin_deactivated_at': str(now - timedelta(days=7))},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=7),
+            },
+            {
+                'entity_type': 'user',
+                'entity_id': super_admin.id_role,
+                'entity_name': super_admin.get_full_name() or super_admin.email,
+                'actor': None,
+                'actor_name': 'Système',
+                'action': 'status_change',
+                'description': "Maintenance système: Nettoyage des tokens expirés effectué",
+                'related_user': None,
+                'metadata': {'maintenance_type': 'token_cleanup', 'tokens_removed': 42},
+                'visibility': 'system',
+                'created_at': now - timedelta(days=1),
+            },
+
+            # ============================================
+            # ACTIVITES DE VALIDATION (visibility='admin')
+            # Note: les indices correspondent aux ValidationRequests creees:
+            # - Index 1: site_access, approved
+            # - Index 3: plan_access, rejected
+            # - Index 5: referent_validation, approved
+            # ============================================
+            {
+                'entity_type': 'validation',
+                'entity_id': validation_requests[1].id if len(validation_requests) > 1 else 1,
+                'entity_name': f"Demande d'accès site - {validation_requests[1].requester.email if len(validation_requests) > 1 and validation_requests[1].requester else 'user@test.fr'}",
+                'actor': admin_cen,
+                'actor_name': admin_cen.get_full_name() or admin_cen.email,
+                'action': 'validation_approved',
+                'description': "Demande d'accès au site approuvée par l'administrateur",
+                'related_site': validation_requests[1].target_site if len(validation_requests) > 1 else site_vercors,
+                'related_organisme': org_cen,
+                'metadata': {'request_type': 'site_access', 'response_time_hours': 12},
+                'visibility': 'admin',
+                'created_at': now - timedelta(days=14),
+            },
+            {
+                'entity_type': 'validation',
+                'entity_id': validation_requests[5].id if len(validation_requests) > 5 else 2,
+                'entity_name': f"Demande de nomination référent - {validation_requests[5].requester.email if len(validation_requests) > 5 and validation_requests[5].requester else 'referent@test.fr'}",
+                'actor': super_admin,
+                'actor_name': super_admin.get_full_name() or super_admin.email,
+                'action': 'validation_approved',
+                'description': f"Nomination comme référent approuvée",
+                'related_site': validation_requests[5].target_site if len(validation_requests) > 5 else site_camargue,
+                'related_organisme': org_rnf,
+                'metadata': {'request_type': 'referent_validation', 'as_referent': True},
+                'visibility': 'admin',
+                'created_at': now - timedelta(days=10),
+            },
+            {
+                'entity_type': 'validation',
+                'entity_id': validation_requests[3].id if len(validation_requests) > 3 else 3,
+                'entity_name': f"Demande d'accès plan - {validation_requests[3].requester.email if len(validation_requests) > 3 and validation_requests[3].requester else 'user@test.fr'}",
+                'actor': admin_rnf,
+                'actor_name': admin_rnf.get_full_name() or admin_rnf.email,
+                'action': 'validation_rejected',
+                'description': "Demande d'accès au plan rejetée - réservé aux membres de l'organisme",
+                'related_plan': validation_requests[3].target_plan if len(validation_requests) > 3 else plans[0],
+                'related_organisme': org_rnf,
+                'metadata': {'request_type': 'plan_access', 'rejection_reason': 'Réservé aux membres RNF'},
+                'visibility': 'admin',
+                'created_at': now - timedelta(days=8),
+            },
+
+            # ============================================
+            # ACTIVITES PUBLIQUES (visibility='public')
+            # ============================================
+            # Creation de site
+            {
+                'entity_type': 'site',
+                'entity_id': site_camargue.id_site if site_camargue else 1,
+                'entity_name': site_camargue.nom_site if site_camargue else 'Camargue',
+                'actor': super_admin,
+                'actor_name': super_admin.get_full_name() or super_admin.email,
+                'action': 'create',
+                'description': f"Site '{site_camargue.nom_site if site_camargue else 'Camargue'}' créé",
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'visibility': 'public',
+                'created_at': now - timedelta(days=90),
+            },
+            # Modification de site
+            {
+                'entity_type': 'site',
+                'entity_id': site_camargue.id_site if site_camargue else 1,
+                'entity_name': site_camargue.nom_site if site_camargue else 'Camargue',
+                'actor': ref_camargue,
+                'actor_name': ref_camargue.get_full_name() or ref_camargue.email,
+                'action': 'update',
+                'description': f"Site '{site_camargue.nom_site if site_camargue else 'Camargue'}' mis à jour",
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'changes': {'surf_off': {'old': '10000', 'new': '12500'}, 'description': {'old': None, 'new': 'Description mise à jour'}},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=30),
+            },
+            # Ajout membre
+            {
+                'entity_type': 'site',
+                'entity_id': site_camargue.id_site if site_camargue else 1,
+                'entity_name': site_camargue.nom_site if site_camargue else 'Camargue',
+                'actor': admin_rnf,
+                'actor_name': admin_rnf.get_full_name() or admin_rnf.email,
+                'action': 'add_member',
+                'description': f"{user_rnf.get_full_name() or user_rnf.email} ajouté au site Camargue",
+                'related_site': site_camargue,
+                'related_user': user_rnf,
+                'related_organisme': org_rnf,
+                'metadata': {'member_id': user_rnf.id_role, 'is_referent': False},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=20),
+            },
+            # Nomination referent
+            {
+                'entity_type': 'site',
+                'entity_id': site_camargue.id_site if site_camargue else 1,
+                'entity_name': site_camargue.nom_site if site_camargue else 'Camargue',
+                'actor': admin_rnf,
+                'actor_name': admin_rnf.get_full_name() or admin_rnf.email,
+                'action': 'add_referent',
+                'description': f"{ref_camargue.get_full_name() or ref_camargue.email} nommé référent du site Camargue",
+                'related_site': site_camargue,
+                'related_user': ref_camargue,
+                'related_organisme': org_rnf,
+                'metadata': {'referent_id': ref_camargue.id_role},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=85),
+            },
+            # Creation plan
+            {
+                'entity_type': 'plan',
+                'entity_id': plan1.id_pg if plan1 else 1,
+                'entity_name': plan1.nom if plan1 else 'Plan de Gestion Test',
+                'actor': ref_camargue,
+                'actor_name': ref_camargue.get_full_name() or ref_camargue.email,
+                'action': 'create',
+                'description': f"Plan de gestion '{plan1.nom if plan1 else 'Test'}' créé",
+                'related_plan': plan1,
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'visibility': 'public',
+                'created_at': now - timedelta(days=60),
+            },
+            # Modification plan
+            {
+                'entity_type': 'plan',
+                'entity_id': plan1.id_pg if plan1 else 1,
+                'entity_name': plan1.nom if plan1 else 'Plan de Gestion Test',
+                'actor': ref_camargue,
+                'actor_name': ref_camargue.get_full_name() or ref_camargue.email,
+                'action': 'update',
+                'description': f"Plan de gestion '{plan1.nom if plan1 else 'Test'}' mis à jour",
+                'related_plan': plan1,
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'changes': {'statut': {'old': 'draft', 'new': 'valide'}},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=45),
+            },
+            # Ajout referent plan
+            {
+                'entity_type': 'plan',
+                'entity_id': plan2.id_pg if plan2 else 2,
+                'entity_name': plan2.nom if plan2 else 'Plan de Gestion 2',
+                'actor': admin_cen,
+                'actor_name': admin_cen.get_full_name() or admin_cen.email,
+                'action': 'add_referent',
+                'description': f"{ref_vercors.get_full_name() or ref_vercors.email} nommé référent du plan",
+                'related_plan': plan2,
+                'related_site': site_vercors,
+                'related_user': ref_vercors,
+                'related_organisme': org_cen,
+                'metadata': {'referent_id': ref_vercors.id_role},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=40),
+            },
+            # Activation utilisateur
+            {
+                'entity_type': 'user',
+                'entity_id': user_rnf.id_role,
+                'entity_name': user_rnf.get_full_name() or user_rnf.email,
+                'actor': admin_rnf,
+                'actor_name': admin_rnf.get_full_name() or admin_rnf.email,
+                'action': 'activate',
+                'description': f"Compte de {user_rnf.email} activé",
+                'related_user': user_rnf,
+                'related_organisme': org_rnf,
+                'visibility': 'public',
+                'created_at': now - timedelta(days=50),
+            },
+            # Desactivation utilisateur
+            {
+                'entity_type': 'user',
+                'entity_id': users[7].id_role if len(users) > 7 else 8,
+                'entity_name': users[7].get_full_name() if len(users) > 7 else 'Ancien utilisateur',
+                'actor': super_admin,
+                'actor_name': super_admin.get_full_name() or super_admin.email,
+                'action': 'deactivate',
+                'description': f"Compte désactivé suite au départ de l'organisme",
+                'related_user': users[7] if len(users) > 7 else None,
+                'related_organisme': org_rnf,
+                'metadata': {'reason': 'Départ de l\'organisme'},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=35),
+            },
+            # Upload fichier
+            {
+                'entity_type': 'plan',
+                'entity_id': plan1.id_pg if plan1 else 1,
+                'entity_name': plan1.nom if plan1 else 'Plan de Gestion Test',
+                'actor': ref_camargue,
+                'actor_name': ref_camargue.get_full_name() or ref_camargue.email,
+                'action': 'file_upload',
+                'description': f"Document 'Rapport_annuel_2024.pdf' téléversé",
+                'related_plan': plan1,
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'metadata': {'filename': 'Rapport_annuel_2024.pdf', 'size_bytes': 2456789, 'type': 'document'},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=5),
+            },
+            # Modification organisme
+            {
+                'entity_type': 'organisme',
+                'entity_id': org_rnf.id_organisme if org_rnf else 1,
+                'entity_name': org_rnf.nom_organisme if org_rnf else 'RNF',
+                'actor': super_admin,
+                'actor_name': super_admin.get_full_name() or super_admin.email,
+                'action': 'update',
+                'description': f"Organisme '{org_rnf.nom_organisme if org_rnf else 'RNF'}' mis à jour",
+                'related_organisme': org_rnf,
+                'changes': {'adresse': {'old': None, 'new': '57 rue Cuvier, 75005 Paris'}},
+                'visibility': 'public',
+                'created_at': now - timedelta(days=15),
+            },
+            # Activites recentes (aujourd'hui et hier)
+            {
+                'entity_type': 'site',
+                'entity_id': site_vercors.id_site if site_vercors else 4,
+                'entity_name': site_vercors.nom_site if site_vercors else 'Vercors',
+                'actor': ref_vercors,
+                'actor_name': ref_vercors.get_full_name() or ref_vercors.email,
+                'action': 'update',
+                'description': f"Site Vercors: Mise à jour des coordonnées",
+                'related_site': site_vercors,
+                'related_organisme': org_cen,
+                'changes': {'coord_x': {'old': '5.5', 'new': '5.6'}},
+                'visibility': 'public',
+                'created_at': now - timedelta(hours=2),
+            },
+            {
+                'entity_type': 'plan',
+                'entity_id': plan2.id_pg if plan2 else 2,
+                'entity_name': plan2.nom if plan2 else 'Plan Vercors',
+                'actor': ref_vercors,
+                'actor_name': ref_vercors.get_full_name() or ref_vercors.email,
+                'action': 'update',
+                'description': f"Plan Vercors: Ajout des objectifs 2026",
+                'related_plan': plan2,
+                'related_site': site_vercors,
+                'related_organisme': org_cen,
+                'visibility': 'public',
+                'created_at': now - timedelta(hours=5),
+            },
+            {
+                'entity_type': 'site',
+                'entity_id': site_camargue.id_site if site_camargue else 1,
+                'entity_name': site_camargue.nom_site if site_camargue else 'Camargue',
+                'actor': user_rnf,
+                'actor_name': user_rnf.get_full_name() or user_rnf.email,
+                'action': 'file_upload',
+                'description': f"Photo 'Flamants_roses.jpg' ajoutée au site Camargue",
+                'related_site': site_camargue,
+                'related_organisme': org_rnf,
+                'metadata': {'filename': 'Flamants_roses.jpg', 'size_bytes': 1234567, 'type': 'photo'},
+                'visibility': 'public',
+                'created_at': now - timedelta(hours=26),  # Hier
+            },
+        ]
+
+        activity_logs = []
+        for log_data in activity_logs_data:
+            # Extraire created_at pour le definir manuellement
+            created_at = log_data.pop('created_at')
+
+            log = ActivityLog.objects.create(**log_data)
+            # Mettre a jour created_at manuellement (auto_now_add empeche de le definir a la creation)
+            ActivityLog.objects.filter(pk=log.pk).update(created_at=created_at)
+            log.refresh_from_db()
+
+            activity_logs.append(log)
+
+            if self.verbosity >= 2:
+                vis_label = {'public': '[PUBLIC]', 'admin': '[ADMIN]', 'system': '[SYSTEM]'}
+                self.stdout.write(f"  [CREE] {vis_label.get(log.visibility, '')} {log.action} - {log.entity_name[:30]}")
+
+        # Compter par visibilite
+        public_count = sum(1 for l in activity_logs if l.visibility == 'public')
+        admin_count = sum(1 for l in activity_logs if l.visibility == 'admin')
+        system_count = sum(1 for l in activity_logs if l.visibility == 'system')
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  {len(activity_logs)} logs d\'activite ({public_count} public, {admin_count} admin, {system_count} system)'
+        ))
+        return activity_logs
+
     def _print_summary(self):
         """Affiche un resume des donnees creees."""
         self.stdout.write('\n' + '=' * 70)
@@ -2183,6 +2663,10 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
         self.stdout.write(f'  Notifications:        {Notification.objects.count()} ({notifications_unread} non lues)')
         error_logs_unack = ErrorLog.objects.filter(acknowledged=False).count()
         self.stdout.write(f'  Logs d\'erreur:        {ErrorLog.objects.count()} ({error_logs_unack} non acquittes)')
+        activity_logs_system = ActivityLog.objects.filter(visibility='system').count()
+        activity_logs_admin = ActivityLog.objects.filter(visibility='admin').count()
+        activity_logs_public = ActivityLog.objects.filter(visibility='public').count()
+        self.stdout.write(f'  Logs d\'activite:      {ActivityLog.objects.count()} ({activity_logs_public} publics, {activity_logs_admin} admin, {activity_logs_system} systeme)')
 
         self.stdout.write('\n' + '-' * 70)
         self.stdout.write('UTILISATEURS DE TEST ACTIFS')

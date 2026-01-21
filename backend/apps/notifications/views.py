@@ -249,6 +249,38 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         serializer = ValidationRequestListSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def types(self, request):
+        """
+        Retourne la liste des types de demandes et des statuts disponibles.
+
+        Permet au frontend de rester synchronisé avec le backend sans hardcoder les valeurs.
+
+        Response:
+            {
+                "request_types": [
+                    {"value": "user_registration", "label": "Inscription utilisateur"},
+                    ...
+                ],
+                "statuses": [
+                    {"value": "pending", "label": "En attente"},
+                    ...
+                ]
+            }
+        """
+        request_types = [
+            {'value': value, 'label': str(label)}
+            for value, label in ValidationRequest.REQUEST_TYPES
+        ]
+        statuses = [
+            {'value': value, 'label': str(label)}
+            for value, label in ValidationRequest.STATUS_CHOICES
+        ]
+        return Response({
+            'request_types': request_types,
+            'statuses': statuses
+        })
+
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """Approuve une demande de validation."""

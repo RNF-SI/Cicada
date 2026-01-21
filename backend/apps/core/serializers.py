@@ -3,7 +3,7 @@ Serializers pour les modeles du core.
 """
 from rest_framework import serializers
 
-from .models import Module, ErrorLog
+from .models import Module, ErrorLog, ActivityLog
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -193,4 +193,166 @@ class ErrorLogStatsSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     unacknowledged = serializers.IntegerField()
     by_level = serializers.DictField(child=serializers.IntegerField())
+    by_day = serializers.ListField(child=serializers.DictField())
+
+
+# =============================================================================
+# ActivityLog Serializers
+# =============================================================================
+
+class ActivityLogListSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la liste des logs d'activite.
+    Optimise pour la timeline avec informations essentielles.
+    """
+
+    entity_type_display = serializers.CharField(
+        source='get_entity_type_display',
+        read_only=True
+    )
+    action_display = serializers.CharField(
+        source='get_action_display',
+        read_only=True
+    )
+
+    # Relations simplifiees
+    related_site_name = serializers.SerializerMethodField()
+    related_plan_name = serializers.SerializerMethodField()
+    related_organisme_name = serializers.SerializerMethodField()
+    related_user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ActivityLog
+        fields = [
+            'id',
+            'entity_type',
+            'entity_type_display',
+            'entity_id',
+            'entity_name',
+            'actor_name',
+            'action',
+            'action_display',
+            'description',
+            'related_site',
+            'related_site_name',
+            'related_plan',
+            'related_plan_name',
+            'related_organisme',
+            'related_organisme_name',
+            'related_user',
+            'related_user_name',
+            'visibility',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_related_site_name(self, obj) -> str | None:
+        if obj.related_site:
+            return obj.related_site.nom_site
+        return None
+
+    def get_related_plan_name(self, obj) -> str | None:
+        if obj.related_plan:
+            return obj.related_plan.nom
+        return None
+
+    def get_related_organisme_name(self, obj) -> str | None:
+        if obj.related_organisme:
+            return obj.related_organisme.nom_organisme
+        return None
+
+    def get_related_user_name(self, obj) -> str | None:
+        if obj.related_user:
+            return obj.related_user.get_full_name() or obj.related_user.email
+        return None
+
+
+class ActivityLogDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer complet pour le detail d'une activite.
+    Inclut les changements et metadonnees.
+    """
+
+    entity_type_display = serializers.CharField(
+        source='get_entity_type_display',
+        read_only=True
+    )
+    action_display = serializers.CharField(
+        source='get_action_display',
+        read_only=True
+    )
+    visibility_display = serializers.CharField(
+        source='get_visibility_display',
+        read_only=True
+    )
+
+    # Relations simplifiees
+    related_site_name = serializers.SerializerMethodField()
+    related_plan_name = serializers.SerializerMethodField()
+    related_organisme_name = serializers.SerializerMethodField()
+    related_user_name = serializers.SerializerMethodField()
+    actor_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ActivityLog
+        fields = [
+            'id',
+            'entity_type',
+            'entity_type_display',
+            'entity_id',
+            'entity_name',
+            'actor',
+            'actor_name',
+            'actor_email',
+            'action',
+            'action_display',
+            'description',
+            'related_site',
+            'related_site_name',
+            'related_plan',
+            'related_plan_name',
+            'related_organisme',
+            'related_organisme_name',
+            'related_user',
+            'related_user_name',
+            'changes',
+            'metadata',
+            'visibility',
+            'visibility_display',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_related_site_name(self, obj) -> str | None:
+        if obj.related_site:
+            return obj.related_site.nom_site
+        return None
+
+    def get_related_plan_name(self, obj) -> str | None:
+        if obj.related_plan:
+            return obj.related_plan.nom
+        return None
+
+    def get_related_organisme_name(self, obj) -> str | None:
+        if obj.related_organisme:
+            return obj.related_organisme.nom_organisme
+        return None
+
+    def get_related_user_name(self, obj) -> str | None:
+        if obj.related_user:
+            return obj.related_user.get_full_name() or obj.related_user.email
+        return None
+
+    def get_actor_email(self, obj) -> str | None:
+        if obj.actor:
+            return obj.actor.email
+        return None
+
+
+class ActivityLogStatsSerializer(serializers.Serializer):
+    """Serializer pour les statistiques des logs d'activite."""
+
+    total = serializers.IntegerField()
+    by_type = serializers.DictField(child=serializers.IntegerField())
+    by_action = serializers.DictField(child=serializers.IntegerField())
     by_day = serializers.ListField(child=serializers.DictField())

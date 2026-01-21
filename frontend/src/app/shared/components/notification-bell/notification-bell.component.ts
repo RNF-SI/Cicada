@@ -9,12 +9,10 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatDialog } from '@angular/material/dialog';
 
 import { NotificationService } from '../../../core/services/notification.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationListItem } from '../../../core/models/notification.model';
-import { NotificationsDialogComponent } from './notifications-dialog.component';
 
 @Component({
   selector: 'app-notification-bell',
@@ -25,8 +23,7 @@ import { NotificationsDialogComponent } from './notifications-dialog.component';
     MatMenuModule,
     MatButtonModule,
     MatBadgeModule,
-    MatDividerModule,
-    NotificationsDialogComponent
+    MatDividerModule
   ],
   templateUrl: './notification-bell.component.html',
   styleUrl: './notification-bell.component.scss'
@@ -35,7 +32,6 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly dialog = inject(MatDialog);
 
   // Signals depuis le service
   readonly notifications = this.notificationService.notifications;
@@ -107,22 +103,10 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Ouvre le dialog avec toutes les notifications.
+   * Navigue vers la page d'activite unifiee.
    */
-  openNotificationsDialog(): void {
-    const dialogRef = this.dialog.open(NotificationsDialogComponent, {
-      width: '500px',
-      maxWidth: '95vw',
-      maxHeight: '80vh',
-      panelClass: 'notifications-dialog-container'
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // Si une URL d'action a été retournée, naviguer
-        this.router.navigateByUrl(result);
-      }
-    });
+  goToActivity(): void {
+    this.router.navigate(['/activite']);
   }
 
   /**
