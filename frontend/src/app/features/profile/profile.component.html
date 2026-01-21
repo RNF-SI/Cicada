@@ -96,6 +96,68 @@
             </mat-card-content>
           </mat-card>
         }
+
+        <!-- Carte RGPD - Gestion du compte -->
+        <mat-card class="profile-card rgpd-card">
+          <mat-card-header>
+            <mat-card-title>
+              <i class="fi fi-rr-shield-check card-title-icon"></i>
+              {{ 'profile.rgpd.title' | translate }}
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (hasPendingDeletion()) {
+              <!-- Demande de suppression en cours -->
+              <div class="deletion-pending">
+                <div class="deletion-warning">
+                  <i class="fi fi-rr-exclamation"></i>
+                  <div class="deletion-warning-content">
+                    <strong>{{ 'profile.rgpd.pendingDeletion.title' | translate }}</strong>
+                    <p>
+                      {{ 'profile.rgpd.pendingDeletion.message' | translate: {
+                        date: getDeletionRequestDate(),
+                        days: getDaysUntilDeletion()
+                      } }}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  mat-flat-button
+                  color="primary"
+                  (click)="cancelAccountDeletion()"
+                  [disabled]="isCancelling()"
+                >
+                  @if (isCancelling()) {
+                    <i class="fi fi-rr-spinner spinning"></i>
+                  } @else {
+                    <i class="fi fi-rr-undo"></i>
+                  }
+                  {{ 'profile.rgpd.pendingDeletion.cancelButton' | translate }}
+                </button>
+              </div>
+            } @else {
+              <!-- Option de suppression de compte -->
+              <div class="delete-account-section">
+                <p class="rgpd-description">
+                  {{ 'profile.rgpd.deleteDescription' | translate }}
+                </p>
+                <button
+                  mat-stroked-button
+                  class="delete-button"
+                  (click)="openDeleteAccountDialog()"
+                  [disabled]="isDeleting()"
+                >
+                  @if (isDeleting()) {
+                    <i class="fi fi-rr-spinner spinning"></i>
+                  } @else {
+                    <i class="fi fi-rr-trash"></i>
+                  }
+                  {{ 'profile.rgpd.deleteAccount' | translate }}
+                </button>
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
       </div>
     } @else {
       <div class="loading-container">

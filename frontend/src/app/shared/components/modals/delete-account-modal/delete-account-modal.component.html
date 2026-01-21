@@ -1,0 +1,67 @@
+<h2 mat-dialog-title>
+  <i class="fi fi-rr-trash"></i>
+  {{ 'profile.rgpd.dialog.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <div class="warning-box">
+    <i class="fi fi-rr-exclamation"></i>
+    <span>{{ 'profile.rgpd.dialog.warning' | translate }}</span>
+  </div>
+
+  <div class="consequences">
+    <p class="consequences-title">{{ 'profile.rgpd.dialog.consequences.title' | translate }}</p>
+    <ul>
+      <li>
+        <i class="fi fi-rr-ban"></i>
+        {{ 'profile.rgpd.dialog.consequences.item1' | translate }}
+      </li>
+      <li>
+        <i class="fi fi-rr-lock"></i>
+        {{ 'profile.rgpd.dialog.consequences.item2' | translate }}
+      </li>
+      <li>
+        <i class="fi fi-rr-user-slash"></i>
+        {{ 'profile.rgpd.dialog.consequences.item3' | translate }}
+      </li>
+      <li>
+        <i class="fi fi-rr-time-delete"></i>
+        {{ 'profile.rgpd.dialog.consequences.item4' | translate }}
+      </li>
+    </ul>
+  </div>
+
+  <div class="grace-period-info">
+    <i class="fi fi-rr-info"></i>
+    <span>{{ 'profile.rgpd.dialog.gracePeriod' | translate }}</span>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'profile.rgpd.dialog.confirmLabel' | translate }}</mat-label>
+    <input
+      matInput
+      type="email"
+      [(ngModel)]="confirmEmail"
+      [placeholder]="'profile.rgpd.dialog.confirmPlaceholder' | translate"
+      autocomplete="off"
+    />
+    <mat-hint>{{ data.userEmail }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">
+    {{ 'profile.rgpd.dialog.cancelButton' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="warn"
+    [disabled]="!isValid || isLoading()"
+    (click)="onConfirm()"
+  >
+    @if (isLoading()) {
+      <i class="fi fi-rr-spinner spinning"></i>
+    }
+    {{ 'profile.rgpd.dialog.confirmButton' | translate }}
+  </button>
+</mat-dialog-actions>

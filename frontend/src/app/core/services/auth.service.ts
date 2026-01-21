@@ -427,4 +427,48 @@ export class AuthService {
     localStorage.removeItem(ORIGINAL_TOKENS_KEY);
     localStorage.removeItem(ORIGINAL_USER_KEY);
   }
+
+  // ==================== RGPD - ACCOUNT DELETION ====================
+
+  /**
+   * Request account deletion (RGPD).
+   * The account will be deactivated immediately and anonymized after 30 days.
+   */
+  requestAccountDeletion(): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>('/api/users/users/request_deletion/', {}).pipe(
+      tap(() => {
+        // Update local user state to reflect deletion request
+        const user = this.currentUserSignal();
+        if (user) {
+          this.currentUserSignal.set({ ...user, deletion_requested_at: new Date().toISOString() });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Cancel a pending account deletion request (RGPD).
+   * Can only be done during the 30-day grace period.
+   */
+  cancelAccountDeletion(): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>('/api/users/users/cancel_deletion/', {}).pipe(
+      tap(() => {
+        // Update local user state to reflect cancellation
+        const user = this.currentUserSignal();
+        if (user) {
+          this.currentUserSignal.set({ ...user, deletion_requested_at: null, active: true });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Check if the current user has a pending deletion request
+   */
+  hasPendingDeletion(): boolean {
+    const user = this.currentUserSignal();
+    return user?.deletion_requested_at != null;
+  }
 }

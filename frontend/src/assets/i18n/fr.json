@@ -270,7 +270,12 @@
         "demotionError": "Erreur lors de la demande de retrogradation"
       },
       "pagination": "{{count}} utilisateur(s) sur {{total}}",
-      "notAssigned": "Non assigne"
+      "notAssigned": "Non assigne",
+      "status": {
+        "deletionPending": "Suppression en cours",
+        "deletionTooltip": "Compte sera supprime dans {{days}} jours",
+        "anonymized": "Anonymise"
+      }
     },
     "plans": {
       "title": "Gestion des plans de gestion",
@@ -1004,6 +1009,37 @@
       },
       "pending": "En attente",
       "loadError": "Erreur lors du chargement des demandes"
+    },
+    "rgpd": {
+      "title": "Gestion de mon compte",
+      "deleteAccount": "Supprimer mon compte",
+      "deleteDescription": "Conformement au RGPD, vous pouvez demander la suppression de votre compte. Cette action est irreversible apres 30 jours.",
+      "pendingDeletion": {
+        "title": "Suppression en cours",
+        "message": "Votre demande de suppression a ete enregistree le {{date}}. Votre compte sera definitivement supprime dans {{days}} jours.",
+        "cancelButton": "Annuler la suppression"
+      },
+      "dialog": {
+        "title": "Supprimer mon compte",
+        "warning": "Attention : cette action est irreversible !",
+        "consequences": {
+          "title": "En supprimant votre compte :",
+          "item1": "Votre compte sera immediatement desactive",
+          "item2": "Vous ne pourrez plus vous connecter",
+          "item3": "Vos donnees personnelles seront anonymisees apres 30 jours",
+          "item4": "Cette action ne peut pas etre annulee apres le delai de 30 jours"
+        },
+        "gracePeriod": "Vous disposez d'un delai de 30 jours pour annuler votre demande.",
+        "confirmLabel": "Pour confirmer, tapez votre adresse email :",
+        "confirmPlaceholder": "Votre adresse email",
+        "confirmButton": "Supprimer definitivement mon compte",
+        "cancelButton": "Annuler"
+      },
+      "messages": {
+        "deletionRequested": "Votre demande de suppression a ete enregistree. Votre compte sera desactive immediatement.",
+        "deletionCancelled": "Votre demande de suppression a ete annulee. Votre compte est de nouveau actif.",
+        "error": "Une erreur est survenue. Veuillez reessayer."
+      }
     }
   },
   "myRequests": {

@@ -11,3 +11,4 @@ export { DeactivateUserModalComponent, DeactivateUserModalData, DeactivateUserMo
 export { RemoveUserOrganismeModalComponent, RemoveUserOrganismeModalData, RemoveUserOrganismeModalResult } from './remove-user-organisme-modal/remove-user-organisme-modal.component';
 export { ManageSiteUsersModalComponent, ManageSiteUsersModalData } from './manage-site-users-modal/manage-site-users-modal.component';
 export { AdminRoleChangeModalComponent, AdminRoleChangeModalData, AdminRoleChangeModalResult, AdminRoleChangeType } from './admin-role-change-modal/admin-role-change-modal.component';
+export { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModalResult } from './delete-account-modal/delete-account-modal.component';

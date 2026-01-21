@@ -279,6 +279,98 @@ $white: #fff;
   }
 }
 
+// Section RGPD
+.rgpd-card {
+  grid-column: 1 / -1;
+
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.rgpd-description {
+  color: $gray;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.delete-account-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.delete-button {
+  color: $error-color !important;
+  border-color: $error-color !important;
+
+  &:hover:not(:disabled) {
+    background-color: rgba($error-color, 0.08) !important;
+  }
+
+  i {
+    margin-right: 8px;
+  }
+}
+
+.deletion-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.deletion-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background-color: rgba($warning-color, 0.1);
+  border: 1px solid $warning-color;
+  border-radius: 8px;
+
+  > i {
+    font-size: 20px;
+    color: $warning-color;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .deletion-warning-content {
+    strong {
+      display: block;
+      color: darken($warning-color, 15%);
+      margin-bottom: 4px;
+    }
+
+    p {
+      margin: 0;
+      color: $gray;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Responsive
 @media (max-width: 768px) {
   .profile-page {
@@ -296,5 +388,9 @@ $white: #fff;
   .card-header-content {
     flex-direction: column;
     text-align: center;
+  }
+
+  .rgpd-card {
+    grid-column: 1;
   }
 }

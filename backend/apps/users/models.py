@@ -112,6 +112,23 @@ class Role(AbstractUser):
         blank=True,
         verbose_name=_("Desactive le")
     )
+    # Champs RGPD pour suppression de compte
+    deletion_requested_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Demande de suppression le"),
+        help_text=_("Date de demande de suppression du compte (RGPD)")
+    )
+    is_anonymized = models.BooleanField(
+        default=False,
+        verbose_name=_("Compte anonymise"),
+        help_text=_("Le compte a ete anonymise suite a une demande RGPD")
+    )
+    anonymized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Anonymise le")
+    )
     champs_addi = models.TextField(_("Champs additionnels"), null=True, blank=True)
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
@@ -193,6 +210,63 @@ class Role(AbstractUser):
                     return True
         
         return False
+
+    def request_deletion(self):
+        """
+        Demande la suppression du compte (RGPD).
+        Enregistre la date de demande et desactive le compte.
+        """
+        from django.utils import timezone
+        self.deletion_requested_at = timezone.now()
+        self.active = False
+        self.save(update_fields=['deletion_requested_at', 'active'])
+
+    def anonymize(self):
+        """
+        Anonymise les donnees personnelles du compte (RGPD).
+        Appele apres le delai de grace de 30 jours.
+        """
+        from django.utils import timezone
+        import uuid
+
+        # Generer un identifiant unique pour le compte anonymise
+        anon_id = str(uuid.uuid4())[:8]
+
+        # Anonymiser les donnees personnelles
+        self.email = f"anonymized_{anon_id}@deleted.local"
+        self.nom_role = "Utilisateur"
+        self.prenom_role = "Anonymise"
+        self.desc_role = None
+        self.identifiant = None
+        self.remarques = None
+        self.champs_addi = None
+        self.pass_plus = None
+
+        # Supprimer le mot de passe
+        self.set_unusable_password()
+
+        # Marquer comme anonymise
+        self.is_anonymized = True
+        self.anonymized_at = timezone.now()
+        self.active = False
+
+        self.save()
+
+    def can_be_anonymized(self):
+        """
+        Verifie si le compte peut etre anonymise.
+        Le delai de grace est de 30 jours apres la demande.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+
+        if not self.deletion_requested_at:
+            return False
+        if self.is_anonymized:
+            return False
+
+        grace_period = timedelta(days=30)
+        return timezone.now() >= self.deletion_requested_at + grace_period
 
     class Meta:
         db_table = '"utilisateurs"."t_roles"'

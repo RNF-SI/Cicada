@@ -134,10 +134,13 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
             'sites_lies', 'plans_referent', 'permissions_info', 'date_insert', 'date_update',
-            'last_login'
+            'last_login',
+            # RGPD fields
+            'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
         read_only_fields = [
-            'id_role', 'date_insert', 'date_update', 'last_login'
+            'id_role', 'date_insert', 'date_update', 'last_login',
+            'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
     
     def get_permissions_info(self, obj):

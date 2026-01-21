@@ -317,5 +317,90 @@ class RoleViewSet(viewsets.ModelViewSet):
                         'active': org_users.filter(active=True).count()
                     })
             stats['by_organisme'] = organismes_stats
-        
+
         return Response(stats)
+
+    @action(detail=False, methods=['post'])
+    def request_deletion(self, request):
+        """
+        Demander la suppression de son propre compte (RGPD).
+        POST /api/users/request_deletion/
+
+        Le compte sera desactive immediatement et anonymise apres 30 jours.
+        """
+        user = request.user
+
+        # Verifier que le compte n'est pas deja en cours de suppression
+        if user.deletion_requested_at:
+            return Response(
+                {'error': 'Une demande de suppression est deja en cours pour ce compte.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': 'Ce compte a deja ete supprime.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Demander la suppression
+        user.request_deletion()
+
+        # Notifier les administrateurs
+        from apps.notifications.services import NotificationService
+        for admin in Role.objects.filter(
+            role_level='super_admin',
+            active=True
+        ).exclude(id_role=user.id_role):
+            NotificationService.create_notification(
+                recipient=admin,
+                notification_type='system_alert',
+                title="Demande de suppression de compte (RGPD)",
+                message=f"L'utilisateur {user} a demande la suppression de son compte. "
+                        f"Le compte sera anonymise dans 30 jours.",
+                priority='low',
+                related_user=user
+            )
+
+        return Response({
+            'status': 'requested',
+            'message': 'Votre demande de suppression a ete enregistree. '
+                      'Votre compte sera desactive immediatement et vos donnees '
+                      'seront anonymisees apres 30 jours.'
+        })
+
+    @action(detail=False, methods=['post'])
+    def cancel_deletion(self, request):
+        """
+        Annuler une demande de suppression de compte (RGPD).
+        POST /api/users/cancel_deletion/
+
+        Permet d'annuler la demande pendant le delai de grace de 30 jours.
+        """
+        user = request.user
+
+        # Verifier qu'une demande est en cours
+        if not user.deletion_requested_at:
+            return Response(
+                {'error': 'Aucune demande de suppression en cours.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas deja anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': 'Ce compte a deja ete supprime et ne peut pas etre restaure.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Annuler la demande
+        user.deletion_requested_at = None
+        user.active = True
+        user.save(update_fields=['deletion_requested_at', 'active'])
+
+        return Response({
+            'status': 'cancelled',
+            'message': 'Votre demande de suppression a ete annulee. '
+                      'Votre compte est de nouveau actif.'
+        })
