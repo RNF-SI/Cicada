@@ -53,8 +53,10 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      # Redis
+      # Redis & Celery
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
     volumes:
@@ -72,10 +74,11 @@ services:
     networks:
       - cicada_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
     command: >
       sh -c "python manage.py migrate &&
              python import_nomenclatures.py &&
@@ -83,7 +86,7 @@ services:
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
 
-  # Application Angular (Frontend) - Mode développement  
+  # Application Angular (Frontend) - Mode développement
   frontend:
     image: node:18-alpine
     container_name: cicada_frontend
@@ -100,6 +103,73 @@ services:
       - cicada_network
     environment:
       - NODE_ENV=development
+
+  # Celery Worker - Exécute les tâches asynchrones (emails, etc.)
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cicada_celery_worker
+    environment:
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
+      - POSTGRES_DB=${POSTGRES_DB:-cicada}
+      - POSTGRES_USER=${POSTGRES_USER:-cicada_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - cicada_network
+    command: celery -A config worker -l info
+    restart: unless-stopped
+
+  # Celery Beat - Planificateur de tâches périodiques
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cicada_celery_beat
+    environment:
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
+      - POSTGRES_DB=${POSTGRES_DB:-cicada}
+      - POSTGRES_USER=${POSTGRES_USER:-cicada_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    volumes:
+      - ./backend:/app
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - cicada_network
+    command: celery -A config beat -l info
+    restart: unless-stopped
 
 
 volumes:
