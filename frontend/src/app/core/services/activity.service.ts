@@ -110,6 +110,18 @@ export class ActivityService {
   }
 
   /**
+   * Recupere les activites concernant mes droits.
+   */
+  getMyRightsActivities(filters?: ActivityFilters): Observable<PaginatedActivityResponse> {
+    this.loadingSignal.set(true);
+    const params = this.buildParams(filters);
+
+    return this.http.get<PaginatedActivityResponse>(`${this.apiUrl}/my_rights/`, { params }).pipe(
+      tap(() => this.loadingSignal.set(false))
+    );
+  }
+
+  /**
    * Recupere les activites de validation (admin_og+).
    */
   getValidationsActivities(filters?: ActivityFilters): Observable<PaginatedActivityResponse> {
@@ -170,6 +182,8 @@ export class ActivityService {
         return this.getMySitesActivities(filters);
       case 'my_plans':
         return this.getMyPlansActivities(filters);
+      case 'my_rights':
+        return this.getMyRightsActivities(filters);
       case 'validations':
         return this.getValidationsActivities(filters);
       case 'system':

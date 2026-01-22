@@ -713,9 +713,17 @@ L'API filtre les activités visibles selon le rôle de l'utilisateur :
 ### Frontend : Page `/activite`
 
 La page d'activité présente une timeline avec des onglets dynamiques selon le rôle :
-- **Tous** : Tout, Mes sites, Mes plans, Notifications
+- **Tous** : Tout, Mes sites, Mes plans, Mes droits, Notifications
 - **Admin** : + Validations
 - **Super admin** : + RGPD, Système
+
+#### Onglet "Mes droits"
+
+L'onglet **Mes droits** permet à chaque utilisateur de consulter l'historique des changements concernant ses propres droits et permissions :
+- Ajout/retrait comme membre d'un site
+- Nomination/retrait comme référent (site ou plan)
+- Activation/désactivation du compte
+- Validation ou rejet de demandes d'accès
 
 Les activités sont groupées chronologiquement (Aujourd'hui, Hier, Cette semaine, Ce mois, Plus ancien) avec des icônes et couleurs selon le type d'action.
 

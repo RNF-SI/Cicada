@@ -83,6 +83,7 @@ export interface ActivityTabsCounts {
   all: number;
   my_sites: number;
   my_plans: number;
+  my_rights?: number;
   validations?: number;
   system?: number;
   rgpd?: number;
@@ -123,6 +124,7 @@ export type ActivityTab =
   | 'all'
   | 'my_sites'
   | 'my_plans'
+  | 'my_rights'
   | 'validations'
   | 'system'
   | 'rgpd';
@@ -191,6 +193,7 @@ export const DEFAULT_TAB_CONFIGS: ActivityTabConfig[] = [
   { id: 'all', labelKey: 'activity.tabs.all', icon: 'fi-rr-list' },
   { id: 'my_sites', labelKey: 'activity.tabs.mySites', icon: 'fi-rr-marker' },
   { id: 'my_plans', labelKey: 'activity.tabs.myPlans', icon: 'fi-rr-document' },
+  { id: 'my_rights', labelKey: 'activity.tabs.myRights', icon: 'fi-rr-shield-check' },
   { id: 'validations', labelKey: 'activity.tabs.validations', icon: 'fi-rr-check-circle', adminOnly: true },
   { id: 'system', labelKey: 'activity.tabs.system', icon: 'fi-rr-settings', superAdminOnly: true },
   { id: 'rgpd', labelKey: 'activity.tabs.rgpd', icon: 'fi-rr-shield', superAdminOnly: true },

@@ -887,9 +887,10 @@ class UsersConfig(AppConfig):
 **Page Activité (`/activite`):**
 - Timeline unifiée des activités, notifications et validations
 - Onglets dynamiques selon le rôle de l'utilisateur:
-  - **Tous les utilisateurs**: "Tout", "Mes sites", "Mes plans", "Notifications"
+  - **Tous les utilisateurs**: "Tout", "Mes sites", "Mes plans", "Mes droits", "Notifications"
   - **Admin organisme+**: + "Validations"
   - **Super admin**: + "RGPD", "Système"
+- **Onglet "Mes droits"**: Historique des changements de droits de l'utilisateur (ajout/retrait membre, référent, activation compte, validation demandes)
 - Filtres par type d'entité, action, recherche textuelle
 - Groupement chronologique ("Aujourd'hui", "Hier", "Cette semaine", etc.)
 - Icônes et couleurs par type d'action (création=vert, modification=bleu, suppression=rouge)

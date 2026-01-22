@@ -518,6 +518,36 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
+    def my_rights(self, request):
+        """
+        GET /api/activity/my_rights/
+        Activites ou l'utilisateur est le sujet (ses droits ont change).
+        """
+        user = request.user
+
+        rights_actions = [
+            'add_member', 'remove_member', 'add_referent', 'remove_referent',
+            'activate', 'deactivate', 'access_granted', 'access_revoked',
+            'validation_approved', 'validation_rejected',
+        ]
+
+        queryset = ActivityLog.objects.filter(
+            related_user=user,
+            action__in=rights_actions
+        ).select_related(
+            'actor', 'related_site', 'related_plan', 'related_organisme'
+        ).order_by('-created_at')
+
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(detail=False, methods=['get'])
     def rgpd(self, request):
         """
         GET /api/activity/rgpd/
@@ -694,10 +724,22 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             read=False
         ).count()
 
+        # Mes droits (activites concernant les droits de l'utilisateur)
+        rights_actions = [
+            'add_member', 'remove_member', 'add_referent', 'remove_referent',
+            'activate', 'deactivate', 'access_granted', 'access_revoked',
+            'validation_approved', 'validation_rejected',
+        ]
+        my_rights_count = ActivityLog.objects.filter(
+            related_user=user,
+            action__in=rights_actions
+        ).count()
+
         result = {
             'all': all_count,
             'my_sites': sites_count,
             'my_plans': plans_count,
+            'my_rights': my_rights_count,
             'notifications': notifications_count,
         }
 

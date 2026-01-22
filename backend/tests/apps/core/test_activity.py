@@ -421,6 +421,110 @@ class TestActivityAPIEndpoints:
         response = api_client.get('/api/activity/my_plans/')
         assert response.status_code == 200
 
+    def test_my_rights_endpoint(self, api_client):
+        """Test my_rights endpoint returns activities about user's rights changes."""
+        user = RoleFactory()
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=user)
+
+        # Create activity for user's rights change (e.g., added as member)
+        ActivityLogFactory(
+            entity_type='site',
+            action='add_member',
+            related_user=user,
+            related_site=site,
+            description=f'{user.get_full_name()} added as member'
+        )
+
+        # Create another rights activity
+        ActivityLogFactory(
+            entity_type='user',
+            action='activate',
+            related_user=user,
+            description='Account activated'
+        )
+
+        # Create activity NOT about user's rights (should not appear)
+        other_user = RoleFactory()
+        ActivityLogFactory(
+            entity_type='site',
+            action='add_member',
+            related_user=other_user,
+            description='Other user added'
+        )
+
+        response = api_client.get('/api/activity/my_rights/')
+        assert response.status_code == 200
+
+        # Check that results only contain activities about the user's rights
+        results = response.data.get('results', response.data)
+        assert len(results) >= 2
+
+        # All results should have related_user pointing to current user
+        for item in results:
+            assert item.get('related_user') == user.id_role
+
+    def test_my_rights_endpoint_filters_correct_actions(self, api_client):
+        """Test my_rights only returns activities with rights-related actions."""
+        user = RoleFactory()
+        api_client.force_authenticate(user=user)
+
+        # Create various activities for the user
+        rights_actions = [
+            'add_member', 'remove_member', 'add_referent', 'remove_referent',
+            'activate', 'deactivate', 'access_granted', 'access_revoked',
+            'validation_approved', 'validation_rejected'
+        ]
+
+        for action in rights_actions:
+            ActivityLogFactory(
+                entity_type='user',
+                action=action,
+                related_user=user
+            )
+
+        # Create non-rights activity for the user (should not appear)
+        ActivityLogFactory(
+            entity_type='user',
+            action='update',
+            related_user=user
+        )
+
+        response = api_client.get('/api/activity/my_rights/')
+        assert response.status_code == 200
+
+        results = response.data.get('results', response.data)
+        # Should have at least the 10 rights-related actions
+        assert len(results) >= 10
+
+        # None should be 'update' action
+        for item in results:
+            assert item['action'] in rights_actions
+
+    def test_tabs_counts_includes_my_rights(self, api_client):
+        """Test tabs_counts includes my_rights count."""
+        user = RoleFactory()
+        api_client.force_authenticate(user=user)
+
+        # Create some rights-related activities for the user
+        ActivityLogFactory(
+            entity_type='site',
+            action='add_member',
+            related_user=user
+        )
+        ActivityLogFactory(
+            entity_type='user',
+            action='activate',
+            related_user=user
+        )
+
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 200
+        assert 'my_rights' in response.data
+        assert response.data['my_rights'] >= 2
+
     def test_stats_endpoint(self, api_client):
         """Test stats endpoint returns activity statistics."""
         admin = SuperAdminFactory()

@@ -177,6 +177,28 @@ GET /api/activity/my_plans/
 
 Retourne uniquement les activités des plans où l'utilisateur est référent.
 
+### Activités de mes droits
+
+```
+GET /api/activity/my_rights/
+```
+
+Retourne les activités où l'utilisateur est le sujet d'un changement de droits ou permissions. Accessible à tous les utilisateurs authentifiés.
+
+**Actions trackées :**
+- `add_member` - Ajouté comme membre d'un site
+- `remove_member` - Retiré d'un site
+- `add_referent` - Nommé référent (site ou plan)
+- `remove_referent` - Retiré comme référent
+- `activate` - Compte activé
+- `deactivate` - Compte désactivé
+- `access_granted` - Accès accordé
+- `access_revoked` - Accès révoqué
+- `validation_approved` - Demande approuvée
+- `validation_rejected` - Demande rejetée
+
+**Exemple d'utilisation :** Permet à un utilisateur de voir l'historique des changements de ses propres droits (ex: quand il a été ajouté à un site, nommé référent, etc.).
+
 ### Activités de validations
 
 ```
@@ -254,12 +276,24 @@ Retourne les compteurs pour chaque onglet de l'interface.
   "all": 1250,
   "my_sites": 180,
   "my_plans": 95,
+  "my_rights": 12,
   "notifications": 42,
   "validations": 15,
   "rgpd": 3,
   "system": 8
 }
 ```
+
+| Clé | Description | Disponibilité |
+|-----|-------------|---------------|
+| `all` | Toutes les activités visibles | Tous |
+| `my_sites` | Activités de mes sites | Tous |
+| `my_plans` | Activités de mes plans | Tous |
+| `my_rights` | Changements de mes droits | Tous |
+| `notifications` | Notifications non lues | Tous |
+| `validations` | Activités de validation | admin_og+ |
+| `rgpd` | Activités RGPD | super_admin |
+| `system` | Activités système | super_admin |
 
 ---
 
@@ -315,7 +349,7 @@ Les signaux Django (`apps/core/activity_signals.py`) enregistrent automatiquemen
 
 ## Tests
 
-Les tests sont dans `tests/apps/core/test_activity.py` (45 tests).
+Les tests sont dans `tests/apps/core/test_activity.py` (48 tests).
 
 ```bash
 # Exécuter les tests Activity
@@ -334,5 +368,5 @@ docker-compose exec web pytest tests/apps/core/test_activity.py -k "TestActivity
 |--------|-------|-------------|
 | `TestActivityLogModel` | 11 | Tests du modèle ActivityLog |
 | `TestActivityService` | 11 | Tests du service ActivityService |
-| `TestActivityAPIEndpoints` | 18 | Tests des endpoints API |
+| `TestActivityAPIEndpoints` | 21 | Tests des endpoints API |
 | `TestActivitySignals` | 5 | Tests des signaux automatiques |
