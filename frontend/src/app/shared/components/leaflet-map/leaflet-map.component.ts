@@ -66,8 +66,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   private readonly fillColor = 'rgba(2, 83, 89, 0.2)';
 
   ngOnInit(): void {
-    // Fix pour les icônes Leaflet par défaut
-    this.fixLeafletIcons();
+    // Note: Leaflet icons fix is applied in main.ts at app startup
   }
 
   ngAfterViewInit(): void {
@@ -85,21 +84,6 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
       this.map.remove();
       this.map = null;
     }
-  }
-
-  /**
-   * Corrige le chemin des icônes Leaflet par défaut
-   */
-  private fixLeafletIcons(): void {
-    const iconRetinaUrl = 'assets/leaflet/marker-icon-2x.png';
-    const iconUrl = 'assets/leaflet/marker-icon.png';
-    const shadowUrl = 'assets/leaflet/marker-shadow.png';
-
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl,
-      iconUrl,
-      shadowUrl
-    });
   }
 
   /**

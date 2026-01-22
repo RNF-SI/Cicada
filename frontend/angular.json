@@ -22,7 +22,15 @@
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/favicon.ico", "src/assets"],
+            "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "src/assets/images",
+                "output": "media/images"
+              }
+            ],
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
               "node_modules/leaflet-draw/dist/leaflet.draw.css",
