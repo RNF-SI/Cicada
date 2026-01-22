@@ -196,8 +196,12 @@ class NotificationService:
         # Obtenir tous les validateurs potentiels
         validators = ValidationService.get_validators_for_request(validation_request)
 
-        # Exclure celui qui a traite la demande
-        other_validators = [v for v in validators if v.id_role != processed_by.id_role]
+        # Exclure celui qui a traite la demande ET le demandeur (deja notifie via notify_validation_result)
+        requester_id = validation_request.requester.id_role if validation_request.requester else None
+        other_validators = [
+            v for v in validators
+            if v.id_role != processed_by.id_role and v.id_role != requester_id
+        ]
 
         if not other_validators:
             return
