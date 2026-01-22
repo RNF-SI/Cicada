@@ -57,9 +57,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Design System**: Custom SCSS based on Kit UI CICADA (11/2025)
   - **Source de référence**: `KitUI/` (PNG des maquettes)
   - **Status**: ⚠️ 95% complet
-  - **Fichiers SCSS**: 5 fichiers (~3000 lignes)
-    - `_variables.scss` - Tokens (couleurs, spacing, typography)
-    - `_typography.scss` - Styles typographiques
+  - **Fichiers SCSS**: 6 fichiers (~3500 lignes)
+    - `_variables.scss` - Tokens (couleurs, spacing, typography, breakpoints)
+    - `_typography.scss` - Styles typographiques + responsive
+    - `_responsive.scss` - **Mixins responsive** (breakpoints, containers, grids)
     - `_material-overrides.scss` - Personnalisation Angular Material
     - `_components.scss` - Composants custom (jauges, tuiles, breadcrumb, etc.)
     - `_filters.scss` - Filtres et pagination

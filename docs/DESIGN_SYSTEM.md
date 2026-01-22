@@ -197,12 +197,13 @@ Les styles du design system sont definis dans les fichiers suivants :
 
 | Fichier | Description |
 |---------|-------------|
-| `src/assets/scss/_variables.scss` | Tokens (couleurs, spacing, typography) |
-| `src/assets/scss/_typography.scss` | Styles typographiques |
+| `src/assets/scss/_variables.scss` | Tokens (couleurs, spacing, typography, breakpoints) |
+| `src/assets/scss/_typography.scss` | Styles typographiques + responsive typography |
+| `src/assets/scss/_responsive.scss` | **Mixins responsive** (breakpoints, containers, grids) |
 | `src/assets/scss/_material-overrides.scss` | Personnalisation Angular Material |
 | `src/assets/scss/_components.scss` | Composants custom (jauges, tuiles, etc.) |
 | `src/assets/scss/_filters.scss` | Filtres et pagination |
-| `src/styles.scss` | Styles globaux et utilitaires |
+| `src/styles.scss` | Styles globaux et utilitaires responsive |
 
 ### Import dans les composants
 
@@ -268,6 +269,216 @@ Les styles du design system sont definis dans les fichiers suivants :
 2. **Verifier l'accessibilite** - Utiliser uniquement les combinaisons approuvees AA
 3. **Importer `variables`** - Dans chaque fichier SCSS de composant
 4. **Consulter Figma** - Pour toute question sur le design, verifier la source de verite
+5. **Penser mobile-first** - Tester sur petits ecrans, utiliser les mixins responsive
+
+---
+
+## Responsive Design
+
+Le design system inclut un systeme complet de breakpoints et utilitaires responsive pour assurer la lisibilite sur tous les ecrans.
+
+### Breakpoints
+
+| Nom | Variable SCSS | Largeur max | Usage |
+|-----|---------------|-------------|-------|
+| Mobile | `$breakpoint-mobile` | 576px | Smartphones |
+| Tablet | `$breakpoint-tablet` | 768px | Tablettes, petits laptops |
+| Desktop | `$breakpoint-desktop` | 1024px | Laptops, ecrans moyens |
+| Wide | `$breakpoint-wide` | 1440px | Grands ecrans |
+
+### Mixins responsive (`_responsive.scss`)
+
+Importer le fichier pour utiliser les mixins :
+
+```scss
+@import 'responsive';
+
+.mon-composant {
+  padding: $spacing-lg;
+
+  @include tablet {
+    padding: $spacing-md;
+  }
+
+  @include mobile {
+    padding: $spacing-sm;
+  }
+}
+```
+
+**Mixins de breakpoints :**
+
+| Mixin | Description |
+|-------|-------------|
+| `@include mobile { }` | 576px et moins |
+| `@include tablet { }` | 768px et moins |
+| `@include tablet-only { }` | Entre 577px et 768px |
+| `@include desktop { }` | 1024px et moins |
+| `@include wide { }` | 1025px et plus |
+
+**Mixins de layout :**
+
+| Mixin | Description |
+|-------|-------------|
+| `@include container-padding` | Padding adaptatif (48px > 32px > 24px > 16px) |
+| `@include responsive-grid(4, 2, 1)` | Grille 4 > 2 > 1 colonnes |
+| `@include responsive-flex-row` | Row > column sur mobile |
+| `@include responsive-sidebar-layout(300px)` | Sidebar + content adaptatif |
+| `@include responsive-table` | Table scrollable sur mobile |
+
+**Mixins de typographie :**
+
+| Mixin | Description |
+|-------|-------------|
+| `@include responsive-page-title` | H1 adaptatif (48px > 36px > 28px) |
+| `@include responsive-section-title` | H2 adaptatif (32px > 28px > 22px) |
+| `@include responsive-font(18px, 16px, 14px)` | Taille custom par breakpoint |
+
+### Classes utilitaires responsive
+
+**Affichage/masquage :**
+
+```html
+<!-- Masquer sur mobile -->
+<div class="d-mobile-none">Visible sauf sur mobile</div>
+
+<!-- Afficher uniquement sur tablette et moins -->
+<div class="d-wide-none">Masque sur grands ecrans</div>
+```
+
+| Classe | Description |
+|--------|-------------|
+| `.d-mobile-none` | Masque sur mobile (576px-) |
+| `.d-mobile-block/flex` | Affiche block/flex sur mobile |
+| `.d-tablet-none` | Masque sur tablette (768px-) |
+| `.d-small-desktop-none` | Masque sur petit desktop (1024px-) |
+| `.d-wide-none` | Masque sur grand ecran (1025px+) |
+
+**Espacements adaptatifs :**
+
+```html
+<div class="mb-lg mb-tablet-md mb-mobile-sm">
+  Marge-bottom: 24px > 16px > 12px
+</div>
+```
+
+| Suffixe | Mobile | Tablette |
+|---------|--------|----------|
+| `-mobile-xs/sm/md` | 8px / 12px / 16px | - |
+| `-tablet-sm/md` | - | 12px / 16px |
+
+**Flex responsive :**
+
+```html
+<div class="d-flex flex-tablet-column gap-lg gap-mobile-sm">
+  <!-- Row sur desktop, column sur tablette -->
+</div>
+```
+
+| Classe | Description |
+|--------|-------------|
+| `.flex-mobile-column` | Column sur mobile |
+| `.flex-tablet-column` | Column sur tablette |
+| `.gap-mobile-xs/sm/md` | Gap reduit sur mobile |
+
+**Grilles responsives :**
+
+```html
+<div class="grid-responsive-4">
+  <!-- 4 colonnes > 3 > 2 > 1 -->
+</div>
+```
+
+| Classe | Desktop | Tablette | Mobile |
+|--------|---------|----------|--------|
+| `.grid-responsive-4` | 4 cols | 2 cols | 1 col |
+| `.grid-responsive-3` | 3 cols | 2 cols | 1 col |
+| `.grid-responsive-2` | 2 cols | 2 cols | 1 col |
+
+**Containers :**
+
+```html
+<div class="container-responsive">
+  <!-- Padding: 48px > 32px > 24px > 16px -->
+</div>
+
+<div class="container-responsive-compact">
+  <!-- Padding: 24px > 16px > 12px -->
+</div>
+```
+
+**Tables :**
+
+```html
+<div class="table-responsive">
+  <table>...</table>
+</div>
+```
+
+**Largeur :**
+
+| Classe | Description |
+|--------|-------------|
+| `.w-mobile-100` | width: 100% sur mobile |
+| `.w-tablet-100` | width: 100% sur tablette |
+
+### Typographie responsive
+
+Les titres s'adaptent automatiquement :
+
+| Element | Desktop | Tablette | Mobile |
+|---------|---------|----------|--------|
+| H1 | 48px | 36px | 28px |
+| H2 | 32px | 28px | 24px |
+| H3 | 24px | 20px | 18px |
+| H4 | 20px | 18px | 16px |
+| Body | 15px | 14px | 14px |
+| Small | 13px | 13px | 12px |
+
+**Classes de taille par breakpoint :**
+
+```html
+<p class="text-mobile-lg">
+  Texte plus grand sur mobile pour lisibilite
+</p>
+```
+
+| Classe | Taille |
+|--------|--------|
+| `.text-mobile-lg` | 16px sur mobile |
+| `.text-mobile-md` | 14px sur mobile |
+| `.text-mobile-sm` | 12px sur mobile |
+| `.text-tablet-lg/md/sm` | Idem pour tablette |
+
+### Exemple complet
+
+```html
+<!-- Layout responsive -->
+<div class="container-responsive">
+  <h1>Titre de page</h1>
+
+  <!-- Sidebar + content -->
+  <div class="d-flex gap-lg flex-tablet-column">
+    <aside class="d-tablet-none">
+      Sidebar (masquee sur tablette)
+    </aside>
+
+    <main class="w-tablet-100">
+      <!-- Grille de cartes -->
+      <div class="grid-responsive-3">
+        <div class="p-lg p-mobile-md">Carte 1</div>
+        <div class="p-lg p-mobile-md">Carte 2</div>
+        <div class="p-lg p-mobile-md">Carte 3</div>
+      </div>
+
+      <!-- Table scrollable -->
+      <div class="table-responsive">
+        <table>...</table>
+      </div>
+    </main>
+  </div>
+</div>
+```
 
 ---
 
