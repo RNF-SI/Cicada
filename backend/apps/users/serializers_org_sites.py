@@ -16,6 +16,7 @@ from django.db import transaction
 
 from .models import BibOrganismes, Site, CorRoleSite, CorOgSite, Role
 from apps.core.models import Nomenclature
+from apps.plans.models import CorSitePg
 
 
 class OrganismeListSerializer(serializers.ModelSerializer):
@@ -173,6 +174,7 @@ class SiteListSerializer(serializers.ModelSerializer):
     type_site_label = serializers.CharField(source='id_type_site.label', read_only=True)
     organismes_count = serializers.SerializerMethodField()
     users_count = serializers.SerializerMethodField()
+    plans_count = serializers.SerializerMethodField()
     organismes = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
 
@@ -185,7 +187,7 @@ class SiteListSerializer(serializers.ModelSerializer):
             'id_site', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
-            'organismes_count', 'users_count', 'organismes', 'users'
+            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
         ]
 
     def get_geom_pt_geojson(self, obj):
@@ -204,6 +206,10 @@ class SiteListSerializer(serializers.ModelSerializer):
     def get_users_count(self, obj):
         """Nombre d'utilisateurs assignés."""
         return CorRoleSite.objects.filter(id_site=obj).count()
+
+    def get_plans_count(self, obj):
+        """Nombre de plans de gestion associés au site."""
+        return CorSitePg.objects.filter(site=obj).count()
 
     def get_organismes(self, obj):
         """Organismes gestionnaires du site."""

@@ -75,6 +75,8 @@ export interface AdminSite {
   /** Organismes gestionnaires du site */
   organismes?: SiteOrganisme[];
   users?: AdminUser[];
+  /** Nombre de plans de gestion associés */
+  plans_count?: number;
   // Informations sur l'acces de l'utilisateur courant
   current_user_is_referent?: boolean;
   current_user_access?: SiteUserAccess;

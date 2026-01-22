@@ -201,7 +201,7 @@ export class AdminSitesComponent implements OnInit {
       surface: site.surf_off,
       commune: undefined, // Will need to be added to API if needed
       departement: undefined,
-      nbPlans: 0, // Will need to be added to API
+      nbPlans: site.plans_count ?? 0,
       isActive: site.active ?? true,
       organismes: [],
       users: []
