@@ -60,9 +60,6 @@
                   @for (org of linkedOrganismes(); track org.id_organisme) {
                     <mat-option [value]="org.id_organisme">
                       {{ org.nom_organisme }}
-                      @if (org.principal) {
-                        <span class="principal-badge">{{ 'sites.detail.principalOrg' | translate }}</span>
-                      }
                     </mat-option>
                   }
                 </mat-select>
