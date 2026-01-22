@@ -69,8 +69,8 @@
             <th>{{ 'admin.sites.table.type' | translate }}</th>
             <th>{{ 'admin.sites.table.organismes' | translate }}</th>
             <th>{{ 'admin.sites.table.users' | translate }}</th>
-            <th>{{ 'admin.sites.table.surface' | translate }}</th>
-            <th>{{ 'admin.sites.table.plans' | translate }}</th>
+            <th class="col-secondary">{{ 'admin.sites.table.surface' | translate }}</th>
+            <th class="col-secondary">{{ 'admin.sites.table.plans' | translate }}</th>
             <th>{{ 'admin.sites.table.actions' | translate }}</th>
           </tr>
         </thead>
@@ -146,14 +146,14 @@
                   </div>
                 }
               </td>
-              <td>
+              <td class="col-secondary">
                 @if (site.surface) {
                   {{ site.surface | number:'1.0-0' }} ha
                 } @else {
                   -
                 }
               </td>
-              <td>{{ site.nbPlans }}</td>
+              <td class="col-secondary">{{ site.nbPlans }}</td>
               <td class="actions-cell">
                 @if (isAdminOrganisme()) {
                   <button class="btn-icon" [title]="'admin.sites.actions.manageUsers' | translate" (click)="openAddReferentModal(site)">

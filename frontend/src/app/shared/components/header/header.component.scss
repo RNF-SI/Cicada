@@ -120,17 +120,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: $primary-color;
   font-size: 24px;
   padding: 0;
+  border-radius: $border-radius-md;
 
   &:hover {
-    color: $primary-hover;
+    background-color: rgba($primary-color, 0.08);
+  }
+
+  // Hide on desktop only when on home page
+  &.hide-desktop {
+    @media (min-width: calc($breakpoint-tablet + 1px)) {
+      display: none;
+    }
   }
 }
 
@@ -213,14 +221,14 @@
 
 .menu-user-name {
   font-family: $font-family;
-  font-size: 14px;
+  font-size: $font-size-base;
   font-weight: $font-weight-bold;
   color: $primary-color;
 }
 
 .menu-user-email {
   font-family: $font-family;
-  font-size: 12px;
+  font-size: $font-size-small;
   color: $gray-dark;
 }
 
@@ -240,8 +248,9 @@
 
 ::ng-deep .mat-mdc-menu-item {
   font-family: $font-family;
-  font-size: 14px;
+  font-size: $font-size-base;
   color: $black;
+  min-height: 44px;
 
   &:hover {
     background-color: rgba($primary-color, 0.08);
@@ -379,13 +388,13 @@
 
 // Coming soon badge - horizontally and vertically centered
 .coming-soon-badge {
-  font-size: 9px;
-  padding: 3px 8px;
+  font-size: 11px;
+  padding: 4px 10px;
   background-color: rgba($white, 0.2);
   color: $white;
   border-radius: $border-radius-pill;
   white-space: nowrap;
-  font-weight: $font-weight-regular;
+  font-weight: $font-weight-medium;
   text-align: center;
   display: flex;
   align-items: center;
@@ -395,7 +404,7 @@
 
 // External link icon for Administration
 .external-icon {
-  font-size: 12px;
+  font-size: 14px;
   opacity: 0.7;
   margin-left: auto;
   flex-shrink: 0;

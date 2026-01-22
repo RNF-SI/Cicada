@@ -136,20 +136,69 @@
 
 // Table
 .table-container {
+  position: relative;
   background-color: $white;
   border-radius: $border-radius-md;
   box-shadow: $shadow-light;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  // Indicateur de scroll à droite
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity $transition-fast;
+
+    @media (min-width: calc($breakpoint-desktop + 100px)) {
+      opacity: 0;
+    }
+  }
 }
 
 .sites-table {
   width: 100%;
+  min-width: 750px; // Force scroll on smaller screens
   border-collapse: collapse;
   font-family: $font-family;
 
   th, td {
     padding: $spacing-sm $spacing-md;
     text-align: left;
+    font-size: $font-size-base;
+    white-space: nowrap;
+  }
+
+  // Colonnes qui peuvent wrapper leur contenu
+  td.organismes-cell,
+  td.users-cell {
+    white-space: normal;
+  }
+
+  // Première colonne sticky (Nom)
+  th:first-child,
+  td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: inherit;
+    min-width: 150px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: $gray-light;
+    }
   }
 
   thead {
@@ -158,12 +207,20 @@
       color: $white;
       font-weight: $font-weight-bold;
       font-size: $font-size-base;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+
+      &:first-child {
+        z-index: 3;
+      }
     }
   }
 
   tbody {
     tr {
       border-bottom: 1px solid $gray-light;
+      background-color: $white;
 
       &:last-child {
         border-bottom: none;
@@ -171,16 +228,30 @@
 
       &.odd {
         background-color: #f9f9f9;
+
+        td:first-child {
+          background-color: #f9f9f9;
+        }
       }
 
       &:hover {
         background-color: rgba($primary-color, 0.03);
+
+        td:first-child {
+          background-color: rgba($primary-color, 0.03);
+        }
       }
     }
 
     td {
-      font-size: $font-size-base;
       color: $black;
+    }
+  }
+
+  // Colonnes secondaires à masquer sur tablet
+  .col-secondary {
+    @media (max-width: $breakpoint-tablet) {
+      display: none;
     }
   }
 }

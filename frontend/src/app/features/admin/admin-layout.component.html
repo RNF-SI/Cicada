@@ -16,9 +16,28 @@
 }
 
 <div class="admin-layout" [class.with-impersonation]="isImpersonating()">
+  <!-- Mobile Header -->
+  <header class="mobile-header">
+    <button class="hamburger-btn" (click)="toggleSidebar()" aria-label="Menu">
+      <i class="fi fi-rr-menu-burger"></i>
+    </button>
+    <span class="mobile-title">Administration</span>
+    <a routerLink="/accueil" class="home-link" aria-label="Accueil">
+      <i class="fi fi-rr-home"></i>
+    </a>
+  </header>
+
+  <!-- Overlay for mobile -->
+  @if (sidebarOpen()) {
+    <div class="sidebar-overlay" (click)="closeSidebar()"></div>
+  }
+
   <!-- Sidebar -->
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" [class.open]="sidebarOpen()">
     <div class="sidebar-header">
+      <button class="sidebar-close-btn" (click)="closeSidebar()" aria-label="Fermer">
+        <i class="fi fi-rr-cross"></i>
+      </button>
       <h2>Administration</h2>
       <span class="role-badge">{{ roleLabel() }}</span>
     </div>

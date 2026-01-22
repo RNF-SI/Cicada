@@ -9,7 +9,7 @@
 // ============================================
 
 html {
-  font-size: 15px;  // Kit UI: base 15px
+  font-size: 16px;  // Augmenté pour lisibilité sur écrans laptop (was 15px)
 }
 
 body {
@@ -264,24 +264,122 @@ pre {
 // RESPONSIVE TYPOGRAPHY
 // ============================================
 
+// Tablet (768px et moins)
 @media (max-width: $breakpoint-tablet) {
+  html {
+    font-size: 14px;  // Base légèrement réduite
+  }
+
   h1, .h1 {
     font-size: 36px;
     line-height: 48px;
   }
-  
+
   h2, .h2 {
     font-size: 28px;
     line-height: 36px;
   }
-  
+
   h3, .h3 {
     font-size: 20px;
     line-height: 28px;
   }
-  
+
   h4, .h4 {
     font-size: 18px;
     line-height: 24px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+}
+
+// Mobile (576px et moins) - Textes plus lisibles
+@media (max-width: $breakpoint-mobile) {
+  html {
+    font-size: 14px;  // Maintenir la lisibilité
+  }
+
+  h1, .h1 {
+    font-size: 28px;
+    line-height: 36px;
+    margin-bottom: $spacing-md;
+  }
+
+  h2, .h2 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  h3, .h3 {
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  h4, .h4 {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    letter-spacing: 0.15em;  // Légèrement réduit pour mobile
+  }
+
+  .text-small, .text-mention {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  // Réduire les marges sur mobile
+  p {
+    margin-bottom: $spacing-sm;
+  }
+
+  ul, ol {
+    padding-left: $spacing-md;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+// ============================================
+// RESPONSIVE TEXT SIZE CLASSES
+// Permet de définir des tailles différentes par breakpoint
+// ============================================
+
+// Mobile : texte plus grand pour lisibilité
+@media (max-width: $breakpoint-mobile) {
+  .text-mobile-lg {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  .text-mobile-md {
+    font-size: 14px !important;
+    line-height: 22px !important;
+  }
+
+  .text-mobile-sm {
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+}
+
+// Tablet : ajustements intermédiaires
+@media (max-width: $breakpoint-tablet) and (min-width: calc($breakpoint-mobile + 1px)) {
+  .text-tablet-lg {
+    font-size: 17px !important;
+    line-height: 26px !important;
+  }
+
+  .text-tablet-md {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .text-tablet-sm {
+    font-size: 13px !important;
+    line-height: 20px !important;
   }
 }

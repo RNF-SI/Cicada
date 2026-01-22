@@ -1,8 +1,9 @@
-import { Component, inject, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorLogService } from '../../core/services/error-log.service';
+import { filter } from 'rxjs/operators';
 
 // Note: 'referent' is an access level (is_referent computed), not a role level
 type AccessLevel = 'referent' | 'admin_og' | 'super_admin';
@@ -40,6 +41,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   readonly isImpersonating = this.authService.isImpersonating;
   readonly impersonationInfo = this.authService.impersonationInfo;
 
+  // Mobile sidebar state
+  readonly sidebarOpen = signal(false);
+
   get userDisplayName(): string {
     return this.authService.getUserDisplayName();
   }
@@ -53,7 +57,23 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     if (this.isSuperAdmin()) {
       this.errorLogService.startAutoRefresh(60000);
     }
-    // Note: La fermeture des modales sur navigation est gérée dans AppComponent
+
+    // Fermer le sidebar mobile lors de la navigation
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.closeSidebar();
+    });
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update(open => !open);
+    document.body.style.overflow = this.sidebarOpen() ? 'hidden' : '';
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
+    document.body.style.overflow = '';
   }
 
   ngOnDestroy(): void {

@@ -74,8 +74,8 @@ h1 { @include sites-h1; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   background-color: $gray-light;
   border: none;
@@ -83,7 +83,7 @@ h1 { @include sites-h1; }
   color: $gray-dark;
   cursor: pointer;
   flex-shrink: 0;
-  i { font-size: 12px; }
+  i { font-size: 14px; }
   &:hover { background-color: $gray; color: $white; }
 }
 .search-count { font-size: $font-size-small; color: $gray; }
@@ -261,16 +261,16 @@ h1 { @include sites-h1; }
 .col-status { width: 15%; min-width: 120px; }
 .col-actions { width: 5%; min-width: 100px; }
 .site-name { font-weight: $font-weight-bold; color: $black; }
-.type-chip { background-color: $gray-lighter !important; font-size: 12px; color: $black !important; }
-.others { font-size: 12px; color: $gray; margin-left: 4px; }
-.chip-icon { font-size: 12px; margin-right: 4px; }
+.type-chip { background-color: $gray-lighter !important; font-size: $font-size-small; color: $black !important; }
+.others { font-size: $font-size-small; color: $gray; margin-left: 4px; }
+.chip-icon { font-size: 14px; margin-right: 4px; }
 
 // Status chips
-.status-success { background-color: $secondary-yellow !important; color: $black !important; font-size: 12px; }
-.status-info { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; }
-.status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; font-size: 12px; }
-.status-error { background-color: $error-color !important; color: $white !important; font-size: 12px; }
-.status-neutre { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+.status-success { background-color: $secondary-yellow !important; color: $black !important; font-size: $font-size-small; }
+.status-info { background-color: $secondary-pale-green !important; color: $black !important; font-size: $font-size-small; }
+.status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; font-size: $font-size-small; }
+.status-error { background-color: $error-color !important; color: $white !important; font-size: $font-size-small; }
+.status-neutre { background-color: $gray-light !important; color: $black !important; font-size: $font-size-small; }
 
 // Buttons
 .btn-action {

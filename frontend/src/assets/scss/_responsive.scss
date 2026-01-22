@@ -1,0 +1,348 @@
+// Responsive Mixins - Design System CICADA
+// Facilite l'écriture de styles responsive cohérents
+// November 2025
+
+@import 'variables';
+
+// ============================================
+// BREAKPOINT MIXINS
+// Usage: @include mobile { ... }
+// ============================================
+
+// Mobile (576px et moins)
+@mixin mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+// Tablet (768px et moins)
+@mixin tablet {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+// Tablet uniquement (entre 577px et 768px)
+@mixin tablet-only {
+  @media (min-width: calc($breakpoint-mobile + 1px)) and (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+// Desktop (1024px et moins)
+@mixin desktop {
+  @media (max-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+// Desktop uniquement (769px à 1024px)
+@mixin desktop-only {
+  @media (min-width: calc($breakpoint-tablet + 1px)) and (max-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+// Large screens (1025px et plus)
+@mixin wide {
+  @media (min-width: calc($breakpoint-desktop + 1px)) {
+    @content;
+  }
+}
+
+// Extra large (1440px et plus)
+@mixin extra-wide {
+  @media (min-width: $breakpoint-wide) {
+    @content;
+  }
+}
+
+// ============================================
+// RESPONSIVE CONTAINER PADDING
+// Padding adaptatif pour les conteneurs
+// ============================================
+
+@mixin container-padding {
+  padding-left: $spacing-xxl;
+  padding-right: $spacing-xxl;
+
+  @include desktop {
+    padding-left: $spacing-xl;
+    padding-right: $spacing-xl;
+  }
+
+  @include tablet {
+    padding-left: $spacing-lg;
+    padding-right: $spacing-lg;
+  }
+
+  @include mobile {
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+  }
+}
+
+// Version réduite pour modales et sidebars
+@mixin container-padding-compact {
+  padding-left: $spacing-lg;
+  padding-right: $spacing-lg;
+
+  @include tablet {
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+  }
+
+  @include mobile {
+    padding-left: $spacing-sm;
+    padding-right: $spacing-sm;
+  }
+}
+
+// ============================================
+// RESPONSIVE GRID
+// Grille adaptative avec colonnes configurables
+// ============================================
+
+@mixin responsive-grid($desktop: 4, $tablet: 2, $mobile: 1, $gap: $spacing-lg) {
+  display: grid;
+  grid-template-columns: repeat($desktop, 1fr);
+  gap: $gap;
+
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include tablet {
+    grid-template-columns: repeat($tablet, 1fr);
+    gap: $spacing-md;
+  }
+
+  @include mobile {
+    grid-template-columns: repeat($mobile, 1fr);
+    gap: $spacing-sm;
+  }
+}
+
+// ============================================
+// RESPONSIVE FONT SIZE
+// Tailles de police adaptatives
+// ============================================
+
+@mixin responsive-font($desktop, $tablet: null, $mobile: null) {
+  font-size: $desktop;
+
+  @if $tablet {
+    @include tablet {
+      font-size: $tablet;
+    }
+  }
+
+  @if $mobile {
+    @include mobile {
+      font-size: $mobile;
+    }
+  }
+}
+
+// Titres de page responsive
+@mixin responsive-page-title {
+  font-size: $font-size-h1;
+  line-height: $line-height-h1;
+
+  @include tablet {
+    font-size: 36px;
+    line-height: 48px;
+  }
+
+  @include mobile {
+    font-size: 28px;
+    line-height: 36px;
+  }
+}
+
+// Titres de section responsive
+@mixin responsive-section-title {
+  font-size: $font-size-h2;
+  line-height: $line-height-h2;
+
+  @include tablet {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  @include mobile {
+    font-size: 22px;
+    line-height: 30px;
+  }
+}
+
+// ============================================
+// RESPONSIVE SPACING
+// Espacements adaptatifs
+// ============================================
+
+@mixin responsive-margin-bottom($desktop: $spacing-lg, $tablet: $spacing-md, $mobile: $spacing-sm) {
+  margin-bottom: $desktop;
+
+  @include tablet {
+    margin-bottom: $tablet;
+  }
+
+  @include mobile {
+    margin-bottom: $mobile;
+  }
+}
+
+@mixin responsive-padding($desktop: $spacing-lg, $tablet: $spacing-md, $mobile: $spacing-sm) {
+  padding: $desktop;
+
+  @include tablet {
+    padding: $tablet;
+  }
+
+  @include mobile {
+    padding: $mobile;
+  }
+}
+
+// ============================================
+// RESPONSIVE TABLE
+// Tables scrollables sur mobile
+// ============================================
+
+@mixin responsive-table {
+  width: 100%;
+
+  @include tablet {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    table {
+      min-width: 600px;
+    }
+  }
+
+  @include mobile {
+    table {
+      min-width: 500px;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE FLEX LAYOUT
+// Layouts flex adaptatifs
+// ============================================
+
+// Row sur desktop, column sur mobile
+@mixin responsive-flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: $spacing-md;
+
+  @include mobile {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+// Sidebar + content layout
+@mixin responsive-sidebar-layout($sidebar-width: 300px) {
+  display: flex;
+  gap: $spacing-lg;
+
+  .sidebar {
+    flex: 0 0 $sidebar-width;
+  }
+
+  .content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @include tablet {
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .sidebar {
+      flex: none;
+      width: 100%;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE VISIBILITY
+// Masquer/afficher selon breakpoint
+// ============================================
+
+@mixin hide-mobile {
+  @include mobile {
+    display: none !important;
+  }
+}
+
+@mixin hide-tablet {
+  @include tablet {
+    display: none !important;
+  }
+}
+
+@mixin show-mobile-only {
+  display: none !important;
+
+  @include mobile {
+    display: block !important;
+  }
+}
+
+@mixin show-tablet-only {
+  display: none !important;
+
+  @include tablet-only {
+    display: block !important;
+  }
+}
+
+// ============================================
+// RESPONSIVE MODAL
+// Modales adaptatives
+// ============================================
+
+@mixin responsive-modal($desktop-width: 800px) {
+  width: $desktop-width;
+  max-width: 95vw;
+  max-height: 90vh;
+
+  @include tablet {
+    width: 90vw;
+    max-width: 90vw;
+  }
+
+  @include mobile {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+}
+
+// ============================================
+// RESPONSIVE MAP
+// Cartes géographiques adaptatives
+// ============================================
+
+@mixin responsive-map-container($desktop-height: 500px) {
+  height: $desktop-height;
+
+  @include tablet {
+    height: 350px;
+  }
+
+  @include mobile {
+    height: 250px;
+  }
+}

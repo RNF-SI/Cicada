@@ -13,13 +13,13 @@
   gap: 8px;
   color: $primary-color;
   text-decoration: none;
-  font-size: 14px;
+  font-size: $font-size-base;
   font-weight: 500;
   margin-bottom: 16px;
   transition: opacity 0.2s;
 
   i {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   &:hover {
@@ -58,10 +58,10 @@
     .tab-badge {
       background-color: $primary-color;
       color: white;
-      font-size: 0.75rem;
-      padding: 2px 6px;
+      font-size: $font-size-small;
+      padding: 2px 8px;
       border-radius: $border-radius-pill;
-      min-width: 20px;
+      min-width: 22px;
       text-align: center;
     }
   }
@@ -181,8 +181,8 @@
     flex-shrink: 0;
 
     .marker-icon {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: $border-radius-round;
       display: flex;
       align-items: center;
@@ -191,7 +191,7 @@
       color: $gray-dark;
 
       i {
-        font-size: 0.875rem;
+        font-size: 1rem;
       }
     }
 
@@ -292,38 +292,39 @@
     .entity-info {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
 
       .entity-type {
         display: flex;
         align-items: center;
         gap: $spacing-xxs;
-        font-size: 0.75rem;
+        font-size: $font-size-small;
         color: $gray-dark;
         text-transform: uppercase;
         letter-spacing: 0.5px;
 
         i {
-          font-size: 0.75rem;
+          font-size: $font-size-small;
         }
       }
 
       .entity-name {
         font-weight: 600;
+        font-size: $font-size-base;
         color: $black;
       }
     }
 
     .time {
-      font-size: 0.75rem;
-      color: $gray;
+      font-size: $font-size-small;
+      color: $gray-dark;
       white-space: nowrap;
     }
   }
 
   .description {
     color: $gray-dark;
-    font-size: 0.875rem;
+    font-size: $font-size-base;
     margin-bottom: $spacing-sm;
     line-height: 1.5;
   }
@@ -337,11 +338,11 @@
       display: flex;
       align-items: center;
       gap: $spacing-xxs;
-      font-size: 0.75rem;
-      color: $gray;
+      font-size: $font-size-small;
+      color: $gray-dark;
 
       i {
-        font-size: 0.75rem;
+        font-size: $font-size-small;
       }
     }
 
@@ -349,7 +350,7 @@
       display: flex;
       align-items: center;
       gap: $spacing-xxs;
-      font-size: 0.75rem;
+      font-size: $font-size-small;
       color: $primary-color;
       text-decoration: none;
 
@@ -358,7 +359,7 @@
       }
 
       i {
-        font-size: 0.625rem;
+        font-size: 0.875rem;
       }
     }
   }

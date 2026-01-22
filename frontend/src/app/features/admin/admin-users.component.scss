@@ -135,14 +135,35 @@
 
 // Table
 .table-container {
+  position: relative;
   background-color: $white;
   border-radius: $border-radius-md;
   box-shadow: $shadow-light;
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  // Indicateur de scroll à droite
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity $transition-fast;
+
+    @media (min-width: calc($breakpoint-desktop + 200px)) {
+      opacity: 0;
+    }
+  }
 }
 
 .users-table {
   width: 100%;
+  min-width: 900px; // Force scroll on smaller screens
   border-collapse: collapse;
   font-family: $font-family;
   table-layout: auto;
@@ -151,6 +172,7 @@
     padding: $spacing-sm $spacing-md;
     text-align: left;
     white-space: nowrap;
+    font-size: $font-size-base;
   }
 
   // Colonnes qui peuvent wrapper leur contenu
@@ -160,18 +182,46 @@
     min-width: 180px;
   }
 
+  // Première colonne sticky (Utilisateur)
+  th:first-child,
+  td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: inherit;
+    min-width: 160px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: $gray-light;
+    }
+  }
+
   thead {
     th {
       background-color: $primary-color;
       color: $white;
       font-weight: $font-weight-bold;
       font-size: $font-size-base;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+
+      &:first-child {
+        z-index: 3;
+      }
     }
   }
 
   tbody {
     tr {
       border-bottom: 1px solid $gray-light;
+      background-color: $white;
 
       &:last-child {
         border-bottom: none;
@@ -179,16 +229,30 @@
 
       &.odd {
         background-color: #f9f9f9;
+
+        td:first-child {
+          background-color: #f9f9f9;
+        }
       }
 
       &:hover {
         background-color: rgba($primary-color, 0.03);
+
+        td:first-child {
+          background-color: rgba($primary-color, 0.03);
+        }
       }
     }
 
     td {
-      font-size: $font-size-base;
       color: $black;
+    }
+  }
+
+  // Colonnes secondaires à masquer sur tablet
+  .col-secondary {
+    @media (max-width: $breakpoint-tablet) {
+      display: none;
     }
   }
 }
@@ -267,20 +331,20 @@
     color: darken($warning-color, 15%);
 
     i {
-      font-size: 12px;
+      font-size: 14px;
     }
 
     .days-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 24px;
-      height: 18px;
-      padding: 0 4px;
+      min-width: 26px;
+      height: 20px;
+      padding: 0 5px;
       background-color: $warning-color;
       color: $white;
-      border-radius: 9px;
-      font-size: 10px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: $font-weight-bold;
       margin-left: 2px;
     }
@@ -291,7 +355,7 @@
     color: $gray-dark;
 
     i {
-      font-size: 12px;
+      font-size: 14px;
     }
   }
 }
@@ -334,9 +398,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
     font-weight: $font-weight-bold;
     border-radius: $border-radius-round;
     margin-left: 2px;
@@ -395,9 +459,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
     font-weight: $font-weight-bold;
     border-radius: $border-radius-round;
     margin-left: 2px;

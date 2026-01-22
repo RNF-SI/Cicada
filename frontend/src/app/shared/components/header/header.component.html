@@ -23,12 +23,10 @@
 
 <header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()">
   <div class="header-content">
-    <!-- Hamburger Menu - Hidden on home page -->
-    @if (!isHomePage()) {
-      <button class="hamburger-btn" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
-        <i class="fi fi-rr-menu-burger"></i>
-      </button>
-    }
+    <!-- Hamburger Menu - Always visible on mobile/tablet, hidden on home page for desktop -->
+    <button class="hamburger-btn" [class.hide-desktop]="isHomePage()" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
+      <i class="fi fi-rr-menu-burger"></i>
+    </button>
 
     <!-- Logo centered -->
     <a routerLink="/" class="header-logo">

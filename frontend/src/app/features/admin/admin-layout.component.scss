@@ -1,5 +1,94 @@
 @import 'variables';
 
+// Mobile header (visible only on tablet and below)
+.mobile-header {
+  display: none;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background-color: $primary-color;
+  z-index: $z-index-sticky;
+  padding: 0 $spacing-md;
+  align-items: center;
+  justify-content: space-between;
+
+  .hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: $white;
+    font-size: 22px;
+    padding: 0;
+    border-radius: $border-radius-md;
+
+    &:hover {
+      background-color: rgba($white, 0.1);
+    }
+  }
+
+  .mobile-title {
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    color: $white;
+  }
+
+  .home-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: $white;
+    font-size: 20px;
+    border-radius: $border-radius-md;
+
+    &:hover {
+      background-color: rgba($white, 0.1);
+    }
+  }
+}
+
+// Sidebar overlay (mobile)
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba($black, 0.5);
+  z-index: $z-index-modal-backdrop;
+  backdrop-filter: blur(2px);
+}
+
+// Sidebar close button (mobile)
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $white;
+  font-size: 18px;
+  padding: 0;
+  border-radius: $border-radius-md;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: rgba($white, 0.1);
+  }
+}
+
 // Impersonation Banner (same as header component)
 .impersonation-banner {
   background: linear-gradient(135deg, $warning-color 0%, darken($warning-color, 10%) 100%);
@@ -220,17 +309,82 @@
 }
 
 @media (max-width: $breakpoint-tablet) {
+  // Show mobile header
+  .mobile-header {
+    display: flex;
+  }
+
+  // Show overlay when sidebar is open
+  .sidebar-overlay {
+    display: block;
+  }
+
+  // Show close button in sidebar
+  .sidebar-close-btn {
+    display: flex;
+  }
+
   .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 85vw;
     transform: translateX(-100%);
     transition: transform $transition-base;
+    z-index: $z-index-modal;
 
     &.open {
       transform: translateX(0);
     }
   }
 
+  .sidebar-header {
+    padding-top: $spacing-xl;
+    position: relative;
+  }
+
   .admin-content {
     margin-left: 0;
     padding: $spacing-md;
+    padding-top: $spacing-md;
+  }
+
+  .admin-layout {
+    flex-direction: column;
+
+    &.with-impersonation {
+      .mobile-header {
+        top: 40px;
+      }
+    }
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .mobile-header {
+    height: 52px;
+    padding: 0 $spacing-sm;
+
+    .mobile-title {
+      font-size: $font-size-base;
+    }
+
+    .hamburger-btn,
+    .home-link {
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+    }
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-content {
+    padding: $spacing-sm;
   }
 }
