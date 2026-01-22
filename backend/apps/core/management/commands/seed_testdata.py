@@ -1645,6 +1645,46 @@ class Command(BaseCommand):
             },
 
             # =====================================================
+            # RETRAIT SITE-ORGANISME
+            # Validable par: admin_og de l'organisme a retirer
+            # =====================================================
+
+            # Demande retrait site-organisme - en attente
+            # Validable par: admin.cen@test.fr (admin de CEN AURA, l'organisme a retirer)
+            {
+                'request_type': 'site_org_unlink',
+                'requester': admin_rnf,  # RNF demande le retrait
+                'target_site': sites[3],  # Vercors
+                'requested_organisme': organismes[1],  # CEN AURA sera retire
+                'status': 'pending',
+                'justification': 'Fin du partenariat inter-regional. CEN AURA n\'intervient plus sur ce site.',
+            },
+            # Demande retrait site-organisme - approuvee il y a 10 jours
+            {
+                'request_type': 'site_org_unlink',
+                'requester': referent_camargue,
+                'target_site': sites[0],  # Camargue
+                'requested_organisme': organismes[3],  # Parc Ecrins etait lie
+                'status': 'approved',
+                'justification': 'Projet termine, retrait de l\'organisme partenaire.',
+                'validator': admin,  # super_admin valide (pas d'admin_og pour Parc Ecrins)
+                'validation_comment': 'Retrait effectue. Merci pour la collaboration.',
+                'validated_at': timezone.now() - timedelta(days=10),
+            },
+            # Demande retrait site-organisme - rejetee il y a 5 jours
+            {
+                'request_type': 'site_org_unlink',
+                'requester': user_rnf,
+                'target_site': sites[6],  # Lac de Remoray
+                'requested_organisme': organismes[0],  # RNF (gestionnaire principal)
+                'status': 'rejected',
+                'justification': 'Demande de retrait de RNF du site.',
+                'validator': admin_rnf,  # admin_og de RNF refuse
+                'validation_comment': 'RNF est le gestionnaire principal de ce site. Le retrait n\'est pas possible.',
+                'validated_at': timezone.now() - timedelta(days=5),
+            },
+
+            # =====================================================
             # INVITATION ORGANISME VERS SITE
             # Validable par: admin_og de l'organisme invite
             # =====================================================
@@ -1964,6 +2004,18 @@ class Command(BaseCommand):
                 'title': 'Compte utilisateur reactive',
                 'message': 'Le compte de Marie Dupont a ete reactive apres verification de son identite.',
                 'priority': 'medium',
+                'read': False,
+            },
+
+            # Notifications de type 'organisme_changed' (changement d'organisme)
+            {
+                'recipient': user_rnf,
+                'notification_type': 'organisme_changed',
+                'title': 'Votre organisme a ete modifie',
+                'message': 'Votre organisme a ete change de "CEN AURA" vers "RNF" suite a votre mutation.',
+                'priority': 'high',
+                'related_organisme': organismes[0],  # RNF
+                'action_url': '/profile',
                 'read': False,
             },
         ]

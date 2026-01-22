@@ -14,7 +14,6 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 8. [Pages d'administration](#8-pages-dadministration)
 9. [RGPD - Suppression de compte](#9-rgpd---suppression-de-compte)
 10. [Tests](#10-tests)
-11. [Améliorations prévues](#11-améliorations-prévues)
 
 ---
 
@@ -150,6 +149,7 @@ Ce tableau liste **tous les cas** où une notification est envoyée dans l'appli
 |-----------|--------------|------|----------|:-----:|-------------|
 | Compte désactivé | Utilisateur désactivé | `account_deactivated` | critical | ✅ | Signal `post_save` sur `Role` (changement `active=False`) |
 | Compte désactivé (info admin) | Super_admins | `account_deactivated` | high | ✅ | Signal `post_save` sur `Role` |
+| Organisme modifié | Utilisateur concerné | `organisme_changed` | high | ❌ | Signal `post_save` sur `Role` (changement `id_organisme`) |
 
 #### Alertes système (tâches périodiques Celery)
 
@@ -174,6 +174,7 @@ Le modèle `Notification` définit les types suivants :
 | `user_removed_plan` | Utilisateur retiré d'un plan | Retrait comme référent plan |
 | `account_deactivated` | Compte désactivé | Compte utilisateur désactivé |
 | `account_activated` | Compte activé | Compte utilisateur réactivé |
+| `organisme_changed` | Organisme modifié | Changement d'organisme par un admin |
 | `site_orphaned` | Site sans utilisateurs | Alerte site orphelin |
 | `organisme_no_admin` | Organisme sans administrateur | Alerte absence d'admin_og |
 | `system_alert` | Alerte système | Alerte technique |
@@ -546,6 +547,7 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `referent_validation` | Devenir référent | Demande pour devenir référent d'un site |
 | `site_creation` | Création de site | Demande de création d'un nouveau site |
 | `site_org_link` | Lien site-organisme | Demande pour lier un site externe à son organisme |
+| `site_org_unlink` | Retrait site-organisme | Demande pour retirer un organisme d'un site |
 | `invite_org_to_site` | Invitation organisme | Invitation d'un organisme à rejoindre un site |
 | `invite_user_to_site` | Invitation utilisateur | Invitation d'un utilisateur à rejoindre un site |
 | `admin_promotion` | Promotion admin_og | Demande de promotion d'un utilisateur en admin_og |
@@ -562,13 +564,14 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `referent_validation` | ❌ | ✅ ¹ | ✅ ¹ | ✅ ¹ | ✅ ¹ |
 | `site_creation` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `site_org_link` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `site_org_unlink` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
 | `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
 | `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 | `admin_demotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 
 ¹ L'utilisateur doit déjà avoir accès au site (être lié via `CorRoleSite`)
-² L'utilisateur doit être référent du site concerné
+² L'utilisateur doit être référent du site concerné ou pouvoir gérer le site
 ³ Admin_og peut demander pour les utilisateurs de son organisme uniquement
 
 #### Qui peut valider quelle demande ?
@@ -582,6 +585,7 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `referent_validation` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site ciblé |
 | `site_creation` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
 | `site_org_link` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
+| `site_org_unlink` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme à retirer |
 | `invite_org_to_site` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme invité |
 | `invite_user_to_site` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site, ³ Admin org gestionnaire |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
@@ -598,6 +602,7 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `referent_validation` | `CorRoleSite.referent = True` et `referent_valid = True` | Notification avec motif du refus |
 | `site_creation` | Site créé + `CorOgSite` avec l'organisme du demandeur | Notification avec motif du refus |
 | `site_org_link` | `CorOgSite` créé (non principal) | Notification avec motif du refus |
+| `site_org_unlink` | `CorOgSite` supprimé, organisme retiré du site | Notification avec motif du refus, lien conservé |
 | `invite_org_to_site` | `CorOgSite` créé pour l'organisme invité | Notification avec motif du refus |
 | `invite_user_to_site` | `CorRoleSite` créé pour l'utilisateur invité | Notification avec motif du refus |
 | `admin_promotion` | `role_level` changé en `admin_og`, notification au nouvel admin | Notification avec motif du refus |
@@ -624,6 +629,10 @@ Pour la plupart des demandes, le système notifie les validateurs dans un ordre 
 
 **Création de site / Lien site-organisme** :
 1. Admins de l'organisme du demandeur
+2. Super admins (fallback)
+
+**Retrait site-organisme (`site_org_unlink`)** :
+1. Admins de l'organisme à retirer (c'est lui qui décide de quitter)
 2. Super admins (fallback)
 
 **Invitation organisme (`invite_org_to_site`)** :
@@ -1311,6 +1320,7 @@ Utilisateur avec accès → "Devenir référent"
 | Accès site | `site_access` | Demande d'accès à un site de son organisme | Référents du site + admin_og | `CorRoleSite` créé |
 | Accès comme référent | `site_access` + flag | Demande d'accès avec option référent | Référents du site + admin_og | `CorRoleSite` créé avec `referent=True` |
 | Lien site-organisme | `site_org_link` | Demande de lier un site externe à son organisme | admin_og du demandeur | `CorOgSite` créé |
+| Retrait site-organisme | `site_org_unlink` | Demande de retirer un organisme d'un site | admin_og de l'organisme à retirer | `CorOgSite` supprimé |
 | Invitation organisme | `invite_org_to_site` | Référent invite un organisme sur son site | admin_og de l'organisme invité | `CorOgSite` créé |
 | Devenir référent | `referent_validation` | Utilisateur lié veut devenir référent | Référents + admin_og + super_admin | `CorRoleSite.referent = True` |
 
@@ -1887,84 +1897,12 @@ C'est le pourcentage de lignes de code exécutées par les tests.
 
 | Stack | Couverture actuelle | Objectif |
 |-------|--------------------:|----------:|
-| Backend | 62% | 80% |
-| Frontend | ~10% | 70% |
+| Backend | 56% | 80% |
+| Frontend | 7% | 70% |
 
 ---
 
-## 11. Améliorations prévues
-
-### Interface d'administration des logs
-
-#### Situation actuelle
-
-Actuellement, les logs sont écrits dans des fichiers sur le serveur (`/app/logs/`). Pour les consulter, il faut :
-- Avoir un accès SSH au serveur
-- Utiliser des commandes comme `tail -f`, `grep`, etc.
-- Connaître le format des logs et les correlation IDs
-
-C'est suffisant pour un développeur, mais pas pratique pour un administrateur métier.
-
-#### Options d'amélioration
-
-**Option 1 : Interface d'administration des logs (recommandée)**
-
-Créer une page dans l'administration (`/admin/logs`) qui permettrait aux super admins de :
-- Voir les erreurs récentes dans un tableau
-- Filtrer par date, niveau (ERROR, WARNING), utilisateur concerné
-- Rechercher par correlation ID ou message
-- Voir le détail d'une erreur avec son contexte complet
-
-Cela nécessite :
-- Une nouvelle table `t_error_logs` pour stocker les erreurs importantes en base
-- Un handler de log Django qui écrit dans cette table (en plus des fichiers)
-- Une vue API et un composant Angular pour l'affichage
-
-**Option 2 : Dashboard de santé applicative**
-
-Une page plus simple qui affiche :
-- Nombre d'erreurs des dernières 24h / 7 jours
-- Les 10 dernières erreurs avec leur message
-- Alertes si le taux d'erreurs dépasse un seuil
-
-**Option 3 : Notifications d'erreurs critiques**
-
-Envoyer automatiquement une notification (et/ou email) aux super admins quand :
-- Une erreur 500 se produit
-- Le même type d'erreur se répète plusieurs fois
-- Un utilisateur rencontre un problème bloquant
-
-#### Recommandation pour la V1
-
-1. **Stocker les erreurs en base** : Modifier le handler de logs pour écrire les ERROR et CRITICAL dans une table dédiée
-
-2. **Page admin simple** : Un tableau des erreurs récentes avec :
-   - Date/heure
-   - Message d'erreur (tronqué)
-   - Utilisateur concerné (si authentifié)
-   - Chemin de la requête
-   - Bouton "Voir détails" qui affiche le contexte complet
-
-3. **Compteur dans le header admin** : Un badge sur l'icône administration indiquant le nombre d'erreurs non vues
-
-#### Structure de la table proposée
-
-| Champ | Type | Description |
-|-------|------|-------------|
-| `id` | AutoField | Clé primaire |
-| `level` | CharField | ERROR, CRITICAL, WARNING |
-| `message` | TextField | Message d'erreur |
-| `correlation_id` | CharField | UUID de la requête |
-| `user` | FK → Role | Utilisateur concerné (nullable) |
-| `path` | CharField | URL de la requête |
-| `method` | CharField | GET, POST, etc. |
-| `exception_type` | CharField | Type d'exception Python |
-| `stack_trace` | TextField | Traceback complet |
-| `context` | JSONField | Données additionnelles |
-| `created_at` | DateTimeField | Horodatage |
-| `acknowledged` | BooleanField | Marquée comme vue |
-| `acknowledged_by` | FK → Role | Admin qui a vu |
-
----
-
-**Mise à jour** : Janvier 2026 (Ajout fonctionnalité RGPD - Suppression de compte)
+**Historique des mises à jour** :
+- Janvier 2026 : Ajout fonctionnalité RGPD - Suppression de compte
+- Janvier 2026 : Ajout notification `organisme_changed` (changement d'organisme par admin)
+- Janvier 2026 : Ajout validation `site_org_unlink` (demande de retrait d'organisme d'un site)

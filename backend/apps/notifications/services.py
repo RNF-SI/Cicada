@@ -128,6 +128,11 @@ class NotificationService:
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
             return f"{requester_name} demande a lier le site {site_name} a {org_name}."
 
+        elif validation_request.request_type == 'site_org_unlink':
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
+            return f"{requester_name} demande a retirer {org_name} du site {site_name}."
+
         elif validation_request.request_type == 'site_creation':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un nouveau site"
             return f"{requester_name} a cree le site {site_name} et demande sa validation."
@@ -464,6 +469,10 @@ class ValidationService:
             # Validateurs: admin_og de l'organisme demandeur
             validators = ValidationService._get_org_link_validators(validation_request)
 
+        elif validation_request.request_type == 'site_org_unlink':
+            # Validateurs: admin_og de l'organisme a retirer
+            validators = ValidationService._get_org_unlink_validators(validation_request)
+
         elif validation_request.request_type == 'invite_org_to_site':
             # Validateurs: admin_og de l'organisme invite
             validators = ValidationService._get_invite_org_validators(validation_request)
@@ -510,6 +519,32 @@ class ValidationService:
         validators = set()
 
         # Valide par l'admin_og de l'organisme demandeur
+        if validation_request.requested_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=validation_request.requested_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            validators.update(admin_ogs)
+
+        # Si pas d'admin_og, super_admin
+        if not validators:
+            validators.update(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
+        return validators
+
+    @staticmethod
+    def _get_org_unlink_validators(validation_request):
+        """
+        Validateurs pour un retrait site-organisme.
+        Valide par l'admin_og de l'organisme a retirer.
+        """
+        validators = set()
+
+        # L'organisme a retirer est dans requested_organisme
         if validation_request.requested_organisme:
             admin_ogs = Role.objects.filter(
                 id_organisme=validation_request.requested_organisme,
@@ -955,6 +990,42 @@ class ValidationService:
                 'principal': False,
             }
         )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_site_org_unlink(validation_request, validator, comment=None):
+        """
+        Approuve un retrait site-organisme et supprime la liaison.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        if validation_request.request_type != 'site_org_unlink':
+            raise ValueError("Cette demande n'est pas un retrait site-organisme")
+
+        site = validation_request.target_site
+        organisme = validation_request.requested_organisme
+
+        if not site or not organisme:
+            raise ValueError("Site ou organisme manquant")
+
+        # Supprimer le lien CorOgSite
+        try:
+            cor_og_site = CorOgSite.objects.get(id_site=site, uuid_og=organisme)
+            cor_og_site.delete()
+        except CorOgSite.DoesNotExist:
+            # Le lien n'existe plus, on continue quand meme
+            pass
 
         # Approuver la demande
         validation_request.approve(validator, comment)

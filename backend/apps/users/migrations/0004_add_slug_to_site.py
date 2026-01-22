@@ -38,13 +38,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. Ajouter le champ slug comme nullable d'abord
+        # 1. Ajouter le champ slug comme nullable, SANS index automatique
         migrations.AddField(
             model_name="site",
             name="slug",
             field=models.SlugField(
                 blank=True,
                 null=True,
+                db_index=False,  # Désactiver l'index automatique
                 help_text="Identifiant URL unique généré automatiquement à partir du nom",
                 max_length=280,
                 verbose_name="Slug",
@@ -52,16 +53,54 @@ class Migration(migrations.Migration):
         ),
         # 2. Générer les slugs pour les sites existants
         migrations.RunPython(generate_slugs, reverse_slugs),
-        # 3. Rendre le champ non-nullable et unique
+        # 3. Rendre non-nullable, toujours sans index
         migrations.AlterField(
             model_name="site",
             name="slug",
             field=models.SlugField(
                 blank=True,
+                db_index=False,  # Toujours pas d'index automatique
                 help_text="Identifiant URL unique généré automatiquement à partir du nom",
                 max_length=280,
-                unique=True,
                 verbose_name="Slug",
             ),
+        ),
+        # 4. Créer la contrainte unique manuellement avec IF NOT EXISTS
+        migrations.RunSQL(
+            sql="""
+            -- Supprimer les index s'ils existent (au cas où)
+            DROP INDEX IF EXISTS "referentiels"."t_espace_protege_slug_e3fdf968_like";
+            DROP INDEX IF EXISTS "referentiels"."t_espace_protege_slug_e3fdf968";
+            DROP INDEX IF EXISTS "referentiels"."t_espace_protege_slug_key";
+
+            -- Créer l'index unique
+            CREATE UNIQUE INDEX "t_espace_protege_slug_e3fdf968"
+            ON "referentiels"."t_espace_protege" ("slug");
+
+            -- Créer l'index pour les opérations LIKE (varchar_pattern_ops)
+            CREATE INDEX "t_espace_protege_slug_e3fdf968_like"
+            ON "referentiels"."t_espace_protege" ("slug" varchar_pattern_ops);
+            """,
+            reverse_sql="""
+            DROP INDEX IF EXISTS "referentiels"."t_espace_protege_slug_e3fdf968_like";
+            DROP INDEX IF EXISTS "referentiels"."t_espace_protege_slug_e3fdf968";
+            """
+        ),
+        # 5. Mettre à jour l'état Django pour refléter que le champ est unique
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="site",
+                    name="slug",
+                    field=models.SlugField(
+                        blank=True,
+                        help_text="Identifiant URL unique généré automatiquement à partir du nom",
+                        max_length=280,
+                        unique=True,
+                        verbose_name="Slug",
+                    ),
+                ),
+            ],
+            database_operations=[],  # Déjà fait via RunSQL
         ),
     ]

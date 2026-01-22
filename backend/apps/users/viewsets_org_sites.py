@@ -238,35 +238,79 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=True, methods=['delete'])
+    @action(detail=True, methods=['delete', 'post'])
     def unassign_site(self, request, pk=None, organisme_pk=None, site_pk=None):
-        """Désassigne un site d'un organisme."""
+        """
+        Désassigne un site d'un organisme.
+
+        Crée une demande de validation envoyée à l'admin_og de l'organisme à retirer.
+        La suppression effective n'a lieu qu'après validation.
+
+        Body (optionnel): { "justification": "Motif de la demande" }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
         # Support both pk (from router) and organisme_pk (from manual URL)
         organisme_id = pk or organisme_pk
         organisme = get_object_or_404(BibOrganismes, id_organisme=organisme_id)
         site = get_object_or_404(Site, id_site=site_pk)
-        
-        # Vérifier permissions
+
+        # Vérifier permissions : il faut pouvoir gérer le site
         if not request.user.is_super_admin():
             if not request.user.can_manage_site(site):
                 return Response(
                     {'error': 'Vous ne pouvez pas gérer ce site.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
+        # Vérifier que le lien existe
         try:
-            cor_og_site = CorOgSite.objects.get(uuid_og=organisme, id_site=site)
-            cor_og_site.delete()
-            
-            return Response(
-                {'message': f'Site {site.nom_site} désassigné de {organisme.nom_organisme}'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+            CorOgSite.objects.get(uuid_og=organisme, id_site=site)
         except CorOgSite.DoesNotExist:
             return Response(
                 {'error': 'Ce site n\'est pas assigné à cet organisme.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        # Vérifier si une demande similaire est déjà en cours
+        existing_request = ValidationRequest.objects.filter(
+            request_type='site_org_unlink',
+            target_site=site,
+            requested_organisme=organisme,
+            status='pending'
+        ).first()
+
+        if existing_request:
+            return Response(
+                {'error': 'Une demande de retrait est déjà en cours pour ce site et cet organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Récupérer la justification du body si présente
+        justification = request.data.get('justification', '')
+
+        # Créer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='site_org_unlink',
+            requester=request.user,
+            target_site=site,
+            requested_organisme=organisme,
+            justification=justification,
+            status='pending'
+        )
+
+        # Notifier les validateurs (admin_og de l'organisme à retirer)
+        NotificationService.notify_validators(validation_request)
+
+        return Response(
+            {
+                'message': f'Demande de retrait de {organisme.nom_organisme} du site {site.nom_site} créée.',
+                'validation_request_id': validation_request.id,
+                'status': 'pending'
+            },
+            status=status.HTTP_201_CREATED
+        )
     
     @action(detail=True, methods=['get'])
     def sites(self, request, pk=None):

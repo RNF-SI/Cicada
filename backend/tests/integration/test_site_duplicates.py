@@ -113,7 +113,7 @@ class TestInpnUniqueness:
             'id_inpn': 'FR9999999'  # Same INPN as existing
         }
 
-        response = api_client.patch(f'/api/users/sites/{site.id_site}/', payload)
+        response = api_client.patch(f'/api/users/sites/{site.slug}/', payload)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['nom_site'] == 'Site Modifie'
@@ -130,7 +130,7 @@ class TestInpnUniqueness:
             'id_inpn': 'FR1111111'  # INPN of existing_site
         }
 
-        response = api_client.patch(f'/api/users/sites/{site_to_update.id_site}/', payload)
+        response = api_client.patch(f'/api/users/sites/{site_to_update.slug}/', payload)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'id_inpn' in response.data

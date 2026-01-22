@@ -321,7 +321,7 @@ class TestSitesDetailEndpoint:
         site = SiteFactory(nom_site='Test Site', surf_off=1000.5)
 
         api_client.force_authenticate(user=admin)
-        response = api_client.get(f'/api/users/sites/{site.id_site}/')
+        response = api_client.get(f'/api/users/sites/{site.slug}/')
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['nom_site'] == 'Test Site'
@@ -393,17 +393,21 @@ class TestSitesCreateEndpoint:
         # Admin organisme can create sites
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_create_site_regular_user_denied(self, api_client):
-        """Test regular users cannot create sites."""
+    def test_create_site_regular_user_creates_inactive_with_validation(self, api_client):
+        """Test regular users can create sites but they are inactive and require validation."""
         user = RoleFactory()
 
         api_client.force_authenticate(user=user)
         response = api_client.post('/api/users/sites/', {
-            'nom_site': 'Unauthorized Site',
-            'active': True
+            'nom_site': 'User Site Request',
+            'active': True  # This will be ignored for non-super_admin
         })
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Site is created but as inactive with pending validation
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['active'] is False  # Site is inactive until approved
+        assert response.data['validation_pending'] is True  # Validation is pending
+        assert 'validation_request_id' in response.data
 
 
 @pytest.mark.django_db
@@ -417,7 +421,7 @@ class TestSitesUpdateEndpoint:
         site = SiteFactory(nom_site='Original Site', surf_off=100.0)
 
         api_client.force_authenticate(user=admin)
-        response = api_client.patch(f'/api/users/sites/{site.id_site}/', {
+        response = api_client.patch(f'/api/users/sites/{site.slug}/', {
             'nom_site': 'Updated Site',
             'surf_off': 200.0
         })
@@ -439,7 +443,7 @@ class TestSitesGeoJSONEndpoints:
         site = SiteFactory(nom_site='GeoJSON Test Site')
 
         api_client.force_authenticate(user=admin)
-        response = api_client.get(f'/api/users/sites/{site.id_site}/geojson/')
+        response = api_client.get(f'/api/users/sites/{site.slug}/geojson/')
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['type'] == 'Feature'
@@ -499,7 +503,7 @@ class TestSitesRelationships:
         CorRoleSiteFactory(id_site=site, id_role=user2)
 
         api_client.force_authenticate(user=admin)
-        response = api_client.get(f'/api/users/sites/{site.id_site}/users/')
+        response = api_client.get(f'/api/users/sites/{site.slug}/users/')
 
         assert response.status_code == status.HTTP_200_OK
 
@@ -513,7 +517,7 @@ class TestSitesRelationships:
         CorOgSiteFactory(id_site=site, uuid_og=org2)
 
         api_client.force_authenticate(user=admin)
-        response = api_client.get(f'/api/users/sites/{site.id_site}/organismes/')
+        response = api_client.get(f'/api/users/sites/{site.slug}/organismes/')
 
         assert response.status_code == status.HTTP_200_OK
 
@@ -528,9 +532,10 @@ class TestSitesDeleteEndpoint:
         admin = SuperAdminFactory()
         site = SiteFactory()
         site_id = site.id_site
+        site_slug = site.slug
 
         api_client.force_authenticate(user=admin)
-        response = api_client.delete(f'/api/users/sites/{site_id}/')
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Site.objects.filter(id_site=site_id).exists()
@@ -542,9 +547,10 @@ class TestSitesDeleteEndpoint:
         organisme = OrganismeFactory()
         CorOgSiteFactory(id_site=site, uuid_og=organisme)
         site_id = site.id_site
+        site_slug = site.slug
 
         api_client.force_authenticate(user=admin)
-        response = api_client.delete(f'/api/users/sites/{site_id}/')
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not CorOgSite.objects.filter(id_site_id=site_id).exists()

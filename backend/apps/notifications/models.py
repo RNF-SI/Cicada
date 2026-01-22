@@ -23,6 +23,7 @@ class Notification(models.Model):
         ('user_removed_plan', _("Utilisateur retiré d'un plan")),
         ('account_deactivated', _('Compte désactivé')),
         ('account_activated', _('Compte activé')),
+        ('organisme_changed', _('Organisme modifié')),
         ('site_orphaned', _('Site sans utilisateurs')),
         ('organisme_no_admin', _('Organisme sans administrateur')),
         ('system_alert', _('Alerte système')),
@@ -173,6 +174,7 @@ class ValidationRequest(models.Model):
         ('admin_demotion', _('Rétrogradation admin_og')),
         ('referent_validation', _('Validation référent site')),
         ('site_org_link', _('Lien site-organisme')),
+        ('site_org_unlink', _('Retrait site-organisme')),
         ('invite_org_to_site', _('Invitation organisme vers site')),
         ('invite_user_to_site', _('Invitation utilisateur vers site')),
     ]

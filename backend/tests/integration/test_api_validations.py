@@ -128,6 +128,7 @@ class TestValidationTypesEndpoint:
             'admin_demotion',
             'referent_validation',
             'site_org_link',
+            'site_org_unlink',
             'invite_org_to_site',
             'invite_user_to_site',
         ]
