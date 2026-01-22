@@ -178,9 +178,6 @@ h1 { @include sites-h1; }
 .status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; font-size: 12px; }
 .status-neutre { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
 
-// Documents section
-.documents-section { margin-bottom: $spacing-xl; }
-
 // Map toolbar for shapefile import
 .map-toolbar {
   position: absolute;

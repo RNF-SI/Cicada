@@ -95,8 +95,7 @@ export class SiteDetailComponent implements OnInit {
     { id: 'info', label: 'sites.detail.menu.info', icon: 'fi-rr-info' },
     { id: 'organismes', label: 'sites.detail.menu.organismes', icon: 'fi-rr-building' },
     { id: 'users', label: 'sites.detail.menu.users', icon: 'fi-rr-users' },
-    { id: 'plans', label: 'sites.detail.menu.plans', icon: 'fi-rr-document' },
-    { id: 'documents', label: 'sites.detail.menu.documents', icon: 'fi-rr-folder' }
+    { id: 'plans', label: 'sites.detail.menu.plans', icon: 'fi-rr-document' }
   ];
   readonly activeMenuItem = signal<string>('overview');
 
