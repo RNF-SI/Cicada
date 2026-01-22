@@ -10,6 +10,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Architecture Documentation**: See `claude.md` for detailed specifications
 - **Repository**: https://github.com/RNF-SI/Cicada
 
+## ⚠️ RÈGLE OBLIGATOIRE : Design System
+
+**Pour TOUTE tâche impliquant le frontend (Angular/SCSS), tu DOIS :**
+
+1. **Consulter le Design System** : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) avant de coder
+2. **Respecter les couleurs** : Utiliser UNIQUEMENT les variables SCSS définies, jamais de valeurs hex directes
+3. **Respecter la typographie** : Font Nunito, tailles et poids définis dans `_typography.scss`
+4. **Respecter les composants** : Boutons, formulaires, chips selon les spécifications Figma
+5. **Respecter l'accessibilité WCAG AA** : Combinaisons texte/fond approuvées uniquement
+
+**Liens Figma de référence :** Voir `FIGMA_LINKS.md` (non versionné) ou contacter l'équipe design pour accéder aux maquettes (Couleurs, Boutons, Formulaires, Tableaux, Accordéons, Autres composants, Iconographie).
+
+**Combinaisons texte/fond autorisées (WCAG AA) :**
+
+| Fond | Texte autorisé |
+|------|----------------|
+| `#025359` (Primary) | Blanc uniquement |
+| `#B74D5D` (Terra Cotta) | Blanc uniquement |
+| `#04854B` (Succès) | Blanc uniquement |
+| `#E12329` (Erreur) | Blanc uniquement |
+| `#FEC180` (Jaune) | Noir `#343433` ou Primary `#025359` |
+| `#F5B399` (Orange saumon) | Noir `#343433` ou Primary `#025359` |
+| `#C0E3CF` (Vert pâle) | Noir `#343433` ou Primary `#025359` |
+| Scores (`#FF7579`, `#FA9965`, `#F7D35C`, `#82DB8A`, `#81C9D8`) | Noir `#343433` uniquement |
+| Blanc | Primary `#025359`, Noir `#343433`, Gris foncé `#746F6E` |
+
+**NE JAMAIS utiliser :**
+- Texte blanc sur fonds clairs (jaune, orange, vert pâle, scores)
+- Texte couleur score sur fond blanc (pas assez de contraste)
+- `mat.$blue-palette` - utiliser `mat.$cyan-palette`
+- Couleurs hex directement - utiliser les variables SCSS
+
 ## Technology Stack
 
 ### Backend
@@ -408,14 +440,7 @@ The Angular application follows a modular structure:
 - **shared module**: Reusable components, pipes, directives, design system components
 - **feature modules**: Plans, users, auth (lazy loaded)
 - **State management**: RxJS-based with services as stores
-- **Design System**: Custom SCSS implementing Kit UI CICADA (11/2025)
-  - Variables: `src/assets/scss/_variables.scss`
-  - Typography: `src/assets/scss/_typography.scss`
-  - Material overrides: `src/assets/scss/_material-overrides.scss`
-  - Custom components: `src/assets/scss/_components.scss`
-  - Filters & pagination: `src/assets/scss/_filters.scss`
-  - Main styles: `src/styles.scss`
-  - Reference: `KitUI/` (PNG maquettes)
+- **Design System**: Voir section "Technology Stack > Frontend" et [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
 
 #### Composants SCSS disponibles
 
@@ -531,14 +556,6 @@ OPTIONS = {
 }
 ```
 
-### Frontend Architecture
-
-Angular application with:
-- **core module**: Singleton services (auth, API client, interceptors)
-- **shared module**: Reusable components, pipes, directives
-- **feature modules**: Plans, users, auth (lazy loaded)
-- **State management**: RxJS-based with services as stores
-
 ## Key Implementation Patterns
 
 ### Authentication & Permissions
@@ -549,7 +566,9 @@ Angular application with:
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
 - **API Protection**: All endpoints protected by default except `/api/auth/`
-- **Permissions Classes**: Custom DRF permissions + decorators for granular control
+- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
+- **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
+- **Decorators**: `@require_super_admin`, `@require_admin_organisme`
 
 ### Geospatial Handling
 
@@ -570,11 +589,7 @@ Angular application with:
 1. **Database Migrations**: Always create reversible migrations
 2. **API Design**: RESTful with consistent naming, pagination for lists > 20 items
 3. **Frontend State**: Services as stores pattern, avoid NgRx for V0
-4. **Testing**:
-   - Backend : 317 tests (62% couverture) - pytest + Factory Boy
-   - Frontend : 55 tests (100% auth) - Jest
-   - CI/CD : GitHub Actions sur push/PR
-   - Objectif : 80% backend, 70% frontend
+4. **Testing**: Voir section "Testing" pour les détails. CI/CD via GitHub Actions.
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
 
@@ -657,15 +672,7 @@ JWT authentication is fully implemented and operational:
 - `POST /api/auth/register/` - Public user registration (requires admin approval)
 - `GET /api/auth/registration-status/` - Check registration request status
 
-**Configuration:**
-- Access tokens: 60 minutes lifetime
-- Refresh tokens: 7 days with rotation
-- Email-based authentication (not username)
-- All API endpoints protected by default
-
-**Test credentials:**
-- `admin` / `admin` (superuser)
-- `marie.dupont@rnf.fr` / `password123` (user with organization)
+**Test credentials:** Voir section "Test Data Available" pour la liste complète des utilisateurs de test.
 
 **Example usage:**
 ```bash
@@ -683,16 +690,7 @@ curl -X GET http://localhost:8000/api/auth/me/ \
 
 ### Understanding Migrations
 
-Django migrations track database schema changes automatically:
-
-```bash
-# 1. Modify models.py (add/remove/change fields)
-# 2. Generate migration file
-docker-compose exec web python manage.py makemigrations
-
-# 3. Apply changes to database
-docker-compose exec web python manage.py migrate
-```
+Django migrations track database schema changes automatically. Voir les commandes dans la section "Development" ci-dessus.
 
 **Migration Structure:**
 - Each app has its own `migrations/` folder
@@ -772,14 +770,6 @@ class UsersConfig(AppConfig):
 - Keep related models in the same app
 - Use `core` app for shared models (like nomenclatures)
 - Each app should have a clear, single responsibility
-
-**Permissions System:**
-- **3 role levels**: utilisateur → admin_og → super_admin
-- **Referent access**: Computed via `is_referent()` - true if user is site or plan referent
-- **10 custom permissions** + Django standard (add/change/view/delete)
-- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
-- **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
-- **Decorators**: `@require_super_admin`, `@require_admin_organisme`
 
 **Permissions Testing:**
 - Always run `docker-compose exec web python test_permissions.py` after changes
