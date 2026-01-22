@@ -87,7 +87,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   private readonly fillColor = 'rgba(2, 83, 89, 0.3)';
 
   ngOnInit(): void {
-    this.fixLeafletIcons();
+    // Note: Leaflet icons fix is applied in main.ts at app startup
   }
 
   ngAfterViewInit(): void {
@@ -108,17 +108,6 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       this.map.remove();
       this.map = null;
     }
-  }
-
-  /**
-   * Corrige le chemin des icônes Leaflet
-   */
-  private fixLeafletIcons(): void {
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'assets/leaflet/marker-icon-2x.png',
-      iconUrl: 'assets/leaflet/marker-icon.png',
-      shadowUrl: 'assets/leaflet/marker-shadow.png'
-    });
   }
 
   /**
@@ -343,18 +332,28 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       const isMarker = e.layerType === 'marker';
 
       if (this.geometryType === 'both') {
-        // En mode 'both', séparer polygones et points
+        // En mode 'both', markers et polygones sont mutuellement exclusifs
+        // On peut avoir UN marker OU un ou plusieurs polygones, mais pas les deux
         if (isMarker) {
-          this.pointItems?.clearLayers(); // Un seul point
+          // Dessiner un marker supprime tous les polygones
+          this.drawnItems?.clearLayers();
+          this.pointItems?.clearLayers(); // Un seul marker
           this.pointItems?.addLayer(layer);
+          this.emitGeometry(); // Émet null car plus de polygones
           this.emitPointGeometry();
         } else {
-          this.drawnItems?.clearLayers(); // Un seul polygone
+          // Dessiner un polygone supprime le marker, mais permet plusieurs polygones
+          this.pointItems?.clearLayers();
           this.drawnItems?.addLayer(layer);
+          this.emitPointGeometry(); // Émet null car plus de marker
           this.emitGeometry();
         }
+      } else if (this.geometryType === 'polygon') {
+        // Mode polygone: permet plusieurs polygones
+        this.drawnItems?.addLayer(layer);
+        this.emitGeometry();
       } else {
-        // Mode simple: un seul élément
+        // Mode point: un seul marker
         this.drawnItems?.clearLayers();
         this.drawnItems?.addLayer(layer);
         this.emitGeometry();
@@ -472,7 +471,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       return;
     }
 
-    // Pour un point
+    // Pour un point (mode 'point' uniquement)
     if (this.geometryType === 'point' && layers.length > 0) {
       const layer = layers[0] as L.Marker;
       const latlng = layer.getLatLng();
@@ -484,21 +483,32 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       return;
     }
 
-    // Pour un polygone - convertir en MultiPolygon si nécessaire
-    if (this.geometryType === 'polygon' && layers.length > 0) {
-      const layer = layers[0] as L.Polygon;
-      const geojson = layer.toGeoJSON();
+    // Pour les polygones (mode 'polygon' ou 'both')
+    // Combiner tous les polygones en un MultiPolygon
+    if ((this.geometryType === 'polygon' || this.geometryType === 'both') && layers.length > 0) {
+      const allCoordinates: any[] = [];
 
-      // Convertir Polygon en MultiPolygon pour le backend
-      if (geojson.geometry.type === 'Polygon') {
-        const multiPolygon = {
-          type: 'MultiPolygon',
-          coordinates: [geojson.geometry.coordinates]
-        };
-        this.geometryChange.emit(multiPolygon);
-      } else {
-        this.geometryChange.emit(geojson.geometry);
+      layers.forEach((layer) => {
+        if (layer instanceof L.Polygon) {
+          const geojson = (layer as L.Polygon).toGeoJSON();
+          if (geojson.geometry.type === 'Polygon') {
+            allCoordinates.push(geojson.geometry.coordinates);
+          } else if (geojson.geometry.type === 'MultiPolygon') {
+            allCoordinates.push(...geojson.geometry.coordinates);
+          }
+        }
+      });
+
+      if (allCoordinates.length === 0) {
+        this.geometryChange.emit(null);
+        return;
       }
+
+      const multiPolygon = {
+        type: 'MultiPolygon',
+        coordinates: allCoordinates
+      };
+      this.geometryChange.emit(multiPolygon);
       return;
     }
   }
