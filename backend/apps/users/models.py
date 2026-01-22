@@ -7,6 +7,7 @@ from datetime import datetime
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib.gis.db import models
 from django.core.validators import EmailValidator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 
@@ -318,8 +319,15 @@ class Site(models.Model):
     Modèle pour les sites (ex-espaces protégés).
     Table t_site dans le schéma referentiels.
     """
-    
+
     id_site = models.AutoField(primary_key=True)
+    slug = models.SlugField(
+        _("Slug"),
+        max_length=280,
+        unique=True,
+        blank=True,
+        help_text=_("Identifiant URL unique généré automatiquement à partir du nom")
+    )
     id_local = models.CharField(_("Identifiant local"), max_length=50, null=True, blank=True)
     id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True, unique=True)
     id_type_site = models.ForeignKey(
@@ -349,6 +357,31 @@ class Site(models.Model):
 
     def __str__(self):
         return self.nom_site
+
+    def save(self, *args, **kwargs):
+        """Génère automatiquement le slug à partir du nom du site."""
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+        super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self):
+        """
+        Génère un slug unique à partir du nom du site.
+        Si le slug existe déjà, ajoute un suffixe numérique.
+        """
+        base_slug = slugify(self.nom_site, allow_unicode=False)
+        if not base_slug:
+            base_slug = f"site-{self.id_site or 'new'}"
+
+        slug = base_slug
+        counter = 1
+
+        # Chercher un slug unique
+        while Site.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug
 
 
 class CorRoleSite(models.Model):

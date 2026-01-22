@@ -340,7 +340,7 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
     };
 
     if (this.isEditMode) {
-      this.adminService.updateSite(this.data!.site!.id_site, payload).subscribe({
+      this.adminService.updateSite(this.data!.site!.slug, payload).subscribe({
         next: (site) => {
           this.isLoading.set(false);
           this.dialogRef.close({ site, validationPending: false });

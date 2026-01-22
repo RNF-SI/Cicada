@@ -184,7 +184,7 @@ class SiteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
             'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
@@ -247,7 +247,7 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'organismes',
             'users_assignes', 'modif_adm', 'modif_geo'
@@ -322,7 +322,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'date_crea',
             'marin', 'outre_mer', 'active', 'modif_adm', 'modif_geo',
             'geom_geojson', 'geom_pt_geojson', 'organismes',
@@ -473,11 +473,11 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
             'surf_off', 'type_site_id', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_geojson', 'geom_pt_geojson'
         ]
-        read_only_fields = ['id_site']
+        read_only_fields = ['id_site', 'slug']
     
     def validate_type_site_id(self, value):
         """Valide le type de site."""

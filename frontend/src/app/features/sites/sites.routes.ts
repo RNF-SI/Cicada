@@ -8,7 +8,7 @@ export const SITES_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: ':id',
+    path: ':slug',
     loadComponent: () => import('./site-detail.component').then(m => m.SiteDetailComponent),
     canActivate: [authGuard]
   }

@@ -217,6 +217,7 @@ class ActivityLogListSerializer(serializers.ModelSerializer):
 
     # Relations simplifiees
     related_site_name = serializers.SerializerMethodField()
+    related_site_slug = serializers.SerializerMethodField()
     related_plan_name = serializers.SerializerMethodField()
     related_organisme_name = serializers.SerializerMethodField()
     related_user_name = serializers.SerializerMethodField()
@@ -235,6 +236,7 @@ class ActivityLogListSerializer(serializers.ModelSerializer):
             'description',
             'related_site',
             'related_site_name',
+            'related_site_slug',
             'related_plan',
             'related_plan_name',
             'related_organisme',
@@ -249,6 +251,11 @@ class ActivityLogListSerializer(serializers.ModelSerializer):
     def get_related_site_name(self, obj) -> str | None:
         if obj.related_site:
             return obj.related_site.nom_site
+        return None
+
+    def get_related_site_slug(self, obj) -> str | None:
+        if obj.related_site:
+            return obj.related_site.slug
         return None
 
     def get_related_plan_name(self, obj) -> str | None:
@@ -288,6 +295,7 @@ class ActivityLogDetailSerializer(serializers.ModelSerializer):
 
     # Relations simplifiees
     related_site_name = serializers.SerializerMethodField()
+    related_site_slug = serializers.SerializerMethodField()
     related_plan_name = serializers.SerializerMethodField()
     related_organisme_name = serializers.SerializerMethodField()
     related_user_name = serializers.SerializerMethodField()
@@ -309,6 +317,7 @@ class ActivityLogDetailSerializer(serializers.ModelSerializer):
             'description',
             'related_site',
             'related_site_name',
+            'related_site_slug',
             'related_plan',
             'related_plan_name',
             'related_organisme',
@@ -326,6 +335,11 @@ class ActivityLogDetailSerializer(serializers.ModelSerializer):
     def get_related_site_name(self, obj) -> str | None:
         if obj.related_site:
             return obj.related_site.nom_site
+        return None
+
+    def get_related_site_slug(self, obj) -> str | None:
+        if obj.related_site:
+            return obj.related_site.slug
         return None
 
     def get_related_plan_name(self, obj) -> str | None:

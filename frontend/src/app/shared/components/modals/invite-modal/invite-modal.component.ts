@@ -163,7 +163,7 @@ export class InviteModalComponent implements OnInit {
 
     if (this.data.mode === 'organisme') {
       const organisme = item as AdminOrganisme;
-      this.validationService.inviteOrganismeToSite(this.data.site.id_site, {
+      this.validationService.inviteOrganismeToSite(this.data.site.slug, {
         organisme_id: organisme.id_organisme,
         justification
       }).subscribe({
@@ -178,7 +178,7 @@ export class InviteModalComponent implements OnInit {
       });
     } else {
       const user = item as AdminUser;
-      this.validationService.inviteUserToSite(this.data.site.id_site, {
+      this.validationService.inviteUserToSite(this.data.site.slug, {
         user_id: user.id_role,
         justification
       }).subscribe({

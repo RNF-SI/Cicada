@@ -155,10 +155,10 @@ export class AdminService {
   }
 
   /**
-   * Get single site by ID
+   * Get single site by slug
    */
-  getSite(id: number): Observable<AdminSite> {
-    return this.http.get<AdminSite>(`${this.apiUrl}/sites/${id}/`)
+  getSite(slug: string): Observable<AdminSite> {
+    return this.http.get<AdminSite>(`${this.apiUrl}/sites/${slug}/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -182,8 +182,8 @@ export class AdminService {
   /**
    * Assign a user to a site with referent role
    */
-  assignUserToSite(siteId: number, userId: number, referent: boolean = true): Observable<any> {
-    return this.http.post(`${this.apiUrl}/sites/${siteId}/assign_user/`, {
+  assignUserToSite(siteSlug: string, userId: number, referent: boolean = true): Observable<any> {
+    return this.http.post(`${this.apiUrl}/sites/${siteSlug}/assign_user/`, {
       user_id: userId,
       referent
     }).pipe(catchError(this.handleError));
@@ -192,24 +192,24 @@ export class AdminService {
   /**
    * Remove user from site
    */
-  removeUserFromSite(siteId: number, userId: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/sites/${siteId}/users/${userId}/`)
+  removeUserFromSite(siteSlug: string, userId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/sites/${siteSlug}/users/${userId}/`)
       .pipe(catchError(this.handleError));
   }
 
   /**
    * Get users assigned to a site
    */
-  getSiteUsers(siteId: number): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(`${this.apiUrl}/sites/${siteId}/users/`)
+  getSiteUsers(siteSlug: string): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.apiUrl}/sites/${siteSlug}/users/`)
       .pipe(catchError(this.handleError));
   }
 
   /**
    * Get organismes managing a site
    */
-  getSiteOrganismes(siteId: number): Observable<SiteOrganisme[]> {
-    return this.http.get<SiteOrganisme[]>(`${this.apiUrl}/sites/${siteId}/organismes/`)
+  getSiteOrganismes(siteSlug: string): Observable<SiteOrganisme[]> {
+    return this.http.get<SiteOrganisme[]>(`${this.apiUrl}/sites/${siteSlug}/organismes/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -224,8 +224,8 @@ export class AdminService {
   /**
    * Update a site
    */
-  updateSite(id: number, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
-    return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${id}/`, payload)
+  updateSite(slug: string, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
+    return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${slug}/`, payload)
       .pipe(catchError(this.handleError));
   }
 
@@ -264,10 +264,10 @@ export class AdminService {
 
   /**
    * Get a single site as GeoJSON Feature
-   * @param id Site ID
+   * @param slug Site slug
    */
-  getSiteGeoJSON(id: number): Observable<GeoJSONFeature> {
-    return this.http.get<GeoJSONFeature>(`${this.apiUrl}/sites/${id}/geojson/`)
+  getSiteGeoJSON(slug: string): Observable<GeoJSONFeature> {
+    return this.http.get<GeoJSONFeature>(`${this.apiUrl}/sites/${slug}/geojson/`)
       .pipe(catchError(this.handleError));
   }
 

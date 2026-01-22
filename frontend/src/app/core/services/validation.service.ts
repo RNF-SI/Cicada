@@ -145,36 +145,36 @@ export class ValidationService {
   /**
    * Demande l'acces a un site.
    */
-  requestSiteAccess(siteId: number, data?: SiteAccessRequestData): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_access/`, data || {});
+  requestSiteAccess(siteSlug: string, data?: SiteAccessRequestData): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_access/`, data || {});
   }
 
   /**
    * Demande de lier un site a son organisme.
    */
-  requestSiteOrgLink(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_org_link/`, data || {});
+  requestSiteOrgLink(siteSlug: string, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_org_link/`, data || {});
   }
 
   /**
    * Demande a devenir referent d'un site.
    */
-  requestReferent(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_referent/`, data || {});
+  requestReferent(siteSlug: string, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_referent/`, data || {});
   }
 
   /**
    * Invite un organisme a rejoindre un site (referent uniquement).
    */
-  inviteOrganismeToSite(siteId: number, data: { organisme_id: number; justification?: string }): Observable<{ id: number; message: string }> {
-    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteId}/invite_organisme/`, data);
+  inviteOrganismeToSite(siteSlug: string, data: { organisme_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteSlug}/invite_organisme/`, data);
   }
 
   /**
    * Invite un utilisateur a rejoindre un site (referent uniquement).
    */
-  inviteUserToSite(siteId: number, data: { user_id: number; justification?: string }): Observable<{ id: number; message: string }> {
-    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteId}/invite_user/`, data);
+  inviteUserToSite(siteSlug: string, data: { user_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteSlug}/invite_user/`, data);
   }
 
   /**

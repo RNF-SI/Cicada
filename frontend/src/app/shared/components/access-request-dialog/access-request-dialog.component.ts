@@ -20,13 +20,15 @@ import { ValidationService } from '../../../core/services/validation.service';
 
 export interface SelectableSite {
   id_site: number;
+  slug: string;
   nom_site: string;
 }
 
 export interface AccessRequestDialogData {
   type: 'site' | 'plan';
   // Mode 1: Site/Plan unique (existant)
-  targetId?: number;
+  targetId?: number;  // Utilisé pour les plans
+  targetSlug?: string;  // Utilisé pour les sites
   targetName?: string;
   // Mode 2: Selection parmi une liste (nouveau)
   selectableSites?: SelectableSite[];
@@ -61,9 +63,9 @@ export interface AccessRequestDialogData {
       @if (isSelectionMode) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'accessRequest.dialog.selectSite' | translate }}</mat-label>
-          <mat-select [(ngModel)]="selectedSiteId" required>
-            @for (site of data.selectableSites; track site.id_site) {
-              <mat-option [value]="site.id_site">{{ site.nom_site }}</mat-option>
+          <mat-select [(ngModel)]="selectedSiteSlug" required>
+            @for (site of data.selectableSites; track site.slug) {
+              <mat-option [value]="site.slug">{{ site.nom_site }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -156,7 +158,7 @@ export class AccessRequestDialogComponent {
 
   justification = '';
   submitting = false;
-  selectedSiteId: number | null = null;
+  selectedSiteSlug: string | null = null;
 
   /** Verifie si on est en mode selection */
   get isSelectionMode(): boolean {
@@ -166,17 +168,20 @@ export class AccessRequestDialogComponent {
   /** Verifie si le formulaire peut etre soumis */
   get canSubmit(): boolean {
     if (this.isSelectionMode) {
-      return this.selectedSiteId !== null;
+      return this.selectedSiteSlug !== null;
+    }
+    if (this.data.type === 'site') {
+      return this.data.targetSlug !== undefined;
     }
     return this.data.targetId !== undefined;
   }
 
-  /** Obtient l'ID cible (soit de la selection, soit du data) */
-  private getTargetId(): number {
-    if (this.isSelectionMode && this.selectedSiteId !== null) {
-      return this.selectedSiteId;
+  /** Obtient le slug cible pour les sites (soit de la selection, soit du data) */
+  private getTargetSlug(): string {
+    if (this.isSelectionMode && this.selectedSiteSlug !== null) {
+      return this.selectedSiteSlug;
     }
-    return this.data.targetId!;
+    return this.data.targetSlug!;
   }
 
   submit(): void {
@@ -185,11 +190,10 @@ export class AccessRequestDialogComponent {
     this.submitting = true;
 
     const requestData = this.justification ? { justification: this.justification } : undefined;
-    const targetId = this.getTargetId();
 
     const request$ = this.data.type === 'site'
-      ? this.validationService.requestSiteAccess(targetId, requestData)
-      : this.validationService.requestPlanAccess(targetId, requestData);
+      ? this.validationService.requestSiteAccess(this.getTargetSlug(), requestData)
+      : this.validationService.requestPlanAccess(this.data.targetId!, requestData);
 
     request$.subscribe({
       next: () => {

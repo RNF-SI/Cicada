@@ -208,7 +208,7 @@ export class SitesListComponent implements OnInit {
     return this.allSites()
       .filter(s => s.accessStatus === 'none' || s.accessStatus === 'rejected')
       .filter(s => s.organismes?.some(o => o.id_organisme === userOrgId))
-      .map(s => ({ id_site: s.id_site, nom_site: s.nom_site }));
+      .map(s => ({ id_site: s.id_site, slug: s.slug, nom_site: s.nom_site }));
   });
 
   // GeoJSON filtré pour la carte (selon le scope sélectionné)
@@ -397,7 +397,7 @@ export class SitesListComponent implements OnInit {
    * Navigue vers la page detail d'un site.
    */
   viewSite(site: SiteWithAccess): void {
-    this.router.navigate(['/sites', site.id_site]);
+    this.router.navigate(['/sites', site.slug]);
   }
 
   /**

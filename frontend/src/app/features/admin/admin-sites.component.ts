@@ -37,6 +37,7 @@ interface DisplayUserLie {
 // Interface for display (mapping from API model)
 interface DisplaySite {
   id: number;
+  slug: string;
   nom: string;
   type: string;
   organisme: string;
@@ -148,10 +149,10 @@ export class AdminSitesComponent implements OnInit {
     const observables = sites.map(site =>
       forkJoin({
         siteId: of(site.id),
-        organismes: this.adminService.getSiteOrganismes(site.id).pipe(
+        organismes: this.adminService.getSiteOrganismes(site.slug).pipe(
           catchError(() => of([]))
         ),
-        users: this.adminService.getSiteUsers(site.id).pipe(
+        users: this.adminService.getSiteUsers(site.slug).pipe(
           catchError(() => of([]))
         )
       })
@@ -194,6 +195,7 @@ export class AdminSitesComponent implements OnInit {
   private mapSite(site: ApiSite): DisplaySite {
     return {
       id: site.id_site,
+      slug: site.slug,
       nom: site.nom_site,
       type: site.type_site_label || 'N/A',
       organisme: site.organismes?.[0]?.nom_organisme || 'Non assigne',
@@ -316,6 +318,7 @@ export class AdminSitesComponent implements OnInit {
       data: {
         site: {
           id_site: site.id,
+          slug: site.slug,
           nom_site: site.nom,
           type_site_label: site.type
         },
@@ -344,6 +347,7 @@ export class AdminSitesComponent implements OnInit {
       data: {
         site: {
           id_site: site.id,
+          slug: site.slug,
           nom_site: site.nom,
           type_site_label: site.type
         },

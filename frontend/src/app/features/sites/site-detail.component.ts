@@ -128,15 +128,15 @@ export class SiteDetailComponent implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.pipe(
       switchMap(params => {
-        const id = params.get('id');
-        if (id) {
-          return of(parseInt(id, 10));
+        const slug = params.get('slug');
+        if (slug) {
+          return of(slug);
         }
         return of(null);
       })
-    ).subscribe(id => {
-      if (id) {
-        this.loadSiteData(id);
+    ).subscribe(slug => {
+      if (slug) {
+        this.loadSiteData(slug);
       } else {
         this.router.navigate(['/sites']);
       }
@@ -146,32 +146,36 @@ export class SiteDetailComponent implements OnInit {
   /**
    * Charge les donnees du site.
    */
-  loadSiteData(siteId: number): void {
+  loadSiteData(siteSlug: string): void {
     this.loading.set(true);
 
     forkJoin({
-      site: this.adminService.getSite(siteId),
-      geojson: this.adminService.getSiteGeoJSON(siteId).pipe(catchError(() => of(null))),
-      plans: this.adminService.getPlans({ site: siteId, page_size: 50 }).pipe(catchError(() => of({ results: [] }))),
+      site: this.adminService.getSite(siteSlug),
+      geojson: this.adminService.getSiteGeoJSON(siteSlug).pipe(catchError(() => of(null))),
       myRequests: this.validationService.getMyRequests().pipe(catchError(() => of([])))
     }).subscribe({
-      next: ({ site, geojson, plans, myRequests }) => {
+      next: ({ site, geojson, myRequests }) => {
         this.site.set(site);
 
         if (geojson) {
           this.siteGeoJSON.set(geojson);
         }
 
+        // Charger les plans associés au site (utilise id_site pour le filtre)
+        this.adminService.getPlans({ site: site.id_site, page_size: 50 }).pipe(
+          catchError(() => of({ results: [] }))
+        ).subscribe(plans => {
+          this.associatedPlans.set(plans.results || []);
+        });
+
         // Extraire les utilisateurs assignes depuis la reponse du site detail
         const users = (site as any).users_assignes || [];
         this.siteUsers.set(users);
 
-        this.associatedPlans.set(plans.results || []);
-
         // Verifier si une demande de referent est en attente
         const pendingReferent = myRequests.some(
           r => r.request_type === 'referent_validation' &&
-               r.target_site_id === siteId &&
+               r.target_site_id === site.id_site &&
                r.status === 'pending'
         );
         this.hasPendingReferentRequest.set(pendingReferent);
@@ -290,7 +294,7 @@ export class SiteDetailComponent implements OnInit {
 
     this.requestingReferent.set(true);
 
-    this.validationService.requestReferent(s.id_site).subscribe({
+    this.validationService.requestReferent(s.slug).subscribe({
       next: () => {
         this.requestingReferent.set(false);
         this.hasPendingReferentRequest.set(true);
@@ -342,7 +346,7 @@ export class SiteDetailComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.site) {
         // Recharger les donnees du site
-        this.loadSiteData(s.id_site);
+        this.loadSiteData(s.slug);
         this.snackBar.open(
           this.translate.instant('admin.sites.messages.updated'),
           this.translate.instant('common.actions.close'),
@@ -382,7 +386,7 @@ export class SiteDetailComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.changed) {
         // Recharger les donnees du site
-        this.loadSiteData(s.id_site);
+        this.loadSiteData(s.slug);
         this.snackBar.open(
           this.translate.instant('admin.sites.messages.usersUpdated'),
           this.translate.instant('common.actions.close'),

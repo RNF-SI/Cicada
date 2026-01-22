@@ -45,6 +45,7 @@ export interface ActivityLogListItem {
   description: string;
   related_site?: number;
   related_site_name?: string;
+  related_site_slug?: string;
   related_plan?: number;
   related_plan_name?: string;
   related_organisme?: number;

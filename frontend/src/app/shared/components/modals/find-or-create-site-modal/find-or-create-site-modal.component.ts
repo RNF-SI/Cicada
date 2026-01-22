@@ -231,7 +231,7 @@ export class FindOrCreateSiteModalComponent {
 
     const asReferent = this.referentRequests.get(site.id_site) || false;
 
-    this.validationService.requestSiteAccess(site.id_site, {
+    this.validationService.requestSiteAccess(site.slug, {
       justification: this.translate.instant('sites.findOrCreate.autoMessage'),
       request_as_referent: asReferent
     }).subscribe({
@@ -290,7 +290,7 @@ export class FindOrCreateSiteModalComponent {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
-    this.validationService.requestSiteOrgLink(site.id_site, {
+    this.validationService.requestSiteOrgLink(site.slug, {
       justification
     }).subscribe({
       next: () => {

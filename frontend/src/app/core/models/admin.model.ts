@@ -61,6 +61,8 @@ export interface SiteTypeInfo {
  */
 export interface AdminSite {
   id_site: number;
+  /** URL slug unique pour le site */
+  slug: string;
   nom_site: string;
   id_local?: string;
   id_inpn?: string;
@@ -122,6 +124,7 @@ export interface GeoJSONFeature {
   geometry: GeoJSONGeometry | null;
   properties: {
     id_site: number;
+    slug: string;
     nom_site: string;
     id_local?: string;
     id_inpn?: string;

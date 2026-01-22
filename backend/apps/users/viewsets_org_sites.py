@@ -339,13 +339,17 @@ class SiteViewSet(viewsets.ModelViewSet):
 
     Note: La création de site déclenche un workflow de validation.
     Le créateur devient automatiquement référent une fois le site validé.
+
+    URLs: Les sites sont accessibles via leur slug (ex: /api/users/sites/reserve-naturelle-camargue/).
     """
 
     pagination_class = StandardPagination
     filterset_class = SiteFilter
-    search_fields = ['nom_site', 'id_local', 'id_inpn']
+    search_fields = ['nom_site', 'id_local', 'id_inpn', 'slug']
     ordering_fields = ['nom_site', 'surf_off', 'date_crea']
     ordering = ['nom_site']
+    lookup_field = 'slug'
+    lookup_url_kwarg = 'slug'
     
     def get_serializer_class(self):
         """Retourne le serializer approprié selon l'action."""
@@ -524,7 +528,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             return Response(response_data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])
-    def geojson(self, request, pk=None):
+    def geojson(self, request, slug=None):
         """Retourne le site au format GeoJSON complet."""
         site = self.get_object()
         serializer = SiteGeoJSONSerializer(site)
@@ -559,7 +563,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(geojson_data)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
-    def assign_user(self, request, pk=None):
+    def assign_user(self, request, slug=None):
         """Assigne un utilisateur au site."""
         site = self.get_object()
         
@@ -609,7 +613,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         )
     
     @action(detail=True, methods=['delete'])
-    def unassign_user(self, request, pk=None, user_pk=None):
+    def unassign_user(self, request, slug=None, user_pk=None):
         """Désassigne un utilisateur du site."""
         site = self.get_object()
         
@@ -637,7 +641,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             )
     
     @action(detail=True, methods=['get'])
-    def users(self, request, pk=None):
+    def users(self, request, slug=None):
         """Liste des utilisateurs assignés au site."""
         site = self.get_object()
         cor_users = CorRoleSite.objects.filter(id_site=site).select_related('id_role')
@@ -658,7 +662,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(users_data)
     
     @action(detail=True, methods=['get'])
-    def organismes(self, request, pk=None):
+    def organismes(self, request, slug=None):
         """Liste des organismes gestionnaires du site."""
         site = self.get_object()
         cor_orgs = CorOgSite.objects.filter(id_site=site).select_related('uuid_og')
@@ -677,10 +681,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(orgs_data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
-    def set_principal_organisme(self, request, pk=None):
+    def set_principal_organisme(self, request, slug=None):
         """
         Définit l'organisme gestionnaire principal du site.
-        POST /api/users/sites/{id}/set_principal_organisme/
+        POST /api/users/sites/{slug}/set_principal_organisme/
         Body: { "organisme_id": 123 }
 
         Seul un super admin peut modifier l'organisme principal.
@@ -735,10 +739,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'])
-    def principal_organisme(self, request, pk=None):
+    def principal_organisme(self, request, slug=None):
         """
         Retourne l'organisme gestionnaire principal du site.
-        GET /api/users/sites/{id}/principal_organisme/
+        GET /api/users/sites/{slug}/principal_organisme/
         """
         site = self.get_object()
         principal = CorOgSite.get_principal(site)
@@ -969,10 +973,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_access(self, request, pk=None):
+    def request_access(self, request, slug=None):
         """
         Demande l'acces a un site.
-        POST /api/users/sites/{id}/request_access/
+        POST /api/users/sites/{slug}/request_access/
         Body: {
             "justification": "...",  (optionnel)
             "request_as_referent": true/false  (optionnel, defaut: false)
@@ -981,7 +985,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier qu'une demande n'existe pas deja pour ce site
         existing = ValidationRequest.objects.filter(
@@ -1032,10 +1036,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_referent(self, request, pk=None):
+    def request_referent(self, request, slug=None):
         """
         Demande a devenir referent d'un site auquel l'utilisateur a deja acces.
-        POST /api/users/sites/{id}/request_referent/
+        POST /api/users/sites/{slug}/request_referent/
         Body: {
             "justification": "..."  (optionnel)
         }
@@ -1043,7 +1047,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur est lie au site
         try:
@@ -1096,10 +1100,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_org_link(self, request, pk=None):
+    def request_org_link(self, request, slug=None):
         """
         Demande de lier un site d'un autre organisme a son propre organisme.
-        POST /api/users/sites/{id}/request_org_link/
+        POST /api/users/sites/{slug}/request_org_link/
         Body: {
             "justification": "..."  (optionnel)
         }
@@ -1107,7 +1111,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur a un organisme
         user_organisme = request.user.id_organisme
@@ -1166,10 +1170,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def invite_organisme(self, request, pk=None):
+    def invite_organisme(self, request, slug=None):
         """
         Invite un organisme a rejoindre le site (referent uniquement).
-        POST /api/users/sites/{id}/invite_organisme/
+        POST /api/users/sites/{slug}/invite_organisme/
         Body: {
             "organisme_id": 123,
             "justification": "..."  (optionnel)
@@ -1178,7 +1182,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur est referent du site ou super_admin
         is_super_admin = request.user.is_super_admin()
@@ -1260,10 +1264,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def invite_user(self, request, pk=None):
+    def invite_user(self, request, slug=None):
         """
         Invite un utilisateur d'un organisme lie a rejoindre le site (referent uniquement).
-        POST /api/users/sites/{id}/invite_user/
+        POST /api/users/sites/{slug}/invite_user/
         Body: {
             "user_id": 123,
             "justification": "..."  (optionnel)
@@ -1272,7 +1276,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur est referent du site ou super_admin
         is_super_admin = request.user.is_super_admin()

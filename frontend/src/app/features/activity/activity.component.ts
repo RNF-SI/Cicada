@@ -303,7 +303,7 @@ export class ActivityComponent implements OnInit {
 
     switch (activity.entity_type) {
       case 'site':
-        return activity.related_site ? { path: `/sites/${activity.related_site}` } : null;
+        return activity.related_site_slug ? { path: `/sites/${activity.related_site_slug}` } : null;
       case 'plan':
         return activity.related_plan ? { path: `/plans/${activity.related_plan}` } : null;
       case 'user':
