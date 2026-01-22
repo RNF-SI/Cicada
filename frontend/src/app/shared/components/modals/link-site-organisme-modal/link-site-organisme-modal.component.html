@@ -75,16 +75,6 @@
                     }
                   </div>
                   @if (!assignment.isDeleted) {
-                    <div class="site-item-roles">
-                      <label class="role-checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="assignment.principal"
-                          (change)="togglePrincipal(assignment)">
-                        <span class="role-label principal">P</span>
-                        <span class="role-text">Principal</span>
-                      </label>
-                    </div>
                     <button
                       class="btn-remove"
                       type="button"
@@ -150,21 +140,6 @@
                 }
               </mat-autocomplete>
             </mat-form-field>
-
-            <div class="new-site-roles">
-              <label class="role-checkbox-inline">
-                <input type="checkbox" [(ngModel)]="newSitePrincipal">
-                <span>Organisme principal</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Info box -->
-        <div class="info-box">
-          <i class="fi fi-rr-info"></i>
-          <div>
-            <strong>Organisme principal:</strong> designe l'organisme gestionnaire principal du site.
           </div>
         </div>
 

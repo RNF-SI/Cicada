@@ -92,7 +92,6 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
   // For adding new site (select-site mode)
   siteControl = new FormControl<AdminSite | string>('');
   filteredSites = signal<AdminSite[]>([]);
-  newSitePrincipal = false;
 
   get mode(): 'select-organisme' | 'select-site' {
     return this.data?.site ? 'select-organisme' : 'select-site';
@@ -365,21 +364,12 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
 
   // Add a new site to the list
   addSite(site: AdminSite): void {
-    let assignments = [...this.siteAssignments()];
+    const assignments = [...this.siteAssignments()];
 
-    // If the new site is principal, remove principal from all others
-    if (this.newSitePrincipal) {
-      assignments = assignments.map(a => {
-        if (a.principal && !a.isDeleted) {
-          return { ...a, principal: false, isModified: !a.isNew };
-        }
-        return a;
-      });
-    }
-
+    // In select-site mode, principal is always false (managed from site side)
     assignments.push({
       site,
-      principal: this.newSitePrincipal,
+      principal: false,
       isNew: true,
       isModified: false,
       isDeleted: false
@@ -388,7 +378,6 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
 
     // Reset the form
     this.siteControl.setValue('');
-    this.newSitePrincipal = false;
     this.filterAvailableSites('');
 
     this.successMessage.set(this.translate.instant('modals.linkSiteOrganisme.messages.siteAdded', { name: site.nom_site }));
@@ -422,33 +411,6 @@ export class LinkSiteOrganismeModalComponent implements OnInit {
       assignments[index] = { ...assignments[index], isDeleted: false };
       this.siteAssignments.set(assignments);
       this.filterAvailableSites(this.siteControl.value);
-    }
-  }
-
-  // Toggle principal for a site (only one can be principal at a time)
-  togglePrincipal(assignment: SiteAssignment): void {
-    let assignments = [...this.siteAssignments()];
-    const index = assignments.findIndex(a => a.site.id_site === assignment.site.id_site);
-
-    if (index >= 0) {
-      const newPrincipalValue = !assignments[index].principal;
-
-      // If setting as principal, remove principal from all other sites
-      if (newPrincipalValue) {
-        assignments = assignments.map((a, i) => {
-          if (i !== index && a.principal && !a.isDeleted) {
-            return { ...a, principal: false, isModified: !a.isNew };
-          }
-          return a;
-        });
-      }
-
-      assignments[index] = {
-        ...assignments[index],
-        principal: newPrincipalValue,
-        isModified: !assignments[index].isNew
-      };
-      this.siteAssignments.set(assignments);
     }
   }
 

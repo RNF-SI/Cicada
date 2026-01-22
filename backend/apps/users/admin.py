@@ -96,11 +96,11 @@ class SiteInlineForOrganisme(admin.TabularInline):
     """Inline pour afficher les sites d'un organisme."""
     model = CorOgSite
     extra = 0
-    fields = ('id_site', 'principal')
+    fields = ('id_site',)
     autocomplete_fields = ['id_site']
     verbose_name = "Site géré"
     verbose_name_plural = "Sites gérés"
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('id_site')
         
