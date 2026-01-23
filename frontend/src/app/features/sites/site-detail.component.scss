@@ -9,6 +9,7 @@
 .hero-content { position: relative; z-index: 1; }
 .breadcrumb { @include sites-breadcrumb; }
 .breadcrumb-home { @include sites-breadcrumb-home; }
+.breadcrumb-lines { @include sites-breadcrumb-lines; }
 .breadcrumb-link { @include sites-breadcrumb-link; }
 .breadcrumb-separator { @include sites-breadcrumb-separator; }
 .breadcrumb-current { @include sites-breadcrumb-current; }
