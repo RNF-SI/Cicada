@@ -9,6 +9,7 @@
 .hero-content { position: relative; z-index: 1; }
 .breadcrumb { @include sites-breadcrumb; }
 .breadcrumb-home { @include sites-breadcrumb-home; }
+.breadcrumb-lines { @include sites-breadcrumb-lines; }
 .breadcrumb-separator { @include sites-breadcrumb-separator; }
 .breadcrumb-current { color: $black; font-size: $font-size-base; font-family: $font-family; }
 .title-section { @include sites-title-section; margin-top: $spacing-xl; }

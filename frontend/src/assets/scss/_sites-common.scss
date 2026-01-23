@@ -33,15 +33,15 @@
 
 @mixin sites-hero-pattern {
   position: absolute;
-  right: -100px;
-  top: -100px;
-  width: 1000px;
-  height: 1000px;
-  background-image: url('/assets/images/data-waves.png');
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 60%;
+  background-image: url('/assets/images/banner-waves.png');
   background-size: contain;
   background-repeat: no-repeat;
-  opacity: 0.2;
-  transform: rotate(180deg);
+  background-position: right center;
+  opacity: 1;
 }
 
 // Breadcrumb
@@ -70,6 +70,24 @@
   flex-shrink: 0;
   i { font-size: 24px; }
   &:hover { transform: scale(1.05); }
+}
+
+// Lignes horizontales après l'icône maison (design Figma)
+@mixin sites-breadcrumb-lines {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  width: 31px;
+  height: 48px;
+  flex-shrink: 0;
+  &::before, &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $black;
+  }
 }
 
 @mixin sites-breadcrumb-separator {
