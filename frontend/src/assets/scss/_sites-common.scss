@@ -44,12 +44,11 @@
   opacity: 1;
 }
 
-// Breadcrumb
+// Breadcrumb (design Figma)
 @mixin sites-breadcrumb {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
   height: 48px;
   background-color: transparent !important;
@@ -58,8 +57,6 @@
 }
 
 @mixin sites-breadcrumb-home {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,45 +72,33 @@
   &:hover { transform: scale(1.05); }
 }
 
-// Lignes horizontales après l'icône maison (design Figma)
-// Ces lignes s'étendent sur presque toute la largeur de la bannière
-@mixin sites-breadcrumb-lines {
-  position: absolute;
-  left: 64px; // Après l'icône maison (48px + 16px gap)
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-  height: 48px;
-  pointer-events: none;
-  z-index: 0;
-  &::before, &::after {
-    content: '';
-    display: block;
-    width: 100%;
-    height: 1px;
-    background-color: rgba($black, 0.3);
+// Lien du breadcrumb - souligné et gras (design Figma)
+@mixin sites-breadcrumb-link {
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  &:hover {
+    text-decoration-thickness: 2px;
   }
 }
 
+// Séparateur ">" (design Figma)
 @mixin sites-breadcrumb-separator {
-  position: relative;
-  z-index: 1;
-  width: 16px;
-  height: 48px;
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    width: 1px;
-    height: 18px;
-    background-color: $black;
-  }
-  &::before { top: 0; }
-  &::after { bottom: 0; }
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+// Page courante - pas souligné (design Figma)
+@mixin sites-breadcrumb-current {
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: $font-weight-regular;
+  color: $black;
 }
 
 // Title section
