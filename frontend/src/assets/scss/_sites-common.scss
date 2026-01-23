@@ -48,7 +48,7 @@
 @mixin sites-breadcrumb {
   display: flex;
   align-items: center;
-  gap: $spacing-md;
+  gap: 0;
   margin-bottom: $spacing-lg;
   height: 48px;
   background-color: transparent !important;
@@ -68,12 +68,13 @@
   text-decoration: none;
   transition: transform $transition-fast;
   flex-shrink: 0;
+  z-index: 1;
   i { font-size: 24px; }
   &:hover { transform: scale(1.05); }
 }
 
 // Lignes horizontales décoratives (design Figma)
-// Ces lignes s'étendent sur presque toute la largeur de la bannière
+// Ces lignes s'étendent de l'icône maison jusqu'au texte
 @mixin sites-breadcrumb-lines {
   flex: 1;
   display: flex;
@@ -81,6 +82,8 @@
   justify-content: center;
   gap: 10px;
   height: 48px;
+  margin-left: -4px; // Chevauche légèrement le bouton home
+  padding-right: $spacing-md;
   &::before, &::after {
     content: '';
     display: block;
@@ -88,6 +91,14 @@
     height: 1px;
     background-color: rgba($black, 0.25);
   }
+}
+
+// Conteneur du texte du breadcrumb (à droite)
+@mixin sites-breadcrumb-text {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
 }
 
 // Lien du breadcrumb - souligné et gras (design Figma)
