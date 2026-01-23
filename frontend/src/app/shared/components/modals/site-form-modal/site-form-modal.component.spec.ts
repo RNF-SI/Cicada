@@ -631,6 +631,7 @@ describe('SiteFormModalComponent', () => {
       const editData: SiteFormModalData = {
         site: {
           id_site: 1,
+          slug: 'existing-site',
           nom_site: 'Existing Site',
           id_inpn: 'FR9999999',
           type_site: { id_nomenclature: 42, label: 'RNN', cd_nomenclature: 'RNN' }
@@ -683,7 +684,7 @@ describe('SiteFormModalComponent', () => {
       component.onSubmit();
 
       tick();
-      expect(adminService.updateSite).toHaveBeenCalledWith(1, expect.any(Object));
+      expect(adminService.updateSite).toHaveBeenCalledWith('existing-site', expect.any(Object));
     }));
   });
 });

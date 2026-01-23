@@ -15,15 +15,16 @@ router.register(r'plans', PlanGestionViewSet, basename='plangestion')
 router.register(r'fichiers', CorPgFichierViewSet, basename='corpgfichier')
 
 # URLs spécifiques
+# NOTE: Specific paths must come BEFORE the router to avoid being captured by router patterns
 urlpatterns = [
-    # Routes des ViewSets
-    path('', include(router.urls)),
-    
-    # Actions en masse
+    # Actions en masse (MUST be before router)
     path('plans/bulk_assign_sites/', bulk_assign_sites, name='bulk_assign_sites'),
-    
-    # Exports
+
+    # Exports (MUST be before router)
     path('plans/export_geojson/', export_geojson, name='export_geojson'),
+
+    # Routes des ViewSets (comes last)
+    path('', include(router.urls)),
 ]
 
 # URLs générées par le router:
