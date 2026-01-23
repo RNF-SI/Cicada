@@ -12,10 +12,12 @@ from .models import Module, ErrorLog, ActivityLog, SiteConfiguration
 
 class SiteConfigurationSerializer(serializers.ModelSerializer):
     """
-    Serializer pour la configuration du site.
-    Expose uniquement les champs necessaires au frontend.
+    Serializer pour la lecture de la configuration du site.
+    Retourne des URLs relatives pour compatibilite avec le proxy frontend.
     """
 
+    # Override homepage_image to return relative path instead of full URL
+    homepage_image = serializers.SerializerMethodField()
     homepage_image_url = serializers.SerializerMethodField()
     updated_by_name = serializers.SerializerMethodField()
 
@@ -28,21 +30,37 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'updated_by',
             'updated_by_name',
         ]
-        read_only_fields = ['homepage_image_url', 'updated_at', 'updated_by', 'updated_by_name']
+        read_only_fields = fields
+
+    def get_homepage_image(self, obj) -> str | None:
+        """Retourne le chemin relatif de l'image (sans le domaine)."""
+        if obj.homepage_image:
+            return obj.homepage_image.name
+        return None
 
     def get_homepage_image_url(self, obj) -> str | None:
-        """Retourne l'URL complete de l'image."""
+        """Retourne l'URL relative de l'image (compatible avec le proxy frontend)."""
         if obj.homepage_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.homepage_image.url)
+            # Return relative URL to work with Angular proxy
             return obj.homepage_image.url
         return None
 
     def get_updated_by_name(self, obj) -> str | None:
+        """Retourne le nom de l'utilisateur qui a fait la derniere modification."""
         if obj.updated_by:
             return obj.updated_by.get_full_name() or obj.updated_by.email
         return None
+
+
+class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la mise a jour de la configuration du site.
+    Accepte l'upload d'image.
+    """
+
+    class Meta:
+        model = SiteConfiguration
+        fields = ['homepage_image']
 
 
 class ModuleSerializer(serializers.ModelSerializer):

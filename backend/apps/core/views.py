@@ -30,6 +30,7 @@ from .serializers import (
     ActivityLogDetailSerializer,
     ActivityLogStatsSerializer,
     SiteConfigurationSerializer,
+    SiteConfigurationUpdateSerializer,
 )
 
 
@@ -85,14 +86,17 @@ class SiteConfigurationView(APIView):
             serializer = SiteConfigurationSerializer(config, context={'request': request})
             return Response(serializer.data)
 
-        serializer = SiteConfigurationSerializer(
+        # Use update serializer for write operations
+        update_serializer = SiteConfigurationUpdateSerializer(
             config,
             data=request.data,
             partial=True,
             context={'request': request}
         )
-        serializer.is_valid(raise_exception=True)
-        config = serializer.save(updated_by=request.user)
+        update_serializer.is_valid(raise_exception=True)
+        config = update_serializer.save(updated_by=request.user)
+
+        # Return data with read serializer (relative URLs)
         return Response(SiteConfigurationSerializer(config, context={'request': request}).data)
 
 
