@@ -40,24 +40,69 @@ h1 { @include sites-h1; }
 
 // Title right buttons
 .title-right { display: flex; align-items: center; gap: $spacing-sm; }
+// Boutons selon le design system Figma
+// Primary: fond #025359, texte blanc
+// Secondary (outlined): bordure #025359, texte #025359, fond transparent
 .btn-edit, .btn-back, .btn-request-referent, .btn-pending {
   display: flex;
   align-items: center;
   gap: $spacing-xs;
   padding: 10px 24px;
-  border: none;
   border-radius: 80px;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+  transition: all 200ms ease-out;
   i { font-size: 20px; }
 }
-.btn-edit { background-color: $secondary-yellow; color: $black; &:hover { background-color: darken($secondary-yellow, 10%); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } }
-.btn-back { background-color: $primary-color; color: $white; &:hover { background-color: $primary-hover; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } }
-.btn-request-referent { background-color: $secondary-pale-green; color: $black; mat-spinner { margin-right: 4px; } &:hover:not(:disabled) { background-color: darken($secondary-pale-green, 10%); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); } &:disabled { opacity: 0.7; cursor: not-allowed; } }
-.btn-pending { background-color: $gray-light; color: $gray-dark; cursor: default; }
+
+// Bouton Modifier - Style secondaire (outlined) selon Figma
+.btn-edit {
+  background-color: transparent;
+  border: 2px solid $primary-color;
+  color: $primary-color;
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Bouton Retour - Style primaire selon Figma
+.btn-back {
+  background-color: $primary-color;
+  border: 2px solid $primary-color;
+  color: $white;
+  &:hover {
+    background-color: $primary-hover;
+    border-color: $primary-hover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Bouton Demander référent - Style secondaire (outlined) selon Figma
+.btn-request-referent {
+  background-color: transparent;
+  border: 2px solid $primary-color;
+  color: $primary-color;
+  mat-spinner { margin-right: 4px; }
+  &:hover:not(:disabled) {
+    background-color: $primary-color;
+    color: $white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// Bouton en attente - Style inactif selon Figma
+.btn-pending {
+  background-color: $gray-light;
+  border: 2px solid $gray-light;
+  color: $gray-dark;
+  cursor: default;
+}
 
 // Sidebar menu
 .sidebar-menu { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 1px solid $gray-light; }
