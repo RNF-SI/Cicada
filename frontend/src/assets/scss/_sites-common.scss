@@ -50,7 +50,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
   height: 48px;
   background-color: transparent !important;
