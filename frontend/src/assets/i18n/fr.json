@@ -516,12 +516,18 @@
         "current": "Image actuelle",
         "preview": "Aperçu",
         "noImage": "Aucune image personnalisée (image par défaut utilisée)",
-        "lastUpdate": "Dernière modification"
+        "lastUpdate": "Dernière modification",
+        "position": "Position verticale",
+        "positionTop": "Haut",
+        "positionCenter": "Centre",
+        "positionBottom": "Bas",
+        "positionHint": "Choisissez où centrer l'image verticalement"
       },
       "messages": {
         "saved": "Paramètres enregistrés",
         "error": "Erreur lors de la sauvegarde",
-        "restored": "Image par défaut restaurée"
+        "restored": "Image par défaut restaurée",
+        "positionSaved": "Position de l'image mise à jour"
       }
     },
     "logs": {

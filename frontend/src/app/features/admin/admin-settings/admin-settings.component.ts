@@ -1,23 +1,27 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
+import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core/services/settings.service';
 
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatButtonToggleModule,
     TranslateModule
   ],
   templateUrl: './admin-settings.component.html',
@@ -36,6 +40,19 @@ export class AdminSettingsComponent implements OnInit {
   // Preview image (for file selection before upload)
   readonly previewImage = signal<string | null>(null);
   readonly selectedFile = signal<File | null>(null);
+
+  // Image position
+  selectedPosition = signal<ImagePosition>('center');
+
+  constructor() {
+    // Sync position from config when it loads
+    effect(() => {
+      const config = this.config();
+      if (config?.homepage_image_position) {
+        this.selectedPosition.set(config.homepage_image_position);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.settingsService.loadSettings().subscribe();
@@ -176,5 +193,47 @@ export class AdminSettingsComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  /**
+   * Update image position
+   */
+  onPositionChange(position: ImagePosition): void {
+    this.selectedPosition.set(position);
+    this.isSaving.set(true);
+
+    const formData = new FormData();
+    formData.append('homepage_image_position', position);
+
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.positionSaved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  /**
+   * Get CSS object-position value from position setting
+   */
+  get imageObjectPosition(): string {
+    const position = this.selectedPosition();
+    switch (position) {
+      case 'top': return 'center top';
+      case 'bottom': return 'center bottom';
+      default: return 'center center';
+    }
   }
 }

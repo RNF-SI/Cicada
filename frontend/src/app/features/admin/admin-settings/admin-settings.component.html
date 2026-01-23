@@ -24,7 +24,12 @@
               <mat-spinner diameter="40"></mat-spinner>
             </div>
           } @else {
-            <img [src]="currentImageUrl" alt="Homepage image" class="preview-image" />
+            <img
+              [src]="currentImageUrl"
+              alt="Homepage image"
+              class="preview-image"
+              [style.object-position]="imageObjectPosition"
+            />
           }
 
           @if (previewImage()) {
@@ -54,6 +59,32 @@
             </span>
           }
         </div>
+
+        <!-- Position selector -->
+        @if (hasCustomImage || previewImage()) {
+          <div class="position-selector">
+            <label class="position-label">{{ 'admin.settings.homepage.position' | translate }}</label>
+            <mat-button-toggle-group
+              [value]="selectedPosition()"
+              (change)="onPositionChange($event.value)"
+              [disabled]="isSaving()"
+            >
+              <mat-button-toggle value="top">
+                <i class="fi fi-rr-arrow-up"></i>
+                {{ 'admin.settings.homepage.positionTop' | translate }}
+              </mat-button-toggle>
+              <mat-button-toggle value="center">
+                <i class="fi fi-rr-minus"></i>
+                {{ 'admin.settings.homepage.positionCenter' | translate }}
+              </mat-button-toggle>
+              <mat-button-toggle value="bottom">
+                <i class="fi fi-rr-arrow-down"></i>
+                {{ 'admin.settings.homepage.positionBottom' | translate }}
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+            <span class="position-hint">{{ 'admin.settings.homepage.positionHint' | translate }}</span>
+          </div>
+        }
       </div>
 
       <!-- Actions -->

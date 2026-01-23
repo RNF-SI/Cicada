@@ -42,6 +42,17 @@ export class HomeComponent implements OnInit {
   // Homepage image (for guest view)
   readonly homepageImage = computed(() => this.settingsService.getHomepageImageUrl());
 
+  // Homepage image position (top, center, bottom)
+  readonly homepageImagePosition = computed(() => {
+    const config = this.settingsService.config();
+    const position = config?.homepage_image_position || 'center';
+    switch (position) {
+      case 'top': return 'center top';
+      case 'bottom': return 'center bottom';
+      default: return 'center center';
+    }
+  });
+
   ngOnInit(): void {
     if (!this.isAuthenticated()) {
       // Load site settings for guest view (homepage image)

@@ -26,6 +26,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
         fields = [
             'homepage_image',
             'homepage_image_url',
+            'homepage_image_position',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -55,12 +56,12 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
 class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer pour la mise a jour de la configuration du site.
-    Accepte l'upload d'image.
+    Accepte l'upload d'image et la position.
     """
 
     class Meta:
         model = SiteConfiguration
-        fields = ['homepage_image']
+        fields = ['homepage_image', 'homepage_image_position']
 
 
 class ModuleSerializer(serializers.ModelSerializer):

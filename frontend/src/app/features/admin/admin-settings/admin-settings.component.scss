@@ -146,6 +146,49 @@
   color: $gray;
 }
 
+.position-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid $gray-lighter;
+  margin-top: 8px;
+
+  .position-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: $black;
+  }
+
+  mat-button-toggle-group {
+    border-radius: 8px;
+    border: 1px solid $gray-light;
+
+    mat-button-toggle {
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+
+      i {
+        margin-right: 6px;
+        font-size: 14px;
+      }
+
+      &.mat-button-toggle-checked {
+        background: $primary-color;
+        color: $white;
+      }
+    }
+  }
+
+  .position-hint {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: $gray;
+  }
+}
+
 .image-actions {
   display: flex;
   gap: 12px;

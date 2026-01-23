@@ -2,9 +2,12 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, tap, of } from 'rxjs';
 
+export type ImagePosition = 'top' | 'center' | 'bottom';
+
 export interface SiteConfiguration {
   homepage_image: string | null;
   homepage_image_url: string | null;
+  homepage_image_position: ImagePosition;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;

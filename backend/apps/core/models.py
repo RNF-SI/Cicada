@@ -304,6 +304,12 @@ class SiteConfiguration(models.Model):
     Table t_site_configuration dans le schéma ccd_commons.
     """
 
+    IMAGE_POSITION_CHOICES = [
+        ('top', _('Haut')),
+        ('center', _('Centre')),
+        ('bottom', _('Bas')),
+    ]
+
     id = models.AutoField(primary_key=True)
     homepage_image = models.ImageField(
         _('Image page d\'accueil'),
@@ -311,6 +317,13 @@ class SiteConfiguration(models.Model):
         null=True,
         blank=True,
         help_text=_('Image affichée sur la page d\'accueil pour les visiteurs non connectés')
+    )
+    homepage_image_position = models.CharField(
+        _('Position de l\'image'),
+        max_length=10,
+        choices=IMAGE_POSITION_CHOICES,
+        default='center',
+        help_text=_('Position verticale du point focal de l\'image (haut, centre, bas)')
     )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
