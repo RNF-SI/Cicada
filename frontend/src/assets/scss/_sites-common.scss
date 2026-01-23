@@ -318,10 +318,6 @@
     height: 40px;
     i { font-size: 20px; }
   }
-  .breadcrumb-separator {
-    height: 40px;
-    &::before, &::after { height: 14px; }
-  }
   .content-panel { padding: $spacing-md; }
 }
 
