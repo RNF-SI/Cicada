@@ -11,8 +11,8 @@
 .breadcrumb-home { @include sites-breadcrumb-home; }
 .breadcrumb-lines { @include sites-breadcrumb-lines; }
 .breadcrumb-separator { @include sites-breadcrumb-separator; }
-.breadcrumb-link { color: rgba($black, 0.7); font-size: $font-size-base; font-family: $font-family; text-decoration: none; &:hover { color: $black; text-decoration: underline; } }
-.breadcrumb-current { color: $black; font-size: $font-size-base; font-family: $font-family; font-weight: $font-weight-bold; }
+.breadcrumb-link { position: relative; z-index: 1; color: rgba($black, 0.7); font-size: $font-size-base; font-family: $font-family; text-decoration: none; &:hover { color: $black; text-decoration: underline; } }
+.breadcrumb-current { position: relative; z-index: 1; color: $black; font-size: $font-size-base; font-family: $font-family; font-weight: $font-weight-bold; }
 .title-section { @include sites-title-section; }
 .title-left { flex: 1; }
 .subtitle { @include sites-subtitle; }
