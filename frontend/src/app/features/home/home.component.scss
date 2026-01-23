@@ -262,25 +262,24 @@ $corner-size: 94px;
 /* ================================ */
 
 .guest-hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: center;
-  min-height: calc(100vh - 64px - 96px); // Full height minus header and padding
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
   padding: 0;
 }
 
 .guest-hero__content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  max-width: 800px;
 }
 
 .guest-hero__logo {
   margin-bottom: 8px;
 
   .biodiv-logo {
-    height: 48px;
+    height: 56px;
     width: auto;
     object-fit: contain;
   }
@@ -288,30 +287,29 @@ $corner-size: 94px;
 
 .guest-hero__title {
   font-family: 'Nunito', sans-serif;
-  font-size: 43px;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #025359;
   margin: 0;
-  max-width: 600px;
 }
 
 .guest-hero__subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 400;
-  line-height: 1.5;
-  color: #025359;
+  line-height: 1.6;
+  color: #343433;
   margin: 0;
-  max-width: 550px;
+  max-width: 700px;
 }
 
 .guest-hero__actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  margin-top: 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  margin-top: 8px;
 }
 
 .guest-hero__btn {
@@ -366,8 +364,8 @@ $corner-size: 94px;
 .guest-hero__image-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 500px;
+  max-width: 720px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -375,12 +373,11 @@ $corner-size: 94px;
 
 .guest-hero__image {
   width: 100%;
-  height: 100%;
-  max-height: 600px;
+  height: auto;
+  max-height: 450px;
   object-fit: cover;
-  border-radius: 30px;
-  opacity: 0.9;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes pulse {
@@ -465,38 +462,23 @@ $corner-size: 94px;
 /* Guest View Responsive */
 @media (max-width: 1024px) {
   .guest-hero {
-    grid-template-columns: 1fr;
     gap: 32px;
-    min-height: auto;
-    padding-bottom: 48px;
-  }
-
-  .guest-hero__content {
-    text-align: center;
-    align-items: center;
   }
 
   .guest-hero__title {
-    font-size: 36px;
-    text-align: center;
+    font-size: 32px;
   }
 
   .guest-hero__subtitle {
-    font-size: 20px;
-    text-align: center;
-  }
-
-  .guest-hero__actions {
-    align-items: center;
+    font-size: 16px;
   }
 
   .guest-hero__image-container {
-    min-height: 350px;
-    order: -1; // Image first on mobile
+    max-width: 100%;
   }
 
   .guest-hero__image {
-    max-height: 400px;
+    max-height: 380px;
   }
 }
 
@@ -506,16 +488,18 @@ $corner-size: 94px;
   }
 
   .guest-hero__subtitle {
-    font-size: 18px;
+    font-size: 15px;
   }
 
-  .guest-hero__image-container {
-    min-height: 280px;
+  .guest-hero__actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 
   .guest-hero__image {
     max-height: 320px;
-    border-radius: 20px;
+    border-radius: 16px;
   }
 
   .guest-hero__btn {
@@ -527,7 +511,7 @@ $corner-size: 94px;
 @media (max-width: 576px) {
   .guest-hero__logo {
     .biodiv-logo {
-      height: 40px;
+      height: 44px;
     }
   }
 
@@ -536,15 +520,11 @@ $corner-size: 94px;
   }
 
   .guest-hero__subtitle {
-    font-size: 16px;
-  }
-
-  .guest-hero__image-container {
-    min-height: 220px;
+    font-size: 14px;
   }
 
   .guest-hero__image {
     max-height: 260px;
-    border-radius: 16px;
+    border-radius: 12px;
   }
 }
