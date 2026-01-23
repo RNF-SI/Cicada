@@ -45,7 +45,7 @@ export class HomeComponent implements OnInit {
   // Homepage image position (top, center, bottom)
   readonly homepageImagePosition = computed(() => {
     const config = this.settingsService.config();
-    const position = config?.homepage_image_position || 'center';
+    const position = config?.homepage_image_position || 'top';
     switch (position) {
       case 'top': return 'center top';
       case 'bottom': return 'center bottom';

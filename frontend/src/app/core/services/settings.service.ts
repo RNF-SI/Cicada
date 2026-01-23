@@ -65,7 +65,7 @@ export class SettingsService {
         return of({
           homepage_image: null,
           homepage_image_url: null,
-          homepage_image_position: 'center' as ImagePosition,
+          homepage_image_position: 'top' as ImagePosition,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

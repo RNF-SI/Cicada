@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name="homepage_image_position",
             field=models.CharField(
                 choices=[("top", "Haut"), ("center", "Centre"), ("bottom", "Bas")],
-                default="center",
+                default="top",
                 help_text="Position verticale du point focal de l'image (haut, centre, bas)",
                 max_length=10,
                 verbose_name="Position de l'image",

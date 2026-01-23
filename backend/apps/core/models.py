@@ -322,7 +322,7 @@ class SiteConfiguration(models.Model):
         _('Position de l\'image'),
         max_length=10,
         choices=IMAGE_POSITION_CHOICES,
-        default='center',
+        default='top',
         help_text=_('Position verticale du point focal de l\'image (haut, centre, bas)')
     )
     updated_at = models.DateTimeField(
