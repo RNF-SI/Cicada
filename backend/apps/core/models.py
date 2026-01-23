@@ -297,6 +297,54 @@ class Module(models.Model):
         return self.name
 
 
+class SiteConfiguration(models.Model):
+    """
+    Configuration globale du site (singleton).
+    Permet de personnaliser certains aspects de l'application comme l'image de la page d'accueil.
+    Table t_site_configuration dans le schéma ccd_commons.
+    """
+
+    id = models.AutoField(primary_key=True)
+    homepage_image = models.ImageField(
+        _('Image page d\'accueil'),
+        upload_to='settings/homepage/',
+        null=True,
+        blank=True,
+        help_text=_('Image affichée sur la page d\'accueil pour les visiteurs non connectés')
+    )
+    updated_at = models.DateTimeField(
+        _('Mis à jour le'),
+        auto_now=True
+    )
+    updated_by = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('Mis à jour par'),
+        related_name='site_config_updates'
+    )
+
+    class Meta:
+        db_table = '"ccd_commons"."t_site_configuration"'
+        verbose_name = _('Configuration du site')
+        verbose_name_plural = _('Configuration du site')
+
+    def __str__(self):
+        return 'Configuration du site'
+
+    @classmethod
+    def get_instance(cls):
+        """Retourne l'instance unique de configuration (singleton pattern)."""
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+
+    def save(self, *args, **kwargs):
+        """Force l'utilisation de l'ID 1 pour le pattern singleton."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+
 class ActivityLog(models.Model):
     """
     Modele pour l'historique d'activite.

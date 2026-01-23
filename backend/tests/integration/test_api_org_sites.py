@@ -708,3 +708,502 @@ class TestSitesFilters:
         # Verify ordering parameter is accepted and returns results
         # Note: Results may include other sites from the database
         assert 'results' in response.data
+
+
+# =============================================================================
+# SITE ACCESS AND VALIDATION REQUESTS TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteRequestAccessEndpoint:
+    """Tests for site access request endpoint."""
+
+    def test_request_access_success(self, api_client):
+        """Test requesting access to a site."""
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_access/',
+            {'justification': 'Need access for research'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'id' in response.data
+        assert 'message' in response.data
+
+    def test_request_access_already_has_access(self, api_client):
+        """Test requesting access when already has access returns error."""
+        from tests.factories.users import CorRoleSiteFactory
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+        CorRoleSiteFactory(id_role=user, id_site=site)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_access/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_request_access_pending_request_exists(self, api_client):
+        """Test requesting access when a pending request already exists."""
+        from apps.notifications.models import ValidationRequest
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+
+        # Create pending request
+        ValidationRequest.objects.create(
+            request_type='site_access',
+            status='pending',
+            requester=user,
+            target_site=site
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_access/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_request_access_as_referent(self, api_client):
+        """Test requesting access with referent flag."""
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_access/',
+            {'request_as_referent': True, 'justification': 'Want to manage site'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteRequestReferentEndpoint:
+    """Tests for site referent request endpoint."""
+
+    def test_request_referent_success(self, api_client):
+        """Test requesting referent status for a site."""
+        from tests.factories.users import CorRoleSiteFactory
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+        # User must have access first
+        CorRoleSiteFactory(id_role=user, id_site=site, referent=False)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_referent/',
+            {'justification': 'I manage this site'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'id' in response.data
+
+    def test_request_referent_without_access(self, api_client):
+        """Test requesting referent without site access returns error."""
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_referent/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_request_referent_already_referent(self, api_client):
+        """Test requesting referent when already referent."""
+        from tests.factories.users import CorRoleSiteFactory
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+        CorRoleSiteFactory(id_role=user, id_site=site, referent=True, referent_valid=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_referent/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteRequestOrgLinkEndpoint:
+    """Tests for site org link request endpoint."""
+
+    def test_request_org_link_success(self, api_client):
+        """Test requesting to link organisme to a site."""
+        organisme = OrganismeFactory()
+        user = RoleFactory(id_organisme=organisme)
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_org_link/',
+            {'justification': 'Our org manages this site'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'id' in response.data
+
+    def test_request_org_link_no_organisme(self, api_client):
+        """Test request org link without organisme returns error."""
+        user = RoleFactory(id_organisme=None)
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_org_link/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_request_org_link_already_linked(self, api_client):
+        """Test request org link when already linked."""
+        organisme = OrganismeFactory()
+        user = RoleFactory(id_organisme=organisme)
+        site = SiteFactory(active=True)
+        CorOgSiteFactory(uuid_og=organisme, id_site=site)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/request_org_link/',
+            {}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# =============================================================================
+# SITE INVITATIONS TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteInviteOrganismeEndpoint:
+    """Tests for inviting organisme to site endpoint."""
+
+    def test_invite_organisme_success(self, api_client):
+        """Test referent can invite organisme to site."""
+        from tests.factories.users import CorRoleSiteFactory
+        referent = RoleFactory()
+        site = SiteFactory(active=True)
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+        target_org = OrganismeFactory()
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/invite_organisme/',
+            {'organisme_id': target_org.id_organisme, 'justification': 'Partner org'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_invite_organisme_not_referent(self, api_client):
+        """Test non-referent cannot invite organisme."""
+        user = RoleFactory()
+        site = SiteFactory(active=True)
+        target_org = OrganismeFactory()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/invite_organisme/',
+            {'organisme_id': target_org.id_organisme}
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_invite_organisme_super_admin_allowed(self, api_client):
+        """Test super admin can invite organisme."""
+        admin = SuperAdminFactory()
+        site = SiteFactory(active=True)
+        target_org = OrganismeFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/invite_organisme/',
+            {'organisme_id': target_org.id_organisme}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteInviteUserEndpoint:
+    """Tests for inviting user to site endpoint."""
+
+    def test_invite_user_success(self, api_client):
+        """Test referent can invite user to site."""
+        from tests.factories.users import CorRoleSiteFactory
+        referent = RoleFactory()
+        site = SiteFactory(active=True)
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        # Target user must have an organisme linked to the site
+        target_org = OrganismeFactory()
+        target_user = RoleFactory(id_organisme=target_org)
+        CorOgSiteFactory(uuid_og=target_org, id_site=site)
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/invite_user/',
+            {'user_id': target_user.id_role, 'justification': 'New team member'}
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_invite_user_org_not_linked(self, api_client):
+        """Test cannot invite user whose org is not linked to site."""
+        from tests.factories.users import CorRoleSiteFactory
+        referent = RoleFactory()
+        site = SiteFactory(active=True)
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        target_org = OrganismeFactory()
+        target_user = RoleFactory(id_organisme=target_org)
+        # Note: target_org is NOT linked to site
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/invite_user/',
+            {'user_id': target_user.id_role}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# =============================================================================
+# SITE DUPLICATE CHECK TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteCheckDuplicatesEndpoint:
+    """Tests for site duplicate check endpoint."""
+
+    def test_check_duplicates_by_inpn(self, api_client):
+        """Test checking duplicates by INPN code."""
+        admin = SuperAdminFactory()
+        existing_site = SiteFactory(id_inpn='FR1234567', active=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(
+            '/api/users/sites/check_duplicates/',
+            {'id_inpn': 'FR1234567'}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['exact_inpn_match'] is not None
+        assert response.data['exact_inpn_match']['id_inpn'] == 'FR1234567'
+
+    def test_check_duplicates_by_name(self, api_client):
+        """Test checking duplicates by similar name."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site='Reserve Naturelle de Camargue', active=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(
+            '/api/users/sites/check_duplicates/',
+            {'nom_site': 'Camargue'}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['similar_names']) >= 1
+
+    def test_check_duplicates_no_match(self, api_client):
+        """Test checking duplicates with no matches."""
+        admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(
+            '/api/users/sites/check_duplicates/',
+            {'id_inpn': 'NONEXISTENT', 'nom_site': 'xyz123'}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['exact_inpn_match'] is None
+        assert len(response.data['similar_names']) == 0
+
+
+# =============================================================================
+# SITE PRINCIPAL ORGANISME TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSitePrincipalOrganismeEndpoint:
+    """Tests for site principal organisme endpoints."""
+
+    def test_get_principal_organisme(self, api_client):
+        """Test getting principal organisme of a site."""
+        admin = SuperAdminFactory()
+        site = SiteFactory(active=True)
+        organisme = OrganismeFactory()
+        CorOgSiteFactory(uuid_og=organisme, id_site=site, principal=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/users/sites/{site.slug}/principal_organisme/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['id_organisme'] == organisme.id_organisme
+
+    def test_get_principal_organisme_none_set(self, api_client):
+        """Test getting principal organisme when none is set."""
+        admin = SuperAdminFactory()
+        site = SiteFactory(active=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/users/sites/{site.slug}/principal_organisme/')
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_set_principal_organisme_super_admin(self, api_client):
+        """Test super admin can set principal organisme."""
+        admin = SuperAdminFactory()
+        site = SiteFactory(active=True)
+        organisme = OrganismeFactory()
+        CorOgSiteFactory(uuid_og=organisme, id_site=site, principal=False)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/set_principal_organisme/',
+            {'organisme_id': organisme.id_organisme}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'gestionnaire principal' in response.data['message']
+
+    def test_set_principal_organisme_unauthenticated_denied(self, api_client):
+        """Test unauthenticated user cannot set principal organisme."""
+        organisme = OrganismeFactory()
+        site = SiteFactory(active=True)
+        CorOgSiteFactory(uuid_og=organisme, id_site=site)
+
+        response = api_client.post(
+            f'/api/users/sites/{site.slug}/set_principal_organisme/',
+            {'organisme_id': organisme.id_organisme}
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# =============================================================================
+# SITE SEARCH AND DISCOVERY TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteSearchAllEndpoint:
+    """Tests for search_all endpoint."""
+
+    def test_search_all_sites(self, api_client):
+        """Test searching all active sites."""
+        user = RoleFactory()
+        SiteFactory(nom_site='Camargue Reserve', active=True)
+        SiteFactory(nom_site='Vercors Park', active=True)
+        SiteFactory(nom_site='Inactive Site', active=False)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/sites/search_all/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] >= 2
+        # Should only include active sites
+        site_names = [s['nom_site'] for s in response.data['results']]
+        assert 'Inactive Site' not in site_names
+
+    def test_search_all_with_search_term(self, api_client):
+        """Test searching sites with search term."""
+        user = RoleFactory()
+        SiteFactory(nom_site='Camargue Reserve', active=True)
+        SiteFactory(nom_site='Vercors Park', active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/sites/search_all/?search=Camargue')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all('Camargue' in s['nom_site'] for s in response.data['results'])
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSiteAvailableForAssignmentEndpoint:
+    """Tests for available_for_assignment endpoint."""
+
+    def test_available_for_assignment(self, api_client):
+        """Test listing sites available for assignment."""
+        admin_og = AdminOrganismeFactory()
+        SiteFactory(nom_site='Site 1', active=True)
+        SiteFactory(nom_site='Site 2', active=True)
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.get('/api/users/sites/available_for_assignment/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] >= 2
+
+    def test_available_for_assignment_with_search(self, api_client):
+        """Test available sites with search filter."""
+        admin_og = AdminOrganismeFactory()
+        SiteFactory(nom_site='Unique Site Name', active=True)
+        SiteFactory(nom_site='Other Site', active=True)
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.get('/api/users/sites/available_for_assignment/?search=Unique')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all('Unique' in s['nom_site'] for s in response.data['results'])
+
+    def test_available_for_assignment_unauthenticated(self, api_client):
+        """Test that unauthenticated user cannot access available_for_assignment."""
+        response = api_client.get('/api/users/sites/available_for_assignment/')
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# =============================================================================
+# ORGANISMES PUBLIC ENDPOINT TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOrganismesPublicEndpoint:
+    """Tests for public organismes endpoint."""
+
+    def test_public_list_unauthenticated(self, api_client):
+        """Test public endpoint is accessible without authentication."""
+        OrganismeFactory(nom_organisme='Public Org 1')
+        OrganismeFactory(nom_organisme='Public Org 2')
+
+        response = api_client.get('/api/users/organismes/public/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) >= 2
+        # Should only contain id and nom_organisme
+        for org in response.data:
+            assert 'id' in org
+            assert 'nom_organisme' in org
+
+    def test_public_list_ordered_by_name(self, api_client):
+        """Test public list is ordered by name."""
+        OrganismeFactory(nom_organisme='Zebra Org')
+        OrganismeFactory(nom_organisme='Alpha Org')
+
+        response = api_client.get('/api/users/organismes/public/')
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [o['nom_organisme'] for o in response.data]
+        assert names == sorted(names)

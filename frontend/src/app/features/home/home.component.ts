@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -7,6 +7,7 @@ import { NavigationTileComponent } from '../../shared/components/navigation-tile
 import { AuthService } from '../../core/services/auth.service';
 import { PublicStatsService } from '../../core/services/public-stats.service';
 import { ModuleService } from '../../core/services/module.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 @Component({
   selector: 'app-home',
@@ -25,6 +26,7 @@ export class HomeComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly publicStatsService = inject(PublicStatsService);
   private readonly moduleService = inject(ModuleService);
+  private readonly settingsService = inject(SettingsService);
 
   readonly isAuthenticated = this.authService.isAuthenticated;
   readonly currentUser = this.authService.currentUser;
@@ -37,8 +39,13 @@ export class HomeComponent implements OnInit {
   readonly accessibleModules = this.moduleService.accessibleModules;
   readonly modulesLoading = this.moduleService.isLoading;
 
+  // Homepage image (for guest view)
+  readonly homepageImage = computed(() => this.settingsService.getHomepageImageUrl());
+
   ngOnInit(): void {
     if (!this.isAuthenticated()) {
+      // Load site settings for guest view (homepage image)
+      this.settingsService.loadSettings().subscribe();
       // Charger les statistiques publiques pour les visiteurs non connectes
       this.publicStatsService.loadStats().subscribe();
     } else {

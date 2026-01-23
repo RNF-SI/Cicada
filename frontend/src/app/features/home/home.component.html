@@ -9,67 +9,40 @@
     <!-- GUEST VIEW (Non connecté)        -->
     <!-- ================================ -->
     @if (!isAuthenticated()) {
-      <!-- Hero Section - Guest -->
-      <section class="hero-section hero-section--guest">
-        <!-- Logo CICADA -->
-        <div class="hero-logo">
-          <svg class="logo-large" viewBox="0 0 235 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="48" cy="48" r="44" fill="#025359"/>
-            <path d="M48 16C36 16 24 28 24 40C24 52 36 64 48 76C60 64 72 52 72 40C72 28 60 16 48 16Z" fill="#FEC180"/>
-            <circle cx="48" cy="38" r="8" fill="#025359"/>
-            <text x="110" y="60" font-family="Nunito" font-weight="700" font-size="32" fill="#025359">CICADA</text>
-          </svg>
-        </div>
+      <section class="guest-hero">
+        <!-- Left Column - Content -->
+        <div class="guest-hero__content">
+          <!-- Logo BIODIV FRANCE -->
+          <div class="guest-hero__logo">
+            <img src="assets/images/logo-biodiv-france.svg" alt="BIODIV France" class="biodiv-logo" />
+          </div>
 
-        <!-- Main Title -->
-        <h1 class="hero-title">{{ 'home.guest.title' | translate }}</h1>
+          <!-- Main Title -->
+          <h1 class="guest-hero__title">{{ 'home.guest.title' | translate }}</h1>
 
-        <!-- Project Description -->
-        <div class="project-description">
-          <p class="description-intro">
-            {{ 'home.guest.description.intro' | translate }}
-          </p>
-          <p class="description-details">
-            {{ 'home.guest.description.details' | translate }}
-          </p>
-        </div>
+          <!-- Subtitle -->
+          <p class="guest-hero__subtitle">{{ 'home.guest.subtitle' | translate }}</p>
 
-        <!-- Partners Section -->
-        <div class="partners-section">
-          <span class="partners-label">{{ 'home.guest.partners.label' | translate }}</span>
-          <div class="partners-list">
-            <span class="partner-badge">CEN</span>
-            <span class="partner-badge">RNF</span>
+          <!-- CTA Button -->
+          <div class="guest-hero__actions">
+            <a routerLink="/auth/register" mat-flat-button class="guest-hero__btn guest-hero__btn--primary">
+              {{ 'home.guest.createAccount' | translate }}
+            </a>
+            <a routerLink="/auth/login" class="guest-hero__link">
+              {{ 'home.guest.actions.login.title' | translate }}
+              <i class="fi fi-rr-arrow-right"></i>
+            </a>
           </div>
         </div>
-      </section>
 
-      <!-- Auth Actions Section -->
-      <section class="auth-actions-section">
-        <div class="auth-cards">
-          <!-- Login Card -->
-          <a routerLink="/auth/login" class="auth-card auth-card--login">
-            <div class="auth-card-icon">
-              <i class="fi fi-rr-sign-in-alt"></i>
-            </div>
-            <div class="auth-card-content">
-              <h3 class="auth-card-title">{{ 'home.guest.actions.login.title' | translate }}</h3>
-              <p class="auth-card-description">{{ 'home.guest.actions.login.description' | translate }}</p>
-            </div>
-            <i class="fi fi-rr-arrow-right auth-card-arrow"></i>
-          </a>
-
-          <!-- Register Card -->
-          <a routerLink="/auth/register" class="auth-card auth-card--register">
-            <div class="auth-card-icon">
-              <i class="fi fi-rr-user-add"></i>
-            </div>
-            <div class="auth-card-content">
-              <h3 class="auth-card-title">{{ 'home.guest.actions.register.title' | translate }}</h3>
-              <p class="auth-card-description">{{ 'home.guest.actions.register.description' | translate }}</p>
-            </div>
-            <i class="fi fi-rr-arrow-right auth-card-arrow"></i>
-          </a>
+        <!-- Right Column - Image -->
+        <div class="guest-hero__image-container">
+          <img
+            [src]="homepageImage()"
+            alt=""
+            class="guest-hero__image"
+            loading="eager"
+          />
         </div>
       </section>
     }
@@ -161,59 +134,6 @@
       </section>
     }
 
-    <!-- ================================ -->
-    <!-- STATS (Guest only)               -->
-    <!-- ================================ -->
-    @if (!isAuthenticated()) {
-      <!-- Public Stats Section -->
-      <section class="stats-section">
-        <div class="stats-header">
-          <h2 class="stats-title">
-            <i class="fi fi-rr-chart-pie-alt"></i>
-            {{ 'home.guest.stats.title' | translate }}
-          </h2>
-          <p class="stats-subtitle">{{ 'home.guest.stats.subtitle' | translate }}</p>
-        </div>
-
-        <div class="stats-content">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fi fi-rr-map-marker"></i>
-              </div>
-              @if (statsLoading()) {
-                <div class="stat-value stat-value--loading">...</div>
-              } @else {
-                <div class="stat-value">{{ stats()?.sites_count || 0 }}</div>
-              }
-              <div class="stat-label">{{ 'home.guest.stats.sites' | translate }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fi fi-rr-document"></i>
-              </div>
-              @if (statsLoading()) {
-                <div class="stat-value stat-value--loading">...</div>
-              } @else {
-                <div class="stat-value">{{ stats()?.plans_count || 0 }}</div>
-              }
-              <div class="stat-label">{{ 'home.guest.stats.plans' | translate }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fi fi-rr-building"></i>
-              </div>
-              @if (statsLoading()) {
-                <div class="stat-value stat-value--loading">...</div>
-              } @else {
-                <div class="stat-value">{{ stats()?.organismes_count || 0 }}</div>
-              }
-              <div class="stat-label">{{ 'home.guest.stats.organismes' | translate }}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-    }
 
     <!-- ================================ -->
     <!-- REFERENTIALS (Authenticated)     -->

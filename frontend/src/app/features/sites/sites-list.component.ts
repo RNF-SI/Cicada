@@ -155,17 +155,28 @@ export class SitesListComponent implements OnInit {
 
   // Sites affiches (filtrés par recherche)
   readonly displayedMySites = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
+    const term = this.normalizeText(this.searchTerm().trim());
     const sites = this.scopedSites();
 
     if (!term) return sites;
 
     return sites.filter(site =>
-      site.nom_site.toLowerCase().includes(term) ||
-      site.type_site_label?.toLowerCase().includes(term) ||
-      site.organismes?.some(o => o.nom_organisme.toLowerCase().includes(term))
+      this.normalizeText(site.nom_site).includes(term) ||
+      this.normalizeText(site.type_site_label || '').includes(term) ||
+      site.organismes?.some(o => this.normalizeText(o.nom_organisme).includes(term))
     );
   });
+
+  /**
+   * Normalise un texte pour la recherche insensible aux accents.
+   * Convertit en minuscules et supprime les accents.
+   */
+  private normalizeText(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
 
   // Pagination pour mes sites
   readonly paginatedMySites = computed(() => {

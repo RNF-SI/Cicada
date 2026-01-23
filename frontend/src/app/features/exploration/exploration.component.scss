@@ -1,0 +1,321 @@
+@import 'variables';
+
+.exploration-main {
+  min-height: calc(100vh - 64px);
+  background-color: $beige;
+}
+
+.exploration-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 48px;
+}
+
+.exploration-nav {
+  margin-bottom: 24px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $primary-color;
+  text-decoration: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 200ms ease-out;
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  i {
+    font-size: 16px;
+  }
+}
+
+.exploration-header {
+  margin-bottom: 40px;
+}
+
+.exploration-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: $primary-color;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  i {
+    font-size: 40px;
+    color: $secondary-yellow;
+  }
+}
+
+.exploration-subtitle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: $gray-dark;
+  margin: 0;
+}
+
+/* Stats Section */
+.stats-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
+}
+
+.stats-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.stats-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: $primary-color;
+  margin: 0 0 8px 0;
+}
+
+.stats-subtitle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: $gray-dark;
+  margin: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 32px 24px;
+  background: linear-gradient(135deg, rgba($primary-color, 0.03) 0%, rgba($secondary-yellow, 0.05) 100%);
+  border-radius: 16px;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.stat-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  i {
+    font-size: 32px;
+    color: $white;
+  }
+
+  &--sites {
+    background: linear-gradient(135deg, $primary-color 0%, lighten($primary-color, 10%) 100%);
+  }
+
+  &--plans {
+    background: linear-gradient(135deg, $secondary-terra-cotta 0%, lighten($secondary-terra-cotta, 10%) 100%);
+  }
+
+  &--orgs {
+    background: linear-gradient(135deg, $success-color 0%, lighten($success-color, 10%) 100%);
+  }
+}
+
+.stat-value {
+  font-family: 'Nunito', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: $primary-color;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value--loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Coming Soon Section */
+.coming-soon-section {
+  margin-top: 24px;
+}
+
+.coming-soon-card {
+  background: $white;
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 2px dashed $gray-light;
+}
+
+.coming-soon-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, $secondary-yellow 0%, $secondary-orange-salmon 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 36px;
+    color: $primary-color;
+  }
+}
+
+.coming-soon-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: $primary-color;
+  margin: 0 0 12px 0;
+}
+
+.coming-soon-message {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: $gray-dark;
+  margin: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .exploration-container {
+    padding: 24px 32px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 24px 16px;
+  }
+
+  .stat-value {
+    font-size: 36px;
+  }
+
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+
+    i {
+      font-size: 28px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .exploration-container {
+    padding: 20px 16px;
+  }
+
+  .exploration-title {
+    font-size: 28px;
+
+    i {
+      font-size: 32px;
+    }
+  }
+
+  .exploration-subtitle {
+    font-size: 16px;
+  }
+
+  .stats-section {
+    padding: 24px 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stat-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .stat-icon {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+  }
+
+  .coming-soon-card {
+    padding: 32px 20px;
+  }
+
+  .coming-soon-icon {
+    width: 64px;
+    height: 64px;
+
+    i {
+      font-size: 28px;
+    }
+  }
+
+  .coming-soon-title {
+    font-size: 18px;
+  }
+
+  .coming-soon-message {
+    font-size: 14px;
+  }
+}

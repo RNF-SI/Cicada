@@ -3,7 +3,46 @@ Serializers pour les modeles du core.
 """
 from rest_framework import serializers
 
-from .models import Module, ErrorLog, ActivityLog
+from .models import Module, ErrorLog, ActivityLog, SiteConfiguration
+
+
+# =============================================================================
+# SiteConfiguration Serializers
+# =============================================================================
+
+class SiteConfigurationSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la configuration du site.
+    Expose uniquement les champs necessaires au frontend.
+    """
+
+    homepage_image_url = serializers.SerializerMethodField()
+    updated_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SiteConfiguration
+        fields = [
+            'homepage_image',
+            'homepage_image_url',
+            'updated_at',
+            'updated_by',
+            'updated_by_name',
+        ]
+        read_only_fields = ['homepage_image_url', 'updated_at', 'updated_by', 'updated_by_name']
+
+    def get_homepage_image_url(self, obj) -> str | None:
+        """Retourne l'URL complete de l'image."""
+        if obj.homepage_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.homepage_image.url)
+            return obj.homepage_image.url
+        return None
+
+    def get_updated_by_name(self, obj) -> str | None:
+        if obj.updated_by:
+            return obj.updated_by.get_full_name() or obj.updated_by.email
+        return None
 
 
 class ModuleSerializer(serializers.ModelSerializer):

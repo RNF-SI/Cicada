@@ -104,7 +104,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
     { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' },
-    { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' }
+    { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' },
+    { label: 'Paramètres', icon: 'fi-rr-settings', route: '/administration/parametres', exactRole: 'super_admin' }
   ];
 
   visibleNavItems = computed(() => {

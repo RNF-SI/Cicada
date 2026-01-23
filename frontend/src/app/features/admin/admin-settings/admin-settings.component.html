@@ -1,0 +1,116 @@
+<div class="admin-settings">
+  <!-- Page Header -->
+  <header class="page-header">
+    <h1 class="page-title">{{ 'admin.settings.title' | translate }}</h1>
+    <p class="page-subtitle">{{ 'admin.settings.subtitle' | translate }}</p>
+  </header>
+
+  <!-- Homepage Image Section -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-picture"></i>
+        {{ 'admin.settings.homepage.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'admin.settings.homepage.description' | translate }}</p>
+    </div>
+
+    <div class="image-settings">
+      <!-- Current/Preview Image -->
+      <div class="image-preview-container">
+        <div class="image-preview">
+          @if (isLoading()) {
+            <div class="image-loading">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          } @else {
+            <img [src]="currentImageUrl" alt="Homepage image" class="preview-image" />
+          }
+
+          @if (previewImage()) {
+            <div class="preview-badge">{{ 'admin.settings.homepage.preview' | translate }}</div>
+          }
+        </div>
+
+        <!-- Image info -->
+        <div class="image-info">
+          @if (hasCustomImage && !previewImage()) {
+            <span class="image-status image-status--custom">
+              <i class="fi fi-rr-check-circle"></i>
+              {{ 'admin.settings.homepage.current' | translate }}
+            </span>
+            @if (config()?.updated_at) {
+              <span class="image-meta">
+                {{ 'admin.settings.homepage.lastUpdate' | translate }}: {{ formatDate(config()?.updated_at) }}
+                @if (config()?.updated_by_name) {
+                  ({{ config()?.updated_by_name }})
+                }
+              </span>
+            }
+          } @else if (!previewImage()) {
+            <span class="image-status image-status--default">
+              <i class="fi fi-rr-info"></i>
+              {{ 'admin.settings.homepage.noImage' | translate }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="image-actions">
+        @if (previewImage()) {
+          <!-- Preview mode: Save or Cancel -->
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="uploadImage()"
+            [disabled]="isSaving()"
+          >
+            @if (isSaving()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              <i class="fi fi-rr-check"></i>
+              {{ 'common.actions.save' | translate }}
+            }
+          </button>
+          <button
+            mat-stroked-button
+            (click)="cancelSelection()"
+            [disabled]="isSaving()"
+          >
+            {{ 'common.actions.cancel' | translate }}
+          </button>
+        } @else {
+          <!-- Normal mode: Upload or Reset -->
+          <label class="upload-button">
+            <input
+              type="file"
+              accept="image/*"
+              (change)="onFileSelected($event)"
+              hidden
+            />
+            <span mat-flat-button color="primary" class="upload-btn-content">
+              <i class="fi fi-rr-upload"></i>
+              {{ 'admin.settings.homepage.upload' | translate }}
+            </span>
+          </label>
+
+          @if (hasCustomImage) {
+            <button
+              mat-stroked-button
+              (click)="resetToDefault()"
+              [disabled]="isSaving()"
+            >
+              @if (isSaving()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <i class="fi fi-rr-refresh"></i>
+                {{ 'admin.settings.homepage.restore' | translate }}
+              }
+            </button>
+          }
+        }
+      </div>
+    </div>
+  </section>
+</div>

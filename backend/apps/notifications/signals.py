@@ -105,8 +105,12 @@ def track_user_deactivation(sender, instance, **kwargs):
             instance._was_active = old_instance.active
         else:
             instance._was_deactivated = False
+
+        # Detecter le changement d'organisme
+        instance._old_organisme = old_instance.id_organisme
     except sender.DoesNotExist:
         instance._was_deactivated = False
+        instance._old_organisme = None
 
 
 @receiver(post_save, sender='users.Role')
@@ -128,6 +132,40 @@ def notify_user_deactivation(sender, instance, created, **kwargs):
                 reason=instance.deactivation_reason
             )
             logger.info(f"User {instance} was deactivated by {instance.deactivated_by}")
+
+
+@receiver(post_save, sender='users.Role')
+def notify_user_organisme_changed(sender, instance, created, **kwargs):
+    """
+    Notifie un utilisateur lorsque son organisme est modifie par un admin.
+    """
+    if created:
+        return
+
+    old_organisme = getattr(instance, '_old_organisme', None)
+    new_organisme = instance.id_organisme
+
+    # Verifier si l'organisme a change
+    if old_organisme is None and new_organisme is None:
+        return
+    if old_organisme and new_organisme and old_organisme.pk == new_organisme.pk:
+        return
+
+    from .services import NotificationService
+
+    old_name = old_organisme.nom_organisme if old_organisme else "Aucun"
+    new_name = new_organisme.nom_organisme if new_organisme else "Aucun"
+
+    NotificationService.create_notification(
+        recipient=instance,
+        notification_type='organisme_changed',
+        title="Votre organisme a été modifié",
+        message=f"Votre organisme a été changé de \"{old_name}\" vers \"{new_name}\".",
+        priority='high',
+        related_organisme=new_organisme,
+        action_url="/profile",
+    )
+    logger.info(f"User {instance} notified of organisme change: {old_name} -> {new_name}")
 
 
 @receiver(post_save, sender='notifications.ValidationRequest')

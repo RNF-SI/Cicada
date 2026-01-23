@@ -11,12 +11,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from apps.users.permissions import IsSuperAdmin, IsAdminOrganisme
 from apps.notifications.models import ValidationRequest, Notification
 from apps.users.models import CorRoleSite, CorOgSite
 
-from .models import Module, ErrorLog, ActivityLog
+from .models import Module, ErrorLog, ActivityLog, SiteConfiguration
 from .serializers import (
     ModuleSerializer,
     ModuleListSerializer,
@@ -27,7 +29,71 @@ from .serializers import (
     ActivityLogListSerializer,
     ActivityLogDetailSerializer,
     ActivityLogStatsSerializer,
+    SiteConfigurationSerializer,
 )
+
+
+# =============================================================================
+# SiteConfiguration View
+# =============================================================================
+
+class SiteConfigurationView(APIView):
+    """
+    Vue pour la configuration globale du site.
+
+    Endpoints:
+    - GET /api/settings/ - Retourne la configuration (public, pas d'auth)
+    - PATCH /api/settings/ - Met a jour l'image (super_admin uniquement)
+    """
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_permissions(self):
+        """
+        GET: Pas d'authentification requise
+        PATCH/PUT: Super admin uniquement
+        """
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsSuperAdmin()]
+
+    def get(self, request):
+        """
+        GET /api/settings/
+        Retourne la configuration du site (public).
+        """
+        config = SiteConfiguration.get_instance()
+        serializer = SiteConfigurationSerializer(config, context={'request': request})
+        return Response(serializer.data)
+
+    def patch(self, request):
+        """
+        PATCH /api/settings/
+        Met a jour la configuration (super_admin only).
+        Supporte l'upload d'image via multipart/form-data.
+        """
+        config = SiteConfiguration.get_instance()
+
+        # Gestion de la suppression d'image (reset to default)
+        if request.data.get('homepage_image') == '' or request.data.get('reset_image') == 'true':
+            # Supprimer l'image actuelle si elle existe
+            if config.homepage_image:
+                config.homepage_image.delete(save=False)
+            config.homepage_image = None
+            config.updated_by = request.user
+            config.save()
+            serializer = SiteConfigurationSerializer(config, context={'request': request})
+            return Response(serializer.data)
+
+        serializer = SiteConfigurationSerializer(
+            config,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        config = serializer.save(updated_by=request.user)
+        return Response(SiteConfigurationSerializer(config, context={'request': request}).data)
 
 
 class ModuleViewSet(viewsets.ModelViewSet):

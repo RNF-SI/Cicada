@@ -14,6 +14,8 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 8. [Pages d'administration](#8-pages-dadministration)
 9. [RGPD - Suppression de compte](#9-rgpd---suppression-de-compte)
 10. [Tests](#10-tests)
+11. [Configuration du site](#11-configuration-du-site)
+12. [Page Exploration](#12-page-exploration)
 
 ---
 
@@ -1902,7 +1904,111 @@ C'est le pourcentage de lignes de code exécutées par les tests.
 
 ---
 
+## 11. Configuration du site
+
+### Comment ça marche
+
+La configuration du site permet aux super administrateurs de personnaliser certains aspects de l'application, notamment l'image affichée sur la page d'accueil pour les visiteurs non connectés.
+
+### Modèle Singleton
+
+La configuration du site utilise un **pattern singleton** : il n'existe qu'une seule instance de configuration en base de données (toujours l'ID 1). Cette approche garantit qu'il n'y a jamais de confusion sur quelle configuration utiliser.
+
+### API de configuration
+
+| Endpoint | Méthode | Permission | Description |
+|----------|---------|------------|-------------|
+| `/api/settings/` | GET | Public | Récupère la configuration actuelle |
+| `/api/settings/` | PATCH | super_admin | Met à jour la configuration |
+
+### Flux de modification de l'image
+
+1. Le super admin accède à **Administration > Paramètres**
+2. Il clique sur "Choisir une image" ou glisse-dépose un fichier
+3. Une prévisualisation s'affiche
+4. Il clique sur "Enregistrer"
+5. L'image est uploadée en `multipart/form-data`
+6. Le backend :
+   - Valide le type de fichier (image uniquement)
+   - Supprime l'ancienne image si elle existe
+   - Stocke la nouvelle dans `media/settings/homepage/`
+   - Met à jour `updated_at` et `updated_by`
+7. L'URL de l'image est retournée et utilisée sur la page d'accueil
+
+### Réinitialisation
+
+Pour revenir à l'image par défaut :
+- Envoyer `reset_image=true` ou `homepage_image=''` via PATCH
+- Le backend supprime l'image personnalisée
+- La page d'accueil affiche alors l'image par défaut (`assets/images/homepage-default.jpg`)
+
+### Structure des données
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `homepage_image` | ImageField | Chemin relatif de l'image uploadée |
+| `homepage_image_url` | URL (généré) | URL complète pour affichage |
+| `updated_at` | DateTime | Date de dernière modification |
+| `updated_by` | ForeignKey | Super admin ayant modifié |
+
+### Fichiers concernés
+
+| Fichier | Rôle |
+|---------|------|
+| `backend/apps/core/models.py` | Modèle `SiteConfiguration` |
+| `backend/apps/core/views.py` | Vue `SiteConfigurationView` |
+| `backend/apps/core/serializers.py` | Sérialiseur |
+| `frontend/.../settings.service.ts` | Service Angular |
+| `frontend/.../admin-settings/` | Composant d'administration |
+
+---
+
+## 12. Page Exploration
+
+### Comment ça marche
+
+La page Exploration offre aux visiteurs non connectés une vue d'ensemble des espaces naturels protégés gérés dans l'application. C'est une page d'entrée "vitrine" accessible publiquement.
+
+### Objectif
+
+- Présenter les statistiques globales (nombre de sites, plans, etc.)
+- Permettre une navigation vers la découverte des sites
+- Servir de page d'accueil alternative pour les visiteurs
+
+### Contenu affiché
+
+| Élément | Source |
+|---------|--------|
+| Nombre total de sites actifs | API `/api/public/stats/` |
+| Nombre de plans de gestion | API `/api/public/stats/` |
+| Répartition par type de site | API `/api/public/stats/` |
+| Image de fond | Configuration du site |
+
+### Accès
+
+- **Route** : `/exploration`
+- **Permission** : Publique (pas d'authentification requise)
+- **Lien depuis** : Page d'accueil (visiteurs non connectés)
+
+### Composants utilisés
+
+- `ExplorationComponent` : Composant principal
+- `HeaderComponent` : Navigation commune
+- `PublicStatsService` : Récupération des statistiques publiques
+
+### Fichiers concernés
+
+| Fichier | Rôle |
+|---------|------|
+| `frontend/.../exploration/exploration.component.ts` | Composant principal |
+| `frontend/.../exploration/exploration.component.html` | Template |
+| `frontend/.../exploration/exploration.component.scss` | Styles |
+| `frontend/.../exploration/exploration.routes.ts` | Configuration des routes |
+
+---
+
 **Historique des mises à jour** :
+- Janvier 2026 : Ajout Configuration du site et Page Exploration
 - Janvier 2026 : Ajout fonctionnalité RGPD - Suppression de compte
 - Janvier 2026 : Ajout notification `organisme_changed` (changement d'organisme par admin)
 - Janvier 2026 : Ajout validation `site_org_unlink` (demande de retrait d'organisme d'un site)

@@ -1,0 +1,80 @@
+<!-- Header -->
+<app-header></app-header>
+
+<main class="exploration-main">
+  <div class="exploration-container">
+    <!-- Breadcrumb / Back link -->
+    <nav class="exploration-nav">
+      <a routerLink="/" class="back-link">
+        <i class="fi fi-rr-arrow-left"></i>
+        {{ 'exploration.backToHome' | translate }}
+      </a>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="exploration-header">
+      <h1 class="exploration-title">
+        <i class="fi fi-rr-search"></i>
+        {{ 'exploration.title' | translate }}
+      </h1>
+      <p class="exploration-subtitle">{{ 'exploration.subtitle' | translate }}</p>
+    </header>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stats-header">
+        <h2 class="stats-title">{{ 'exploration.stats.title' | translate }}</h2>
+        <p class="stats-subtitle">{{ 'exploration.stats.subtitle' | translate }}</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--sites">
+            <i class="fi fi-rr-map-marker"></i>
+          </div>
+          @if (statsLoading()) {
+            <div class="stat-value stat-value--loading">...</div>
+          } @else {
+            <div class="stat-value">{{ stats()?.sites_count || 0 }}</div>
+          }
+          <div class="stat-label">{{ 'exploration.stats.sites' | translate }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--plans">
+            <i class="fi fi-rr-document"></i>
+          </div>
+          @if (statsLoading()) {
+            <div class="stat-value stat-value--loading">...</div>
+          } @else {
+            <div class="stat-value">{{ stats()?.plans_count || 0 }}</div>
+          }
+          <div class="stat-label">{{ 'exploration.stats.plans' | translate }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--orgs">
+            <i class="fi fi-rr-building"></i>
+          </div>
+          @if (statsLoading()) {
+            <div class="stat-value stat-value--loading">...</div>
+          } @else {
+            <div class="stat-value">{{ stats()?.organismes_count || 0 }}</div>
+          }
+          <div class="stat-label">{{ 'exploration.stats.organismes' | translate }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Coming Soon Section -->
+    <section class="coming-soon-section">
+      <div class="coming-soon-card">
+        <div class="coming-soon-icon">
+          <i class="fi fi-rr-rocket"></i>
+        </div>
+        <h3 class="coming-soon-title">{{ 'exploration.comingSoon.title' | translate }}</h3>
+        <p class="coming-soon-message">{{ 'exploration.comingSoon.message' | translate }}</p>
+      </div>
+    </section>
+  </div>
+</main>

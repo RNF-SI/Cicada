@@ -819,6 +819,31 @@ class UsersConfig(AppConfig):
   - `POST /api/notifications/{id}/read/` - Mark notification as read
   - `POST /api/notifications/read-all/` - Mark all as read
 
+**Types de notifications disponibles:**
+| Type | Description | Déclencheur |
+|------|-------------|-------------|
+| `welcome` | Bienvenue | Activation du compte après validation |
+| `validation_request` | Demande de validation | Nouvelle demande reçue (pour validateurs) |
+| `validation_approved` | Validation approuvée | Demande approuvée |
+| `validation_rejected` | Validation rejetée | Demande rejetée |
+| `user_associated_site` | Associé à un site | Ajout comme membre d'un site |
+| `user_associated_plan` | Associé à un plan | Ajout comme référent d'un plan |
+| `user_removed_site` | Retiré d'un site | Retrait d'un site |
+| `user_removed_plan` | Retiré d'un plan | Retrait d'un plan |
+| `account_deactivated` | Compte désactivé | Désactivation par un admin |
+| `account_activated` | Compte activé | Réactivation par un admin |
+| `organisme_changed` | Organisme modifié | Changement d'organisme par un admin |
+| `site_orphaned` | Site sans utilisateurs | Plus aucun utilisateur sur le site |
+| `organisme_no_admin` | Organisme sans admin | Plus d'administrateur pour l'organisme |
+| `system_alert` | Alerte système | Notifications système (maintenance, etc.) |
+| `info` | Information | Informations générales |
+
+**Signaux de notifications automatiques** (`apps/notifications/signals.py`):
+- `notify_user_site_association`: Notifie lors de l'ajout à un site
+- `notify_user_removed_from_site`: Notifie lors du retrait d'un site
+- `notify_user_deactivation`: Notifie lors de la désactivation
+- `notify_user_organisme_changed`: Notifie lors du changement d'organisme
+
 **API REST Activity (Historique d'activité):**
 - Unified activity timeline API at `/api/activity/`
 - Entity types: `site`, `plan`, `user`, `organisme`, `validation`
