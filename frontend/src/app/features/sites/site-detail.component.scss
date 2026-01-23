@@ -33,11 +33,11 @@ h1 { @include sites-h1; }
 .empty-icon { @include sites-empty-icon; }
 .empty-state p { font-family: $font-family; font-size: $font-size-base; color: $gray-dark; margin: 0; }
 
-// Status badges
+// Status badges (design Figma - style secondaire sur fond sombre)
 .status-badges { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-top: $spacing-sm; }
-.status-inactive { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
-.status-referent { background-color: $secondary-yellow !important; color: $black !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; } }
-.status-user { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; } }
+.status-inactive { background-color: $gray-light !important; color: $gray-dark !important; font-size: 12px; }
+.status-referent { background-color: $white !important; color: $primary-color !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; color: $primary-color; } }
+.status-user { background-color: $white !important; color: $primary-color !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; color: $primary-color; } }
 .chip-icon { font-size: 12px; margin-right: 4px; }
 
 // Title right buttons (sur fond sombre de la bannière)
