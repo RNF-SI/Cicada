@@ -121,11 +121,9 @@
   }
 }
 
-// Séparateur ">" (design Figma)
+// Séparateur icône flèche (design Figma)
 @mixin sites-breadcrumb-separator {
-  font-family: $font-family;
-  font-size: 15px;
-  font-weight: $font-weight-bold;
+  font-size: 16px;
   color: $black;
 }
 
