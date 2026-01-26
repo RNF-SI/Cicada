@@ -26,6 +26,7 @@ class Notification(models.Model):
         ('organisme_changed', _('Organisme modifié')),
         ('site_orphaned', _('Site sans utilisateurs')),
         ('organisme_no_admin', _('Organisme sans administrateur')),
+        ('plan_needs_reassignment', _('Plan à réassigner')),
         ('system_alert', _('Alerte système')),
         ('info', _('Information')),
     ]

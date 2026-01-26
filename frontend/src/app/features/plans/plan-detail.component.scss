@@ -15,6 +15,56 @@
   min-height: calc(100vh - 64px);
 }
 
+// Loading & Error states
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container {
+  i {
+    font-size: 48px;
+    color: $error-color;
+  }
+
+  p {
+    color: $error-color;
+    margin-bottom: $spacing-lg;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+    background: $primary-color;
+    color: $white;
+    border: none;
+    border-radius: $border-radius-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background: darken($primary-color, 10%);
+    }
+  }
+}
+
 // ============================================
 // SIDEBAR
 // ============================================
@@ -154,15 +204,15 @@
 
 .hero-pattern {
   position: absolute;
-  right: -100px;
-  top: -100px;
-  width: 800px;
-  height: 800px;
-  background-image: url('/assets/images/data-waves.png');
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
   background-size: contain;
   background-repeat: no-repeat;
-  opacity: 0.2;
-  transform: rotate(180deg);
+  background-position: right center;
+  opacity: 1;
 }
 
 .hero-content {
@@ -170,13 +220,18 @@
   z-index: 1;
 }
 
-// Breadcrumb
+// Breadcrumb (design Figma: lignes horizontales blanches)
 .breadcrumb {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  justify-content: flex-start;
+  gap: $spacing-md;
   margin-bottom: $spacing-md;
   height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .breadcrumb-home {
@@ -190,6 +245,8 @@
   color: $primary-color;
   text-decoration: none;
   flex-shrink: 0;
+  z-index: 2;
+  transition: transform $transition-fast;
 
   i {
     font-size: 24px;
@@ -200,50 +257,61 @@
   }
 }
 
-.breadcrumb-separator {
-  position: relative;
-  width: 16px;
-  height: 48px;
+// Lignes horizontales blanches (design Figma)
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 18px;
-    background-color: $white;
-  }
-
+  &::before,
   &::after {
     content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-    height: 18px;
+    display: block;
+    width: 100%;
+    height: 1px;
     background-color: $white;
   }
 }
 
+// Conteneur du texte du breadcrumb
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
 .breadcrumb-link {
   color: $white;
+  font-family: $font-family;
   font-size: $font-size-base;
-  text-decoration: none;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 
   &:hover {
-    text-decoration: underline;
+    text-decoration-thickness: 2px;
   }
 }
 
 .breadcrumb-chevron {
   color: $white;
-  display: flex;
-  align-items: center;
+  font-size: 16px;
+}
 
-  i {
-    font-size: 16px;
-  }
+.breadcrumb-current {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
 }
 
 .breadcrumb-current {

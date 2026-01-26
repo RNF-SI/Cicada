@@ -43,16 +43,56 @@ class PlanGestion(models.Model):
         null=True, blank=True
     )
 
+    # Rang du plan de gestion
+    rang = models.IntegerField(
+        _("Rang du plan"),
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text=_("Numéro du plan (1er, 2ème, 3ème...)")
+    )
+
+    # Surface totale concernée
+    surface = models.DecimalField(
+        _("Surface totale concernée"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Surface en hectares")
+    )
+
     # Contraintes réglementaires
     ct88 = models.BooleanField(
-        _("Circulaire CT88"),
+        _("Méthode de rédaction CT88"),
         default=False,
-        help_text=_("Plan soumis à la circulaire CT88")
+        help_text=_("Plan rédigé selon la méthode CT88")
     )
     risque_incendie = models.BooleanField(
         _("Risque incendie pris en compte"),
         default=False,
         help_text=_("Le risque incendie est-il pris en compte dans le plan ?")
+    )
+
+    # Validation CSPN
+    date_validation_cspn = models.DateField(
+        _("Date de validation CSPN"),
+        null=True, blank=True
+    )
+
+    # Identifiant Doc'Gestion FCEN
+    id_docgestion_fcen = models.CharField(
+        _("ID Doc'Gestion FCEN"),
+        max_length=100,
+        null=True, blank=True
+    )
+
+    # Rédacteurs et relecteurs
+    redacteurs = models.TextField(
+        _("Rédacteurs"),
+        null=True, blank=True
+    )
+
+    relecteurs = models.TextField(
+        _("Relecteurs"),
+        null=True, blank=True
     )
 
     # Relations vers nomenclatures

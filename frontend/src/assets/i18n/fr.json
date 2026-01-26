@@ -944,8 +944,9 @@
       }
     },
     "planForm": {
-      "titleCreate": "Nouveau plan de gestion",
+      "titleCreate": "Saisie des informations générales",
       "titleEdit": "Modifier le plan de gestion",
+      "requiredFieldsNote": "Les champs avec * sont obligatoires",
       "sections": {
         "generalInfo": "Informations générales",
         "managementPeriod": "Période de gestion",
@@ -956,28 +957,59 @@
         "comment": "Commentaire"
       },
       "fields": {
-        "name": "Nom du plan",
-        "status": "Statut",
-        "version": "Version",
-        "editorName": "Nom du rédacteur",
+        "name": "Nom du plan de gestion",
+        "sites": "Choix des sites",
+        "rang": "Rang du plan de gestion",
+        "surface": "Surface totale concernée",
+        "ct88": "Méthode de rédaction CT88",
         "startYear": "Année de début",
         "endYear": "Année de fin",
+        "cspnDate": "Date de validation CSPN",
+        "docGestion": "ID_Doc'Gestion FCEN",
+        "editorType": "Type organisme rédacteur",
+        "editorName": "Nom organisme rédacteur",
+        "redacteurs": "Rédacteurs",
+        "relecteurs": "Relecteurs",
+        "status": "Statut",
+        "version": "Version",
         "sharedManagement": "Gestion partagée",
-        "ct88": "CT88",
         "fireRisk": "Risque incendie",
         "evaluationType": "Type d'évaluation",
-        "editorType": "Type de rédacteur",
         "comment": "Commentaire"
+      },
+      "hints": {
+        "rang": "Saisissez un nombre entier",
+        "surface": "Saisissez un nombre",
+        "editorName": "Sélectionnez un organisme existant ou saisissez un texte libre",
+        "redacteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
+        "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)"
       },
       "placeholders": {
         "name": "Plan de gestion 2024-2034 - Site XYZ",
-        "editorName": "Bureau d'étude XYZ",
+        "editorName": "Rechercher un organisme ou saisir un nom...",
         "searchSite": "Rechercher un site...",
         "searchUser": "Rechercher un utilisateur...",
-        "comment": "Informations complémentaires..."
+        "comment": "Informations complémentaires...",
+        "redacteurs": "Rechercher ou ajouter un rédacteur...",
+        "relecteurs": "Rechercher ou ajouter un relecteur..."
+      },
+      "ct88Options": {
+        "yes": "Oui",
+        "no": "Non"
+      },
+      "sitesHint": "Si votre site n'est pas dans la liste, vous devez d'abord ",
+      "sitesHintLink": "créer le site.",
+      "sitePending": "(en attente de validation)",
+      "addFreeText": "Ajouter en texte libre",
+      "messages": {
+        "siteCreated": "Site créé et sélectionné avec succès",
+        "sitePendingValidation": "Site créé et sélectionné. Il sera validé par un administrateur."
       },
       "validation": {
-        "nameRequired": "Le nom est requis"
+        "nameRequired": "Le nom est requis",
+        "sitesRequired": "Sélectionnez au moins un site",
+        "rangRequired": "Le rang est obligatoire",
+        "rangMin": "Le rang doit être au minimum 1"
       },
       "noSiteMatching": "Aucun site correspondant à \"{{query}}\"",
       "noSiteAvailable": "Aucun site disponible",
@@ -992,6 +1024,15 @@
     }
   },
   "plans": {
+    "title": "Plans de gestion",
+    "newPlan": "NOUVEAU PLAN DE GESTION",
+    "status": {
+      "draft": "Brouillon",
+      "valide": "Validé",
+      "archive": "Archivé",
+      "en_cours": "En cours",
+      "annule": "Annulé"
+    },
     "list": {
       "title": "Plans de gestion",
       "subtitle": "Consultez et gérez vos plans de gestion",
@@ -1040,7 +1081,17 @@
       "tabs": {
         "details": "Détails et saisie",
         "general": "Informations générales"
-      }
+      },
+      "siteInvalid": "Site en attente de validation ou rejeté",
+      "siteInvalidWarning": "Ce plan est lié à un site qui n'est pas encore validé ou qui a été rejeté. Vous pouvez le réassigner à un autre site.",
+      "reassignSite": "Réassigner le site",
+      "reassignSiteTitle": "Réassigner le plan à un autre site",
+      "reassignSiteDescription": "Sélectionnez un nouveau site pour remplacer le site invalide.",
+      "oldSite": "Site actuel (invalide)",
+      "newSite": "Nouveau site",
+      "selectNewSite": "Sélectionner un site...",
+      "reassignSuccess": "Le plan a été réassigné avec succès",
+      "reassignError": "Erreur lors de la réassignation"
     },
     "status": {
       "draft": "Brouillon",
@@ -1421,6 +1472,8 @@
       "rgpd_cancelled": "Annulation RGPD",
       "rgpd_anonymized": "Anonymisation RGPD",
       "access_granted": "Accès accordé",
+      "replace_site": "Réassignation de site",
+      "plan_needs_reassignment": "Plan à réassigner",
       "access_revoked": "Accès retiré",
       "validation_approved": "Validation approuvée",
       "validation_rejected": "Validation rejetée",

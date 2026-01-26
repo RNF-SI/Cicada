@@ -1,21 +1,11 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslateModule } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
-
-interface PlanGestion {
-  id: number;
-  nom: string;
-  dateDebut: number;
-  dateFin: number;
-  organismeRedacteur: string;
-  niveauEvaluation: string;
-  ct88: boolean;
-  rang: number;
-  surface: number;
-  identifiantCdrOfb: string;
-  statut: string;
-}
+import { AdminService } from '../../core/services/admin.service';
+import { AdminPlan } from '../../core/models/admin.model';
 
 interface MenuItem {
   label: string;
@@ -31,6 +21,8 @@ interface MenuItem {
   imports: [
     CommonModule,
     RouterModule,
+    MatProgressSpinnerModule,
+    TranslateModule,
     HeaderComponent
   ],
   templateUrl: './plan-detail.component.html',
@@ -39,11 +31,14 @@ interface MenuItem {
 export class PlanDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly adminService = inject(AdminService);
 
   planId = signal<number | null>(null);
+  isLoading = signal(true);
+  errorMessage = signal<string | null>(null);
 
-  // Mock data - à remplacer par l'appel API
-  plan = signal<PlanGestion | null>(null);
+  // Plan data from API
+  plan = signal<AdminPlan | null>(null);
 
   // Menu latéral du plan
   menuItems = signal<MenuItem[]>([
@@ -86,20 +81,21 @@ export class PlanDetailComponent implements OnInit {
   }
 
   loadPlan(): void {
-    // TODO: Appeler l'API backend pour récupérer le plan
-    // Mock data pour l'instant
-    this.plan.set({
-      id: this.planId() || 1,
-      nom: 'Marais du Grosset et Fisselong',
-      dateDebut: 2020,
-      dateFin: 2025,
-      organismeRedacteur: 'Biotope (BE)',
-      niveauEvaluation: 'Evaluation intermédiaire',
-      ct88: true,
-      rang: 3,
-      surface: 100000,
-      identifiantCdrOfb: 'Lorem ipsum',
-      statut: 'Evaluation à mi-parcours'
+    const id = this.planId();
+    if (!id) return;
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    this.adminService.getPlan(id).subscribe({
+      next: (plan) => {
+        this.plan.set(plan);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
+        this.isLoading.set(false);
+      }
     });
   }
 

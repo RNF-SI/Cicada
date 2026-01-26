@@ -19,6 +19,7 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 | 11 | [Configuration du site](fonctionnalites/11-configuration.md) | Paramètres, image d'accueil |
 | 12 | [Page Exploration](fonctionnalites/12-exploration.md) | Page publique vitrine |
 | 13 | [Données de test (Seeders)](fonctionnalites/13-seeders.md) ⚠️ | Architecture modulaire des seeders |
+| 14 | [Plans de Gestion](fonctionnalites/14-plans.md) | Création, sites en attente, réassignation |
 
 > ⚠️ = Section réservée aux développeurs
 

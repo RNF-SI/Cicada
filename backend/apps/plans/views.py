@@ -228,15 +228,82 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return Response({'message': 'Site retiré du plan'})
             
         except CorSitePg.DoesNotExist:
-            return Response({'error': 'Relation non trouvée'}, 
+            return Response({'error': 'Relation non trouvée'},
                           status=status.HTTP_404_NOT_FOUND)
-    
-    @action(detail=True, methods=['post'], 
+
+    @action(detail=True, methods=['post'],
+            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+    def replace_site(self, request, pk=None):
+        """
+        Remplacer un site par un autre dans un plan.
+        Utile pour réassigner un plan lié à un site rejeté/invalide.
+
+        POST /api/plans/{id}/replace_site/
+        Body: {"old_site_id": 123, "new_site_id": 456}
+        """
+        from apps.users.models import Site
+
+        plan = self.get_object()
+        old_site_id = request.data.get('old_site_id')
+        new_site_id = request.data.get('new_site_id')
+
+        if not old_site_id or not new_site_id:
+            return Response({'error': 'old_site_id et new_site_id sont requis'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier que le nouveau site existe
+        try:
+            new_site = Site.objects.get(id_site=new_site_id)
+        except Site.DoesNotExist:
+            return Response({'error': 'Nouveau site non trouvé'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        # Vérifier les permissions sur le nouveau site
+        if not request.user.can_manage_site(new_site):
+            return Response({'error': 'Permissions insuffisantes sur le nouveau site'},
+                          status=status.HTTP_403_FORBIDDEN)
+
+        # Vérifier que l'ancien site est bien lié au plan
+        try:
+            old_cor = CorSitePg.objects.get(
+                plan_de_gestion=plan,
+                site__id_site=old_site_id
+            )
+        except CorSitePg.DoesNotExist:
+            return Response({'error': 'Ancien site non lié à ce plan'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        # Vérifier que le nouveau site n'est pas déjà lié
+        if CorSitePg.objects.filter(plan_de_gestion=plan, site=new_site).exists():
+            # Le nouveau site est déjà lié, on supprime juste l'ancien
+            old_cor.delete()
+            return Response({
+                'message': 'Ancien site retiré (le nouveau était déjà lié)',
+                'plan_id': plan.id_pg
+            })
+
+        # Remplacer: mettre à jour l'association existante
+        old_cor.site = new_site
+        old_cor.save()
+
+        # Mettre à jour le modificateur
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+
+        return Response({
+            'message': f'Site remplacé avec succès',
+            'plan_id': plan.id_pg,
+            'old_site_id': old_site_id,
+            'new_site_id': new_site_id,
+            'new_site_name': new_site.nom_site
+        })
+
+    @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
     def assign_referent(self, request, pk=None):
         """
         Assigner un référent à un plan.
-        
+
         POST /api/plans/{id}/assign_referent/
         Body: {"referent_id": 123}
         """

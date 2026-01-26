@@ -313,18 +313,24 @@ export interface AdminPlan {
   id_pg: number;
   nom: string;
   id_cdr?: number;
+  rang?: number;
   statut: PlanStatut;
   version?: string;
   annee_debut?: number;
   annee_fin?: number;
+  surface?: number;
   gestion_partagee: boolean;
   ct88: boolean;
   risque_incendie: boolean;
+  date_validation_cspn?: string;
+  id_docgestion_fcen?: string;
   id_evaluation?: number;
   evaluation_label?: string;
   id_redacteur_type?: number;
   redacteur_type_label?: string;
   redacteur_nom?: string;
+  redacteurs?: string;
+  relecteurs?: string;
   commentaire?: string;
   date_ajout?: string;
   date_maj?: string;
@@ -338,19 +344,27 @@ export interface AdminPlan {
  * Payload pour créer/modifier un plan de gestion
  */
 export interface PlanCreatePayload {
+  // Champs obligatoires
   nom: string;
+  sites_ids: number[];
+  rang: number;
+  ct88: boolean;
+  annee_debut: number;
+  annee_fin: number;
+  // Champs optionnels
   statut?: PlanStatut;
   version?: string;
-  annee_debut?: number;
-  annee_fin?: number;
+  surface?: number;
   gestion_partagee?: boolean;
-  ct88?: boolean;
   risque_incendie?: boolean;
+  date_validation_cspn?: string;
+  id_docgestion_fcen?: string;
   id_evaluation?: number;
   id_redacteur_type?: number;
   redacteur_nom?: string;
+  redacteurs?: string;
+  relecteurs?: string;
   commentaire?: string;
-  sites_ids?: number[];
   referents_ids?: number[];
 }
 

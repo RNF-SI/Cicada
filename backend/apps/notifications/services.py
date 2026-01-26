@@ -384,6 +384,88 @@ class NotificationService:
         )
 
     @staticmethod
+    def notify_plans_need_reassignment(site, organisme=None):
+        """
+        Notifie les admins que des plans liés à un site rejeté doivent être réassignés.
+
+        Args:
+            site: Le site qui a été rejeté/supprimé
+            organisme: L'organisme concerné (optionnel, pour cibler les admin_og)
+        """
+        from apps.plans.models import CorSitePg, PlanGestion
+
+        # Trouver tous les plans liés à ce site
+        plans_linked = PlanGestion.objects.filter(sites__site=site).distinct()
+
+        if not plans_linked.exists():
+            return  # Pas de plans liés, rien à faire
+
+        plan_count = plans_linked.count()
+        plan_names = ", ".join([p.nom for p in plans_linked[:3]])
+        if plan_count > 3:
+            plan_names += f" et {plan_count - 3} autre(s)"
+
+        title = f"Plans à réassigner: site {site.nom_site}"
+        message = (
+            f"Le site '{site.nom_site}' a été rejeté ou supprimé. "
+            f"{plan_count} plan(s) de gestion doi(ven)t être réassigné(s) à un autre site: {plan_names}. "
+            f"Un plan de gestion doit toujours être lié à au moins un site valide."
+        )
+
+        notified_users = set()
+
+        # Notifier les admin_og de l'organisme concerné
+        if organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=organisme,
+                role_level='admin_og',
+                active=True
+            )
+            for admin in admin_ogs:
+                if admin.id_role not in notified_users:
+                    for plan in plans_linked:
+                        NotificationService.create_notification(
+                            recipient=admin,
+                            notification_type='plan_needs_reassignment',
+                            title=title,
+                            message=message,
+                            priority='high',
+                            related_site=site,
+                            related_plan=plan,
+                            action_url=f"/plans/{plan.id_pg}",
+                            send_email=True
+                        )
+                    notified_users.add(admin.id_role)
+
+        # Notifier aussi les référents des plans concernés
+        for plan in plans_linked:
+            for referent in plan.referents.filter(active=True):
+                if referent.id_role not in notified_users:
+                    NotificationService.create_notification(
+                        recipient=referent,
+                        notification_type='plan_needs_reassignment',
+                        title=title,
+                        message=message,
+                        priority='high',
+                        related_site=site,
+                        related_plan=plan,
+                        action_url=f"/plans/{plan.id_pg}",
+                        send_email=True
+                    )
+                    notified_users.add(referent.id_role)
+
+        # Notifier les super admins
+        NotificationService.notify_super_admins(
+            notification_type='plan_needs_reassignment',
+            title=title,
+            message=message,
+            priority='high',
+            related_site=site,
+            action_url=f"/administration/plans?site_invalide={site.id_site}",
+            send_email=True
+        )
+
+    @staticmethod
     def notify_user_deactivated(user, deactivated_by, reason=None):
         """Notifie de la desactivation d'un compte."""
         # Notifier l'utilisateur desactive
@@ -1452,3 +1534,13 @@ class ValidationService:
 
             # Notifier les autres validateurs
             NotificationService.notify_other_validators(validation_request, validator, approved=False)
+
+            # Si c'est un rejet de création de site, vérifier les plans liés
+            if validation_request.request_type == 'site_creation':
+                site = validation_request.target_site
+                if site:
+                    # Vérifier si des plans sont liés à ce site
+                    NotificationService.notify_plans_need_reassignment(
+                        site=site,
+                        organisme=validation_request.requested_organisme
+                    )
