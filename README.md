@@ -48,7 +48,8 @@ Centraliser et standardiser la gestion des plans de gestion des aires protégée
 5. **Accéder à l'application**
    - Backend Django API : http://localhost:8000
    - Interface d'administration : http://localhost:8000/admin (login: `admin` / `admin`)
-   - Frontend Angular : http://localhost:4200 *(à venir)*
+   - Frontend Angular : http://localhost:4200
+   - **Mailpit** (emails de test) : http://localhost:8025
 
 ### Commandes essentielles
 
@@ -116,10 +117,12 @@ cp .env.example .env
 ### Services Docker
 
 - **web** : Application Django backend (port 8000)
-- **frontend** : Application Angular en mode développement (port 4200) *(à venir)*
+- **frontend** : Application Angular en mode développement (port 4200)
 - **db** : PostgreSQL 15 avec PostGIS (port 5432)
 - **redis** : Cache et broker Celery (port 6379)
-- **celery** : Worker Celery (optionnel)
+- **celery-worker** : Worker Celery pour tâches asynchrones (emails, etc.)
+- **celery-beat** : Planificateur de tâches périodiques
+- **mailpit** : Serveur SMTP de test - capture les emails (port 8025)
 
 ### Structure du projet
 
@@ -192,6 +195,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 
 - **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
 - **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
+- **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 

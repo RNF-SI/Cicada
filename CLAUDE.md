@@ -425,7 +425,8 @@ backend/tests/
 ├── apps/               # Tests unitaires
 │   ├── users/          # test_models.py, test_permissions.py, test_middleware.py
 │   ├── plans/          # test_views.py, test_filters.py
-│   └── core/           # test_activity.py (45 tests - model, service, API, signals)
+│   ├── core/           # test_activity.py (45 tests - model, service, API, signals)
+│   └── notifications/  # test_email_integration.py (tests envoi email réel)
 └── integration/        # Tests API
     ├── test_api_auth.py
     ├── test_api_users.py
@@ -433,6 +434,33 @@ backend/tests/
     ├── test_api_plans.py
     └── test_site_duplicates.py  # Détection doublons INPN et noms similaires
 ```
+
+#### Tests d'intégration email (Mailpit)
+
+> **Documentation complète** : Voir [`docs/EMAIL_CONFIGURATION.md`](docs/EMAIL_CONFIGURATION.md)
+
+En développement, **Mailpit** capture tous les emails (interface web : http://localhost:8025).
+
+```bash
+# Démarrer les services (inclut Mailpit)
+docker-compose up -d
+
+# Lancer les tests d'intégration email (utilisent Mailpit automatiquement)
+docker-compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+
+# Tester manuellement l'envoi d'un email
+docker-compose exec web python manage.py shell -c "
+from django.core.mail import send_mail
+send_mail('Test', 'Message de test', 'noreply@cicada.fr', ['test@example.com'])
+print('Email envoyé! Voir http://localhost:8025')
+"
+```
+
+**Tests disponibles (27 tests) :**
+- `TestNotificationEmailIntegration` : welcome, validation_request, account_deactivated, site_association
+- `TestRegistrationEmailIntegration` : pending, approved, rejected
+- `TestFullWorkflowEmailIntegration` : workflow complet inscription, accès site
+- `TestEmailTemplatesIntegration` : test des 15 types de notifications
 
 #### Frontend (Jest)
 
@@ -707,7 +735,7 @@ Run `docker-compose exec web python manage.py seed_testdata` to create:
 
 - **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
-- **7 Users** with different roles:
+- **8 Users** with different roles:
   | Email | Role | Organization | Notes |
   |-------|------|--------------|-------|
   | admin@test.fr | Super Admin | RNF | Site referent (Camargue) |
@@ -717,6 +745,7 @@ Run `docker-compose exec web python manage.py seed_testdata` to create:
   | referent.vercors@test.fr | Utilisateur | CEN AURA | Site referent (Vercors) |
   | user.rnf@test.fr | Utilisateur | RNF | |
   | user.cen@test.fr | Utilisateur | CEN AURA | |
+  | **test@reserves-naturelles.org** | Utilisateur | RNF | **Email reel pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
 - **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations

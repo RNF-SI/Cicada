@@ -13,12 +13,15 @@ from .base import BaseSeeder
 
 DEFAULT_PASSWORD = 'Test123!'
 
+# Adresse email reelle pour les tests d'envoi de mail
+REAL_TEST_EMAIL = 'test@reserves-naturelles.org'
+
 
 class UsersSeeder(BaseSeeder):
     """
     Cree les utilisateurs de test avec differents roles.
 
-    Utilisateurs actifs (7):
+    Utilisateurs actifs (8):
     - admin@test.fr (super_admin)
     - admin.rnf@test.fr (admin_og)
     - admin.cen@test.fr (admin_og)
@@ -26,6 +29,7 @@ class UsersSeeder(BaseSeeder):
     - referent.vercors@test.fr (referent)
     - user.rnf@test.fr (utilisateur)
     - user.cen@test.fr (utilisateur)
+    - test@reserves-naturelles.org (utilisateur) - Pour tests email reels
 
     Utilisateurs inactifs (3):
     - ancien.rnf@test.fr
@@ -134,6 +138,20 @@ class UsersSeeder(BaseSeeder):
                 'id_organisme': organismes[1],  # CEN AURA
                 'groups': ['Utilisateurs'],
                 'sites_referent': [],
+                'active': True
+            },
+            # Utilisateur avec adresse email reelle pour tests d'envoi
+            {
+                'email': REAL_TEST_EMAIL,
+                'nom_role': 'TestEmail',
+                'prenom_role': 'RNF',
+                'identifiant': 'test_email_rnf',
+                'role_level': 'utilisateur',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': organismes[0],  # RNF
+                'groups': ['Utilisateurs'],
+                'sites_referent': [sites[0]],  # Camargue - pour tester notifications site
                 'active': True
             },
             # Utilisateurs inactifs
@@ -327,6 +345,7 @@ class UsersSeeder(BaseSeeder):
             'admin@test.fr', 'admin.rnf@test.fr', 'admin.cen@test.fr',
             'referent.camargue@test.fr', 'referent.vercors@test.fr',
             'user.rnf@test.fr', 'user.cen@test.fr',
+            REAL_TEST_EMAIL,  # Utilisateur pour tests email reels
             'ancien.rnf@test.fr', 'ancien.cen@test.fr', 'stagiaire.dreal@test.fr',
             'pending.rnf@test.fr', 'pending.cen@test.fr',
             'deletion.recent@test.fr', 'deletion.old@test.fr',
@@ -341,7 +360,7 @@ class UsersSeeder(BaseSeeder):
             Liste des lignes du resume
         """
         return [
-            '\nUtilisateurs actifs (7):',
+            '\nUtilisateurs actifs (8):',
             f'  Mot de passe commun: {DEFAULT_PASSWORD}',
             '  - admin@test.fr (super_admin)',
             '  - admin.rnf@test.fr (admin_og) - RNF',
@@ -350,6 +369,7 @@ class UsersSeeder(BaseSeeder):
             '  - referent.vercors@test.fr (referent) - CEN AURA',
             '  - user.rnf@test.fr (utilisateur) - RNF',
             '  - user.cen@test.fr (utilisateur) - CEN AURA',
+            f'  - {REAL_TEST_EMAIL} (utilisateur) - RNF [EMAIL REEL POUR TESTS]',
             '\nUtilisateurs inactifs (3):',
             '  - ancien.rnf@test.fr (referent) - RNF [INACTIF]',
             '  - ancien.cen@test.fr (admin_og) - CEN AURA [INACTIF]',

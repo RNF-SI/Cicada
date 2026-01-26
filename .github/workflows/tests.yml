@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+    # Permet de lancer le workflow manuellement depuis GitHub
+    # Utile pour les tests d'intégration email
 
 jobs:
   # ============================================
@@ -68,6 +71,7 @@ jobs:
         working-directory: ./backend
         run: |
           pytest tests/ \
+            -m "not email_integration" \
             --cov=apps \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
@@ -91,6 +95,83 @@ jobs:
           path: |
             ./backend/junit.xml
             ./backend/coverage.xml
+
+  # ============================================
+  # Email Integration Tests (Optional - Manual trigger)
+  # ============================================
+  # Ces tests envoient des emails via Mailpit pour vérifier les templates.
+  # Ils sont exclus des tests automatiques et peuvent être lancés manuellement.
+  email-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    env:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      SECRET_KEY: test-secret-key-for-ci
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: localhost
+      EMAIL_PORT: 1025
+      EMAIL_USE_TLS: 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+
+      - name: Install Python dependencies
+        working-directory: ./backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-django factory-boy Faker
+
+      - name: Run database migrations
+        working-directory: ./backend
+        run: python manage.py migrate --noinput
+
+      - name: Run email integration tests
+        working-directory: ./backend
+        run: |
+          pytest tests/apps/notifications/test_email_integration.py \
+            -m email_integration \
+            -v
 
   # ============================================
   # Frontend Tests

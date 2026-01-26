@@ -3,11 +3,25 @@ Root conftest.py - Shared fixtures across all test modules.
 Configuration pytest pour le projet CICADA.
 """
 import pytest
+from django.conf import settings
 from django.test import Client
 from rest_framework.test import APIClient
 
 # Import all factories
 pytest_plugins = ['tests.factories']
+
+
+# =============================================================================
+# CELERY CONFIGURATION FOR TESTS
+# =============================================================================
+# Execute Celery tasks synchronously during tests (no broker required)
+# This ensures email tasks are executed immediately and can be verified
+
+@pytest.fixture(scope='session', autouse=True)
+def celery_eager_mode():
+    """Configure Celery to run tasks synchronously during tests."""
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = True
 
 
 @pytest.fixture(autouse=True)
