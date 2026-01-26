@@ -12,13 +12,15 @@
 
     <!-- Contenu du hero -->
     <div class="hero-content">
-      <!-- Fil d'Ariane -->
+      <!-- Fil d'Ariane (design Figma: bouton home + lignes horizontales blanches) -->
       <nav class="breadcrumb" aria-label="Fil d'Ariane">
         <a routerLink="/accueil" class="breadcrumb-home" [title]="'header.home' | translate">
           <i class="fi fi-rr-home"></i>
         </a>
-        <span class="breadcrumb-separator"></span>
-        <span class="breadcrumb-current">{{ 'plans.list.title' | translate }}</span>
+        <div class="breadcrumb-lines"></div>
+        <div class="breadcrumb-text">
+          <span class="breadcrumb-current">{{ 'plans.list.title' | translate }}</span>
+        </div>
       </nav>
 
       <!-- Section titre -->
@@ -49,23 +51,26 @@
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button
-          class="tab"
-          [class.active]="activeTab() === 'actifs'"
-          (click)="setTab('actifs')">
-          {{ 'plans.list.tabs.active' | translate }}
-        </button>
-        <button
-          class="tab"
-          [class.active]="activeTab() === 'inactifs'"
-          (click)="setTab('inactifs')">
-          {{ 'plans.list.tabs.inactive' | translate }}
-        </button>
-      </div>
     </div>
   </section>
+
+  <!-- Tabs (en dessous de la bannière, design Figma) -->
+  <div class="tabs-container">
+    <div class="tabs">
+      <button
+        class="tab"
+        [class.active]="activeTab() === 'actifs'"
+        (click)="setTab('actifs')">
+        {{ 'plans.list.tabs.active' | translate }}
+      </button>
+      <button
+        class="tab"
+        [class.active]="activeTab() === 'inactifs'"
+        (click)="setTab('inactifs')">
+        {{ 'plans.list.tabs.inactive' | translate }}
+      </button>
+    </div>
+  </div>
 
   @if (loading()) {
     <div class="loading-container">
