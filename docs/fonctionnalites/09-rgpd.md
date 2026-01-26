@@ -1,37 +1,40 @@
 # RGPD - Suppression de compte
 
-### Comment ça marche
+### Comment ca marche
 
-Cette fonctionnalité permet aux utilisateurs d'exercer leur droit à l'effacement conformément au RGPD (Règlement Général sur la Protection des Données). L'utilisateur peut demander la suppression de son compte depuis son profil.
+Cette fonctionnalite permet aux utilisateurs d'exercer leur droit a l'effacement conformement au RGPD (Reglement General sur la Protection des Donnees). L'utilisateur peut demander la suppression de son compte depuis son profil. La demande est ensuite traitee manuellement par un super administrateur.
 
 ### Le concept central
 
-Le processus de suppression comporte un **délai de grâce de 30 jours** :
+Le processus de suppression est **manuel** et gere par les super administrateurs :
 
 ```
-Demande de suppression → Compte désactivé immédiatement
-                        → Délai de 30 jours pour annuler
-                        → Anonymisation définitive après 30 jours
+Demande de suppression → Compte reste actif
+                        → Notification aux admins
+                        → Super admin traite la demande :
+                          • Desactiver le compte
+                          • Anonymiser les donnees
+                          • Rejeter la demande
 ```
 
-Ce délai permet :
-- À l'utilisateur de changer d'avis et récupérer son compte
-- De prévenir les suppressions accidentelles
-- De maintenir l'intégrité des données référentielles (plans, validations, etc.)
+Ce systeme permet :
+- Un controle total par les administrateurs sur le traitement des demandes
+- La possibilite de verifier les implications avant toute action
+- Une flexibilite dans le traitement (desactivation simple vs anonymisation complete)
+- La communication avec l'utilisateur si necessaire
 
 ### Flux de suppression
 
 #### 1. L'utilisateur fait sa demande
 
-Depuis la page "Mon profil" (`/profile`), l'utilisateur voit une section "Mes données personnelles (RGPD)" avec :
+Depuis la page "Mon profil" (`/profile`), l'utilisateur voit une section "Mes donnees personnelles (RGPD)" avec :
 - Une explication de ce que la suppression implique
 - Un bouton "Supprimer mon compte"
 
 En cliquant sur ce bouton, un dialogue de confirmation s'ouvre avec :
-- Un avertissement clair sur l'irréversibilité
-- La liste des conséquences (accès bloqué, données supprimées, etc.)
-- L'information sur le délai de grâce de 30 jours
-- Un champ de confirmation où l'utilisateur doit saisir son email
+- Un avertissement clair sur les consequences
+- La liste des effets de la suppression
+- Un champ de confirmation ou l'utilisateur doit saisir son email
 
 #### 2. Traitement de la demande
 
@@ -40,40 +43,62 @@ Quand l'utilisateur confirme :
 | Action | Effet |
 |--------|-------|
 | `deletion_requested_at` | Enregistre la date/heure de la demande |
-| `active = False` | Compte désactivé immédiatement |
-| Token refresh | Bloqué - l'utilisateur est déconnecté |
+| `active` | **Reste True** (le compte reste actif) |
+| Notifications | Envoyees aux personnes concernees (voir ci-dessous) |
 
-L'utilisateur voit alors un message confirmant sa demande avec la date prévue de suppression définitive.
+L'utilisateur voit un message confirmant que sa demande a ete enregistree et sera traitee par un administrateur.
 
-#### 3. Période de grâce (30 jours)
+#### Notifications envoyees
 
-Pendant ces 30 jours, l'utilisateur peut **annuler sa demande** :
+Lors d'une demande de suppression, le systeme notifie automatiquement toutes les personnes concernees :
 
-1. Se reconnecter avec ses identifiants habituels
-2. Sur son profil, un bandeau d'avertissement orange indique la suppression en cours
-3. Un bouton "Annuler la suppression" permet de restaurer le compte
+| Destinataire | Condition |
+|--------------|-----------|
+| **Super admins** | Tous les super admins actifs |
+| **Admin de l'organisme** | Admin(s) de l'organisme de l'utilisateur |
+| **Referents des sites** | Referents des sites ou l'utilisateur est membre |
+| **Referents des plans** | Autres referents des plans ou l'utilisateur est referent |
 
-Si l'utilisateur annule :
-- `deletion_requested_at` est remis à `null`
-- `active` est remis à `True`
-- Le compte fonctionne à nouveau normalement
+> **Note** : Le systeme evite les doublons. Si une personne cumule plusieurs roles, elle ne recoit qu'une seule notification.
 
-#### 4. Anonymisation (après 30 jours)
+#### 3. Traitement par le super admin
 
-Une tâche Celery quotidienne (`process_deletion_requests`) vérifie les comptes à anonymiser :
+Les super admins accedent a la page `/administration/rgpd` pour voir et traiter les demandes en cours.
 
-1. Identifie les utilisateurs avec `deletion_requested_at` > 30 jours
-2. Pour chaque compte éligible, anonymise les données :
+**Actions disponibles :**
 
-| Champ | Avant | Après |
+| Action | Effet | Reversible |
+|--------|-------|------------|
+| **Desactiver** | Desactive le compte (`active=False`), efface la demande | Oui |
+| **Anonymiser** | Anonymise les donnees personnelles, desactive le compte | Non |
+| **Rejeter** | Efface la demande, notifie l'utilisateur | Oui |
+
+**Desactivation :**
+- Le compte est desactive, l'utilisateur ne peut plus se connecter
+- Les donnees personnelles sont conservees
+- Le compte peut etre reactive par un admin si necessaire
+
+**Anonymisation :**
+| Champ | Avant | Apres |
 |-------|-------|-------|
 | `email` | `jean.dupont@example.fr` | `anonymized_12345@deleted.local` |
 | `nom_role` | `Dupont` | `Utilisateur` |
-| `prenom_role` | `Jean` | `Anonymisé` |
+| `prenom_role` | `Jean` | `Anonymise` |
 | `is_anonymized` | `False` | `True` |
 | `anonymized_at` | `null` | Date d'anonymisation |
 
-3. Notifie les super admins du nombre de comptes anonymisés
+**Rejet :**
+- La demande est effacee
+- L'utilisateur est notifie que sa demande a ete rejetee
+- Le compte reste actif et fonctionnel
+
+#### 4. Annulation par l'utilisateur
+
+Tant que la demande n'a pas ete traitee, l'utilisateur peut l'annuler :
+
+1. Se connecter avec ses identifiants
+2. Sur son profil, un bandeau indique la demande en cours
+3. Un bouton "Annuler la suppression" permet d'annuler
 
 ### Interface utilisateur
 
@@ -81,144 +106,177 @@ Une tâche Celery quotidienne (`process_deletion_requests`) vérifie les comptes
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Mes données personnelles (RGPD)                        │
+│  Mes donnees personnelles (RGPD)                        │
 ├─────────────────────────────────────────────────────────┤
-│  Conformément au RGPD, vous pouvez demander la          │
-│  suppression de votre compte et de vos données          │
+│  Conformement au RGPD, vous pouvez demander la          │
+│  suppression de votre compte et de vos donnees          │
 │  personnelles.                                          │
 │                                                         │
 │  [ Supprimer mon compte ]                               │
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### État "Suppression en cours"
+#### Etat "Suppression en attente"
 
 Quand une demande est active, la section affiche :
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  ⚠️ Suppression programmée                              │
+│  Demande de suppression en cours                        │
 ├─────────────────────────────────────────────────────────┤
-│  Votre demande de suppression a été enregistrée le      │
-│  15/01/2026. Votre compte sera définitivement           │
-│  supprimé le 14/02/2026 (dans 23 jours).                │
+│  Votre demande de suppression a ete enregistree le      │
+│  15/01/2026.                                            │
 │                                                         │
-│  Vous pouvez annuler cette demande à tout moment        │
-│  avant cette date.                                      │
+│  Un administrateur traitera votre demande dans les      │
+│  meilleurs delais.                                      │
 │                                                         │
 │  [ Annuler la suppression ]                             │
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### Dialogue de confirmation
+#### Page administration RGPD (super_admin)
 
-Le dialogue de suppression affiche :
+Accessible via `/administration/rgpd` pour les super administrateurs uniquement.
 
-| Section | Contenu |
-|---------|---------|
-| **Titre** | "Supprimer mon compte" avec icône corbeille rouge |
-| **Avertissement** | Bannière rouge "Cette action est irréversible" |
-| **Conséquences** | Liste à puces des effets (accès bloqué, données supprimées, etc.) |
-| **Délai de grâce** | Encart bleu expliquant les 30 jours de réflexion |
-| **Confirmation** | Champ où l'utilisateur saisit son email pour confirmer |
-| **Boutons** | "Annuler" et "Supprimer définitivement" |
-
-### Sécurité
-
-#### Blocage du token refresh
-
-Quand un utilisateur demande la suppression de son compte, le système bloque le renouvellement des tokens JWT :
-
-```python
-# Dans CustomTokenRefreshView
-if user.deletion_requested_at is not None:
-    raise InvalidToken("Ce compte a demandé sa suppression")
+```
+┌─────────────────────────────────────────────────────────┐
+│  Demandes RGPD                                          │
+│  Traitez les demandes de suppression de compte          │
+├─────────────────────────────────────────────────────────┤
+│  Utilisateur  │ Email        │ Date     │ Actions       │
+│  ─────────────│──────────────│──────────│───────────────│
+│  Jean Dupont  │ jean@ex.fr   │ 15/01/26 │ [Des] [Ano] [Rej] │
+│  Marie Martin │ marie@ex.fr  │ 12/01/26 │ [Des] [Ano] [Rej] │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Cela garantit que :
-- L'utilisateur est déconnecté quand son access token expire (60 min)
-- Il ne peut pas continuer à utiliser l'application
-- Il peut toujours se reconnecter pour annuler sa demande
+### Securite
 
 #### Confirmation par email
 
-L'utilisateur doit saisir son email exact pour confirmer la suppression. Cette vérification :
-- Empêche les suppressions accidentelles (mauvais clic)
+L'utilisateur doit saisir son email exact pour confirmer la suppression. Cette verification :
+- Empeche les suppressions accidentelles (mauvais clic)
 - Confirme que l'utilisateur comprend ce qu'il fait
-- Est insensible à la casse (comparaison en minuscules)
+- Est insensible a la casse
+
+### Keycloak
+
+Lorsque l'application est configuree avec `AUTH_PROVIDER=keycloak`, la gestion des comptes est deleguee a Keycloak :
+
+- La page administration RGPD affiche un message d'avertissement
+- Les boutons d'action sont desactives
+- Les admins doivent traiter les demandes directement dans la console Keycloak
 
 ### Backend
 
 #### Endpoints API
 
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/api/users/users/request_deletion/` | POST | Demande de suppression |
-| `/api/users/users/cancel_deletion/` | POST | Annulation de la demande |
+| Endpoint | Methode | Description | Acces |
+|----------|---------|-------------|-------|
+| `/api/users/users/request_deletion/` | POST | Demande de suppression | Utilisateur connecte |
+| `/api/users/users/cancel_deletion/` | POST | Annulation de la demande | Utilisateur connecte |
+| `/api/users/users/rgpd_requests/` | GET | Liste des demandes | super_admin |
+| `/api/users/users/{id}/deactivate_rgpd/` | POST | Desactiver un compte | super_admin |
+| `/api/users/users/{id}/anonymize_rgpd/` | POST | Anonymiser un compte | super_admin |
+| `/api/users/users/{id}/reject_rgpd/` | POST | Rejeter une demande | super_admin |
+| `/api/users/users/auth_provider/` | GET | Provider d'auth configure | Tous |
 
-#### Réponses API
+#### Reponses API
 
-**Demande de suppression réussie :**
+**Demande de suppression reussie :**
 ```json
 {
-  "status": "success",
-  "message": "Votre demande de suppression a été enregistrée."
+  "status": "requested",
+  "message": "Votre demande de suppression a ete enregistree. Un administrateur traitera votre demande dans les meilleurs delais."
 }
 ```
 
-**Annulation réussie :**
+**Annulation reussie :**
 ```json
 {
-  "status": "success",
-  "message": "Votre demande de suppression a été annulée."
+  "status": "cancelled",
+  "message": "Votre demande de suppression a ete annulee."
 }
 ```
 
-#### Modèle User (champs RGPD)
+**Desactivation par admin :**
+```json
+{
+  "status": "deactivated",
+  "message": "Le compte de Jean Dupont a ete desactive."
+}
+```
+
+**Anonymisation par admin :**
+```json
+{
+  "status": "anonymized",
+  "message": "Le compte a ete anonymise."
+}
+```
+
+#### Modele User (champs RGPD)
 
 | Champ | Type | Description |
 |-------|------|-------------|
 | `deletion_requested_at` | DateTimeField | Date de la demande de suppression |
-| `is_anonymized` | BooleanField | Compte anonymisé (défaut: False) |
+| `is_anonymized` | BooleanField | Compte anonymise (defaut: False) |
 | `anonymized_at` | DateTimeField | Date d'anonymisation |
 
-### Tâche Celery
+#### Variable d'environnement
 
-La tâche `process_deletion_requests` s'exécute **tous les jours à 6h00** :
+| Variable | Valeurs | Description |
+|----------|---------|-------------|
+| `AUTH_PROVIDER` | `local` (defaut), `keycloak` | Provider d'authentification |
 
-1. Recherche les comptes avec `deletion_requested_at` non null et `is_anonymized = False`
-2. Vérifie que 30 jours se sont écoulés depuis la demande
-3. Anonymise les données personnelles
-4. Envoie une notification aux super admins avec le résumé
+### Integrite des donnees
 
-### Intégrité des données
-
-L'anonymisation **préserve l'intégrité référentielle** :
+L'anonymisation **preserve l'integrite referentielle** :
 
 | Type de relation | Comportement |
 |------------------|--------------|
-| Plans de gestion | L'utilisateur reste dans les référents (anonymisé) |
-| Validations | L'historique des validations est conservé |
-| Sites | Les associations utilisateur-site sont conservées |
-| Notifications | Les notifications envoyées sont conservées |
+| Plans de gestion | L'utilisateur reste dans les referents (anonymise) |
+| Validations | L'historique des validations est conserve |
+| Sites | Les associations utilisateur-site sont conservees |
+| Notifications | Les notifications envoyees sont conservees |
 
-Cela permet de maintenir l'historique et la traçabilité tout en respectant le droit à l'effacement.
+Cela permet de maintenir l'historique et la tracabilite tout en respectant le droit a l'effacement.
 
 ### Traductions
 
-Les clés de traduction sont dans `frontend/src/assets/i18n/fr.json` sous `profile.rgpd.*` :
+Les cles de traduction sont dans `frontend/src/assets/i18n/fr.json` :
 
-| Clé | Texte |
+**Section profil (`profile.rgpd.*`) :**
+| Cle | Texte |
 |-----|-------|
-| `profile.rgpd.title` | "Mes données personnelles (RGPD)" |
-| `profile.rgpd.description` | "Conformément au RGPD, vous pouvez demander..." |
-| `profile.rgpd.deleteButton` | "Supprimer mon compte" |
+| `profile.rgpd.title` | "Gestion de mon compte" |
+| `profile.rgpd.deleteAccount` | "Supprimer mon compte" |
 | `profile.rgpd.dialog.title` | "Supprimer mon compte" |
-| `profile.rgpd.dialog.warning` | "Cette action est irréversible" |
-| `profile.rgpd.pendingDeletion.title` | "Suppression programmée" |
-| `profile.rgpd.cancelSuccess` | "Votre demande de suppression a été annulée" |
+| `profile.rgpd.pendingDeletion.title` | "Suppression en cours" |
 
----
+**Section admin (`admin.rgpd.*`) :**
+| Cle | Texte |
+|-----|-------|
+| `admin.rgpd.title` | "Demandes RGPD" |
+| `admin.rgpd.actions.deactivate` | "Desactiver" |
+| `admin.rgpd.actions.anonymize` | "Anonymiser" |
+| `admin.rgpd.actions.reject` | "Rejeter" |
+
+### Tests
+
+Les tests RGPD sont dans `tests/integration/test_api_users.py` :
+
+| Classe | Tests |
+|--------|-------|
+| `TestUsersRGPDDeletion` | Demande de suppression, annulation, gestion des erreurs |
+| `TestUsersRGPDModelMethods` | Methodes `request_deletion()`, `anonymize()`, `can_be_anonymized()` |
+| `TestUsersRGPDNotifications` | Notifications aux super admins, admin_og, referents |
+| `TestUsersRGPDAdminEndpoints` | Liste des demandes, desactivation, anonymisation, rejet |
+
+Lancer les tests RGPD :
+```bash
+docker-compose exec web pytest tests/integration/test_api_users.py -k RGPD -v
+```
 
 ---
 

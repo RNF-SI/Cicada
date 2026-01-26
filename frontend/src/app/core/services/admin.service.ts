@@ -19,7 +19,8 @@ import {
   SiteOrganisme,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
-  DuplicateCheckResult
+  DuplicateCheckResult,
+  RgpdRequest
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -579,6 +580,57 @@ export class AdminService {
         plansActifs: results.plansActifs
       }))
     );
+  }
+
+  // ==================== RGPD (Super Admin Only) ====================
+
+  /**
+   * Get list of RGPD deletion requests
+   * GET /api/users/users/rgpd_requests/
+   */
+  getRgpdRequests(params?: { page?: number }): Observable<PaginatedResponse<RgpdRequest>> {
+    let httpParams = new HttpParams();
+    if (params?.page) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    return this.http.get<PaginatedResponse<RgpdRequest>>(`${this.apiUrl}/users/rgpd_requests/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Deactivate a user account via RGPD request
+   * POST /api/users/users/{id}/deactivate_rgpd/
+   */
+  deactivateUserRgpd(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/deactivate_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Anonymize a user account via RGPD request
+   * POST /api/users/users/{id}/anonymize_rgpd/
+   */
+  anonymizeUserRgpd(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/anonymize_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Reject a RGPD deletion request
+   * POST /api/users/users/{id}/reject_rgpd/
+   */
+  rejectRgpdRequest(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/reject_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get the configured authentication provider
+   * GET /api/users/users/auth_provider/
+   */
+  getAuthProvider(): Observable<{ provider: string }> {
+    return this.http.get<{ provider: string }>(`${this.apiUrl}/users/auth_provider/`)
+      .pipe(catchError(this.handleError));
   }
 
   // ==================== ERROR HANDLING ====================

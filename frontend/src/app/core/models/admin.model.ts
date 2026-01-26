@@ -372,6 +372,22 @@ export interface RedacteurType {
   label: string;
 }
 
+// ==================== RGPD ====================
+
+/**
+ * Demande de suppression RGPD en attente
+ */
+export interface RgpdRequest {
+  id_role: number;
+  email: string;
+  full_name: string;
+  organisme_name: string | null;
+  deletion_requested_at: string;
+  active: boolean;
+  is_anonymized: boolean;
+  days_since_request: number | null;
+}
+
 // ==================== DUPLICATE DETECTION ====================
 
 /**

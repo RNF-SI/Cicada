@@ -16,6 +16,10 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
+# Authentication provider: 'local' (default) or 'keycloak'
+# When 'keycloak', RGPD account management is handled externally
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -234,11 +238,8 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.notifications.tasks.cleanup_expired_pending_users',
         'schedule': crontab(hour=5, minute=0),
     },
-    # Traitement des demandes de suppression RGPD - tous les jours a 6h
-    'process-deletion-requests': {
-        'task': 'apps.notifications.tasks.process_deletion_requests',
-        'schedule': crontab(hour=6, minute=0),
-    },
+    # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
+    # Les super_admins decident quand desactiver ou anonymiser les comptes
 }
 
 # Email backend (sera configure differemment en dev/prod)

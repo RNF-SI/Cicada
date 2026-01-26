@@ -530,6 +530,51 @@
         "positionSaved": "Position de l'image mise à jour"
       }
     },
+    "rgpd": {
+      "title": "Demandes RGPD",
+      "subtitle": "Traitez les demandes de suppression de compte",
+      "table": {
+        "user": "Utilisateur",
+        "email": "Email",
+        "organisme": "Organisme",
+        "requestedAt": "Date de demande",
+        "days": "Delai",
+        "daysLabel": "jour(s)",
+        "status": "Statut compte"
+      },
+      "actions": {
+        "deactivate": "Desactiver",
+        "deactivateTooltip": "Desactiver le compte (l'utilisateur ne pourra plus se connecter)",
+        "anonymize": "Anonymiser",
+        "anonymizeTooltip": "Anonymiser definitivement les donnees personnelles",
+        "reject": "Rejeter",
+        "rejectTooltip": "Rejeter la demande et conserver le compte actif"
+      },
+      "empty": {
+        "title": "Aucune demande en cours",
+        "message": "Il n'y a actuellement aucune demande de suppression de compte a traiter."
+      },
+      "keycloakMode": {
+        "title": "Authentification Keycloak active",
+        "message": "La gestion des comptes utilisateurs est deleguee a Keycloak. Les actions RGPD doivent etre effectuees directement dans la console Keycloak.",
+        "actionNotice": "Via Keycloak"
+      },
+      "info": {
+        "title": "Actions disponibles",
+        "deactivate": "Desactiver : Le compte est desactive mais les donnees sont conservees. L'utilisateur ne peut plus se connecter.",
+        "anonymize": "Anonymiser : Les donnees personnelles sont definitivement supprimees (email, nom, prenom). Action irreversible.",
+        "reject": "Rejeter : La demande est annulee. L'utilisateur est notifie et son compte reste inchange."
+      },
+      "confirmDeactivate": "Voulez-vous desactiver le compte de {{name}} ? L'utilisateur ne pourra plus se connecter.",
+      "confirmAnonymize": "ATTENTION : Voulez-vous anonymiser definitivement le compte de {{name}} ? Cette action est irreversible.",
+      "confirmReject": "Voulez-vous rejeter la demande de suppression de {{name}} ? L'utilisateur sera notifie.",
+      "messages": {
+        "loadError": "Erreur lors du chargement des demandes RGPD",
+        "deactivated": "Le compte a ete desactive",
+        "anonymized": "Le compte a ete anonymise",
+        "rejected": "La demande a ete rejetee"
+      }
+    },
     "logs": {
       "title": "Logs d'erreurs",
       "subtitle": "Consultez et acquittez les erreurs applicatives",
@@ -1046,32 +1091,32 @@
     "rgpd": {
       "title": "Gestion de mon compte",
       "deleteAccount": "Supprimer mon compte",
-      "deleteDescription": "Conformément au RGPD, vous pouvez demander la suppression de votre compte. Cette action est irréversible après 30 jours.",
+      "deleteDescription": "Conformement au RGPD, vous pouvez demander la suppression de votre compte et de vos donnees personnelles.",
       "pendingDeletion": {
-        "title": "Suppression en cours",
-        "message": "Votre demande de suppression a été enregistrée le {{date}}. Votre compte sera définitivement supprimé dans {{days}} jours.",
+        "title": "Demande de suppression en cours",
+        "message": "Votre demande de suppression a ete enregistree le {{date}}. Un administrateur traitera votre demande dans les meilleurs delais.",
         "cancelButton": "Annuler la suppression"
       },
       "dialog": {
         "title": "Supprimer mon compte",
-        "warning": "Attention : cette action est irréversible !",
+        "warning": "Attention : cette demande est irreversible une fois traitee !",
         "consequences": {
-          "title": "En supprimant votre compte :",
-          "item1": "Votre compte sera immédiatement désactivé",
-          "item2": "Vous ne pourrez plus vous connecter",
-          "item3": "Vos données personnelles seront anonymisées après 30 jours",
-          "item4": "Cette action ne peut pas être annulée après le délai de 30 jours"
+          "title": "En demandant la suppression de votre compte :",
+          "item1": "Votre demande sera transmise aux administrateurs",
+          "item2": "Votre compte reste actif jusqu'au traitement",
+          "item3": "Vous serez notifie lorsque votre demande sera traitee",
+          "item4": "Vous pouvez annuler cette demande a tout moment avant son traitement"
         },
-        "gracePeriod": "Vous disposez d'un délai de 30 jours pour annuler votre demande.",
+        "gracePeriod": "Vous pouvez annuler cette demande tant qu'elle n'a pas ete traitee par un administrateur.",
         "confirmLabel": "Pour confirmer, tapez votre adresse email :",
         "confirmPlaceholder": "Votre adresse email",
-        "confirmButton": "Supprimer définitivement mon compte",
+        "confirmButton": "Demander la suppression de mon compte",
         "cancelButton": "Annuler"
       },
       "messages": {
-        "deletionRequested": "Votre demande de suppression a été enregistrée. Votre compte sera désactivé immédiatement.",
-        "deletionCancelled": "Votre demande de suppression a été annulée. Votre compte est de nouveau actif.",
-        "error": "Une erreur est survenue. Veuillez réessayer."
+        "deletionRequested": "Votre demande de suppression a ete enregistree. Un administrateur traitera votre demande dans les meilleurs delais.",
+        "deletionCancelled": "Votre demande de suppression a ete annulee.",
+        "error": "Une erreur est survenue. Veuillez reessayer."
       }
     }
   },

@@ -13,6 +13,7 @@ import { AdminValidationsComponent } from './admin-validations/admin-validations
 import { AdminModulesComponent } from './admin-modules/admin-modules.component';
 import { AdminLogsComponent } from './admin-logs/admin-logs.component';
 import { AdminSettingsComponent } from './admin-settings/admin-settings.component';
+import { AdminRgpdComponent } from './admin-rgpd/admin-rgpd.component';
 
 /**
  * Admin Routes Configuration
@@ -98,6 +99,11 @@ export const ADMIN_ROUTES: Routes = [
         path: 'logs',
         component: AdminLogsComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can view error logs
+      },
+      {
+        path: 'rgpd',
+        component: AdminRgpdComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage RGPD requests
       },
       {
         path: 'parametres',
