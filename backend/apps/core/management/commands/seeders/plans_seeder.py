@@ -1,0 +1,251 @@
+"""
+Seeder pour les plans de gestion.
+"""
+from typing import Any, Dict, List
+
+from apps.core.models import Nomenclature
+from apps.plans.models import PlanGestion, CorSitePg
+from apps.users.models import Role, Site
+
+from .base import BaseSeeder
+
+
+class PlansSeeder(BaseSeeder):
+    """
+    Cree les plans de gestion de test.
+
+    Plans actifs (6):
+    - Plan 2020-2030 Camargue (valide)
+    - Plan 2018-2028 Aiguilles Rouges (valide)
+    - Plan 2022-2032 Grand-Voyeux (draft)
+    - Plan inter-sites Vercors-Ecrins 2021-2031 (valide)
+    - Plan 2019-2029 Marais de Brouage (archive)
+    - Plan 2023-2033 Lac de Remoray (draft)
+
+    Plans archives (2):
+    - Plan 2010-2020 Camargue ancien (archive)
+    - Plan 2008-2018 Aiguilles Rouges ancien (archive)
+    """
+
+    name = 'plans'
+    dependencies = ['users', 'sites', 'nomenclatures']
+
+    def _get_plans_data(self, users: List[Role], sites: List[Site]) -> List[Dict]:
+        """Retourne les donnees des plans de gestion."""
+        # Recuperer les nomenclatures
+        eval_int = Nomenclature.objects.filter(mnemonique='Intermediaire').first()
+        eval_fin = Nomenclature.objects.filter(mnemonique='Finale').first()
+        redac_gest = Nomenclature.objects.filter(mnemonique='OG').first()
+        redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
+
+        return [
+            {
+                'nom': 'Plan de gestion 2020-2030 - Reserve de la Camargue',
+                'annee_debut': 2020,
+                'annee_fin': 2030,
+                'statut': 'valide',
+                'version': '2.0',
+                'gestion_partagee': False,
+                'ct88': True,
+                'risque_incendie': True,
+                'id_evaluation': eval_int,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Equipe Camargue',
+                'commentaire': 'Plan de gestion valide pour la periode 2020-2030',
+                'sites': [sites[0]],
+                'referents': [users[3]]  # referent.camargue
+            },
+            {
+                'nom': 'Plan de gestion 2018-2028 - Aiguilles Rouges',
+                'annee_debut': 2018,
+                'annee_fin': 2028,
+                'statut': 'valide',
+                'version': '1.1',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_be,
+                'redacteur_nom': 'Bureau Natura 2000',
+                'commentaire': 'Plan actuellement en cours de revision',
+                'sites': [sites[1]],
+                'referents': [users[1]]  # admin.rnf
+            },
+            {
+                'nom': 'Plan de gestion 2022-2032 - Grand-Voyeux',
+                'annee_debut': 2022,
+                'annee_fin': 2032,
+                'statut': 'draft',
+                'version': '1.0',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': None,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'CEN Auvergne-Rhone-Alpes',
+                'commentaire': 'Plan en cours de redaction',
+                'sites': [sites[2]],
+                'referents': [users[2]]  # admin.cen
+            },
+            {
+                'nom': 'Plan de gestion inter-sites Vercors-Ecrins 2021-2031',
+                'annee_debut': 2021,
+                'annee_fin': 2031,
+                'statut': 'valide',
+                'version': '1.0',
+                'gestion_partagee': True,
+                'ct88': True,
+                'risque_incendie': True,
+                'id_evaluation': eval_int,
+                'id_redacteur_type': redac_be,
+                'redacteur_nom': 'DREAL Auvergne-Rhone-Alpes',
+                'commentaire': 'Plan de gestion partage entre le PNR du Vercors et le Parc des Ecrins',
+                'sites': [sites[3], sites[5]],  # Vercors + Scandola
+                'referents': [users[4]]  # referent.vercors
+            },
+            {
+                'nom': 'Plan de gestion 2019-2029 - Marais de Brouage',
+                'annee_debut': 2019,
+                'annee_fin': 2029,
+                'statut': 'archive',
+                'version': '3.0',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
+                'commentaire': 'Plan archive - nouvelle version en preparation',
+                'sites': [sites[4]],
+                'referents': []
+            },
+            {
+                'nom': 'Plan de gestion 2023-2033 - Lac de Remoray',
+                'annee_debut': 2023,
+                'annee_fin': 2033,
+                'statut': 'draft',
+                'version': '0.9',
+                'gestion_partagee': False,
+                'ct88': True,
+                'risque_incendie': False,
+                'id_evaluation': None,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Equipe Franche-Comte',
+                'commentaire': 'Nouveau plan en cours de finalisation',
+                'sites': [sites[6]],
+                'referents': [users[1]]  # admin.rnf
+            },
+            # Plans archives
+            {
+                'nom': 'Plan de gestion 2010-2020 - Camargue (ancien)',
+                'annee_debut': 2010,
+                'annee_fin': 2020,
+                'statut': 'archive',
+                'version': '1.5',
+                'gestion_partagee': False,
+                'ct88': True,
+                'risque_incendie': True,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Equipe Camargue',
+                'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030',
+                'sites': [sites[0]],
+                'referents': []
+            },
+            {
+                'nom': 'Plan de gestion 2008-2018 - Aiguilles Rouges (ancien)',
+                'annee_debut': 2008,
+                'annee_fin': 2018,
+                'statut': 'archive',
+                'version': '2.0',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': eval_fin,
+                'id_redacteur_type': redac_be,
+                'redacteur_nom': 'Bureau Natura 2000',
+                'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028',
+                'sites': [sites[1]],
+                'referents': []
+            },
+        ]
+
+    def seed(self) -> List[PlanGestion]:
+        """
+        Cree les plans de gestion de test.
+
+        Returns:
+            Liste des plans crees
+        """
+        self.log_header('Creation des plans de gestion')
+
+        users = self.context.require('users')
+        sites = self.context.require('sites')
+
+        admin = users[0]  # Pour id_utilisateur_ajout
+        plans_data = self._get_plans_data(users, sites)
+
+        plans = []
+        for plan_data in plans_data:
+            plan_sites = plan_data.pop('sites')
+            plan_referents = plan_data.pop('referents')
+
+            plan, created = PlanGestion.objects.update_or_create(
+                nom=plan_data['nom'],
+                defaults={
+                    **plan_data,
+                    'id_utilisateur_ajout': admin,
+                    'id_utilisateur_maj': admin
+                }
+            )
+
+            # Lier aux sites
+            for i, site in enumerate(plan_sites):
+                CorSitePg.objects.get_or_create(
+                    site=site,
+                    plan_de_gestion=plan,
+                    defaults={'rang': i + 1}
+                )
+
+            # Ajouter les referents
+            plan.referents.set(plan_referents)
+
+            plans.append(plan)
+            status = "cree" if created else "mis a jour"
+            sites_names = ", ".join([s.nom_site[:20] for s in plan_sites])
+            self.log_item(status, f"{plan.nom[:50]}... ({plan.statut})")
+            if self.verbosity >= 2:
+                self.stdout.write(f"              Sites: {sites_names}")
+
+        self.log_summary(len(plans), 'plans de gestion')
+        self.context.set('plans', plans)
+        return plans
+
+    def reset(self) -> int:
+        """
+        Supprime les plans de gestion de test.
+
+        Returns:
+            Nombre de plans supprimes
+        """
+        return PlanGestion.objects.all().delete()[0]
+
+    def get_dry_run_summary(self) -> List[str]:
+        """
+        Resume des plans qui seraient crees.
+
+        Returns:
+            Liste des lignes du resume
+        """
+        return [
+            '\nPlans de gestion actifs (6):',
+            '  - Plan 2020-2030 Camargue (valide)',
+            '  - Plan 2018-2028 Aiguilles Rouges (valide)',
+            '  - Plan 2022-2032 Grand-Voyeux (draft)',
+            '  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide)',
+            '  - Plan 2019-2029 Marais de Brouage (archive)',
+            '  - Plan 2023-2033 Lac de Remoray (draft)',
+            '\nPlans de gestion archives (2):',
+            '  - Plan 2010-2020 Camargue ancien (archive)',
+            '  - Plan 2008-2018 Aiguilles Rouges ancien (archive)',
+        ]

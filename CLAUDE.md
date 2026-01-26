@@ -287,6 +287,7 @@ docker-compose exec web python create_superuser.py
 docker-compose exec web python manage.py seed_testdata          # Create all test data
 docker-compose exec web python manage.py seed_testdata --reset  # Remove test data
 docker-compose exec web python manage.py seed_testdata --dry-run # Preview changes
+docker-compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
 # Import/Update nomenclatures (reference data)
 docker-compose exec web python import_nomenclatures.py
@@ -319,6 +320,69 @@ docker-compose logs -f web
 - `audit.log` : Actions utilisateur (POST/PUT/DELETE)
 
 **Correlation ID** : Chaque requête HTTP reçoit un UUID unique (`X-Correlation-ID`) propagé dans tous les logs pour faciliter le debugging.
+
+### ⚠️ Architecture Seeders (Pour Développeurs)
+
+> **Attention** : Cette section concerne l'architecture interne du système de données de test. Réservé aux développeurs.
+
+La commande `seed_testdata` utilise une architecture modulaire avec des seeders indépendants :
+
+```
+backend/apps/core/management/commands/
+├── seed_testdata.py              # Orchestrateur (~300 lignes)
+└── seeders/
+    ├── __init__.py               # Registry + validation des dépendances
+    ├── base.py                   # Classe abstraite BaseSeeder
+    ├── context.py                # SeederContext (partage de données)
+    ├── signals.py                # Gestion centralisée des signaux (28)
+    ├── modules_seeder.py         # 4 modules
+    ├── nomenclatures_seeder.py   # Nomenclatures et types
+    ├── groups_seeder.py          # 4 groupes Django
+    ├── organismes_seeder.py      # 5 organismes
+    ├── sites_seeder.py           # 7 sites avec géométries PostGIS
+    ├── users_seeder.py           # 14 utilisateurs
+    ├── plans_seeder.py           # 8 plans de gestion
+    ├── pending_users_seeder.py   # 3 PendingUser
+    ├── validation_requests_seeder.py  # 22 demandes de validation
+    ├── notifications_seeder.py   # 21+ notifications
+    ├── error_logs_seeder.py      # 8 logs d'erreur
+    └── activity_logs_seeder.py   # 25+ logs d'activité
+```
+
+**Composants clés :**
+
+| Composant | Description |
+|-----------|-------------|
+| `BaseSeeder` | Classe abstraite avec `seed()`, `reset()`, `get_dry_run_summary()` |
+| `SeederContext` | Partage de données entre seeders (`set()`, `get()`, `require()`) |
+| `signals_disabled()` | Context manager pour désactiver les 28 signaux pendant le seeding |
+| `SEEDER_CLASSES` | Liste ordonnée par dépendances (tri topologique) |
+
+**Graphe de dépendances :**
+```
+modules, nomenclatures, groups, organismes (indépendants)
+    │
+    ├── sites (deps: organismes, nomenclatures)
+    ├── users (deps: organismes, sites, groups)
+    ├── pending_users (deps: organismes)
+    ├── plans (deps: users, sites, nomenclatures)
+    ├── validation_requests (deps: users, sites, plans, organismes)
+    ├── notifications (deps: users, sites, plans, organismes, validation_requests)
+    ├── error_logs (deps: users)
+    └── activity_logs (deps: users, sites, plans, organismes, validation_requests)
+```
+
+**Option `--only` :** Permet un seeding sélectif avec résolution automatique des dépendances.
+```bash
+# Crée uniquement users et plans (+ leurs dépendances automatiquement)
+docker-compose exec web python manage.py seed_testdata --only=users,plans
+```
+
+**Ajouter un nouveau seeder :**
+1. Créer `seeders/mon_seeder.py` héritant de `BaseSeeder`
+2. Définir `name` et `dependencies`
+3. Implémenter `seed()`, `reset()`, `get_dry_run_summary()`
+4. Ajouter la classe dans `SEEDER_CLASSES` de `__init__.py`
 
 ### Testing
 
