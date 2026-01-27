@@ -1033,6 +1033,22 @@
       "en_cours": "En cours",
       "annule": "Annulé"
     },
+    "detail": {
+      "noContent": "Aucun contenu pour le moment",
+      "sections": {
+        "synthese": "Synthèse",
+        "site": "Site",
+        "mindmap": "Mindmap",
+        "documents": "Documents"
+      },
+      "accordions": {
+        "enjeux": "Enjeux et Facteurs clés de réussite",
+        "objectifsLT": "Objectifs long terme",
+        "objectifsOP": "Objectifs opérationnels",
+        "actions": "Actions et suivis"
+      },
+      "viewDetails": "Voir en détails"
+    },
     "list": {
       "title": "Plans de gestion",
       "subtitle": "Consultez et gérez vos plans de gestion",

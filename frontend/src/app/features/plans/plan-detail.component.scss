@@ -417,14 +417,20 @@
 
 // Section Cards
 .section-card {
-  background-color: $white;
-  border-radius: $border-radius-md;
-  padding: $spacing-lg;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: transparent;
+  padding: $spacing-lg 0;
+
+  &.synthese-card {
+    // La carte synthèse n'a pas de fond selon Figma
+    background-color: transparent;
+  }
 
   &.compact {
+    background-color: $white;
+    border-radius: $border-radius-md;
     padding: $spacing-md;
     margin-bottom: $spacing-md;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
     &:last-child {
       margin-bottom: 0;
@@ -460,9 +466,30 @@
   }
 }
 
-.section-icon {
-  font-size: 20px;
-  color: $secondary-orange-salmon;
+// Wrapper pour les icônes de section (cercle avec icône)
+.section-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: $secondary-orange-salmon;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  i {
+    font-size: 20px;
+    color: $white;
+  }
+
+  &.small {
+    width: 32px;
+    height: 32px;
+
+    i {
+      font-size: 16px;
+    }
+  }
 }
 
 .section-link {
@@ -483,39 +510,72 @@
   }
 }
 
-// Accordions
+// ============================================
+// ACCORDIONS - Design Figma
+// ============================================
+
 .accordions {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: $spacing-md;
 }
 
-.accordion {
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-sm;
+// Carte accordéon principale
+.accordion-card {
+  background-color: $white;
+  border-radius: 0 20px 0 20px; // top-right 20px, bottom-left 20px
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  border-left: 3px solid transparent;
+
+  // Couleur terra-cotta (Enjeux, Objectifs)
+  &.terra-cotta {
+    border-left-color: $secondary-terra-cotta;
+
+    .accordion-indicator {
+      background-color: $secondary-terra-cotta;
+    }
+
+    .accordion-title {
+      color: $secondary-terra-cotta;
+    }
+  }
+
+  // Couleur orange (Actions)
+  &.orange {
+    border-left-color: $secondary-orange-salmon;
+
+    .accordion-indicator {
+      background-color: $secondary-orange-salmon;
+    }
+
+    .accordion-title {
+      color: $secondary-orange-salmon;
+    }
+  }
 }
 
 .accordion-header {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   width: 100%;
-  padding: $spacing-md;
+  padding: $spacing-lg;
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
+  transition: background-color $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.02);
+    background-color: rgba($black, 0.02);
   }
 }
 
-.accordion-dot {
-  width: 8px;
-  height: 8px;
-  background-color: $secondary-terra-cotta;
+// Indicateur coloré (carré/rond selon design)
+.accordion-indicator {
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -523,25 +583,126 @@
 .accordion-title {
   flex: 1;
   font-family: $font-family;
-  font-size: $font-size-base;
+  font-size: 20px;
   font-weight: $font-weight-bold;
-  color: $primary-color;
+  line-height: 30px;
 }
 
 .accordion-icon {
-  font-size: 20px;
+  font-size: 24px;
   color: $primary-color;
+  flex-shrink: 0;
 }
 
 .accordion-content {
-  padding: 0 $spacing-md $spacing-md;
-  border-top: 1px solid $gray-light;
+  padding: 0 $spacing-lg $spacing-lg;
 }
 
 .accordion-placeholder {
   color: $gray-dark;
-  font-size: $font-size-small;
-  padding-top: $spacing-md;
+  font-size: $font-size-base;
+  font-style: italic;
+}
+
+// ============================================
+// SUB-ACCORDIONS (dans Actions et suivis)
+// ============================================
+
+.sub-accordions {
+  display: flex;
+  flex-direction: column;
+}
+
+.sub-accordion {
+  border-bottom: 1px solid $gray-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sub-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: $spacing-sm 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    .sub-accordion-title {
+      color: $primary-color;
+    }
+  }
+}
+
+.sub-accordion-title {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  transition: color $transition-fast;
+}
+
+.sub-accordion-header i {
+  font-size: 24px;
+  color: $gray;
+}
+
+.sub-accordion-content {
+  padding-bottom: $spacing-md;
+}
+
+// Liste des actions avec puces personnalisées
+.action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+}
+
+// Puce personnalisée (4 carrés en croix selon design Figma)
+.action-bullet {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  margin-top: 7px;
+
+  // 4 carrés disposés en croix
+  &::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: $secondary-terra-cotta;
+    border-radius: 1px;
+    top: 0;
+    left: 3px;
+    box-shadow:
+      0 6px 0 0 $secondary-terra-cotta,    // Bas
+      -3px 3px 0 0 $secondary-terra-cotta, // Gauche
+      3px 3px 0 0 $secondary-terra-cotta;  // Droite
+  }
+}
+
+.action-text {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-regular;
+  color: $black;
+  line-height: 24px;
 }
 
 // Placeholders
@@ -580,15 +741,34 @@
   padding: $spacing-xs;
   border-radius: $border-radius-sm;
 
-  i:first-child {
-    font-size: 16px;
-    color: $secondary-terra-cotta;
-  }
-
-  span {
+  span:not(.doc-icon) {
     flex: 1;
     font-size: $font-size-small;
     color: $black;
+  }
+}
+
+// Icône document (carrés décorés selon design Figma)
+.doc-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: $secondary-terra-cotta;
+    border-radius: 1px;
+    top: 0;
+    left: 6px;
+    box-shadow:
+      0 6px 0 0 $secondary-terra-cotta,
+      -3px 3px 0 0 $secondary-terra-cotta,
+      3px 3px 0 0 $secondary-terra-cotta;
   }
 }
 

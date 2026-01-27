@@ -141,54 +141,80 @@
       <div class="content-grid">
         <!-- Colonne principale - Synthèse -->
         <div class="main-column">
-          <div class="section-card">
+          <div class="section-card synthese-card">
             <div class="section-header">
               <div class="section-title">
-                <i class="fi fi-rr-document section-icon"></i>
-                <h2>Synthèse</h2>
+                <span class="section-icon-wrapper">
+                  <i class="fi fi-rr-document"></i>
+                </span>
+                <h2>{{ 'plans.detail.sections.synthese' | translate }}</h2>
               </div>
               <a href="#" class="section-link">
-                Voir en détails
-                <i class="fi fi-rr-arrow-right"></i>
+                {{ 'plans.detail.viewDetails' | translate }}
+                <i class="fi fi-rr-arrow-small-right"></i>
               </a>
             </div>
 
-            <!-- Accordéons -->
+            <!-- Accordéons selon design Figma -->
             <div class="accordions">
-              <div class="accordion">
-                <button class="accordion-header">
-                  <span class="accordion-dot"></span>
-                  <span class="accordion-title">Enjeux et Facteurs clés de réussite</span>
-                  <i class="fi fi-rr-plus-small accordion-icon"></i>
-                </button>
-              </div>
+              @for (accordion of syntheseAccordions(); track accordion.id) {
+                <div class="accordion-card"
+                     [class.expanded]="accordion.expanded"
+                     [class.terra-cotta]="accordion.colorClass === 'terra-cotta'"
+                     [class.orange]="accordion.colorClass === 'orange'">
 
-              <div class="accordion">
-                <button class="accordion-header">
-                  <span class="accordion-dot"></span>
-                  <span class="accordion-title">Objectifs long terme</span>
-                  <i class="fi fi-rr-plus-small accordion-icon"></i>
-                </button>
-              </div>
+                  <!-- Header de l'accordéon -->
+                  <button class="accordion-header" (click)="toggleAccordion(accordion.id)">
+                    <span class="accordion-indicator"></span>
+                    <span class="accordion-title" [class.terra-cotta]="accordion.colorClass === 'terra-cotta'">
+                      {{ accordion.title }}
+                    </span>
+                    <i class="fi accordion-icon"
+                       [class.fi-rr-plus]="!accordion.expanded"
+                       [class.fi-rr-minus]="accordion.expanded"></i>
+                  </button>
 
-              <div class="accordion">
-                <button class="accordion-header">
-                  <span class="accordion-dot"></span>
-                  <span class="accordion-title">Objectifs opérationnels</span>
-                  <i class="fi fi-rr-plus-small accordion-icon"></i>
-                </button>
-              </div>
+                  <!-- Contenu de l'accordéon (si ouvert) -->
+                  @if (accordion.expanded) {
+                    <div class="accordion-content">
+                      @if (accordion.hasSubItems && accordion.subItems) {
+                        <!-- Sous-accordéons pour Actions et suivis -->
+                        <div class="sub-accordions">
+                          @for (subItem of accordion.subItems; track subItem.id) {
+                            <div class="sub-accordion" [class.expanded]="subItem.expanded">
+                              <button class="sub-accordion-header"
+                                      (click)="toggleSubAccordion(accordion.id, subItem.id); $event.stopPropagation()">
+                                <span class="sub-accordion-title">{{ subItem.title }}</span>
+                                <i class="fi"
+                                   [class.fi-rr-angle-small-up]="subItem.expanded"
+                                   [class.fi-rr-angle-small-down]="!subItem.expanded"></i>
+                              </button>
 
-              <div class="accordion expanded">
-                <button class="accordion-header">
-                  <span class="accordion-dot"></span>
-                  <span class="accordion-title">Actions et suivis</span>
-                  <i class="fi fi-rr-minus-small accordion-icon"></i>
-                </button>
-                <div class="accordion-content">
-                  <p class="accordion-placeholder">Contenu des actions et suivis...</p>
+                              @if (subItem.expanded && subItem.items && subItem.items.length > 0) {
+                                <div class="sub-accordion-content">
+                                  <ul class="action-list">
+                                    @for (item of subItem.items; track item) {
+                                      <li class="action-item">
+                                        <span class="action-bullet"></span>
+                                        <span class="action-text">{{ item }}</span>
+                                      </li>
+                                    }
+                                  </ul>
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <!-- Placeholder pour les accordéons sans contenu encore -->
+                        <p class="accordion-placeholder">
+                          {{ 'plans.detail.noContent' | translate }}
+                        </p>
+                      }
+                    </div>
+                  }
                 </div>
-              </div>
+              }
             </div>
           </div>
         </div>
@@ -199,8 +225,10 @@
           <div class="section-card compact">
             <div class="section-header">
               <div class="section-title">
-                <i class="fi fi-rr-marker section-icon"></i>
-                <h3>Site</h3>
+                <span class="section-icon-wrapper small">
+                  <i class="fi fi-rr-marker"></i>
+                </span>
+                <h3>{{ 'plans.detail.sections.site' | translate }}</h3>
               </div>
             </div>
             <div class="map-placeholder">
@@ -213,8 +241,10 @@
           <div class="section-card compact">
             <div class="section-header">
               <div class="section-title">
-                <i class="fi fi-rr-mind-share section-icon"></i>
-                <h3>Mindmap</h3>
+                <span class="section-icon-wrapper small">
+                  <i class="fi fi-rr-mind-share"></i>
+                </span>
+                <h3>{{ 'plans.detail.sections.mindmap' | translate }}</h3>
               </div>
             </div>
             <div class="mindmap-placeholder">
@@ -227,27 +257,29 @@
           <div class="section-card compact">
             <div class="section-header">
               <div class="section-title">
-                <i class="fi fi-rr-folder section-icon"></i>
-                <h3>Documents</h3>
+                <span class="section-icon-wrapper small">
+                  <i class="fi fi-rr-folder"></i>
+                </span>
+                <h3>{{ 'plans.detail.sections.documents' | translate }}</h3>
               </div>
             </div>
             <div class="documents-list">
               <div class="document-item">
-                <i class="fi fi-rr-file-pdf"></i>
+                <span class="doc-icon"></span>
                 <span>Pdg - Partie 1</span>
                 <button class="btn-download">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
-                <i class="fi fi-rr-file-pdf"></i>
+                <span class="doc-icon"></span>
                 <span>Pdg - Partie 2</span>
                 <button class="btn-download">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
-                <i class="fi fi-rr-file-pdf"></i>
+                <span class="doc-icon"></span>
                 <span>Pdg - Annexes</span>
                 <button class="btn-download">
                   <i class="fi fi-rr-download"></i>
@@ -255,7 +287,7 @@
               </div>
               <button class="btn-add-document">
                 <i class="fi fi-rr-upload"></i>
-                <span>Ajouter</span>
+                <span>{{ 'common.actions.add' | translate }}</span>
               </button>
             </div>
           </div>

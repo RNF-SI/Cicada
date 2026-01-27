@@ -15,6 +15,22 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+interface SyntheseAccordion {
+  id: string;
+  title: string;
+  colorClass: 'terra-cotta' | 'orange';
+  expanded: boolean;
+  hasSubItems?: boolean;
+  subItems?: SubAccordion[];
+}
+
+interface SubAccordion {
+  id: string;
+  title: string;
+  expanded: boolean;
+  items?: string[];
+}
+
 @Component({
   selector: 'app-plan-detail',
   standalone: true,
@@ -71,6 +87,73 @@ export class PlanDetailComponent implements OnInit {
 
   activeMenuItem = signal<string>('overview');
 
+  // Accordéons de la section Synthèse
+  syntheseAccordions = signal<SyntheseAccordion[]>([
+    {
+      id: 'enjeux',
+      title: 'Enjeux et Facteurs clés de réussite',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'objectifs-lt',
+      title: 'Objectifs long terme',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'objectifs-op',
+      title: 'Objectifs opérationnels',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'actions',
+      title: 'Actions et suivis',
+      colorClass: 'orange',
+      expanded: true,
+      hasSubItems: true,
+      subItems: [
+        {
+          id: 'intervention-patrimoine',
+          title: 'Intervention patrimoine naturel',
+          expanded: true,
+          items: [
+            'IP 01 : Restauration des ouvrages de régulation des niveaux d\'eau (y compris grillage contre les ragondins)',
+            'IP 02 : Entretien et gestion des ouvrages de régulation des niveaux d\'eau',
+            'IP 03 : Pâturage (Marterin)',
+            'IP 04 : Broyage sur l\'ensemble des marais',
+            'IP 05 : Broyage sur le Grand Étang et l\'Empoissonnement (1 fois /PG)'
+          ]
+        },
+        {
+          id: 'surveillance',
+          title: 'Surveillance du territoire et police de l\'environnement',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'participation',
+          title: 'Participation à la recherche',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'intervention-naturel',
+          title: 'Intervention patrimoine naturel',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'infrastructure',
+          title: 'Création et maintenance d\'infrastructure d\'accueil',
+          expanded: false,
+          items: []
+        }
+      ]
+    }
+  ]);
+
   ngOnInit(): void {
     // Récupérer l'ID du plan depuis l'URL
     const id = this.route.snapshot.paramMap.get('id');
@@ -116,5 +199,31 @@ export class PlanDetailComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/plans']);
+  }
+
+  toggleAccordion(accordionId: string): void {
+    this.syntheseAccordions.update(accordions =>
+      accordions.map(acc => ({
+        ...acc,
+        expanded: acc.id === accordionId ? !acc.expanded : acc.expanded
+      }))
+    );
+  }
+
+  toggleSubAccordion(parentId: string, subId: string): void {
+    this.syntheseAccordions.update(accordions =>
+      accordions.map(acc => {
+        if (acc.id === parentId && acc.subItems) {
+          return {
+            ...acc,
+            subItems: acc.subItems.map(sub => ({
+              ...sub,
+              expanded: sub.id === subId ? !sub.expanded : sub.expanded
+            }))
+          };
+        }
+        return acc;
+      })
+    );
   }
 }
