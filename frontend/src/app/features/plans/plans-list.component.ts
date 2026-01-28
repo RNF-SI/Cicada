@@ -18,12 +18,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
+import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AdminPlan } from '../../core/models/admin.model';
+import { AdminPlan, AdminSite } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
@@ -53,7 +56,8 @@ interface PlanWithAccess extends AdminPlan {
     MatDialogModule,
     TranslateModule,
     HeaderComponent,
-    PlanGaugeComponent
+    PlanGaugeComponent,
+    ViewScopeToggleComponent
   ],
   templateUrl: './plans-list.component.html',
   styleUrl: './plans-list.component.scss'
@@ -69,8 +73,20 @@ export class PlansListComponent implements OnInit {
 
   // Données
   readonly allPlans = signal<PlanWithAccess[]>([]);
+  readonly allSites = signal<AdminSite[]>([]);
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
+  readonly userSiteIds = signal<Set<number>>(new Set());
   readonly loading = signal(false);
+
+  // Scope d'affichage (mes plans / plans OG / tous)
+  readonly viewScope = signal<ViewScope>('mine');
+
+  // Permissions pour le toggle
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+
+  // Afficher le toggle pour tous les utilisateurs (au moins 'mine' et 'sites')
+  readonly showScopeToggle = computed(() => true);
 
   // Tab state pour "Mes plans"
   activeTab = signal<'actifs' | 'inactifs'>('actifs');
@@ -82,24 +98,77 @@ export class PlansListComponent implements OnInit {
   readonly myPlansColumns = ['name', 'period', 'status', 'actions'];
   readonly otherPlansColumns = ['name', 'period', 'organisme', 'actions'];
 
-  // Plans filtrés
+  // Plans où l'utilisateur est membre direct (via CorRolePlan)
+  readonly myDirectPlans = computed(() => {
+    const currentUser = this.authService.currentUser();
+    return this.allPlans().filter(plan =>
+      plan.membres?.some(m => m.id_role === currentUser?.id)
+    );
+  });
+
+  // Plans des sites auxquels l'utilisateur est lié (membre ou référent du site)
+  readonly sitePlans = computed(() => {
+    const userSiteIds = this.userSiteIds();
+    return this.allPlans().filter(plan =>
+      plan.sites?.some(s => userSiteIds.has(s.id_site))
+    );
+  });
+
+  // Plans de l'organisme de l'utilisateur (via les sites de l'organisme)
+  readonly organismePlans = computed(() => {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser?.organisme?.id_organisme) return [];
+
+    const userOrgId = currentUser.organisme.id_organisme;
+    const orgSiteIds = new Set(
+      this.allSites()
+        .filter(site => site.organismes?.some(o => o.id_organisme === userOrgId))
+        .map(site => site.id_site)
+    );
+
+    return this.allPlans().filter(plan =>
+      plan.sites?.some(s => orgSiteIds.has(s.id_site))
+    );
+  });
+
+  // Plans affichés selon le scope sélectionné
+  readonly scopedPlans = computed(() => {
+    const scope = this.viewScope();
+    switch (scope) {
+      case 'mine':
+        return this.myDirectPlans();
+      case 'sites':
+        return this.sitePlans();
+      case 'organisme':
+        return this.organismePlans();
+      case 'all':
+        return this.allPlans().filter(p => p.accessStatus === 'granted');
+      default:
+        return this.myDirectPlans();
+    }
+  });
+
+  // Plans filtrés par onglet actif/inactif
   readonly myPlans = computed(() => {
     const tab = this.activeTab();
-    return this.allPlans()
-      .filter(p => p.accessStatus === 'granted')
-      .filter(p => {
-        if (tab === 'actifs') {
-          return p.statut !== 'archive';
-        } else {
-          return p.statut === 'archive';
-        }
-      });
+    return this.scopedPlans().filter(p => {
+      if (tab === 'actifs') {
+        return p.statut !== 'archive';
+      } else {
+        return p.statut === 'archive';
+      }
+    });
+  });
+
+  // Plans en attente de validation d'accès
+  readonly pendingPlans = computed(() => {
+    return this.allPlans().filter(p => p.accessStatus === 'pending');
   });
 
   readonly otherPlans = computed(() => {
     const search = this.searchQuery().toLowerCase();
     return this.allPlans()
-      .filter(p => p.accessStatus !== 'granted')
+      .filter(p => p.accessStatus === 'none' || p.accessStatus === 'rejected')
       .filter(p => !search || p.nom.toLowerCase().includes(search));
   });
 
@@ -144,31 +213,43 @@ export class PlansListComponent implements OnInit {
   }
 
   /**
-   * Charge les données (plans et demandes en cours).
+   * Charge les données (plans, sites utilisateur et demandes en cours).
    */
   loadData(): void {
     this.loading.set(true);
 
-    // Charger les plans
-    this.adminService.getPlans().subscribe({
-      next: (response) => {
-        // Charger aussi les demandes de l'utilisateur
-        this.validationService.getMyRequests().subscribe({
-          next: (requests) => {
-            this.myRequests.set(requests.filter(r => r.request_type === 'plan_access'));
+    // Charger en parallèle : plans, sites de l'utilisateur, et demandes
+    forkJoin({
+      plans: this.adminService.getPlans(),
+      sites: this.adminService.getSites({ page_size: 500 }).pipe(catchError(() => of({ results: [] }))),
+      requests: this.validationService.getMyRequests().pipe(catchError(() => of([])))
+    }).subscribe({
+      next: ({ plans, sites, requests }) => {
+        // Stocker tous les sites pour le filtrage par organisme
+        this.allSites.set(sites.results as AdminSite[]);
 
-            // Enrichir les plans avec le statut d'accès
-            const plansWithAccess = this.enrichPlansWithAccess(response.results, requests);
-            this.allPlans.set(plansWithAccess);
-            this.loading.set(false);
-          },
-          error: () => {
-            // Si erreur sur les demandes, afficher quand même les plans
-            const plansWithAccess = this.enrichPlansWithAccess(response.results, []);
-            this.allPlans.set(plansWithAccess);
-            this.loading.set(false);
+        // Extraire les IDs des sites où l'utilisateur est directement lié
+        const currentUser = this.authService.currentUser();
+        const userSiteIds = new Set<number>();
+
+        if (currentUser) {
+          for (const site of sites.results as AdminSite[]) {
+            // Vérifier si l'utilisateur est dans la liste des users du site
+            const siteUsers = (site as any).users as Array<{ id_role: number }> | undefined;
+            if (siteUsers?.some(u => u.id_role === currentUser.id)) {
+              userSiteIds.add(site.id_site);
+            }
           }
-        });
+        }
+        this.userSiteIds.set(userSiteIds);
+
+        // Filtrer les demandes de plan_access
+        this.myRequests.set(requests.filter(r => r.request_type === 'plan_access'));
+
+        // Enrichir les plans avec le statut d'accès
+        const plansWithAccess = this.enrichPlansWithAccess(plans.results, requests, userSiteIds);
+        this.allPlans.set(plansWithAccess);
+        this.loading.set(false);
       },
       error: (error) => {
         console.error('Erreur chargement plans:', error);
@@ -184,9 +265,17 @@ export class PlansListComponent implements OnInit {
 
   /**
    * Enrichit les plans avec les informations d'accès.
+   * @param plans Liste des plans
+   * @param requests Demandes de validation de l'utilisateur
+   * @param userSiteIds IDs des sites auxquels l'utilisateur a accès
    */
-  private enrichPlansWithAccess(plans: AdminPlan[], requests: ValidationRequestListItem[]): PlanWithAccess[] {
+  private enrichPlansWithAccess(
+    plans: AdminPlan[],
+    requests: ValidationRequestListItem[],
+    userSiteIds: Set<number>
+  ): PlanWithAccess[] {
     const currentUser = this.authService.currentUser();
+    const isSuperAdmin = this.authService.isSuperAdmin();
 
     return plans.map(plan => {
       // Vérifier s'il y a une demande en cours pour ce plan
@@ -206,11 +295,17 @@ export class PlansListComponent implements OnInit {
              r.target_name === plan.nom
       );
 
-      // Vérifier si l'utilisateur est référent du plan
-      const isReferent = plan.referents?.some(r => r.id_role === currentUser?.id) || false;
+      // Vérifier si l'utilisateur est membre direct du plan (via CorRolePlan)
+      const userMembership = plan.membres?.find(m => m.id_role === currentUser?.id);
+      const isMember = !!userMembership;
+      const isReferent = userMembership?.referent || false;
+
+      // Vérifier si l'utilisateur a accès via un des sites du plan
+      const hasAccessViaSite = plan.sites?.some(s => userSiteIds.has(s.id_site)) || false;
 
       let accessStatus: 'granted' | 'pending' | 'rejected' | 'none' = 'none';
-      if (isReferent || approvedRequest) {
+      // Super admin, membre du plan, accès via site, ou demande approuvée = accès accordé
+      if (isSuperAdmin || isMember || hasAccessViaSite || approvedRequest) {
         accessStatus = 'granted';
       } else if (pendingRequest) {
         accessStatus = 'pending';
@@ -274,6 +369,15 @@ export class PlansListComponent implements OnInit {
         this.loadData();
       }
     });
+  }
+
+  /**
+   * Gère le changement de scope d'affichage.
+   */
+  onScopeChange(scope: ViewScope): void {
+    this.viewScope.set(scope);
+    // Reset pagination lors du changement de scope
+    this.currentPage.set(1);
   }
 
   /**
@@ -369,5 +473,17 @@ export class PlansListComponent implements OnInit {
       return plan.sites[0].nom_site;
     }
     return '-';
+  }
+
+  /**
+   * Récupère la date de demande d'accès pour un plan en attente.
+   */
+  getRequestDate(plan: PlanWithAccess): Date | null {
+    const request = this.myRequests().find(
+      r => r.request_type === 'plan_access' &&
+           r.status === 'pending' &&
+           r.target_name === plan.nom
+    );
+    return request ? new Date(request.created_at) : null;
   }
 }

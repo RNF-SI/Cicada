@@ -6,11 +6,12 @@ import { TranslateModule } from '@ngx-translate/core';
 
 /**
  * Type de scope d'affichage pour les listes de sites/plans.
- * - 'mine': Uniquement les éléments auxquels l'utilisateur est directement lié
+ * - 'mine': Uniquement les éléments auxquels l'utilisateur est directement lié (ex: référent du plan)
+ * - 'sites': Plans des sites auxquels l'utilisateur est lié (membre ou référent du site)
  * - 'organisme': Tous les éléments de l'organisme de l'utilisateur
  * - 'all': Tous les éléments (super_admin uniquement)
  */
-export type ViewScope = 'mine' | 'organisme' | 'all';
+export type ViewScope = 'mine' | 'sites' | 'organisme' | 'all';
 
 export interface ViewScopeOption {
   value: ViewScope;
@@ -227,6 +228,11 @@ export class ViewScopeToggleComponent {
   @Input() showAllOption = false;
 
   /**
+   * Afficher l'option "Sites" (plans des sites liés à l'utilisateur).
+   */
+  @Input() showSitesOption = false;
+
+  /**
    * Afficher l'option "Organisme" (pour admin_og et super_admin).
    */
   @Input() showOrganismeOption = true;
@@ -235,6 +241,11 @@ export class ViewScopeToggleComponent {
    * Label personnalisé pour "Mes sites" / "Mes plans".
    */
   @Input() mineLabel = 'Mes sites';
+
+  /**
+   * Label personnalisé pour "Mes sites" (plans des sites).
+   */
+  @Input() sitesLabel = 'Mes sites';
 
   /**
    * Label personnalisé pour "Sites de l'organisme" / "Plans de l'organisme".
@@ -263,6 +274,15 @@ export class ViewScopeToggleComponent {
         tooltip: `Afficher uniquement ${this.mineLabel.toLowerCase()}`
       }
     ];
+
+    if (this.showSitesOption) {
+      options.push({
+        value: 'sites',
+        label: this.sitesLabel,
+        icon: 'fi-rr-marker',
+        tooltip: `Afficher les plans de ${this.sitesLabel.toLowerCase()}`
+      });
+    }
 
     if (this.showOrganismeOption) {
       options.push({

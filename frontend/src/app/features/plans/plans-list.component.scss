@@ -203,16 +203,18 @@ h1 {
 
 .tabs-container {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   margin: 0 72px;
   padding-top: $spacing-lg;
   padding-bottom: $spacing-md;
+  gap: $spacing-lg;
 }
 
 .tabs {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 // ============================================
@@ -621,6 +623,40 @@ h1 {
 }
 
 // ============================================
+// PENDING PLANS SECTION
+// ============================================
+
+.pending-plans-section {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+.table-pending {
+  .plans-table thead th {
+    background-color: rgba($secondary-orange-salmon, 0.15);
+    color: $black;
+  }
+}
+
+.plans-table-pending tbody tr {
+  background-color: rgba($secondary-orange-salmon, 0.05);
+
+  &.odd {
+    background-color: rgba($secondary-orange-salmon, 0.1);
+  }
+}
+
+.badge-warning {
+  background-color: $secondary-orange-salmon;
+  color: $black;
+}
+
+.col-date {
+  width: 150px;
+}
+
+// ============================================
 // REQUEST ACCESS SECTION
 // ============================================
 
@@ -754,6 +790,22 @@ h1 {
 
 .status-neutre {
   background-color: $gray-light !important;
+}
+
+// Action with status (rejected plans)
+.action-with-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.status-chip-small {
+  font-size: 11px;
+  height: 24px;
+
+  .chip-icon {
+    font-size: 10px;
+  }
 }
 
 // ============================================

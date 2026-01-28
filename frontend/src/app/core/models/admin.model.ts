@@ -307,6 +307,20 @@ export interface PlanReferent {
 }
 
 /**
+ * Membre d'un plan de gestion (via CorRolePlan)
+ */
+export interface PlanMembre {
+  id_role: number;
+  email: string;
+  nom_role?: string;
+  prenom_role?: string;
+  nom_complet?: string;
+  referent: boolean;
+  date_association?: string;
+  commentaire?: string;
+}
+
+/**
  * Plan de gestion - modèle complet depuis l'API
  */
 export interface AdminPlan {
@@ -336,6 +350,7 @@ export interface AdminPlan {
   date_maj?: string;
   sites?: PlanSite[];
   referents?: PlanReferent[];
+  membres?: PlanMembre[];
   id_utilisateur_ajout?: number;
   id_utilisateur_maj?: number;
 }

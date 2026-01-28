@@ -54,7 +54,7 @@
     </div>
   </section>
 
-  <!-- Tabs (en dessous de la bannière, design Figma) -->
+  <!-- Tabs et Scope Toggle (en dessous de la bannière, design Figma) -->
   <div class="tabs-container">
     <div class="tabs">
       <button
@@ -70,6 +70,21 @@
         {{ 'plans.list.tabs.inactive' | translate }}
       </button>
     </div>
+
+    <!-- Scope Toggle -->
+    @if (showScopeToggle()) {
+      <app-view-scope-toggle
+        [currentScope]="viewScope()"
+        [showSitesOption]="true"
+        [showOrganismeOption]="isAdminOrganisme()"
+        [showAllOption]="isSuperAdmin()"
+        [mineLabel]="'plans.scope.mine' | translate"
+        [sitesLabel]="'plans.scope.sites' | translate"
+        [organismeLabel]="'plans.scope.organisme' | translate"
+        [allLabel]="'plans.scope.all' | translate"
+        (scopeChange)="onScopeChange($event)">
+      </app-view-scope-toggle>
+    }
   </div>
 
   @if (loading()) {
@@ -192,7 +207,62 @@
         }
       </section>
 
-      <!-- Section 2: Demander l'accès à d'autres plans -->
+      <!-- Section 2: Plans en attente de validation -->
+      @if (pendingPlans().length > 0) {
+        <section class="content-section pending-plans-section">
+          <h2 class="section-title">
+            <i class="fi fi-rr-hourglass-end section-icon"></i>
+            {{ 'plans.pendingPlans.title' | translate }}
+            <span class="badge badge-warning">{{ pendingPlans().length }}</span>
+          </h2>
+          <p class="section-description">{{ 'plans.pendingPlans.description' | translate }}</p>
+
+          <div class="table-container table-pending">
+            <table class="plans-table plans-table-pending">
+              <thead>
+                <tr>
+                  <th class="col-name">{{ 'plans.list.table.name' | translate }}</th>
+                  <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
+                  <th class="col-site">{{ 'plans.list.table.site' | translate }}</th>
+                  <th class="col-date">{{ 'plans.pendingPlans.requestDate' | translate }}</th>
+                  <th class="col-status">{{ 'plans.list.table.status' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (plan of pendingPlans(); track plan.id_pg; let i = $index) {
+                  <tr [class.odd]="i % 2 === 1">
+                    <td class="col-name">
+                      <span class="plan-name">{{ plan.nom }}</span>
+                    </td>
+                    <td class="col-period">{{ formatPeriod(plan) }}</td>
+                    <td class="col-site">
+                      @if (plan.sites && plan.sites.length > 0) {
+                        {{ plan.sites[0].nom_site }}
+                        @if (plan.sites.length > 1) {
+                          <span class="others">+{{ plan.sites.length - 1 }}</span>
+                        }
+                      } @else { - }
+                    </td>
+                    <td class="col-date">
+                      @if (getRequestDate(plan)) {
+                        {{ getRequestDate(plan) | date:'dd/MM/yyyy' }}
+                      } @else { - }
+                    </td>
+                    <td class="col-status">
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'plans.pendingPlans.waiting' | translate }}
+                      </mat-chip>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      <!-- Section 3: Demander l'accès à d'autres plans -->
       <section class="content-section request-section">
         <h2 class="section-title">
           <i class="fi fi-rr-lock section-icon"></i>
@@ -259,29 +329,32 @@
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef></th>
                   <td mat-cell *matCellDef="let plan">
-                    @switch (plan.accessStatus) {
-                      @case ('pending') {
-                        <mat-chip class="status-warning">
-                          <i class="fi fi-rr-hourglass-end chip-icon"></i>
-                          {{ 'plans.requestAccess.pending' | translate }}
-                        </mat-chip>
-                      }
-                      @case ('rejected') {
-                        <mat-chip class="status-error">
+                    @if (plan.accessStatus === 'rejected') {
+                      <!-- Plan avec demande refusée : peut re-demander -->
+                      <div class="action-with-status">
+                        <mat-chip class="status-error status-chip-small">
                           <i class="fi fi-rr-cross-circle chip-icon"></i>
                           {{ 'plans.requestAccess.rejected' | translate }}
                         </mat-chip>
-                      }
-                      @default {
                         <button
                           mat-stroked-button
                           color="primary"
+                          class="btn-sm"
                           (click)="openAccessRequestDialog(plan)"
                         >
-                          <i class="fi fi-rr-lock"></i>
-                          {{ 'plans.requestAccess.button' | translate }}
+                          {{ 'plans.requestAccess.retry' | translate }}
                         </button>
-                      }
+                      </div>
+                    } @else {
+                      <!-- Plan sans demande : peut demander l'accès -->
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        (click)="openAccessRequestDialog(plan)"
+                      >
+                        <i class="fi fi-rr-lock"></i>
+                        {{ 'plans.requestAccess.button' | translate }}
+                      </button>
                     }
                   </td>
                 </ng-container>
