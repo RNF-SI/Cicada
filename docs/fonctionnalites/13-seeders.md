@@ -12,16 +12,16 @@ La commande `seed_testdata` permet de créer un jeu de données cohérent pour l
 
 ```bash
 # Créer toutes les données de test
-docker-compose exec web python manage.py seed_testdata
+docker compose exec web python manage.py seed_testdata
 
 # Supprimer les données de test
-docker-compose exec web python manage.py seed_testdata --reset
+docker compose exec web python manage.py seed_testdata --reset
 
 # Prévisualiser ce qui serait créé (sans modification)
-docker-compose exec web python manage.py seed_testdata --dry-run
+docker compose exec web python manage.py seed_testdata --dry-run
 
 # Seeding sélectif (avec résolution automatique des dépendances)
-docker-compose exec web python manage.py seed_testdata --only=users,plans
+docker compose exec web python manage.py seed_testdata --only=users,plans
 ```
 
 ### Données créées

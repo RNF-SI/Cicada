@@ -191,17 +191,17 @@ Les problèmes critiques sont détectés **immédiatement** via les signaux Djan
 
 #### Démarrage avec Docker
 
-Les services Celery sont inclus dans le `docker-compose.yml` et démarrent automatiquement :
+Les services Celery sont inclus dans le `docker compose.yml` et démarrent automatiquement :
 
 ```bash
 # Démarrer tous les services (Django + Celery Worker + Celery Beat)
-docker-compose up -d
+docker compose up -d
 
 # Voir les logs du worker
-docker-compose logs -f celery-worker
+docker compose logs -f celery-worker
 
 # Voir les logs du planificateur
-docker-compose logs -f celery-beat
+docker compose logs -f celery-beat
 ```
 
 **Services Docker** :
@@ -213,10 +213,10 @@ docker-compose logs -f celery-beat
 **Démarrage manuel** (si besoin de debug) :
 ```bash
 # Worker seul
-docker-compose exec web celery -A config worker -l info
+docker compose exec web celery -A config worker -l info
 
 # Beat seul
-docker-compose exec web celery -A config beat -l info
+docker compose exec web celery -A config beat -l info
 ```
 
 **Variables d'environnement Celery** :
@@ -236,7 +236,7 @@ CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis:6
 CELERY_TIMEZONE = 'Europe/Paris'
 ```
 
-> **Note** : Ces variables doivent être définies dans les services `web`, `celery-worker` et `celery-beat` du `docker-compose.yml` pour que tous les composants puissent communiquer avec Redis.
+> **Note** : Ces variables doivent être définies dans les services `web`, `celery-worker` et `celery-beat` du `docker compose.yml` pour que tous les composants puissent communiquer avec Redis.
 
 #### Liste des tâches planifiées
 

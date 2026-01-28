@@ -18,7 +18,7 @@ jobs:
 
     services:
       postgres:
-        image: postgis/postgis:15-3.3
+        image: postgis/postgis:17-3.5
         env:
           POSTGRES_DB: test_db
           POSTGRES_USER: postgres
@@ -107,7 +107,7 @@ jobs:
 
     services:
       postgres:
-        image: postgis/postgis:15-3.3
+        image: postgis/postgis:17-3.5
         env:
           POSTGRES_DB: test_db
           POSTGRES_USER: postgres

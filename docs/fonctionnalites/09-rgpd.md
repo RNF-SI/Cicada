@@ -275,7 +275,7 @@ Les tests RGPD sont dans `tests/integration/test_api_users.py` :
 
 Lancer les tests RGPD :
 ```bash
-docker-compose exec web pytest tests/integration/test_api_users.py -k RGPD -v
+docker compose exec web pytest tests/integration/test_api_users.py -k RGPD -v
 ```
 
 ---

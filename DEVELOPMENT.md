@@ -19,7 +19,7 @@ git clone https://github.com/RNF-SI/Cicada.git
 cd Cicada
 
 # 2. Lancer l'environnement de développement
-docker-compose up -d
+docker compose up -d
 
 # 3. Accès
 # - Admin Django : http://localhost:8000/admin/ (admin / admin)
@@ -48,7 +48,7 @@ Cicada/
 │   ├── create_superuser.py    # Script admin
 │   └── apps/core/management/  # Commandes Django (seed_testdata, etc.)
 ├── frontend/                  # Application Angular
-├── docker-compose.yml         # Configuration Docker
+├── docker compose.yml         # Configuration Docker
 └── docs/                     # Documentation
 ```
 
@@ -81,10 +81,10 @@ Cicada/
 # Exemple : ajouter un champ au modèle Site
 
 # 2. Générer la migration
-docker-compose exec web python manage.py makemigrations
+docker compose exec web python manage.py makemigrations
 
 # 3. Appliquer en base
-docker-compose exec web python manage.py migrate
+docker compose exec web python manage.py migrate
 
 # 4. Optionnel : mettre à jour admin.py pour le nouveau champ
 ```
@@ -232,31 +232,31 @@ class RoleAdmin(BaseUserAdmin):
 
 ```bash
 # Backend Django
-docker-compose exec web python manage.py shell          # Console Django
-docker-compose exec web python manage.py makemigrations  # Créer migrations
-docker-compose exec web python manage.py migrate        # Appliquer migrations
-docker-compose exec web python create_superuser.py      # Créer admin
-docker-compose exec web python manage.py seed_testdata  # Données test (commande Django)
-docker-compose exec web python manage.py seed_testdata --reset   # Supprimer données test
-docker-compose exec web python manage.py seed_testdata --dry-run # Aperçu des données
+docker compose exec web python manage.py shell          # Console Django
+docker compose exec web python manage.py makemigrations  # Créer migrations
+docker compose exec web python manage.py migrate        # Appliquer migrations
+docker compose exec web python create_superuser.py      # Créer admin
+docker compose exec web python manage.py seed_testdata  # Données test (commande Django)
+docker compose exec web python manage.py seed_testdata --reset   # Supprimer données test
+docker compose exec web python manage.py seed_testdata --dry-run # Aperçu des données
 
 # Base de données
-docker-compose exec db psql -U cicada_user -d cicada  # Console PostgreSQL
+docker compose exec db psql -U cicada_user -d cicada  # Console PostgreSQL
 
 # Logs et debug
-docker-compose logs -f web      # Logs Django
-docker-compose logs -f db       # Logs PostgreSQL
-docker-compose ps              # État des services
+docker compose logs -f web      # Logs Django
+docker compose logs -f db       # Logs PostgreSQL
+docker compose ps              # État des services
 ```
 
 ### Tests
 
 ```bash
 # Tests backend (à implémenter)
-docker-compose exec web python manage.py test
+docker compose exec web python manage.py test
 
 # Avec coverage (à configurer)
-docker-compose exec web pytest --cov=apps --cov-report=html
+docker compose exec web pytest --cov=apps --cov-report=html
 ```
 
 ## 🔐 Authentification JWT
@@ -347,7 +347,7 @@ def public_view(request):
 **Test avec script automatisé :**
 ```bash
 # Script de test complet de l'API JWT
-docker-compose exec web python test_auth_api.py
+docker compose exec web python test_auth_api.py
 ```
 
 **Test avec curl :**
@@ -600,7 +600,7 @@ ROLE_CHOICES = [
 
 ```bash
 # Commande pour créer/synchroniser les permissions
-docker-compose exec web python manage.py create_permissions
+docker compose exec web python manage.py create_permissions
 
 # Groupes créés automatiquement :
 # - Super Administrateurs (30 permissions)
@@ -658,10 +658,10 @@ X-User-Permissions: {"is_super_admin": true, ...}
 
 ```bash
 # Test complet des permissions
-docker-compose exec web python test_permissions.py
+docker compose exec web python test_permissions.py
 
 # Test des API de permissions
-docker-compose exec web python test_permissions_api.py
+docker compose exec web python test_permissions_api.py
 ```
 
 ### Endpoints de test disponibles
@@ -864,13 +864,13 @@ Le projet inclut une commande Django pour créer des données de test réalistes
 
 ```bash
 # Créer toutes les données de test
-docker-compose exec web python manage.py seed_testdata
+docker compose exec web python manage.py seed_testdata
 
 # Supprimer les données de test
-docker-compose exec web python manage.py seed_testdata --reset
+docker compose exec web python manage.py seed_testdata --reset
 
 # Aperçu sans modification (dry-run)
-docker-compose exec web python manage.py seed_testdata --dry-run
+docker compose exec web python manage.py seed_testdata --dry-run
 ```
 
 **Contenu créé :**
@@ -907,7 +907,7 @@ docker-compose exec web python manage.py seed_testdata --dry-run
 
 ```bash
 # Logs en temps réel
-docker-compose logs -f web
+docker compose logs -f web
 
 # Niveau DEBUG dans settings/development.py
 DEBUG = True
@@ -921,7 +921,7 @@ DEBUG = True
 
 ```bash
 # État de tous les conteneurs
-docker-compose ps
+docker compose ps
 
 # Indicateurs à surveiller :
 # - Exit 1, Exit 127 → Conteneur a échoué
@@ -933,36 +933,36 @@ docker-compose ps
 
 ```bash
 # Logs du backend (le plus important)
-docker-compose logs web | tail -50
+docker compose logs web | tail -50
 
 # Logs du frontend
-docker-compose logs frontend | tail -50
+docker compose logs frontend | tail -50
 
 # Tous les logs ensemble
-docker-compose logs | tail -100
+docker compose logs | tail -100
 ```
 
 #### 3. Filtrer les erreurs dans les logs
 
 ```bash
 # Chercher les erreurs Python/Django
-docker-compose logs web | grep -i "error\|exception\|traceback\|failed"
+docker compose logs web | grep -i "error\|exception\|traceback\|failed"
 
 # Chercher les erreurs de commande
-docker-compose logs frontend | grep -i "not found\|error\|failed"
+docker compose logs frontend | grep -i "not found\|error\|failed"
 
 # Voir le contexte autour d'une erreur (10 lignes avant/après)
-docker-compose logs web | grep -A 10 -B 10 -i "error"
+docker compose logs web | grep -A 10 -B 10 -i "error"
 ```
 
 #### 4. Suivre les logs en temps réel (pendant le démarrage)
 
 ```bash
 # Logs en temps réel de tous les services
-docker-compose logs -f
+docker compose logs -f
 
 # Logs d'un service spécifique
-docker-compose logs -f web
+docker compose logs -f web
 
 # Appuyez sur Ctrl+C pour arrêter
 ```
@@ -985,7 +985,7 @@ curl -I http://localhost:4200/
 **Conteneur en Exit 1 (erreur Python) :**
 ```bash
 # Voir l'erreur exacte
-docker-compose logs web | grep -A 20 "Traceback"
+docker compose logs web | grep -A 20 "Traceback"
 
 # Causes fréquentes :
 # - Erreur dans un script d'initialisation
@@ -996,7 +996,7 @@ docker-compose logs web | grep -A 20 "Traceback"
 **Conteneur en Exit 127 (commande non trouvée) :**
 ```bash
 # Voir quelle commande a échoué
-docker-compose logs frontend | grep "not found"
+docker compose logs frontend | grep "not found"
 
 # Causes fréquentes :
 # - Dépendances npm non installées (npm install manquant)
@@ -1017,35 +1017,35 @@ docker inspect cicada_web | grep -A 10 Health
 
 ```bash
 # Entrer dans un conteneur pour investiguer
-docker-compose exec web bash
-docker-compose exec frontend sh
+docker compose exec web bash
+docker compose exec frontend sh
 
 # Vérifier les processus en cours
-docker-compose exec web ps aux
+docker compose exec web ps aux
 
 # Vérifier les variables d'environnement
-docker-compose exec web env | grep DJANGO
+docker compose exec web env | grep DJANGO
 
 # Tester une commande manuellement
-docker-compose exec web python manage.py check
-docker-compose exec web python manage.py showmigrations
+docker compose exec web python manage.py check
+docker compose exec web python manage.py showmigrations
 ```
 
 #### 8. Séquence de diagnostic complète
 
 ```bash
 # 1. Vérifier l'état
-docker-compose ps
+docker compose ps
 
 # 2. Si un conteneur est en erreur, voir ses logs
-docker-compose logs web | tail -100
+docker compose logs web | tail -100
 
 # 3. Chercher les erreurs spécifiques
-docker-compose logs web | grep -A 10 -i "error\|exception"
+docker compose logs web | grep -A 10 -i "error\|exception"
 
 # 4. Si le conteneur est arrêté, le relancer et suivre les logs
-docker-compose up -d web
-docker-compose logs -f web
+docker compose up -d web
+docker compose logs -f web
 ```
 
 #### 9. Astuce : Alias utiles
@@ -1053,13 +1053,13 @@ docker-compose logs -f web
 Ajoutez à votre `~/.zshrc` ou `~/.bashrc` :
 
 ```bash
-alias dclogs='docker-compose logs'
-alias dcps='docker-compose ps'
-alias dclogs-web='docker-compose logs web | tail -50'
-alias dclogs-frontend='docker-compose logs frontend | tail -50'
-alias dcrestart='docker-compose restart'
-alias dcup='docker-compose up -d'
-alias dcdown='docker-compose down'
+alias dclogs='docker compose logs'
+alias dcps='docker compose ps'
+alias dclogs-web='docker compose logs web | tail -50'
+alias dclogs-frontend='docker compose logs frontend | tail -50'
+alias dcrestart='docker compose restart'
+alias dcup='docker compose up -d'
+alias dcdown='docker compose down'
 ```
 
 Ensuite utilisez simplement :
@@ -1073,7 +1073,7 @@ dclogs-frontend   # Logs du frontend
 
 ```bash
 # Console PostgreSQL
-docker-compose exec db psql -U cicada_user -d cicada
+docker compose exec db psql -U cicada_user -d cicada
 
 # Vérifier les tables
 \dt
@@ -1088,7 +1088,7 @@ docker-compose exec db psql -U cicada_user -d cicada
 
 **✅ Phase 1-infrastructure (Terminée)**
 - ✅ #6 - Initialisation du projet Django
-- ✅ #7 - Configuration Docker et docker-compose 
+- ✅ #7 - Configuration Docker et docker compose 
 - ✅ #8 - Configuration PostgreSQL avec PostGIS
 
 **✅ Phase 2-auth (Partiellement terminée)**

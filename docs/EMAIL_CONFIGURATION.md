@@ -19,10 +19,10 @@ En développement, **Mailpit** capture tous les emails sans les envoyer réellem
 
 ```bash
 # Démarrer tous les services (inclut Mailpit)
-docker-compose up -d
+docker compose up -d
 
 # Ou démarrer uniquement Mailpit
-docker-compose up -d mailpit
+docker compose up -d mailpit
 ```
 
 ### Accès
@@ -42,7 +42,7 @@ docker-compose up -d mailpit
 
 ```bash
 # Tester l'envoi d'un email via Django shell
-docker-compose exec web python manage.py shell -c "
+docker compose exec web python manage.py shell -c "
 from django.core.mail import send_mail
 send_mail(
     'Test Email',
@@ -60,7 +60,7 @@ Avec Mailpit, les tests peuvent vérifier que les emails sont bien générés :
 
 ```bash
 # Les tests utilisent automatiquement Mailpit
-docker-compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+docker compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
 ```
 
 ## Production (Serveur SMTP réel)
@@ -91,7 +91,7 @@ DEFAULT_FROM_EMAIL=noreply@cicada.reserves-naturelles.org
 SITE_URL=https://cicada.reserves-naturelles.org
 ```
 
-### Configuration docker-compose.prod.yml
+### Configuration docker compose.prod.yml
 
 ```yaml
 services:
@@ -131,7 +131,7 @@ services:
 
 ```bash
 # Tester l'envoi vers une vraie adresse
-docker-compose exec web python manage.py shell -c "
+docker compose exec web python manage.py shell -c "
 from django.core.mail import send_mail
 from django.conf import settings
 print(f'Backend: {settings.EMAIL_BACKEND}')
@@ -176,10 +176,10 @@ Les emails sont envoyés de manière asynchrone via Celery pour ne pas bloquer l
 
 ```bash
 # Voir les logs du worker Celery
-docker-compose logs -f celery-worker
+docker compose logs -f celery-worker
 
 # Vérifier les tâches en attente
-docker-compose exec web python manage.py shell -c "
+docker compose exec web python manage.py shell -c "
 from config.celery import app
 i = app.control.inspect()
 print('Active:', i.active())
@@ -202,12 +202,12 @@ print('Scheduled:', i.scheduled())
 
 1. **Vérifier les logs Celery** :
    ```bash
-   docker-compose logs celery-worker | grep -i email
+   docker compose logs celery-worker | grep -i email
    ```
 
 2. **Vérifier la configuration** :
    ```bash
-   docker-compose exec web python manage.py shell -c "
+   docker compose exec web python manage.py shell -c "
    from django.conf import settings
    print('EMAIL_BACKEND:', settings.EMAIL_BACKEND)
    print('EMAIL_HOST:', settings.EMAIL_HOST)
@@ -217,7 +217,7 @@ print('Scheduled:', i.scheduled())
 
 3. **Tester la connexion SMTP** :
    ```bash
-   docker-compose exec web python -c "
+   docker compose exec web python -c "
    import smtplib
    server = smtplib.SMTP('mailpit', 1025)  # ou votre serveur SMTP
    server.set_debuglevel(1)
@@ -235,7 +235,7 @@ print('Scheduled:', i.scheduled())
 
 ### Mailpit ne reçoit rien
 
-1. Vérifier que Mailpit tourne : `docker-compose ps mailpit`
+1. Vérifier que Mailpit tourne : `docker compose ps mailpit`
 2. Vérifier que Django utilise le bon backend : doit être `smtp.EmailBackend`, pas `console.EmailBackend`
 3. Vérifier que `EMAIL_HOST=mailpit` et `EMAIL_PORT=1025`
 
@@ -245,7 +245,7 @@ Un utilisateur avec une vraie adresse email est créé par le seeder :
 
 ```bash
 # Créer les données de test
-docker-compose exec web python manage.py seed_testdata
+docker compose exec web python manage.py seed_testdata
 ```
 
 | Email | Usage |

@@ -36,7 +36,7 @@ Table des valeurs de nomenclatures :
 Lors d'un démarrage Docker, les nomenclatures sont automatiquement initialisées :
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Le processus inclut :
@@ -51,7 +51,7 @@ Pour mettre à jour les nomenclatures :
 
 ```bash
 # Depuis l'hôte
-docker-compose exec web python import_nomenclatures.py
+docker compose exec web python import_nomenclatures.py
 
 # Ou depuis le container
 python import_nomenclatures.py
@@ -162,7 +162,7 @@ Les modèles Django utilisent `managed = False` pour éviter les conflits avec l
 ls -la nomenclatures_data/
 
 # Réexécuter l'import
-docker-compose exec web python import_nomenclatures.py
+docker compose exec web python import_nomenclatures.py
 ```
 
 ### Tables manquantes

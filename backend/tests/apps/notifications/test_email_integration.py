@@ -8,15 +8,15 @@ In production, emails are sent to real addresses.
 They are marked with `email_integration` and are SKIPPED if using console backend.
 
 Usage (development with Mailpit):
-    # Mailpit is configured by default in docker-compose
-    docker-compose up -d
-    docker-compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+    # Mailpit is configured by default in docker compose
+    docker compose up -d
+    docker compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
 
     # View captured emails at http://localhost:8025
 
 Usage (production SMTP):
     # Configure real SMTP in environment variables
-    docker-compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+    docker compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
 """
 import os
 import pytest

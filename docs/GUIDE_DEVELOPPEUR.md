@@ -12,34 +12,34 @@ Guide pratique pour le développement sur CICADA.
 
 ```bash
 # Démarrer
-docker-compose up -d
+docker compose up -d
 
 # Arrêter
-docker-compose down
+docker compose down
 
 # Reconstruire après modification des dépendances
-docker-compose build web
+docker compose build web
 
 # Logs en temps réel
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 ### Backend Django
 
 ```bash
 # Migrations
-docker-compose exec web python manage.py makemigrations
-docker-compose exec web python manage.py migrate
+docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py migrate
 
 # Shell Django
-docker-compose exec web python manage.py shell
+docker compose exec web python manage.py shell
 
 # Créer des données de test
-docker-compose exec web python manage.py seed_testdata
-docker-compose exec web python manage.py seed_testdata --reset  # Supprimer
+docker compose exec web python manage.py seed_testdata
+docker compose exec web python manage.py seed_testdata --reset  # Supprimer
 
 # Tests
-docker-compose exec web pytest tests/
+docker compose exec web pytest tests/
 ```
 
 ### Frontend Angular
@@ -112,10 +112,10 @@ def admin_only_view(request):
 
 ```bash
 # Logs filtrés (requêtes et erreurs)
-docker-compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
+docker compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
 
 # Tous les logs
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 ### Configuration

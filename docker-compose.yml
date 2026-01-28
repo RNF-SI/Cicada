@@ -1,7 +1,7 @@
 services:
   # Base de données PostgreSQL avec PostGIS
   db:
-    image: postgis/postgis:15-3.3-alpine
+    image: postgis/postgis:17-3.5-alpine
     container_name: cicada_db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cicada}
@@ -95,7 +95,7 @@ services:
 
   # Application Angular (Frontend) - Mode développement
   frontend:
-    image: node:18-alpine
+    image: node:20-alpine
     container_name: cicada_frontend
     working_dir: /app
     volumes:
@@ -156,7 +156,7 @@ services:
   # Interface web: http://localhost:8025
   # SMTP: localhost:1025
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.21
     container_name: cicada_mailpit
     ports:
       - "${MAILPIT_WEB_PORT:-8025}:8025"   # Interface web

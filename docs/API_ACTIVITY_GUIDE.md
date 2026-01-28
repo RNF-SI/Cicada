@@ -353,13 +353,13 @@ Les tests sont dans `tests/apps/core/test_activity.py` (48 tests).
 
 ```bash
 # Exécuter les tests Activity
-docker-compose exec web pytest tests/apps/core/test_activity.py -v
+docker compose exec web pytest tests/apps/core/test_activity.py -v
 
 # Tests par catégorie
-docker-compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityLogModel" -v
-docker-compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityService" -v
-docker-compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityAPIEndpoints" -v
-docker-compose exec web pytest tests/apps/core/test_activity.py -k "TestActivitySignals" -v
+docker compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityLogModel" -v
+docker compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityService" -v
+docker compose exec web pytest tests/apps/core/test_activity.py -k "TestActivityAPIEndpoints" -v
+docker compose exec web pytest tests/apps/core/test_activity.py -k "TestActivitySignals" -v
 ```
 
 ### Catégories de tests

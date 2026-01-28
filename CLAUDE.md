@@ -46,7 +46,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Backend
 - Django 5.0+ with Django REST Framework 3.14+
-- PostgreSQL 15+ with PostGIS 3.3+ for spatial data
+- PostgreSQL 17+ with PostGIS 3.5+ for spatial data
 - Python 3.11+
 - Celery + Redis for async tasks (email notifications)
 
@@ -259,7 +259,7 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 
 ```bash
 # Docker setup (recommended)
-docker-compose up -d
+docker compose up -d
 
 # The setup includes:
 # - PostgreSQL with PostGIS
@@ -274,39 +274,39 @@ docker-compose up -d
 
 ```bash
 # Backend (via Docker)
-docker-compose exec web python manage.py runserver
+docker compose exec web python manage.py runserver
 
 # Database migrations
-docker-compose exec web python manage.py makemigrations
-docker-compose exec web python manage.py migrate
+docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py migrate
 
 # Create superuser
-docker-compose exec web python create_superuser.py
+docker compose exec web python create_superuser.py
 
 # Create test data (Django management command)
-docker-compose exec web python manage.py seed_testdata          # Create all test data
-docker-compose exec web python manage.py seed_testdata --reset  # Remove test data
-docker-compose exec web python manage.py seed_testdata --dry-run # Preview changes
-docker-compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
+docker compose exec web python manage.py seed_testdata          # Create all test data
+docker compose exec web python manage.py seed_testdata --reset  # Remove test data
+docker compose exec web python manage.py seed_testdata --dry-run # Preview changes
+docker compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
 # Import/Update nomenclatures (reference data)
-docker-compose exec web python import_nomenclatures.py
+docker compose exec web python import_nomenclatures.py
 
 # Test nomenclatures import
-docker-compose exec web python test_nomenclatures.py
+docker compose exec web python test_nomenclatures.py
 
 # Access Django shell
-docker-compose exec web python manage.py shell
+docker compose exec web python manage.py shell
 ```
 
 ### Logging
 
 ```bash
 # Logs en temps réel (filtrés sur les requêtes et erreurs)
-docker-compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
+docker compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
 
 # Tous les logs en temps réel
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 **Configuration des logs** (variables d'environnement) :
@@ -375,7 +375,7 @@ modules, nomenclatures, groups, organismes (indépendants)
 **Option `--only` :** Permet un seeding sélectif avec résolution automatique des dépendances.
 ```bash
 # Crée uniquement users et plans (+ leurs dépendances automatiquement)
-docker-compose exec web python manage.py seed_testdata --only=users,plans
+docker compose exec web python manage.py seed_testdata --only=users,plans
 ```
 
 **Ajouter un nouveau seeder :**
@@ -400,22 +400,22 @@ docker-compose exec web python manage.py seed_testdata --only=users,plans
 
 ```bash
 # Via Docker (recommandé)
-docker-compose exec web pytest tests/
+docker compose exec web pytest tests/
 
 # Avec couverture HTML
-docker-compose exec web pytest tests/ --cov=apps --cov-report=html
+docker compose exec web pytest tests/ --cov=apps --cov-report=html
 
 # Tests unitaires uniquement
-docker-compose exec web pytest tests/ -m unit
+docker compose exec web pytest tests/ -m unit
 
 # Tests d'intégration uniquement
-docker-compose exec web pytest tests/ -m integration
+docker compose exec web pytest tests/ -m integration
 
 # Un fichier spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py -v
+docker compose exec web pytest tests/integration/test_api_users.py -v
 
 # Un test spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint -v
+docker compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint -v
 ```
 
 **Structure des tests backend :**
@@ -443,13 +443,13 @@ En développement, **Mailpit** capture tous les emails (interface web : http://l
 
 ```bash
 # Démarrer les services (inclut Mailpit)
-docker-compose up -d
+docker compose up -d
 
 # Lancer les tests d'intégration email (utilisent Mailpit automatiquement)
-docker-compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+docker compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
 
 # Tester manuellement l'envoi d'un email
-docker-compose exec web python manage.py shell -c "
+docker compose exec web python manage.py shell -c "
 from django.core.mail import send_mail
 send_mail('Test', 'Message de test', 'noreply@cicada.fr', ['test@example.com'])
 print('Email envoyé! Voir http://localhost:8025')
@@ -731,7 +731,7 @@ OPTIONS = {
 
 ### Test Data Available (via `python manage.py seed_testdata`)
 
-Run `docker-compose exec web python manage.py seed_testdata` to create:
+Run `docker compose exec web python manage.py seed_testdata` to create:
 
 - **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
@@ -866,8 +866,8 @@ class UsersConfig(AppConfig):
 - Each app should have a clear, single responsibility
 
 **Permissions Testing:**
-- Always run `docker-compose exec web python test_permissions.py` after changes
-- Test API endpoints with `docker-compose exec web python test_permissions_api.py`
+- Always run `docker compose exec web python test_permissions.py` after changes
+- Test API endpoints with `docker compose exec web python test_permissions_api.py`
 - Use `/api/users/permissions/` to debug user permissions
 - Validate middleware headers in browser developer tools
 
@@ -1142,16 +1142,16 @@ raise serializers.ValidationError(_("Les mots de passe ne correspondent pas."))
 **Commandes de traduction (uniquement si ajout d'une nouvelle langue) :**
 ```bash
 # Installer gettext dans le container (requis une seule fois)
-docker-compose exec web apk add gettext
+docker compose exec web apk add gettext
 
 # Extraire les chaînes traduisibles vers backend/locale/fr/LC_MESSAGES/django.po
-docker-compose exec web python manage.py makemessages -l fr
+docker compose exec web python manage.py makemessages -l fr
 
 # Pour ajouter l'anglais
-docker-compose exec web python manage.py makemessages -l en
+docker compose exec web python manage.py makemessages -l en
 
 # Compiler les .po en .mo (après traduction manuelle du .po)
-docker-compose exec web python manage.py compilemessages
+docker compose exec web python manage.py compilemessages
 ```
 
 **Contenu d'un fichier .po :**
