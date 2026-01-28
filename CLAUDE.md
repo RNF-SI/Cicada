@@ -736,22 +736,24 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
 - **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
 - **8 Users** with different roles:
-  | Email | Role | Organization | Notes |
-  |-------|------|--------------|-------|
-  | admin@test.fr | Super Admin | RNF | Site referent (Camargue) |
-  | admin.rnf@test.fr | Admin Organisme | RNF | |
-  | admin.cen@test.fr | Admin Organisme | CEN AURA | |
-  | referent.camargue@test.fr | Utilisateur | RNF | Site referent (Camargue) |
-  | referent.vercors@test.fr | Utilisateur | CEN AURA | Site referent (Vercors) |
-  | user.rnf@test.fr | Utilisateur | RNF | |
-  | user.cen@test.fr | Utilisateur | CEN AURA | |
-  | **test@reserves-naturelles.org** | Utilisateur | RNF | **Email reel pour tests SMTP** |
+  | Email | Role | Organization | Sites | Notes |
+  |-------|------|--------------|-------|-------|
+  | admin@test.fr | Super Admin | RNF | Referent: Camargue | |
+  | admin.rnf@test.fr | Admin Organisme | RNF | Referent: Camargue, Aiguilles Rouges | |
+  | admin.cen@test.fr | Admin Organisme | CEN AURA | Referent: Grand-Voyeux, Vercors | |
+  | referent.camargue@test.fr | Utilisateur | RNF | Referent: Camargue | |
+  | referent.vercors@test.fr | Utilisateur | CEN AURA | Referent: Vercors | |
+  | user.rnf@test.fr | Utilisateur | RNF | Membre: Camargue, Aiguilles Rouges | Voit automatiquement les plans liés |
+  | user.cen@test.fr | Utilisateur | CEN AURA | Membre: Grand-Voyeux, Vercors | Voit automatiquement les plans liés |
+  | **test@reserves-naturelles.org** | Utilisateur | RNF | Referent: Camargue | **Email reel pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations
+- **8 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
 - **Nomenclatures**: Site types, evaluation types, editor types
-- **Validation Requests**: Demandes de test avec différents statuts (pending, approved, rejected) et dates réalistes
+- **Validation Requests (27)**: Demandes de test avec différents statuts
+  - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
+  - Demandes `site_access`, `referent_validation`, `module_access`, etc.
 
 ### Authentication System (JWT)
 

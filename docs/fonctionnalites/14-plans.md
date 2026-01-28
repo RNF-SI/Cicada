@@ -5,12 +5,14 @@ Ce document décrit le fonctionnement du module de gestion des plans de gestion 
 ## Table des matières
 
 1. [Vue d'ensemble](#vue-densemble)
-2. [Création d'un plan](#création-dun-plan)
-3. [Liaison avec les sites](#liaison-avec-les-sites)
-4. [Gestion des sites en attente](#gestion-des-sites-en-attente)
-5. [Réassignation de site](#réassignation-de-site)
-6. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
-7. [API Endpoints](#api-endpoints)
+2. [Liste des plans](#liste-des-plans)
+3. [Création d'un plan](#création-dun-plan)
+4. [Liaison avec les sites](#liaison-avec-les-sites)
+5. [Liaison avec les utilisateurs (membres et référents)](#liaison-avec-les-utilisateurs-membres-et-référents)
+6. [Gestion des sites en attente](#gestion-des-sites-en-attente)
+7. [Réassignation de site](#réassignation-de-site)
+8. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
+9. [API Endpoints](#api-endpoints)
 
 ---
 
@@ -35,6 +37,104 @@ Un **plan de gestion** est un document stratégique qui définit les objectifs e
 | `archive` | Plan archivé (ancienne version) |
 | `en_cours` | En cours de révision |
 | `annule` | Plan annulé |
+
+---
+
+## Liste des plans
+
+La page `/plans` affiche les plans de gestion organisés en plusieurs sections.
+
+### Structure de la page
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Bannière avec titre et bouton "Créer un plan"              │
+├─────────────────────────────────────────────────────────────┤
+│  Onglets : [Actifs] [Inactifs]    [Scope Toggle]*           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Section 1 : Mes plans de gestion                           │
+│  └─ Plans selon le scope sélectionné                        │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Section 2 : Plans en attente de validation                 │
+│  └─ Demandes d'accès en cours (pending)                     │
+│  └─ Affichée uniquement si demandes en attente              │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Section 3 : Demander l'accès à un plan                     │
+│  └─ Plans sans accès ou rejetés (none/rejected)             │
+│  └─ Barre de recherche                                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+* Le Scope Toggle est visible uniquement pour admin_og et super_admin
+```
+
+### Scope Toggle (affichage selon le rôle)
+
+Le toggle de scope permet de filtrer les plans affichés selon différents périmètres :
+
+| Rôle | Scopes disponibles |
+|------|-------------------|
+| **Super Admin** | Mes plans, Plans de mes sites, Plans de mon organisme, Tous les plans |
+| **Admin Organisme** | Mes plans, Plans de mes sites, Plans de mon organisme |
+| **Référent / Utilisateur** | Mes plans, Plans de mes sites |
+
+**Définition des scopes :**
+
+| Scope | Label affiché | Description |
+|-------|---------------|-------------|
+| `mine` | **Mes plans** | Plans où l'utilisateur est membre direct (via `CorRolePlan`) |
+| `sites` | **Plans de mes sites** | Plans des sites auxquels l'utilisateur est lié (via `CorRoleSite`) |
+| `organisme` | **Plans de mon organisme** | Plans liés aux sites de l'organisme (admin_og+) |
+| `all` | **Tous les plans** | Tous les plans accessibles (super_admin uniquement) |
+
+> **Note** : "Mes plans" affiche les plans où l'utilisateur est directement lié via la table `CorRolePlan`, qu'il soit référent ou simple membre du plan.
+
+### Statuts d'accès aux plans
+
+| Statut | Description | Section affichée |
+|--------|-------------|------------------|
+| `granted` | Accès accordé (référent du plan, accès via site, ou demande approuvée) | Mes plans |
+| `pending` | Demande d'accès en attente de validation | Plans en attente |
+| `rejected` | Demande d'accès refusée (peut redemander) | Demander l'accès |
+| `none` | Aucune demande faite | Demander l'accès |
+
+### Détermination de l'accès
+
+L'accès à un plan est automatiquement accordé (`granted`) si :
+1. L'utilisateur est **super administrateur**
+2. L'utilisateur est **membre du plan** (dans `CorRolePlan`, référent ou membre simple)
+3. L'utilisateur a **accès à un des sites** liés au plan (via `CorRoleSite`)
+4. Une **demande d'accès a été approuvée** pour ce plan
+
+```
+Accès = super_admin OU membre_plan OU membre_site OU demande_approuvée
+```
+
+Cette logique permet aux utilisateurs qui ont déjà accès à un site de voir automatiquement les plans de gestion associés sans avoir à faire de demande.
+
+### Section "Plans en attente de validation"
+
+Cette section apparaît uniquement si l'utilisateur a des demandes d'accès en cours.
+
+**Colonnes du tableau :**
+
+| Colonne | Description |
+|---------|-------------|
+| Nom du plan | Nom du plan de gestion |
+| Période | Années début-fin du plan |
+| Site | Premier site lié (+N autres si multi-sites) |
+| Date de demande | Date à laquelle la demande a été faite |
+| Statut | Badge "En attente" (orange) |
+
+**Style visuel :**
+- En-têtes de tableau : fond orange pâle (`rgba($secondary-orange-salmon, 0.15)`)
+- Lignes alternées : fond orange très pâle
+- Badge compteur : fond orange saumon, texte noir (WCAG AA)
 
 ---
 
@@ -107,6 +207,76 @@ PlanGestion (1) ←→ (N) CorSitePg (N) ←→ (1) Site
 | Ajouter un site | `POST /api/plans/{id}/assign_site/` | admin_og |
 | Retirer un site | `DELETE /api/plans/{id}/remove_site/` | admin_og |
 | Remplacer un site | `POST /api/plans/{id}/replace_site/` | admin_og |
+
+---
+
+## Liaison avec les utilisateurs (membres et référents)
+
+### Principe
+
+Similairement aux sites (qui utilisent `CorRoleSite`), les plans de gestion disposent d'une table de liaison `CorRolePlan` qui permet d'associer directement des utilisateurs à un plan, avec deux niveaux d'accès : **membre** ou **référent**.
+
+### Modèle de données
+
+La relation utilisateur-plan est gérée par la table `CorRolePlan` :
+
+```
+Role (1) ←→ (N) CorRolePlan (N) ←→ (1) PlanGestion
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `id_role` | FK | Clé étrangère vers Role (utilisateur) |
+| `plan_de_gestion` | FK | Clé étrangère vers PlanGestion |
+| `referent` | Boolean | `true` = référent, `false` = membre simple |
+| `date_association` | DateTime | Date d'association (auto) |
+| `commentaire` | Text | Note optionnelle |
+
+**Table SQL** : `general.cor_role_plan`
+
+### Types de liens
+
+| Type | Champ | Description | Permissions |
+|------|-------|-------------|-------------|
+| **Référent** | `referent=true` | Responsable du plan | Lecture, modification, gestion des membres |
+| **Membre** | `referent=false` | Participant au plan | Lecture seule |
+
+### Comparaison avec les sites
+
+| Aspect | Sites (`CorRoleSite`) | Plans (`CorRolePlan`) |
+|--------|----------------------|----------------------|
+| Table | `utilisateurs.cor_role_site` | `general.cor_role_plan` |
+| Champ référent | `referent` (boolean) | `referent` (boolean) |
+| Champ validé | `referent_valid` | - (pas de validation) |
+| Champ conservateur | `conservateur` | - (pas applicable) |
+
+### Affichage dans l'interface
+
+Sur la liste des plans, un badge **★ Référent** s'affiche à côté du nom du plan si l'utilisateur est référent (et non simple membre).
+
+### Différence avec l'accès via les sites
+
+Un utilisateur peut accéder à un plan de deux façons :
+
+1. **Accès direct** (via `CorRolePlan`) : L'utilisateur est explicitement lié au plan
+   - Visible dans le scope "Mes plans"
+   - Peut être référent ou membre simple
+
+2. **Accès indirect** (via `CorRoleSite`) : L'utilisateur est lié à un site du plan
+   - Visible dans le scope "Plans de mes sites"
+   - Accès en lecture par défaut
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Utilisateur                                                │
+│       │                                                     │
+│       ├─── CorRolePlan ──→ Plan (accès direct)              │
+│       │         └─ referent: true/false                     │
+│       │                                                     │
+│       └─── CorRoleSite ──→ Site ──→ Plan (accès indirect)   │
+│                 └─ referent: true/false                     │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -290,12 +460,52 @@ Le champ `redacteur_nom` suit la même logique hybride :
 | `DELETE` | `/api/plans/plans/{id}/remove_site/` | Retirer un site |
 | `POST` | `/api/plans/plans/{id}/replace_site/` | Remplacer un site |
 
-### Gestion des référents
+### Gestion des membres et référents
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | `POST` | `/api/plans/plans/{id}/assign_referent/` | Ajouter un référent |
 | `DELETE` | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent |
+| `POST` | `/api/plans/plans/{id}/assign_member/` | Ajouter un membre |
+| `DELETE` | `/api/plans/plans/{id}/remove_member/` | Retirer un membre |
+
+**Note** : Les membres et référents sont gérés via la table `CorRolePlan`. Un référent est un membre avec `referent=true`.
+
+#### Format de réponse (champ `membres`)
+
+L'API retourne le champ `membres` dans les réponses de liste et détail :
+
+```json
+{
+  "id_pg": 1,
+  "nom": "Plan de gestion 2020-2030 - Camargue",
+  "membres": [
+    {
+      "id_role": 1,
+      "email": "admin@test.fr",
+      "nom_role": "Admin",
+      "prenom_role": "Super",
+      "nom_complet": "Super Admin",
+      "referent": true,
+      "date_association": "2026-01-28T12:05:45Z",
+      "commentaire": null
+    },
+    {
+      "id_role": 2,
+      "email": "user@test.fr",
+      "nom_role": "Dupont",
+      "prenom_role": "Marie",
+      "nom_complet": "Marie Dupont",
+      "referent": false,
+      "date_association": "2026-01-28T12:05:45Z",
+      "commentaire": null
+    }
+  ],
+  "referents": [...]
+}
+```
+
+> **Rétrocompatibilité** : Le champ `referents` (ManyToMany) est maintenu pour la compatibilité. Il contient uniquement les utilisateurs avec `referent=true`.
 
 ### Filtres disponibles
 
@@ -315,10 +525,11 @@ Le champ `redacteur_nom` suit la même logique hybride :
 
 | Fichier | Description |
 |---------|-------------|
-| `apps/plans/models.py` | Modèles PlanGestion, CorSitePg |
+| `apps/plans/models.py` | Modèles PlanGestion, CorSitePg, CorRolePlan, CorPgFichier |
 | `apps/plans/views.py` | ViewSet avec actions personnalisées |
-| `apps/plans/serializers.py` | Serializers de création/détail |
+| `apps/plans/serializers.py` | Serializers (CorRolePlanSerializer, etc.) |
 | `apps/notifications/services.py` | `notify_plans_need_reassignment()` |
+| `apps/core/management/commands/seeders/plans_seeder.py` | Données de test |
 
 ### Frontend
 
@@ -326,8 +537,10 @@ Le champ `redacteur_nom` suit la même logique hybride :
 |---------|-------------|
 | `features/plans/plan-create.component.*` | Formulaire de création |
 | `features/plans/plan-detail.component.*` | Page de détail |
-| `features/plans/plans-list.component.*` | Liste des plans |
-| `shared/components/modals/site-form-modal/` | Modal de création de site |
+| `features/plans/plans-list.component.*` | Liste des plans avec scope toggle |
+| `shared/components/view-scope-toggle/` | Composant de sélection du scope |
+| `core/models/admin.model.ts` | Interfaces PlanMembre, AdminPlan |
+| `assets/i18n/fr.json` | Traductions (plans.scope.*) |
 
 ---
 
@@ -336,3 +549,7 @@ Le champ `redacteur_nom` suit la même logique hybride :
 - Janvier 2026 : Ajout gestion des sites en attente de validation
 - Janvier 2026 : Ajout réassignation de site avec notification automatique
 - Janvier 2026 : Ajout système hybride rédacteurs/relecteurs
+- Janvier 2026 : Ajout section "Plans en attente de validation" sur la liste des plans
+- Janvier 2026 : Amélioration détermination accès (via sites liés) et gestion demandes rejetées
+- Janvier 2026 : Ajout scope toggle (Mes plans / Mon organisme / Tous) selon le rôle utilisateur
+- Janvier 2026 : Ajout relation membre/référent directe via `CorRolePlan` (comme `CorRoleSite` pour les sites)
