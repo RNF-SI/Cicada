@@ -1,0 +1,235 @@
+@import 'variables';
+
+// Tailles d'ellipse pour les différentes variantes
+$ellipse-size-xs: 32px;
+$ellipse-size-sm: 40px;
+$ellipse-size-md: 56px;
+$ellipse-size-lg: 68px;
+$ellipse-size-xl: 80px;
+
+// Taille par défaut
+$section-ellipse-size: $ellipse-size-md;
+
+.section-title-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+
+.section-title-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+// Container pour l'ellipse et l'icône (design Figma)
+.title-ellipse-container {
+  position: relative;
+  width: $section-ellipse-size;
+  height: $section-ellipse-size;
+  flex-shrink: 0;
+
+  // Variantes de taille
+  &.size-xs {
+    width: $ellipse-size-xs;
+    height: $ellipse-size-xs;
+
+    .title-ellipse {
+      width: $ellipse-size-xs;
+      height: $ellipse-size-xs;
+    }
+
+    .title-icon {
+      font-size: 14px;
+
+      &.custom-icon {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  &.size-sm {
+    width: $ellipse-size-sm;
+    height: $ellipse-size-sm;
+
+    .title-ellipse {
+      width: $ellipse-size-sm;
+      height: $ellipse-size-sm;
+    }
+
+    .title-icon {
+      font-size: 16px;
+
+      &.custom-icon {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  &.size-md {
+    width: $ellipse-size-md;
+    height: $ellipse-size-md;
+
+    .title-ellipse {
+      width: $ellipse-size-md;
+      height: $ellipse-size-md;
+    }
+
+    .title-icon {
+      font-size: 24px;
+
+      &.custom-icon {
+        width: 26px;
+        height: 26px;
+      }
+    }
+  }
+
+  &.size-lg {
+    width: $ellipse-size-lg;
+    height: $ellipse-size-lg;
+
+    .title-ellipse {
+      width: $ellipse-size-lg;
+      height: $ellipse-size-lg;
+    }
+
+    .title-icon {
+      font-size: 28px;
+
+      &.custom-icon {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+
+  &.size-xl {
+    width: $ellipse-size-xl;
+    height: $ellipse-size-xl;
+
+    .title-ellipse {
+      width: $ellipse-size-xl;
+      height: $ellipse-size-xl;
+    }
+
+    .title-icon {
+      font-size: 32px;
+
+      &.custom-icon {
+        width: 38px;
+        height: 38px;
+      }
+    }
+  }
+}
+
+// Image ellipse (corner-shape)
+.title-ellipse {
+  position: absolute;
+  inset: 0;
+  width: $section-ellipse-size;
+  height: $section-ellipse-size;
+}
+
+// Icône centrée sur l'ellipse - BLANCHE par défaut
+.title-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: $white;
+  z-index: 1;
+
+  // Icône primary sur fond pale-green ou white
+  &.icon-primary {
+    color: $primary-color;
+  }
+
+  // Icône custom SVG - centrage spécifique pour les images
+  &.custom-icon {
+    // Reset inset pour utiliser centrage absolu
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    filter: brightness(0) invert(1); // Rend l'icône blanche
+
+    &.icon-primary {
+      filter: brightness(0) saturate(100%) invert(19%) sepia(89%) saturate(1089%) hue-rotate(163deg) brightness(94%) contrast(98%);
+    }
+  }
+}
+
+.section-title-text {
+  margin: 0;
+  font-family: $font-family;
+  font-size: $font-size-h2; // 32px
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  line-height: $line-height-h2; // 48px
+
+  &.small {
+    font-size: $font-size-h4; // 20px
+    line-height: $line-height-h4;
+  }
+}
+
+// Ligne de séparation sous le titre - couleur selon l'ellipse
+.section-title-line {
+  height: 2px;
+  margin-top: calc(-#{$spacing-xs} - 2px); // Remonte la ligne plus près du titre
+  margin-bottom: $spacing-md;
+  margin-left: 48px; // Alignée avec le texte du titre
+  background-color: $gray-light; // Défaut
+
+  // Couleurs de ligne selon l'ellipse
+  &.line-salmon {
+    background-color: $secondary-orange-salmon;
+  }
+
+  &.line-primary {
+    background-color: $primary-color;
+  }
+
+  &.line-terra-cotta {
+    background-color: $secondary-terra-cotta;
+  }
+
+  &.line-yellow {
+    background-color: $secondary-yellow;
+  }
+
+  &.line-pale-green {
+    background-color: $secondary-pale-green;
+  }
+}
+
+.section-title-link {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  i {
+    font-size: 14px;
+  }
+}

@@ -2,8 +2,9 @@ import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan } from '../../core/models/admin.model';
 
@@ -39,7 +40,8 @@ interface SubAccordion {
     RouterModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    SectionTitleComponent
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -60,12 +62,12 @@ export class PlanDetailComponent implements OnInit {
   menuItems = signal<MenuItem[]>([
     {
       label: 'Vue d\'ensemble',
-      icon: 'fi-rr-eye',
+      icon: 'fi-rr-home',
       route: 'overview'
     },
     {
       label: 'Détails et saisie',
-      icon: 'fi-rr-pencil',
+      icon: 'fi-rr-document-signed',
       expanded: false,
       children: [
         { label: 'Informations générales', icon: '', route: 'details/general' },
@@ -76,7 +78,7 @@ export class PlanDetailComponent implements OnInit {
     },
     {
       label: 'Suivis',
-      icon: 'fi-rr-stats',
+      icon: 'fi-rr-chart-histogram',
       expanded: false,
       children: [
         { label: 'Indicateurs', icon: '', route: 'suivis/indicateurs' },

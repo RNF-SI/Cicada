@@ -1,0 +1,36 @@
+<div class="section-title-wrapper">
+  <div class="section-title-left">
+    <!-- Forme ellipse avec icône (design Figma) -->
+    <div class="title-ellipse-container" [class]="'size-' + size">
+      <img
+        [src]="getCornerShapePath()"
+        [alt]="title"
+        class="title-ellipse">
+      @if (isCustomIcon) {
+        <img
+          [src]="customIconPath"
+          [alt]="customIconName"
+          class="title-icon custom-icon"
+          [class.icon-primary]="iconColor === 'primary'">
+      } @else {
+        <i class="fi title-icon"
+           [ngClass]="icon"
+           [class.icon-primary]="iconColor === 'primary'"></i>
+      }
+    </div>
+    <h2 class="section-title-text" [class.small]="titleSize === 'small'">{{ title }}</h2>
+  </div>
+  @if (linkText) {
+    <a
+      class="section-title-link"
+      [routerLink]="linkUrl"
+      [attr.href]="linkUrl ? null : '#'">
+      {{ linkText }}
+      <i class="fi fi-rr-arrow-right"></i>
+    </a>
+  }
+</div>
+<!-- Ligne de séparation sous le titre avec couleur -->
+@if (showLine) {
+  <div class="section-title-line" [ngClass]="'line-' + ellipseColor"></div>
+}

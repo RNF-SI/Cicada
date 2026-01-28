@@ -6,7 +6,7 @@
   <!-- Sidebar Menu -->
   <aside class="plan-sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-title">PLAN DE GESTION</span>
+      <span class="sidebar-title">{{ 'plans.detail.sidebar.title' | translate }}</span>
     </div>
 
     <nav class="sidebar-nav">
@@ -84,7 +84,7 @@
             <div class="plan-header">
               <div class="plan-subtitle">
                 <i class="fi fi-rr-document"></i>
-                <span>{{ 'plans.newPlan' | translate }}</span>
+                <span>{{ 'plans.detail.sidebar.title' | translate }}</span>
               </div>
               <h1 class="plan-title">{{ p.nom }}</h1>
 
@@ -128,7 +128,7 @@
 
               <button class="btn-generate">
                 <i class="fi fi-rr-download"></i>
-                <span>Générer</span>
+                <span>{{ 'plans.detail.generate' | translate }}</span>
                 <i class="fi fi-rr-angle-small-down"></i>
               </button>
             </div>
@@ -142,18 +142,14 @@
         <!-- Colonne principale - Synthèse -->
         <div class="main-column">
           <div class="section-card synthese-card">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="section-icon-wrapper">
-                  <i class="fi fi-rr-document"></i>
-                </span>
-                <h2>{{ 'plans.detail.sections.synthese' | translate }}</h2>
-              </div>
-              <a href="#" class="section-link">
-                {{ 'plans.detail.viewDetails' | translate }}
-                <i class="fi fi-rr-arrow-small-right"></i>
-              </a>
-            </div>
+            <app-section-title
+              [title]="'plans.detail.sections.synthese' | translate"
+              icon="fi-rr-document"
+              ellipseColor="terra-cotta"
+              size="lg"
+              [linkText]="'plans.detail.viewDetails' | translate"
+              linkUrl="#">
+            </app-section-title>
 
             <!-- Accordéons selon design Figma -->
             <div class="accordions">
@@ -223,70 +219,69 @@
         <div class="side-column">
           <!-- Site -->
           <div class="section-card compact">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="section-icon-wrapper small">
-                  <i class="fi fi-rr-marker"></i>
-                </span>
-                <h3>{{ 'plans.detail.sections.site' | translate }}</h3>
-              </div>
-            </div>
+            <app-section-title
+              [title]="'plans.detail.sections.site' | translate"
+              icon="fi-rr-map-marker"
+              ellipseColor="yellow"
+              iconColor="primary"
+              size="md"
+              [showLine]="true">
+            </app-section-title>
             <div class="map-placeholder">
               <i class="fi fi-rr-map"></i>
-              <span>Carte du site</span>
+              <span>{{ 'sites.map.loading' | translate }}</span>
             </div>
           </div>
 
           <!-- Mindmap -->
           <div class="section-card compact">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="section-icon-wrapper small">
-                  <i class="fi fi-rr-mind-share"></i>
-                </span>
-                <h3>{{ 'plans.detail.sections.mindmap' | translate }}</h3>
-              </div>
-            </div>
+            <app-section-title
+              [title]="'plans.detail.sections.mindmap' | translate"
+              icon="custom:mindmap"
+              ellipseColor="pale-green"
+              iconColor="primary"
+              size="md"
+              [showLine]="true">
+            </app-section-title>
             <div class="mindmap-placeholder">
               <i class="fi fi-rr-chart-tree"></i>
-              <span>Visualisation mindmap</span>
+              <span>{{ 'common.messages.featureComingSoon' | translate }}</span>
             </div>
           </div>
 
           <!-- Documents -->
           <div class="section-card compact">
-            <div class="section-header">
-              <div class="section-title">
-                <span class="section-icon-wrapper small">
-                  <i class="fi fi-rr-folder"></i>
-                </span>
-                <h3>{{ 'plans.detail.sections.documents' | translate }}</h3>
-              </div>
-            </div>
+            <app-section-title
+              [title]="'plans.detail.sections.documents' | translate"
+              icon="fi-rr-folder"
+              ellipseColor="salmon"
+              size="md"
+              [showLine]="true">
+            </app-section-title>
             <div class="documents-list">
               <div class="document-item">
                 <span class="doc-icon"></span>
-                <span>Pdg - Partie 1</span>
-                <button class="btn-download">
+                <span>PdG - Partie 1</span>
+                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
                 <span class="doc-icon"></span>
-                <span>Pdg - Partie 2</span>
-                <button class="btn-download">
+                <span>PdG - Partie 2</span>
+                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
                 <span class="doc-icon"></span>
-                <span>Pdg - Annexes</span>
-                <button class="btn-download">
+                <span>PdG - Annexes</span>
+                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <button class="btn-add-document">
-                <i class="fi fi-rr-upload"></i>
+                <i class="fi fi-rr-plus"></i>
                 <span>{{ 'common.actions.add' | translate }}</span>
               </button>
             </div>

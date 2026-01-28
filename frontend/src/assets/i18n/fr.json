@@ -1026,28 +1026,18 @@
   "plans": {
     "title": "Plans de gestion",
     "newPlan": "NOUVEAU PLAN DE GESTION",
+    "scope": {
+      "mine": "Mes plans",
+      "sites": "Plans de mes sites",
+      "organisme": "Plans de mon organisme",
+      "all": "Tous les plans"
+    },
     "status": {
       "draft": "Brouillon",
       "valide": "Validé",
       "archive": "Archivé",
       "en_cours": "En cours",
       "annule": "Annulé"
-    },
-    "detail": {
-      "noContent": "Aucun contenu pour le moment",
-      "sections": {
-        "synthese": "Synthèse",
-        "site": "Site",
-        "mindmap": "Mindmap",
-        "documents": "Documents"
-      },
-      "accordions": {
-        "enjeux": "Enjeux et Facteurs clés de réussite",
-        "objectifsLT": "Objectifs long terme",
-        "objectifsOP": "Objectifs opérationnels",
-        "actions": "Actions et suivis"
-      },
-      "viewDetails": "Voir en détails"
     },
     "list": {
       "title": "Plans de gestion",
@@ -1079,6 +1069,12 @@
       "empty": "Vous n'avez accès à aucun plan de gestion pour le moment.",
       "referent": "Référent"
     },
+    "pendingPlans": {
+      "title": "Plans en attente de validation",
+      "description": "Ces demandes d'accès sont en attente de validation par un administrateur.",
+      "requestDate": "Date de demande",
+      "waiting": "En attente"
+    },
     "requestAccess": {
       "title": "Demander l'accès à un plan",
       "description": "Recherchez et demandez l'accès aux plans de gestion qui vous intéressent.",
@@ -1086,7 +1082,8 @@
       "noResults": "Aucun plan trouvé",
       "button": "Demander l'accès",
       "pending": "Demande en attente",
-      "rejected": "Accès refusé"
+      "rejected": "Refusé",
+      "retry": "Redemander"
     },
     "allPlans": {
       "title": "Tous les plans de gestion",
@@ -1094,6 +1091,33 @@
     },
     "detail": {
       "title": "Détail du plan",
+      "noContent": "Aucun contenu pour le moment",
+      "sections": {
+        "synthese": "Synthèse",
+        "site": "Site",
+        "mindmap": "Mindmap",
+        "documents": "Documents"
+      },
+      "accordions": {
+        "enjeux": "Enjeux et Facteurs clés de réussite",
+        "objectifsLT": "Objectifs long terme",
+        "objectifsOP": "Objectifs opérationnels",
+        "actions": "Actions et suivis"
+      },
+      "viewDetails": "Voir en détails",
+      "generate": "Générer",
+      "sidebar": {
+        "title": "PLAN DE GESTION",
+        "overview": "Vue d'ensemble",
+        "detailsEntry": "Détails et saisie",
+        "generalInfo": "Informations générales",
+        "enjeux": "Enjeux",
+        "objectifs": "Objectifs",
+        "actions": "Actions",
+        "suivis": "Suivis",
+        "indicateurs": "Indicateurs",
+        "bilans": "Bilans"
+      },
       "tabs": {
         "details": "Détails et saisie",
         "general": "Informations générales"
