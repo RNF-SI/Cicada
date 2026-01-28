@@ -79,22 +79,63 @@ class ValidationRequestsSeeder(BaseSeeder):
             },
 
             # DEMANDES D'ACCES PLAN
+            # Demandes en attente (pending) - pour tester la section "Plans en attente"
             {
                 'request_type': 'plan_access',
                 'requester': user_rnf,
-                'target_plan': plans[0],
+                'target_plan': plans[4],  # Plan Marais de Brouage
                 'status': 'pending',
-                'justification': "Besoin d'acces pour la redaction du bilan annuel.",
+                'justification': "Besoin d'acces pour comparer les methodes de gestion des zones humides.",
+            },
+            {
+                'request_type': 'plan_access',
+                'requester': user_rnf,
+                'target_plan': plans[3],  # Plan inter-sites Vercors-Ecrins
+                'status': 'pending',
+                'justification': "Je participe a un projet de recherche inter-regional.",
             },
             {
                 'request_type': 'plan_access',
                 'requester': user_cen,
-                'target_plan': plans[1],
+                'target_plan': plans[0],  # Plan Camargue
+                'status': 'pending',
+                'justification': "Collaboration avec RNF pour le suivi des oiseaux migrateurs.",
+            },
+            {
+                'request_type': 'plan_access',
+                'requester': user_cen,
+                'target_plan': plans[5],  # Plan Lac de Remoray
+                'status': 'pending',
+                'justification': "Etude comparative des ecosystemes lacustres.",
+            },
+            {
+                'request_type': 'plan_access',
+                'requester': referent_camargue,
+                'target_plan': plans[2],  # Plan Grand-Voyeux
+                'status': 'pending',
+                'justification': "Echange de bonnes pratiques entre sites.",
+            },
+            # Demande refusee (pour tester le bouton "Redemander")
+            {
+                'request_type': 'plan_access',
+                'requester': user_cen,
+                'target_plan': plans[1],  # Plan Aiguilles Rouges
                 'status': 'rejected',
                 'justification': "Je voudrais consulter ce plan pour m'inspirer.",
                 'validator': admin_rnf,
                 'validation_comment': 'Ce plan est reserve aux membres de RNF.',
                 'validated_at': now - timedelta(days=7),
+            },
+            # Demande approuvee (pour tester l'acces accorde)
+            {
+                'request_type': 'plan_access',
+                'requester': referent_vercors,
+                'target_plan': plans[0],  # Plan Camargue
+                'status': 'approved',
+                'justification': "Besoin d'acces pour partager les methodes de suivi.",
+                'validator': admin_rnf,
+                'validation_comment': 'Acces accorde pour la collaboration inter-sites.',
+                'validated_at': now - timedelta(days=2),
             },
 
             # VALIDATION REFERENT
@@ -352,14 +393,17 @@ class ValidationRequestsSeeder(BaseSeeder):
             Liste des lignes du resume
         """
         return [
-            '\nDemandes de validation (22):',
+            '\nDemandes de validation (27):',
             '  Types: user_registration, site_access, plan_access, referent_validation,',
             '         admin_deactivation, module_access, site_creation, site_org_link,',
             '         site_org_unlink, invite_org_to_site, invite_user_to_site',
             '  Statuts: pending, approved, rejected',
-            '  Dates de validation variees:',
+            '\n  Demandes plan_access (7):',
+            '    - 5 demandes pending (user_rnf, user_cen, referent_camargue)',
+            '    - 1 demande rejected (user_cen -> Aiguilles Rouges)',
+            '    - 1 demande approved (referent_vercors -> Camargue)',
+            '\n  Autres demandes:',
             '    - site_access approved: il y a 3 jours',
-            '    - plan_access rejected: il y a 1 semaine',
             '    - referent_validation approved: il y a 2 semaines',
             '    - module_access approved (user_rnf -> zonages): il y a 5 jours',
             '    - module_access rejected (referent_vercors -> zonages): il y a 10 jours',

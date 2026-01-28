@@ -4,7 +4,7 @@ Seeder pour les plans de gestion.
 from typing import Any, Dict, List
 
 from apps.core.models import Nomenclature
-from apps.plans.models import PlanGestion, CorSitePg
+from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
@@ -39,6 +39,7 @@ class PlansSeeder(BaseSeeder):
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
 
         return [
+            # Plan Camargue: super_admin referent, referent.camargue referent, admin.rnf membre
             {
                 'nom': 'Plan de gestion 2020-2030 - Reserve de la Camargue',
                 'annee_debut': 2020,
@@ -53,8 +54,14 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Equipe Camargue',
                 'commentaire': 'Plan de gestion valide pour la periode 2020-2030',
                 'sites': [sites[0]],
-                'referents': [users[3]]  # referent.camargue
+                # Format: (user, is_referent)
+                'membres': [
+                    (users[0], True),   # super_admin - referent
+                    (users[3], True),   # referent.camargue - referent
+                    (users[1], False),  # admin.rnf - membre simple
+                ]
             },
+            # Plan Aiguilles Rouges: admin.rnf referent, super_admin membre
             {
                 'nom': 'Plan de gestion 2018-2028 - Aiguilles Rouges',
                 'annee_debut': 2018,
@@ -69,8 +76,12 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'Bureau Natura 2000',
                 'commentaire': 'Plan actuellement en cours de revision',
                 'sites': [sites[1]],
-                'referents': [users[1]]  # admin.rnf
+                'membres': [
+                    (users[1], True),   # admin.rnf - referent
+                    (users[0], False),  # super_admin - membre simple
+                ]
             },
+            # Plan Grand-Voyeux: admin.cen referent
             {
                 'nom': 'Plan de gestion 2022-2032 - Grand-Voyeux',
                 'annee_debut': 2022,
@@ -85,8 +96,11 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'CEN Auvergne-Rhone-Alpes',
                 'commentaire': 'Plan en cours de redaction',
                 'sites': [sites[2]],
-                'referents': [users[2]]  # admin.cen
+                'membres': [
+                    (users[2], True),   # admin.cen - referent
+                ]
             },
+            # Plan Vercors-Ecrins: referent.vercors et admin.cen referents
             {
                 'nom': 'Plan de gestion inter-sites Vercors-Ecrins 2021-2031',
                 'annee_debut': 2021,
@@ -101,8 +115,12 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'DREAL Auvergne-Rhone-Alpes',
                 'commentaire': 'Plan de gestion partage entre le PNR du Vercors et le Parc des Ecrins',
                 'sites': [sites[3], sites[5]],  # Vercors + Scandola
-                'referents': [users[4]]  # referent.vercors
+                'membres': [
+                    (users[4], True),   # referent.vercors - referent
+                    (users[2], True),   # admin.cen - referent
+                ]
             },
+            # Plan Brouage: archive sans membres
             {
                 'nom': 'Plan de gestion 2019-2029 - Marais de Brouage',
                 'annee_debut': 2019,
@@ -117,8 +135,9 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
                 'commentaire': 'Plan archive - nouvelle version en preparation',
                 'sites': [sites[4]],
-                'referents': []
+                'membres': []
             },
+            # Plan Lac de Remoray: super_admin referent, admin.rnf membre
             {
                 'nom': 'Plan de gestion 2023-2033 - Lac de Remoray',
                 'annee_debut': 2023,
@@ -133,7 +152,10 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Equipe Franche-Comte',
                 'commentaire': 'Nouveau plan en cours de finalisation',
                 'sites': [sites[6]],
-                'referents': [users[1]]  # admin.rnf
+                'membres': [
+                    (users[0], True),   # super_admin - referent
+                    (users[1], False),  # admin.rnf - membre simple
+                ]
             },
             # Plans archives
             {
@@ -150,7 +172,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Equipe Camargue',
                 'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030',
                 'sites': [sites[0]],
-                'referents': []
+                'membres': []
             },
             {
                 'nom': 'Plan de gestion 2008-2018 - Aiguilles Rouges (ancien)',
@@ -166,7 +188,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'Bureau Natura 2000',
                 'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028',
                 'sites': [sites[1]],
-                'referents': []
+                'membres': []
             },
         ]
 
@@ -188,7 +210,7 @@ class PlansSeeder(BaseSeeder):
         plans = []
         for plan_data in plans_data:
             plan_sites = plan_data.pop('sites')
-            plan_referents = plan_data.pop('referents')
+            plan_membres = plan_data.pop('membres')
 
             plan, created = PlanGestion.objects.update_or_create(
                 nom=plan_data['nom'],
@@ -207,15 +229,29 @@ class PlansSeeder(BaseSeeder):
                     defaults={'rang': i + 1}
                 )
 
-            # Ajouter les referents
-            plan.referents.set(plan_referents)
+            # Ajouter les membres et referents via CorRolePlan
+            referents_list = []
+            for user, is_referent in plan_membres:
+                CorRolePlan.objects.update_or_create(
+                    id_role=user,
+                    plan_de_gestion=plan,
+                    defaults={'referent': is_referent}
+                )
+                if is_referent:
+                    referents_list.append(user)
+
+            # Aussi mettre à jour le ManyToMany referents pour compatibilité
+            plan.referents.set(referents_list)
 
             plans.append(plan)
             status = "cree" if created else "mis a jour"
             sites_names = ", ".join([s.nom_site[:20] for s in plan_sites])
+            membres_count = len(plan_membres)
+            referents_count = len(referents_list)
             self.log_item(status, f"{plan.nom[:50]}... ({plan.statut})")
             if self.verbosity >= 2:
                 self.stdout.write(f"              Sites: {sites_names}")
+                self.stdout.write(f"              Membres: {membres_count} (dont {referents_count} referents)")
 
         self.log_summary(len(plans), 'plans de gestion')
         self.context.set('plans', plans)

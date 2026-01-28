@@ -65,7 +65,8 @@ class UsersSeeder(BaseSeeder):
                 'is_superuser': True,
                 'id_organisme': organismes[0],  # RNF
                 'groups': ['Super Administrateurs'],
-                'sites_referent': [sites[0]]  # Camargue
+                'sites_referent': [sites[0]],  # Camargue
+                'sites_member': [sites[1]]  # Membre Aiguilles Rouges (pour tester accès plan via site)
             },
             {
                 'email': 'admin.rnf@test.fr',
@@ -125,7 +126,8 @@ class UsersSeeder(BaseSeeder):
                 'is_superuser': False,
                 'id_organisme': organismes[0],  # RNF
                 'groups': ['Utilisateurs'],
-                'sites_referent': []
+                'sites_referent': [],
+                'sites_member': [sites[0], sites[1]]  # Membre de Camargue et Aiguilles Rouges
             },
             {
                 'email': 'user.cen@test.fr',
@@ -138,6 +140,7 @@ class UsersSeeder(BaseSeeder):
                 'id_organisme': organismes[1],  # CEN AURA
                 'groups': ['Utilisateurs'],
                 'sites_referent': [],
+                'sites_member': [sites[2], sites[3]],  # Membre de Grand-Voyeux et Vercors
                 'active': True
             },
             # Utilisateur avec adresse email reelle pour tests d'envoi
@@ -284,6 +287,7 @@ class UsersSeeder(BaseSeeder):
         for user_data in users_data:
             user_groups = user_data.pop('groups')
             sites_referent = user_data.pop('sites_referent')
+            sites_member = user_data.pop('sites_member', [])
             is_active = user_data.pop('active', True)
             is_pending = user_data.pop('pending_validation', False)
             deletion_days_ago = user_data.pop('deletion_requested_days_ago', None)
@@ -325,6 +329,14 @@ class UsersSeeder(BaseSeeder):
                     defaults={'referent': True, 'referent_valid': True, 'conservateur': False}
                 )
 
+            # Ajouter comme membre des sites (non referent)
+            for site in sites_member:
+                CorRoleSite.objects.get_or_create(
+                    id_site=site,
+                    id_role=user,
+                    defaults={'referent': False, 'referent_valid': False, 'conservateur': False}
+                )
+
             users.append(user)
             status = "cree" if created else "mis a jour"
             org_name = user_data['id_organisme'].nom_organisme if user_data['id_organisme'] else "N/A"
@@ -362,13 +374,13 @@ class UsersSeeder(BaseSeeder):
         return [
             '\nUtilisateurs actifs (8):',
             f'  Mot de passe commun: {DEFAULT_PASSWORD}',
-            '  - admin@test.fr (super_admin)',
-            '  - admin.rnf@test.fr (admin_og) - RNF',
-            '  - admin.cen@test.fr (admin_og) - CEN AURA',
-            '  - referent.camargue@test.fr (referent) - RNF',
-            '  - referent.vercors@test.fr (referent) - CEN AURA',
-            '  - user.rnf@test.fr (utilisateur) - RNF',
-            '  - user.cen@test.fr (utilisateur) - CEN AURA',
+            '  - admin@test.fr (super_admin) - referent Camargue',
+            '  - admin.rnf@test.fr (admin_og) - RNF, referent Camargue + Aiguilles Rouges',
+            '  - admin.cen@test.fr (admin_og) - CEN AURA, referent Grand-Voyeux + Vercors',
+            '  - referent.camargue@test.fr (referent) - RNF, referent Camargue',
+            '  - referent.vercors@test.fr (referent) - CEN AURA, referent Vercors',
+            '  - user.rnf@test.fr (utilisateur) - RNF, membre Camargue + Aiguilles Rouges',
+            '  - user.cen@test.fr (utilisateur) - CEN AURA, membre Grand-Voyeux + Vercors',
             f'  - {REAL_TEST_EMAIL} (utilisateur) - RNF [EMAIL REEL POUR TESTS]',
             '\nUtilisateurs inactifs (3):',
             '  - ancien.rnf@test.fr (referent) - RNF [INACTIF]',
