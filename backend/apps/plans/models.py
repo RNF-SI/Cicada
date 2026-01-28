@@ -304,6 +304,55 @@ class CorSitePg(models.Model):
         return f"{self.site.nom_site} - {self.plan_de_gestion.nom}{rang_str}"
 
 
+class CorRolePlan(models.Model):
+    """
+    Table de liaison entre Utilisateurs et Plans de Gestion.
+    Permet de définir les membres et référents d'un plan.
+    Similaire à CorRoleSite pour les sites.
+    """
+
+    id_role = models.ForeignKey(
+        'users.Role',
+        on_delete=models.CASCADE,
+        verbose_name=_("Utilisateur"),
+        related_name='plan_associations'
+    )
+    plan_de_gestion = models.ForeignKey(
+        PlanGestion,
+        on_delete=models.CASCADE,
+        verbose_name=_("Plan de gestion"),
+        related_name='membres'
+    )
+    referent = models.BooleanField(
+        _("Référent"),
+        default=False,
+        help_text=_("L'utilisateur est-il référent de ce plan ?")
+    )
+
+    # Métadonnées
+    date_association = models.DateTimeField(
+        _("Date d'association"),
+        auto_now_add=True
+    )
+    commentaire = models.TextField(
+        _("Commentaire"),
+        null=True, blank=True,
+        help_text=_("Précisions sur le rôle de l'utilisateur dans le plan")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_role_plan"'
+        db_table_comment = 'Liaison entre utilisateurs et plans de gestion'
+        verbose_name = _("Utilisateur - Plan de gestion")
+        verbose_name_plural = _("Utilisateurs - Plans de gestion")
+        unique_together = ['id_role', 'plan_de_gestion']
+        ordering = ['-referent', 'id_role__nom_role']
+
+    def __str__(self):
+        role_type = "Référent" if self.referent else "Membre"
+        return f"{self.id_role.email} - {self.plan_de_gestion.nom} ({role_type})"
+
+
 class CorPgFichier(models.Model):
     """
     Table de liaison entre Plans de Gestion et fichiers joints.

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
-from .models import PlanGestion, CorSitePg, CorPgFichier
+from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
 
 
@@ -117,6 +117,23 @@ from apps.users.models import Role
 PlanReferentListSerializer.Meta.model = Role
 
 
+class CorRolePlanSerializer(serializers.ModelSerializer):
+    """Serializer pour les relations Utilisateur-Plan de Gestion (membres et référents)."""
+
+    id_role = serializers.IntegerField(source='id_role.id_role', read_only=True)
+    email = serializers.EmailField(source='id_role.email', read_only=True)
+    nom_role = serializers.CharField(source='id_role.nom_role', read_only=True)
+    prenom_role = serializers.CharField(source='id_role.prenom_role', read_only=True)
+    nom_complet = serializers.CharField(source='id_role.get_full_name', read_only=True)
+
+    class Meta:
+        model = CorRolePlan
+        fields = [
+            'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
+            'referent', 'date_association', 'commentaire'
+        ]
+
+
 class PlanGestionListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des Plans de Gestion."""
 
@@ -130,6 +147,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     # Include sites and referents details for admin display
     sites = PlanSiteListSerializer(many=True, read_only=True)
     referents = PlanReferentListSerializer(many=True, read_only=True)
+    membres = CorRolePlanSerializer(many=True, read_only=True)
 
     class Meta:
         model = PlanGestion
@@ -139,7 +157,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_display', 'redacteur_type_display', 'redacteur_nom',
             'redacteurs', 'relecteurs',
-            'nb_sites', 'nb_fichiers', 'sites', 'referents', 'date_ajout', 'date_maj'
+            'nb_sites', 'nb_fichiers', 'sites', 'referents', 'membres', 'date_ajout', 'date_maj'
         ]
 
 
@@ -150,6 +168,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     sites = PlanSiteListSerializer(many=True, read_only=True)
     fichiers = CorPgFichierSerializer(many=True, read_only=True)
     referents = PlanReferentListSerializer(many=True, read_only=True)
+    membres = CorRolePlanSerializer(many=True, read_only=True)
 
     # Champs calculés
     periode_gestion = serializers.CharField(source='get_periode_gestion', read_only=True)
@@ -209,7 +228,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'redacteur_nom', 'redacteurs', 'relecteurs',
             'commentaire', 'statut', 'statut_display', 'version',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
-            'sites', 'fichiers', 'referents', 'sites_ids', 'referents_ids',
+            'sites', 'fichiers', 'referents', 'membres', 'sites_ids', 'referents_ids',
             'utilisateur_ajout', 'utilisateur_maj',
             'date_ajout', 'date_maj'
         ]
