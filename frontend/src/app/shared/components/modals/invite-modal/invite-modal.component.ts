@@ -93,7 +93,7 @@ export class InviteModalComponent implements OnInit {
 
   private search(query: string) {
     if (this.data.mode === 'organisme') {
-      return this.adminService.getOrganismes({ search: query }).pipe(
+      return this.adminService.getOrganismes({ search: query, for_invite: true }).pipe(
         switchMap(response => of((response.results || []).slice(0, 10))),
         catchError(() => of([]))
       );

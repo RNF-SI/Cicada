@@ -62,38 +62,52 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        """Filtrage selon le rôle de l'utilisateur."""
+        """Filtrage selon le rôle de l'utilisateur.
+
+        Paramètres GET:
+        - for_invite: Si 'true', permet aux référents de voir tous les organismes
+                      pour la fonctionnalité d'invitation d'organisme à un site.
+        """
         user = self.request.user
-        
+        for_invite = self.request.query_params.get('for_invite', '').lower() == 'true'
+
         if user.is_super_admin():
             # Super admin voit tous les organismes
             return BibOrganismes.objects.all().select_related('id_parent')
-        
+
         elif user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme voit son organisme et ses enfants
+            # Admin organisme voit tous les organismes pour invitation,
+            # sinon son organisme et ses enfants
+            if for_invite:
+                return BibOrganismes.objects.all().select_related('id_parent')
+
             org_ids = [user.id_organisme.id_organisme]
-            
+
             # Ajouter les organismes enfants
             children = BibOrganismes.objects.filter(id_parent=user.id_organisme)
             org_ids.extend(children.values_list('id_organisme', flat=True))
-            
+
             return BibOrganismes.objects.filter(
                 id_organisme__in=org_ids
             ).select_related('id_parent')
-        
+
         elif user.is_referent() and user.id_organisme:
-            # Référent voit seulement son organisme
+            # Référent voit tous les organismes pour invitation,
+            # sinon seulement son organisme
+            if for_invite:
+                return BibOrganismes.objects.all().select_related('id_parent')
+
             return BibOrganismes.objects.filter(
                 id_organisme=user.id_organisme.id_organisme
             ).select_related('id_parent')
-        
+
         else:
             # Utilisateur normal voit seulement son organisme
             if user.id_organisme:
                 return BibOrganismes.objects.filter(
                     id_organisme=user.id_organisme.id_organisme
                 ).select_related('id_parent')
-        
+
         return BibOrganismes.objects.none()
     
     def get_object(self):

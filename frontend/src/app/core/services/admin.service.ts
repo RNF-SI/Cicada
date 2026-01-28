@@ -42,14 +42,18 @@ export class AdminService {
 
   /**
    * Get list of organismes
+   * @param params.for_invite Si true, permet aux référents de voir tous les organismes (pour invitation)
    */
-  getOrganismes(params?: { search?: string; page?: number }): Observable<PaginatedResponse<AdminOrganisme>> {
+  getOrganismes(params?: { search?: string; page?: number; for_invite?: boolean }): Observable<PaginatedResponse<AdminOrganisme>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
     }
     if (params?.page) {
       httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.for_invite) {
+      httpParams = httpParams.set('for_invite', 'true');
     }
 
     return this.http.get<PaginatedResponse<AdminOrganisme>>(`${this.apiUrl}/organismes/`, { params: httpParams })
