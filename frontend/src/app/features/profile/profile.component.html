@@ -97,7 +97,8 @@
           </mat-card>
         }
 
-        <!-- Carte RGPD - Gestion du compte -->
+        <!-- Carte RGPD - Gestion du compte (non disponible pour les super admins) -->
+        @if (user.niveau_role !== 'super_admin') {
         <mat-card class="profile-card rgpd-card">
           <mat-card-header>
             <mat-card-title>
@@ -158,6 +159,7 @@
             }
           </mat-card-content>
         </mat-card>
+        }
       </div>
     } @else {
       <div class="loading-container">

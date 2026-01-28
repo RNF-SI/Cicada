@@ -339,6 +339,13 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         user = request.user
 
+        # Les super_admin ne peuvent pas demander la suppression de leur compte
+        if user.is_super_admin():
+            return Response(
+                {'error': 'Les super administrateurs ne peuvent pas demander la suppression de leur compte.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         # Verifier que le compte n'est pas deja en cours de suppression
         if user.deletion_requested_at:
             return Response(

@@ -1181,7 +1181,7 @@
     },
     "rgpd": {
       "title": "Gestion de mon compte",
-      "deleteAccount": "Supprimer mon compte",
+      "deleteAccount": "Demander la suppression de mon compte",
       "deleteDescription": "Conformement au RGPD, vous pouvez demander la suppression de votre compte et de vos donnees personnelles.",
       "pendingDeletion": {
         "title": "Demande de suppression en cours",
