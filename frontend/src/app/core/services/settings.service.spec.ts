@@ -9,6 +9,7 @@ describe('SettingsService', () => {
   const mockConfig: SiteConfiguration = {
     homepage_image: 'settings/homepage/image.jpg',
     homepage_image_url: 'http://localhost:8000/media/settings/homepage/image.jpg',
+    homepage_image_position: 'center',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -130,6 +131,7 @@ describe('SettingsService', () => {
       expect(result).toEqual({
         homepage_image: null,
         homepage_image_url: null,
+        homepage_image_position: 'top',
         updated_at: '',
         updated_by: null,
         updated_by_name: null

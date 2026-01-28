@@ -43,6 +43,7 @@ describe('AdminSettingsComponent', () => {
   const mockConfig: SiteConfiguration = {
     homepage_image: 'settings/homepage/image.jpg',
     homepage_image_url: 'http://localhost:8000/media/settings/homepage/image.jpg',
+    homepage_image_position: 'center',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -83,7 +84,12 @@ describe('AdminSettingsComponent', () => {
         { provide: SettingsService, useValue: mockSettingsService },
         { provide: MatSnackBar, useValue: mockSnackBar }
       ]
-    }).compileComponents();
+    });
+
+    // Override provider for standalone component (must be before compileComponents)
+    TestBed.overrideProvider(MatSnackBar, { useValue: mockSnackBar });
+
+    await TestBed.compileComponents();
 
     translateService = TestBed.inject(TranslateService);
     translateService.use('fr');
@@ -231,10 +237,10 @@ describe('AdminSettingsComponent', () => {
       component.selectedFile.set(file);
 
       component.uploadImage();
-
-      expect(component.isSaving()).toBe(true);
       tick();
 
+      // With synchronous mocks, isSaving transitions from true to false immediately
+      expect(component.isSaving()).toBe(false);
       expect(mockSettingsService.updateSettings).toHaveBeenCalled();
     }));
 
@@ -251,10 +257,12 @@ describe('AdminSettingsComponent', () => {
     }));
 
     it('should handle upload error', fakeAsync(() => {
+      fixture.detectChanges();
+
+      // Set the error mock AFTER fixture.detectChanges() to avoid affecting loadSettings
       (mockSettingsService.updateSettings as jest.Mock).mockReturnValue(
         throwError(() => new Error('Upload failed'))
       );
-      fixture.detectChanges();
 
       const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
       component.selectedFile.set(file);
@@ -294,10 +302,10 @@ describe('AdminSettingsComponent', () => {
       fixture.detectChanges();
 
       component.resetToDefault();
-
-      expect(component.isSaving()).toBe(true);
       tick();
 
+      // With synchronous mocks, isSaving transitions from true to false immediately
+      expect(component.isSaving()).toBe(false);
       expect(mockSettingsService.resetHomepageImage).toHaveBeenCalled();
     }));
 
@@ -311,10 +319,12 @@ describe('AdminSettingsComponent', () => {
     }));
 
     it('should handle reset error', fakeAsync(() => {
+      fixture.detectChanges();
+
+      // Set the error mock AFTER fixture.detectChanges() to avoid affecting loadSettings
       (mockSettingsService.resetHomepageImage as jest.Mock).mockReturnValue(
         throwError(() => new Error('Reset failed'))
       );
-      fixture.detectChanges();
 
       component.resetToDefault();
       tick();

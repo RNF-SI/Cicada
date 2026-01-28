@@ -247,6 +247,7 @@ class TestPlansCreateEndpoint:
         """Test super admin can create a plan."""
         admin = SuperAdminFactory()
 
+        site = SiteFactory()
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'New API Plan',
@@ -255,7 +256,9 @@ class TestPlansCreateEndpoint:
             'statut': 'draft',
             'gestion_partagee': False,
             'ct88': False,
-            'version': '1.0'
+            'version': '1.0',
+            'rang': 1,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -273,7 +276,11 @@ class TestPlansCreateEndpoint:
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Referent Plan',
             'statut': 'draft',
-            'annee_debut': 2024
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -289,7 +296,12 @@ class TestPlansCreateEndpoint:
         api_client.force_authenticate(user=referent)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Creator Test Plan',
-            'statut': 'draft'
+            'statut': 'draft',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED

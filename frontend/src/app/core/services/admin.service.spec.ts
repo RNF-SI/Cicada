@@ -579,7 +579,15 @@ describe('AdminService', () => {
     });
 
     it('should create plan', () => {
-      const payload = { nom: 'New Plan', statut: 'draft' as const };
+      const payload = {
+        nom: 'New Plan',
+        statut: 'draft' as const,
+        sites_ids: [1],
+        rang: 1,
+        ct88: false,
+        annee_debut: 2024,
+        annee_fin: 2034
+      };
 
       service.createPlan(payload).subscribe(plan => {
         expect(plan.nom).toBe('Test Plan');

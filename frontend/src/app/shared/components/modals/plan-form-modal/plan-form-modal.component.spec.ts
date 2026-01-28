@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { signal, WritableSignal } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { PlanFormModalComponent, PlanFormModalData } from './plan-form-modal.component';
@@ -118,7 +119,8 @@ describe('PlanFormModalComponent', () => {
         { provide: MatDialogRef, useValue: { close: dialogCloseMock } },
         { provide: MAT_DIALOG_DATA, useValue: dialogData },
         { provide: AdminService, useValue: adminServiceMock },
-        { provide: AuthService, useValue: authServiceMock }
+        { provide: AuthService, useValue: authServiceMock },
+        { provide: ActivatedRoute, useValue: { snapshot: { params: {} } } }
       ]
     }).compileComponents();
 
@@ -171,7 +173,7 @@ describe('PlanFormModalComponent', () => {
 
       const currentYear = new Date().getFullYear();
       expect(component.form.get('annee_debut')?.value).toBe(currentYear);
-      expect(component.form.get('annee_fin')?.value).toBe(currentYear + 10);
+      expect(component.form.get('annee_fin')?.value).toBe(currentYear + 5);
     }));
 
     it('should load nomenclatures on init', fakeAsync(() => {
@@ -189,6 +191,8 @@ describe('PlanFormModalComponent', () => {
       tick();
 
       component.form.patchValue({ nom: 'New Plan' });
+      // Must select at least one site for the form to submit
+      component.toggleSite(1);
       component.onSubmit();
       tick();
 
@@ -526,6 +530,8 @@ describe('PlanFormModalComponent', () => {
       tick();
 
       component.form.patchValue({ nom: 'Test' });
+      // Must select at least one site for the form to submit
+      component.toggleSite(1);
       component.onSubmit();
       tick();
 
@@ -538,6 +544,8 @@ describe('PlanFormModalComponent', () => {
 
       // Even if nomenclatures are empty, form should still work
       component.form.patchValue({ nom: 'Test Plan' });
+      // Must select at least one site for the form to submit
+      component.toggleSite(1);
       expect(component.form.valid).toBe(true);
 
       component.onSubmit();
@@ -599,6 +607,8 @@ describe('PlanFormModalComponent', () => {
         redacteur_nom: '',
         commentaire: ''
       });
+      // Must select at least one site for the form to submit
+      component.toggleSite(1);
 
       component.onSubmit();
       tick();
