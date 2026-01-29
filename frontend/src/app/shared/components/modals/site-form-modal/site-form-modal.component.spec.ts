@@ -11,6 +11,7 @@ import {
   SiteFormModalResult
 } from './site-form-modal.component';
 import { AdminService } from '../../../../core/services/admin.service';
+import { ValidationService } from '../../../../core/services/validation.service';
 import { DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 
 // Fake translate loader
@@ -49,7 +50,9 @@ class FakeTranslateLoader implements TranslateLoader {
       'common.actions.save': 'Enregistrer',
       'common.actions.create': 'Creer',
       'common.actions.select': 'Selectionner',
-      'common.status.loading': 'Chargement'
+      'common.status.loading': 'Chargement',
+      'modals.siteForm.duplicates.pendingOrgLinkBadge': 'Demande de lien en cours',
+      'modals.siteForm.duplicates.pendingAccessBadge': 'Demande d\'acces en cours'
     });
   }
 }
@@ -59,12 +62,14 @@ describe('SiteFormModalComponent', () => {
   let fixture: ComponentFixture<SiteFormModalComponent>;
   let dialogRef: jest.Mocked<MatDialogRef<SiteFormModalComponent>>;
   let adminService: jest.Mocked<AdminService>;
+  let validationService: jest.Mocked<ValidationService>;
   let translateService: TranslateService;
 
   const mockData: SiteFormModalData = {};
 
   const mockDuplicateSite: DuplicateSite = {
     id_site: 1,
+    slug: 'reserve-de-camargue',
     nom_site: 'Reserve de Camargue',
     id_inpn: 'FR0000001',
     id_local: 'RN001',
@@ -95,6 +100,10 @@ describe('SiteFormModalComponent', () => {
       assignSiteToOrganisme: jest.fn().mockReturnValue(of({}))
     } as unknown as jest.Mocked<AdminService>;
 
+    validationService = {
+      getMyRequests: jest.fn().mockReturnValue(of([]))
+    } as unknown as jest.Mocked<ValidationService>;
+
     await TestBed.configureTestingModule({
       imports: [
         SiteFormModalComponent,
@@ -108,7 +117,8 @@ describe('SiteFormModalComponent', () => {
       providers: [
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockData },
-        { provide: AdminService, useValue: adminService }
+        { provide: AdminService, useValue: adminService },
+        { provide: ValidationService, useValue: validationService }
       ]
     }).compileComponents();
 
@@ -308,6 +318,7 @@ describe('SiteFormModalComponent', () => {
     // Site where user's org already manages it
     const siteWithUserOrg: DuplicateSite = {
       id_site: 2,
+      slug: 'reserve-du-vercors',
       nom_site: 'Reserve du Vercors',
       id_inpn: 'FR0000002',
       id_local: 'RN002',
@@ -321,6 +332,7 @@ describe('SiteFormModalComponent', () => {
     // Site where user already has access
     const siteWithAccess: DuplicateSite = {
       id_site: 3,
+      slug: 'reserve-des-aiguilles',
       nom_site: 'Reserve des Aiguilles',
       id_inpn: 'FR0000003',
       id_local: 'RN003',
@@ -334,6 +346,7 @@ describe('SiteFormModalComponent', () => {
     // Site managed by another org
     const siteOtherOrg: DuplicateSite = {
       id_site: 4,
+      slug: 'parc-du-mercantour',
       nom_site: 'Parc du Mercantour',
       id_inpn: 'FR0000004',
       id_local: 'PN001',
@@ -625,6 +638,86 @@ describe('SiteFormModalComponent', () => {
     }));
   });
 
+  describe('pending request detection', () => {
+    it('should load pending requests on init', () => {
+      expect(validationService.getMyRequests).toHaveBeenCalled();
+    });
+
+    it('should detect pending org link for a duplicate site', () => {
+      component.pendingRequests.set([
+        {
+          id: 100,
+          request_type: 'site_org_link',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Reserve de Camargue',
+          target_site_id: 1,
+          created_at: new Date().toISOString()
+        } as any
+      ]);
+
+      expect(component.hasPendingOrgLink(mockDuplicateSite)).toBe(true);
+    });
+
+    it('should return false when no pending org link exists', () => {
+      component.pendingRequests.set([]);
+
+      expect(component.hasPendingOrgLink(mockDuplicateSite)).toBe(false);
+    });
+
+    it('should detect pending access for a duplicate site', () => {
+      component.pendingRequests.set([
+        {
+          id: 101,
+          request_type: 'site_access',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Reserve de Camargue',
+          target_site_id: 1,
+          created_at: new Date().toISOString()
+        } as any
+      ]);
+
+      expect(component.hasPendingAccess(mockDuplicateSite)).toBe(true);
+    });
+
+    it('should return false when no pending access exists', () => {
+      component.pendingRequests.set([]);
+
+      expect(component.hasPendingAccess(mockDuplicateSite)).toBe(false);
+    });
+
+    it('should not match pending request for different site', () => {
+      component.pendingRequests.set([
+        {
+          id: 102,
+          request_type: 'site_org_link',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Other Site',
+          target_site_id: 999,
+          created_at: new Date().toISOString()
+        } as any
+      ]);
+
+      expect(component.hasPendingOrgLink(mockDuplicateSite)).toBe(false);
+    });
+
+    it('should handle getMyRequests error gracefully', () => {
+      // Re-create with error-throwing service
+      validationService.getMyRequests.mockReturnValue(throwError(() => new Error('Network error')));
+
+      // Re-init to trigger loadPendingRequests again
+      component.ngOnInit();
+
+      // Should not crash, pendingRequests should remain empty
+      expect(component.pendingRequests().length).toBe(0);
+    });
+  });
+
   describe('edit mode', () => {
     beforeEach(async () => {
       // Re-create component with edit data
@@ -652,7 +745,8 @@ describe('SiteFormModalComponent', () => {
         providers: [
           { provide: MatDialogRef, useValue: dialogRef },
           { provide: MAT_DIALOG_DATA, useValue: editData },
-          { provide: AdminService, useValue: adminService }
+          { provide: AdminService, useValue: adminService },
+          { provide: ValidationService, useValue: validationService }
         ]
       }).compileComponents();
 

@@ -807,6 +807,76 @@ describe('SitesListComponent', () => {
         expect(site.accessStatus).toBe('pending');
       });
     }));
+
+    describe('Pending Org Links', () => {
+      it('should filter pending site_org_link requests', fakeAsync(() => {
+        const mockOrgLinkRequest: ValidationRequestListItem = {
+          id: 10,
+          request_type: 'site_org_link',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Site Test',
+          created_at: new Date().toISOString()
+        };
+        getMyRequestsMock.mockReturnValue(of([mockValidationRequest, mockOrgLinkRequest]));
+
+        fixture.detectChanges();
+        tick();
+
+        expect(component.pendingOrgLinks().length).toBe(1);
+        expect(component.pendingOrgLinks()[0].request_type).toBe('site_org_link');
+        expect(component.pendingOrgLinks()[0].id).toBe(10);
+      }));
+
+      it('should not include non-pending site_org_link requests', fakeAsync(() => {
+        const approvedOrgLinkRequest: ValidationRequestListItem = {
+          id: 11,
+          request_type: 'site_org_link',
+          status: 'approved',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Site Test',
+          created_at: new Date().toISOString()
+        };
+        getMyRequestsMock.mockReturnValue(of([approvedOrgLinkRequest]));
+
+        fixture.detectChanges();
+        tick();
+
+        expect(component.pendingOrgLinks().length).toBe(0);
+      }));
+
+      it('should have separate signals for pendingSiteCreations and pendingOrgLinks', fakeAsync(() => {
+        const creationRequest: ValidationRequestListItem = {
+          id: 20,
+          request_type: 'site_creation',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'New Site',
+          created_at: new Date().toISOString()
+        };
+        const orgLinkRequest: ValidationRequestListItem = {
+          id: 21,
+          request_type: 'site_org_link',
+          status: 'pending',
+          requester_id: 1,
+          requester_name: 'Test User',
+          target_name: 'Existing Site',
+          created_at: new Date().toISOString()
+        };
+        getMyRequestsMock.mockReturnValue(of([mockValidationRequest, creationRequest, orgLinkRequest]));
+
+        fixture.detectChanges();
+        tick();
+
+        expect(component.pendingSiteCreations().length).toBe(1);
+        expect(component.pendingSiteCreations()[0].request_type).toBe('site_creation');
+        expect(component.pendingOrgLinks().length).toBe(1);
+        expect(component.pendingOrgLinks()[0].request_type).toBe('site_org_link');
+      }));
+    });
   });
 
   // ==================== AVAILABLE SITES FOR REQUEST ====================
