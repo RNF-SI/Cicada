@@ -688,10 +688,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             cor_role_site = CorRoleSite.objects.get(id_site=site, id_role=user)
             cor_role_site.delete()
             
-            return Response(
-                {'message': f'Utilisateur {user.email} désassigné du site {site.nom_site}'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except CorRoleSite.DoesNotExist:
             return Response(
                 {'error': 'Cet utilisateur n\'est pas assigné à ce site.'},
