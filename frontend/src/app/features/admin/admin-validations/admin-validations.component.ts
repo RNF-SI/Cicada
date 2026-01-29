@@ -126,8 +126,9 @@ export class AdminValidationsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result === 'updated') {
+      if (result) {
         this.loadValidations();
+        this.notificationService.refresh().subscribe();
       }
     });
   }
@@ -214,6 +215,12 @@ export class AdminValidationsComponent implements OnInit {
    */
   quickApprove(validation: ValidationRequestListItem, event: Event): void {
     event.stopPropagation();
+
+    // Si la demande est bloquée par un site_org_link en attente, ouvrir le dialog
+    if (validation.blocked_by_org_link) {
+      this.openDetail(validation);
+      return;
+    }
 
     // Si la demande nécessite un choix référent/utilisateur, ouvrir le dialog
     if (this.requiresReferentChoice(validation)) {

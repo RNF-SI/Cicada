@@ -465,7 +465,8 @@
         "noValidations": "Aucune demande de validation"
       },
       "warnings": {
-        "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons."
+        "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons.",
+        "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier."
       }
     },
     "modules": {
@@ -1325,9 +1326,12 @@
       "createDescriptionSimple": "Créez un nouveau site pour votre organisme.",
       "createButton": "Nouveau site",
       "autoMessage": "Demande automatique via recherche de site",
-      "requestOrgLink": "Lier à mon organisme",
+      "requestOrgLink": "Demander à lier à mon organisme",
       "pendingOrgLink": "Demande de lien en cours",
       "orgLinkRequested": "Demande de lien avec le site {{ name }} envoyée",
+      "orgLinkWithAccess": "Demander aussi l'accès au site",
+      "orgLinkAndAccessRequested": "Demandes de lien et d'accès au site {{ name }} envoyées",
+      "orgLinkAndAccessAsReferentRequested": "Demandes de lien et d'accès comme référent au site {{ name }} envoyées",
       "autoOrgLinkMessage": "Demande de lien site-organisme via recherche",
       "mySitesTitle": "Sites de mon organisme",
       "mySitesDescription": "Sites liés à votre organisme. Demandez l'accès pour y travailler.",

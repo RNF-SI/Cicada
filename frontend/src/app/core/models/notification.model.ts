@@ -149,6 +149,8 @@ export interface ValidationRequest {
   can_validate?: boolean;
   /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
   request_as_referent?: boolean;
+  /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
+  blocked_by_org_link?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -185,6 +187,8 @@ export interface ValidationRequestListItem {
   created_at: string;
   /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
   request_as_referent?: boolean;
+  /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
+  blocked_by_org_link?: boolean;
 }
 
 /**

@@ -309,6 +309,21 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_409_CONFLICT
                     )
 
+                # Bloquer site_access si site_org_link en attente
+                if validation_request.request_type == 'site_access':
+                    pending_org_link = ValidationRequest.objects.filter(
+                        requester=validation_request.requester,
+                        target_site=validation_request.target_site,
+                        request_type='site_org_link',
+                        status='pending'
+                    ).exists()
+                    if pending_org_link:
+                        return Response(
+                            {'error': "Une demande de lien organisme-site est en attente pour ce site. "
+                                      "Veuillez l'approuver en premier."},
+                            status=status.HTTP_409_CONFLICT
+                        )
+
                 serializer = ValidationApproveSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comment = serializer.validated_data.get('comment')

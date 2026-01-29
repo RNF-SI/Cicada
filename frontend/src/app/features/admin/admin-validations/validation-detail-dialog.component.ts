@@ -168,6 +168,14 @@ interface DialogData {
             </div>
           }
 
+          <!-- Avertissement: site_access bloqué par site_org_link -->
+          @if (validation()!.blocked_by_org_link) {
+            <div class="blocked-warning">
+              <i class="fi fi-rr-exclamation-triangle"></i>
+              <span>{{ 'admin.validations.warnings.blockedByOrgLink' | translate }}</span>
+            </div>
+          }
+
           <!-- Formulaire action si en attente -->
           @if (validation()!.status === 'pending' && !actionSuccess()) {
             <div class="action-section">
@@ -196,7 +204,7 @@ interface DialogData {
                       mat-raised-button
                       color="primary"
                       (click)="approveWithReferent(true)"
-                      [disabled]="processing()"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
                     >
                       <i class="fi fi-rr-user-check"></i>
                       Approuver (référent)
@@ -204,7 +212,7 @@ interface DialogData {
                     <button
                       mat-stroked-button
                       (click)="approveWithReferent(false)"
-                      [disabled]="processing()"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
                     >
                       <i class="fi fi-rr-user"></i>
                       Approuver (utilisateur)
@@ -215,7 +223,7 @@ interface DialogData {
                       mat-raised-button
                       color="primary"
                       (click)="approve()"
-                      [disabled]="processing()"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
                     >
                       <i class="fi fi-rr-check"></i>
                       Approuver
@@ -253,7 +261,7 @@ interface DialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Fermer</button>
+      <button mat-button (click)="close()">Fermer</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -468,6 +476,31 @@ interface DialogData {
       }
     }
 
+    .blocked-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+      margin-top: 8px;
+      background: rgba(v.$warning-color, 0.12);
+      border: 1px solid rgba(v.$warning-color, 0.4);
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.5;
+
+      > i {
+        font-size: 18px;
+        color: darken(v.$warning-color, 10%);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      > span {
+        color: darken(v.$warning-color, 20%);
+        font-weight: 700;
+      }
+    }
+
     .duplicate-warning {
       display: flex;
       align-items: flex-start;
@@ -625,6 +658,13 @@ export class ValidationDetailDialogComponent implements OnInit {
         this.processing.set(false);
       }
     });
+  }
+
+  /**
+   * Ferme le dialog. Renvoie true si une action a ete effectuee pour rafraichir la liste.
+   */
+  close(): void {
+    this.dialogRef.close(!!this.actionSuccess());
   }
 
   /**

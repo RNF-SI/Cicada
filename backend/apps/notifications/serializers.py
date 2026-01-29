@@ -115,6 +115,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
     )
     pending_user_info = serializers.SerializerMethodField()
     can_validate = serializers.SerializerMethodField()
+    blocked_by_org_link = serializers.SerializerMethodField()
 
     class Meta:
         model = ValidationRequest
@@ -136,6 +137,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'validated_at',
             'pending_user_info',
             'can_validate',
+            'blocked_by_org_link',
             'request_as_referent',
             'created_at',
             'updated_at',
@@ -176,6 +178,17 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             return obj.can_be_validated_by(request.user)
         return False
 
+    def get_blocked_by_org_link(self, obj):
+        """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
+        if obj.request_type != 'site_access' or obj.status != 'pending':
+            return False
+        return ValidationRequest.objects.filter(
+            requester=obj.requester,
+            target_site=obj.target_site,
+            request_type='site_org_link',
+            status='pending'
+        ).exists()
+
 
 class ValidationRequestListSerializer(serializers.ModelSerializer):
     """Serializer simplifie pour les listes."""
@@ -195,6 +208,8 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    blocked_by_org_link = serializers.SerializerMethodField()
+
     class Meta:
         model = ValidationRequest
         fields = [
@@ -213,6 +228,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'validated_at',
             'created_at',
             'request_as_referent',
+            'blocked_by_org_link',
         ]
 
     def get_requester_name(self, obj):
@@ -250,6 +266,17 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         if obj.validator:
             return str(obj.validator)
         return None
+
+    def get_blocked_by_org_link(self, obj):
+        """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
+        if obj.request_type != 'site_access' or obj.status != 'pending':
+            return False
+        return ValidationRequest.objects.filter(
+            requester=obj.requester,
+            target_site=obj.target_site,
+            request_type='site_org_link',
+            status='pending'
+        ).exists()
 
 
 class ValidationApproveSerializer(serializers.Serializer):
