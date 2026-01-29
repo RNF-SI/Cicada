@@ -745,7 +745,7 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | referent.vercors@test.fr | Utilisateur | CEN AURA | Referent: Vercors | |
   | user.rnf@test.fr | Utilisateur | RNF | Membre: Camargue, Aiguilles Rouges | Voit automatiquement les plans liés |
   | user.cen@test.fr | Utilisateur | CEN AURA | Membre: Grand-Voyeux, Vercors | Voit automatiquement les plans liés |
-  | **test@reserves-naturelles.org** | Utilisateur | RNF | Referent: Camargue | **Email reel pour tests SMTP** |
+  | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
 - **8 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents

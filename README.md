@@ -96,6 +96,16 @@ cp .env.example .env
 
 > ⚠️ **Production** : Ne jamais utiliser les valeurs par défaut. Générez des mots de passe forts et une nouvelle `SECRET_KEY`.
 
+### Sécurité
+
+Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) sont **exclusivement destinés au développement local**. Pour tout déploiement en production :
+
+- Générez une nouvelle `SECRET_KEY` Django (ex: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
+- Définissez des mots de passe forts pour PostgreSQL et Redis
+- Configurez `DEBUG=False` et `ALLOWED_HOSTS` correctement
+- Utilisez HTTPS et configurez les en-têtes de sécurité
+- Ne réutilisez jamais les valeurs par défaut de développement
+
 ## 🏗️ Architecture
 
 ### État actuel du projet

@@ -13,8 +13,9 @@ from .base import BaseSeeder
 
 DEFAULT_PASSWORD = 'Test123!'
 
-# Adresse email reelle pour les tests d'envoi de mail
-REAL_TEST_EMAIL = 'test@reserves-naturelles.org'
+# Adresse email pour les tests d'envoi de mail
+# En production, configurez TEST_EMAIL_RECIPIENT dans les variables d'environnement
+REAL_TEST_EMAIL = 'test@example.com'
 
 
 class UsersSeeder(BaseSeeder):
@@ -29,7 +30,7 @@ class UsersSeeder(BaseSeeder):
     - referent.vercors@test.fr (referent)
     - user.rnf@test.fr (utilisateur)
     - user.cen@test.fr (utilisateur)
-    - test@reserves-naturelles.org (utilisateur) - Pour tests email reels
+    - test@example.com (utilisateur) - Pour tests email
 
     Utilisateurs inactifs (3):
     - ancien.rnf@test.fr

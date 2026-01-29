@@ -43,7 +43,7 @@ from tests.factories.notifications import NotificationFactory, ValidationRequest
 
 
 # Default test email recipient
-DEFAULT_TEST_EMAIL = 'test@reserves-naturelles.org'
+DEFAULT_TEST_EMAIL = 'test@example.com'
 
 
 def get_test_email():
@@ -93,7 +93,7 @@ class TestNotificationEmailIntegration:
     """
     Integration tests for notification emails.
 
-    These tests send REAL emails to test@reserves-naturelles.org.
+    These tests send emails to the configured test recipient (default: test@example.com).
     """
 
     def test_send_welcome_notification_email(self):
@@ -101,7 +101,7 @@ class TestNotificationEmailIntegration:
         Test sending a welcome notification email.
 
         This creates a notification and sends it via the real SMTP backend.
-        Check test@reserves-naturelles.org inbox for the email.
+        Check the test recipient inbox for the email.
         """
         test_email = get_test_email()
 

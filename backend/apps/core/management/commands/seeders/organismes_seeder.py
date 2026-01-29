@@ -27,7 +27,7 @@ class OrganismesSeeder(BaseSeeder):
     ORGANISMES_DATA = [
         {
             'nom_organisme': 'Reserves Naturelles de France',
-            'email_organisme': 'contact@reserves-naturelles.org',
+            'email_organisme': 'contact@example.org',
             'ville_organisme': 'Dijon',
             'cp_organisme': '21000',
             'adresse_organisme': '6 rue de la Manutention',

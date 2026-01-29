@@ -76,19 +76,19 @@ Créez un fichier `.env` ou configurez ces variables sur votre serveur :
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 
 # Serveur SMTP de votre organisation
-EMAIL_HOST=smtp.reserves-naturelles.org
+EMAIL_HOST=smtp.votre-domaine.org
 EMAIL_PORT=587
 EMAIL_USE_TLS=true
 
 # Identifiants SMTP
-EMAIL_HOST_USER=noreply@reserves-naturelles.org
+EMAIL_HOST_USER=noreply@votre-domaine.org
 EMAIL_HOST_PASSWORD=votre-mot-de-passe
 
 # Adresse d'expédition
-DEFAULT_FROM_EMAIL=noreply@cicada.reserves-naturelles.org
+DEFAULT_FROM_EMAIL=noreply@cicada.votre-domaine.org
 
 # URL du site (pour les liens dans les emails)
-SITE_URL=https://cicada.reserves-naturelles.org
+SITE_URL=https://cicada.votre-domaine.org
 ```
 
 ### Configuration docker compose.prod.yml
@@ -103,8 +103,8 @@ services:
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-true}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.reserves-naturelles.org}
-      - SITE_URL=${SITE_URL:-https://cicada.reserves-naturelles.org}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.votre-domaine.org}
+      - SITE_URL=${SITE_URL:-https://cicada.votre-domaine.org}
 
   celery-worker:
     environment:
@@ -140,7 +140,7 @@ send_mail(
     'Test CICADA Production',
     'Si vous recevez cet email, la configuration SMTP fonctionne.',
     settings.DEFAULT_FROM_EMAIL,
-    ['test@reserves-naturelles.org'],
+    ['votre-email@votre-domaine.org'],
 )
 print('Email envoyé!')
 "
@@ -250,6 +250,6 @@ docker compose exec web python manage.py seed_testdata
 
 | Email | Usage |
 |-------|-------|
-| `test@reserves-naturelles.org` | Tests d'envoi réel en production |
+| `test@example.com` | Tests d'envoi (configurable via `TEST_EMAIL_RECIPIENT`) |
 
-Cet utilisateur permet de tester l'envoi d'emails réels vers une boîte mail contrôlée par RNF.
+Cet utilisateur permet de tester l'envoi d'emails. Configurez `TEST_EMAIL_RECIPIENT` pour utiliser une vraie adresse.
