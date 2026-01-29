@@ -146,8 +146,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_creation` | Création de site | Demande de création d'un nouveau site |
 | `site_org_link` | Lien site-organisme | Demande pour lier un site externe à son organisme |
 | `site_org_unlink` | Retrait site-organisme | Demande pour retirer un organisme d'un site |
-| `invite_org_to_site` | Invitation organisme | Invitation d'un organisme à rejoindre un site |
-| `invite_user_to_site` | Invitation utilisateur | Invitation d'un utilisateur à rejoindre un site |
+| `invite_org_to_site` | Invitation organisme | ⚠️ **Obsolète** - Les invitations d'organisme sont désormais directes (sans validation). Type conservé pour l'historique. |
+| `invite_user_to_site` | Invitation utilisateur | ⚠️ **Obsolète** - Les invitations d'utilisateur sont désormais directes (sans validation). Type conservé pour l'historique. |
 | `admin_promotion` | Promotion admin_og | Demande de promotion d'un utilisateur en admin_og |
 | `admin_demotion` | Rétrogradation admin_og | Demande de rétrogradation d'un admin_og en utilisateur |
 
@@ -163,8 +163,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_creation` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `site_org_link` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `site_org_unlink` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
-| `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
-| `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
+| `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ | ⚠️ Action directe, plus de validation |
+| `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ | ⚠️ Action directe, plus de validation |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 | `admin_demotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 
@@ -184,8 +184,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_creation` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
 | `site_org_link` | ❌ | ❌ | ✅ ¹ | ✅ | ¹ Admin de l'organisme du demandeur |
 | `site_org_unlink` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme à retirer |
-| `invite_org_to_site` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme invité |
-| `invite_user_to_site` | ✅ ² | ❌ | ✅ ³ | ✅ | ² Référent du site, ³ Admin org gestionnaire |
+| `invite_org_to_site` | — | — | — | — | ⚠️ Plus de validation : action directe par le référent |
+| `invite_user_to_site` | — | — | — | — | ⚠️ Plus de validation : action directe par le référent |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
 | `admin_demotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
 
@@ -201,8 +201,8 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_creation` | Site créé + `CorOgSite` avec l'organisme du demandeur | Notification avec motif du refus |
 | `site_org_link` | `CorOgSite` créé (non principal) | Notification avec motif du refus |
 | `site_org_unlink` | `CorOgSite` supprimé, organisme retiré du site | Notification avec motif du refus, lien conservé |
-| `invite_org_to_site` | `CorOgSite` créé pour l'organisme invité | Notification avec motif du refus |
-| `invite_user_to_site` | `CorRoleSite` créé pour l'utilisateur invité | Notification avec motif du refus |
+| `invite_org_to_site` | ⚠️ **Obsolète** - L'action est désormais directe (pas de validation) | — |
+| `invite_user_to_site` | ⚠️ **Obsolète** - L'action est désormais directe (pas de validation) | — |
 | `admin_promotion` | `role_level` changé en `admin_og`, notification au nouvel admin | Notification avec motif du refus |
 | `admin_demotion` | `role_level` changé en `utilisateur`, notification à l'ancien admin | Notification avec motif du refus |
 
@@ -234,8 +234,7 @@ Pour la plupart des demandes, le système notifie les validateurs dans un ordre 
 2. Super admins (fallback)
 
 **Invitation organisme (`invite_org_to_site`)** :
-1. Admins de l'organisme invité (c'est lui qui décide de rejoindre)
-2. Super admins (fallback)
+> ⚠️ **Obsolète** - Les invitations sont désormais des actions directes par le référent. Pas de validation nécessaire. Des notifications sont envoyées aux admin_og des organismes concernés, aux référents du site et aux super admins.
 
 **Changement de rôle admin (`admin_promotion`, `admin_demotion`)** :
 1. Super admins uniquement (pas de fallback)

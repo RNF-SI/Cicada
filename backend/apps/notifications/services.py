@@ -466,6 +466,132 @@ class NotificationService:
         )
 
     @staticmethod
+    def notify_site_invitation_done(site, inviter, invited_organisme=None, invited_user=None):
+        """
+        Notifie les parties prenantes qu'un referent a directement ajoute
+        un organisme ou un utilisateur a un site (sans demande de validation).
+
+        Args:
+            site: Le site concerne
+            inviter: Role qui a fait l'invitation (referent)
+            invited_organisme: BibOrganismes invite (si invitation d'organisme)
+            invited_user: Role de l'utilisateur invite (si invitation d'utilisateur)
+        """
+        inviter_name = inviter.get_full_name() or inviter.email
+
+        if invited_organisme:
+            title = f"Organisme ajoute au site {site.nom_site}"
+            message = f"{inviter_name} a ajoute l'organisme {invited_organisme.nom_organisme} au site {site.nom_site}."
+        else:
+            invited_user_name = invited_user.get_full_name() or invited_user.email if invited_user else "un utilisateur"
+            title = f"Utilisateur ajoute au site {site.nom_site}"
+            message = f"{inviter_name} a ajoute {invited_user_name} au site {site.nom_site}."
+
+        notified_ids = set()
+        # Ne pas notifier l'inviter lui-meme
+        notified_ids.add(inviter.id_role)
+
+        # 1. Admin_og de l'organisme de l'inviter
+        if inviter.id_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=inviter.id_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            for admin in admin_ogs:
+                if admin.id_role not in notified_ids:
+                    NotificationService.create_notification(
+                        recipient=admin,
+                        notification_type='info',
+                        title=title,
+                        message=message,
+                        priority='medium',
+                        related_site=site,
+                        action_url=f'/sites/{site.id_site}',
+                    )
+                    notified_ids.add(admin.id_role)
+
+        # 2. Admin_og de l'organisme invite (pour organisme) ou de l'utilisateur invite (pour user)
+        if invited_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=invited_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            for admin in admin_ogs:
+                if admin.id_role not in notified_ids:
+                    NotificationService.create_notification(
+                        recipient=admin,
+                        notification_type='info',
+                        title=title,
+                        message=message,
+                        priority='medium',
+                        related_site=site,
+                        action_url=f'/sites/{site.id_site}',
+                    )
+                    notified_ids.add(admin.id_role)
+        elif invited_user and invited_user.id_organisme:
+            admin_ogs = Role.objects.filter(
+                id_organisme=invited_user.id_organisme,
+                role_level='admin_og',
+                active=True
+            )
+            for admin in admin_ogs:
+                if admin.id_role not in notified_ids:
+                    NotificationService.create_notification(
+                        recipient=admin,
+                        notification_type='info',
+                        title=title,
+                        message=message,
+                        priority='medium',
+                        related_site=site,
+                        action_url=f'/sites/{site.id_site}',
+                    )
+                    notified_ids.add(admin.id_role)
+
+        # 3. Referents du site (sauf l'inviter)
+        referent_roles = CorRoleSite.objects.filter(
+            id_site=site,
+            referent=True,
+            referent_valid=True
+        ).values_list('id_role', flat=True)
+        for referent in Role.objects.filter(id_role__in=referent_roles, active=True):
+            if referent.id_role not in notified_ids:
+                NotificationService.create_notification(
+                    recipient=referent,
+                    notification_type='info',
+                    title=title,
+                    message=message,
+                    priority='medium',
+                    related_site=site,
+                    action_url=f'/sites/{site.id_site}',
+                )
+                notified_ids.add(referent.id_role)
+
+        # 4. Super admins
+        super_admins = Role.objects.filter(
+            role_level='super_admin',
+            active=True
+        )
+        for admin in super_admins:
+            if admin.id_role not in notified_ids:
+                NotificationService.create_notification(
+                    recipient=admin,
+                    notification_type='info',
+                    title=title,
+                    message=message,
+                    priority='low',
+                    related_site=site,
+                    action_url=f'/sites/{site.id_site}',
+                )
+                notified_ids.add(admin.id_role)
+
+        # 5. L'utilisateur invite lui-meme (si invitation d'utilisateur)
+        # Note: Pour les utilisateurs, le signal post_save de CorRoleSite
+        # cree deja une notification user_associated_site automatiquement.
+        # On ne cree donc pas de doublon ici.
+
+    @staticmethod
     def notify_user_deactivated(user, deactivated_by, reason=None):
         """Notifie de la desactivation d'un compte."""
         # Notifier l'utilisateur desactive

@@ -320,24 +320,27 @@ Le bouton "Gérer les utilisateurs" ouvre un modal unifié permettant de gérer 
 
 ### Invitation d'un organisme
 
-Le bouton "Inviter" dans la section "Organismes gestionnaires" permet d'inviter un nouvel organisme à rejoindre le site.
+Le bouton "Inviter" dans la section "Organismes gestionnaires" permet d'ajouter directement un nouvel organisme au site.
 
-#### Flux d'invitation
+#### Flux d'invitation (direct, sans validation)
 
 ```
-Référent → "Inviter" → Sélection organisme + justification
+Référent → "Inviter" → Sélection organisme + justification (optionnelle)
                                     ↓
-                    ValidationRequest (invite_org_to_site)
+                        CorOgSite créé immédiatement
                                     ↓
-                      Notification à l'admin_og de l'organisme invité
+                    Notifications envoyées aux parties prenantes
+                    (admin_og des 2 organismes, référents du site, super_admin)
                                     ↓
-                         Approbation → CorOgSite créé
+                    Activité loguée (ActivityService)
 ```
 
-**Si approuvé :**
+**Résultat immédiat :**
 - Un lien `CorOgSite` est créé (non principal)
 - Les utilisateurs de cet organisme peuvent maintenant être ajoutés au site
-- Le référent qui a invité reçoit une notification de confirmation
+- Les administrateurs des organismes concernés, les référents du site et les super admins sont notifiés
+
+> **Note :** Contrairement aux demandes d'accès (`site_access`, `site_org_link`), l'invitation par un référent ne passe pas par une demande de validation. Le lien est créé directement.
 
 ### Demande pour devenir référent
 
@@ -406,7 +409,8 @@ Utilisateur avec accès → "Devenir référent"
 | Accès comme référent | `site_access` + flag | Demande d'accès avec option référent | Référents du site + admin_og | `CorRoleSite` créé avec `referent=True` |
 | Lien site-organisme | `site_org_link` | Demande de lier un site externe à son organisme | admin_og du demandeur | `CorOgSite` créé |
 | Retrait site-organisme | `site_org_unlink` | Demande de retirer un organisme d'un site | admin_og de l'organisme à retirer | `CorOgSite` supprimé |
-| Invitation organisme | `invite_org_to_site` | Référent invite un organisme sur son site | admin_og de l'organisme invité | `CorOgSite` créé |
+| Invitation organisme | *(action directe)* | Référent ajoute un organisme sur son site | *(pas de validation)* | `CorOgSite` créé + notifications |
+| Invitation utilisateur | *(action directe)* | Référent ajoute un utilisateur sur son site | *(pas de validation)* | `CorRoleSite` créé + notifications |
 | Devenir référent | `referent_validation` | Utilisateur lié veut devenir référent | Référents + admin_og + super_admin | `CorRoleSite.referent = True` |
 
 ---

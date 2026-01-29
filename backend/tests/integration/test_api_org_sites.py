@@ -896,7 +896,7 @@ class TestSiteInviteOrganismeEndpoint:
     """Tests for inviting organisme to site endpoint."""
 
     def test_invite_organisme_success(self, api_client):
-        """Test referent can invite organisme to site."""
+        """Test referent can invite organisme to site - creates direct link."""
         from tests.factories.users import CorRoleSiteFactory
         referent = RoleFactory()
         site = SiteFactory(active=True)
@@ -910,6 +910,8 @@ class TestSiteInviteOrganismeEndpoint:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
+        # Verify direct link was created (no ValidationRequest)
+        assert CorOgSite.objects.filter(id_site=site, uuid_og=target_org).exists()
 
     def test_invite_organisme_not_referent(self, api_client):
         """Test non-referent cannot invite organisme."""
@@ -926,7 +928,7 @@ class TestSiteInviteOrganismeEndpoint:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_invite_organisme_super_admin_allowed(self, api_client):
-        """Test super admin can invite organisme."""
+        """Test super admin can invite organisme - creates direct link."""
         admin = SuperAdminFactory()
         site = SiteFactory(active=True)
         target_org = OrganismeFactory()
@@ -938,6 +940,8 @@ class TestSiteInviteOrganismeEndpoint:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
+        # Verify direct link was created
+        assert CorOgSite.objects.filter(id_site=site, uuid_og=target_org).exists()
 
 
 @pytest.mark.django_db
@@ -946,8 +950,9 @@ class TestSiteInviteUserEndpoint:
     """Tests for inviting user to site endpoint."""
 
     def test_invite_user_success(self, api_client):
-        """Test referent can invite user to site."""
+        """Test referent can invite user to site - creates direct link."""
         from tests.factories.users import CorRoleSiteFactory
+        from apps.users.models import CorRoleSite
         referent = RoleFactory()
         site = SiteFactory(active=True)
         CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
@@ -964,6 +969,8 @@ class TestSiteInviteUserEndpoint:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
+        # Verify direct link was created (no ValidationRequest)
+        assert CorRoleSite.objects.filter(id_role=target_user, id_site=site).exists()
 
     def test_invite_user_org_not_linked(self, api_client):
         """Test cannot invite user whose org is not linked to site."""

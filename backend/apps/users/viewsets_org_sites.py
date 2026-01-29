@@ -1231,14 +1231,15 @@ class SiteViewSet(viewsets.ModelViewSet):
     def invite_organisme(self, request, slug=None):
         """
         Invite un organisme a rejoindre le site (referent uniquement).
+        Le lien est cree directement sans demande de validation.
         POST /api/users/sites/{slug}/invite_organisme/
         Body: {
             "organisme_id": 123,
             "justification": "..."  (optionnel)
         }
         """
-        from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
+        from apps.core.services import ActivityService
 
         site = get_object_or_404(Site, slug=slug)
 
@@ -1285,54 +1286,52 @@ class SiteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verifier qu'une demande n'existe pas deja
-        existing = ValidationRequest.objects.filter(
-            requester=request.user,
-            request_type='invite_org_to_site',
-            target_site=site,
-            requested_organisme=organisme,
-            status='pending'
-        ).exists()
-
-        if existing:
-            return Response(
-                {'error': 'Une invitation pour cet organisme est deja en attente.'},
-                status=status.HTTP_409_CONFLICT
-            )
-
-        # Recuperer la justification
-        justification = request.data.get('justification', '')
-
-        # Creer la demande de validation
-        validation_request = ValidationRequest.objects.create(
-            request_type='invite_org_to_site',
-            status='pending',
-            requester=request.user,
-            target_site=site,
-            requested_organisme=organisme,
-            justification=justification,
+        # Creer directement le lien organisme-site
+        CorOgSite.objects.create(
+            id_site=site,
+            uuid_og=organisme,
+            principal=False,
         )
 
-        # Notifier les valideurs (admin de l'organisme invite)
-        NotificationService.notify_validators(validation_request)
+        # Logger l'activite
+        inviter_name = request.user.get_full_name() or request.user.email
+        justification = request.data.get('justification', '')
+        metadata = {}
+        if justification:
+            metadata['justification'] = justification
+
+        ActivityService.log_site_activity(
+            site=site,
+            action='add_member',
+            actor=request.user,
+            description=f"{inviter_name} a ajoute l'organisme {organisme.nom_organisme} au site {site.nom_site}.",
+            metadata=metadata,
+        )
+
+        # Notifier les parties prenantes
+        NotificationService.notify_site_invitation_done(
+            site=site,
+            inviter=request.user,
+            invited_organisme=organisme,
+        )
 
         return Response({
-            'id': validation_request.id,
-            'message': f'Votre invitation pour "{organisme.nom_organisme}" a rejoindre le site "{site.nom_site}" a ete soumise.',
+            'message': f'L\'organisme "{organisme.nom_organisme}" a ete ajoute au site "{site.nom_site}".',
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def invite_user(self, request, slug=None):
         """
         Invite un utilisateur d'un organisme lie a rejoindre le site (referent uniquement).
+        Le lien est cree directement sans demande de validation.
         POST /api/users/sites/{slug}/invite_user/
         Body: {
             "user_id": 123,
             "justification": "..."  (optionnel)
         }
         """
-        from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
+        from apps.core.services import ActivityService
 
         site = get_object_or_404(Site, slug=slug)
 
@@ -1398,38 +1397,38 @@ class SiteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verifier qu'une demande n'existe pas deja
-        existing = ValidationRequest.objects.filter(
-            requester=request.user,
-            request_type='invite_user_to_site',
-            target_site=site,
-            target_user=target_user,
-            status='pending'
-        ).exists()
-
-        if existing:
-            return Response(
-                {'error': 'Une invitation pour cet utilisateur est deja en attente.'},
-                status=status.HTTP_409_CONFLICT
-            )
-
-        # Recuperer la justification
-        justification = request.data.get('justification', '')
-
-        # Creer la demande de validation
-        validation_request = ValidationRequest.objects.create(
-            request_type='invite_user_to_site',
-            status='pending',
-            requester=request.user,
-            target_site=site,
-            target_user=target_user,
-            justification=justification,
+        # Creer directement le lien utilisateur-site
+        CorRoleSite.objects.create(
+            id_site=site,
+            id_role=target_user,
+            referent=False,
+            referent_valid=False,
+            conservateur=False,
         )
 
-        # Notifier les valideurs (admin de l'organisme de l'utilisateur invite)
-        NotificationService.notify_validators(validation_request)
+        # Logger l'activite
+        inviter_name = request.user.get_full_name() or request.user.email
+        target_user_name = target_user.get_full_name() or target_user.email
+        justification = request.data.get('justification', '')
+        metadata = {}
+        if justification:
+            metadata['justification'] = justification
+
+        ActivityService.log_member_change(
+            site=site,
+            user=target_user,
+            action='add_member',
+            actor=request.user,
+            metadata=metadata,
+        )
+
+        # Notifier les parties prenantes
+        NotificationService.notify_site_invitation_done(
+            site=site,
+            inviter=request.user,
+            invited_user=target_user,
+        )
 
         return Response({
-            'id': validation_request.id,
-            'message': f'Votre invitation pour "{target_user}" a rejoindre le site "{site.nom_site}" a ete soumise.',
+            'message': f'L\'utilisateur "{target_user}" a ete ajoute au site "{site.nom_site}".',
         }, status=status.HTTP_201_CREATED)

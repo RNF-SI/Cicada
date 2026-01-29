@@ -68,8 +68,10 @@ Ce tableau liste **tous les cas** où une notification est envoyée dans l'appli
 | Demande référent validée | Demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_referent_validation()` |
 | Demande lien site-organisme approuvée | Admin_og demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_site_org_link()` |
 | Demande création site approuvée | Créateur du site | `validation_approved` | high | ✅ | Service `ValidationService.approve_site_creation()` |
-| Demande invitation organisme approuvée | Admin_og demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_org_to_site()` |
-| Demande invitation utilisateur approuvée | Admin ayant invité | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_user_to_site()` |
+| Demande invitation organisme approuvée | Admin_og demandeur | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_org_to_site()` (historique uniquement) |
+| Demande invitation utilisateur approuvée | Admin ayant invité | `validation_approved` | high | ✅ | Service `ValidationService.approve_invite_user_to_site()` (historique uniquement) |
+| Organisme ajouté à un site (invitation directe) | Admin_og des 2 organismes, référents du site, super_admin | `info` | medium/low | ❌ | Service `NotificationService.notify_site_invitation_done()` |
+| Utilisateur ajouté à un site (invitation directe) | Admin_og des 2 organismes, référents du site, super_admin | `info` | medium/low | ❌ | Service `NotificationService.notify_site_invitation_done()` + signal `CorRoleSite` |
 | Demande rejetée (tous types) | Demandeur | `validation_rejected` | high | ✅ | Service `ValidationService.reject_request()` |
 | Demande déjà traitée par un autre | Autres validateurs | `info` | low | ❌ | Service `NotificationService.notify_other_validators()` |
 

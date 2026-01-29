@@ -173,7 +173,7 @@
     "heroSubtitle": "Explorez les données du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
       "title": "Exploration des données",
-      "description": "Découvrez les espaces naturels protégés, comparez les indicateurs, filtrez par territoire."
+      "description": "Explorez les données, comparez les indicateurs et filtrez par territoire."
     },
     "tiles": {
       "plans": "Mes plans de gestion",
@@ -205,7 +205,7 @@
       },
       "stats": {
         "title": "En quelques chiffres",
-        "subtitle": "Découvrez l'étendue du réseau des espaces naturels protégés",
+        "subtitle": "Les données clés de la plateforme",
         "sites": "Sites protégés",
         "plans": "Plans de gestion",
         "organismes": "Organismes gestionnaires"
@@ -794,17 +794,17 @@
     "invite": {
       "titleOrganisme": "Inviter un organisme",
       "titleUser": "Inviter un utilisateur",
-      "descriptionOrganisme": "Envoyez une invitation à un organisme pour qu'il rejoigne le site \"{{site}}\". L'administrateur de cet organisme devra valider l'invitation.",
-      "descriptionUser": "Envoyez une invitation à un utilisateur pour qu'il rejoigne le site \"{{site}}\". L'administrateur de son organisme devra valider l'invitation.",
+      "descriptionOrganisme": "Ajoutez un organisme au site \"{{site}}\". Les administrateurs concernés seront notifiés.",
+      "descriptionUser": "Ajoutez un utilisateur au site \"{{site}}\". Les administrateurs concernés et l'utilisateur seront notifiés.",
       "userRestriction": "Seuls les utilisateurs appartenant à un organisme déjà lié au site peuvent être invités.",
       "searchOrganisme": "Rechercher un organisme",
       "searchUser": "Rechercher un utilisateur",
       "selectRequired": "Veuillez sélectionner un élément",
       "justification": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous souhaitez inviter cet organisme/utilisateur...",
-      "justificationHint": "Cette justification sera visible par le validateur",
-      "send": "Envoyer l'invitation",
-      "success": "Invitation envoyée avec succès",
+      "justificationHint": "Cette justification sera incluse dans la notification",
+      "send": "Ajouter",
+      "success": "Ajouté avec succès",
       "error": "Erreur lors de l'envoi de l'invitation",
       "noLinkedOrganismes": "Aucun organisme n'est lié à ce site. Invitez d'abord un organisme avant de pouvoir inviter ses utilisateurs."
     },
@@ -1548,11 +1548,11 @@
   },
   "exploration": {
     "title": "Exploration des données",
-    "subtitle": "Découvrez les espaces naturels protégés et leurs indicateurs",
+    "subtitle": "Explorez les données et les indicateurs de la plateforme",
     "backToHome": "Retour à l'accueil",
     "stats": {
       "title": "En quelques chiffres",
-      "subtitle": "Découvrez l'étendue du réseau des espaces naturels protégés",
+      "subtitle": "Les données clés de la plateforme",
       "sites": "Sites protégés",
       "plans": "Plans de gestion",
       "organismes": "Organismes gestionnaires"

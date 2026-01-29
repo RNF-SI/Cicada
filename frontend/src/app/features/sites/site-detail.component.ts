@@ -442,6 +442,8 @@ export class SiteDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
+        // Recharger les donnees du site pour afficher le nouvel organisme/utilisateur
+        this.loadSiteData(s.slug);
         this.snackBar.open(
           result.message || this.translate.instant('modals.invite.success'),
           this.translate.instant('common.actions.close'),
