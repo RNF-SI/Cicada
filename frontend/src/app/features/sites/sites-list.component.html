@@ -271,6 +271,38 @@
             </div>
           }
 
+          <!-- Section Demandes de lien organisme-site en attente -->
+          @if (pendingOrgLinks().length > 0) {
+            <div class="pending-creations-section">
+              <h3 class="subsection-title">
+                <i class="fi fi-rr-link-alt"></i>
+                {{ 'sites.pendingOrgLinks.title' | translate }}
+                <span class="badge badge-warning">{{ pendingOrgLinks().length }}</span>
+              </h3>
+              <p class="section-description">{{ 'sites.pendingOrgLinks.description' | translate }}</p>
+
+              <div class="pending-creations-cards">
+                @for (request of pendingOrgLinks(); track request.id) {
+                  <div class="pending-creation-card">
+                    <div class="card-icon">
+                      <i class="fi fi-rr-link-alt"></i>
+                    </div>
+                    <div class="card-content">
+                      <span class="card-title">{{ request.target_name || '-' }}</span>
+                      <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <div class="card-status">
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'sites.pendingOrgLinks.waiting' | translate }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Section Sites en attente de validation d'accès -->
           @if (pendingSites().length > 0) {
             <div class="pending-sites-section">

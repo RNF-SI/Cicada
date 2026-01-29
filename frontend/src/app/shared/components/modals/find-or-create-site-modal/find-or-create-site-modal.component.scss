@@ -21,7 +21,7 @@ h2[mat-dialog-title] {
 mat-dialog-content {
   padding-top: $spacing-md !important;
   min-height: 300px;
-  max-height: 65vh;
+  max-height: 75vh;
 }
 
 // Alertes
@@ -163,21 +163,19 @@ mat-dialog-content {
 }
 
 // Liste de résultats
+// Liste de résultats - pas de scroll interne, le dialog scrolle globalement
 .results-list {
   display: flex;
   flex-direction: column;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 .site-item {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
   padding: $spacing-sm $spacing-md;
   background-color: $white;
   transition: background-color 0.2s ease;
-  gap: $spacing-md;
+  gap: $spacing-sm;
 
   &:not(:last-child) {
     border-bottom: 1px solid $gray-lighter;
@@ -194,6 +192,17 @@ mat-dialog-content {
   &.pending {
     background-color: rgba($warning-color, 0.05);
   }
+
+  &.expanded {
+    background-color: rgba($secondary-orange-salmon, 0.03);
+  }
+}
+
+.site-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
 }
 
 .site-info {
@@ -332,14 +341,13 @@ mat-dialog-content {
   }
 }
 
-// Formulaire de demande de lien
+// Formulaire de demande de lien - pleine largeur
 .org-link-form {
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
   width: 100%;
-  max-width: 350px;
-  padding: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
   background-color: rgba($secondary-orange-salmon, 0.05);
   border-radius: $border-radius-sm;
   border: 1px solid rgba($secondary-orange-salmon, 0.2);
@@ -358,6 +366,12 @@ mat-dialog-content {
       min-height: 50px;
     }
   }
+}
+
+.org-link-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs $spacing-lg;
 }
 
 .org-link-form-actions {
@@ -477,7 +491,7 @@ mat-dialog-actions {
 
 // Responsive
 @media (max-width: 600px) {
-  .site-item {
+  .site-item-header {
     flex-direction: column;
     align-items: flex-start;
     gap: $spacing-sm;
@@ -490,9 +504,5 @@ mat-dialog-actions {
   .access-request-options {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .org-link-form {
-    max-width: 100%;
   }
 }

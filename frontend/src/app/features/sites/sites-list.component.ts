@@ -28,7 +28,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminSite, GeoJSONFeatureCollection } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
-import { SiteFormModalComponent, SiteFormModalData } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
+import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
@@ -92,6 +92,7 @@ export class SitesListComponent implements OnInit {
   readonly allSites = signal<SiteWithAccess[]>([]);
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
   readonly pendingSiteCreations = signal<ValidationRequestListItem[]>([]);
+  readonly pendingOrgLinks = signal<ValidationRequestListItem[]>([]);
   readonly mapData = signal<GeoJSONFeatureCollection | null>(null);
   readonly loading = signal(false);
 
@@ -267,6 +268,11 @@ export class SitesListComponent implements OnInit {
         // Filtrer les demandes de création de site en attente
         this.pendingSiteCreations.set(
           requests.filter(r => r.request_type === 'site_creation' && r.status === 'pending')
+        );
+
+        // Filtrer les demandes de lien organisme-site en attente
+        this.pendingOrgLinks.set(
+          requests.filter(r => r.request_type === 'site_org_link' && r.status === 'pending')
         );
 
         if (geojson) {
@@ -482,8 +488,10 @@ export class SitesListComponent implements OnInit {
       } as SiteFormModalData
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.site) {
+    dialogRef.afterClosed().subscribe((result: SiteFormModalResult | undefined) => {
+      if (!result) return;
+
+      if (result.site) {
         // Check if site creation is pending validation
         if (result.validationPending) {
           this.snackBar.open(
@@ -499,8 +507,97 @@ export class SitesListComponent implements OnInit {
           );
         }
         this.loadData();
+      } else if (result.duplicateAction && result.duplicateSite) {
+        this.handleDuplicateAction(result);
       }
     });
+  }
+
+  /**
+   * Traite les actions de doublons retournées par le formulaire de création de site.
+   */
+  private handleDuplicateAction(result: SiteFormModalResult): void {
+    const site = result.duplicateSite!;
+    const slug = site.slug;
+
+    if (result.duplicateAction === 'request_access') {
+      // Demander l'accès au site existant
+      this.validationService.requestSiteAccess(slug, {
+        justification: this.translate.instant('sites.findOrCreate.autoMessage')
+      }).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('sites.findOrCreate.accessRequested', { name: site.nom_site }),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+          this.loadData();
+        },
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(
+            err.error?.error || this.translate.instant('common.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
+    } else if (result.duplicateAction === 'request_org_link') {
+      // Demander le lien organisme-site + optionnellement l'accès
+      const orgLink$ = this.validationService.requestSiteOrgLink(slug, {
+        justification: this.translate.instant('sites.findOrCreate.autoOrgLinkMessage')
+      }).pipe(catchError(err => of({ error: true, status: err.status } as const)));
+
+      if (result.alsoRequestAccess) {
+        const access$ = this.validationService.requestSiteAccess(slug, {
+          justification: this.translate.instant('sites.findOrCreate.autoOrgLinkMessage')
+        }).pipe(catchError(err => of({ error: true, status: err.status } as const)));
+
+        forkJoin([orgLink$, access$]).subscribe({
+          next: ([orgResult, accessResult]) => {
+            const orgOk = !('error' in orgResult);
+            const accessOk = !('error' in accessResult);
+            if (orgOk || accessOk) {
+              const messageKey = orgOk && accessOk
+                ? 'sites.findOrCreate.orgLinkAndAccessRequested'
+                : orgOk
+                  ? 'sites.findOrCreate.orgLinkRequested'
+                  : 'sites.findOrCreate.accessRequested';
+              this.snackBar.open(
+                this.translate.instant(messageKey, { name: site.nom_site }),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+              this.loadData();
+            } else {
+              this.snackBar.open(
+                this.translate.instant('common.messages.error'),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+            }
+          }
+        });
+      } else {
+        orgLink$.subscribe({
+          next: (result) => {
+            if (!('error' in result)) {
+              this.snackBar.open(
+                this.translate.instant('sites.findOrCreate.orgLinkRequested', { name: site.nom_site }),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+              this.loadData();
+            } else {
+              this.snackBar.open(
+                this.translate.instant('common.messages.error'),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+            }
+          }
+        });
+      }
+    }
   }
 
   /**
@@ -510,13 +607,17 @@ export class SitesListComponent implements OnInit {
    */
   openFindOrCreateSiteDialog(): void {
     const dialogRef = this.dialog.open(FindOrCreateSiteModalComponent, {
-      width: '850px',
+      width: '1100px',
       maxWidth: '95vw',
-      maxHeight: '90vh'
+      maxHeight: '95vh'
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (!result) return;
+      // Le résultat peut être un SiteFormModalResult propagé depuis le SiteFormModal
+      if (result.duplicateAction && result.duplicateSite) {
+        this.handleDuplicateAction(result);
+      } else {
         this.loadData();
       }
     });

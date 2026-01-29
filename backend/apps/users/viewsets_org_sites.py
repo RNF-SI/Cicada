@@ -913,6 +913,7 @@ class SiteViewSet(viewsets.ModelViewSet):
 
         return {
             'id_site': site.id_site,
+            'slug': site.slug,
             'nom_site': site.nom_site,
             'id_inpn': site.id_inpn,
             'id_local': site.id_local,
@@ -973,6 +974,7 @@ class SiteViewSet(viewsets.ModelViewSet):
 
             sites_data.append({
                 'id_site': site.id_site,
+                'slug': site.slug,
                 'nom_site': site.nom_site,
                 'id_local': site.id_local,
                 'type_site_label': site.id_type_site.label if site.id_type_site else None,

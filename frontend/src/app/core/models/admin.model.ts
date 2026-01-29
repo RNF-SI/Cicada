@@ -424,6 +424,7 @@ export interface RgpdRequest {
  */
 export interface DuplicateSite {
   id_site: number;
+  slug: string;
   nom_site: string;
   id_inpn: string | null;
   id_local: string | null;

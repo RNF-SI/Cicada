@@ -69,21 +69,35 @@
       @if (!site.has_access) {
         <div class="duplicate-actions" [class.compact]="compact">
           @if (site.is_user_org) {
-            <!-- L'organisme gere deja le site, on propose juste de demander l'acces -->
-            <button mat-flat-button color="primary" (click)="requestAccessToSite(site)" [class.btn-sm]="compact">
-              <i class="fi fi-rr-user-add"></i>
-              {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
-            </button>
+            <!-- L'organisme gere deja le site -->
+            @if (hasPendingAccess(site)) {
+              <span class="status-badge status-pending">
+                <i class="fi fi-rr-hourglass-end"></i>
+                {{ 'modals.siteForm.duplicates.pendingAccessBadge' | translate }}
+              </span>
+            } @else {
+              <button mat-flat-button color="primary" (click)="requestAccessToSite(site)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-user-add"></i>
+                {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
+              </button>
+            }
           } @else {
-            <!-- L'organisme ne gere pas le site, on propose de lier + optionnellement demander l'acces -->
-            <button mat-flat-button color="primary" (click)="requestOrgLink(site, true)" [class.btn-sm]="compact">
-              <i class="fi fi-rr-link"></i>
-              {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
-            </button>
-            <button mat-stroked-button (click)="requestOrgLink(site, false)" [class.btn-sm]="compact">
-              <i class="fi fi-rr-link"></i>
-              {{ 'modals.siteForm.duplicates.linkOnly' | translate }}
-            </button>
+            <!-- L'organisme ne gere pas le site -->
+            @if (hasPendingOrgLink(site)) {
+              <span class="status-badge status-pending">
+                <i class="fi fi-rr-hourglass-end"></i>
+                {{ 'modals.siteForm.duplicates.pendingOrgLinkBadge' | translate }}
+              </span>
+            } @else {
+              <button mat-flat-button color="primary" (click)="requestOrgLink(site, true)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-link"></i>
+                {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
+              </button>
+              <button mat-stroked-button (click)="requestOrgLink(site, false)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-link"></i>
+                {{ 'modals.siteForm.duplicates.linkOnly' | translate }}
+              </button>
+            }
           }
         </div>
       }
@@ -139,15 +153,29 @@
                 {{ 'modals.siteForm.duplicates.alreadyAccess' | translate }}
               </span>
             } @else if (site.is_user_org) {
-              <button mat-flat-button color="primary" class="btn-sm" (click)="requestAccessToSite(site)">
-                <i class="fi fi-rr-user-add"></i>
-                {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
-              </button>
+              @if (hasPendingAccess(site)) {
+                <span class="status-badge status-pending">
+                  <i class="fi fi-rr-hourglass-end"></i>
+                  {{ 'modals.siteForm.duplicates.pendingAccessBadge' | translate }}
+                </span>
+              } @else {
+                <button mat-flat-button color="primary" class="btn-sm" (click)="requestAccessToSite(site)">
+                  <i class="fi fi-rr-user-add"></i>
+                  {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
+                </button>
+              }
             } @else {
-              <button mat-flat-button color="primary" class="btn-sm" (click)="requestOrgLink(site, true)">
-                <i class="fi fi-rr-link"></i>
-                {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
-              </button>
+              @if (hasPendingOrgLink(site)) {
+                <span class="status-badge status-pending">
+                  <i class="fi fi-rr-hourglass-end"></i>
+                  {{ 'modals.siteForm.duplicates.pendingOrgLinkBadge' | translate }}
+                </span>
+              } @else {
+                <button mat-flat-button color="primary" class="btn-sm" (click)="requestOrgLink(site, true)">
+                  <i class="fi fi-rr-link"></i>
+                  {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
+                </button>
+              }
             }
           </div>
         </div>

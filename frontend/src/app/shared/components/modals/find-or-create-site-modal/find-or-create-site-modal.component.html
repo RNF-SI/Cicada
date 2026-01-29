@@ -92,17 +92,18 @@
                 <div class="site-item site-item-my-org"
                      [class.has-access]="site.hasAccess"
                      [class.pending]="site.hasPendingRequest">
-                  <div class="site-info">
-                    <span class="site-name">{{ site.nom_site }}</span>
-                    @if (site.organismes && site.organismes.length > 0) {
-                      <span class="site-org">
-                        <i class="fi fi-rr-building"></i>
-                        {{ site.organismes[0].nom_organisme }}
-                      </span>
-                    }
-                  </div>
+                  <div class="site-item-header">
+                    <div class="site-info">
+                      <span class="site-name">{{ site.nom_site }}</span>
+                      @if (site.organismes && site.organismes.length > 0) {
+                        <span class="site-org">
+                          <i class="fi fi-rr-building"></i>
+                          {{ site.organismes[0].nom_organisme }}
+                        </span>
+                      }
+                    </div>
 
-                  <div class="site-actions">
+                    <div class="site-actions">
                     @if (site.hasAccess) {
                       <div class="status-badge status-badge-success">
                         <i class="fi fi-rr-check"></i>
@@ -132,6 +133,7 @@
                       </div>
                     }
                   </div>
+                  </div>
                 </div>
               }
             </div>
@@ -151,68 +153,89 @@
             <div class="results-list">
               @for (site of otherOrgSites(); track site.id_site) {
                 <div class="site-item site-item-other-org"
-                     [class.pending]="site.hasPendingOrgLink">
-                  <div class="site-info">
-                    <span class="site-name">{{ site.nom_site }}</span>
-                    @if (site.organismes && site.organismes.length > 0) {
-                      <span class="site-org site-org-other">
-                        <i class="fi fi-rr-globe"></i>
-                        {{ site.organismes[0].nom_organisme }}
-                      </span>
-                    }
+                     [class.pending]="site.hasPendingOrgLink"
+                     [class.expanded]="expandedOrgLinkSite() === site.id_site">
+                  <div class="site-item-header">
+                    <div class="site-info">
+                      <span class="site-name">{{ site.nom_site }}</span>
+                      @if (site.organismes && site.organismes.length > 0) {
+                        <span class="site-org site-org-other">
+                          <i class="fi fi-rr-globe"></i>
+                          {{ site.organismes[0].nom_organisme }}
+                        </span>
+                      }
+                    </div>
+
+                    <div class="site-actions">
+                      @if (site.hasPendingOrgLink) {
+                        <div class="status-badge status-badge-warning">
+                          <i class="fi fi-rr-hourglass-end"></i>
+                          {{ 'sites.findOrCreate.pendingOrgLink' | translate }}
+                        </div>
+                      } @else if (site.canRequestOrgLink) {
+                        @if (expandedOrgLinkSite() !== site.id_site) {
+                          <button mat-stroked-button
+                                  color="accent"
+                                  class="btn-link-org"
+                                  [disabled]="isSubmitting()"
+                                  (click)="startOrgLinkRequest(site)">
+                            <i class="fi fi-rr-link-alt"></i>
+                            {{ 'sites.findOrCreate.requestOrgLink' | translate }}
+                          </button>
+                        }
+                      } @else {
+                        <div class="status-badge status-badge-neutral">
+                          <i class="fi fi-rr-lock"></i>
+                          {{ 'sites.findOrCreate.notAvailable' | translate }}
+                        </div>
+                      }
+                    </div>
                   </div>
 
-                  <div class="site-actions">
-                    @if (site.hasPendingOrgLink) {
-                      <div class="status-badge status-badge-warning">
-                        <i class="fi fi-rr-hourglass-end"></i>
-                        {{ 'sites.findOrCreate.pendingOrgLink' | translate }}
+                  <!-- Formulaire de demande pleine largeur -->
+                  @if (expandedOrgLinkSite() === site.id_site && site.canRequestOrgLink) {
+                    <div class="org-link-form">
+                      <mat-form-field appearance="outline" class="justification-field">
+                        <mat-label>{{ 'sites.findOrCreate.orgLinkJustificationLabel' | translate }}</mat-label>
+                        <textarea matInput
+                                  rows="2"
+                                  [value]="orgLinkJustification()"
+                                  (input)="onOrgLinkJustificationChange($event)"
+                                  [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
+                      </mat-form-field>
+                      <div class="org-link-checkboxes">
+                        <mat-checkbox
+                          [checked]="orgLinkWithAccess()"
+                          (change)="orgLinkWithAccess.set($event.checked)"
+                          class="org-link-access-checkbox">
+                          {{ 'sites.findOrCreate.orgLinkWithAccess' | translate }}
+                        </mat-checkbox>
+                        @if (orgLinkWithAccess()) {
+                          <mat-checkbox
+                            [checked]="orgLinkAsReferent()"
+                            (change)="orgLinkAsReferent.set($event.checked)"
+                            class="org-link-referent-checkbox">
+                            {{ 'sites.findOrCreate.asReferent' | translate }}
+                          </mat-checkbox>
+                        }
                       </div>
-                    } @else if (site.canRequestOrgLink) {
-                      <!-- Formulaire inline pour demander le lien -->
-                      @if (expandedOrgLinkSite() === site.id_site) {
-                        <div class="org-link-form">
-                          <mat-form-field appearance="outline" class="justification-field">
-                            <mat-label>{{ 'sites.findOrCreate.orgLinkJustificationLabel' | translate }}</mat-label>
-                            <textarea matInput
-                                      rows="2"
-                                      [value]="orgLinkJustification()"
-                                      (input)="onOrgLinkJustificationChange($event)"
-                                      [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
-                          </mat-form-field>
-                          <div class="org-link-form-actions">
-                            <button mat-button
-                                    type="button"
-                                    (click)="cancelOrgLinkRequest()">
-                              {{ 'common.actions.cancel' | translate }}
-                            </button>
-                            <button mat-flat-button
-                                    color="accent"
-                                    class="btn-submit-link"
-                                    [disabled]="isSubmitting() || !orgLinkJustification().trim()"
-                                    (click)="submitOrgLinkRequest(site)">
-                              <i class="fi fi-rr-paper-plane"></i>
-                              {{ 'sites.findOrCreate.submitOrgLink' | translate }}
-                            </button>
-                          </div>
-                        </div>
-                      } @else {
-                        <button mat-stroked-button
-                                color="accent"
-                                class="btn-link-org"
-                                [disabled]="isSubmitting()"
-                                (click)="startOrgLinkRequest(site)">
-                          <i class="fi fi-rr-link-alt"></i>
-                          {{ 'sites.findOrCreate.requestOrgLink' | translate }}
+                      <div class="org-link-form-actions">
+                        <button mat-button
+                                type="button"
+                                (click)="cancelOrgLinkRequest()">
+                          {{ 'common.actions.cancel' | translate }}
                         </button>
-                      }
-                    } @else {
-                      <div class="status-badge status-badge-neutral">
-                        <i class="fi fi-rr-lock"></i>
-                        {{ 'sites.findOrCreate.notAvailable' | translate }}
+                        <button mat-flat-button
+                                color="accent"
+                                class="btn-submit-link"
+                                [disabled]="isSubmitting() || !orgLinkJustification().trim()"
+                                (click)="submitOrgLinkRequest(site)">
+                          <i class="fi fi-rr-paper-plane"></i>
+                          {{ 'sites.findOrCreate.submitOrgLink' | translate }}
+                        </button>
                       </div>
-                    }
-                  </div>
+                    </div>
+                  }
                 </div>
               }
             </div>

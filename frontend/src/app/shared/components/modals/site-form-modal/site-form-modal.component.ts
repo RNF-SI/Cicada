@@ -13,6 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
+import { ValidationService } from '../../../../core/services/validation.service';
+import { ValidationRequestListItem } from '../../../../core/models/notification.model';
 import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 
@@ -69,6 +71,7 @@ interface SiteType {
 export class SiteFormModalComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
+  private readonly validationService = inject(ValidationService);
   private readonly dialogRef = inject(MatDialogRef<SiteFormModalComponent>);
   private readonly translate = inject(TranslateService);
   readonly data = inject<SiteFormModalData>(MAT_DIALOG_DATA, { optional: true });
@@ -83,6 +86,9 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
   polygonGeometry = signal<GeoJSONGeometry | null>(null);
   pointGeometry = signal<GeoJSONGeometry | null>(null);
   activeGeometryTab = signal<number>(0);
+
+  // Pending requests for duplicate detection
+  pendingRequests = signal<ValidationRequestListItem[]>([]);
 
   // Duplicate detection signals
   duplicateCheckResult = signal<DuplicateCheckResult | null>(null);
@@ -115,6 +121,7 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
     this.initForm();
     this.loadSiteTypes();
     this.setupDuplicateChecking();
+    this.loadPendingRequests();
 
     // Initialize geometry from data
     if (this.data?.existingPolygon) {
@@ -245,6 +252,40 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
   continueCreation(): void {
     this.duplicateWarningDismissed.set(true);
     this.showDuplicateWarning.set(false);
+  }
+
+  /**
+   * Load user's pending requests to detect existing requests for duplicates
+   */
+  private loadPendingRequests(): void {
+    this.validationService.getMyRequests().subscribe({
+      next: (requests) => {
+        this.pendingRequests.set(
+          requests.filter(r => r.status === 'pending')
+        );
+      },
+      error: () => {
+        // Don't block user on error
+      }
+    });
+  }
+
+  /**
+   * Check if a duplicate site already has a pending org link request
+   */
+  hasPendingOrgLink(site: DuplicateSite): boolean {
+    return this.pendingRequests().some(
+      r => r.target_site_id === site.id_site && r.request_type === 'site_org_link'
+    );
+  }
+
+  /**
+   * Check if a duplicate site already has a pending access request
+   */
+  hasPendingAccess(site: DuplicateSite): boolean {
+    return this.pendingRequests().some(
+      r => r.target_site_id === site.id_site && r.request_type === 'site_access'
+    );
   }
 
   private initForm(): void {

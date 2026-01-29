@@ -941,7 +941,9 @@
         "andOthers": "et {{count}} autre(s)",
         "continueCreation": "Ignorer et créer un nouveau site",
         "ignoreSuggestions": "Ignorer les suggestions",
-        "checking": "Recherche de sites similaires..."
+        "checking": "Recherche de sites similaires...",
+        "pendingOrgLinkBadge": "Demande de lien en cours",
+        "pendingAccessBadge": "Demande d'accès en cours"
       }
     },
     "planForm": {
@@ -1346,6 +1348,11 @@
       "description": "Ces sites que vous avez créés sont en attente de validation par un administrateur.",
       "requestedOn": "Demandé le",
       "awaitingValidation": "En attente de validation"
+    },
+    "pendingOrgLinks": {
+      "title": "Demandes de lien organisme-site en attente",
+      "description": "Ces demandes de lien entre votre organisme et un site sont en attente de validation.",
+      "waiting": "En attente"
     },
     "pendingSites": {
       "title": "Demandes d'accès en attente",
