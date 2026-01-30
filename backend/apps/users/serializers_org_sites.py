@@ -16,6 +16,7 @@ from django.db import transaction
 
 from .models import BibOrganismes, Site, CorRoleSite, CorOgSite, Role
 from apps.core.models import Nomenclature
+from apps.plans.models import CorSitePg
 
 
 class OrganismeListSerializer(serializers.ModelSerializer):
@@ -173,6 +174,7 @@ class SiteListSerializer(serializers.ModelSerializer):
     type_site_label = serializers.CharField(source='id_type_site.label', read_only=True)
     organismes_count = serializers.SerializerMethodField()
     users_count = serializers.SerializerMethodField()
+    plans_count = serializers.SerializerMethodField()
     organismes = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
 
@@ -182,10 +184,10 @@ class SiteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
-            'organismes_count', 'users_count', 'organismes', 'users'
+            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
         ]
 
     def get_geom_pt_geojson(self, obj):
@@ -205,12 +207,17 @@ class SiteListSerializer(serializers.ModelSerializer):
         """Nombre d'utilisateurs assignés."""
         return CorRoleSite.objects.filter(id_site=obj).count()
 
+    def get_plans_count(self, obj):
+        """Nombre de plans de gestion associés au site."""
+        return CorSitePg.objects.filter(site=obj).count()
+
     def get_organismes(self, obj):
         """Organismes gestionnaires du site."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
         return [{
             'id_organisme': cor.uuid_og.id_organisme,
-            'nom_organisme': cor.uuid_og.nom_organisme
+            'nom_organisme': cor.uuid_og.nom_organisme,
+            'principal': cor.principal
         } for cor in cor_orgs]
 
     def get_users(self, obj):
@@ -234,15 +241,15 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
 
     type_site = serializers.SerializerMethodField()
     type_site_label = serializers.SerializerMethodField()
-    organismes_gestionnaires = serializers.SerializerMethodField()
+    organismes = serializers.SerializerMethodField()
     users_assignes = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
-            'outre_mer', 'active', 'organismes_gestionnaires',
+            'outre_mer', 'active', 'organismes',
             'users_assignes', 'modif_adm', 'modif_geo'
         ]
 
@@ -254,12 +261,13 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
         """Type de site label."""
         return obj.id_type_site.label if obj.id_type_site else None
 
-    def get_organismes_gestionnaires(self, obj):
+    def get_organismes(self, obj):
         """Organismes gestionnaires du site."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
         return [{
             'id_organisme': cor.uuid_og.id_organisme,
-            'nom_organisme': cor.uuid_og.nom_organisme
+            'nom_organisme': cor.uuid_og.nom_organisme,
+            'principal': cor.principal
         } for cor in cor_orgs]
 
     def get_users_assignes(self, obj):
@@ -300,12 +308,12 @@ class SiteDetailSerializer(serializers.ModelSerializer):
 
     type_site = serializers.SerializerMethodField()
     type_site_label = serializers.SerializerMethodField()
-    organismes_gestionnaires = serializers.SerializerMethodField()
+    organismes = serializers.SerializerMethodField()
     users_assignes = serializers.SerializerMethodField()
 
-    # Géométries en format texte pour l'API standard
-    geom_wkt = serializers.SerializerMethodField()
-    geom_pt_wkt = serializers.SerializerMethodField()
+    # Géométries en format GeoJSON
+    geom_geojson = serializers.SerializerMethodField()
+    geom_pt_geojson = serializers.SerializerMethodField()
 
     # Informations sur l'acces de l'utilisateur courant
     current_user_is_referent = serializers.SerializerMethodField()
@@ -314,10 +322,10 @@ class SiteDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'date_crea',
             'marin', 'outre_mer', 'active', 'modif_adm', 'modif_geo',
-            'geom_wkt', 'geom_pt_wkt', 'organismes_gestionnaires',
+            'geom_geojson', 'geom_pt_geojson', 'organismes',
             'users_assignes', 'current_user_is_referent', 'current_user_access'
         ]
     
@@ -335,24 +343,28 @@ class SiteDetailSerializer(serializers.ModelSerializer):
         """Label du type de site."""
         return obj.id_type_site.label if obj.id_type_site else None
 
-    def get_geom_wkt(self, obj):
-        """Géométrie principale en WKT."""
-        return obj.geom.wkt if obj.geom else None
+    def get_geom_geojson(self, obj):
+        """Géométrie principale en GeoJSON."""
+        import json
+        if obj.geom:
+            return json.loads(obj.geom.geojson)
+        return None
+
+    def get_geom_pt_geojson(self, obj):
+        """Point de référence en GeoJSON."""
+        import json
+        if obj.geom_pt:
+            return json.loads(obj.geom_pt.geojson)
+        return None
     
-    def get_geom_pt_wkt(self, obj):
-        """Point de référence en WKT."""
-        return obj.geom_pt.wkt if obj.geom_pt else None
-    
-    def get_organismes_gestionnaires(self, obj):
-        """Organismes gestionnaires du site."""
+    def get_organismes(self, obj):
+        """Organismes gestionnaires du site (structure plate pour le frontend)."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
         return [{
-            'organisme': {
-                'id_organisme': cor.uuid_og.id_organisme,
-                'nom_organisme': cor.uuid_og.nom_organisme,
-                'ville_organisme': cor.uuid_og.ville_organisme,
-                'email_organisme': cor.uuid_og.email_organisme
-            }
+            'id_organisme': cor.uuid_og.id_organisme,
+            'nom_organisme': cor.uuid_og.nom_organisme,
+            'ville_organisme': cor.uuid_og.ville_organisme,
+            'principal': cor.principal
         } for cor in cor_orgs]
     
     def get_users_assignes(self, obj):
@@ -461,11 +473,11 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = [
-            'id_site', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
+            'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
             'surf_off', 'type_site_id', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_geojson', 'geom_pt_geojson'
         ]
-        read_only_fields = ['id_site']
+        read_only_fields = ['id_site', 'slug']
     
     def validate_type_site_id(self, value):
         """Valide le type de site."""
@@ -487,6 +499,20 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
         if value is not None and value < 0:
             raise serializers.ValidationError(_("La surface ne peut pas être négative."))
         return value
+
+    def validate_id_inpn(self, value):
+        """Valide l'unicité du code INPN."""
+        if value:
+            value = value.strip()
+            existing = Site.objects.filter(id_inpn=value)
+            if self.instance:
+                existing = existing.exclude(id_site=self.instance.id_site)
+            if existing.exists():
+                site = existing.first()
+                raise serializers.ValidationError(
+                    _("Ce code INPN est déjà utilisé par le site \"%(site)s\".") % {'site': site.nom_site}
+                )
+        return value if value else None
 
     def validate_geom_geojson(self, value):
         """Valide la géométrie GeoJSON."""

@@ -1,0 +1,228 @@
+@import 'variables';
+
+.admin-logs {
+  padding: $spacing-lg;
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-lg;
+
+    .header-content {
+      h1 {
+        margin: 0 0 $spacing-xs 0;
+        color: $primary-color;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: $gray-dark;
+        font-size: 0.9rem;
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: $spacing-sm;
+    }
+  }
+
+  .filters-bar {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+    flex-wrap: wrap;
+    align-items: center;
+
+    .filter-field {
+      min-width: 180px;
+    }
+
+    .search-field {
+      flex: 1;
+      min-width: 250px;
+      max-width: 400px;
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: $spacing-xxl;
+    color: $gray-dark;
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: $spacing-md;
+      color: $success-color;
+    }
+
+    h3 {
+      margin: 0 0 $spacing-sm 0;
+      color: $black;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .logs-table {
+    width: 100%;
+    background: $white;
+    border-radius: $border-radius-sm;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    th {
+      font-weight: 600;
+      color: $gray-dark;
+      background: $gray-lighter;
+    }
+
+    .message-cell {
+      max-width: 300px;
+
+      span {
+        display: block;
+      }
+
+      .exception-type {
+        font-size: 0.75rem;
+        color: $error-color;
+        font-family: monospace;
+        margin-top: 2px;
+      }
+    }
+
+    .path-info {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+      font-family: monospace;
+      font-size: 0.85rem;
+
+      .method-badge {
+        background: $gray-light;
+        color: $gray-dark;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+    }
+
+    .correlation-id {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: $gray-dark;
+    }
+
+    .no-data {
+      color: $gray;
+    }
+
+    .acknowledged-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: $success-color;
+      font-size: 0.85rem;
+
+      i {
+        font-size: 0.9rem;
+      }
+    }
+
+    .unacknowledged-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      background: rgba($error-color, 0.1);
+      color: $error-color;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .clickable-row {
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: rgba($primary-color, 0.05);
+      }
+
+      &.acknowledged-row {
+        opacity: 0.7;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: $spacing-xs;
+    }
+  }
+
+  // Status classes pour les chips - Regles d'accessibilite WCAG AA selon Figma
+  // WARNING: Orange (#FA9965) avec texte noir (#343433)
+  .status-warning {
+    --mdc-chip-elevated-container-color: #{$warning-color};
+    --mdc-chip-label-text-color: #{$black};
+    color: $black;
+
+    i {
+      color: $black;
+    }
+  }
+
+  // ERROR: Rouge (#E12329) avec texte blanc
+  .status-error {
+    --mdc-chip-elevated-container-color: #{$error-color};
+    --mdc-chip-label-text-color: #{$white};
+    color: $white;
+
+    i {
+      color: $white;
+    }
+  }
+
+  // CRITICAL: Bleu-vert primaire (#025359) avec texte blanc
+  .status-critical {
+    --mdc-chip-elevated-container-color: #{$primary-color};
+    --mdc-chip-label-text-color: #{$white};
+    color: $white;
+
+    i {
+      color: $white;
+    }
+  }
+
+  mat-chip {
+    i {
+      margin-right: 4px;
+      font-size: 0.9rem;
+    }
+  }
+
+  mat-paginator {
+    background: transparent;
+    margin-top: $spacing-md;
+  }
+}
+
+// Tooltip pour les messages longs
+::ng-deep .message-tooltip {
+  max-width: 500px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

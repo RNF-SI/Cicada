@@ -47,6 +47,7 @@
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="active">{{ 'common.status.active' | translate }}</option>
         <option value="inactive">{{ 'common.status.inactive' | translate }}</option>
+        <option value="deletion_pending">{{ 'admin.users.status.deletionPending' | translate }}</option>
       </select>
     </div>
   </div>
@@ -64,7 +65,7 @@
         <thead>
           <tr>
             <th>{{ 'admin.users.table.user' | translate }}</th>
-            <th>{{ 'admin.users.table.email' | translate }}</th>
+            <th class="col-secondary">{{ 'admin.users.table.email' | translate }}</th>
             @if (isSuperAdmin()) {
               <th>{{ 'admin.users.table.organisme' | translate }}</th>
             }
@@ -72,7 +73,7 @@
             <th>{{ 'admin.users.table.sites' | translate }}</th>
             <th>{{ 'admin.users.table.plans' | translate }}</th>
             <th>{{ 'admin.users.table.status' | translate }}</th>
-            <th>{{ 'admin.users.table.lastLogin' | translate }}</th>
+            <th class="col-secondary">{{ 'admin.users.table.lastLogin' | translate }}</th>
             <th>{{ 'admin.users.table.actions' | translate }}</th>
           </tr>
         </thead>
@@ -83,7 +84,7 @@
                 <div class="user-avatar">{{ getInitials(user) }}</div>
                 <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
               </td>
-              <td>{{ user.email }}</td>
+              <td class="col-secondary">{{ user.email }}</td>
               @if (isSuperAdmin()) {
                 <td>
                   @if (user.organisme !== 'Non assigne') {
@@ -155,11 +156,24 @@
                 }
               </td>
               <td>
-                <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
-                  {{ (user.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
-                </span>
+                @if (user.deletionRequestedAt) {
+                  <span class="status-badge deletion-pending" [matTooltip]="'admin.users.status.deletionTooltip' | translate:{ days: user.daysUntilDeletion }">
+                    <i class="fi fi-rr-trash"></i>
+                    {{ 'admin.users.status.deletionPending' | translate }}
+                    <span class="days-badge">{{ user.daysUntilDeletion }}j</span>
+                  </span>
+                } @else if (user.isAnonymized) {
+                  <span class="status-badge anonymized">
+                    <i class="fi fi-rr-user-slash"></i>
+                    {{ 'admin.users.status.anonymized' | translate }}
+                  </span>
+                } @else {
+                  <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                    {{ (user.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
+                  </span>
+                }
               </td>
-              <td class="date-cell">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
+              <td class="date-cell col-secondary">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
               <td class="actions-cell">
                 @if (canManageUser(user)) {
                   @if (isSuperAdmin()) {
@@ -177,6 +191,23 @@
                   <button class="btn-icon" [title]="'admin.users.actions.assignSite' | translate" (click)="openAssignSiteModal(user)">
                     <i class="fi fi-rr-marker"></i>
                   </button>
+                  <!-- Role change buttons (admin_og only, request goes to super_admin) -->
+                  @if (canRequestPromotion(user)) {
+                    <button
+                      class="btn-icon promote"
+                      [matTooltip]="'admin.users.actions.requestPromotion' | translate"
+                      (click)="requestAdminPromotion(user)">
+                      <i class="fi fi-rr-arrow-up"></i>
+                    </button>
+                  }
+                  @if (canRequestDemotion(user)) {
+                    <button
+                      class="btn-icon demote"
+                      [matTooltip]="'admin.users.actions.requestDemotion' | translate"
+                      (click)="requestAdminDemotion(user)">
+                      <i class="fi fi-rr-arrow-down"></i>
+                    </button>
+                  }
                   @if (isSuperAdmin()) {
                     <button
                       class="btn-icon"
@@ -191,7 +222,6 @@
                 @if (canImpersonateUser(user)) {
                   <button
                     class="btn-icon impersonate"
-                    [title]="'admin.users.actions.viewAs' | translate"
                     [matTooltip]="('admin.users.actions.viewAs' | translate) + ' ' + user.prenom + ' ' + user.nom"
                     (click)="startImpersonation(user)">
                     <i class="fi fi-rr-eye"></i>

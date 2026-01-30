@@ -37,6 +37,7 @@ interface DisplayUserLie {
 // Interface for display (mapping from API model)
 interface DisplaySite {
   id: number;
+  slug: string;
   nom: string;
   type: string;
   organisme: string;
@@ -148,10 +149,10 @@ export class AdminSitesComponent implements OnInit {
     const observables = sites.map(site =>
       forkJoin({
         siteId: of(site.id),
-        organismes: this.adminService.getSiteOrganismes(site.id).pipe(
+        organismes: this.adminService.getSiteOrganismes(site.slug).pipe(
           catchError(() => of([]))
         ),
-        users: this.adminService.getSiteUsers(site.id).pipe(
+        users: this.adminService.getSiteUsers(site.slug).pipe(
           catchError(() => of([]))
         )
       })
@@ -194,6 +195,7 @@ export class AdminSitesComponent implements OnInit {
   private mapSite(site: ApiSite): DisplaySite {
     return {
       id: site.id_site,
+      slug: site.slug,
       nom: site.nom_site,
       type: site.type_site_label || 'N/A',
       organisme: site.organismes?.[0]?.nom_organisme || 'Non assigne',
@@ -201,7 +203,7 @@ export class AdminSitesComponent implements OnInit {
       surface: site.surf_off,
       commune: undefined, // Will need to be added to API if needed
       departement: undefined,
-      nbPlans: 0, // Will need to be added to API
+      nbPlans: site.plans_count ?? 0,
       isActive: site.active ?? true,
       organismes: [],
       users: []
@@ -257,12 +259,22 @@ export class AdminSitesComponent implements OnInit {
 
   openAddSiteModal(): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px'
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open(this.translate.instant('admin.sites.messages.created'), this.translate.instant('common.actions.close'), { duration: 3000 });
+      if (result?.site) {
+        if (result.validationPending) {
+          this.snackBar.open(
+            result.message || this.translate.instant('sites.createSite.pendingValidation'),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(this.translate.instant('admin.sites.messages.created'), this.translate.instant('common.actions.close'), { duration: 3000 });
+        }
         this.loadSites();
       }
     });
@@ -270,7 +282,9 @@ export class AdminSitesComponent implements OnInit {
 
   editSite(site: DisplaySite): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px',
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
       data: {
         site: {
           id_site: site.id,
@@ -283,7 +297,7 @@ export class AdminSitesComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (result?.site) {
         this.snackBar.open(this.translate.instant('admin.sites.messages.updated'), this.translate.instant('common.actions.close'), { duration: 3000 });
         this.loadSites();
       }
@@ -304,6 +318,7 @@ export class AdminSitesComponent implements OnInit {
       data: {
         site: {
           id_site: site.id,
+          slug: site.slug,
           nom_site: site.nom,
           type_site_label: site.type
         },
@@ -332,6 +347,7 @@ export class AdminSitesComponent implements OnInit {
       data: {
         site: {
           id_site: site.id,
+          slug: site.slug,
           nom_site: site.nom,
           type_site_label: site.type
         },

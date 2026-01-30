@@ -11,7 +11,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -64,7 +69,12 @@ interface SelectableUser {
     MatChipsModule,
     MatIconModule,
     MatAutocompleteModule,
-    TranslateModule
+    MatRadioModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatTooltipModule,
+    TranslateModule,
+    RouterModule
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'
@@ -73,7 +83,7 @@ export class PlanFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
-  private readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
+  readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
   private readonly translate = inject(TranslateService);
   readonly data = inject<PlanFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
@@ -149,17 +159,28 @@ export class PlanFormModalComponent implements OnInit {
     const plan = this.data?.plan;
 
     this.form = this.fb.group({
+      // Champs obligatoires
       nom: [plan?.nom || '', [Validators.required, Validators.maxLength(255)]],
-      statut: [plan?.statut || 'draft'],
-      version: [plan?.version || '1.0', Validators.maxLength(20)],
-      annee_debut: [plan?.annee_debut || this.currentYear, [Validators.min(1900), Validators.max(2100)]],
-      annee_fin: [plan?.annee_fin || this.currentYear + 10, [Validators.min(1900), Validators.max(2100)]],
-      gestion_partagee: [plan?.gestion_partagee || false],
-      ct88: [plan?.ct88 || false],
-      risque_incendie: [plan?.risque_incendie || false],
-      id_evaluation: [plan?.id_evaluation || null],
+      rang: [plan?.rang || 1, [Validators.required, Validators.min(1)]],
+      ct88: [plan?.ct88 ?? false, Validators.required],
+      annee_debut: [plan?.annee_debut || this.currentYear, [Validators.required, Validators.min(1900), Validators.max(2100)]],
+      annee_fin: [plan?.annee_fin || this.currentYear + 5, [Validators.required, Validators.min(1900), Validators.max(2100)]],
+
+      // Champs optionnels
+      surface: [plan?.surface || null],
+      date_validation_cspn: [plan?.date_validation_cspn ? new Date(plan.date_validation_cspn) : null],
+      id_docgestion_fcen: [plan?.id_docgestion_fcen || ''],
       id_redacteur_type: [plan?.id_redacteur_type || null],
       redacteur_nom: [plan?.redacteur_nom || '', Validators.maxLength(255)],
+      redacteurs: [plan?.redacteurs || ''],
+      relecteurs: [plan?.relecteurs || ''],
+
+      // Champs existants gardés mais non affichés dans le formulaire principal
+      statut: [plan?.statut || 'draft'],
+      version: [plan?.version || '1.0', Validators.maxLength(20)],
+      gestion_partagee: [plan?.gestion_partagee || false],
+      risque_incendie: [plan?.risque_incendie || false],
+      id_evaluation: [plan?.id_evaluation || null],
       commentaire: [plan?.commentaire || '']
     });
 
@@ -334,25 +355,49 @@ export class PlanFormModalComponent implements OnInit {
       return;
     }
 
+    // Validation des sites obligatoires
+    if (this.selectedSiteIds().length === 0) {
+      this.errorMessage.set(this.translate.instant('modals.planForm.validation.sitesRequired'));
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
     const formValue = this.form.value;
 
+    // Formater la date pour l'API (YYYY-MM-DD)
+    let dateValidationCspn: string | undefined;
+    if (formValue.date_validation_cspn) {
+      const date = new Date(formValue.date_validation_cspn);
+      dateValidationCspn = date.toISOString().split('T')[0];
+    }
+
     const payload: PlanCreatePayload = {
+      // Champs obligatoires
       nom: formValue.nom,
-      statut: formValue.statut,
-      version: formValue.version || undefined,
-      annee_debut: formValue.annee_debut || undefined,
-      annee_fin: formValue.annee_fin || undefined,
-      gestion_partagee: formValue.gestion_partagee,
+      sites_ids: this.selectedSiteIds(),
+      rang: formValue.rang,
       ct88: formValue.ct88,
-      risque_incendie: formValue.risque_incendie,
-      id_evaluation: formValue.id_evaluation || undefined,
+      annee_debut: formValue.annee_debut,
+      annee_fin: formValue.annee_fin,
+
+      // Champs optionnels
+      surface: formValue.surface || undefined,
+      date_validation_cspn: dateValidationCspn,
+      id_docgestion_fcen: formValue.id_docgestion_fcen || undefined,
       id_redacteur_type: formValue.id_redacteur_type || undefined,
       redacteur_nom: formValue.redacteur_nom || undefined,
+      redacteurs: formValue.redacteurs || undefined,
+      relecteurs: formValue.relecteurs || undefined,
+
+      // Champs additionnels
+      statut: formValue.statut,
+      version: formValue.version || undefined,
+      gestion_partagee: formValue.gestion_partagee,
+      risque_incendie: formValue.risque_incendie,
+      id_evaluation: formValue.id_evaluation || undefined,
       commentaire: formValue.commentaire || undefined,
-      sites_ids: this.selectedSiteIds(),
       referents_ids: this.selectedReferentIds()
     };
 

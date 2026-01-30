@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { debounceTime, Subject } from 'rxjs';
+import { catchError, debounceTime, forkJoin, of, Subject } from 'rxjs';
 
 import { AdminService } from '../../../../core/services/admin.service';
 import { ValidationService } from '../../../../core/services/validation.service';
@@ -71,6 +71,8 @@ export class FindOrCreateSiteModalComponent {
   // État pour le formulaire de demande de lien
   readonly expandedOrgLinkSite = signal<number | null>(null);
   readonly orgLinkJustification = signal('');
+  readonly orgLinkWithAccess = signal(true);
+  readonly orgLinkAsReferent = signal(false);
 
   // Map pour stocker le choix "référent" par site
   readonly referentRequests = new Map<number, boolean>();
@@ -231,7 +233,7 @@ export class FindOrCreateSiteModalComponent {
 
     const asReferent = this.referentRequests.get(site.id_site) || false;
 
-    this.validationService.requestSiteAccess(site.id_site, {
+    this.validationService.requestSiteAccess(site.slug, {
       justification: this.translate.instant('sites.findOrCreate.autoMessage'),
       request_as_referent: asReferent
     }).subscribe({
@@ -259,6 +261,8 @@ export class FindOrCreateSiteModalComponent {
   startOrgLinkRequest(site: SearchableSite): void {
     this.expandedOrgLinkSite.set(site.id_site);
     this.orgLinkJustification.set('');
+    this.orgLinkWithAccess.set(true);
+    this.orgLinkAsReferent.set(false);
     this.errorMessage.set(null);
     this.successMessage.set(null);
   }
@@ -269,6 +273,8 @@ export class FindOrCreateSiteModalComponent {
   cancelOrgLinkRequest(): void {
     this.expandedOrgLinkSite.set(null);
     this.orgLinkJustification.set('');
+    this.orgLinkWithAccess.set(true);
+    this.orgLinkAsReferent.set(false);
   }
 
   /**
@@ -290,23 +296,84 @@ export class FindOrCreateSiteModalComponent {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
-    this.validationService.requestSiteOrgLink(site.id_site, {
-      justification
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.successMessage.set(
-          this.translate.instant('sites.findOrCreate.orgLinkRequested', { name: site.nom_site })
-        );
-        // Fermer le formulaire et recharger les données
-        this.cancelOrgLinkRequest();
-        this.loadAllSites();
-      },
-      error: (err: { message?: string }) => {
-        this.isSubmitting.set(false);
-        this.errorMessage.set(err.message || this.translate.instant('common.messages.error'));
+    const withAccess = this.orgLinkWithAccess();
+    const asReferent = this.orgLinkAsReferent();
+
+    // Toujours demander le lien organisme
+    const orgLink$ = this.validationService.requestSiteOrgLink(site.slug, { justification });
+
+    // Chaque requête tolère un 409 (demande déjà en attente) sans bloquer l'autre
+    const safeOrgLink$ = orgLink$.pipe(
+      catchError(err => of({ error: true, status: err.status } as const))
+    );
+
+    if (withAccess) {
+      const access$ = this.validationService.requestSiteAccess(site.slug, {
+        justification,
+        request_as_referent: asReferent
+      }).pipe(
+        catchError(err => of({ error: true, status: err.status } as const))
+      );
+
+      forkJoin([safeOrgLink$, access$]).subscribe({
+        next: ([orgResult, accessResult]) => {
+          this.isSubmitting.set(false);
+          const orgOk = !('error' in orgResult);
+          const accessOk = !('error' in accessResult);
+
+          if (orgOk || accessOk) {
+            // Au moins une demande a réussi
+            const messageKey = orgOk && accessOk
+              ? (asReferent
+                ? 'sites.findOrCreate.orgLinkAndAccessAsReferentRequested'
+                : 'sites.findOrCreate.orgLinkAndAccessRequested')
+              : orgOk
+                ? 'sites.findOrCreate.orgLinkRequested'
+                : 'sites.findOrCreate.accessRequested';
+            this.successMessage.set(
+              this.translate.instant(messageKey, { name: site.nom_site })
+            );
+            this.updateSiteAfterOrgLinkRequest(site, accessOk);
+            this.cancelOrgLinkRequest();
+          } else {
+            this.errorMessage.set(this.translate.instant('common.messages.error'));
+          }
+        }
+      });
+    } else {
+      safeOrgLink$.subscribe({
+        next: (result) => {
+          this.isSubmitting.set(false);
+          if (!('error' in result)) {
+            this.successMessage.set(
+              this.translate.instant('sites.findOrCreate.orgLinkRequested', { name: site.nom_site })
+            );
+            this.updateSiteAfterOrgLinkRequest(site, false);
+            this.cancelOrgLinkRequest();
+          } else {
+            this.errorMessage.set(this.translate.instant('common.messages.error'));
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Met à jour le site localement après une demande de lien pour un feedback immédiat
+   */
+  private updateSiteAfterOrgLinkRequest(site: SearchableSite, withAccess: boolean): void {
+    const updatedSites = this.allSites().map(s => {
+      if (s.id_site === site.id_site) {
+        return {
+          ...s,
+          hasPendingOrgLink: true,
+          canRequestOrgLink: false,
+          ...(withAccess ? { hasPendingRequest: true, canRequestAccess: false } : {})
+        };
       }
+      return s;
     });
+    this.allSites.set(updatedSites);
   }
 
   /**
@@ -321,7 +388,7 @@ export class FindOrCreateSiteModalComponent {
 
     // Ouvrir le dialogue de création de site
     const createDialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {
@@ -331,9 +398,13 @@ export class FindOrCreateSiteModalComponent {
     });
 
     createDialogRef.afterClosed().subscribe(result => {
-      // Fermer ce dialogue avec true si un site a été créé
-      // pour que le parent recharge les données
-      this.dialogRef.close(result ? true : false);
+      if (!result) {
+        // L'utilisateur a annulé la création, rester dans le dialog find-or-create
+        return;
+      }
+      // Propager le résultat complet (site créé OU action sur doublon)
+      // pour que le parent puisse traiter les demandes d'accès/lien
+      this.dialogRef.close(result);
     });
   }
 

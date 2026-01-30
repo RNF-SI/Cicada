@@ -238,7 +238,9 @@ export class AdminOrganismesComponent implements OnInit {
    */
   openCreateSiteModal(org: DisplayOrganisme): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '600px',
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
       data: {
         organismeId: org.id,
         principal: true // New site is principal by default for admin_og
@@ -246,8 +248,16 @@ export class AdminOrganismesComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open(this.translate.instant('admin.organismes.messages.siteCreated'), this.translate.instant('common.actions.close'), { duration: 3000 });
+      if (result?.site) {
+        if (result.validationPending) {
+          this.snackBar.open(
+            result.message || this.translate.instant('sites.createSite.pendingValidation'),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(this.translate.instant('admin.organismes.messages.siteCreated'), this.translate.instant('common.actions.close'), { duration: 3000 });
+        }
         this.loadOrganismes();
       }
     });

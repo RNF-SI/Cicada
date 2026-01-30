@@ -1,29 +1,20 @@
 /**
  * Composant pour la page "Mon profil".
- * Affiche les informations de l'utilisateur et ses demandes en cours.
+ * Affiche les informations de l'utilisateur et les options RGPD.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
-import { ValidationService } from '../../core/services/validation.service';
-import { User } from '../../core/models/user.model';
-import {
-  ValidationRequestListItem,
-  ValidationStatus,
-  ValidationRequestType
-} from '../../core/models/notification.model';
+import { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModalResult } from '../../shared/components/modals';
 
 @Component({
   selector: 'app-profile',
@@ -31,62 +22,27 @@ import {
   imports: [
     CommonModule,
     RouterLink,
-    MatTabsModule,
     MatCardModule,
     MatButtonModule,
-    MatIconModule,
-    MatTableModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatDialogModule,
-    MatSnackBarModule,
     TranslateModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent {
   private readonly authService = inject(AuthService);
-  private readonly validationService = inject(ValidationService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
   // Utilisateur courant
   readonly currentUser = this.authService.currentUser;
 
-  // Demandes de l'utilisateur
-  readonly myRequests = signal<ValidationRequestListItem[]>([]);
-  readonly loadingRequests = signal(false);
-
-  // Colonnes du tableau des demandes
-  readonly requestColumns = ['type', 'target', 'date', 'validated_at', 'status', 'validator'];
-
-  ngOnInit(): void {
-    this.loadMyRequests();
-  }
-
-  /**
-   * Charge les demandes de l'utilisateur.
-   */
-  loadMyRequests(): void {
-    this.loadingRequests.set(true);
-
-    this.validationService.getMyRequests().subscribe({
-      next: (requests) => {
-        this.myRequests.set(requests);
-        this.loadingRequests.set(false);
-      },
-      error: (error) => {
-        console.error('Erreur chargement mes demandes:', error);
-        this.snackBar.open(
-          this.translate.instant('profile.requests.loadError'),
-          this.translate.instant('common.actions.close'), {
-          duration: 3000
-        });
-        this.loadingRequests.set(false);
-      }
-    });
-  }
+  // State for RGPD actions
+  readonly isDeleting = signal(false);
+  readonly isCancelling = signal(false);
 
   /**
    * Retourne le nom complet de l'utilisateur.
@@ -149,38 +105,116 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  // ==================== RGPD METHODS ====================
+
   /**
-   * Obtient la classe CSS du statut.
+   * Verifie si l'utilisateur a une demande de suppression en cours.
    */
-  getStatusClass(status: ValidationStatus): string {
-    const classes: Record<string, string> = {
-      'pending': 'status-warning',
-      'approved': 'status-success',
-      'rejected': 'status-error',
-      'cancelled': 'status-neutre',
-      'expired': 'status-neutre',
-    };
-    return classes[status] || 'status-neutre';
+  hasPendingDeletion(): boolean {
+    const user = this.currentUser();
+    return user?.deletion_requested_at != null;
   }
 
   /**
-   * Obtient l'icone du type de demande.
+   * Retourne la date de demande de suppression formatee.
    */
-  getTypeIcon(type: ValidationRequestType): string {
-    const icons: Record<string, string> = {
-      'user_registration': 'fi-rr-user-add',
-      'site_access': 'fi-rr-marker',
-      'plan_access': 'fi-rr-document',
-      'admin_deactivation': 'fi-rr-user-slash',
-      'referent_validation': 'fi-rr-check',
-    };
-    return icons[type] || 'fi-rr-check-circle';
+  getDeletionRequestDate(): string {
+    const user = this.currentUser();
+    if (!user?.deletion_requested_at) return '';
+    return this.formatDate(user.deletion_requested_at);
   }
 
   /**
-   * Compte les demandes en attente.
+   * Calcule le nombre de jours restants avant anonymisation.
    */
-  getPendingCount(): number {
-    return this.myRequests().filter(r => r.status === 'pending').length;
+  getDaysUntilDeletion(): number {
+    const user = this.currentUser();
+    if (!user?.deletion_requested_at) return 0;
+
+    const requestDate = new Date(user.deletion_requested_at);
+    const deletionDate = new Date(requestDate);
+    deletionDate.setDate(deletionDate.getDate() + 30);
+
+    const now = new Date();
+    const diffTime = deletionDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
+  }
+
+  /**
+   * Ouvre le dialogue de confirmation de suppression de compte.
+   */
+  openDeleteAccountDialog(): void {
+    const user = this.currentUser();
+    if (!user) return;
+
+    const dialogRef = this.dialog.open(DeleteAccountModalComponent, {
+      width: '550px',
+      maxWidth: '95vw',
+      data: {
+        userEmail: user.email
+      } as DeleteAccountModalData
+    });
+
+    dialogRef.afterClosed().subscribe((result: DeleteAccountModalResult | undefined) => {
+      if (result?.confirmed) {
+        this.requestAccountDeletion();
+      }
+    });
+  }
+
+  /**
+   * Demande la suppression du compte.
+   */
+  private requestAccountDeletion(): void {
+    this.isDeleting.set(true);
+
+    this.authService.requestAccountDeletion().subscribe({
+      next: () => {
+        this.isDeleting.set(false);
+        this.snackBar.open(
+          this.translate.instant('profile.rgpd.messages.deletionRequested'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+        // Logout the user since account is deactivated
+        this.authService.logout().subscribe();
+      },
+      error: (err) => {
+        this.isDeleting.set(false);
+        this.snackBar.open(
+          err.message || this.translate.instant('profile.rgpd.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  /**
+   * Annule la demande de suppression du compte.
+   */
+  cancelAccountDeletion(): void {
+    this.isCancelling.set(true);
+
+    this.authService.cancelAccountDeletion().subscribe({
+      next: () => {
+        this.isCancelling.set(false);
+        this.snackBar.open(
+          this.translate.instant('profile.rgpd.messages.deletionCancelled'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
+      error: (err) => {
+        this.isCancelling.set(false);
+        this.snackBar.open(
+          err.message || this.translate.instant('profile.rgpd.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
   }
 }

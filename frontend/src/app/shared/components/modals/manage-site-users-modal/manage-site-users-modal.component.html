@@ -1,0 +1,203 @@
+<div class="manage-users-modal">
+  <h2 mat-dialog-title>
+    <i class="fi fi-rr-users"></i>
+    {{ 'modals.manageSiteUsers.title' | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>{{ 'common.messages.loading' | translate }}</p>
+      </div>
+    } @else {
+      <!-- Info site -->
+      <div class="site-info">
+        <span class="site-name">{{ data.site.nom_site }}</span>
+        @if (linkedOrganismes().length > 0) {
+          <span class="site-organismes">
+            {{ 'modals.manageSiteUsers.linkedOrganismes' | translate: { count: linkedOrganismes().length } }}
+          </span>
+        }
+      </div>
+
+      <!-- Messages de notification (en haut pour être visibles) -->
+      @if (successMessage()) {
+        <div class="success-message">
+          <i class="fi fi-rr-check"></i>
+          {{ successMessage() }}
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div class="error-message">
+          <i class="fi fi-rr-exclamation"></i>
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <!-- Message si aucun organisme lie -->
+      @if (linkedOrganismes().length === 0) {
+        <div class="warning-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ 'modals.manageSiteUsers.noLinkedOrganismes' | translate }}</span>
+        </div>
+      } @else {
+        <!-- Section ajout utilisateur -->
+        <div class="add-user-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-user-add"></i>
+            {{ 'modals.manageSiteUsers.addUser' | translate }}
+          </h3>
+
+          <!-- Filtre par organisme -->
+          @if (linkedOrganismes().length > 1) {
+            <div class="organisme-filter">
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>{{ 'modals.manageSiteUsers.filterByOrganisme' | translate }}</mat-label>
+                <mat-select [value]="selectedOrganismeFilter()" (selectionChange)="onOrganismeFilterChange($event.value)">
+                  <mat-option [value]="null">{{ 'modals.manageSiteUsers.allOrganismes' | translate }}</mat-option>
+                  @for (org of linkedOrganismes(); track org.id_organisme) {
+                    <mat-option [value]="org.id_organisme">
+                      {{ org.nom_organisme }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          }
+
+          <!-- Recherche utilisateur -->
+          <div class="user-search">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>{{ 'modals.manageSiteUsers.searchUser' | translate }}</mat-label>
+              <input
+                matInput
+                type="text"
+                [formControl]="userSearchControl"
+                [matAutocomplete]="userAuto"
+                [placeholder]="'modals.manageSiteUsers.searchPlaceholder' | translate">
+              <i matSuffix class="fi fi-rr-search"></i>
+              <mat-autocomplete
+                #userAuto="matAutocomplete"
+                [displayWith]="displayUser.bind(this)"
+                (optionSelected)="addUser($event.option.value)">
+                @for (user of filteredUsers(); track user.id_role) {
+                  <mat-option [value]="user">
+                    <div class="user-option">
+                      <span class="user-name">{{ getUserDisplayName(user) }}</span>
+                      <span class="user-email">{{ user.email }}</span>
+                      <span class="user-org">{{ getUserOrganisme(user) }}</span>
+                    </div>
+                  </mat-option>
+                }
+                @if (filteredUsers().length === 0 && userSearchControl.value) {
+                  <mat-option disabled>
+                    {{ 'modals.manageSiteUsers.noUsersFound' | translate }}
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-checkbox
+              [checked]="newUserReferent()"
+              (change)="newUserReferent.set($event.checked)"
+              class="referent-checkbox">
+              {{ 'modals.manageSiteUsers.addAsReferent' | translate }}
+            </mat-checkbox>
+          </div>
+        </div>
+
+        <!-- Liste des utilisateurs actuels -->
+        <div class="current-users-section">
+          <h3 class="section-title">
+            <i class="fi fi-rr-users"></i>
+            {{ 'modals.manageSiteUsers.currentUsers' | translate }}
+            <span class="badge">{{ visibleAssignments().length }}</span>
+          </h3>
+
+          @if (userAssignments().length === 0) {
+            <div class="empty-state">
+              <i class="fi fi-rr-users empty-icon"></i>
+              <p>{{ 'modals.manageSiteUsers.noUsers' | translate }}</p>
+            </div>
+          } @else {
+            <div class="users-list">
+              @for (assignment of userAssignments(); track assignment.user.id_role) {
+                <div class="user-card" [class.deleted]="assignment.isDeleted" [class.new]="assignment.isNew" [class.modified]="assignment.isModified">
+                  <div class="user-info">
+                    <div class="user-avatar">
+                      <i class="fi fi-rr-user"></i>
+                    </div>
+                    <div class="user-details">
+                      <span class="user-name">
+                        {{ getUserDisplayName(assignment.user) }}
+                        @if (assignment.isNew) {
+                          <span class="status-badge new">{{ 'modals.manageSiteUsers.new' | translate }}</span>
+                        }
+                        @if (assignment.isModified && !assignment.isNew) {
+                          <span class="status-badge modified">{{ 'modals.manageSiteUsers.modified' | translate }}</span>
+                        }
+                      </span>
+                      <span class="user-email">{{ assignment.user.email }}</span>
+                      @if (assignment.user.organisme) {
+                        <span class="user-org">{{ assignment.user.organisme.nom_organisme }}</span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="user-actions">
+                    @if (!assignment.isDeleted) {
+                      <mat-checkbox
+                        [checked]="assignment.referent"
+                        (change)="toggleReferent(assignment)"
+                        class="referent-toggle"
+                        [matTooltip]="'modals.manageSiteUsers.referentTooltip' | translate">
+                        {{ 'modals.manageSiteUsers.referent' | translate }}
+                      </mat-checkbox>
+
+                      <button
+                        type="button"
+                        class="btn-remove"
+                        (click)="removeUser(assignment)"
+                        [matTooltip]="'modals.manageSiteUsers.removeUser' | translate">
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    } @else {
+                      <span class="deleted-label">{{ 'modals.manageSiteUsers.willBeRemoved' | translate }}</span>
+                      <button
+                        type="button"
+                        class="btn-restore"
+                        (click)="restoreUser(assignment)"
+                        [matTooltip]="'modals.manageSiteUsers.restoreUser' | translate">
+                        <i class="fi fi-rr-undo"></i>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="onSave()"
+      [disabled]="isLoading() || isLoadingData() || !hasChanges()">
+      @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        {{ 'common.actions.save' | translate }}
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

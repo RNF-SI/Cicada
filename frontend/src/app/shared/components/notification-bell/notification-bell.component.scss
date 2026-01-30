@@ -1,14 +1,5 @@
-// Variables
-$primary-color: #025359;
-$secondary-yellow: #FEC180;
-$secondary-orange: #FA9965;
-$secondary-terra-cotta: #B74D5D;
-$success-color: #04854B;
-$error-color: #E12329;
-$warning-color: #FA9965;
-$info-color: #81C9D8;
-$gray-light: #F5F5F5;
-$gray: #999;
+// Import design system variables
+@import 'variables';
 
 // Bouton cloche
 .notification-bell-btn {
@@ -37,16 +28,16 @@ $gray: #999;
     position: absolute;
     top: -8px;
     right: -8px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    font-size: 11px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 18px;
+    line-height: 20px;
     text-align: center;
     color: white;
     background-color: $error-color;
-    border-radius: 9px;
+    border-radius: 10px;
 
     &.has-critical {
       background-color: $secondary-terra-cotta;
@@ -72,16 +63,16 @@ $gray: #999;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 14px 16px;
 
   .notification-title {
     font-weight: 700;
-    font-size: 14px;
+    font-size: $font-size-base;
     color: $primary-color;
   }
 
   .mark-all-btn {
-    font-size: 12px;
+    font-size: $font-size-small;
     color: $primary-color;
     background: none;
     border: none;
@@ -96,7 +87,7 @@ $gray: #999;
 
 // Liste des notifications
 .notification-list {
-  max-height: 350px;
+  max-height: 450px;
   overflow-y: auto;
 }
 
@@ -104,23 +95,23 @@ $gray: #999;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 24px;
-  color: $gray;
+  color: $gray-dark;
 
   i {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   span {
-    font-size: 14px;
+    font-size: $font-size-base;
   }
 }
 
 // Item de notification
 .notification-item {
   height: auto !important;
-  padding: 12px 16px !important;
+  padding: 14px 20px !important;
   white-space: normal !important;
 
   &.unread {
@@ -153,14 +144,14 @@ $gray: #999;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background-color: $gray-light;
   flex-shrink: 0;
 
   i {
-    font-size: 16px;
+    font-size: 18px;
     color: $primary-color;
   }
 
@@ -213,27 +204,28 @@ $gray: #999;
 .notification-item-title {
   display: block;
   font-weight: 600;
-  font-size: 13px;
-  color: #333;
-  margin-bottom: 2px;
+  font-size: $font-size-base;
+  color: $black;
+  margin-bottom: 4px;
 }
 
 .notification-item-message {
   display: block;
-  font-size: 12px;
-  color: $gray;
+  font-size: $font-size-small;
+  color: $gray-dark;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: 1.4;
 }
 
 .notification-time {
   display: block;
-  font-size: 11px;
-  color: lighten($gray, 10%);
-  margin-top: 4px;
+  font-size: $font-size-small;
+  color: $gray;
+  margin-top: 6px;
 }
 
 .unread-indicator {
@@ -248,24 +240,25 @@ $gray: #999;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  font-size: 11px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: 12px;
   font-weight: 700;
-  color: white;
+  color: $black;
   background-color: $secondary-yellow;
-  border-radius: 10px;
+  border-radius: 11px;
 }
 
 // Footer
 .notification-footer {
-  padding: 8px 0;
+  padding: 10px 0;
 
   .see-all-link {
     display: flex;
     justify-content: center;
-    font-size: 13px;
+    font-size: $font-size-base;
+    font-weight: 600;
     color: $primary-color;
     text-decoration: none;
 
@@ -275,8 +268,12 @@ $gray: #999;
   }
 }
 
-// Global menu override
-::ng-deep .notification-menu {
-  width: 360px;
-  max-width: 90vw;
+// Global menu override - target the panel class in CDK overlay
+:host ::ng-deep .notification-menu-panel {
+  width: 600px !important;
+  max-width: 95vw !important;
+
+  .mat-mdc-menu-content {
+    padding: 0;
+  }
 }

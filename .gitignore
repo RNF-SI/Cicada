@@ -75,6 +75,12 @@ coverage/
 # Toutes les images du design system qui sont des captures d'écran dans le dossier design_system à la racine
 design_system/*
 
+# Liens Figma (non versionné pour sécurité)
+FIGMA_LINKS.md
+
 captures_maquettes/*
 
 KitUI/*
+# Fichiers generes
+backend/static/
+backend/celerybeat-schedule

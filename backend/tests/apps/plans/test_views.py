@@ -110,8 +110,11 @@ class TestPlanGestionViewSetCreate:
         response = api_client.post('/api/plans/plans/', {
             'nom': 'New Test Plan',
             'statut': 'draft',
+            'rang': 1,
+            'ct88': False,
             'annee_debut': 2024,
-            'annee_fin': 2034
+            'annee_fin': 2034,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -128,7 +131,12 @@ class TestPlanGestionViewSetCreate:
         api_client.force_authenticate(user=referent)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Creator Test Plan',
-            'statut': 'draft'
+            'statut': 'draft',
+            'rang': 1,
+            'ct88': False,
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -151,14 +159,18 @@ class TestPlanGestionViewSetCreate:
     def test_create_plan_with_years(self, api_client):
         """Test creating plan with year range."""
         admin = SuperAdminFactory()
+        site = SiteFactory()
 
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Year Range Plan',
             'statut': 'draft',
+            'rang': 1,
+            'ct88': False,
             'annee_debut': 2024,
             'annee_fin': 2034,
-            'version': '1.0'
+            'version': '1.0',
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED

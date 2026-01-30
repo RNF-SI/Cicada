@@ -20,10 +20,12 @@
           <a routerLink="/accueil" class="breadcrumb-home" title="Retour a l'accueil">
             <i class="fi fi-rr-home"></i>
           </a>
-          <span class="breadcrumb-separator"></span>
-          <a routerLink="/sites" class="breadcrumb-link">{{ 'sites.title' | translate }}</a>
-          <span class="breadcrumb-separator"></span>
-          <span class="breadcrumb-current">{{ site()!.nom_site }}</span>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <a routerLink="/sites" class="breadcrumb-link">{{ 'sites.title' | translate }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-separator"></i>
+            <span class="breadcrumb-current">{{ site()!.nom_site }}</span>
+          </div>
         </nav>
 
         <!-- Titre et metadonnees -->
@@ -146,21 +148,61 @@
                   </div>
                 }
               </div>
+            </section>
+          }
 
-              <!-- Organismes gestionnaires -->
-              @if (site()!.organismes && site()!.organismes!.length > 0) {
-                <div class="organismes-section">
-                  <h3 class="subsection-title">
-                    <i class="fi fi-rr-building"></i>
-                    {{ 'sites.detail.organismes' | translate }}
-                  </h3>
-                  <div class="organismes-list">
-                    @for (org of site()!.organismes; track org.id_organisme) {
-                      <mat-chip class="organisme-chip">
-                        {{ org.nom_organisme }}
-                      </mat-chip>
-                    }
+          <!-- Organismes gestionnaires -->
+          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'organismes') {
+            <section class="organismes-section">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <i class="fi fi-rr-building"></i>
+                  {{ 'sites.detail.organismes' | translate }}
+                  <span class="badge">{{ site()?.organismes?.length || 0 }}</span>
+                </h2>
+                @if (isReferent()) {
+                  <div class="section-actions">
+                    <button class="btn-invite" (click)="inviteOrganisme()"
+                            [matTooltip]="'sites.detail.inviteOrganisme' | translate">
+                      <i class="fi fi-rr-plus"></i>
+                      <span>{{ 'sites.detail.invite' | translate }}</span>
+                    </button>
                   </div>
+                }
+              </div>
+
+              @if (!site()?.organismes || site()!.organismes!.length === 0) {
+                <div class="empty-state empty-state--small">
+                  <i class="fi fi-rr-building empty-icon"></i>
+                  <p>{{ 'sites.detail.noOrganismes' | translate }}</p>
+                </div>
+              } @else {
+                <div class="organismes-cards">
+                  @for (org of site()!.organismes; track org.id_organisme) {
+                    <div class="organisme-card">
+                      <div class="organisme-avatar">
+                        <i class="fi fi-rr-building"></i>
+                      </div>
+                      <div class="organisme-info">
+                        <span class="organisme-name">{{ org.nom_organisme }}</span>
+                        @if (org.ville_organisme) {
+                          <span class="organisme-city">{{ org.ville_organisme }}</span>
+                        }
+                      </div>
+                      <div class="organisme-role">
+                        @if (org.principal) {
+                          <mat-chip class="role-principal">
+                            <i class="fi fi-rr-star chip-icon"></i>
+                            {{ 'sites.detail.principalOrg' | translate }}
+                          </mat-chip>
+                        } @else {
+                          <mat-chip class="role-gestionnaire">
+                            {{ 'sites.detail.gestionnaireOrg' | translate }}
+                          </mat-chip>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </section>
@@ -176,10 +218,13 @@
                   <span class="badge">{{ siteUsers().length }}</span>
                 </h2>
                 @if (isReferent()) {
-                  <button class="btn-manage" (click)="manageUsers()">
-                    <i class="fi fi-rr-settings"></i>
-                    <span>{{ 'sites.detail.manageUsers' | translate }}</span>
-                  </button>
+                  <div class="section-actions">
+                    <button class="btn-manage" (click)="manageUsers()"
+                            [matTooltip]="'sites.detail.manageUsersTooltip' | translate">
+                      <i class="fi fi-rr-users-alt"></i>
+                      <span>{{ 'sites.detail.manageUsers' | translate }}</span>
+                    </button>
+                  </div>
                 }
               </div>
 
@@ -249,20 +294,6 @@
             </section>
           }
 
-          <!-- Documents -->
-          @if (activeMenuItem() === 'documents') {
-            <section class="documents-section">
-              <h2 class="section-title">
-                <i class="fi fi-rr-folder"></i>
-                {{ 'sites.detail.documents' | translate }}
-              </h2>
-
-              <div class="empty-state">
-                <i class="fi fi-rr-folder empty-icon"></i>
-                <p>{{ 'sites.detail.noDocuments' | translate }}</p>
-              </div>
-            </section>
-          }
         </div>
       </div>
     </div>

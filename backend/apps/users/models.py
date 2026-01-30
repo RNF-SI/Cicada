@@ -7,6 +7,7 @@ from datetime import datetime
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib.gis.db import models
 from django.core.validators import EmailValidator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 
@@ -112,6 +113,23 @@ class Role(AbstractUser):
         blank=True,
         verbose_name=_("Desactive le")
     )
+    # Champs RGPD pour suppression de compte
+    deletion_requested_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Demande de suppression le"),
+        help_text=_("Date de demande de suppression du compte (RGPD)")
+    )
+    is_anonymized = models.BooleanField(
+        default=False,
+        verbose_name=_("Compte anonymise"),
+        help_text=_("Le compte a ete anonymise suite a une demande RGPD")
+    )
+    anonymized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Anonymise le")
+    )
     champs_addi = models.TextField(_("Champs additionnels"), null=True, blank=True)
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
@@ -194,6 +212,63 @@ class Role(AbstractUser):
         
         return False
 
+    def request_deletion(self):
+        """
+        Demande la suppression du compte (RGPD).
+        Enregistre la date de demande et desactive le compte.
+        """
+        from django.utils import timezone
+        self.deletion_requested_at = timezone.now()
+        self.active = False
+        self.save(update_fields=['deletion_requested_at', 'active'])
+
+    def anonymize(self):
+        """
+        Anonymise les donnees personnelles du compte (RGPD).
+        Appele apres le delai de grace de 30 jours.
+        """
+        from django.utils import timezone
+        import uuid
+
+        # Generer un identifiant unique pour le compte anonymise
+        anon_id = str(uuid.uuid4())[:8]
+
+        # Anonymiser les donnees personnelles
+        self.email = f"anonymized_{anon_id}@deleted.local"
+        self.nom_role = "Utilisateur"
+        self.prenom_role = "Anonymise"
+        self.desc_role = None
+        self.identifiant = None
+        self.remarques = None
+        self.champs_addi = None
+        self.pass_plus = None
+
+        # Supprimer le mot de passe
+        self.set_unusable_password()
+
+        # Marquer comme anonymise
+        self.is_anonymized = True
+        self.anonymized_at = timezone.now()
+        self.active = False
+
+        self.save()
+
+    def can_be_anonymized(self):
+        """
+        Verifie si le compte peut etre anonymise.
+        Le delai de grace est de 30 jours apres la demande.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+
+        if not self.deletion_requested_at:
+            return False
+        if self.is_anonymized:
+            return False
+
+        grace_period = timedelta(days=30)
+        return timezone.now() >= self.deletion_requested_at + grace_period
+
     class Meta:
         db_table = '"utilisateurs"."t_roles"'
         db_table_comment = 'Table des utilisateurs et groupes'
@@ -244,10 +319,17 @@ class Site(models.Model):
     Modèle pour les sites (ex-espaces protégés).
     Table t_site dans le schéma referentiels.
     """
-    
+
     id_site = models.AutoField(primary_key=True)
+    slug = models.SlugField(
+        _("Slug"),
+        max_length=280,
+        unique=True,
+        blank=True,
+        help_text=_("Identifiant URL unique généré automatiquement à partir du nom")
+    )
     id_local = models.CharField(_("Identifiant local"), max_length=50, null=True, blank=True)
-    id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True)
+    id_inpn = models.CharField(_("Identifiant INPN"), max_length=50, null=True, blank=True, unique=True)
     id_type_site = models.ForeignKey(
         'core.Nomenclature',  # À créer dans core app
         on_delete=models.PROTECT,
@@ -275,6 +357,31 @@ class Site(models.Model):
 
     def __str__(self):
         return self.nom_site
+
+    def save(self, *args, **kwargs):
+        """Génère automatiquement le slug à partir du nom du site."""
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+        super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self):
+        """
+        Génère un slug unique à partir du nom du site.
+        Si le slug existe déjà, ajoute un suffixe numérique.
+        """
+        base_slug = slugify(self.nom_site, allow_unicode=False)
+        if not base_slug:
+            base_slug = f"site-{self.id_site or 'new'}"
+
+        slug = base_slug
+        counter = 1
+
+        # Chercher un slug unique
+        while Site.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug
 
 
 class CorRoleSite(models.Model):
@@ -375,3 +482,49 @@ class CorOgSite(models.Model):
             return cor.uuid_og
         except cls.DoesNotExist:
             return None
+
+
+class BulkImportJob(models.Model):
+    """
+    Suivi des imports en masse de sites.
+    Utilisé pour les imports asynchrones (>50 sites) via Celery.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', _('En attente')),
+        ('processing', _('En cours')),
+        ('completed', _('Terminé')),
+        ('failed', _('Échoué')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name='bulk_import_jobs',
+        verbose_name=_('Utilisateur'),
+    )
+    status = models.CharField(
+        _('Statut'),
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default='pending',
+    )
+    total_sites = models.IntegerField(_('Total sites'), default=0)
+    processed_sites = models.IntegerField(_('Sites traités'), default=0)
+    created_sites = models.IntegerField(_('Sites créés'), default=0)
+    failed_sites = models.IntegerField(_('Sites échoués'), default=0)
+    validation_pending_sites = models.IntegerField(_('Sites en attente de validation'), default=0)
+    import_data = models.JSONField(_('Données d\'import'), default=dict)
+    result_data = models.JSONField(_('Données de résultat'), default=dict)
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
+    completed_at = models.DateTimeField(_('Terminé le'), null=True, blank=True)
+
+    class Meta:
+        db_table = '"ccd_commons"."t_bulk_import_jobs"'
+        verbose_name = _('Job d\'import en masse')
+        verbose_name_plural = _('Jobs d\'import en masse')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"BulkImportJob #{self.id} - {self.status} ({self.processed_sites}/{self.total_sites})"

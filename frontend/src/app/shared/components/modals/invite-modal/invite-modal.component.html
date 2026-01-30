@@ -1,0 +1,119 @@
+<h2 mat-dialog-title>
+  {{ getTitle() }}
+</h2>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <p class="description">
+    @if (data.mode === 'organisme') {
+      {{ 'modals.invite.descriptionOrganisme' | translate: { site: data.site.nom_site } }}
+    } @else {
+      {{ 'modals.invite.descriptionUser' | translate: { site: data.site.nom_site } }}
+    }
+  </p>
+
+  @if (data.mode === 'user') {
+    @if (data.linkedOrganismes && data.linkedOrganismes.length > 0) {
+      <div class="info-banner">
+        <i class="fi fi-rr-info"></i>
+        <span>{{ 'modals.invite.userRestriction' | translate }}</span>
+      </div>
+    } @else {
+      <div class="warning-banner">
+        <i class="fi fi-rr-exclamation"></i>
+        <span>{{ 'modals.invite.noLinkedOrganismes' | translate }}</span>
+      </div>
+    }
+  }
+
+  <!-- Autocomplete search -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ getPlaceholder() }}</mat-label>
+    <input
+      matInput
+      [formControl]="searchControl"
+      [matAutocomplete]="auto"
+      [placeholder]="getPlaceholder()">
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      [displayWith]="displayFn.bind(this)"
+      (optionSelected)="onItemSelected($event.option.value)">
+      @if (isSearching()) {
+        <mat-option disabled>
+          <mat-spinner diameter="20"></mat-spinner>
+          <span class="loading-text">{{ 'common.status.loading' | translate }}...</span>
+        </mat-option>
+      } @else {
+        @for (item of searchResults(); track data.mode === 'organisme' ? $any(item).id_organisme : $any(item).id_role) {
+          <mat-option [value]="item">
+            @if (data.mode === 'organisme') {
+              <div class="option-content">
+                <i class="fi fi-rr-building"></i>
+                <div class="option-text">
+                  <span class="option-name">{{ $any(item).nom_organisme }}</span>
+                  @if ($any(item).ville_organisme) {
+                    <span class="option-subtitle">{{ $any(item).ville_organisme }}</span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="option-content">
+                <i class="fi fi-rr-user"></i>
+                <div class="option-text">
+                  <span class="option-name">{{ displayFn(item) }}</span>
+                  <span class="option-subtitle">{{ $any(item).organisme?.nom_organisme || $any(item).email }}</span>
+                </div>
+              </div>
+            }
+          </mat-option>
+        }
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <!-- Selection affichee -->
+  @if (selectedItem()) {
+    <div class="selected-item">
+      <i class="fi" [class.fi-rr-building]="data.mode === 'organisme'" [class.fi-rr-user]="data.mode === 'user'"></i>
+      <span>{{ displayFn(selectedItem()) }}</span>
+      <button mat-icon-button (click)="selectedItem.set(null); searchControl.setValue('')">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Justification (optionnel) -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'modals.invite.justification' | translate }}</mat-label>
+    <textarea
+      matInput
+      [formControl]="justificationControl"
+      [placeholder]="'modals.invite.justificationPlaceholder' | translate"
+      rows="3">
+    </textarea>
+    <mat-hint>{{ 'modals.invite.justificationHint' | translate }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="isLoading() || !selectedItem()">
+    @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      {{ 'modals.invite.send' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

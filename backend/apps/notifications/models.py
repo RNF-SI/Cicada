@@ -23,8 +23,10 @@ class Notification(models.Model):
         ('user_removed_plan', _("Utilisateur retiré d'un plan")),
         ('account_deactivated', _('Compte désactivé')),
         ('account_activated', _('Compte activé')),
+        ('organisme_changed', _('Organisme modifié')),
         ('site_orphaned', _('Site sans utilisateurs')),
         ('organisme_no_admin', _('Organisme sans administrateur')),
+        ('plan_needs_reassignment', _('Plan à réassigner')),
         ('system_alert', _('Alerte système')),
         ('info', _('Information')),
     ]
@@ -164,12 +166,18 @@ class ValidationRequest(models.Model):
 
     REQUEST_TYPES = [
         ('user_registration', _('Inscription utilisateur')),
+        ('site_creation', _('Création de site')),
         ('site_access', _('Accès à un site')),
         ('plan_access', _('Accès à un plan de gestion')),
         ('module_access', _('Accès à un module')),
         ('admin_deactivation', _('Désactivation admin_og')),
+        ('admin_promotion', _('Promotion admin_og')),
+        ('admin_demotion', _('Rétrogradation admin_og')),
         ('referent_validation', _('Validation référent site')),
         ('site_org_link', _('Lien site-organisme')),
+        ('site_org_unlink', _('Retrait site-organisme')),
+        ('invite_org_to_site', _('Invitation organisme vers site')),
+        ('invite_user_to_site', _('Invitation utilisateur vers site')),
     ]
 
     STATUS_CHOICES = [

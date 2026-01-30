@@ -10,207 +10,161 @@
     <p class="subtitle">{{ 'profile.subtitle' | translate }}</p>
   </header>
 
-  <mat-tab-group>
-    <!-- Onglet: Informations personnelles -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <i class="fi fi-rr-user tab-icon"></i>
-        {{ 'profile.tabs.info' | translate }}
-      </ng-template>
-
-      <div class="tab-content">
-        @if (currentUser(); as user) {
-          <div class="profile-cards">
-            <!-- Carte informations personnelles -->
-            <mat-card class="profile-card">
-              <mat-card-header>
-                <div class="card-header-content">
-                  <div class="avatar">
-                    <i class="fi fi-rr-user"></i>
-                  </div>
-                  <div class="user-info">
-                    <mat-card-title>{{ getFullName() }}</mat-card-title>
-                    <mat-card-subtitle>{{ user.email }}</mat-card-subtitle>
-                  </div>
+  <div class="profile-content">
+    @if (currentUser(); as user) {
+      <div class="profile-cards">
+        <!-- Carte informations personnelles -->
+        <mat-card class="profile-card">
+          <mat-card-header>
+            <div class="card-header-content">
+              <div class="avatar">
+                <i class="fi fi-rr-user"></i>
+              </div>
+              <div class="user-info">
+                <mat-card-title>{{ getFullName() }}</mat-card-title>
+                <mat-card-subtitle>{{ user.email }}</mat-card-subtitle>
+              </div>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">{{ 'profile.info.role' | translate }}</span>
+                <span class="info-value">
+                  <mat-chip class="role-chip">{{ getRoleLevelLabel() }}</mat-chip>
+                </span>
+              </div>
+              @if (user.identifiant) {
+                <div class="info-item">
+                  <span class="info-label">{{ 'profile.info.identifier' | translate }}</span>
+                  <span class="info-value">{{ user.identifiant }}</span>
                 </div>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="info-label">{{ 'profile.info.role' | translate }}</span>
+              }
+              <div class="info-item">
+                <span class="info-label">{{ 'profile.info.memberSince' | translate }}</span>
+                <span class="info-value">{{ formatDate(user.date_joined) }}</span>
+              </div>
+              @if (user.last_login) {
+                <div class="info-item">
+                  <span class="info-label">{{ 'profile.info.lastLogin' | translate }}</span>
+                  <span class="info-value">{{ formatDateTime(user.last_login) }}</span>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Carte organisme -->
+        @if (user.organisme) {
+          <mat-card class="profile-card">
+            <mat-card-header>
+              <mat-card-title>
+                <i class="fi fi-rr-building card-title-icon"></i>
+                {{ 'profile.organisme.title' | translate }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="info-grid">
+                <div class="info-item full-width">
+                  <span class="info-label">{{ 'profile.organisme.name' | translate }}</span>
+                  <span class="info-value org-name">{{ user.organisme.nom_organisme }}</span>
+                </div>
+                @if (user.organisme.adresse_organisme) {
+                  <div class="info-item full-width">
+                    <span class="info-label">{{ 'profile.organisme.address' | translate }}</span>
                     <span class="info-value">
-                      <mat-chip class="role-chip">{{ getRoleLevelLabel() }}</mat-chip>
+                      {{ user.organisme.adresse_organisme }}
+                      @if (user.organisme.cp_organisme || user.organisme.ville_organisme) {
+                        <br>{{ user.organisme.cp_organisme }} {{ user.organisme.ville_organisme }}
+                      }
                     </span>
                   </div>
-                  @if (user.identifiant) {
-                    <div class="info-item">
-                      <span class="info-label">{{ 'profile.info.identifier' | translate }}</span>
-                      <span class="info-value">{{ user.identifiant }}</span>
-                    </div>
-                  }
+                }
+                @if (user.organisme.tel_organisme) {
                   <div class="info-item">
-                    <span class="info-label">{{ 'profile.info.memberSince' | translate }}</span>
-                    <span class="info-value">{{ formatDate(user.date_joined) }}</span>
+                    <span class="info-label">{{ 'profile.organisme.phone' | translate }}</span>
+                    <span class="info-value">{{ user.organisme.tel_organisme }}</span>
                   </div>
-                  @if (user.last_login) {
-                    <div class="info-item">
-                      <span class="info-label">{{ 'profile.info.lastLogin' | translate }}</span>
-                      <span class="info-value">{{ formatDateTime(user.last_login) }}</span>
-                    </div>
-                  }
+                }
+                @if (user.organisme.email_organisme) {
+                  <div class="info-item">
+                    <span class="info-label">{{ 'profile.organisme.email' | translate }}</span>
+                    <span class="info-value">{{ user.organisme.email_organisme }}</span>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Carte RGPD - Gestion du compte (non disponible pour les super admins) -->
+        @if (user.niveau_role !== 'super_admin') {
+        <mat-card class="profile-card rgpd-card">
+          <mat-card-header>
+            <mat-card-title>
+              <i class="fi fi-rr-shield-check card-title-icon"></i>
+              {{ 'profile.rgpd.title' | translate }}
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (hasPendingDeletion()) {
+              <!-- Demande de suppression en cours -->
+              <div class="deletion-pending">
+                <div class="deletion-warning">
+                  <i class="fi fi-rr-exclamation"></i>
+                  <div class="deletion-warning-content">
+                    <strong>{{ 'profile.rgpd.pendingDeletion.title' | translate }}</strong>
+                    <p>
+                      {{ 'profile.rgpd.pendingDeletion.message' | translate: {
+                        date: getDeletionRequestDate(),
+                        days: getDaysUntilDeletion()
+                      } }}
+                    </p>
+                  </div>
                 </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Carte organisme -->
-            @if (user.organisme) {
-              <mat-card class="profile-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <i class="fi fi-rr-building card-title-icon"></i>
-                    {{ 'profile.organisme.title' | translate }}
-                  </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="info-grid">
-                    <div class="info-item full-width">
-                      <span class="info-label">{{ 'profile.organisme.name' | translate }}</span>
-                      <span class="info-value org-name">{{ user.organisme.nom_organisme }}</span>
-                    </div>
-                    @if (user.organisme.adresse_organisme) {
-                      <div class="info-item full-width">
-                        <span class="info-label">{{ 'profile.organisme.address' | translate }}</span>
-                        <span class="info-value">
-                          {{ user.organisme.adresse_organisme }}
-                          @if (user.organisme.cp_organisme || user.organisme.ville_organisme) {
-                            <br>{{ user.organisme.cp_organisme }} {{ user.organisme.ville_organisme }}
-                          }
-                        </span>
-                      </div>
-                    }
-                    @if (user.organisme.tel_organisme) {
-                      <div class="info-item">
-                        <span class="info-label">{{ 'profile.organisme.phone' | translate }}</span>
-                        <span class="info-value">{{ user.organisme.tel_organisme }}</span>
-                      </div>
-                    }
-                    @if (user.organisme.email_organisme) {
-                      <div class="info-item">
-                        <span class="info-label">{{ 'profile.organisme.email' | translate }}</span>
-                        <span class="info-value">{{ user.organisme.email_organisme }}</span>
-                      </div>
-                    }
-                  </div>
-                </mat-card-content>
-              </mat-card>
+                <button
+                  mat-flat-button
+                  color="primary"
+                  (click)="cancelAccountDeletion()"
+                  [disabled]="isCancelling()"
+                >
+                  @if (isCancelling()) {
+                    <i class="fi fi-rr-spinner spinning"></i>
+                  } @else {
+                    <i class="fi fi-rr-undo"></i>
+                  }
+                  {{ 'profile.rgpd.pendingDeletion.cancelButton' | translate }}
+                </button>
+              </div>
+            } @else {
+              <!-- Option de suppression de compte -->
+              <div class="delete-account-section">
+                <p class="rgpd-description">
+                  {{ 'profile.rgpd.deleteDescription' | translate }}
+                </p>
+                <button
+                  mat-stroked-button
+                  class="delete-button"
+                  (click)="openDeleteAccountDialog()"
+                  [disabled]="isDeleting()"
+                >
+                  @if (isDeleting()) {
+                    <i class="fi fi-rr-spinner spinning"></i>
+                  } @else {
+                    <i class="fi fi-rr-trash"></i>
+                  }
+                  {{ 'profile.rgpd.deleteAccount' | translate }}
+                </button>
+              </div>
             }
-          </div>
-        } @else {
-          <div class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-          </div>
+          </mat-card-content>
+        </mat-card>
         }
       </div>
-    </mat-tab>
-
-    <!-- Onglet: Mes demandes -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <i class="fi fi-rr-time-check tab-icon"></i>
-        {{ 'profile.tabs.requests' | translate }}
-        @if (getPendingCount() > 0) {
-          <span class="badge">{{ getPendingCount() }}</span>
-        }
-      </ng-template>
-
-      <div class="tab-content">
-        @if (loadingRequests()) {
-          <div class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-          </div>
-        } @else {
-          @if (myRequests().length === 0) {
-            <div class="empty-state">
-              <i class="fi fi-rr-document-signed empty-icon"></i>
-              <h3>{{ 'profile.requests.empty.title' | translate }}</h3>
-              <p>{{ 'profile.requests.empty.message' | translate }}</p>
-            </div>
-          } @else {
-            <div class="requests-section">
-              <p class="section-description">{{ 'profile.requests.description' | translate }}</p>
-
-              <table mat-table [dataSource]="myRequests()" class="requests-table">
-                <!-- Type -->
-                <ng-container matColumnDef="type">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.type' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    <span class="type-badge">
-                      <i class="fi" [ngClass]="getTypeIcon(request.request_type)"></i>
-                      {{ request.request_type_display }}
-                    </span>
-                  </td>
-                </ng-container>
-
-                <!-- Cible -->
-                <ng-container matColumnDef="target">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.target' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    {{ request.target_name || '-' }}
-                  </td>
-                </ng-container>
-
-                <!-- Date de demande -->
-                <ng-container matColumnDef="date">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.date' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    {{ formatDateTime(request.created_at) }}
-                  </td>
-                </ng-container>
-
-                <!-- Date de validation -->
-                <ng-container matColumnDef="validated_at">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.validatedAt' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    @if (request.validated_at) {
-                      {{ formatDateTime(request.validated_at) }}
-                    } @else {
-                      <span class="pending-label">-</span>
-                    }
-                  </td>
-                </ng-container>
-
-                <!-- Statut -->
-                <ng-container matColumnDef="status">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.status' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    <mat-chip [ngClass]="getStatusClass(request.status)">
-                      {{ request.status_display }}
-                    </mat-chip>
-                  </td>
-                </ng-container>
-
-                <!-- Validateur -->
-                <ng-container matColumnDef="validator">
-                  <th mat-header-cell *matHeaderCellDef>{{ 'profile.requests.table.validator' | translate }}</th>
-                  <td mat-cell *matCellDef="let request">
-                    @if (request.validator_name) {
-                      <span class="validator-info">
-                        <i class="fi fi-rr-user-check validator-icon"></i>
-                        {{ request.validator_name }}
-                      </span>
-                    } @else {
-                      <span class="pending-label">{{ 'profile.requests.pending' | translate }}</span>
-                    }
-                  </td>
-                </ng-container>
-
-                <tr mat-header-row *matHeaderRowDef="requestColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: requestColumns"></tr>
-              </table>
-            </div>
-          }
-        }
+    } @else {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
       </div>
-    </mat-tab>
-  </mat-tab-group>
+    }
+  </div>
 </div>

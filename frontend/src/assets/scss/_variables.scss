@@ -48,25 +48,27 @@ $bg-info-light: #F8F5F1;  // Beige pour blocs info (remplace rose pâle)
 // Font Family
 $font-family: 'Nunito', sans-serif;
 
-// Font Sizes (Kit UI specs)
+// Font Sizes (Kit UI specs - augmenté pour lisibilité écrans laptop)
 $font-size-h1: 48px;
 $font-size-h2: 32px;
 $font-size-h3: 24px;
 $font-size-h4: 20px;
-$font-size-subtitle: 15px;  // Subtitle: Bold, uppercase, letter-spacing 20%
-$font-size-base: 15px;      // Texte standard
-$font-size-small: 13px;     // Texte mention
+$font-size-subtitle: 16px;  // Subtitle: Bold, uppercase, letter-spacing 20%
+$font-size-base: 16px;      // Texte standard (was 15px)
+$font-size-small: 14px;     // Texte mention (was 13px)
 
-// Line Heights (Kit UI specs)
+// Line Heights (Kit UI specs - ajusté pour nouvelles tailles)
 $line-height-h1: 72px;
 $line-height-h2: 48px;
 $line-height-h3: 36px;
 $line-height-h4: 30px;
-$line-height-base: 24px;
-$line-height-small: 19px;
+$line-height-base: 26px;   // Augmenté (was 24px)
+$line-height-small: 22px;  // Augmenté (was 19px)
 
 // Font Weights
 $font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
 $font-weight-bold: 700;
 
 // Letter Spacing

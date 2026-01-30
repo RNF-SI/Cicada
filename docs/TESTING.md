@@ -245,25 +245,25 @@ module.exports = {
 
 ```bash
 # Via Docker (recommandé)
-docker-compose exec web pytest tests/
+docker compose exec web pytest tests/
 
 # Tous les tests avec couverture
-docker-compose exec web pytest tests/ --cov=apps --cov-report=html
+docker compose exec web pytest tests/ --cov=apps --cov-report=html
 
 # Tests unitaires uniquement
-docker-compose exec web pytest tests/ -m unit
+docker compose exec web pytest tests/ -m unit
 
 # Tests d'intégration uniquement
-docker-compose exec web pytest tests/ -m integration
+docker compose exec web pytest tests/ -m integration
 
 # Un fichier spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py -v
+docker compose exec web pytest tests/integration/test_api_users.py -v
 
 # Un test spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint::test_list_super_admin_sees_all -v
+docker compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint::test_list_super_admin_sees_all -v
 
 # Mode verbose avec détails d'erreur
-docker-compose exec web pytest tests/ -v --tb=long
+docker compose exec web pytest tests/ -v --tb=long
 ```
 
 ### Frontend
@@ -460,7 +460,7 @@ jobs:
 
     services:
       postgres:
-        image: postgis/postgis:15-3.3
+        image: postgis/postgis:17-3.5
         env:
           POSTGRES_DB: ${{ env.POSTGRES_DB }}
           POSTGRES_USER: ${{ env.POSTGRES_USER }}

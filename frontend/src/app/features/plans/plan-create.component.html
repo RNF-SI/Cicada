@@ -1,0 +1,381 @@
+<!-- Header -->
+<app-header></app-header>
+
+<!-- Main Content -->
+<main class="plan-create-page">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-background">
+      <div class="hero-pattern"></div>
+    </div>
+
+    <div class="hero-content">
+      <!-- Fil d'Ariane -->
+      <nav class="breadcrumb" aria-label="Fil d'Ariane">
+        <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+          <i class="fi fi-rr-home"></i>
+        </a>
+        <div class="breadcrumb-lines"></div>
+        <div class="breadcrumb-text">
+          <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+          <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+          <span class="breadcrumb-current">{{ 'modals.planForm.titleCreate' | translate }}</span>
+        </div>
+      </nav>
+
+      <!-- Hero Title -->
+      <div class="hero-title-section">
+        <div class="hero-subtitle">
+          <i class="fi fi-rr-document"></i>
+          <span>{{ 'plans.newPlan' | translate }}</span>
+        </div>
+        <h1 class="hero-title">{{ 'modals.planForm.titleCreate' | translate }}</h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form Section -->
+  <section class="form-section">
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else {
+      <div class="form-card">
+        <form [formGroup]="form" class="plan-form">
+          <!-- Note champs obligatoires -->
+          <p class="required-note">{{ 'modals.planForm.requiredFieldsNote' | translate }}</p>
+
+          <!-- Error message -->
+          @if (errorMessage()) {
+            <div class="error-banner">
+              <i class="fi fi-rr-exclamation"></i>
+              {{ errorMessage() }}
+            </div>
+          }
+
+          <!-- Nom du plan * -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.name' | translate }} *</mat-label>
+            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+            @if (form.get('nom')?.hasError('required')) {
+              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Choix des sites * -->
+          <div class="form-section-box sites-section">
+            <label class="field-label">
+              {{ 'modals.planForm.fields.sites' | translate }} *
+              <span class="count-badge">{{ getSelectedSitesCount() }}</span>
+            </label>
+
+            <div class="search-box">
+              <i class="fi fi-rr-search"></i>
+              <input
+                type="text"
+                [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
+                [(ngModel)]="siteSearchQuery"
+                [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="filterSites()"
+              />
+            </div>
+
+            <div class="selection-list">
+              @for (site of filteredSites(); track site.id) {
+                <div
+                  class="selection-item"
+                  [class.selected]="isSiteSelected(site.id)"
+                  [class.pending]="site.pendingValidation"
+                  (click)="toggleSite(site.id)"
+                >
+                  <div class="item-info">
+                    <mat-checkbox
+                      [checked]="isSiteSelected(site.id)"
+                      (click)="$event.stopPropagation()"
+                      (change)="toggleSite(site.id)"
+                    ></mat-checkbox>
+                    <span class="item-name">{{ site.nom }}</span>
+                    @if (site.type) {
+                      <span class="item-type">{{ site.type }}</span>
+                    }
+                    @if (site.pendingValidation) {
+                      <span class="item-pending">
+                        <i class="fi fi-rr-clock"></i>
+                        {{ 'modals.planForm.sitePending' | translate }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+              @if (filteredSites().length === 0) {
+                <p class="no-items">
+                  @if (siteSearchQuery) {
+                    {{ 'modals.planForm.noSiteMatching' | translate:{ query: siteSearchQuery } }}
+                  } @else {
+                    {{ 'modals.planForm.noSiteAvailable' | translate }}
+                  }
+                </p>
+              }
+            </div>
+
+            <p class="sites-hint">
+              {{ 'modals.planForm.sitesHint' | translate }}
+              <a href="javascript:void(0)" (click)="openCreateSiteModal()">{{ 'modals.planForm.sitesHintLink' | translate }}</a>
+            </p>
+          </div>
+
+          <!-- Rang et Surface -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.rang' | translate }} *</mat-label>
+              <input matInput type="number" formControlName="rang" min="1">
+              <mat-hint>{{ 'modals.planForm.hints.rang' | translate }}</mat-hint>
+              @if (form.get('rang')?.hasError('required')) {
+                <mat-error>{{ 'modals.planForm.validation.rangRequired' | translate }}</mat-error>
+              }
+              @if (form.get('rang')?.hasError('min')) {
+                <mat-error>{{ 'modals.planForm.validation.rangMin' | translate }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.surface' | translate }}</mat-label>
+              <input matInput type="number" formControlName="surface" step="0.01">
+              <span matTextSuffix>ha</span>
+              <mat-hint>{{ 'modals.planForm.hints.surface' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- CT88 (Radio buttons) -->
+          <div class="form-section-box ct88-section">
+            <label class="field-label">{{ 'modals.planForm.fields.ct88' | translate }} *</label>
+            <mat-radio-group formControlName="ct88" class="ct88-radio-group">
+              <mat-radio-button [value]="true">{{ 'modals.planForm.ct88Options.yes' | translate }}</mat-radio-button>
+              <mat-radio-button [value]="false">{{ 'modals.planForm.ct88Options.no' | translate }}</mat-radio-button>
+            </mat-radio-group>
+          </div>
+
+          <!-- Année début et Année fin -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.startYear' | translate }} *</mat-label>
+              <input matInput type="number" formControlName="annee_debut" min="1900" max="2100">
+              @if (form.get('annee_debut')?.hasError('required')) {
+                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'modals.planForm.fields.endYear' | translate }} *</mat-label>
+              <input matInput type="number" formControlName="annee_fin" min="1900" max="2100">
+              @if (form.get('annee_fin')?.hasError('required')) {
+                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Date validation CSPN -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.cspnDate' | translate }}</mat-label>
+            <input matInput [matDatepicker]="cspnPicker" formControlName="date_validation_cspn">
+            <mat-datepicker-toggle matIconSuffix [for]="cspnPicker"></mat-datepicker-toggle>
+            <mat-datepicker #cspnPicker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- ID Doc'Gestion FCEN -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
+            <input matInput formControlName="id_docgestion_fcen">
+          </mat-form-field>
+
+          <!-- Type organisme rédacteur -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
+            <mat-select formControlName="id_redacteur_type">
+              <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
+              @for (type of redacteurTypes(); track type.id_nomenclature) {
+                <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Nom organisme rédacteur (hybrid: organisme ou texte libre) -->
+          <div class="form-section-box organisme-section">
+            <label class="field-label">{{ 'modals.planForm.fields.editorName' | translate }}</label>
+
+            @if (selectedOrganisme(); as org) {
+              <!-- Organisme sélectionné -->
+              <div class="selected-organisme">
+                <mat-chip-row (removed)="clearOrganisme()">
+                  @if (org.type === 'organisme') {
+                    <i class="fi fi-rr-building chip-icon"></i>
+                  } @else {
+                    <i class="fi fi-rr-user chip-icon"></i>
+                  }
+                  {{ org.displayName }}
+                  <button matChipRemove>
+                    <i class="fi fi-rr-cross-small"></i>
+                  </button>
+                </mat-chip-row>
+              </div>
+            } @else {
+              <!-- Input avec autocomplete -->
+              <mat-form-field appearance="outline" class="full-width">
+                <input
+                  matInput
+                  #organismeInput
+                  [formControl]="organismeCtrl"
+                  [matAutocomplete]="organismeAuto"
+                  [placeholder]="'modals.planForm.placeholders.editorName' | translate"
+                  (keyup.enter)="setOrganismeFromText()"
+                />
+                <mat-autocomplete
+                  #organismeAuto="matAutocomplete"
+                  (optionSelected)="selectOrganisme($event)"
+                  [displayWith]="displayOrganismeFn"
+                >
+                  @for (org of filteredOrganismes$ | async; track org.id_organisme) {
+                    <mat-option [value]="org">
+                      <i class="fi fi-rr-building option-icon"></i>
+                      {{ org.nom_organisme }}
+                    </mat-option>
+                  }
+                  @if (organismeCtrl.value) {
+                    <mat-option [value]="null" (click)="setOrganismeFromText()">
+                      <i class="fi fi-rr-plus option-icon"></i>
+                      {{ 'modals.planForm.addFreeText' | translate }}: "{{ organismeCtrl.value }}"
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+                <mat-hint>{{ 'modals.planForm.hints.editorName' | translate }}</mat-hint>
+              </mat-form-field>
+            }
+          </div>
+
+          <!-- Rédacteurs (hybrid: utilisateurs ou texte libre) -->
+          <div class="form-section-box">
+            <label class="field-label">
+              {{ 'modals.planForm.fields.redacteurs' | translate }}
+              @if (redacteurs().length > 0) {
+                <span class="count-badge small">{{ redacteurs().length }}</span>
+              }
+            </label>
+
+            <mat-form-field appearance="outline" class="full-width chips-field">
+              <mat-chip-grid #redacteursChipGrid>
+                @for (person of redacteurs(); track person.displayName) {
+                  <mat-chip-row (removed)="removeRedacteur(person)">
+                    @if (person.type === 'user') {
+                      <i class="fi fi-rr-user chip-icon"></i>
+                    } @else {
+                      <i class="fi fi-rr-user-pen chip-icon"></i>
+                    }
+                    {{ person.displayName }}
+                    <button matChipRemove>
+                      <i class="fi fi-rr-cross-small"></i>
+                    </button>
+                  </mat-chip-row>
+                }
+                <input
+                  #redacteursInput
+                  [formControl]="redacteursCtrl"
+                  [matChipInputFor]="redacteursChipGrid"
+                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                  (matChipInputTokenEnd)="addRedacteurFromText($event)"
+                  [matAutocomplete]="redacteursAuto"
+                  [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
+                />
+              </mat-chip-grid>
+              <mat-autocomplete
+                #redacteursAuto="matAutocomplete"
+                (optionSelected)="addRedacteurFromUser($event)"
+              >
+                @for (user of filteredUsers$ | async; track user.id_role) {
+                  <mat-option [value]="user">
+                    <i class="fi fi-rr-user option-icon"></i>
+                    <span class="option-name">{{ user.prenom_role }} {{ user.nom_role }}</span>
+                    <span class="option-email">{{ user.email }}</span>
+                  </mat-option>
+                }
+              </mat-autocomplete>
+              <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Relecteurs (hybrid: utilisateurs ou texte libre) -->
+          <div class="form-section-box">
+            <label class="field-label">
+              {{ 'modals.planForm.fields.relecteurs' | translate }}
+              @if (relecteurs().length > 0) {
+                <span class="count-badge small">{{ relecteurs().length }}</span>
+              }
+            </label>
+
+            <mat-form-field appearance="outline" class="full-width chips-field">
+              <mat-chip-grid #relecteursChipGrid>
+                @for (person of relecteurs(); track person.displayName) {
+                  <mat-chip-row (removed)="removeRelecteur(person)">
+                    @if (person.type === 'user') {
+                      <i class="fi fi-rr-user chip-icon"></i>
+                    } @else {
+                      <i class="fi fi-rr-user-pen chip-icon"></i>
+                    }
+                    {{ person.displayName }}
+                    <button matChipRemove>
+                      <i class="fi fi-rr-cross-small"></i>
+                    </button>
+                  </mat-chip-row>
+                }
+                <input
+                  #relecteursInput
+                  [formControl]="relecteursCtrl"
+                  [matChipInputFor]="relecteursChipGrid"
+                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                  (matChipInputTokenEnd)="addRelecteurFromText($event)"
+                  [matAutocomplete]="relecteursAuto"
+                  [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
+                />
+              </mat-chip-grid>
+              <mat-autocomplete
+                #relecteursAuto="matAutocomplete"
+                (optionSelected)="addRelecteurFromUser($event)"
+              >
+                @for (user of filteredUsersForRelecteurs$ | async; track user.id_role) {
+                  <mat-option [value]="user">
+                    <i class="fi fi-rr-user option-icon"></i>
+                    <span class="option-name">{{ user.prenom_role }} {{ user.nom_role }}</span>
+                    <span class="option-email">{{ user.email }}</span>
+                  </mat-option>
+                }
+              </mat-autocomplete>
+              <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
+        </form>
+      </div>
+    }
+  </section>
+
+  <!-- Action Bar (sticky bottom) -->
+  <div class="action-bar">
+    <div class="action-bar-content">
+      <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading()">
+        {{ 'common.actions.cancel' | translate }}
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="onSubmit()"
+        [disabled]="isLoading() || isLoadingData()"
+      >
+        @if (isLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          {{ 'common.actions.validate' | translate }}
+        }
+      </button>
+    </div>
+  </div>
+</main>

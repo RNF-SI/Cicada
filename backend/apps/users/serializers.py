@@ -134,10 +134,13 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
             'sites_lies', 'plans_referent', 'permissions_info', 'date_insert', 'date_update',
-            'last_login'
+            'last_login',
+            # RGPD fields
+            'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
         read_only_fields = [
-            'id_role', 'date_insert', 'date_update', 'last_login'
+            'id_role', 'date_insert', 'date_update', 'last_login',
+            'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
     
     def get_permissions_info(self, obj):
@@ -328,14 +331,14 @@ class SiteAssignmentSerializer(serializers.ModelSerializer):
     """
     site_id = serializers.IntegerField(source='id_site.id_site')
     site_nom = serializers.CharField(source='id_site.nom_site', read_only=True)
-    
+
     class Meta:
         model = CorRoleSite
         fields = [
-            'site_id', 'site_nom', 'referent', 
+            'site_id', 'site_nom', 'referent',
             'referent_valid', 'conservateur'
         ]
-    
+
     def validate_site_id(self, value):
         """Vérifier que le site existe."""
         try:
@@ -343,20 +346,54 @@ class SiteAssignmentSerializer(serializers.ModelSerializer):
             return value
         except Site.DoesNotExist:
             raise serializers.ValidationError(_("Site non trouvé."))
-    
+
     def create(self, validated_data):
         """Créer une assignation de site."""
         site_data = validated_data.pop('id_site')
         site = Site.objects.get(id_site=site_data['id_site'])
-        
+
         # L'utilisateur est fourni par la vue
         user = self.context['user']
-        
+
         # Créer ou mettre à jour la relation
         cor_role_site, created = CorRoleSite.objects.update_or_create(
             id_role=user,
             id_site=site,
             defaults=validated_data
         )
-        
+
         return cor_role_site
+
+
+class RgpdRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les demandes RGPD en attente de traitement.
+    """
+    organisme_name = serializers.CharField(
+        source='id_organisme.nom_organisme',
+        read_only=True,
+        default=None
+    )
+    full_name = serializers.SerializerMethodField()
+    days_since_request = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Role
+        fields = [
+            'id_role', 'email', 'full_name', 'organisme_name',
+            'deletion_requested_at', 'active', 'is_anonymized',
+            'days_since_request'
+        ]
+        read_only_fields = fields
+
+    def get_full_name(self, obj):
+        """Retourne le nom complet de l'utilisateur."""
+        return obj.get_full_name()
+
+    def get_days_since_request(self, obj):
+        """Retourne le nombre de jours depuis la demande."""
+        if obj.deletion_requested_at:
+            from django.utils import timezone
+            delta = timezone.now() - obj.deletion_requested_at
+            return delta.days
+        return None

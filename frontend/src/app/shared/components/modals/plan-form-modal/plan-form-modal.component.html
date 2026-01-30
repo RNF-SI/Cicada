@@ -9,6 +9,9 @@
       </div>
     } @else {
       <form [formGroup]="form" class="plan-form">
+        <!-- Note champs obligatoires -->
+        <p class="required-note">{{ 'modals.planForm.requiredFieldsNote' | translate }}</p>
+
         <!-- Error message -->
         @if (errorMessage()) {
           <div class="error-banner">
@@ -17,238 +20,182 @@
           </div>
         }
 
-        <!-- Section: Informations generales -->
-        <div class="form-section">
-          <h3 class="section-title">{{ 'modals.planForm.sections.generalInfo' | translate }}</h3>
+        <!-- Nom du plan * -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.name' | translate }} *</mat-label>
+          <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+          @if (form.get('nom')?.hasError('required')) {
+            <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+          }
+        </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.name' | translate }}</mat-label>
-            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
-            @if (form.get('nom')?.hasError('required')) {
-              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+        <!-- Choix des sites * -->
+        <div class="form-section sites-section">
+          <label class="field-label">
+            {{ 'modals.planForm.fields.sites' | translate }} *
+            <span class="count-badge">{{ getSelectedSitesCount() }}</span>
+          </label>
+
+          <div class="search-box">
+            <i class="fi fi-rr-search"></i>
+            <input
+              type="text"
+              [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
+              [(ngModel)]="siteSearchQuery"
+              [ngModelOptions]="{standalone: true}"
+              (ngModelChange)="filterSites()"
+            />
+          </div>
+
+          <div class="selection-list">
+            @for (site of filteredSites(); track site.id) {
+              <div
+                class="selection-item"
+                [class.selected]="isSiteSelected(site.id)"
+                (click)="toggleSite(site.id)"
+              >
+                <div class="item-info">
+                  <mat-checkbox
+                    [checked]="isSiteSelected(site.id)"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleSite(site.id)"
+                  ></mat-checkbox>
+                  <span class="item-name">{{ site.nom }}</span>
+                  @if (site.type) {
+                    <span class="item-type">{{ site.type }}</span>
+                  }
+                </div>
+              </div>
+            }
+            @if (filteredSites().length === 0) {
+              <p class="no-items">
+                @if (siteSearchQuery) {
+                  {{ 'modals.planForm.noSiteMatching' | translate:{ query: siteSearchQuery } }}
+                } @else {
+                  {{ 'modals.planForm.noSiteAvailable' | translate }}
+                }
+              </p>
+            }
+          </div>
+
+          <p class="sites-hint">
+            {{ 'modals.planForm.sitesHint' | translate }}
+            <a routerLink="/admin/sites" (click)="dialogRef.close()">{{ 'modals.planForm.sitesHintLink' | translate }}</a>
+          </p>
+        </div>
+
+        <!-- Rang et Surface -->
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.planForm.fields.rang' | translate }} *</mat-label>
+            <input matInput type="number" formControlName="rang" min="1">
+            <mat-hint>{{ 'modals.planForm.hints.rang' | translate }}</mat-hint>
+            @if (form.get('rang')?.hasError('required')) {
+              <mat-error>{{ 'modals.planForm.validation.rangRequired' | translate }}</mat-error>
+            }
+            @if (form.get('rang')?.hasError('min')) {
+              <mat-error>{{ 'modals.planForm.validation.rangMin' | translate }}</mat-error>
             }
           </mat-form-field>
 
-          <div class="form-row-3">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.status' | translate }}</mat-label>
-              <mat-select formControlName="statut">
-                <mat-option value="draft">{{ 'common.status.draft' | translate }}</mat-option>
-                <mat-option value="valide">{{ 'common.status.valid' | translate }}</mat-option>
-                <mat-option value="archive">{{ 'common.status.archived' | translate }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.version' | translate }}</mat-label>
-              <input matInput formControlName="version" placeholder="1.0">
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.editorName' | translate }}</mat-label>
-              <input matInput formControlName="redacteur_nom" [placeholder]="'modals.planForm.placeholders.editorName' | translate">
-            </mat-form-field>
-          </div>
-        </div>
-
-        <!-- Section: Periode et Caracteristiques -->
-        <div class="form-section">
-          <div class="form-row">
-            <div>
-              <h3 class="section-title">{{ 'modals.planForm.sections.managementPeriod' | translate }}</h3>
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'modals.planForm.fields.startYear' | translate }}</mat-label>
-                  <input matInput type="number" formControlName="annee_debut">
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'modals.planForm.fields.endYear' | translate }}</mat-label>
-                  <input matInput type="number" formControlName="annee_fin">
-                </mat-form-field>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="section-title">{{ 'modals.planForm.sections.characteristics' | translate }}</h3>
-              <div class="checkboxes-row">
-                <mat-checkbox formControlName="gestion_partagee">
-                  {{ 'modals.planForm.fields.sharedManagement' | translate }}
-                </mat-checkbox>
-
-                <mat-checkbox formControlName="ct88">
-                  {{ 'modals.planForm.fields.ct88' | translate }}
-                </mat-checkbox>
-
-                <mat-checkbox formControlName="risque_incendie">
-                  {{ 'modals.planForm.fields.fireRisk' | translate }}
-                </mat-checkbox>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section: Evaluation et redaction -->
-        <div class="form-section">
-          <h3 class="section-title">{{ 'modals.planForm.sections.evaluationAndWriting' | translate }}</h3>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.evaluationType' | translate }}</mat-label>
-              <mat-select formControlName="id_evaluation">
-                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
-                @for (type of evaluationTypes(); track type.id_nomenclature) {
-                  <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
-              <mat-select formControlName="id_redacteur_type">
-                <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
-                @for (type of redacteurTypes(); track type.id_nomenclature) {
-                  <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
-
-        <!-- Section: Sites et Referents (two columns) -->
-        <div class="form-section">
-          <div class="two-columns">
-            <!-- Sites Column -->
-            <div>
-              <h3 class="section-title">
-                <i class="fi fi-rr-marker"></i>
-                {{ 'modals.planForm.sections.associatedSites' | translate }}
-                <span class="count-badge">{{ getSelectedSitesCount() }}</span>
-              </h3>
-
-              <div class="search-box">
-                <i class="fi fi-rr-search"></i>
-                <input
-                  type="text"
-                  [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
-                  [(ngModel)]="siteSearchQuery"
-                  [ngModelOptions]="{standalone: true}"
-                  (ngModelChange)="filterSites()"
-                />
-              </div>
-
-              <div class="selection-list">
-                @for (site of filteredSites(); track site.id) {
-                  <div
-                    class="selection-item"
-                    [class.selected]="isSiteSelected(site.id)"
-                    (click)="toggleSite(site.id)"
-                  >
-                    <div class="item-info">
-                      <i class="fi fi-rr-marker"></i>
-                      <span class="item-name">{{ site.nom }}</span>
-                      @if (site.type) {
-                        <span class="item-type">{{ site.type }}</span>
-                      }
-                    </div>
-                    <div class="item-checkbox">
-                      @if (isSiteSelected(site.id)) {
-                        <i class="fi fi-rr-check"></i>
-                      }
-                    </div>
-                  </div>
-                }
-                @if (filteredSites().length === 0) {
-                  <p class="no-items">
-                    @if (siteSearchQuery) {
-                      {{ 'modals.planForm.noSiteMatching' | translate:{ query: siteSearchQuery } }}
-                    } @else {
-                      {{ 'modals.planForm.noSiteAvailable' | translate }}
-                    }
-                  </p>
-                }
-              </div>
-            </div>
-
-            <!-- Referents Column -->
-            <div>
-              <h3 class="section-title">
-                <i class="fi fi-rr-user"></i>
-                {{ 'modals.planForm.sections.referents' | translate }}
-                <span class="count-badge">{{ getSelectedReferentsCount() }}</span>
-              </h3>
-
-              <div class="search-box">
-                <i class="fi fi-rr-search"></i>
-                <input
-                  type="text"
-                  [placeholder]="'modals.planForm.placeholders.searchUser' | translate"
-                  [(ngModel)]="userSearchQuery"
-                  [ngModelOptions]="{standalone: true}"
-                  (ngModelChange)="filterUsers()"
-                />
-              </div>
-
-              <div class="selection-list">
-                @for (user of filteredUsers(); track user.id) {
-                  <div
-                    class="selection-item"
-                    [class.selected]="isReferentSelected(user.id)"
-                    (click)="toggleReferent(user.id)"
-                  >
-                    <div class="item-info">
-                      <i class="fi fi-rr-user"></i>
-                      <span class="item-name">{{ user.nom }}</span>
-                      <span class="item-email">{{ user.email }}</span>
-                      @if (user.role) {
-                        <span class="item-role">{{ user.role }}</span>
-                      }
-                    </div>
-                    <div class="item-checkbox">
-                      @if (isReferentSelected(user.id)) {
-                        <i class="fi fi-rr-check"></i>
-                      }
-                    </div>
-                  </div>
-                }
-                @if (filteredUsers().length === 0) {
-                  <p class="no-items">
-                    @if (userSearchQuery) {
-                      {{ 'modals.planForm.noUserMatching' | translate:{ query: userSearchQuery } }}
-                    } @else {
-                      {{ 'modals.planForm.noUserAvailable' | translate }}
-                    }
-                  </p>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section: Commentaire -->
-        <div class="form-section">
-          <h3 class="section-title">{{ 'modals.planForm.sections.comment' | translate }}</h3>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.comment' | translate }}</mat-label>
-            <textarea
-              matInput
-              formControlName="commentaire"
-              rows="3"
-              [placeholder]="'modals.planForm.placeholders.comment' | translate"
-            ></textarea>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.planForm.fields.surface' | translate }}</mat-label>
+            <input matInput type="number" formControlName="surface" step="0.01">
+            <span matTextSuffix>ha</span>
+            <mat-hint>{{ 'modals.planForm.hints.surface' | translate }}</mat-hint>
           </mat-form-field>
         </div>
+
+        <!-- CT88 (Radio buttons) -->
+        <div class="form-section ct88-section">
+          <label class="field-label">{{ 'modals.planForm.fields.ct88' | translate }} *</label>
+          <mat-radio-group formControlName="ct88" class="ct88-radio-group">
+            <mat-radio-button [value]="true">{{ 'modals.planForm.ct88Options.yes' | translate }}</mat-radio-button>
+            <mat-radio-button [value]="false">{{ 'modals.planForm.ct88Options.no' | translate }}</mat-radio-button>
+          </mat-radio-group>
+        </div>
+
+        <!-- Année début et Année fin -->
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.planForm.fields.startYear' | translate }} *</mat-label>
+            <input matInput type="number" formControlName="annee_debut" min="1900" max="2100">
+            @if (form.get('annee_debut')?.hasError('required')) {
+              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'modals.planForm.fields.endYear' | translate }} *</mat-label>
+            <input matInput type="number" formControlName="annee_fin" min="1900" max="2100">
+            @if (form.get('annee_fin')?.hasError('required')) {
+              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Date validation CSPN -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.cspnDate' | translate }}</mat-label>
+          <input matInput [matDatepicker]="cspnPicker" formControlName="date_validation_cspn">
+          <mat-datepicker-toggle matIconSuffix [for]="cspnPicker"></mat-datepicker-toggle>
+          <mat-datepicker #cspnPicker></mat-datepicker>
+        </mat-form-field>
+
+        <!-- ID Doc'Gestion FCEN -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
+          <input matInput formControlName="id_docgestion_fcen">
+        </mat-form-field>
+
+        <!-- Type organisme rédacteur -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
+          <mat-select formControlName="id_redacteur_type">
+            <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
+            @for (type of redacteurTypes(); track type.id_nomenclature) {
+              <mat-option [value]="type.id_nomenclature">{{ type.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Nom organisme rédacteur -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.editorName' | translate }}</mat-label>
+          <input matInput formControlName="redacteur_nom" [placeholder]="'modals.planForm.placeholders.editorName' | translate">
+        </mat-form-field>
+
+        <!-- Rédacteurs -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
+          <textarea
+            matInput
+            formControlName="redacteurs"
+            rows="2"
+            [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
+          ></textarea>
+        </mat-form-field>
+
+        <!-- Relecteurs -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.relecteurs' | translate }}</mat-label>
+          <textarea
+            matInput
+            formControlName="relecteurs"
+            rows="2"
+            [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
+          ></textarea>
+        </mat-form-field>
       </form>
     }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading()">
       {{ 'common.actions.cancel' | translate }}
     </button>
     <button
-      mat-raised-button
+      mat-flat-button
       color="primary"
       (click)="onSubmit()"
       [disabled]="isLoading() || isLoadingData()"
@@ -256,7 +203,7 @@
       @if (isLoading()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {
-        {{ isEditMode ? ('common.actions.edit' | translate) : ('common.actions.create' | translate) }}
+        {{ 'common.actions.validate' | translate }}
       }
     </button>
   </mat-dialog-actions>

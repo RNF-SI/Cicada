@@ -18,7 +18,7 @@ class OrganismeBasicSerializer(serializers.Serializer):
 class PlanGestionBasicSerializer(serializers.Serializer):
     """Serializer basique pour les plans de gestion (inline)."""
     id = serializers.IntegerField(source='id_pg')
-    nom = serializers.CharField(source='nom')
+    nom = serializers.CharField()
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -115,6 +115,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
     )
     pending_user_info = serializers.SerializerMethodField()
     can_validate = serializers.SerializerMethodField()
+    blocked_by_org_link = serializers.SerializerMethodField()
 
     class Meta:
         model = ValidationRequest
@@ -136,6 +137,8 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'validated_at',
             'pending_user_info',
             'can_validate',
+            'blocked_by_org_link',
+            'request_as_referent',
             'created_at',
             'updated_at',
         ]
@@ -175,6 +178,17 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             return obj.can_be_validated_by(request.user)
         return False
 
+    def get_blocked_by_org_link(self, obj):
+        """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
+        if obj.request_type != 'site_access' or obj.status != 'pending':
+            return False
+        return ValidationRequest.objects.filter(
+            requester=obj.requester,
+            target_site=obj.target_site,
+            request_type='site_org_link',
+            status='pending'
+        ).exists()
+
 
 class ValidationRequestListSerializer(serializers.ModelSerializer):
     """Serializer simplifie pour les listes."""
@@ -194,6 +208,8 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    blocked_by_org_link = serializers.SerializerMethodField()
+
     class Meta:
         model = ValidationRequest
         fields = [
@@ -211,6 +227,8 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'validator_comment',
             'validated_at',
             'created_at',
+            'request_as_referent',
+            'blocked_by_org_link',
         ]
 
     def get_requester_name(self, obj):
@@ -249,6 +267,17 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             return str(obj.validator)
         return None
 
+    def get_blocked_by_org_link(self, obj):
+        """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
+        if obj.request_type != 'site_access' or obj.status != 'pending':
+            return False
+        return ValidationRequest.objects.filter(
+            requester=obj.requester,
+            target_site=obj.target_site,
+            request_type='site_org_link',
+            status='pending'
+        ).exists()
+
 
 class ValidationApproveSerializer(serializers.Serializer):
     """Serializer pour l'approbation d'une demande."""
@@ -258,6 +287,12 @@ class ValidationApproveSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=1000,
         help_text=_("Commentaire optionnel")
+    )
+    approve_as_referent = serializers.BooleanField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text=_("Si defini, surcharge le choix du demandeur pour le statut referent")
     )
 
 
@@ -414,6 +449,26 @@ class PlanAccessRequestSerializer(serializers.Serializer):
 
 class AdminDeactivationRequestSerializer(serializers.Serializer):
     """Serializer pour demander la desactivation d'un admin_og."""
+
+    justification = serializers.CharField(
+        required=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire)")
+    )
+
+
+class AdminPromotionRequestSerializer(serializers.Serializer):
+    """Serializer pour demander la promotion d'un utilisateur en admin_og."""
+
+    justification = serializers.CharField(
+        required=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire)")
+    )
+
+
+class AdminDemotionRequestSerializer(serializers.Serializer):
+    """Serializer pour demander la retrogradation d'un admin_og en utilisateur."""
 
     justification = serializers.CharField(
         required=True,

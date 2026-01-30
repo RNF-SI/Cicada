@@ -33,22 +33,25 @@
 
 @mixin sites-hero-pattern {
   position: absolute;
-  right: -100px;
-  top: -100px;
-  width: 1000px;
-  height: 1000px;
-  background-image: url('/assets/images/data-waves.png');
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
   background-size: contain;
   background-repeat: no-repeat;
-  opacity: 0.2;
-  transform: rotate(180deg);
+  background-position: right center;
+  opacity: 1;
 }
 
-// Breadcrumb
+// Breadcrumb (design Figma)
+// Les lignes entourent le texte (une au-dessus, une en-dessous)
 @mixin sites-breadcrumb {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  justify-content: flex-start;
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
   height: 48px;
   background-color: transparent !important;
@@ -68,24 +71,68 @@
   text-decoration: none;
   transition: transform $transition-fast;
   flex-shrink: 0;
+  z-index: 2;
   i { font-size: 24px; }
   &:hover { transform: scale(1.05); }
 }
 
-@mixin sites-breadcrumb-separator {
-  position: relative;
-  width: 16px;
-  height: 48px;
+// Lignes horizontales décoratives (design Figma)
+// Positionnées en absolu pour entourer le texte (une en haut, une en bas)
+@mixin sites-breadcrumb-lines {
+  position: absolute;
+  left: 24px; // Commence depuis le centre du bouton home
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
   &::before, &::after {
     content: '';
-    position: absolute;
-    left: 50%;
-    width: 1px;
-    height: 18px;
-    background-color: $black;
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: rgba($black, 0.25);
   }
-  &::before { top: 0; }
-  &::after { bottom: 0; }
+}
+
+// Conteneur du texte du breadcrumb (à droite)
+@mixin sites-breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
+}
+
+// Lien du breadcrumb - souligné et gras (design Figma)
+@mixin sites-breadcrumb-link {
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+// Séparateur icône flèche (design Figma)
+@mixin sites-breadcrumb-separator {
+  font-size: 16px;
+  color: $black;
+}
+
+// Page courante - pas souligné (design Figma)
+@mixin sites-breadcrumb-current {
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: $font-weight-regular;
+  color: $black;
 }
 
 // Title section
@@ -228,6 +275,95 @@
   min-height: 300px;
 }
 
+// Status chips (shared between list and detail)
+@mixin sites-status-chip-base {
+  font-size: 12px;
+}
+@mixin sites-status-success { background-color: $secondary-yellow !important; color: $black !important; @include sites-status-chip-base; }
+@mixin sites-status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; @include sites-status-chip-base; }
+@mixin sites-status-neutre { background-color: $gray-light !important; color: $black !important; @include sites-status-chip-base; }
+
+// Subsection title (shared)
+@mixin sites-subsection-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  i { font-size: 16px; color: $primary-color; }
+}
+
+// Empty state text
+@mixin sites-empty-text {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $gray-dark;
+  margin: 0;
+}
+
+// Chip icon
+@mixin sites-chip-icon { font-size: 12px; margin-right: 4px; }
+
+// Shared button base (pill shape)
+@mixin sites-btn-pill {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+}
+
+@mixin sites-btn-primary-sm {
+  @include sites-btn-pill;
+  padding: 8px 16px;
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  font-size: $font-size-small;
+  i { font-size: 14px; }
+  &:hover { background-color: $primary-hover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
+}
+
+@mixin sites-btn-secondary-sm {
+  @include sites-btn-pill;
+  padding: 8px 16px;
+  background-color: $white;
+  color: $primary-color;
+  border: 2px solid $primary-color;
+  font-size: $font-size-small;
+  i { font-size: 14px; }
+  &:hover { background-color: $primary-color; color: $white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
+}
+
+// Card base
+@mixin sites-card-base {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  &:hover { background-color: rgba($primary-color, 0.05); }
+}
+
+// Avatar circle
+@mixin sites-avatar($size: 44px) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $size;
+  height: $size;
+  background-color: $white;
+  border-radius: 50%;
+  flex-shrink: 0;
+  i { font-size: 20px; color: $primary-color; }
+}
+
 // Responsive mixins
 @mixin sites-responsive-desktop {
   .hero-section {
@@ -268,10 +404,6 @@
     width: 40px;
     height: 40px;
     i { font-size: 20px; }
-  }
-  .breadcrumb-separator {
-    height: 40px;
-    &::before, &::after { height: 14px; }
   }
   .content-panel { padding: $spacing-md; }
 }

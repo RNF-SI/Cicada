@@ -14,62 +14,185 @@
     </div>
   }
 
-  <div class="site-form-layout">
-    <!-- Colonne Gauche: Carte -->
+  <!-- Template for site card (used in both INPN alert and suggestions panel) -->
+  <ng-template #siteCard let-site let-isBlocking="isBlocking" let-compact="compact">
+    <div class="duplicate-site" [class.compact]="compact">
+      <div class="site-header">
+        <div class="site-info">
+          <h4 class="site-name">{{ site.nom_site }}</h4>
+          <div class="site-meta">
+            @if (site.type_site_label) {
+              <span class="site-type">{{ site.type_site_label }}</span>
+            }
+            @if (site.id_inpn) {
+              <span class="site-inpn">{{ site.id_inpn }}</span>
+            }
+            @if (site.surf_off && !compact) {
+              <span class="site-surface">
+                <i class="fi fi-rr-map"></i>
+                {{ site.surf_off | number:'1.0-0' }} ha
+              </span>
+            }
+          </div>
+          @if (site.organismes && site.organismes.length > 0 && !compact) {
+            <div class="site-orgs">
+              <i class="fi fi-rr-building"></i>
+              <span>
+                {{ site.organismes[0].nom_organisme }}
+                @if (site.organismes.length > 1) {
+                  {{ 'modals.siteForm.duplicates.andOthers' | translate:{ count: site.organismes.length - 1 } }}
+                }
+              </span>
+            </div>
+          }
+        </div>
+        <div class="site-status">
+          @if (site.has_access) {
+            <span class="status-badge status-has-access">
+              <i class="fi fi-rr-check"></i>
+              @if (!compact) {
+                {{ 'modals.siteForm.duplicates.alreadyAccess' | translate }}
+              }
+            </span>
+          }
+          @if (site.is_user_org && !site.has_access) {
+            <span class="status-badge status-your-org">
+              <i class="fi fi-rr-building"></i>
+              @if (!compact) {
+                {{ 'modals.siteForm.duplicates.yourOrg' | translate }}
+              }
+            </span>
+          }
+        </div>
+      </div>
+
+      @if (!site.has_access) {
+        <div class="duplicate-actions" [class.compact]="compact">
+          @if (site.is_user_org) {
+            <!-- L'organisme gere deja le site -->
+            @if (hasPendingAccess(site)) {
+              <span class="status-badge status-pending">
+                <i class="fi fi-rr-hourglass-end"></i>
+                {{ 'modals.siteForm.duplicates.pendingAccessBadge' | translate }}
+              </span>
+            } @else {
+              <button mat-flat-button color="primary" (click)="requestAccessToSite(site)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-user-add"></i>
+                {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
+              </button>
+            }
+          } @else {
+            <!-- L'organisme ne gere pas le site -->
+            @if (hasPendingOrgLink(site)) {
+              <span class="status-badge status-pending">
+                <i class="fi fi-rr-hourglass-end"></i>
+                {{ 'modals.siteForm.duplicates.pendingOrgLinkBadge' | translate }}
+              </span>
+            } @else {
+              <button mat-flat-button color="primary" (click)="requestOrgLink(site, true)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-link"></i>
+                {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
+              </button>
+              <button mat-stroked-button (click)="requestOrgLink(site, false)" [class.btn-sm]="compact">
+                <i class="fi fi-rr-link"></i>
+                {{ 'modals.siteForm.duplicates.linkOnly' | translate }}
+              </button>
+            }
+          }
+        </div>
+      }
+    </div>
+  </ng-template>
+
+  <div class="site-form-layout" [class.has-suggestions]="showDuplicateWarning() && !isEditMode">
+    <!-- Colonne Gauche: Carte unique avec outils polygone + point -->
     <div class="map-column">
       <h3 class="column-title">
         <i class="fi fi-rr-map-marker"></i>
         {{ 'sites.form.geometry.title' | translate }}
       </h3>
 
-      <mat-tab-group (selectedIndexChange)="onGeometryTabChange($event)">
-        <!-- Tab Contour (Polygone) -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <i class="fi fi-rr-draw-polygon tab-icon"></i>
-            {{ 'sites.form.geometry.polygon' | translate }}
-          </ng-template>
-          <div class="map-container">
-            <app-leaflet-map-edit
-              [existingGeometry]="polygonGeometry()"
-              [geometryType]="'polygon'"
-              [height]="'100%'"
-              (geometryChange)="onPolygonChange($event)">
-            </app-leaflet-map-edit>
-          </div>
-          <p class="map-help">{{ 'sites.form.geometry.drawHelp' | translate }}</p>
-        </mat-tab>
-
-        <!-- Tab Point de reference -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <i class="fi fi-rr-marker tab-icon"></i>
-            {{ 'sites.form.geometry.point' | translate }}
-          </ng-template>
-          <div class="map-container">
-            <app-leaflet-map-edit
-              [existingGeometry]="pointGeometry()"
-              [geometryType]="'point'"
-              [height]="'100%'"
-              (geometryChange)="onPointChange($event)">
-            </app-leaflet-map-edit>
-          </div>
-          <p class="map-help">{{ 'sites.form.geometry.pointHelp' | translate }}</p>
-        </mat-tab>
-      </mat-tab-group>
+      <div class="map-container">
+        <app-leaflet-map-edit
+          [existingGeometry]="polygonGeometry()"
+          [existingPointGeometry]="pointGeometry()"
+          [geometryType]="'both'"
+          [enableGeometryImport]="true"
+          [height]="'100%'"
+          (geometryChange)="onPolygonChange($event)"
+          (pointGeometryChange)="onPointChange($event)">
+        </app-leaflet-map-edit>
+      </div>
+      <p class="map-help">{{ 'sites.form.geometry.bothHelp' | translate }}</p>
     </div>
 
-    <!-- Colonne Droite: Formulaire -->
+    <!-- Colonne Centre: Formulaire -->
     <div class="form-column">
       <h3 class="column-title">
         <i class="fi fi-rr-info"></i>
         {{ 'modals.siteForm.infoTitle' | translate }}
       </h3>
 
+      <!-- INPN Blocking Alert (inline in form) -->
+      @if (showDuplicateWarning() && !isEditMode && duplicateCheckResult()?.exact_inpn_match; as site) {
+        <div class="inpn-alert">
+          <div class="inpn-alert-header">
+            <i class="fi fi-rr-exclamation-triangle"></i>
+            <span>{{ 'modals.siteForm.duplicates.inpnUsed' | translate }}</span>
+          </div>
+          <div class="inpn-alert-site">
+            <strong>{{ site.nom_site }}</strong>
+            @if (site.type_site_label) {
+              <span class="site-type-badge">{{ site.type_site_label }}</span>
+            }
+          </div>
+          <div class="inpn-alert-actions">
+            @if (site.has_access) {
+              <span class="status-badge status-has-access">
+                <i class="fi fi-rr-check"></i>
+                {{ 'modals.siteForm.duplicates.alreadyAccess' | translate }}
+              </span>
+            } @else if (site.is_user_org) {
+              @if (hasPendingAccess(site)) {
+                <span class="status-badge status-pending">
+                  <i class="fi fi-rr-hourglass-end"></i>
+                  {{ 'modals.siteForm.duplicates.pendingAccessBadge' | translate }}
+                </span>
+              } @else {
+                <button mat-flat-button color="primary" class="btn-sm" (click)="requestAccessToSite(site)">
+                  <i class="fi fi-rr-user-add"></i>
+                  {{ 'modals.siteForm.duplicates.requestAccess' | translate }}
+                </button>
+              }
+            } @else {
+              @if (hasPendingOrgLink(site)) {
+                <span class="status-badge status-pending">
+                  <i class="fi fi-rr-hourglass-end"></i>
+                  {{ 'modals.siteForm.duplicates.pendingOrgLinkBadge' | translate }}
+                </span>
+              } @else {
+                <button mat-flat-button color="primary" class="btn-sm" (click)="requestOrgLink(site, true)">
+                  <i class="fi fi-rr-link"></i>
+                  {{ 'modals.siteForm.duplicates.linkAndAccess' | translate }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Checking duplicates indicator -->
+      @if (isCheckingDuplicates()) {
+        <div class="checking-duplicates">
+          <mat-spinner diameter="16"></mat-spinner>
+          <span>{{ 'modals.siteForm.duplicates.checking' | translate }}</span>
+        </div>
+      }
+
       <form [formGroup]="form" class="site-form">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'modals.siteForm.fields.name' | translate }} *</mat-label>
-          <input matInput formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue">
+          <input matInput formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue" (input)="onNameInput($event)">
           @if (form.get('nom_site')?.hasError('required') && form.get('nom_site')?.touched) {
             <mat-error>{{ 'modals.siteForm.errors.nameRequired' | translate }}</mat-error>
           }
@@ -84,7 +207,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>{{ 'modals.siteForm.fields.inpnId' | translate }}</mat-label>
-            <input matInput formControlName="id_inpn" placeholder="Ex: FR3600013">
+            <input matInput formControlName="id_inpn" placeholder="Ex: FR3600013" (input)="onInpnInput($event)">
             <mat-hint>{{ 'modals.siteForm.hints.inpnId' | translate }}</mat-hint>
           </mat-form-field>
         </div>
@@ -120,8 +243,42 @@
           <mat-checkbox formControlName="outre_mer">{{ 'modals.siteForm.fields.overseas' | translate }}</mat-checkbox>
           <mat-checkbox formControlName="active">{{ 'modals.siteForm.fields.active' | translate }}</mat-checkbox>
         </div>
+
+        <!-- Checkbox for referent request (only in create mode) -->
+        @if (!isEditMode) {
+          <div class="referent-request-section">
+            <mat-checkbox formControlName="requestAsReferent">
+              {{ 'modals.siteForm.fields.requestAsReferent' | translate }}
+            </mat-checkbox>
+            <p class="help-text">{{ 'modals.siteForm.hints.requestAsReferent' | translate }}</p>
+          </div>
+        }
       </form>
     </div>
+
+    <!-- Colonne Droite: Suggestions de sites similaires (conditionnelle) -->
+    @if (showDuplicateWarning() && !isEditMode && duplicateCheckResult()?.similar_names?.length) {
+      <div class="suggestions-column">
+        <div class="suggestions-header">
+          <i class="fi fi-rr-lightbulb-on"></i>
+          <span>{{ 'modals.siteForm.duplicates.suggestionsTitle' | translate }}</span>
+        </div>
+        <p class="suggestions-subtitle">{{ 'modals.siteForm.duplicates.similarFound' | translate }}</p>
+
+        <div class="suggestions-list">
+          @for (site of duplicateCheckResult()!.similar_names; track site.id_site) {
+            <ng-container *ngTemplateOutlet="siteCard; context: { $implicit: site, isBlocking: false, compact: true }"></ng-container>
+          }
+        </div>
+
+        <div class="suggestions-footer">
+          <button mat-button class="btn-ignore" (click)="continueCreation()">
+            <i class="fi fi-rr-cross-small"></i>
+            {{ 'modals.siteForm.duplicates.ignoreSuggestions' | translate }}
+          </button>
+        </div>
+      </div>
+    }
   </div>
 </mat-dialog-content>
 

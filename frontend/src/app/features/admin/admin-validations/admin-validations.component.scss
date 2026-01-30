@@ -1,29 +1,27 @@
-// Variables
-$primary-color: #025359;
-$secondary-yellow: #FEC180;
-$success-color: #04854B;
-$error-color: #E12329;
-$warning-color: #FA9965;
-$gray-light: #F5F5F5;
-$gray: #999;
+// Import design system variables
+@import 'variables';
 
 .admin-validations {
-  padding: 24px;
+  padding: $spacing-lg;
+
+  @media (max-width: $breakpoint-tablet) {
+    padding: $spacing-md;
+  }
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 
   h1 {
-    font-size: 28px;
-    font-weight: 700;
+    font-size: $font-size-h3;
+    font-weight: $font-weight-bold;
     color: $primary-color;
-    margin: 0 0 8px 0;
+    margin: 0 0 $spacing-xs 0;
   }
 
   .subtitle {
-    font-size: 14px;
-    color: $gray;
+    font-size: $font-size-base;
+    color: $gray-dark;
     margin: 0;
   }
 }
@@ -31,12 +29,16 @@ $gray: #999;
 // Filtres
 .filters-bar {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
   flex-wrap: wrap;
 
   .filter-field {
     min-width: 200px;
+
+    @media (max-width: $breakpoint-mobile) {
+      min-width: 100%;
+    }
   }
 }
 
@@ -72,18 +74,95 @@ $gray: #999;
   }
 }
 
+// Container scrollable pour le tableau
+.table-container {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -1px;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-light;
+
+  // Indicateur de scroll à droite
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity $transition-fast;
+
+    @media (min-width: $breakpoint-desktop) {
+      opacity: 0;
+    }
+  }
+}
+
 // Tableau
 .validations-table {
   width: 100%;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 800px; // Force scroll on smaller screens
+  background: $white;
+  border-collapse: collapse;
+
+  th, td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    vertical-align: middle;
+    font-size: $font-size-base;
+    border-bottom: 1px solid $gray-light;
+  }
 
   th {
     background-color: $gray-light;
-    font-weight: 600;
-    color: #333;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    white-space: nowrap;
+    font-size: $font-size-small;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  // Première colonne sticky
+  th:first-child,
+  td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: inherit;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: $gray-light;
+    }
+  }
+
+  th:first-child {
+    background-color: $gray-light;
+    z-index: 3;
+  }
+
+  tbody tr {
+    background-color: $white;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.03);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
   }
 
   .clickable-row {
@@ -93,16 +172,24 @@ $gray: #999;
       background-color: rgba($primary-color, 0.05);
     }
   }
+
+  // Colonnes secondaires à masquer sur tablette
+  .col-secondary {
+    @media (max-width: $breakpoint-tablet) {
+      display: none;
+    }
+  }
 }
 
 .type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: $spacing-xs;
+  padding: $spacing-xxs $spacing-xs;
   background-color: $gray-light;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  white-space: nowrap;
 
   i {
     font-size: 14px;
@@ -112,10 +199,16 @@ $gray: #999;
 
 .actions-cell {
   display: flex;
-  gap: 4px;
+  gap: $spacing-xxs;
+  white-space: nowrap;
 
   i {
-    font-size: 16px;
+    font-size: 18px;
+  }
+
+  button {
+    min-width: 36px;
+    height: 36px;
   }
 }
 
@@ -123,9 +216,10 @@ $gray: #999;
 .validator-info {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
   color: $success-color;
+  white-space: nowrap;
 
   .validator-icon {
     font-size: 14px;
@@ -133,7 +227,7 @@ $gray: #999;
 }
 
 .pending-label {
-  color: $gray;
+  color: $gray-dark;
 }
 
 // Statuts
@@ -160,20 +254,56 @@ $gray: #999;
 // Pagination
 mat-paginator {
   background: transparent;
-  margin-top: 16px;
+  margin-top: $spacing-md;
+
+  ::ng-deep {
+    .mat-mdc-paginator-container {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: $spacing-xs;
+
+      @media (max-width: $breakpoint-mobile) {
+        padding: $spacing-xs;
+      }
+    }
+
+    .mat-mdc-paginator-page-size {
+      @media (max-width: $breakpoint-mobile) {
+        margin-right: 0;
+      }
+    }
+  }
 }
 
-// Responsive
-@media (max-width: 768px) {
-  .admin-validations {
-    padding: 16px;
-  }
+// ============================================
+// RESPONSIVE
+// ============================================
 
+@media (max-width: $breakpoint-tablet) {
   .filters-bar {
     flex-direction: column;
 
     .filter-field {
       width: 100%;
+    }
+  }
+
+  .page-header h1 {
+    font-size: $font-size-h4;
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .admin-validations {
+    padding: $spacing-sm;
+  }
+
+  .validations-table {
+    min-width: 600px;
+
+    th, td {
+      padding: $spacing-xs $spacing-sm;
+      font-size: $font-size-small;
     }
   }
 }

@@ -11,9 +11,14 @@ export interface User {
   niveau_role: UserRole;
   is_staff: boolean;
   is_active: boolean;
+  active?: boolean;  // Backend field
   is_referent?: boolean;  // Computed: true if user is site or plan referent
   date_joined?: string;
   last_login?: string;
+  // RGPD fields
+  deletion_requested_at?: string | null;
+  is_anonymized?: boolean;
+  anonymized_at?: string | null;
 }
 
 export interface Organisme {

@@ -209,7 +209,9 @@ $corner-size: 94px;
   gap: 24px;
 
   &--three {
-    grid-template-columns: repeat(3, 1fr);
+    // Centrer les 3 tuiles en utilisant une grille avec largeur fixe
+    grid-template-columns: repeat(3, minmax(0, 300px));
+    justify-content: center;
   }
 
   &--four {
@@ -259,277 +261,122 @@ $corner-size: 94px;
 /* GUEST VIEW STYLES               */
 /* ================================ */
 
-.hero-section--guest {
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto 48px;
-
-  .hero-logo {
-    display: flex;
-    justify-content: center;
-  }
-
-  .hero-title {
-    text-align: center;
-  }
-}
-
-.project-description {
-  margin: 24px 0 32px;
-
-  .description-intro {
-    font-family: 'Nunito', sans-serif;
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 32px;
-    color: #025359;
-    margin: 0 0 16px;
-  }
-
-  .description-details {
-    font-family: 'Nunito', sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 26px;
-    color: #5C5C5C;
-    margin: 0;
-  }
-}
-
-.partners-section {
+.guest-hero {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 40px;
+  padding: 0;
+}
+
+.guest-hero__content {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  margin-top: 24px;
+  width: 100%;
+}
 
-  .partners-label {
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: #949494;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.guest-hero__logo {
+  margin-bottom: 8px;
+
+  .biodiv-logo {
+    height: 56px;
+    width: auto;
+    object-fit: contain;
   }
+}
 
-  .partners-list {
-    display: flex;
-    gap: 12px;
-  }
+.guest-hero__title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 43px;
+  font-weight: 700;
+  line-height: 72px;
+  color: #025359;
+  margin: 0;
+  width: 100%;
+}
 
-  .partner-badge {
+.guest-hero__subtitle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 36px;
+  color: #343433;
+  margin: 0;
+  width: 100%;
+}
+
+.guest-hero__actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.guest-hero__btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 200ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &--primary {
     background-color: #025359;
     color: white;
-    font-family: 'Nunito', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 4px;
-    letter-spacing: 0.02em;
+
+    &:hover {
+      background-color: #013d42;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(2, 83, 89, 0.25);
+    }
   }
 }
 
-/* Auth Actions Section */
-.auth-actions-section {
-  margin-bottom: 48px;
-}
-
-.auth-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.auth-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 24px;
-  border-radius: 16px;
+.guest-hero__link {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #025359;
   text-decoration: none;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 200ms ease-out;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    opacity: 0.7;
 
-    .auth-card-arrow {
+    i {
       transform: translateX(4px);
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid #025359;
-    outline-offset: 2px;
+  i {
+    font-size: 14px;
+    transition: transform 200ms ease-out;
   }
 }
 
-.auth-card--login {
-  background-color: #025359;
-
-  .auth-card-icon {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: white;
-  }
-
-  .auth-card-title,
-  .auth-card-description,
-  .auth-card-arrow {
-    color: white;
-  }
-}
-
-.auth-card--register {
-  background-color: white;
-  border: 2px solid #E4E4E4;
-
-  .auth-card-icon {
-    background-color: #FEC180;
-    color: #025359;
-  }
-
-  .auth-card-title {
-    color: #025359;
-  }
-
-  .auth-card-description {
-    color: #5C5C5C;
-  }
-
-  .auth-card-arrow {
-    color: #025359;
-  }
-}
-
-.auth-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+.guest-hero__image-container {
+  position: relative;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-
-  i {
-    font-size: 24px;
-  }
 }
 
-.auth-card-content {
-  flex: 1;
-}
-
-.auth-card-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0 0 4px;
-}
-
-.auth-card-description {
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  margin: 0;
+.guest-hero__image {
+  width: 100%;
+  height: 485px;
+  object-fit: cover;
+  border-radius: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   opacity: 0.9;
-}
-
-.auth-card-arrow {
-  font-size: 20px;
-  flex-shrink: 0;
-  transition: transform 200ms ease-out;
-}
-
-/* Stats Section */
-.stats-section {
-  background-color: white;
-  border-radius: 20px;
-  padding: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.stats-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.stats-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: #025359;
-  margin: 0 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-
-  i {
-    font-size: 28px;
-    color: #FEC180;
-  }
-}
-
-.stats-subtitle {
-  font-family: 'Nunito', sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  color: #5C5C5C;
-  margin: 0;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 24px 16px;
-  background-color: #F8F5F1;
-  border-radius: 12px;
-}
-
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  background-color: #025359;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  i {
-    font-size: 24px;
-    color: white;
-  }
-}
-
-.stat-value {
-  font-family: 'Nunito', sans-serif;
-  font-size: 36px;
-  font-weight: 700;
-  color: #025359;
-  line-height: 1.2;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: #5C5C5C;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.stat-value--loading {
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
@@ -612,70 +459,74 @@ $corner-size: 94px;
 }
 
 /* Guest View Responsive */
+@media (max-width: 1024px) {
+  .guest-hero {
+    gap: 32px;
+  }
+
+  .guest-hero__title {
+    font-size: 36px;
+    line-height: 54px;
+  }
+
+  .guest-hero__subtitle {
+    font-size: 20px;
+    line-height: 30px;
+  }
+
+  .guest-hero__image {
+    height: 400px;
+    border-radius: 24px;
+  }
+}
+
 @media (max-width: 768px) {
-  .auth-cards {
-    grid-template-columns: 1fr;
+  .guest-hero__title {
+    font-size: 28px;
+    line-height: 42px;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .guest-hero__subtitle {
+    font-size: 18px;
+    line-height: 28px;
   }
 
-  .stats-section {
-    padding: 24px 16px;
-  }
-
-  .project-description {
-    .description-intro {
-      font-size: 18px;
-      line-height: 28px;
-    }
-
-    .description-details {
-      font-size: 15px;
-      line-height: 24px;
-    }
-  }
-
-  .partners-section {
+  .guest-hero__actions {
     flex-direction: column;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .guest-hero__image {
+    height: 320px;
+    border-radius: 20px;
+  }
+
+  .guest-hero__btn {
+    padding: 12px 24px;
+    font-size: 15px;
   }
 }
 
 @media (max-width: 576px) {
-  .auth-card {
-    padding: 16px;
-    gap: 12px;
-  }
-
-  .auth-card-icon {
-    width: 40px;
-    height: 40px;
-
-    i {
-      font-size: 20px;
+  .guest-hero__logo {
+    .biodiv-logo {
+      height: 44px;
     }
   }
 
-  .auth-card-title {
+  .guest-hero__title {
+    font-size: 24px;
+    line-height: 36px;
+  }
+
+  .guest-hero__subtitle {
     font-size: 16px;
+    line-height: 24px;
   }
 
-  .auth-card-description {
-    font-size: 13px;
-  }
-
-  .stat-value {
-    font-size: 28px;
-  }
-
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-
-    i {
-      font-size: 20px;
-    }
+  .guest-hero__image {
+    height: 260px;
+    border-radius: 16px;
   }
 }

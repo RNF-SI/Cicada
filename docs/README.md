@@ -39,12 +39,20 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 |----------|-------------|
 | **[Explications fonctionnelles](FONCTIONNALITES.md)** | Logs, notifications, validations, impersonnation, modules, pages d'administration (droits par rôle), tests |
 
+## 🎨 Design System
+
+| Document | Description |
+|----------|-------------|
+| **[Design System](DESIGN_SYSTEM.md)** | Couleurs, accessibilité WCAG AA, chips, typographie |
+
 ## 🛠️ Documentation technique
 
 | Document | Description |
 |----------|-------------|
 | **[Guide Développeur](GUIDE_DEVELOPPEUR.md)** | Commandes, permissions, logs, i18n, styles |
+| **[Design System](DESIGN_SYSTEM.md)** | Palette de couleurs, règles d'accessibilité, composants |
 | **[Tests](TESTING.md)** | Guide complet des tests (pytest, Jest) |
+| **[Configuration Email](EMAIL_CONFIGURATION.md)** | Mailpit (dev), SMTP (prod), templates, Celery |
 | **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
 | **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
 
@@ -52,17 +60,19 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ### Pour développeurs frontend
 
-1. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
-2. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
-3. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
-4. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
+1. **[Design System](DESIGN_SYSTEM.md)** - Couleurs, accessibilité, composants visuels
+2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
+3. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
+4. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
+5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
 
 ### Pour administrateurs système
 
 1. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
-2. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-3. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
-4. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
+2. **[Configuration Email](EMAIL_CONFIGURATION.md)** - Configuration SMTP pour l'envoi des notifications
+3. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
+4. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
+5. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
 
 ### Pour gestionnaires d'espaces naturels
 
@@ -80,4 +90,4 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ---
 
-**Mise à jour** : Janvier 2025 - Ajout des explications fonctionnelles
+**Mise à jour** : Janvier 2025 - Ajout du Design System et des explications fonctionnelles

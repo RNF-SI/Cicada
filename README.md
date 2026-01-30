@@ -27,37 +27,84 @@ Centraliser et standardiser la gestion des plans de gestion des aires protégée
    cd Cicada
    ```
 
-2. **Configurer l'environnement**
+2. **(Optionnel) Configurer l'environnement**
    ```bash
    cp .env.example .env
-   # Éditez le fichier .env selon vos besoins
+   # Éditez le fichier .env pour personnaliser ports, mots de passe, etc.
    ```
+   > Les valeurs par défaut permettent de démarrer sans `.env` en développement.
 
 3. **Lancer l'application**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
-4. **Accéder à l'application**
+4. **Attendre l'initialisation** (~30 secondes pour les migrations)
+   ```bash
+   docker compose logs -f web
+   # Attendre "Starting development server at http://0.0.0.0:8000/"
+   ```
+
+5. **Accéder à l'application**
    - Backend Django API : http://localhost:8000
    - Interface d'administration : http://localhost:8000/admin (login: `admin` / `admin`)
-   - Frontend Angular : http://localhost:4200 *(à venir)*
+   - Frontend Angular : http://localhost:4200
+   - **Mailpit** (emails de test) : http://localhost:8025
 
 ### Commandes essentielles
 
 ```bash
 # Démarrer l'application
-docker-compose up -d
+docker compose up -d
 
-# Arrêter l'application  
-docker-compose down
+# Arrêter l'application
+docker compose down
 
 # Voir les logs
-docker-compose logs -f
+docker compose logs -f
 
 # Reconstruire après modifications
-docker-compose build
+docker compose build
 ```
+
+### Configuration des variables d'environnement
+
+Le fichier `.env` est **optionnel en développement** grâce aux valeurs par défaut cohérentes définies dans `docker compose.yml`.
+
+#### Valeurs par défaut (sans .env)
+
+| Variable | Valeur par défaut | Description |
+|----------|-------------------|-------------|
+| `POSTGRES_DB` | `cicada` | Nom de la base de données |
+| `POSTGRES_USER` | `cicada_user` | Utilisateur PostgreSQL |
+| `POSTGRES_PASSWORD` | `cicada_password` | Mot de passe PostgreSQL |
+| `DJANGO_PORT` | `8000` | Port du backend |
+| `FRONTEND_PORT` | `4200` | Port du frontend |
+| `REDIS_PASSWORD` | `redis_password` | Mot de passe Redis |
+
+#### Quand utiliser un fichier .env ?
+
+- **Développement local** : Pas nécessaire, les défauts fonctionnent
+- **Personnalisation** : Pour changer les ports ou mots de passe
+- **Production** : **Obligatoire** - utilisez des mots de passe sécurisés et `DEBUG=False`
+
+Pour personnaliser :
+```bash
+cp .env.example .env
+# Éditez .env selon vos besoins
+```
+
+> ⚠️ **Production** : Ne jamais utiliser les valeurs par défaut. Générez des mots de passe forts et une nouvelle `SECRET_KEY`.
+
+### Sécurité
+
+Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) sont **exclusivement destinés au développement local**. Pour tout déploiement en production :
+
+- Générez une nouvelle `SECRET_KEY` Django (ex: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
+- Définissez des mots de passe forts pour PostgreSQL et Redis
+- Configurez `DEBUG=False` et `ALLOWED_HOSTS` correctement
+- Utilisez HTTPS et configurez les en-têtes de sécurité
+- Ne réutilisez jamais les valeurs par défaut de développement
 
 ## 🏗️ Architecture
 
@@ -80,10 +127,12 @@ docker-compose build
 ### Services Docker
 
 - **web** : Application Django backend (port 8000)
-- **frontend** : Application Angular en mode développement (port 4200) *(à venir)*
-- **db** : PostgreSQL 15 avec PostGIS (port 5432)
+- **frontend** : Application Angular en mode développement (port 4200)
+- **db** : PostgreSQL 17 avec PostGIS 3.5 (port 5432)
 - **redis** : Cache et broker Celery (port 6379)
-- **celery** : Worker Celery (optionnel)
+- **celery-worker** : Worker Celery pour tâches asynchrones (emails, etc.)
+- **celery-beat** : Planificateur de tâches périodiques
+- **mailpit** : Serveur SMTP de test - capture les emails (port 8025)
 
 ### Structure du projet
 
@@ -97,16 +146,19 @@ Cicada/
 │   └── Dockerfile
 ├── docker/              # Configuration Docker
 │   └── postgres/        # Scripts d'initialisation PostgreSQL
-├── docker-compose.yml   # Configuration des services
+├── docker compose.yml   # Configuration des services
 ├── .env.example        # Variables d'environnement exemple
 └── README.md
 ```
 
 ## ⚡ Démarrage rapide
 
-1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git`
-2. **Lancer :** `docker-compose up -d`  
-3. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
+1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git && cd Cicada`
+2. **Lancer :** `docker compose up -d`
+3. **Attendre** que les migrations s'exécutent (~30 secondes) : `docker compose logs -f web`
+4. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
+
+> **Note :** Le fichier `.env` est **optionnel** pour le développement. Les valeurs par défaut permettent de démarrer immédiatement. Pour personnaliser (ports, mots de passe), copiez `.env.example` vers `.env`.
 
 L'interface d'administration permet de gérer utilisateurs, organismes, sites et nomenclatures avec des données de test pré-chargées.
 
@@ -153,6 +205,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 
 - **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
 - **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
+- **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 

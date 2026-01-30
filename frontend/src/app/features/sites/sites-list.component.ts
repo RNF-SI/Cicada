@@ -28,10 +28,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminSite, GeoJSONFeatureCollection } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
-import { SiteFormModalComponent, SiteFormModalData } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
+import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
+import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
+import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 
 interface SiteUserRelation {
   id_role: number;
@@ -48,6 +50,8 @@ interface SiteWithUsers extends Omit<AdminSite, 'users'> {
 interface SiteWithAccess extends SiteWithUsers {
   accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
   isReferent: boolean;
+  /** Indique si l'utilisateur est directement lie au site (via CorRoleSite) */
+  isDirectlyLinked: boolean;
 }
 
 @Component({
@@ -70,7 +74,8 @@ interface SiteWithAccess extends SiteWithUsers {
     MatDialogModule,
     TranslateModule,
     HeaderComponent,
-    LeafletMapComponent
+    LeafletMapComponent,
+    ViewScopeToggleComponent
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'
@@ -87,8 +92,20 @@ export class SitesListComponent implements OnInit {
   // Donnees
   readonly allSites = signal<SiteWithAccess[]>([]);
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
+  readonly pendingSiteCreations = signal<ValidationRequestListItem[]>([]);
+  readonly pendingOrgLinks = signal<ValidationRequestListItem[]>([]);
   readonly mapData = signal<GeoJSONFeatureCollection | null>(null);
   readonly loading = signal(false);
+
+  // Scope d'affichage (mes sites / sites OG / tous)
+  readonly viewScope = signal<ViewScope>('mine');
+
+  // Permissions pour le toggle
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+
+  // Afficher le toggle si l'utilisateur est admin_og ou super_admin
+  readonly showScopeToggle = computed(() => this.isAdminOrganisme());
 
   // Recherche
   readonly searchTerm = signal('');
@@ -100,9 +117,22 @@ export class SitesListComponent implements OnInit {
   // Colonnes du tableau
   readonly tableColumns = ['name', 'type', 'surface', 'organisme', 'status', 'actions'];
 
-  // Sites auxquels l'utilisateur a acces
+  // Sites auxquels l'utilisateur est directement lie (via CorRoleSite)
   readonly mySites = computed(() => {
-    return this.allSites().filter(s => s.accessStatus === 'granted');
+    // Filtre les sites où l'utilisateur a un lien direct (CorRoleSite)
+    // isDirectlyLinked = true si l'utilisateur a une entrée dans CorRoleSite pour ce site
+    return this.allSites().filter(s => s.isDirectlyLinked);
+  });
+
+  // Sites de l'organisme de l'utilisateur (tous les sites lies a son OG)
+  readonly organismeSites = computed(() => {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser?.organisme?.id_organisme) return [];
+    const userOrgId = currentUser.organisme.id_organisme;
+
+    return this.allSites().filter(site =>
+      site.organismes?.some(o => o.id_organisme === userOrgId)
+    );
   });
 
   // Sites en attente de validation (demandes pending)
@@ -110,19 +140,45 @@ export class SitesListComponent implements OnInit {
     return this.allSites().filter(s => s.accessStatus === 'pending');
   });
 
+  // Sites affiches selon le scope selectionne
+  readonly scopedSites = computed(() => {
+    const scope = this.viewScope();
+    switch (scope) {
+      case 'mine':
+        return this.mySites();
+      case 'organisme':
+        return this.organismeSites();
+      case 'all':
+        return this.allSites();
+      default:
+        return this.mySites();
+    }
+  });
+
   // Sites affiches (filtrés par recherche)
   readonly displayedMySites = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
-    const sites = this.mySites();
+    const term = this.normalizeText(this.searchTerm().trim());
+    const sites = this.scopedSites();
 
     if (!term) return sites;
 
     return sites.filter(site =>
-      site.nom_site.toLowerCase().includes(term) ||
-      site.type_site_label?.toLowerCase().includes(term) ||
-      site.organismes?.some(o => o.nom_organisme.toLowerCase().includes(term))
+      this.normalizeText(site.nom_site).includes(term) ||
+      this.normalizeText(site.type_site_label || '').includes(term) ||
+      site.organismes?.some(o => this.normalizeText(o.nom_organisme).includes(term))
     );
   });
+
+  /**
+   * Normalise un texte pour la recherche insensible aux accents.
+   * Convertit en minuscules et supprime les accents.
+   */
+  private normalizeText(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
 
   // Pagination pour mes sites
   readonly paginatedMySites = computed(() => {
@@ -165,12 +221,12 @@ export class SitesListComponent implements OnInit {
     return this.allSites()
       .filter(s => s.accessStatus === 'none' || s.accessStatus === 'rejected')
       .filter(s => s.organismes?.some(o => o.id_organisme === userOrgId))
-      .map(s => ({ id_site: s.id_site, nom_site: s.nom_site }));
+      .map(s => ({ id_site: s.id_site, slug: s.slug, nom_site: s.nom_site }));
   });
 
-  // GeoJSON filtré pour la carte (mes sites uniquement)
+  // GeoJSON filtré pour la carte (selon le scope sélectionné)
   readonly mapGeoJSON = computed(() => {
-    const mySiteIds = this.mySites().map(s => s.id_site);
+    const scopedSiteIds = this.scopedSites().map(s => s.id_site);
     const fullData = this.mapData();
 
     // Vérifier que fullData existe et que features est bien un tableau
@@ -181,7 +237,7 @@ export class SitesListComponent implements OnInit {
     return {
       type: 'FeatureCollection' as const,
       features: fullData.features.filter(f =>
-        mySiteIds.includes(f.properties?.id_site)
+        scopedSiteIds.includes(f.properties?.id_site)
       )
     };
   });
@@ -209,6 +265,16 @@ export class SitesListComponent implements OnInit {
     }).subscribe({
       next: ({ sites, geojson, requests }) => {
         this.myRequests.set(requests.filter(r => r.request_type === 'site_access'));
+
+        // Filtrer les demandes de création de site en attente
+        this.pendingSiteCreations.set(
+          requests.filter(r => r.request_type === 'site_creation' && r.status === 'pending')
+        );
+
+        // Filtrer les demandes de lien organisme-site en attente
+        this.pendingOrgLinks.set(
+          requests.filter(r => r.request_type === 'site_org_link' && r.status === 'pending')
+        );
 
         if (geojson) {
           this.mapData.set(geojson);
@@ -276,9 +342,19 @@ export class SitesListComponent implements OnInit {
       return {
         ...site,
         accessStatus,
-        isReferent: isSuperAdmin || userLink?.referent || false
+        isReferent: isSuperAdmin || userLink?.referent || false,
+        isDirectlyLinked: !!isUserLinked
       };
     });
+  }
+
+  /**
+   * Gère le changement de scope d'affichage.
+   */
+  onScopeChange(scope: ViewScope): void {
+    this.viewScope.set(scope);
+    // Reset pagination lors du changement de scope
+    this.currentPage.set(1);
   }
 
   /**
@@ -339,7 +415,7 @@ export class SitesListComponent implements OnInit {
    * Navigue vers la page detail d'un site.
    */
   viewSite(site: SiteWithAccess): void {
-    this.router.navigate(['/sites', site.id_site]);
+    this.router.navigate(['/sites', site.slug]);
   }
 
   /**
@@ -404,7 +480,7 @@ export class SitesListComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {
@@ -413,16 +489,116 @@ export class SitesListComponent implements OnInit {
       } as SiteFormModalData
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open(
-          this.translate.instant('sites.createSite.success'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
+    dialogRef.afterClosed().subscribe((result: SiteFormModalResult | undefined) => {
+      if (!result) return;
+
+      if (result.site) {
+        // Check if site creation is pending validation
+        if (result.validationPending) {
+          this.snackBar.open(
+            result.message || this.translate.instant('sites.createSite.pendingValidation'),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(
+            this.translate.instant('sites.createSite.success'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+        }
         this.loadData();
+      } else if (result.duplicateAction && result.duplicateSite) {
+        this.handleDuplicateAction(result);
       }
     });
+  }
+
+  /**
+   * Traite les actions de doublons retournées par le formulaire de création de site.
+   */
+  private handleDuplicateAction(result: SiteFormModalResult): void {
+    const site = result.duplicateSite!;
+    const slug = site.slug;
+
+    if (result.duplicateAction === 'request_access') {
+      // Demander l'accès au site existant
+      this.validationService.requestSiteAccess(slug, {
+        justification: this.translate.instant('sites.findOrCreate.autoMessage')
+      }).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('sites.findOrCreate.accessRequested', { name: site.nom_site }),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+          this.loadData();
+        },
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(
+            err.error?.error || this.translate.instant('common.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
+    } else if (result.duplicateAction === 'request_org_link') {
+      // Demander le lien organisme-site + optionnellement l'accès
+      const orgLink$ = this.validationService.requestSiteOrgLink(slug, {
+        justification: this.translate.instant('sites.findOrCreate.autoOrgLinkMessage')
+      }).pipe(catchError(err => of({ error: true, status: err.status } as const)));
+
+      if (result.alsoRequestAccess) {
+        const access$ = this.validationService.requestSiteAccess(slug, {
+          justification: this.translate.instant('sites.findOrCreate.autoOrgLinkMessage')
+        }).pipe(catchError(err => of({ error: true, status: err.status } as const)));
+
+        forkJoin([orgLink$, access$]).subscribe({
+          next: ([orgResult, accessResult]) => {
+            const orgOk = !('error' in orgResult);
+            const accessOk = !('error' in accessResult);
+            if (orgOk || accessOk) {
+              const messageKey = orgOk && accessOk
+                ? 'sites.findOrCreate.orgLinkAndAccessRequested'
+                : orgOk
+                  ? 'sites.findOrCreate.orgLinkRequested'
+                  : 'sites.findOrCreate.accessRequested';
+              this.snackBar.open(
+                this.translate.instant(messageKey, { name: site.nom_site }),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+              this.loadData();
+            } else {
+              this.snackBar.open(
+                this.translate.instant('common.messages.error'),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+            }
+          }
+        });
+      } else {
+        orgLink$.subscribe({
+          next: (result) => {
+            if (!('error' in result)) {
+              this.snackBar.open(
+                this.translate.instant('sites.findOrCreate.orgLinkRequested', { name: site.nom_site }),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+              this.loadData();
+            } else {
+              this.snackBar.open(
+                this.translate.instant('common.messages.error'),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+            }
+          }
+        });
+      }
+    }
   }
 
   /**
@@ -430,15 +606,43 @@ export class SitesListComponent implements OnInit {
    * Permet de rechercher un site existant et demander l'accès,
    * ou de créer un nouveau site si aucun n'existe.
    */
+  /**
+   * Ouvre le dialogue d'import en masse de sites.
+   * Visible uniquement pour admin_og et super_admin.
+   */
+  openBulkImportDialog(): void {
+    const dialogRef = this.dialog.open(BulkSiteImportModalComponent, {
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result: BulkSiteImportModalResult | null) => {
+      if (result?.imported) {
+        this.loadData();
+        this.snackBar.open(
+          `${result.created} site(s) importé(s) avec succès`,
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
   openFindOrCreateSiteDialog(): void {
     const dialogRef = this.dialog.open(FindOrCreateSiteModalComponent, {
-      width: '850px',
+      width: '1100px',
       maxWidth: '95vw',
-      maxHeight: '90vh'
+      maxHeight: '95vh'
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (!result) return;
+      // Le résultat peut être un SiteFormModalResult propagé depuis le SiteFormModal
+      if (result.duplicateAction && result.duplicateSite) {
+        this.handleDuplicateAction(result);
+      } else {
         this.loadData();
       }
     });

@@ -10,11 +10,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Architecture Documentation**: See `claude.md` for detailed specifications
 - **Repository**: https://github.com/RNF-SI/Cicada
 
+## ⚠️ RÈGLE OBLIGATOIRE : Design System
+
+**Pour TOUTE tâche impliquant le frontend (Angular/SCSS), tu DOIS :**
+
+1. **Consulter le Design System** : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) avant de coder
+2. **Respecter les couleurs** : Utiliser UNIQUEMENT les variables SCSS définies, jamais de valeurs hex directes
+3. **Respecter la typographie** : Font Nunito, tailles et poids définis dans `_typography.scss`
+4. **Respecter les composants** : Boutons, formulaires, chips selon les spécifications Figma
+5. **Respecter l'accessibilité WCAG AA** : Combinaisons texte/fond approuvées uniquement
+
+**Liens Figma de référence :** Voir `FIGMA_LINKS.md` (non versionné) ou contacter l'équipe design pour accéder aux maquettes (Couleurs, Boutons, Formulaires, Tableaux, Accordéons, Autres composants, Iconographie).
+
+**Combinaisons texte/fond autorisées (WCAG AA) :**
+
+| Fond | Texte autorisé |
+|------|----------------|
+| `#025359` (Primary) | Blanc uniquement |
+| `#B74D5D` (Terra Cotta) | Blanc uniquement |
+| `#04854B` (Succès) | Blanc uniquement |
+| `#E12329` (Erreur) | Blanc uniquement |
+| `#FEC180` (Jaune) | Noir `#343433` ou Primary `#025359` |
+| `#F5B399` (Orange saumon) | Noir `#343433` ou Primary `#025359` |
+| `#C0E3CF` (Vert pâle) | Noir `#343433` ou Primary `#025359` |
+| Scores (`#FF7579`, `#FA9965`, `#F7D35C`, `#82DB8A`, `#81C9D8`) | Noir `#343433` uniquement |
+| Blanc | Primary `#025359`, Noir `#343433`, Gris foncé `#746F6E` |
+
+**NE JAMAIS utiliser :**
+- Texte blanc sur fonds clairs (jaune, orange, vert pâle, scores)
+- Texte couleur score sur fond blanc (pas assez de contraste)
+- `mat.$blue-palette` - utiliser `mat.$cyan-palette`
+- Couleurs hex directement - utiliser les variables SCSS
+
 ## Technology Stack
 
 ### Backend
 - Django 5.0+ with Django REST Framework 3.14+
-- PostgreSQL 15+ with PostGIS 3.3+ for spatial data
+- PostgreSQL 17+ with PostGIS 3.5+ for spatial data
 - Python 3.11+
 - Celery + Redis for async tasks (email notifications)
 
@@ -25,9 +57,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Design System**: Custom SCSS based on Kit UI CICADA (11/2025)
   - **Source de référence**: `KitUI/` (PNG des maquettes)
   - **Status**: ⚠️ 95% complet
-  - **Fichiers SCSS**: 5 fichiers (~3000 lignes)
-    - `_variables.scss` - Tokens (couleurs, spacing, typography)
-    - `_typography.scss` - Styles typographiques
+  - **Fichiers SCSS**: 6 fichiers (~3500 lignes)
+    - `_variables.scss` - Tokens (couleurs, spacing, typography, breakpoints)
+    - `_typography.scss` - Styles typographiques + responsive
+    - `_responsive.scss` - **Mixins responsive** (breakpoints, containers, grids)
     - `_material-overrides.scss` - Personnalisation Angular Material
     - `_components.scss` - Composants custom (jauges, tuiles, breadcrumb, etc.)
     - `_filters.scss` - Filtres et pagination
@@ -37,7 +70,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Scores: #FF7579, #FA9965, #F7D35C, #82DB8A, #81C9D8
     - Status: #04854B (Succès), #E12329 (Erreur), #FA9965 (Warning), #81C9D8 (Info)
   - **Font**: Nunito (Google Font)
-  - **Accessibilité**: WCAG AA compliant
+  - **Accessibilité**: WCAG AA compliant - voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) pour les règles détaillées
   - **Responsive**: Mobile, Tablet, Desktop
   - **Icônes**:
     - **Uicons by Flaticon**: CDN intégré (Rounded Regular - `fi-rr-*`)
@@ -48,6 +81,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Zebra striping pour tableaux
     - Badge compteur filtres actifs
     - Composant input +/- (fréquence)
+
+### Règles d'utilisation du Design System (IMPORTANT)
+
+**Ces règles doivent être suivies automatiquement pour tout code Angular/SCSS :**
+
+#### Boutons Angular Material
+- **Bouton primaire (action principale)**: `mat-flat-button color="primary"`
+  - Fond: `$primary-color` (#025359)
+  - Texte: blanc
+  - Exemple: `<button mat-flat-button color="primary">Créer</button>`
+
+- **Bouton secondaire (action alternative)**: `mat-stroked-button`
+  - Bordure: `$primary-color` (#025359)
+  - Texte: `$primary-color` (#025359)
+  - Au hover: fond `$primary-color`, texte blanc
+  - Exemple: `<button mat-stroked-button>Annuler</button>`
+
+- **Bouton tertiaire (action discrète)**: `mat-button`
+  - Texte: `$primary-color` (#025359)
+  - Sans bordure ni fond
+  - Exemple: `<button mat-button>En savoir plus</button>`
+
+- **Tailles**: Ajouter `.btn-sm` ou `.btn-lg` pour les variantes
+
+#### Couleurs à utiliser
+| Usage | Variable SCSS | Hex | Ne pas utiliser |
+|-------|---------------|-----|-----------------|
+| Actions, titres, liens | `$primary-color` | #025359 | Bleu Material (#3f51b5), autres bleus |
+| Accent décoratif | `$secondary-yellow` | #FEC180 | - |
+| Warnings visuels | `$secondary-orange-salmon` | #F5B399 | - |
+| Erreurs bloquantes | `$error-color` | #E12329 | - |
+| Succès | `$success-color` | #04854B | - |
+| Texte principal | `$black` | #343433 | #000000 |
+| Texte secondaire | `$gray-dark` | #746F6E | - |
+
+#### Modales (MatDialog)
+- **Largeur standard**: `width: '1300px', maxWidth: '95vw', maxHeight: '90vh'`
+- **Éviter**: `width: '600px'` (trop étroit pour les layouts complexes)
+
+#### Configuration du thème Material (CRITIQUE)
+Le thème Angular Material est configuré dans `src/styles.scss`:
+- **Palette de base**: `mat.$cyan-palette` (la plus proche de #025359)
+- **Tokens CSS personnalisés**: Définis dans `:root` pour forcer #025359
+- **NE JAMAIS** utiliser `mat.$blue-palette` ou d'autres palettes bleues
+- Les tokens spécifiques aux composants (boutons, checkboxes, etc.) sont définis dans `styles.scss` et `_material-overrides.scss`
+
+**Si les boutons/checkboxes affichent une couleur bleue au lieu de #025359:**
+1. Vérifier que le thème utilise `mat.$cyan-palette` (pas `mat.$blue-palette`)
+2. Vérifier les tokens CSS dans `:root` de `styles.scss`
+3. Les overrides sont dans `_material-overrides.scss`
+
+#### Dans les fichiers SCSS de composants
+- Toujours importer: `@import 'variables';`
+- Utiliser les variables SCSS, jamais les valeurs hex directement
+- **Les couleurs sont gérées globalement** - éviter les overrides `!important` dans les composants
+- Si absolument nécessaire, utiliser les tokens CSS Material:
+```scss
+.my-component {
+  --mdc-filled-button-container-color: #{$primary-color};
+  --mdc-checkbox-selected-icon-color: #{$primary-color};
+}
+```
 
 ### Composants Angular Réutilisables
 
@@ -164,7 +259,7 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 
 ```bash
 # Docker setup (recommended)
-docker-compose up -d
+docker compose up -d
 
 # The setup includes:
 # - PostgreSQL with PostGIS
@@ -179,38 +274,39 @@ docker-compose up -d
 
 ```bash
 # Backend (via Docker)
-docker-compose exec web python manage.py runserver
+docker compose exec web python manage.py runserver
 
 # Database migrations
-docker-compose exec web python manage.py makemigrations
-docker-compose exec web python manage.py migrate
+docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py migrate
 
 # Create superuser
-docker-compose exec web python create_superuser.py
+docker compose exec web python create_superuser.py
 
 # Create test data (Django management command)
-docker-compose exec web python manage.py seed_testdata          # Create all test data
-docker-compose exec web python manage.py seed_testdata --reset  # Remove test data
-docker-compose exec web python manage.py seed_testdata --dry-run # Preview changes
+docker compose exec web python manage.py seed_testdata          # Create all test data
+docker compose exec web python manage.py seed_testdata --reset  # Remove test data
+docker compose exec web python manage.py seed_testdata --dry-run # Preview changes
+docker compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
 # Import/Update nomenclatures (reference data)
-docker-compose exec web python import_nomenclatures.py
+docker compose exec web python import_nomenclatures.py
 
 # Test nomenclatures import
-docker-compose exec web python test_nomenclatures.py
+docker compose exec web python test_nomenclatures.py
 
 # Access Django shell
-docker-compose exec web python manage.py shell
+docker compose exec web python manage.py shell
 ```
 
 ### Logging
 
 ```bash
 # Logs en temps réel (filtrés sur les requêtes et erreurs)
-docker-compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
+docker compose logs -f web | grep -E "(Request|AUDIT|ERROR)"
 
 # Tous les logs en temps réel
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 **Configuration des logs** (variables d'environnement) :
@@ -224,6 +320,69 @@ docker-compose logs -f web
 - `audit.log` : Actions utilisateur (POST/PUT/DELETE)
 
 **Correlation ID** : Chaque requête HTTP reçoit un UUID unique (`X-Correlation-ID`) propagé dans tous les logs pour faciliter le debugging.
+
+### ⚠️ Architecture Seeders (Pour Développeurs)
+
+> **Attention** : Cette section concerne l'architecture interne du système de données de test. Réservé aux développeurs.
+
+La commande `seed_testdata` utilise une architecture modulaire avec des seeders indépendants :
+
+```
+backend/apps/core/management/commands/
+├── seed_testdata.py              # Orchestrateur (~300 lignes)
+└── seeders/
+    ├── __init__.py               # Registry + validation des dépendances
+    ├── base.py                   # Classe abstraite BaseSeeder
+    ├── context.py                # SeederContext (partage de données)
+    ├── signals.py                # Gestion centralisée des signaux (28)
+    ├── modules_seeder.py         # 4 modules
+    ├── nomenclatures_seeder.py   # Nomenclatures et types
+    ├── groups_seeder.py          # 4 groupes Django
+    ├── organismes_seeder.py      # 5 organismes
+    ├── sites_seeder.py           # 7 sites avec géométries PostGIS
+    ├── users_seeder.py           # 14 utilisateurs
+    ├── plans_seeder.py           # 8 plans de gestion
+    ├── pending_users_seeder.py   # 3 PendingUser
+    ├── validation_requests_seeder.py  # 22 demandes de validation
+    ├── notifications_seeder.py   # 21+ notifications
+    ├── error_logs_seeder.py      # 8 logs d'erreur
+    └── activity_logs_seeder.py   # 25+ logs d'activité
+```
+
+**Composants clés :**
+
+| Composant | Description |
+|-----------|-------------|
+| `BaseSeeder` | Classe abstraite avec `seed()`, `reset()`, `get_dry_run_summary()` |
+| `SeederContext` | Partage de données entre seeders (`set()`, `get()`, `require()`) |
+| `signals_disabled()` | Context manager pour désactiver les 28 signaux pendant le seeding |
+| `SEEDER_CLASSES` | Liste ordonnée par dépendances (tri topologique) |
+
+**Graphe de dépendances :**
+```
+modules, nomenclatures, groups, organismes (indépendants)
+    │
+    ├── sites (deps: organismes, nomenclatures)
+    ├── users (deps: organismes, sites, groups)
+    ├── pending_users (deps: organismes)
+    ├── plans (deps: users, sites, nomenclatures)
+    ├── validation_requests (deps: users, sites, plans, organismes)
+    ├── notifications (deps: users, sites, plans, organismes, validation_requests)
+    ├── error_logs (deps: users)
+    └── activity_logs (deps: users, sites, plans, organismes, validation_requests)
+```
+
+**Option `--only` :** Permet un seeding sélectif avec résolution automatique des dépendances.
+```bash
+# Crée uniquement users et plans (+ leurs dépendances automatiquement)
+docker compose exec web python manage.py seed_testdata --only=users,plans
+```
+
+**Ajouter un nouveau seeder :**
+1. Créer `seeders/mon_seeder.py` héritant de `BaseSeeder`
+2. Définir `name` et `dependencies`
+3. Implémenter `seed()`, `reset()`, `get_dry_run_summary()`
+4. Ajouter la classe dans `SEEDER_CLASSES` de `__init__.py`
 
 ### Testing
 
@@ -241,37 +400,67 @@ docker-compose logs -f web
 
 ```bash
 # Via Docker (recommandé)
-docker-compose exec web pytest tests/
+docker compose exec web pytest tests/
 
 # Avec couverture HTML
-docker-compose exec web pytest tests/ --cov=apps --cov-report=html
+docker compose exec web pytest tests/ --cov=apps --cov-report=html
 
 # Tests unitaires uniquement
-docker-compose exec web pytest tests/ -m unit
+docker compose exec web pytest tests/ -m unit
 
 # Tests d'intégration uniquement
-docker-compose exec web pytest tests/ -m integration
+docker compose exec web pytest tests/ -m integration
 
 # Un fichier spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py -v
+docker compose exec web pytest tests/integration/test_api_users.py -v
 
 # Un test spécifique
-docker-compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint -v
+docker compose exec web pytest tests/integration/test_api_users.py::TestUsersListEndpoint -v
 ```
 
 **Structure des tests backend :**
 ```
 backend/tests/
-├── factories/           # Factory Boy (UserFactory, PlanGestionFactory, etc.)
+├── factories/           # Factory Boy (UserFactory, PlanGestionFactory, ActivityLogFactory, etc.)
 ├── apps/               # Tests unitaires
 │   ├── users/          # test_models.py, test_permissions.py, test_middleware.py
-│   └── plans/          # test_views.py, test_filters.py
+│   ├── plans/          # test_views.py, test_filters.py
+│   ├── core/           # test_activity.py (45 tests - model, service, API, signals)
+│   └── notifications/  # test_email_integration.py (tests envoi email réel)
 └── integration/        # Tests API
     ├── test_api_auth.py
     ├── test_api_users.py
     ├── test_api_org_sites.py
-    └── test_api_plans.py
+    ├── test_api_plans.py
+    └── test_site_duplicates.py  # Détection doublons INPN et noms similaires
 ```
+
+#### Tests d'intégration email (Mailpit)
+
+> **Documentation complète** : Voir [`docs/EMAIL_CONFIGURATION.md`](docs/EMAIL_CONFIGURATION.md)
+
+En développement, **Mailpit** capture tous les emails (interface web : http://localhost:8025).
+
+```bash
+# Démarrer les services (inclut Mailpit)
+docker compose up -d
+
+# Lancer les tests d'intégration email (utilisent Mailpit automatiquement)
+docker compose exec web pytest tests/apps/notifications/test_email_integration.py -m email_integration -v
+
+# Tester manuellement l'envoi d'un email
+docker compose exec web python manage.py shell -c "
+from django.core.mail import send_mail
+send_mail('Test', 'Message de test', 'noreply@cicada.fr', ['test@example.com'])
+print('Email envoyé! Voir http://localhost:8025')
+"
+```
+
+**Tests disponibles (27 tests) :**
+- `TestNotificationEmailIntegration` : welcome, validation_request, account_deactivated, site_association
+- `TestRegistrationEmailIntegration` : pending, approved, rejected
+- `TestFullWorkflowEmailIntegration` : workflow complet inscription, accès site
+- `TestEmailTemplatesIntegration` : test des 15 types de notifications
 
 #### Frontend (Jest)
 
@@ -344,14 +533,7 @@ The Angular application follows a modular structure:
 - **shared module**: Reusable components, pipes, directives, design system components
 - **feature modules**: Plans, users, auth (lazy loaded)
 - **State management**: RxJS-based with services as stores
-- **Design System**: Custom SCSS implementing Kit UI CICADA (11/2025)
-  - Variables: `src/assets/scss/_variables.scss`
-  - Typography: `src/assets/scss/_typography.scss`
-  - Material overrides: `src/assets/scss/_material-overrides.scss`
-  - Custom components: `src/assets/scss/_components.scss`
-  - Filters & pagination: `src/assets/scss/_filters.scss`
-  - Main styles: `src/styles.scss`
-  - Reference: `KitUI/` (PNG maquettes)
+- **Design System**: Voir section "Technology Stack > Frontend" et [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
 
 #### Composants SCSS disponibles
 
@@ -467,14 +649,6 @@ OPTIONS = {
 }
 ```
 
-### Frontend Architecture
-
-Angular application with:
-- **core module**: Singleton services (auth, API client, interceptors)
-- **shared module**: Reusable components, pipes, directives
-- **feature modules**: Plans, users, auth (lazy loaded)
-- **State management**: RxJS-based with services as stores
-
 ## Key Implementation Patterns
 
 ### Authentication & Permissions
@@ -485,7 +659,9 @@ Angular application with:
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
 - **API Protection**: All endpoints protected by default except `/api/auth/`
-- **Permissions Classes**: Custom DRF permissions + decorators for granular control
+- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
+- **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
+- **Decorators**: `@require_super_admin`, `@require_admin_organisme`
 
 ### Geospatial Handling
 
@@ -506,11 +682,7 @@ Angular application with:
 1. **Database Migrations**: Always create reversible migrations
 2. **API Design**: RESTful with consistent naming, pagination for lists > 20 items
 3. **Frontend State**: Services as stores pattern, avoid NgRx for V0
-4. **Testing**:
-   - Backend : 317 tests (62% couverture) - pytest + Factory Boy
-   - Frontend : 55 tests (100% auth) - Jest
-   - CI/CD : GitHub Actions sur push/PR
-   - Objectif : 80% backend, 70% frontend
+4. **Testing**: Voir section "Testing" pour les détails. CI/CD via GitHub Actions.
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
 
@@ -534,11 +706,16 @@ Angular application with:
   - Hierarchical structure support (parent organizations)
   - Contact information management
 
-- **Sites**: 
+- **Sites**:
   - Geospatial support with interactive maps (PostGIS)
   - Site classification (RNN, RNR, PNR, ENS, etc.)
   - Surface area and geographic coordinates
   - Organization-Site relationships inline
+  - **Contrainte unicité INPN** : Le champ `id_inpn` est unique en base de données
+  - **Détection de doublons** lors de la création :
+    - Si le code INPN saisi existe déjà → **alerte bloquante** avec message "Ce code INPN est déjà utilisé par un site existant"
+    - Si le nom est similaire à un site existant → **suggestions non bloquantes** de sites similaires
+    - L'utilisateur peut demander l'accès au site existant ou lier son organisme
 
 - **Nomenclatures**: 
   - Reference data management
@@ -554,26 +731,29 @@ Angular application with:
 
 ### Test Data Available (via `python manage.py seed_testdata`)
 
-Run `docker-compose exec web python manage.py seed_testdata` to create:
+Run `docker compose exec web python manage.py seed_testdata` to create:
 
 - **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
-- **7 Users** with different roles:
-  | Email | Role | Organization | Notes |
-  |-------|------|--------------|-------|
-  | admin@test.fr | Super Admin | - | |
-  | admin.rnf@test.fr | Admin Organisme | RNF | |
-  | admin.cen@test.fr | Admin Organisme | CEN AURA | |
-  | referent.camargue@test.fr | Utilisateur | RNF | Site referent (Camargue) |
-  | referent.vercors@test.fr | Utilisateur | CEN AURA | Site referent (Vercors) |
-  | user.rnf@test.fr | Utilisateur | RNF | |
-  | user.cen@test.fr | Utilisateur | CEN AURA | |
+- **8 Users** with different roles:
+  | Email | Role | Organization | Sites | Notes |
+  |-------|------|--------------|-------|-------|
+  | admin@test.fr | Super Admin | RNF | Referent: Camargue | |
+  | admin.rnf@test.fr | Admin Organisme | RNF | Referent: Camargue, Aiguilles Rouges | |
+  | admin.cen@test.fr | Admin Organisme | CEN AURA | Referent: Grand-Voyeux, Vercors | |
+  | referent.camargue@test.fr | Utilisateur | RNF | Referent: Camargue | |
+  | referent.vercors@test.fr | Utilisateur | CEN AURA | Referent: Vercors | |
+  | user.rnf@test.fr | Utilisateur | RNF | Membre: Camargue, Aiguilles Rouges | Voit automatiquement les plans liés |
+  | user.cen@test.fr | Utilisateur | CEN AURA | Membre: Grand-Voyeux, Vercors | Voit automatiquement les plans liés |
+  | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **6 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations
+- **8 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
 - **Nomenclatures**: Site types, evaluation types, editor types
-- **Validation Requests**: Demandes de test avec différents statuts (pending, approved, rejected) et dates réalistes
+- **Validation Requests (27)**: Demandes de test avec différents statuts
+  - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
+  - Demandes `site_access`, `referent_validation`, `module_access`, etc.
 
 ### Authentication System (JWT)
 
@@ -588,15 +768,7 @@ JWT authentication is fully implemented and operational:
 - `POST /api/auth/register/` - Public user registration (requires admin approval)
 - `GET /api/auth/registration-status/` - Check registration request status
 
-**Configuration:**
-- Access tokens: 60 minutes lifetime
-- Refresh tokens: 7 days with rotation
-- Email-based authentication (not username)
-- All API endpoints protected by default
-
-**Test credentials:**
-- `admin` / `admin` (superuser)
-- `marie.dupont@rnf.fr` / `password123` (user with organization)
+**Test credentials:** Voir section "Test Data Available" pour la liste complète des utilisateurs de test.
 
 **Example usage:**
 ```bash
@@ -614,16 +786,7 @@ curl -X GET http://localhost:8000/api/auth/me/ \
 
 ### Understanding Migrations
 
-Django migrations track database schema changes automatically:
-
-```bash
-# 1. Modify models.py (add/remove/change fields)
-# 2. Generate migration file
-docker-compose exec web python manage.py makemigrations
-
-# 3. Apply changes to database
-docker-compose exec web python manage.py migrate
-```
+Django migrations track database schema changes automatically. Voir les commandes dans la section "Development" ci-dessus.
 
 **Migration Structure:**
 - Each app has its own `migrations/` folder
@@ -704,17 +867,9 @@ class UsersConfig(AppConfig):
 - Use `core` app for shared models (like nomenclatures)
 - Each app should have a clear, single responsibility
 
-**Permissions System:**
-- **3 role levels**: utilisateur → admin_og → super_admin
-- **Referent access**: Computed via `is_referent()` - true if user is site or plan referent
-- **10 custom permissions** + Django standard (add/change/view/delete)
-- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
-- **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
-- **Decorators**: `@require_super_admin`, `@require_admin_organisme`
-
 **Permissions Testing:**
-- Always run `docker-compose exec web python test_permissions.py` after changes
-- Test API endpoints with `docker-compose exec web python test_permissions_api.py`
+- Always run `docker compose exec web python test_permissions.py` after changes
+- Test API endpoints with `docker compose exec web python test_permissions_api.py`
 - Use `/api/users/permissions/` to debug user permissions
 - Validate middleware headers in browser developer tools
 
@@ -759,6 +914,71 @@ class UsersConfig(AppConfig):
   - `POST /api/notifications/{id}/read/` - Mark notification as read
   - `POST /api/notifications/read-all/` - Mark all as read
 
+**Types de notifications disponibles:**
+| Type | Description | Déclencheur |
+|------|-------------|-------------|
+| `welcome` | Bienvenue | Activation du compte après validation |
+| `validation_request` | Demande de validation | Nouvelle demande reçue (pour validateurs) |
+| `validation_approved` | Validation approuvée | Demande approuvée |
+| `validation_rejected` | Validation rejetée | Demande rejetée |
+| `user_associated_site` | Associé à un site | Ajout comme membre d'un site |
+| `user_associated_plan` | Associé à un plan | Ajout comme référent d'un plan |
+| `user_removed_site` | Retiré d'un site | Retrait d'un site |
+| `user_removed_plan` | Retiré d'un plan | Retrait d'un plan |
+| `account_deactivated` | Compte désactivé | Désactivation par un admin |
+| `account_activated` | Compte activé | Réactivation par un admin |
+| `organisme_changed` | Organisme modifié | Changement d'organisme par un admin |
+| `site_orphaned` | Site sans utilisateurs | Plus aucun utilisateur sur le site |
+| `organisme_no_admin` | Organisme sans admin | Plus d'administrateur pour l'organisme |
+| `system_alert` | Alerte système | Notifications système (maintenance, etc.) |
+| `info` | Information | Informations générales |
+
+**Signaux de notifications automatiques** (`apps/notifications/signals.py`):
+- `notify_user_site_association`: Notifie lors de l'ajout à un site
+- `notify_user_removed_from_site`: Notifie lors du retrait d'un site
+- `notify_user_deactivation`: Notifie lors de la désactivation
+- `notify_user_organisme_changed`: Notifie lors du changement d'organisme
+
+**API REST Activity (Historique d'activité):**
+- Unified activity timeline API at `/api/activity/`
+- Entity types: `site`, `plan`, `user`, `organisme`, `validation`
+- Action types: `create`, `update`, `delete`, `add_member`, `remove_member`, `add_referent`, `remove_referent`, `status_change`, `activate`, `deactivate`, `rgpd_request`, `rgpd_cancelled`, `rgpd_anonymized`, etc.
+- Visibility levels: `public`, `admin`, `system`
+- Filtering by user role:
+  | Rôle | Accès |
+  |------|-------|
+  | super_admin | Tout (y compris RGPD et système) |
+  | admin_og | Activité de son organisme |
+  | référent | Activité de ses sites/plans |
+  | utilisateur | Ses notifications + sites où il est membre |
+
+- Endpoints:
+  - `GET /api/activity/` - List activities (paginated, filtered by role)
+  - `GET /api/activity/{id}/` - Single activity detail
+  - `GET /api/activity/my_sites/` - Activities for user's sites
+  - `GET /api/activity/my_plans/` - Activities for user's plans
+  - `GET /api/activity/validations/` - Validation-related activities (admin_og+)
+  - `GET /api/activity/rgpd/` - RGPD activities (super_admin only)
+  - `GET /api/activity/system/` - System activities (super_admin only)
+  - `GET /api/activity/stats/` - Activity statistics
+  - `GET /api/activity/tabs_counts/` - Counts per tab/category
+
+- Filters:
+  - `entity_type` - Filter by entity type (site, plan, user, etc.)
+  - `action` - Filter by action type
+  - `site_id` - Filter by related site
+  - `plan_id` - Filter by related plan
+  - `since` - Filter by date (ISO format)
+  - `search` - Text search in description/entity_name
+
+- Backend components:
+  - Model: `apps/core/models.py` → `ActivityLog`
+  - Service: `apps/core/services.py` → `ActivityService`
+  - Signals: `apps/core/activity_signals.py` (auto-logging on model changes)
+  - API: `apps/core/views.py` → `ActivityViewSet`
+
+- Tests: `tests/apps/core/test_activity.py` (45 tests)
+
 ### Frontend Features
 
 **Page Profil (`/profile`):**
@@ -782,6 +1002,27 @@ class UsersConfig(AppConfig):
 - Composant `NotificationBellComponent` dans le header
 - Compteur de notifications non lues
 - Dialog avec liste des notifications et marquage comme lu
+- Lien "Voir tout" vers `/activite`
+
+**Page Activité (`/activite`):**
+- Timeline unifiée des activités, notifications et validations
+- Onglets dynamiques selon le rôle de l'utilisateur:
+  - **Tous les utilisateurs**: "Tout", "Mes sites", "Mes plans", "Mes droits", "Notifications"
+  - **Admin organisme+**: + "Validations"
+  - **Super admin**: + "RGPD", "Système"
+- **Onglet "Mes droits"**: Historique des changements de droits de l'utilisateur (ajout/retrait membre, référent, activation compte, validation demandes)
+- Filtres par type d'entité, action, recherche textuelle
+- Groupement chronologique ("Aujourd'hui", "Hier", "Cette semaine", etc.)
+- Icônes et couleurs par type d'action (création=vert, modification=bleu, suppression=rouge)
+- Pagination avec scroll infini
+- Liens vers les entités concernées
+
+Fichiers frontend:
+- Route: `frontend/src/app/features/activity/activity.routes.ts`
+- Composant principal: `frontend/src/app/features/activity/activity.component.ts`
+- Service: `frontend/src/app/core/services/activity.service.ts`
+- Modèles: `frontend/src/app/core/models/activity.model.ts`
+- Traductions: `frontend/src/assets/i18n/fr.json` (clés `activity.*`)
 
 ## Internationalisation (i18n)
 
@@ -903,16 +1144,16 @@ raise serializers.ValidationError(_("Les mots de passe ne correspondent pas."))
 **Commandes de traduction (uniquement si ajout d'une nouvelle langue) :**
 ```bash
 # Installer gettext dans le container (requis une seule fois)
-docker-compose exec web apk add gettext
+docker compose exec web apk add gettext
 
 # Extraire les chaînes traduisibles vers backend/locale/fr/LC_MESSAGES/django.po
-docker-compose exec web python manage.py makemessages -l fr
+docker compose exec web python manage.py makemessages -l fr
 
 # Pour ajouter l'anglais
-docker-compose exec web python manage.py makemessages -l en
+docker compose exec web python manage.py makemessages -l en
 
 # Compiler les .po en .mo (après traduction manuelle du .po)
-docker-compose exec web python manage.py compilemessages
+docker compose exec web python manage.py compilemessages
 ```
 
 **Contenu d'un fichier .po :**

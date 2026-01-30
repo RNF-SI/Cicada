@@ -15,8 +15,10 @@
         <a routerLink="/accueil" class="breadcrumb-home" title="Retour a l'accueil">
           <i class="fi fi-rr-home"></i>
         </a>
-        <span class="breadcrumb-separator"></span>
-        <span class="breadcrumb-current">{{ 'sites.title' | translate }}</span>
+        <div class="breadcrumb-lines"></div>
+        <div class="breadcrumb-text">
+          <span class="breadcrumb-current">{{ 'sites.title' | translate }}</span>
+        </div>
       </nav>
 
       <!-- Titre -->
@@ -66,17 +68,42 @@
         <div class="content-panel">
           <!-- Section Mes Sites -->
           <div class="section-header">
-            <h2 class="section-title">
-              <i class="fi fi-rr-check-circle"></i>
-              {{ 'sites.mySites.title' | translate }}
-              <span class="badge">{{ displayedMySites().length }}</span>
-              @if (searchTerm() && mySites().length !== displayedMySites().length) {
-                <span class="search-count">/ {{ mySites().length }}</span>
+            <div class="section-header-top">
+              <h2 class="section-title">
+                <i class="fi fi-rr-check-circle"></i>
+                @switch (viewScope()) {
+                  @case ('mine') {
+                    {{ 'sites.mySites.title' | translate }}
+                  }
+                  @case ('organisme') {
+                    {{ 'sites.organismesSites.title' | translate }}
+                  }
+                  @case ('all') {
+                    {{ 'sites.allSites.title' | translate }}
+                  }
+                }
+                <span class="badge">{{ displayedMySites().length }}</span>
+                @if (searchTerm() && scopedSites().length !== displayedMySites().length) {
+                  <span class="search-count">/ {{ scopedSites().length }}</span>
+                }
+              </h2>
+
+              <!-- Toggle de scope (visible pour admin_og et super_admin) -->
+              @if (showScopeToggle()) {
+                <app-view-scope-toggle
+                  [currentScope]="viewScope()"
+                  [showAllOption]="isSuperAdmin()"
+                  [showOrganismeOption]="true"
+                  mineLabel="Mes sites"
+                  organismeLabel="Mon organisme"
+                  allLabel="Tous les sites"
+                  (scopeChange)="onScopeChange($event)">
+                </app-view-scope-toggle>
               }
-            </h2>
+            </div>
 
             <!-- Barre de recherche -->
-            @if (mySites().length > 0) {
+            @if (scopedSites().length > 0) {
               <div class="search-bar">
                 <i class="fi fi-rr-search search-icon"></i>
                 <input
@@ -94,11 +121,23 @@
             }
           </div>
 
-          @if (mySites().length === 0) {
-            <!-- Aucun site -->
+          @if (scopedSites().length === 0) {
+            <!-- Aucun site dans le scope sélectionné -->
             <div class="empty-state">
               <i class="fi fi-rr-marker empty-icon"></i>
-              <p>{{ 'sites.mySites.empty' | translate }}</p>
+              <p>
+                @switch (viewScope()) {
+                  @case ('mine') {
+                    {{ 'sites.mySites.empty' | translate }}
+                  }
+                  @case ('organisme') {
+                    {{ 'sites.organismesSites.empty' | translate }}
+                  }
+                  @case ('all') {
+                    {{ 'sites.allSites.empty' | translate }}
+                  }
+                }
+              </p>
             </div>
           } @else if (displayedMySites().length === 0 && searchTerm()) {
             <!-- Aucun résultat de recherche -->
@@ -200,7 +239,71 @@
             }
           }
 
-          <!-- Section Sites en attente de validation -->
+          <!-- Section Sites en attente de validation de création -->
+          @if (pendingSiteCreations().length > 0) {
+            <div class="pending-creations-section">
+              <h3 class="subsection-title">
+                <i class="fi fi-rr-time-add"></i>
+                {{ 'sites.pendingCreations.title' | translate }}
+                <span class="badge badge-warning">{{ pendingSiteCreations().length }}</span>
+              </h3>
+              <p class="section-description">{{ 'sites.pendingCreations.description' | translate }}</p>
+
+              <div class="pending-creations-cards">
+                @for (request of pendingSiteCreations(); track request.id) {
+                  <div class="pending-creation-card">
+                    <div class="card-icon">
+                      <i class="fi fi-rr-marker"></i>
+                    </div>
+                    <div class="card-content">
+                      <span class="card-title">{{ request.target_name || 'Site sans nom' }}</span>
+                      <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <div class="card-status">
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'sites.pendingCreations.awaitingValidation' | translate }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Section Demandes de lien organisme-site en attente -->
+          @if (pendingOrgLinks().length > 0) {
+            <div class="pending-creations-section">
+              <h3 class="subsection-title">
+                <i class="fi fi-rr-link-alt"></i>
+                {{ 'sites.pendingOrgLinks.title' | translate }}
+                <span class="badge badge-warning">{{ pendingOrgLinks().length }}</span>
+              </h3>
+              <p class="section-description">{{ 'sites.pendingOrgLinks.description' | translate }}</p>
+
+              <div class="pending-creations-cards">
+                @for (request of pendingOrgLinks(); track request.id) {
+                  <div class="pending-creation-card">
+                    <div class="card-icon">
+                      <i class="fi fi-rr-link-alt"></i>
+                    </div>
+                    <div class="card-content">
+                      <span class="card-title">{{ request.target_name || '-' }}</span>
+                      <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <div class="card-status">
+                      <mat-chip class="status-warning">
+                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
+                        {{ 'sites.pendingOrgLinks.waiting' | translate }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Section Sites en attente de validation d'accès -->
           @if (pendingSites().length > 0) {
             <div class="pending-sites-section">
               <h3 class="subsection-title">
@@ -262,10 +365,19 @@
             </h3>
             <p class="section-description">{{ 'sites.findOrCreate.description' | translate }}</p>
 
-            <button class="btn-request" (click)="openFindOrCreateSiteDialog()">
-              <i class="fi fi-rr-search"></i>
-              {{ 'sites.findOrCreate.button' | translate }}
-            </button>
+            <div class="action-buttons">
+              <button class="btn-request" (click)="openFindOrCreateSiteDialog()">
+                <i class="fi fi-rr-search"></i>
+                {{ 'sites.findOrCreate.button' | translate }}
+              </button>
+
+              @if (isAdminOrganisme()) {
+                <button class="btn-request btn-import" (click)="openBulkImportDialog()">
+                  <i class="fi fi-rr-cloud-upload-alt"></i>
+                  {{ 'modals.bulkImport.title' | translate }}
+                </button>
+              }
+            </div>
           </div>
         </div>
       </div>

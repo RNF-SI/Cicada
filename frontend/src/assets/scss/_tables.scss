@@ -1,0 +1,391 @@
+// ============================================
+// TABLES - Styles responsive pour tableaux admin
+// ============================================
+
+@import 'variables';
+
+// ============================================
+// MIXINS TABLEAUX RESPONSIVE
+// ============================================
+
+// Mixin pour wrapper de tableau avec scroll horizontal
+@mixin table-scroll-wrapper {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  // Indicateur de scroll (gradient sur les bords)
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to left, rgba($white, 1), rgba($white, 0));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity $transition-fast;
+  }
+
+  // Afficher l'indicateur quand scrollable
+  &.has-scroll::after {
+    opacity: 1;
+  }
+
+  // Cacher quand scrollé jusqu'au bout
+  &.scrolled-end::after {
+    opacity: 0;
+  }
+}
+
+// Mixin pour colonne sticky (première colonne)
+@mixin sticky-first-column {
+  th:first-child,
+  td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: inherit;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: $gray-light;
+    }
+  }
+
+  th:first-child {
+    background-color: $gray-light;
+    z-index: 3;
+  }
+}
+
+// ============================================
+// CLASSES DE BASE POUR TABLEAUX ADMIN
+// ============================================
+
+// Container scrollable pour tableaux
+.table-responsive {
+  @include table-scroll-wrapper;
+  margin: 0 -1px;
+
+  @media (min-width: $breakpoint-desktop) {
+    overflow-x: visible;
+
+    &::after {
+      display: none;
+    }
+  }
+}
+
+// Tableau avec colonne sticky
+.table-sticky-first {
+  @include sticky-first-column;
+}
+
+// ============================================
+// COLONNES AVEC VISIBILITÉ RESPONSIVE
+// ============================================
+
+// Colonnes cachées sur mobile
+.col-hide-mobile {
+  @media (max-width: $breakpoint-mobile) {
+    display: none !important;
+  }
+}
+
+// Colonnes cachées sur tablet et en-dessous
+.col-hide-tablet {
+  @media (max-width: $breakpoint-tablet) {
+    display: none !important;
+  }
+}
+
+// Colonnes cachées sur laptop petit (< 1024px)
+.col-hide-laptop {
+  @media (max-width: $breakpoint-desktop) {
+    display: none !important;
+  }
+}
+
+// Colonnes secondaires (moins prioritaires)
+.col-secondary {
+  @media (max-width: $breakpoint-tablet) {
+    display: none !important;
+  }
+}
+
+// Colonnes tertiaires (visibles uniquement sur grand écran)
+.col-tertiary {
+  @media (max-width: $breakpoint-desktop) {
+    display: none !important;
+  }
+}
+
+// ============================================
+// STYLES TABLEAUX ADMIN COMMUNS
+// ============================================
+
+.admin-table {
+  width: 100%;
+  min-width: 700px; // Largeur minimale pour forcer le scroll
+  background: $white;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+  box-shadow: $shadow-light;
+  border-collapse: collapse;
+
+  th, td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    vertical-align: middle;
+    font-size: $font-size-base;
+    border-bottom: 1px solid $gray-light;
+  }
+
+  th {
+    background-color: $gray-light;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    white-space: nowrap;
+    font-size: $font-size-small;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  tbody tr {
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.03);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  // Lignes cliquables
+  .clickable-row {
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+    }
+  }
+
+  // Alternance de couleurs
+  &.striped tbody tr:nth-child(odd) {
+    background-color: rgba($beige, 0.5);
+
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+    }
+  }
+}
+
+// ============================================
+// CELLULES SPÉCIALES
+// ============================================
+
+// Cellule d'identifiant principal (nom, utilisateur, etc.)
+.cell-primary {
+  font-weight: $font-weight-semibold;
+  color: $primary-color;
+  min-width: 150px;
+
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  i {
+    font-size: 16px;
+    color: $primary-color;
+  }
+}
+
+// Cellule avec badge/chip
+.cell-badge {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: $spacing-xxs $spacing-xs;
+    background-color: $gray-light;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-small;
+    white-space: nowrap;
+
+    i {
+      font-size: 12px;
+    }
+  }
+}
+
+// Cellule de date
+.cell-date {
+  white-space: nowrap;
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+// Cellule d'actions
+.cell-actions {
+  white-space: nowrap;
+  text-align: right;
+
+  display: flex;
+  gap: $spacing-xxs;
+  justify-content: flex-end;
+
+  button {
+    padding: $spacing-xxs;
+  }
+}
+
+// Cellule texte tronqué
+.cell-truncate {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: $breakpoint-tablet) {
+    max-width: 150px;
+  }
+}
+
+// ============================================
+// MODES D'AFFICHAGE ALTERNATIFS (MOBILE)
+// ============================================
+
+// Vue carte pour mobile
+.table-card-view {
+  display: none;
+
+  @media (max-width: $breakpoint-mobile) {
+    display: block;
+  }
+
+  .card-item {
+    background: $white;
+    border-radius: $border-radius-md;
+    padding: $spacing-md;
+    margin-bottom: $spacing-sm;
+    box-shadow: $shadow-light;
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: $spacing-sm;
+
+      .card-title {
+        font-weight: $font-weight-semibold;
+        color: $primary-color;
+        font-size: $font-size-base;
+      }
+
+      .card-status {
+        flex-shrink: 0;
+      }
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: $font-size-small;
+
+      .label {
+        color: $gray-dark;
+      }
+
+      .value {
+        color: $black;
+        font-weight: $font-weight-medium;
+        text-align: right;
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      gap: $spacing-xs;
+      margin-top: $spacing-md;
+      padding-top: $spacing-sm;
+      border-top: 1px solid $gray-light;
+      justify-content: flex-end;
+    }
+  }
+}
+
+// Cacher le tableau quand en mode carte
+.table-hide-mobile {
+  @media (max-width: $breakpoint-mobile) {
+    display: none !important;
+  }
+}
+
+// ============================================
+// PAGINATION RESPONSIVE
+// ============================================
+
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md 0;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  .pagination-info {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+
+  @media (max-width: $breakpoint-mobile) {
+    justify-content: center;
+
+    .pagination-info {
+      width: 100%;
+      text-align: center;
+      order: 2;
+    }
+  }
+}
+
+// ============================================
+// UTILITAIRES
+// ============================================
+
+// Texte muted pour valeurs vides
+.text-muted {
+  color: $gray;
+  font-style: italic;
+}
+
+// Badge de compteur inline
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 $spacing-xxs;
+  background-color: $primary-color;
+  color: $white;
+  border-radius: $border-radius-pill;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  margin-left: $spacing-xxs;
+}

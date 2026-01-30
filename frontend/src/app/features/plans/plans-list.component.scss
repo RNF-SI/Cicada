@@ -24,8 +24,8 @@
   background-color: $primary-color;
   border-radius: 0 0 20px 20px;
   margin: 0 72px;
-  padding: 32px 38px 56px;
-  min-height: 250px;
+  padding: 32px 38px;
+  min-height: 200px;
   overflow: hidden;
 }
 
@@ -37,15 +37,15 @@
 
 .hero-pattern {
   position: absolute;
-  right: -100px;
-  top: -100px;
-  width: 1000px;
-  height: 1000px;
-  background-image: url('/assets/images/data-waves.png');
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
   background-size: contain;
   background-repeat: no-repeat;
-  opacity: 0.2;
-  transform: rotate(180deg);
+  background-position: right center;
+  opacity: 1;
 }
 
 .hero-content {
@@ -53,13 +53,18 @@
   z-index: 1;
 }
 
-// Breadcrumb - Fil d'Ariane
+// Breadcrumb - Fil d'Ariane (design Figma: lignes horizontales blanches)
 .breadcrumb {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  justify-content: flex-start;
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
   height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .breadcrumb-home {
@@ -74,6 +79,7 @@
   text-decoration: none;
   transition: transform $transition-fast;
   flex-shrink: 0;
+  z-index: 2;
 
   i {
     font-size: 24px;
@@ -84,32 +90,38 @@
   }
 }
 
-.breadcrumb-separator {
-  position: relative;
-  width: 16px;
-  height: 48px;
+// Lignes horizontales blanches (design Figma)
+// Positionnées en absolu pour traverser la bannière
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px; // Commence depuis le centre du bouton home
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
 
-  // Ligne du haut
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 18px;
-    background-color: $white;
-  }
-
-  // Ligne du bas
+  &::before,
   &::after {
     content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-    height: 18px;
+    display: block;
+    width: 100%;
+    height: 1px;
     background-color: $white;
   }
+}
+
+// Conteneur du texte du breadcrumb (à droite du home)
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
 }
 
 .breadcrumb-current {
@@ -185,14 +197,24 @@ h1 {
   }
 }
 
-// Tabs - positionnés dans le hero
+// ============================================
+// TABS (en dessous de la bannière - design Figma)
+// ============================================
+
+.tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 72px;
+  padding-top: $spacing-lg;
+  padding-bottom: $spacing-md;
+  gap: $spacing-lg;
+}
+
 .tabs {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: $spacing-xl;
-  position: relative;
-  z-index: 2;
+  justify-content: flex-start;
 }
 
 // ============================================
@@ -201,7 +223,6 @@ h1 {
 
 .content-section {
   padding: 0 72px 48px;
-  margin-top: $spacing-lg;
 }
 
 .tab {
@@ -602,6 +623,40 @@ h1 {
 }
 
 // ============================================
+// PENDING PLANS SECTION
+// ============================================
+
+.pending-plans-section {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+.table-pending {
+  .plans-table thead th {
+    background-color: rgba($secondary-orange-salmon, 0.15);
+    color: $black;
+  }
+}
+
+.plans-table-pending tbody tr {
+  background-color: rgba($secondary-orange-salmon, 0.05);
+
+  &.odd {
+    background-color: rgba($secondary-orange-salmon, 0.1);
+  }
+}
+
+.badge-warning {
+  background-color: $secondary-orange-salmon;
+  color: $black;
+}
+
+.col-date {
+  width: 150px;
+}
+
+// ============================================
 // REQUEST ACCESS SECTION
 // ============================================
 
@@ -737,6 +792,22 @@ h1 {
   background-color: $gray-light !important;
 }
 
+// Action with status (rejected plans)
+.action-with-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.status-chip-small {
+  font-size: 11px;
+  height: 24px;
+
+  .chip-icon {
+    font-size: 10px;
+  }
+}
+
 // ============================================
 // RESPONSIVE
 // ============================================
@@ -744,7 +815,11 @@ h1 {
 @media (max-width: $breakpoint-desktop) {
   .hero-section {
     margin: 0 24px;
-    padding: 24px 24px 48px;
+    padding: 24px;
+  }
+
+  .tabs-container {
+    margin: 0 24px;
   }
 
   .content-section {
@@ -778,7 +853,11 @@ h1 {
 @media (max-width: $breakpoint-tablet) {
   .hero-section {
     margin: 0 16px;
-    padding: 16px 16px 40px;
+    padding: 16px;
+  }
+
+  .tabs-container {
+    margin: 0 16px;
   }
 
   .content-section {
@@ -803,12 +882,7 @@ h1 {
     }
   }
 
-  .breadcrumb-separator {
-    height: 40px;
-
-    &::before,
-    &::after {
-      height: 14px;
-    }
+  .breadcrumb-lines {
+    left: 20px; // Ajusté pour la taille réduite du bouton home
   }
 }

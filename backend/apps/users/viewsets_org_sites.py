@@ -62,38 +62,52 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        """Filtrage selon le rôle de l'utilisateur."""
+        """Filtrage selon le rôle de l'utilisateur.
+
+        Paramètres GET:
+        - for_invite: Si 'true', permet aux référents de voir tous les organismes
+                      pour la fonctionnalité d'invitation d'organisme à un site.
+        """
         user = self.request.user
-        
+        for_invite = self.request.query_params.get('for_invite', '').lower() == 'true'
+
         if user.is_super_admin():
             # Super admin voit tous les organismes
             return BibOrganismes.objects.all().select_related('id_parent')
-        
+
         elif user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme voit son organisme et ses enfants
+            # Admin organisme voit tous les organismes pour invitation,
+            # sinon son organisme et ses enfants
+            if for_invite:
+                return BibOrganismes.objects.all().select_related('id_parent')
+
             org_ids = [user.id_organisme.id_organisme]
-            
+
             # Ajouter les organismes enfants
             children = BibOrganismes.objects.filter(id_parent=user.id_organisme)
             org_ids.extend(children.values_list('id_organisme', flat=True))
-            
+
             return BibOrganismes.objects.filter(
                 id_organisme__in=org_ids
             ).select_related('id_parent')
-        
+
         elif user.is_referent() and user.id_organisme:
-            # Référent voit seulement son organisme
+            # Référent voit tous les organismes pour invitation,
+            # sinon seulement son organisme
+            if for_invite:
+                return BibOrganismes.objects.all().select_related('id_parent')
+
             return BibOrganismes.objects.filter(
                 id_organisme=user.id_organisme.id_organisme
             ).select_related('id_parent')
-        
+
         else:
             # Utilisateur normal voit seulement son organisme
             if user.id_organisme:
                 return BibOrganismes.objects.filter(
                     id_organisme=user.id_organisme.id_organisme
                 ).select_related('id_parent')
-        
+
         return BibOrganismes.objects.none()
     
     def get_object(self):
@@ -238,35 +252,79 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=True, methods=['delete'])
+    @action(detail=True, methods=['delete', 'post'])
     def unassign_site(self, request, pk=None, organisme_pk=None, site_pk=None):
-        """Désassigne un site d'un organisme."""
+        """
+        Désassigne un site d'un organisme.
+
+        Crée une demande de validation envoyée à l'admin_og de l'organisme à retirer.
+        La suppression effective n'a lieu qu'après validation.
+
+        Body (optionnel): { "justification": "Motif de la demande" }
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
         # Support both pk (from router) and organisme_pk (from manual URL)
         organisme_id = pk or organisme_pk
         organisme = get_object_or_404(BibOrganismes, id_organisme=organisme_id)
         site = get_object_or_404(Site, id_site=site_pk)
-        
-        # Vérifier permissions
+
+        # Vérifier permissions : il faut pouvoir gérer le site
         if not request.user.is_super_admin():
             if not request.user.can_manage_site(site):
                 return Response(
                     {'error': 'Vous ne pouvez pas gérer ce site.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
+
+        # Vérifier que le lien existe
         try:
-            cor_og_site = CorOgSite.objects.get(uuid_og=organisme, id_site=site)
-            cor_og_site.delete()
-            
-            return Response(
-                {'message': f'Site {site.nom_site} désassigné de {organisme.nom_organisme}'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+            CorOgSite.objects.get(uuid_og=organisme, id_site=site)
         except CorOgSite.DoesNotExist:
             return Response(
                 {'error': 'Ce site n\'est pas assigné à cet organisme.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        # Vérifier si une demande similaire est déjà en cours
+        existing_request = ValidationRequest.objects.filter(
+            request_type='site_org_unlink',
+            target_site=site,
+            requested_organisme=organisme,
+            status='pending'
+        ).first()
+
+        if existing_request:
+            return Response(
+                {'error': 'Une demande de retrait est déjà en cours pour ce site et cet organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Récupérer la justification du body si présente
+        justification = request.data.get('justification', '')
+
+        # Créer la demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='site_org_unlink',
+            requester=request.user,
+            target_site=site,
+            requested_organisme=organisme,
+            justification=justification,
+            status='pending'
+        )
+
+        # Notifier les validateurs (admin_og de l'organisme à retirer)
+        NotificationService.notify_validators(validation_request)
+
+        return Response(
+            {
+                'message': f'Demande de retrait de {organisme.nom_organisme} du site {site.nom_site} créée.',
+                'validation_request_id': validation_request.id,
+                'status': 'pending'
+            },
+            status=status.HTTP_201_CREATED
+        )
     
     @action(detail=True, methods=['get'])
     def sites(self, request, pk=None):
@@ -330,19 +388,26 @@ class OrganismeViewSet(viewsets.ModelViewSet):
 class SiteViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des sites.
-    
+
     Permissions:
     - Liste/Détail: Authentifié (filtrage selon rôle)
-    - Création: Admin Organisme+
+    - Création: Authentifié (le site doit être validé par admin_og/super_admin)
     - Modification: Référent du site OU Admin de l'organisme gestionnaire OU Super Admin
     - Suppression: Admin Organisme+ (dans son scope)
+
+    Note: La création de site déclenche un workflow de validation.
+    Le créateur devient automatiquement référent une fois le site validé.
+
+    URLs: Les sites sont accessibles via leur slug (ex: /api/users/sites/reserve-naturelle-camargue/).
     """
-    
+
     pagination_class = StandardPagination
     filterset_class = SiteFilter
-    search_fields = ['nom_site', 'id_local', 'id_inpn']
+    search_fields = ['nom_site', 'id_local', 'id_inpn', 'slug']
     ordering_fields = ['nom_site', 'surf_off', 'date_crea']
     ordering = ['nom_site']
+    lookup_field = 'slug'
+    lookup_url_kwarg = 'slug'
     
     def get_serializer_class(self):
         """Retourne le serializer approprié selon l'action."""
@@ -358,14 +423,17 @@ class SiteViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Permissions selon l'action."""
         if self.action in ['create']:
-            permission_classes = [IsAdminOrganisme]
+            # Tout utilisateur authentifié peut créer un site (soumis à validation)
+            permission_classes = [permissions.IsAuthenticated]
         elif self.action in ['update', 'partial_update']:
             permission_classes = [IsReferent]  # Vérifié dans get_object
         elif self.action in ['destroy']:
             permission_classes = [IsAdminOrganisme]  # Vérifié dans get_object
+        elif self.action in ['bulk_import_validate', 'bulk_import_execute', 'bulk_import_status']:
+            permission_classes = [IsAdminOrganisme]
         else:
             permission_classes = [permissions.IsAuthenticated]
-        
+
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
@@ -377,12 +445,17 @@ class SiteViewSet(viewsets.ModelViewSet):
             return Site.objects.all().select_related('id_type_site')
         
         elif user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme voit les sites de son organisme
-            managed_sites = CorOgSite.objects.filter(
+            # Admin organisme voit les sites de son organisme + ses sites personnellement assignés
+            org_sites = CorOgSite.objects.filter(
                 uuid_og=user.id_organisme
             ).values_list('id_site', flat=True)
-            
-            return Site.objects.filter(id_site__in=managed_sites).select_related('id_type_site')
+
+            # Ajouter les sites personnellement assignés (ex: référent d'un site d'un autre organisme)
+            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
+
+            return Site.objects.filter(
+                Q(id_site__in=org_sites) | Q(id_site__in=assigned_sites)
+            ).distinct().select_related('id_type_site')
         
         elif user.is_referent():
             # Référent voit les sites qui lui sont assignés + sites de son organisme
@@ -422,24 +495,100 @@ class SiteViewSet(viewsets.ModelViewSet):
         """Vérification des permissions d'objet."""
         obj = super().get_object()
         user = self.request.user
-        
+
         # Super admin peut tout faire
         if user.is_super_admin():
             return obj
-        
+
         # Pour modification/suppression, vérifier permissions spécifiques
         if self.action in ['update', 'partial_update', 'destroy']:
             if user.can_manage_site(obj):
                 return obj
-            
+
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Vous n'avez pas la permission de modifier ce site.")
-        
+
         # Pour lecture, utiliser get_queryset
         return obj
-    
+
+    def create(self, request, *args, **kwargs):
+        """
+        Création de site avec workflow de validation.
+        - Super admin: site créé actif immédiatement, créateur devient référent
+        - Autres: site créé inactif, demande de validation créée
+        """
+        from apps.notifications.models import ValidationRequest
+        from apps.notifications.services import NotificationService
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+
+        if user.is_super_admin():
+            # Super admin: création directe sans validation
+            site = serializer.save(active=True)
+
+            # Le super admin devient référent du site
+            CorRoleSite.objects.create(
+                id_site=site,
+                id_role=user,
+                referent=True,
+                referent_valid=True,
+                conservateur=False,
+            )
+
+            # Lier l'organisme du créateur si existe
+            if user.id_organisme:
+                CorOgSite.objects.get_or_create(
+                    id_site=site,
+                    uuid_og=user.id_organisme,
+                    defaults={'principal': True}
+                )
+
+            # Réponse standard pour super admin
+            response_serializer = SiteDetailSerializer(site, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Autres utilisateurs: site inactif + demande de validation
+            site = serializer.save(active=False)
+
+            # Récupérer request_as_referent (défaut: True pour compatibilité ascendante)
+            request_as_referent = request.data.get('request_as_referent', True)
+
+            # Créer la demande de validation
+            validation_request = ValidationRequest.objects.create(
+                request_type='site_creation',
+                status='pending',
+                requester=user,
+                target_site=site,
+                justification=f"Création du site {site.nom_site}",
+                request_as_referent=request_as_referent,
+            )
+
+            # Notifier les validateurs (admin_og de l'organisme du créateur + super_admin)
+            NotificationService.notify_validators(validation_request)
+
+            # Réponse avec indication de validation en attente
+            response_serializer = SiteDetailSerializer(site, context={'request': request})
+            response_data = response_serializer.data
+            response_data['validation_pending'] = True
+            response_data['validation_request_id'] = validation_request.id
+            if request_as_referent:
+                response_data['message'] = (
+                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                    "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
+                )
+            else:
+                response_data['message'] = (
+                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                    "Vous obtiendrez un accès utilisateur au site une fois celui-ci validé."
+                )
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['get'])
-    def geojson(self, request, pk=None):
+    def geojson(self, request, slug=None):
         """Retourne le site au format GeoJSON complet."""
         site = self.get_object()
         serializer = SiteGeoJSONSerializer(site)
@@ -474,7 +623,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(geojson_data)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
-    def assign_user(self, request, pk=None):
+    def assign_user(self, request, slug=None):
         """Assigne un utilisateur au site."""
         site = self.get_object()
         
@@ -487,7 +636,9 @@ class SiteViewSet(viewsets.ModelViewSet):
         
         user_id = request.data.get('user_id')
         referent = request.data.get('referent', False)
-        referent_valid = request.data.get('referent_valid', False)
+        # Si referent=True et referent_valid n'est pas explicitement passé,
+        # on considère que l'assignation directe par un admin valide automatiquement le statut
+        referent_valid = request.data.get('referent_valid', referent)
         conservateur = request.data.get('conservateur', False)
         
         if not user_id:
@@ -522,7 +673,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         )
     
     @action(detail=True, methods=['delete'])
-    def unassign_user(self, request, pk=None, user_pk=None):
+    def unassign_user(self, request, slug=None, user_pk=None):
         """Désassigne un utilisateur du site."""
         site = self.get_object()
         
@@ -539,10 +690,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             cor_role_site = CorRoleSite.objects.get(id_site=site, id_role=user)
             cor_role_site.delete()
             
-            return Response(
-                {'message': f'Utilisateur {user.email} désassigné du site {site.nom_site}'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except CorRoleSite.DoesNotExist:
             return Response(
                 {'error': 'Cet utilisateur n\'est pas assigné à ce site.'},
@@ -550,7 +698,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             )
     
     @action(detail=True, methods=['get'])
-    def users(self, request, pk=None):
+    def users(self, request, slug=None):
         """Liste des utilisateurs assignés au site."""
         site = self.get_object()
         cor_users = CorRoleSite.objects.filter(id_site=site).select_related('id_role')
@@ -571,7 +719,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(users_data)
     
     @action(detail=True, methods=['get'])
-    def organismes(self, request, pk=None):
+    def organismes(self, request, slug=None):
         """Liste des organismes gestionnaires du site."""
         site = self.get_object()
         cor_orgs = CorOgSite.objects.filter(id_site=site).select_related('uuid_og')
@@ -590,10 +738,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response(orgs_data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
-    def set_principal_organisme(self, request, pk=None):
+    def set_principal_organisme(self, request, slug=None):
         """
         Définit l'organisme gestionnaire principal du site.
-        POST /api/users/sites/{id}/set_principal_organisme/
+        POST /api/users/sites/{slug}/set_principal_organisme/
         Body: { "organisme_id": 123 }
 
         Seul un super admin peut modifier l'organisme principal.
@@ -648,10 +796,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'])
-    def principal_organisme(self, request, pk=None):
+    def principal_organisme(self, request, slug=None):
         """
         Retourne l'organisme gestionnaire principal du site.
-        GET /api/users/sites/{id}/principal_organisme/
+        GET /api/users/sites/{slug}/principal_organisme/
         """
         site = self.get_object()
         principal = CorOgSite.get_principal(site)
@@ -690,6 +838,93 @@ class SiteViewSet(viewsets.ModelViewSet):
             'sites_outre_mer': sites_outre_mer,
             'surface_totale_ha': round(surface_totale, 2)
         })
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def check_duplicates(self, request):
+        """
+        Vérifie les doublons potentiels pour un site.
+        GET /api/users/sites/check_duplicates/?nom_site=...&id_inpn=...
+
+        Query params:
+        - nom_site: nom du site à vérifier (recherche des noms similaires)
+        - id_inpn: code INPN à vérifier (recherche exacte)
+        - exclude_id: ID du site à exclure (pour édition)
+
+        Retourne:
+        - exact_inpn_match: Site avec code INPN identique (bloquant)
+        - similar_names: Liste des sites avec noms similaires (avertissement)
+        """
+        nom_site = request.query_params.get('nom_site', '').strip()
+        id_inpn = request.query_params.get('id_inpn', '').strip()
+        exclude_id = request.query_params.get('exclude_id', None)
+
+        user = request.user
+        user_org = user.id_organisme
+
+        # Initialiser la réponse
+        result = {
+            'exact_inpn_match': None,
+            'similar_names': []
+        }
+
+        # Exclure le site courant si en mode édition
+        base_queryset = Site.objects.filter(active=True).select_related('id_type_site')
+        if exclude_id:
+            try:
+                base_queryset = base_queryset.exclude(id_site=int(exclude_id))
+            except (ValueError, TypeError):
+                pass
+
+        # 1. Recherche exacte par code INPN
+        if id_inpn:
+            inpn_match = base_queryset.filter(id_inpn=id_inpn).first()
+            if inpn_match:
+                result['exact_inpn_match'] = self._build_duplicate_site_data(inpn_match, user, user_org)
+
+        # 2. Recherche par nom similaire (si nom_site >= 3 caractères)
+        if nom_site and len(nom_site) >= 3:
+            # Recherche insensible à la casse
+            similar_sites = base_queryset.filter(
+                nom_site__icontains=nom_site
+            ).exclude(
+                id_site=result['exact_inpn_match']['id_site'] if result['exact_inpn_match'] else -1
+            )[:10]
+
+            for site in similar_sites:
+                result['similar_names'].append(self._build_duplicate_site_data(site, user, user_org))
+
+        return Response(result)
+
+    def _build_duplicate_site_data(self, site, user, user_org):
+        """Construit les données d'un site pour la réponse de vérification de doublons."""
+        # Récupérer les organismes liés
+        organismes = []
+        is_user_org = False
+        for cor in CorOgSite.objects.filter(id_site=site).select_related('uuid_og'):
+            org = cor.uuid_og
+            organismes.append({
+                'id_organisme': org.id_organisme,
+                'nom_organisme': org.nom_organisme,
+                'principal': cor.principal
+            })
+            if user_org and org.id_organisme == user_org.id_organisme:
+                is_user_org = True
+
+        # Vérifier si l'utilisateur a déjà accès au site
+        has_access = CorRoleSite.objects.filter(id_role=user, id_site=site).exists()
+
+        return {
+            'id_site': site.id_site,
+            'slug': site.slug,
+            'nom_site': site.nom_site,
+            'id_inpn': site.id_inpn,
+            'id_local': site.id_local,
+            'type_site_label': site.id_type_site.label if site.id_type_site else None,
+            'surf_off': site.surf_off,
+            'organismes': organismes,
+            'is_user_org': is_user_org,
+            'has_access': has_access
+        }
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def search_all(self, request):
@@ -741,6 +976,7 @@ class SiteViewSet(viewsets.ModelViewSet):
 
             sites_data.append({
                 'id_site': site.id_site,
+                'slug': site.slug,
                 'nom_site': site.nom_site,
                 'id_local': site.id_local,
                 'type_site_label': site.id_type_site.label if site.id_type_site else None,
@@ -796,10 +1032,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_access(self, request, pk=None):
+    def request_access(self, request, slug=None):
         """
         Demande l'acces a un site.
-        POST /api/users/sites/{id}/request_access/
+        POST /api/users/sites/{slug}/request_access/
         Body: {
             "justification": "...",  (optionnel)
             "request_as_referent": true/false  (optionnel, defaut: false)
@@ -808,7 +1044,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier qu'une demande n'existe pas deja pour ce site
         existing = ValidationRequest.objects.filter(
@@ -859,10 +1095,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_referent(self, request, pk=None):
+    def request_referent(self, request, slug=None):
         """
         Demande a devenir referent d'un site auquel l'utilisateur a deja acces.
-        POST /api/users/sites/{id}/request_referent/
+        POST /api/users/sites/{slug}/request_referent/
         Body: {
             "justification": "..."  (optionnel)
         }
@@ -870,7 +1106,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur est lie au site
         try:
@@ -923,10 +1159,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def request_org_link(self, request, pk=None):
+    def request_org_link(self, request, slug=None):
         """
         Demande de lier un site d'un autre organisme a son propre organisme.
-        POST /api/users/sites/{id}/request_org_link/
+        POST /api/users/sites/{slug}/request_org_link/
         Body: {
             "justification": "..."  (optionnel)
         }
@@ -934,7 +1170,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.models import ValidationRequest
         from apps.notifications.services import NotificationService
 
-        site = get_object_or_404(Site, id_site=pk)
+        site = get_object_or_404(Site, slug=slug)
 
         # Verifier que l'utilisateur a un organisme
         user_organisme = request.user.id_organisme
@@ -991,3 +1227,445 @@ class SiteViewSet(viewsets.ModelViewSet):
             'id': validation_request.id,
             'message': f'Votre demande de lien avec le site "{site.nom_site}" a ete soumise.',
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def invite_organisme(self, request, slug=None):
+        """
+        Invite un organisme a rejoindre le site (referent uniquement).
+        Le lien est cree directement sans demande de validation.
+        POST /api/users/sites/{slug}/invite_organisme/
+        Body: {
+            "organisme_id": 123,
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.services import NotificationService
+        from apps.core.services import ActivityService
+
+        site = get_object_or_404(Site, slug=slug)
+
+        # Verifier que l'utilisateur est referent du site ou super_admin
+        is_super_admin = request.user.is_super_admin()
+        is_referent = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=request.user,
+            referent=True,
+            referent_valid=True
+        ).exists()
+
+        if not is_super_admin and not is_referent:
+            return Response(
+                {'error': 'Seuls les referents du site peuvent inviter des organismes.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Recuperer l'organisme a inviter
+        organisme_id = request.data.get('organisme_id')
+        if not organisme_id:
+            return Response(
+                {'error': 'L\'ID de l\'organisme est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            organisme = BibOrganismes.objects.get(id_organisme=organisme_id)
+        except BibOrganismes.DoesNotExist:
+            return Response(
+                {'error': 'Organisme non trouve.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que l'organisme n'est pas deja lie au site
+        already_linked = CorOgSite.objects.filter(
+            id_site=site,
+            uuid_og=organisme
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Cet organisme est deja lie a ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer directement le lien organisme-site
+        CorOgSite.objects.create(
+            id_site=site,
+            uuid_og=organisme,
+            principal=False,
+        )
+
+        # Logger l'activite
+        inviter_name = request.user.get_full_name() or request.user.email
+        justification = request.data.get('justification', '')
+        metadata = {}
+        if justification:
+            metadata['justification'] = justification
+
+        ActivityService.log_site_activity(
+            site=site,
+            action='add_member',
+            actor=request.user,
+            description=f"{inviter_name} a ajoute l'organisme {organisme.nom_organisme} au site {site.nom_site}.",
+            metadata=metadata,
+        )
+
+        # Notifier les parties prenantes
+        NotificationService.notify_site_invitation_done(
+            site=site,
+            inviter=request.user,
+            invited_organisme=organisme,
+        )
+
+        return Response({
+            'message': f'L\'organisme "{organisme.nom_organisme}" a ete ajoute au site "{site.nom_site}".',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def invite_user(self, request, slug=None):
+        """
+        Invite un utilisateur d'un organisme lie a rejoindre le site (referent uniquement).
+        Le lien est cree directement sans demande de validation.
+        POST /api/users/sites/{slug}/invite_user/
+        Body: {
+            "user_id": 123,
+            "justification": "..."  (optionnel)
+        }
+        """
+        from apps.notifications.services import NotificationService
+        from apps.core.services import ActivityService
+
+        site = get_object_or_404(Site, slug=slug)
+
+        # Verifier que l'utilisateur est referent du site ou super_admin
+        is_super_admin = request.user.is_super_admin()
+        is_referent = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=request.user,
+            referent=True,
+            referent_valid=True
+        ).exists()
+
+        if not is_super_admin and not is_referent:
+            return Response(
+                {'error': 'Seuls les referents du site peuvent inviter des utilisateurs.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Recuperer l'utilisateur a inviter
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'L\'ID de l\'utilisateur est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_user = Role.objects.get(id_role=user_id)
+        except Role.DoesNotExist:
+            return Response(
+                {'error': 'Utilisateur non trouve.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que l'utilisateur a un organisme
+        if not target_user.id_organisme:
+            return Response(
+                {'error': 'L\'utilisateur doit appartenir a un organisme.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'organisme de l'utilisateur est lie au site
+        org_linked = CorOgSite.objects.filter(
+            id_site=site,
+            uuid_og=target_user.id_organisme
+        ).exists()
+
+        if not org_linked:
+            return Response(
+                {'error': 'L\'organisme de l\'utilisateur doit d\'abord etre lie au site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'est pas deja lie au site
+        already_linked = CorRoleSite.objects.filter(
+            id_site=site,
+            id_role=target_user
+        ).exists()
+
+        if already_linked:
+            return Response(
+                {'error': 'Cet utilisateur est deja lie a ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creer directement le lien utilisateur-site
+        CorRoleSite.objects.create(
+            id_site=site,
+            id_role=target_user,
+            referent=False,
+            referent_valid=False,
+            conservateur=False,
+        )
+
+        # Logger l'activite
+        inviter_name = request.user.get_full_name() or request.user.email
+        target_user_name = target_user.get_full_name() or target_user.email
+        justification = request.data.get('justification', '')
+        metadata = {}
+        if justification:
+            metadata['justification'] = justification
+
+        ActivityService.log_member_change(
+            site=site,
+            user=target_user,
+            action='add_member',
+            actor=request.user,
+            metadata=metadata,
+        )
+
+        # Notifier les parties prenantes
+        NotificationService.notify_site_invitation_done(
+            site=site,
+            inviter=request.user,
+            invited_user=target_user,
+        )
+
+        return Response({
+            'message': f'L\'utilisateur "{target_user}" a ete ajoute au site "{site.nom_site}".',
+        }, status=status.HTTP_201_CREATED)
+
+    # ==================== IMPORT EN MASSE ====================
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_validate')
+    def bulk_import_validate(self, request):
+        """
+        Valide un fichier d'import en masse de sites.
+        POST multipart: file (.geojson, .json, .csv) + field_mapping optionnel (JSON string).
+
+        Retourne les propriétés détectées, le mapping suggéré et la validation ligne par ligne.
+        """
+        from .services_bulk_import import BulkSiteImportService
+
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response(
+                {'error': 'Aucun fichier fourni.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check file size (10 MB max)
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return Response(
+                {'error': 'Le fichier dépasse la taille maximale de 10 Mo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Determine format
+        filename = uploaded_file.name.lower()
+        if filename.endswith(('.geojson', '.json')):
+            file_format = 'geojson'
+        elif filename.endswith('.csv'):
+            file_format = 'csv'
+        else:
+            return Response(
+                {'error': 'Format de fichier non supporté. Utilisez .geojson, .json ou .csv.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Read file content
+        try:
+            file_content = uploaded_file.read()
+            if isinstance(file_content, bytes):
+                file_content_str = file_content.decode('utf-8-sig')
+            else:
+                file_content_str = file_content
+        except Exception as e:
+            return Response(
+                {'error': f'Impossible de lire le fichier: {e}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Parse
+        try:
+            if file_format == 'geojson':
+                parsed = BulkSiteImportService.parse_geojson(file_content_str)
+            else:
+                parsed = BulkSiteImportService.parse_csv(file_content_str)
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Detect properties
+        all_properties = set()
+        for site_data in parsed:
+            all_properties.update(site_data['properties'].keys())
+        detected_properties = sorted(all_properties)
+
+        # Field mapping
+        field_mapping_str = request.data.get('field_mapping')
+        if field_mapping_str:
+            import json
+            try:
+                if isinstance(field_mapping_str, str):
+                    field_mapping = json.loads(field_mapping_str)
+                else:
+                    field_mapping = field_mapping_str
+            except (json.JSONDecodeError, ValueError):
+                return Response(
+                    {'error': 'Le field_mapping JSON est invalide.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            field_mapping = BulkSiteImportService.detect_field_mapping(detected_properties)
+
+        suggested_mapping = BulkSiteImportService.detect_field_mapping(detected_properties)
+
+        # Apply mapping
+        mapped = BulkSiteImportService.apply_field_mapping(parsed, field_mapping)
+
+        # Validate
+        validated = BulkSiteImportService.validate_batch(mapped)
+
+        # Build response
+        sites_response = []
+        total_valid = 0
+        total_errors = 0
+        total_warnings = 0
+        total_duplicates = 0
+
+        for site_data in validated:
+            has_errors = len(site_data.get('errors', [])) > 0
+            has_warnings = len(site_data.get('warnings', [])) > 0
+            has_duplicate = site_data.get('duplicate_info') is not None
+
+            if has_errors:
+                total_errors += 1
+            elif has_duplicate:
+                total_duplicates += 1
+            else:
+                total_valid += 1
+
+            if has_warnings:
+                total_warnings += 1
+
+            sites_response.append({
+                'row_index': site_data['row_index'],
+                'original_properties': site_data['original_properties'],
+                'mapped_data': site_data['mapped_data'],
+                'geometry': site_data.get('geometry'),
+                'has_geometry': site_data.get('has_geometry', False),
+                'errors': site_data.get('errors', []),
+                'warnings': site_data.get('warnings', []),
+                'duplicate_info': site_data.get('duplicate_info'),
+            })
+
+        return Response({
+            'detected_properties': detected_properties,
+            'suggested_mapping': suggested_mapping,
+            'applied_mapping': field_mapping,
+            'sites': sites_response,
+            'total': len(sites_response),
+            'valid': total_valid,
+            'errors': total_errors,
+            'warnings': total_warnings,
+            'duplicates': total_duplicates,
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_execute')
+    def bulk_import_execute(self, request):
+        """
+        Exécute l'import en masse des sites sélectionnés.
+        POST JSON: { sites: [...], selected_indices: [...] }
+
+        Si ≤50 sites: import synchrone.
+        Si >50 sites: import asynchrone via Celery, retourne job_id.
+        """
+        from .services_bulk_import import BulkSiteImportService
+        from .models import BulkImportJob
+
+        sites = request.data.get('sites', [])
+        selected_indices = request.data.get('selected_indices', [])
+
+        if not sites or not selected_indices:
+            return Response(
+                {'error': 'Aucun site sélectionné pour l\'import.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        selected_sites = [s for s in sites if s.get('row_index') in selected_indices]
+
+        if len(selected_sites) <= 50:
+            # Synchronous import
+            result = BulkSiteImportService.import_sites(selected_sites, request.user, selected_indices)
+            return Response({
+                'async': False,
+                **result,
+            }, status=status.HTTP_201_CREATED)
+        else:
+            # Async import via Celery
+            job = BulkImportJob.objects.create(
+                user=request.user,
+                status='pending',
+                total_sites=len(selected_sites),
+                import_data={
+                    'sites': selected_sites,
+                    'selected_indices': selected_indices,
+                },
+            )
+
+            from .tasks import bulk_import_sites_task
+            bulk_import_sites_task.delay(job.id)
+
+            return Response({
+                'async': True,
+                'job_id': job.id,
+                'message': f'Import de {len(selected_sites)} sites lancé en arrière-plan.',
+            }, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_status')
+    def bulk_import_status(self, request):
+        """
+        Retourne le statut d'un job d'import en masse.
+        GET /api/users/sites/bulk_import_status/?job_id=X
+        """
+        from .models import BulkImportJob
+
+        job_id = request.query_params.get('job_id')
+        if not job_id:
+            return Response(
+                {'error': 'Paramètre job_id requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            job = BulkImportJob.objects.get(id=int(job_id))
+        except (BulkImportJob.DoesNotExist, ValueError):
+            return Response(
+                {'error': 'Job introuvable.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Verify ownership (super admin can see all)
+        if not request.user.is_super_admin() and job.user_id != request.user.pk:
+            return Response(
+                {'error': 'Accès refusé.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response({
+            'job_id': job.id,
+            'status': job.status,
+            'total_sites': job.total_sites,
+            'processed_sites': job.processed_sites,
+            'created_sites': job.created_sites,
+            'failed_sites': job.failed_sites,
+            'validation_pending_sites': job.validation_pending_sites,
+            'result_data': job.result_data,
+            'created_at': job.created_at.isoformat() if job.created_at else None,
+            'completed_at': job.completed_at.isoformat() if job.completed_at else None,
+        })

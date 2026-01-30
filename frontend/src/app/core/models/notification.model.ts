@@ -24,12 +24,17 @@ export type NotificationPriority = 'low' | 'medium' | 'high' | 'critical';
 // Types de demandes de validation
 export type ValidationRequestType =
   | 'user_registration'
+  | 'site_creation'
   | 'site_access'
   | 'plan_access'
   | 'module_access'
   | 'admin_deactivation'
+  | 'admin_promotion'
+  | 'admin_demotion'
   | 'referent_validation'
-  | 'site_org_link';
+  | 'site_org_link'
+  | 'invite_org_to_site'
+  | 'invite_user_to_site';
 
 // Modules disponibles pour les demandes d'accès
 export type ModuleCode = 'zonages' | 'inventaires' | 'plans' | 'sites';
@@ -142,6 +147,10 @@ export interface ValidationRequest {
   validated_at?: string;
   pending_user_info?: PendingUserInfo;
   can_validate?: boolean;
+  /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
+  request_as_referent?: boolean;
+  /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
+  blocked_by_org_link?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -173,8 +182,13 @@ export interface ValidationRequestListItem {
   target_site_id?: number;
   justification?: string;
   validator_name?: string;
+  validator_comment?: string;
   validated_at?: string;
   created_at: string;
+  /** Indique si le demandeur souhaite devenir référent (pour site_creation et site_access) */
+  request_as_referent?: boolean;
+  /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
+  blocked_by_org_link?: boolean;
 }
 
 /**
@@ -237,6 +251,8 @@ export interface RegistrationStatusResponse {
  */
 export interface ValidationApproveData {
   comment?: string;
+  /** Si défini, surcharge le choix du demandeur pour le statut référent */
+  approve_as_referent?: boolean;
 }
 
 /**

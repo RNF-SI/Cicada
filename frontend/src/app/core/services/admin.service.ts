@@ -18,7 +18,13 @@ import {
   OrganismeSite,
   SiteOrganisme,
   GeoJSONFeature,
-  GeoJSONFeatureCollection
+  GeoJSONFeatureCollection,
+  DuplicateCheckResult,
+  RgpdRequest,
+  BulkImportFieldMapping,
+  BulkImportValidationResult,
+  BulkImportResult,
+  BulkImportJobStatus
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -40,14 +46,18 @@ export class AdminService {
 
   /**
    * Get list of organismes
+   * @param params.for_invite Si true, permet aux référents de voir tous les organismes (pour invitation)
    */
-  getOrganismes(params?: { search?: string; page?: number }): Observable<PaginatedResponse<AdminOrganisme>> {
+  getOrganismes(params?: { search?: string; page?: number; for_invite?: boolean }): Observable<PaginatedResponse<AdminOrganisme>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
     }
     if (params?.page) {
       httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.for_invite) {
+      httpParams = httpParams.set('for_invite', 'true');
     }
 
     return this.http.get<PaginatedResponse<AdminOrganisme>>(`${this.apiUrl}/organismes/`, { params: httpParams })
@@ -154,10 +164,10 @@ export class AdminService {
   }
 
   /**
-   * Get single site by ID
+   * Get single site by slug
    */
-  getSite(id: number): Observable<AdminSite> {
-    return this.http.get<AdminSite>(`${this.apiUrl}/sites/${id}/`)
+  getSite(slug: string): Observable<AdminSite> {
+    return this.http.get<AdminSite>(`${this.apiUrl}/sites/${slug}/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -181,8 +191,8 @@ export class AdminService {
   /**
    * Assign a user to a site with referent role
    */
-  assignUserToSite(siteId: number, userId: number, referent: boolean = true): Observable<any> {
-    return this.http.post(`${this.apiUrl}/sites/${siteId}/assign_user/`, {
+  assignUserToSite(siteSlug: string, userId: number, referent: boolean = true): Observable<any> {
+    return this.http.post(`${this.apiUrl}/sites/${siteSlug}/assign_user/`, {
       user_id: userId,
       referent
     }).pipe(catchError(this.handleError));
@@ -191,24 +201,24 @@ export class AdminService {
   /**
    * Remove user from site
    */
-  removeUserFromSite(siteId: number, userId: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/sites/${siteId}/users/${userId}/`)
+  removeUserFromSite(siteSlug: string, userId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/sites/${siteSlug}/users/${userId}/`)
       .pipe(catchError(this.handleError));
   }
 
   /**
    * Get users assigned to a site
    */
-  getSiteUsers(siteId: number): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(`${this.apiUrl}/sites/${siteId}/users/`)
+  getSiteUsers(siteSlug: string): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.apiUrl}/sites/${siteSlug}/users/`)
       .pipe(catchError(this.handleError));
   }
 
   /**
    * Get organismes managing a site
    */
-  getSiteOrganismes(siteId: number): Observable<SiteOrganisme[]> {
-    return this.http.get<SiteOrganisme[]>(`${this.apiUrl}/sites/${siteId}/organismes/`)
+  getSiteOrganismes(siteSlug: string): Observable<SiteOrganisme[]> {
+    return this.http.get<SiteOrganisme[]>(`${this.apiUrl}/sites/${siteSlug}/organismes/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -223,8 +233,28 @@ export class AdminService {
   /**
    * Update a site
    */
-  updateSite(id: number, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
-    return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${id}/`, payload)
+  updateSite(slug: string, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
+    return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${slug}/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Check for duplicate sites by INPN code or name
+   * GET /api/users/sites/check_duplicates/
+   * @param params - nom_site: search by similar names, id_inpn: exact INPN match, exclude_id: site to exclude (edit mode)
+   */
+  checkDuplicates(params: { nom_site?: string; id_inpn?: string; exclude_id?: number }): Observable<DuplicateCheckResult> {
+    let httpParams = new HttpParams();
+    if (params.nom_site) {
+      httpParams = httpParams.set('nom_site', params.nom_site);
+    }
+    if (params.id_inpn) {
+      httpParams = httpParams.set('id_inpn', params.id_inpn);
+    }
+    if (params.exclude_id) {
+      httpParams = httpParams.set('exclude_id', params.exclude_id.toString());
+    }
+    return this.http.get<DuplicateCheckResult>(`${this.apiUrl}/sites/check_duplicates/`, { params: httpParams })
       .pipe(catchError(this.handleError));
   }
 
@@ -243,10 +273,10 @@ export class AdminService {
 
   /**
    * Get a single site as GeoJSON Feature
-   * @param id Site ID
+   * @param slug Site slug
    */
-  getSiteGeoJSON(id: number): Observable<GeoJSONFeature> {
-    return this.http.get<GeoJSONFeature>(`${this.apiUrl}/sites/${id}/geojson/`)
+  getSiteGeoJSON(slug: string): Observable<GeoJSONFeature> {
+    return this.http.get<GeoJSONFeature>(`${this.apiUrl}/sites/${slug}/geojson/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -558,6 +588,97 @@ export class AdminService {
         plansActifs: results.plansActifs
       }))
     );
+  }
+
+  // ==================== RGPD (Super Admin Only) ====================
+
+  /**
+   * Get list of RGPD deletion requests
+   * GET /api/users/users/rgpd_requests/
+   */
+  getRgpdRequests(params?: { page?: number }): Observable<PaginatedResponse<RgpdRequest>> {
+    let httpParams = new HttpParams();
+    if (params?.page) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    return this.http.get<PaginatedResponse<RgpdRequest>>(`${this.apiUrl}/users/rgpd_requests/`, { params: httpParams })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Deactivate a user account via RGPD request
+   * POST /api/users/users/{id}/deactivate_rgpd/
+   */
+  deactivateUserRgpd(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/deactivate_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Anonymize a user account via RGPD request
+   * POST /api/users/users/{id}/anonymize_rgpd/
+   */
+  anonymizeUserRgpd(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/anonymize_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Reject a RGPD deletion request
+   * POST /api/users/users/{id}/reject_rgpd/
+   */
+  rejectRgpdRequest(userId: number): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/users/${userId}/reject_rgpd/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get the configured authentication provider
+   * GET /api/users/users/auth_provider/
+   */
+  getAuthProvider(): Observable<{ provider: string }> {
+    return this.http.get<{ provider: string }>(`${this.apiUrl}/users/auth_provider/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // ==================== BULK IMPORT ====================
+
+  /**
+   * Validate a bulk import file (GeoJSON or CSV)
+   * POST multipart /api/users/sites/bulk_import_validate/
+   */
+  bulkImportValidate(file: File, fieldMapping?: BulkImportFieldMapping): Observable<BulkImportValidationResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (fieldMapping) {
+      formData.append('field_mapping', JSON.stringify(fieldMapping));
+    }
+    return this.http.post<BulkImportValidationResult>(
+      `${this.apiUrl}/sites/bulk_import_validate/`,
+      formData
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Execute bulk import of selected sites
+   * POST JSON /api/users/sites/bulk_import_execute/
+   */
+  bulkImportExecute(sites: any[], selectedIndices: number[]): Observable<BulkImportResult> {
+    return this.http.post<BulkImportResult>(
+      `${this.apiUrl}/sites/bulk_import_execute/`,
+      { sites, selected_indices: selectedIndices }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get status of an async bulk import job
+   * GET /api/users/sites/bulk_import_status/?job_id=X
+   */
+  bulkImportStatus(jobId: number): Observable<BulkImportJobStatus> {
+    return this.http.get<BulkImportJobStatus>(
+      `${this.apiUrl}/sites/bulk_import_status/`,
+      { params: { job_id: jobId.toString() } }
+    ).pipe(catchError(this.handleError));
   }
 
   // ==================== ERROR HANDLING ====================

@@ -1,0 +1,170 @@
+<div class="admin-rgpd">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>{{ 'admin.rgpd.title' | translate }}</h1>
+      <p class="subtitle">{{ 'admin.rgpd.subtitle' | translate }}</p>
+    </div>
+  </div>
+
+  <!-- Keycloak warning -->
+  @if (isKeycloak()) {
+    <mat-card class="keycloak-warning">
+      <mat-card-content>
+        <div class="warning-content">
+          <i class="fi fi-rr-exclamation"></i>
+          <div>
+            <strong>{{ 'admin.rgpd.keycloakMode.title' | translate }}</strong>
+            <p>{{ 'admin.rgpd.keycloakMode.message' | translate }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Loading state -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>{{ 'common.loading' | translate }}</span>
+    </div>
+  }
+
+  <!-- Empty state -->
+  @if (!loading() && !hasRequests()) {
+    <mat-card class="empty-state">
+      <mat-card-content>
+        <i class="fi fi-rr-check-circle empty-icon"></i>
+        <h3>{{ 'admin.rgpd.empty.title' | translate }}</h3>
+        <p>{{ 'admin.rgpd.empty.message' | translate }}</p>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Requests table -->
+  @if (!loading() && hasRequests()) {
+    <mat-card>
+      <mat-card-content>
+        <table mat-table [dataSource]="requests()" class="rgpd-table">
+          <!-- User Column -->
+          <ng-container matColumnDef="user">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.user' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.full_name }}
+            </td>
+          </ng-container>
+
+          <!-- Email Column -->
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.email' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.email }}
+            </td>
+          </ng-container>
+
+          <!-- Organisme Column -->
+          <ng-container matColumnDef="organisme">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.organisme' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.organisme_name || '-' }}
+            </td>
+          </ng-container>
+
+          <!-- Requested At Column -->
+          <ng-container matColumnDef="requested_at">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.requestedAt' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              {{ request.deletion_requested_at | date:'dd/MM/yyyy HH:mm' }}
+            </td>
+          </ng-container>
+
+          <!-- Days Column -->
+          <ng-container matColumnDef="days">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.days' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              <span class="days-badge" [class.warning]="request.days_since_request >= 25">
+                {{ request.days_since_request }} {{ 'admin.rgpd.table.daysLabel' | translate }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>{{ 'admin.rgpd.table.status' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              @if (request.active) {
+                <span class="status-chip status-success">{{ 'common.status.active' | translate }}</span>
+              } @else {
+                <span class="status-chip status-warning">{{ 'common.status.inactive' | translate }}</span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>{{ 'common.table.actions' | translate }}</th>
+            <td mat-cell *matCellDef="let request">
+              @if (isKeycloak()) {
+                <span class="keycloak-notice">{{ 'admin.rgpd.keycloakMode.actionNotice' | translate }}</span>
+              } @else {
+                <div class="action-buttons">
+                  @if (request.active) {
+                    <button mat-stroked-button
+                            color="warn"
+                            [disabled]="isProcessing(request.id_role)"
+                            (click)="deactivateUser(request)"
+                            [matTooltip]="'admin.rgpd.actions.deactivateTooltip' | translate">
+                      @if (isProcessing(request.id_role)) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                      } @else {
+                        <i class="fi fi-rr-ban"></i>
+                      }
+                      {{ 'admin.rgpd.actions.deactivate' | translate }}
+                    </button>
+                  }
+                  <button mat-flat-button
+                          color="warn"
+                          [disabled]="isProcessing(request.id_role)"
+                          (click)="anonymizeUser(request)"
+                          [matTooltip]="'admin.rgpd.actions.anonymizeTooltip' | translate">
+                    @if (isProcessing(request.id_role)) {
+                      <mat-spinner diameter="16"></mat-spinner>
+                    } @else {
+                      <i class="fi fi-rr-user-slash"></i>
+                    }
+                    {{ 'admin.rgpd.actions.anonymize' | translate }}
+                  </button>
+                  <button mat-button
+                          [disabled]="isProcessing(request.id_role)"
+                          (click)="rejectRequest(request)"
+                          [matTooltip]="'admin.rgpd.actions.rejectTooltip' | translate">
+                    @if (isProcessing(request.id_role)) {
+                      <mat-spinner diameter="16"></mat-spinner>
+                    } @else {
+                      <i class="fi fi-rr-cross-circle"></i>
+                    }
+                    {{ 'admin.rgpd.actions.reject' | translate }}
+                  </button>
+                </div>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Info card -->
+    <mat-card class="info-card">
+      <mat-card-content>
+        <h3><i class="fi fi-rr-info"></i> {{ 'admin.rgpd.info.title' | translate }}</h3>
+        <ul>
+          <li>{{ 'admin.rgpd.info.deactivate' | translate }}</li>
+          <li>{{ 'admin.rgpd.info.anonymize' | translate }}</li>
+          <li>{{ 'admin.rgpd.info.reject' | translate }}</li>
+        </ul>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

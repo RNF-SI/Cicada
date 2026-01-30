@@ -19,12 +19,14 @@ import { catchError, switchMap } from 'rxjs/operators';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../core/services/admin.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AdminSite, GeoJSONFeature, AdminPlan } from '../../core/models/admin.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { SiteFormModalComponent, SiteFormModalData } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
-import { LinkUserSiteModalComponent, LinkUserSiteModalData, ExistingUserData } from '../../shared/components/modals/link-user-site-modal/link-user-site-modal.component';
+import { ManageSiteUsersModalComponent, ManageSiteUsersModalData } from '../../shared/components/modals/manage-site-users-modal/manage-site-users-modal.component';
+import { InviteModalComponent, InviteModalData } from '../../shared/components/modals/invite-modal/invite-modal.component';
 
 // Interface pour les utilisateurs assignes au site (depuis SiteDetailSerializer)
 interface SiteUserAssignment {
@@ -71,6 +73,7 @@ interface MenuItem {
 export class SiteDetailComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly validationService = inject(ValidationService);
+  private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
@@ -90,9 +93,9 @@ export class SiteDetailComponent implements OnInit {
   readonly menuItems: MenuItem[] = [
     { id: 'overview', label: 'sites.detail.menu.overview', icon: 'fi-rr-eye' },
     { id: 'info', label: 'sites.detail.menu.info', icon: 'fi-rr-info' },
+    { id: 'organismes', label: 'sites.detail.menu.organismes', icon: 'fi-rr-building' },
     { id: 'users', label: 'sites.detail.menu.users', icon: 'fi-rr-users' },
-    { id: 'plans', label: 'sites.detail.menu.plans', icon: 'fi-rr-document' },
-    { id: 'documents', label: 'sites.detail.menu.documents', icon: 'fi-rr-folder' }
+    { id: 'plans', label: 'sites.detail.menu.plans', icon: 'fi-rr-document' }
   ];
   readonly activeMenuItem = signal<string>('overview');
 
@@ -124,15 +127,15 @@ export class SiteDetailComponent implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.pipe(
       switchMap(params => {
-        const id = params.get('id');
-        if (id) {
-          return of(parseInt(id, 10));
+        const slug = params.get('slug');
+        if (slug) {
+          return of(slug);
         }
         return of(null);
       })
-    ).subscribe(id => {
-      if (id) {
-        this.loadSiteData(id);
+    ).subscribe(slug => {
+      if (slug) {
+        this.loadSiteData(slug);
       } else {
         this.router.navigate(['/sites']);
       }
@@ -142,32 +145,36 @@ export class SiteDetailComponent implements OnInit {
   /**
    * Charge les donnees du site.
    */
-  loadSiteData(siteId: number): void {
+  loadSiteData(siteSlug: string): void {
     this.loading.set(true);
 
     forkJoin({
-      site: this.adminService.getSite(siteId),
-      geojson: this.adminService.getSiteGeoJSON(siteId).pipe(catchError(() => of(null))),
-      plans: this.adminService.getPlans({ site: siteId, page_size: 50 }).pipe(catchError(() => of({ results: [] }))),
+      site: this.adminService.getSite(siteSlug),
+      geojson: this.adminService.getSiteGeoJSON(siteSlug).pipe(catchError(() => of(null))),
       myRequests: this.validationService.getMyRequests().pipe(catchError(() => of([])))
     }).subscribe({
-      next: ({ site, geojson, plans, myRequests }) => {
+      next: ({ site, geojson, myRequests }) => {
         this.site.set(site);
 
         if (geojson) {
           this.siteGeoJSON.set(geojson);
         }
 
+        // Charger les plans associés au site (utilise id_site pour le filtre)
+        this.adminService.getPlans({ site: site.id_site, page_size: 50 }).pipe(
+          catchError(() => of({ results: [] }))
+        ).subscribe(plans => {
+          this.associatedPlans.set(plans.results || []);
+        });
+
         // Extraire les utilisateurs assignes depuis la reponse du site detail
         const users = (site as any).users_assignes || [];
         this.siteUsers.set(users);
 
-        this.associatedPlans.set(plans.results || []);
-
         // Verifier si une demande de referent est en attente
         const pendingReferent = myRequests.some(
           r => r.request_type === 'referent_validation' &&
-               r.target_site_id === siteId &&
+               r.target_site_id === site.id_site &&
                r.status === 'pending'
         );
         this.hasPendingReferentRequest.set(pendingReferent);
@@ -254,12 +261,17 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Verifie si l'utilisateur courant est referent du site.
+   * Signal indiquant si l'utilisateur courant peut gerer le site (referent ou super_admin).
+   * Utilise un signal computed pour la reactivite avec le template @if.
    */
-  isReferent(): boolean {
+  readonly isReferent = computed(() => {
+    // Super admin peut tout faire
+    if (this.authService.isSuperAdmin()) {
+      return true;
+    }
     const s = this.site();
     return s?.current_user_is_referent === true;
-  }
+  });
 
   /**
    * Verifie si l'utilisateur peut demander a devenir referent.
@@ -281,7 +293,7 @@ export class SiteDetailComponent implements OnInit {
 
     this.requestingReferent.set(true);
 
-    this.validationService.requestReferent(s.id_site).subscribe({
+    this.validationService.requestReferent(s.slug).subscribe({
       next: () => {
         this.requestingReferent.set(false);
         this.hasPendingReferentRequest.set(true);
@@ -320,7 +332,7 @@ export class SiteDetailComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1100px',
+      width: '1300px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {
@@ -331,9 +343,9 @@ export class SiteDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (result?.site) {
         // Recharger les donnees du site
-        this.loadSiteData(s.id_site);
+        this.loadSiteData(s.slug);
         this.snackBar.open(
           this.translate.instant('admin.sites.messages.updated'),
           this.translate.instant('common.actions.close'),
@@ -344,33 +356,36 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Ouvre le modal de gestion des utilisateurs du site (pour les referents).
+   * Ouvre le modal unifie de gestion des utilisateurs du site (pour les referents).
+   * Permet d'ajouter des utilisateurs de tous les organismes lies au site.
    */
   manageUsers(): void {
     const s = this.site();
     if (!s) return;
 
     // Preparer les utilisateurs existants
-    const existingUsers: ExistingUserData[] = this.siteUsers().map(ua => ({
+    const existingUsers = this.siteUsers().map(ua => ({
       id_role: ua.user.id_role,
       nom_complet: ua.user.nom_complet,
       email: ua.user.email,
-      referent: ua.referent
+      referent: ua.referent,
+      organisme: ua.user.organisme
     }));
 
-    const dialogRef = this.dialog.open(LinkUserSiteModalComponent, {
-      width: '600px',
+    const dialogRef = this.dialog.open(ManageSiteUsersModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
       maxHeight: '90vh',
       data: {
         site: s,
         existingUsers
-      } as LinkUserSiteModalData
+      } as ManageSiteUsersModalData
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.changed) {
         // Recharger les donnees du site
-        this.loadSiteData(s.id_site);
+        this.loadSiteData(s.slug);
         this.snackBar.open(
           this.translate.instant('admin.sites.messages.usersUpdated'),
           this.translate.instant('common.actions.close'),
@@ -404,4 +419,38 @@ export class SiteDetailComponent implements OnInit {
     if (ua.referent && ua.referent_valid) return 'role-referent';
     return 'role-user';
   }
+
+  // ===================
+  // Invitations
+  // ===================
+
+  /**
+   * Ouvre le modal pour inviter un organisme a rejoindre le site.
+   */
+  inviteOrganisme(): void {
+    const s = this.site();
+    if (!s) return;
+
+    const dialogRef = this.dialog.open(InviteModalComponent, {
+      width: '500px',
+      maxHeight: '90vh',
+      data: {
+        site: s,
+        mode: 'organisme'
+      } as InviteModalData
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.success) {
+        // Recharger les donnees du site pour afficher le nouvel organisme/utilisateur
+        this.loadSiteData(s.slug);
+        this.snackBar.open(
+          result.message || this.translate.instant('modals.invite.success'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
 }

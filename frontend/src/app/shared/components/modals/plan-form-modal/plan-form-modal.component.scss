@@ -52,6 +52,13 @@ mat-dialog-content {
   overflow-x: hidden;
 }
 
+.required-note {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin: 0 0 $spacing-sm 0;
+  font-style: italic;
+}
+
 .error-banner {
   display: flex;
   align-items: center;
@@ -70,10 +77,52 @@ mat-dialog-content {
 
 .form-section {
   padding: $spacing-sm 0;
-  border-bottom: 1px solid $gray-light;
 
-  &:last-child {
-    border-bottom: none;
+  &.sites-section {
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-md;
+    padding: $spacing-md;
+    background-color: $gray-lighter;
+  }
+
+  &.ct88-section {
+    padding: $spacing-md 0;
+  }
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: $spacing-sm;
+}
+
+.sites-hint {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin: $spacing-sm 0 0 0;
+
+  a {
+    color: $primary-color;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      color: darken($primary-color, 10%);
+    }
+  }
+}
+
+.ct88-radio-group {
+  display: flex;
+  gap: $spacing-lg;
+
+  mat-radio-button {
+    font-family: $font-family;
   }
 }
 

@@ -43,16 +43,56 @@ class PlanGestion(models.Model):
         null=True, blank=True
     )
 
+    # Rang du plan de gestion
+    rang = models.IntegerField(
+        _("Rang du plan"),
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text=_("Numéro du plan (1er, 2ème, 3ème...)")
+    )
+
+    # Surface totale concernée
+    surface = models.DecimalField(
+        _("Surface totale concernée"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Surface en hectares")
+    )
+
     # Contraintes réglementaires
     ct88 = models.BooleanField(
-        _("Circulaire CT88"),
+        _("Méthode de rédaction CT88"),
         default=False,
-        help_text=_("Plan soumis à la circulaire CT88")
+        help_text=_("Plan rédigé selon la méthode CT88")
     )
     risque_incendie = models.BooleanField(
         _("Risque incendie pris en compte"),
         default=False,
         help_text=_("Le risque incendie est-il pris en compte dans le plan ?")
+    )
+
+    # Validation CSPN
+    date_validation_cspn = models.DateField(
+        _("Date de validation CSPN"),
+        null=True, blank=True
+    )
+
+    # Identifiant Doc'Gestion FCEN
+    id_docgestion_fcen = models.CharField(
+        _("ID Doc'Gestion FCEN"),
+        max_length=100,
+        null=True, blank=True
+    )
+
+    # Rédacteurs et relecteurs
+    redacteurs = models.TextField(
+        _("Rédacteurs"),
+        null=True, blank=True
+    )
+
+    relecteurs = models.TextField(
+        _("Relecteurs"),
+        null=True, blank=True
     )
 
     # Relations vers nomenclatures
@@ -262,6 +302,55 @@ class CorSitePg(models.Model):
     def __str__(self):
         rang_str = f" (rang {self.rang})" if self.rang else ""
         return f"{self.site.nom_site} - {self.plan_de_gestion.nom}{rang_str}"
+
+
+class CorRolePlan(models.Model):
+    """
+    Table de liaison entre Utilisateurs et Plans de Gestion.
+    Permet de définir les membres et référents d'un plan.
+    Similaire à CorRoleSite pour les sites.
+    """
+
+    id_role = models.ForeignKey(
+        'users.Role',
+        on_delete=models.CASCADE,
+        verbose_name=_("Utilisateur"),
+        related_name='plan_associations'
+    )
+    plan_de_gestion = models.ForeignKey(
+        PlanGestion,
+        on_delete=models.CASCADE,
+        verbose_name=_("Plan de gestion"),
+        related_name='membres'
+    )
+    referent = models.BooleanField(
+        _("Référent"),
+        default=False,
+        help_text=_("L'utilisateur est-il référent de ce plan ?")
+    )
+
+    # Métadonnées
+    date_association = models.DateTimeField(
+        _("Date d'association"),
+        auto_now_add=True
+    )
+    commentaire = models.TextField(
+        _("Commentaire"),
+        null=True, blank=True,
+        help_text=_("Précisions sur le rôle de l'utilisateur dans le plan")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_role_plan"'
+        db_table_comment = 'Liaison entre utilisateurs et plans de gestion'
+        verbose_name = _("Utilisateur - Plan de gestion")
+        verbose_name_plural = _("Utilisateurs - Plans de gestion")
+        unique_together = ['id_role', 'plan_de_gestion']
+        ordering = ['-referent', 'id_role__nom_role']
+
+    def __str__(self):
+        role_type = "Référent" if self.referent else "Membre"
+        return f"{self.id_role.email} - {self.plan_de_gestion.nom} ({role_type})"
 
 
 class CorPgFichier(models.Model):

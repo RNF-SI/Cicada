@@ -34,6 +34,22 @@ export interface ValidationFilters {
   page?: number;
 }
 
+/**
+ * Interface pour les options de type/statut retournées par l'API.
+ */
+export interface ValidationTypeOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Réponse de l'endpoint /api/validations/types/
+ */
+export interface ValidationTypesResponse {
+  request_types: ValidationTypeOption[];
+  statuses: ValidationTypeOption[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -81,6 +97,14 @@ export class ValidationService {
   }
 
   /**
+   * Recupere les types de demandes et statuts disponibles.
+   * Permet de synchroniser dynamiquement les filtres avec le backend.
+   */
+  getTypes(): Observable<ValidationTypesResponse> {
+    return this.http.get<ValidationTypesResponse>(`${this.apiUrl}/types/`);
+  }
+
+  /**
    * Recupere les demandes faites par l'utilisateur courant.
    */
   getMyRequests(): Observable<ValidationRequestListItem[]> {
@@ -121,29 +145,46 @@ export class ValidationService {
   /**
    * Demande l'acces a un site.
    */
-  requestSiteAccess(siteId: number, data?: SiteAccessRequestData): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_access/`, data || {});
+  requestSiteAccess(siteSlug: string, data?: SiteAccessRequestData): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_access/`, data || {});
   }
 
   /**
    * Demande de lier un site a son organisme.
    */
-  requestSiteOrgLink(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_org_link/`, data || {});
+  requestSiteOrgLink(siteSlug: string, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_org_link/`, data || {});
   }
 
   /**
    * Demande a devenir referent d'un site.
    */
-  requestReferent(siteId: number, data?: { justification?: string }): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/users/sites/${siteId}/request_referent/`, data || {});
+  requestReferent(siteSlug: string, data?: { justification?: string }): Observable<ValidationRequest> {
+    return this.http.post<ValidationRequest>(`/api/users/sites/${siteSlug}/request_referent/`, data || {});
+  }
+
+  /**
+   * Invite un organisme a rejoindre un site (referent uniquement).
+   */
+  inviteOrganismeToSite(siteSlug: string, data: { organisme_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteSlug}/invite_organisme/`, data);
+  }
+
+  /**
+   * Invite un utilisateur a rejoindre un site (referent uniquement).
+   */
+  inviteUserToSite(siteSlug: string, data: { user_id: number; justification?: string }): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`/api/users/sites/${siteSlug}/invite_user/`, data);
   }
 
   /**
    * Demande l'acces a un plan de gestion.
    */
   requestPlanAccess(planId: number, data?: PlanAccessRequestData): Observable<ValidationRequest> {
-    return this.http.post<ValidationRequest>(`/api/plans/plans/${planId}/request_access/`, data || {});
+    return this.http.post<ValidationRequest>(`${this.apiUrl}/request_plan_access/`, {
+      plan_id: planId,
+      ...data
+    });
   }
 
   /**
@@ -189,5 +230,27 @@ export class ValidationService {
   checkRegistrationStatus(email: string): Observable<RegistrationStatusResponse> {
     const params = new HttpParams().set('email', email);
     return this.http.get<RegistrationStatusResponse>(`${this.authUrl}/registration-status/`, { params });
+  }
+
+  // ==================== Gestion des roles admin ====================
+
+  /**
+   * Demande la promotion d'un utilisateur en admin_og.
+   */
+  requestAdminPromotion(targetUserId: number, justification: string): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`${this.apiUrl}/request_admin_promotion/`, {
+      target_user_id: targetUserId,
+      justification
+    });
+  }
+
+  /**
+   * Demande la retrogradation d'un admin_og en utilisateur simple.
+   */
+  requestAdminDemotion(targetUserId: number, justification: string): Observable<{ id: number; message: string }> {
+    return this.http.post<{ id: number; message: string }>(`${this.apiUrl}/request_admin_demotion/`, {
+      target_user_id: targetUserId,
+      justification
+    });
   }
 }

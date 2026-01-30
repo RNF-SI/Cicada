@@ -9,11 +9,18 @@ import {
   SimpleChanges,
   ElementRef,
   ViewChild,
-  AfterViewInit
+  AfterViewInit,
+  inject,
+  signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import * as L from 'leaflet';
 import 'leaflet-draw';
+import shp from 'shpjs';
 
 /**
  * Composant carte Leaflet avec outils de dessin (leaflet-draw).
@@ -22,21 +29,34 @@ import 'leaflet-draw';
 @Component({
   selector: 'app-leaflet-map-edit',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    MatSnackBarModule,
+    TranslateModule
+  ],
   templateUrl: './leaflet-map-edit.component.html',
   styleUrl: './leaflet-map-edit.component.scss'
 })
 export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
-  @ViewChild('mapContainer') mapContainer!: ElementRef;
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
-  /** Géométrie existante à éditer (GeoJSON) */
+  @ViewChild('mapContainer') mapContainer!: ElementRef;
+  @ViewChild('geometryFileInput') geometryFileInput!: ElementRef<HTMLInputElement>;
+
+  /** Géométrie existante à éditer (GeoJSON) - polygone */
   @Input() existingGeometry: any = null;
+
+  /** Géométrie point existante (pour mode 'both') */
+  @Input() existingPointGeometry: any = null;
 
   /** Hauteur du conteneur */
   @Input() height: string = '400px';
 
-  /** Type de géométrie à dessiner */
-  @Input() geometryType: 'polygon' | 'point' = 'polygon';
+  /** Type de géométrie à dessiner: 'polygon', 'point', ou 'both' */
+  @Input() geometryType: 'polygon' | 'point' | 'both' = 'polygon';
 
   /** Niveau de zoom par défaut */
   @Input() zoom: number = 6;
@@ -44,11 +64,21 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   /** Coordonnées du centre [lat, lng] */
   @Input() center: [number, number] = [46.227638, 2.213749];
 
-  /** Événement émis quand la géométrie change */
+  /** Activer l'import de fichiers géographiques (GeoJSON, Shapefile) */
+  @Input() enableGeometryImport: boolean = false;
+
+  /** État de l'import shapefile */
+  readonly isImporting = signal(false);
+
+  /** Événement émis quand la géométrie polygone change */
   @Output() geometryChange = new EventEmitter<any>();
+
+  /** Événement émis quand la géométrie point change (pour mode 'both') */
+  @Output() pointGeometryChange = new EventEmitter<any>();
 
   private map: L.Map | null = null;
   private drawnItems: L.FeatureGroup | null = null;
+  private pointItems: L.FeatureGroup | null = null; // Groupe séparé pour les points en mode 'both'
   private drawControl: L.Control.Draw | null = null;
 
   // Couleurs du design system
@@ -57,7 +87,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   private readonly fillColor = 'rgba(2, 83, 89, 0.3)';
 
   ngOnInit(): void {
-    this.fixLeafletIcons();
+    // Note: Leaflet icons fix is applied in main.ts at app startup
   }
 
   ngAfterViewInit(): void {
@@ -78,17 +108,6 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       this.map.remove();
       this.map = null;
     }
-  }
-
-  /**
-   * Corrige le chemin des icônes Leaflet
-   */
-  private fixLeafletIcons(): void {
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'assets/leaflet/marker-icon-2x.png',
-      iconUrl: 'assets/leaflet/marker-icon.png',
-      shadowUrl: 'assets/leaflet/marker-shadow.png'
-    });
   }
 
   /**
@@ -115,16 +134,25 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       maxZoom: 19
     }).addTo(this.map);
 
-    // Groupe pour les formes dessinées
+    // Groupe pour les formes dessinées (polygones)
     this.drawnItems = new L.FeatureGroup();
     this.map.addLayer(this.drawnItems);
+
+    // Groupe séparé pour les points en mode 'both'
+    if (this.geometryType === 'both') {
+      this.pointItems = new L.FeatureGroup();
+      this.map.addLayer(this.pointItems);
+    }
 
     // Configurer les outils de dessin
     this.setupDrawControl();
 
-    // Charger la géométrie existante si présente
+    // Charger les géométries existantes
     if (this.existingGeometry) {
       this.loadExistingGeometry();
+    }
+    if (this.geometryType === 'both' && this.existingPointGeometry) {
+      this.loadExistingPointGeometry();
     }
 
     // Événements de dessin
@@ -175,25 +203,18 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       }
     };
 
-    // Options de style pour le rectangle
-    const rectangleOptions: L.DrawOptions.RectangleOptions = {
-      shapeOptions: {
-        color: this.primaryColor,
-        weight: 2,
-        fillColor: this.fillColor,
-        fillOpacity: 0.3
-      }
-    };
-
     // Options selon le type de géométrie
+    const showPolygonTools = this.geometryType === 'polygon' || this.geometryType === 'both';
+    const showPointTools = this.geometryType === 'point' || this.geometryType === 'both';
+
     const drawOptions: L.Control.DrawConstructorOptions = {
       position: 'topleft',
       draw: {
-        polygon: this.geometryType === 'polygon' ? polygonOptions : false,
-        rectangle: this.geometryType === 'polygon' ? rectangleOptions : false,
+        polygon: showPolygonTools ? polygonOptions : false,
+        rectangle: false,  // Désactivé - seuls les polygones et points sont autorisés
         circle: false,
         circlemarker: false,
-        marker: this.geometryType === 'point' ? {} : false,
+        marker: showPointTools ? {} : false,
         polyline: false
       },
       edit: {
@@ -308,19 +329,36 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     this.map.on('draw:created', (e: any) => {
       console.log('draw:created - type:', e.layerType);
       const layer = e.layer;
+      const isMarker = e.layerType === 'marker';
 
-      // Pour les polygones, on n'autorise qu'une seule forme
-      if (this.geometryType === 'polygon') {
+      if (this.geometryType === 'both') {
+        // En mode 'both', markers et polygones sont mutuellement exclusifs
+        // On peut avoir UN marker OU un ou plusieurs polygones, mais pas les deux
+        if (isMarker) {
+          // Dessiner un marker supprime tous les polygones
+          this.drawnItems?.clearLayers();
+          this.pointItems?.clearLayers(); // Un seul marker
+          this.pointItems?.addLayer(layer);
+          this.emitGeometry(); // Émet null car plus de polygones
+          this.emitPointGeometry();
+        } else {
+          // Dessiner un polygone supprime le marker, mais permet plusieurs polygones
+          this.pointItems?.clearLayers();
+          this.drawnItems?.addLayer(layer);
+          this.emitPointGeometry(); // Émet null car plus de marker
+          this.emitGeometry();
+        }
+      } else if (this.geometryType === 'polygon') {
+        // Mode polygone: permet plusieurs polygones
+        this.drawnItems?.addLayer(layer);
+        this.emitGeometry();
+      } else {
+        // Mode point: un seul marker
         this.drawnItems?.clearLayers();
+        this.drawnItems?.addLayer(layer);
+        this.emitGeometry();
       }
-      // Pour les points, on n'autorise qu'un seul marker
-      if (this.geometryType === 'point') {
-        this.drawnItems?.clearLayers();
-      }
-
-      this.drawnItems?.addLayer(layer);
-      console.log('draw:created - layer ajouté, total:', this.drawnItems?.getLayers().length);
-      this.emitGeometry();
+      console.log('draw:created - layer ajouté');
     });
 
     // Forme éditée
@@ -433,7 +471,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       return;
     }
 
-    // Pour un point
+    // Pour un point (mode 'point' uniquement)
     if (this.geometryType === 'point' && layers.length > 0) {
       const layer = layers[0] as L.Marker;
       const latlng = layer.getLatLng();
@@ -445,23 +483,94 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       return;
     }
 
-    // Pour un polygone - convertir en MultiPolygon si nécessaire
-    if (this.geometryType === 'polygon' && layers.length > 0) {
-      const layer = layers[0] as L.Polygon;
-      const geojson = layer.toGeoJSON();
+    // Pour les polygones (mode 'polygon' ou 'both')
+    // Combiner tous les polygones en un MultiPolygon
+    if ((this.geometryType === 'polygon' || this.geometryType === 'both') && layers.length > 0) {
+      const allCoordinates: any[] = [];
 
-      // Convertir Polygon en MultiPolygon pour le backend
-      if (geojson.geometry.type === 'Polygon') {
-        const multiPolygon = {
-          type: 'MultiPolygon',
-          coordinates: [geojson.geometry.coordinates]
-        };
-        this.geometryChange.emit(multiPolygon);
-      } else {
-        this.geometryChange.emit(geojson.geometry);
+      layers.forEach((layer) => {
+        if (layer instanceof L.Polygon) {
+          const geojson = (layer as L.Polygon).toGeoJSON();
+          if (geojson.geometry.type === 'Polygon') {
+            allCoordinates.push(geojson.geometry.coordinates);
+          } else if (geojson.geometry.type === 'MultiPolygon') {
+            allCoordinates.push(...geojson.geometry.coordinates);
+          }
+        }
+      });
+
+      if (allCoordinates.length === 0) {
+        this.geometryChange.emit(null);
+        return;
       }
+
+      const multiPolygon = {
+        type: 'MultiPolygon',
+        coordinates: allCoordinates
+      };
+      this.geometryChange.emit(multiPolygon);
       return;
     }
+  }
+
+  /**
+   * Charge une géométrie point existante (mode 'both')
+   */
+  private loadExistingPointGeometry(): void {
+    if (!this.pointItems || !this.map) return;
+
+    this.pointItems.clearLayers();
+
+    if (!this.existingPointGeometry) return;
+
+    try {
+      let geojsonData = this.existingPointGeometry;
+
+      // Si c'est une géométrie simple, la wrapper
+      if (geojsonData.type && !geojsonData.geometry && geojsonData.coordinates) {
+        geojsonData = {
+          type: 'Feature',
+          properties: {},
+          geometry: geojsonData
+        };
+      }
+
+      const geoJsonLayer = L.geoJSON(geojsonData, {
+        pointToLayer: (feature, latlng) => {
+          return L.marker(latlng);
+        }
+      });
+
+      geoJsonLayer.eachLayer((layer) => {
+        this.pointItems?.addLayer(layer);
+      });
+    } catch (error) {
+      console.error('Erreur chargement point:', error);
+    }
+  }
+
+  /**
+   * Émet la géométrie point (mode 'both')
+   */
+  private emitPointGeometry(): void {
+    if (!this.pointItems) {
+      this.pointGeometryChange.emit(null);
+      return;
+    }
+
+    const layers = this.pointItems.getLayers();
+    if (layers.length === 0) {
+      this.pointGeometryChange.emit(null);
+      return;
+    }
+
+    const layer = layers[0] as L.Marker;
+    const latlng = layer.getLatLng();
+    const geojson = {
+      type: 'Point',
+      coordinates: [latlng.lng, latlng.lat]
+    };
+    this.pointGeometryChange.emit(geojson);
   }
 
   /**
@@ -469,7 +578,9 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
    */
   clearAll(): void {
     this.drawnItems?.clearLayers();
+    this.pointItems?.clearLayers();
     this.geometryChange.emit(null);
+    this.pointGeometryChange.emit(null);
   }
 
   /**
@@ -490,5 +601,186 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
    */
   refresh(): void {
     this.map?.invalidateSize();
+  }
+
+  // ===================
+  // Import de fichiers géographiques (GeoJSON, Shapefile)
+  // ===================
+
+  /**
+   * Déclenche le sélecteur de fichier.
+   */
+  triggerGeometryImport(): void {
+    this.geometryFileInput?.nativeElement?.click();
+  }
+
+  /**
+   * Gère la sélection d'un fichier géographique.
+   * Supporte les fichiers :
+   * - GeoJSON : .geojson, .json
+   * - Shapefile : .zip (contenant .shp, .dbf, .prj) ou .shp direct
+   */
+  async onGeometryFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    // Vérifier l'extension
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const supportedExtensions = ['geojson', 'json', 'zip', 'shp'];
+
+    if (!extension || !supportedExtensions.includes(extension)) {
+      this.snackBar.open(
+        this.translate.instant('sites.form.geometry.import.invalidFormat'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    this.isImporting.set(true);
+
+    try {
+      let geojson: any;
+
+      // Traitement selon le type de fichier
+      if (extension === 'geojson' || extension === 'json') {
+        // Fichier GeoJSON - lire comme texte et parser
+        const text = await file.text();
+        geojson = JSON.parse(text);
+      } else if (extension === 'zip') {
+        // Fichier ZIP contenant tous les fichiers shapefile
+        const arrayBuffer = await file.arrayBuffer();
+        geojson = await shp.parseZip(arrayBuffer);
+      } else if (extension === 'shp') {
+        // Fichier .shp seul - parser les géométries
+        const arrayBuffer = await file.arrayBuffer();
+        const geometries = shp.parseShp(arrayBuffer);
+        if (geometries && geometries.length > 0) {
+          geojson = {
+            type: 'FeatureCollection',
+            features: geometries.map((geom: any) => ({
+              type: 'Feature',
+              properties: {},
+              geometry: geom
+            }))
+          };
+        }
+      }
+
+      if (!geojson) {
+        throw new Error('Format de fichier invalide');
+      }
+
+      // Traiter et afficher la géométrie importée
+      this.processImportedGeometry(geojson);
+
+      this.snackBar.open(
+        this.translate.instant('sites.form.geometry.import.success'),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Erreur import géométrie:', error);
+      this.snackBar.open(
+        this.translate.instant('sites.form.geometry.import.error'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 }
+      );
+    } finally {
+      this.isImporting.set(false);
+      // Reset l'input pour permettre de réimporter le même fichier
+      input.value = '';
+    }
+  }
+
+  /**
+   * Traite la géométrie importée depuis un shapefile.
+   * Extrait les polygones et les affiche sur la carte.
+   */
+  private processImportedGeometry(geojson: any): void {
+    if (!this.drawnItems || !this.map) return;
+
+    // Extraire la géométrie
+    let geometry: any = null;
+
+    if (geojson.type === 'FeatureCollection' && geojson.features?.length > 0) {
+      // Filtrer les polygones uniquement
+      const features = geojson.features.filter((f: any) =>
+        f.geometry?.type === 'Polygon' || f.geometry?.type === 'MultiPolygon'
+      );
+
+      if (features.length === 1) {
+        geometry = features[0].geometry;
+      } else if (features.length > 1) {
+        // Combiner en MultiPolygon
+        const coordinates: any[] = [];
+        features.forEach((f: any) => {
+          if (f.geometry.type === 'Polygon') {
+            coordinates.push(f.geometry.coordinates);
+          } else if (f.geometry.type === 'MultiPolygon') {
+            coordinates.push(...f.geometry.coordinates);
+          }
+        });
+        geometry = {
+          type: 'MultiPolygon',
+          coordinates
+        };
+      }
+    } else if (geojson.type === 'Feature') {
+      geometry = geojson.geometry;
+    } else if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
+      geometry = geojson;
+    }
+
+    if (!geometry) {
+      this.snackBar.open(
+        this.translate.instant('sites.form.geometry.import.noGeometry'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Convertir en MultiPolygon si c'est un Polygon
+    if (geometry.type === 'Polygon') {
+      geometry = {
+        type: 'MultiPolygon',
+        coordinates: [geometry.coordinates]
+      };
+    }
+
+    // Effacer les formes existantes
+    this.drawnItems.clearLayers();
+
+    // Créer et ajouter le layer GeoJSON
+    const geoJsonLayer = L.geoJSON({
+      type: 'Feature',
+      properties: {},
+      geometry: geometry
+    } as any, {
+      style: {
+        color: this.primaryColor,
+        weight: 2,
+        fillColor: this.fillColor,
+        fillOpacity: 0.3
+      }
+    });
+
+    geoJsonLayer.eachLayer((layer) => {
+      this.drawnItems?.addLayer(layer);
+    });
+
+    // Ajuster la vue
+    if (this.drawnItems.getBounds().isValid()) {
+      this.map.fitBounds(this.drawnItems.getBounds(), {
+        padding: [50, 50],
+        maxZoom: 15
+      });
+    }
+
+    // Émettre la géométrie
+    this.geometryChange.emit(geometry);
   }
 }

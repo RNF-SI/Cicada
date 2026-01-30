@@ -32,7 +32,7 @@ class TestRequestReferentEndpoint:
     def test_request_referent_unauthenticated(self, api_client):
         """Test that unauthenticated users cannot request referent status."""
         site = SiteFactory()
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_request_referent_success(self, api_client):
@@ -44,7 +44,7 @@ class TestRequestReferentEndpoint:
 
         api_client.force_authenticate(user=user)
         response = api_client.post(
-            f'/api/users/sites/{site.id_site}/request_referent/',
+            f'/api/users/sites/{site.slug}/request_referent/',
             {'justification': 'Je souhaite devenir referent pour gerer ce site.'}
         )
 
@@ -68,7 +68,7 @@ class TestRequestReferentEndpoint:
         # User has NO CorRoleSite link
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'error' in response.data
@@ -82,7 +82,7 @@ class TestRequestReferentEndpoint:
         CorRoleSiteFactory(id_role=user, id_site=site, referent=True, referent_valid=True)
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'error' in response.data
@@ -103,7 +103,7 @@ class TestRequestReferentEndpoint:
         )
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert 'error' in response.data
@@ -124,7 +124,7 @@ class TestRequestReferentEndpoint:
         )
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         # Should be able to request again after rejection
         assert response.status_code == status.HTTP_201_CREATED
@@ -145,7 +145,7 @@ class TestRequestReferentEndpoint:
         CorRoleSiteFactory(id_role=user, id_site=site, referent=False)
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -173,7 +173,7 @@ class TestRequestReferentEndpoint:
         CorRoleSiteFactory(id_role=user, id_site=site, referent=False)
 
         api_client.force_authenticate(user=user)
-        response = api_client.post(f'/api/users/sites/{site.id_site}/request_referent/')
+        response = api_client.post(f'/api/users/sites/{site.slug}/request_referent/')
 
         assert response.status_code == status.HTTP_201_CREATED
 

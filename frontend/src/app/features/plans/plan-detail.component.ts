@@ -1,21 +1,12 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
-
-interface PlanGestion {
-  id: number;
-  nom: string;
-  dateDebut: number;
-  dateFin: number;
-  organismeRedacteur: string;
-  niveauEvaluation: string;
-  ct88: boolean;
-  rang: number;
-  surface: number;
-  identifiantCdrOfb: string;
-  statut: string;
-}
+import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
+import { AdminService } from '../../core/services/admin.service';
+import { AdminPlan } from '../../core/models/admin.model';
 
 interface MenuItem {
   label: string;
@@ -25,13 +16,32 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+interface SyntheseAccordion {
+  id: string;
+  title: string;
+  colorClass: 'terra-cotta' | 'orange';
+  expanded: boolean;
+  hasSubItems?: boolean;
+  subItems?: SubAccordion[];
+}
+
+interface SubAccordion {
+  id: string;
+  title: string;
+  expanded: boolean;
+  items?: string[];
+}
+
 @Component({
   selector: 'app-plan-detail',
   standalone: true,
   imports: [
     CommonModule,
     RouterModule,
-    HeaderComponent
+    MatProgressSpinnerModule,
+    TranslateModule,
+    HeaderComponent,
+    SectionTitleComponent
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -39,22 +49,25 @@ interface MenuItem {
 export class PlanDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly adminService = inject(AdminService);
 
   planId = signal<number | null>(null);
+  isLoading = signal(true);
+  errorMessage = signal<string | null>(null);
 
-  // Mock data - à remplacer par l'appel API
-  plan = signal<PlanGestion | null>(null);
+  // Plan data from API
+  plan = signal<AdminPlan | null>(null);
 
   // Menu latéral du plan
   menuItems = signal<MenuItem[]>([
     {
       label: 'Vue d\'ensemble',
-      icon: 'fi-rr-eye',
+      icon: 'fi-rr-home',
       route: 'overview'
     },
     {
       label: 'Détails et saisie',
-      icon: 'fi-rr-pencil',
+      icon: 'fi-rr-document-signed',
       expanded: false,
       children: [
         { label: 'Informations générales', icon: '', route: 'details/general' },
@@ -65,7 +78,7 @@ export class PlanDetailComponent implements OnInit {
     },
     {
       label: 'Suivis',
-      icon: 'fi-rr-stats',
+      icon: 'fi-rr-chart-histogram',
       expanded: false,
       children: [
         { label: 'Indicateurs', icon: '', route: 'suivis/indicateurs' },
@@ -75,6 +88,73 @@ export class PlanDetailComponent implements OnInit {
   ]);
 
   activeMenuItem = signal<string>('overview');
+
+  // Accordéons de la section Synthèse
+  syntheseAccordions = signal<SyntheseAccordion[]>([
+    {
+      id: 'enjeux',
+      title: 'Enjeux et Facteurs clés de réussite',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'objectifs-lt',
+      title: 'Objectifs long terme',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'objectifs-op',
+      title: 'Objectifs opérationnels',
+      colorClass: 'terra-cotta',
+      expanded: false
+    },
+    {
+      id: 'actions',
+      title: 'Actions et suivis',
+      colorClass: 'orange',
+      expanded: true,
+      hasSubItems: true,
+      subItems: [
+        {
+          id: 'intervention-patrimoine',
+          title: 'Intervention patrimoine naturel',
+          expanded: true,
+          items: [
+            'IP 01 : Restauration des ouvrages de régulation des niveaux d\'eau (y compris grillage contre les ragondins)',
+            'IP 02 : Entretien et gestion des ouvrages de régulation des niveaux d\'eau',
+            'IP 03 : Pâturage (Marterin)',
+            'IP 04 : Broyage sur l\'ensemble des marais',
+            'IP 05 : Broyage sur le Grand Étang et l\'Empoissonnement (1 fois /PG)'
+          ]
+        },
+        {
+          id: 'surveillance',
+          title: 'Surveillance du territoire et police de l\'environnement',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'participation',
+          title: 'Participation à la recherche',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'intervention-naturel',
+          title: 'Intervention patrimoine naturel',
+          expanded: false,
+          items: []
+        },
+        {
+          id: 'infrastructure',
+          title: 'Création et maintenance d\'infrastructure d\'accueil',
+          expanded: false,
+          items: []
+        }
+      ]
+    }
+  ]);
 
   ngOnInit(): void {
     // Récupérer l'ID du plan depuis l'URL
@@ -86,20 +166,21 @@ export class PlanDetailComponent implements OnInit {
   }
 
   loadPlan(): void {
-    // TODO: Appeler l'API backend pour récupérer le plan
-    // Mock data pour l'instant
-    this.plan.set({
-      id: this.planId() || 1,
-      nom: 'Marais du Grosset et Fisselong',
-      dateDebut: 2020,
-      dateFin: 2025,
-      organismeRedacteur: 'Biotope (BE)',
-      niveauEvaluation: 'Evaluation intermédiaire',
-      ct88: true,
-      rang: 3,
-      surface: 100000,
-      identifiantCdrOfb: 'Lorem ipsum',
-      statut: 'Evaluation à mi-parcours'
+    const id = this.planId();
+    if (!id) return;
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    this.adminService.getPlan(id).subscribe({
+      next: (plan) => {
+        this.plan.set(plan);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
+        this.isLoading.set(false);
+      }
     });
   }
 
@@ -120,5 +201,31 @@ export class PlanDetailComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/plans']);
+  }
+
+  toggleAccordion(accordionId: string): void {
+    this.syntheseAccordions.update(accordions =>
+      accordions.map(acc => ({
+        ...acc,
+        expanded: acc.id === accordionId ? !acc.expanded : acc.expanded
+      }))
+    );
+  }
+
+  toggleSubAccordion(parentId: string, subId: string): void {
+    this.syntheseAccordions.update(accordions =>
+      accordions.map(acc => {
+        if (acc.id === parentId && acc.subItems) {
+          return {
+            ...acc,
+            subItems: acc.subItems.map(sub => ({
+              ...sub,
+              expanded: sub.id === subId ? !sub.expanded : sub.expanded
+            }))
+          };
+        }
+        return acc;
+      })
+    );
   }
 }

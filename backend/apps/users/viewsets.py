@@ -88,6 +88,14 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Permissions selon l'action.
         """
+        # Check if action has its own permission_classes defined via @action decorator
+        if hasattr(self, 'action') and self.action:
+            action_func = getattr(self, self.action, None)
+            if action_func and hasattr(action_func, 'kwargs'):
+                action_permission_classes = action_func.kwargs.get('permission_classes')
+                if action_permission_classes:
+                    return [permission() for permission in action_permission_classes]
+
         if self.action == 'create':
             # Seuls Admin Organisme+ peuvent créer des utilisateurs
             permission_classes = [IsAdminOrganisme]
@@ -106,7 +114,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         else:
             # Actions de lecture : authentifié suffit (filtrage via get_queryset)
             permission_classes = [IsAuthenticated]
-        
+
         return [permission() for permission in permission_classes]
     
     def perform_create(self, serializer):
@@ -317,5 +325,371 @@ class RoleViewSet(viewsets.ModelViewSet):
                         'active': org_users.filter(active=True).count()
                     })
             stats['by_organisme'] = organismes_stats
-        
+
         return Response(stats)
+
+    @action(detail=False, methods=['post'])
+    def request_deletion(self, request):
+        """
+        Demander la suppression de son propre compte (RGPD).
+        POST /api/users/request_deletion/
+
+        Le compte reste actif. Un super_admin traitera manuellement la demande
+        (desactivation ou anonymisation).
+        """
+        user = request.user
+
+        # Les super_admin ne peuvent pas demander la suppression de leur compte
+        if user.is_super_admin():
+            return Response(
+                {'error': 'Les super administrateurs ne peuvent pas demander la suppression de leur compte.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verifier que le compte n'est pas deja en cours de suppression
+        if user.deletion_requested_at:
+            return Response(
+                {'error': 'Une demande de suppression est deja en cours pour ce compte.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': 'Ce compte a deja ete supprime.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Enregistrer la demande (sans desactiver le compte)
+        from django.utils import timezone
+        user.deletion_requested_at = timezone.now()
+        user.save(update_fields=['deletion_requested_at'])
+
+        # Enregistrer l'activité
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=str(user),
+            action='rgpd_request',
+            actor=user,
+            description=f"L'utilisateur {user} a demande la suppression de son compte (RGPD).",
+            visibility='admin'
+        )
+
+        # Notifier les personnes concernées
+        from apps.notifications.services import NotificationService
+
+        # Collecter tous les destinataires uniques (hors l'utilisateur lui-même)
+        recipients = set()
+
+        # 1. Super admins
+        super_admins = Role.objects.filter(
+            role_level='super_admin',
+            active=True
+        ).exclude(id_role=user.id_role)
+        recipients.update(super_admins)
+
+        # 2. Admin(s) de l'organisme de l'utilisateur
+        if user.id_organisme:
+            org_admins = Role.objects.filter(
+                id_organisme=user.id_organisme,
+                role_level='admin_og',
+                active=True
+            ).exclude(id_role=user.id_role)
+            recipients.update(org_admins)
+
+        # 3. Référents des sites où l'utilisateur est membre
+        user_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
+        if user_sites:
+            site_referents = Role.objects.filter(
+                corrolesite__id_site__in=user_sites,
+                corrolesite__referent=True,
+                corrolesite__referent_valid=True,
+                active=True
+            ).exclude(id_role=user.id_role).distinct()
+            recipients.update(site_referents)
+
+        # 4. Référents des plans de gestion où l'utilisateur est référent
+        user_plans = user.plans_referents.all()
+        if user_plans.exists():
+            for plan in user_plans:
+                plan_referents = plan.referents.filter(
+                    active=True
+                ).exclude(id_role=user.id_role)
+                recipients.update(plan_referents)
+
+        # Envoyer les notifications
+        for recipient in recipients:
+            NotificationService.create_notification(
+                recipient=recipient,
+                notification_type='system_alert',
+                title="Demande de suppression de compte (RGPD)",
+                message=f"L'utilisateur {user} a demande la suppression de son compte. "
+                        f"Cette demande doit etre traitee par un super administrateur.",
+                priority='medium',
+                related_user=user
+            )
+
+        return Response({
+            'status': 'requested',
+            'message': 'Votre demande de suppression a ete enregistree. '
+                      'Un administrateur traitera votre demande dans les meilleurs delais.'
+        })
+
+    @action(detail=False, methods=['post'])
+    def cancel_deletion(self, request):
+        """
+        Annuler une demande de suppression de compte (RGPD).
+        POST /api/users/cancel_deletion/
+
+        Permet a l'utilisateur d'annuler sa propre demande.
+        """
+        user = request.user
+
+        # Verifier qu'une demande est en cours
+        if not user.deletion_requested_at:
+            return Response(
+                {'error': 'Aucune demande de suppression en cours.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas deja anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': 'Ce compte a deja ete supprime et ne peut pas etre restaure.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Annuler la demande
+        user.deletion_requested_at = None
+        user.save(update_fields=['deletion_requested_at'])
+
+        # Enregistrer l'activité
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=str(user),
+            action='rgpd_cancelled',
+            actor=user,
+            description=f"L'utilisateur {user} a annule sa demande de suppression RGPD.",
+            visibility='admin'
+        )
+
+        return Response({
+            'status': 'cancelled',
+            'message': 'Votre demande de suppression a ete annulee.'
+        })
+
+    # ==================== RGPD Admin Endpoints ====================
+
+    @action(detail=False, methods=['get'], permission_classes=[IsSuperAdmin])
+    def rgpd_requests(self, request):
+        """
+        Liste des demandes de suppression RGPD en cours.
+        GET /api/users/users/rgpd_requests/
+        Accessible uniquement aux super_admins.
+        """
+        from .serializers import RgpdRequestSerializer
+
+        users = Role.objects.filter(
+            deletion_requested_at__isnull=False,
+            is_anonymized=False
+        ).select_related('id_organisme').order_by('-deletion_requested_at')
+
+        # Pagination
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = RgpdRequestSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = RgpdRequestSerializer(users, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def deactivate_rgpd(self, request, pk=None):
+        """
+        Desactiver un compte suite a une demande RGPD.
+        POST /api/users/users/{id}/deactivate_rgpd/
+        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        """
+        from django.conf import settings
+
+        # Verifier que l'auth est locale
+        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+            return Response(
+                {'error': "La gestion des comptes est deleguee a Keycloak."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = self.get_object()
+
+        # Verifier qu'une demande RGPD est en cours
+        if not user.deletion_requested_at:
+            return Response(
+                {'error': "Aucune demande RGPD en cours pour cet utilisateur."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas deja anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': "Ce compte est deja anonymise."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Desactiver le compte et effacer la demande (traitee)
+        user.active = False
+        user.deletion_requested_at = None
+        user.save(update_fields=['active', 'deletion_requested_at'])
+
+        # Enregistrer l'activité
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=str(user),
+            action='deactivate',
+            actor=request.user,
+            description=f"Le compte de {user} a ete desactive suite a une demande RGPD par {request.user}.",
+            visibility='admin'
+        )
+
+        # Notifier l'utilisateur
+        from apps.notifications.services import NotificationService
+        NotificationService.create_notification(
+            recipient=user,
+            notification_type='account_deactivated',
+            title="Compte desactive (RGPD)",
+            message="Votre compte a ete desactive suite a votre demande de suppression. "
+                    "Vos donnees personnelles n'ont pas encore ete supprimees.",
+            priority='high'
+        )
+
+        return Response({
+            'status': 'deactivated',
+            'message': f"Le compte de {user} a ete desactive."
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def anonymize_rgpd(self, request, pk=None):
+        """
+        Anonymiser un compte suite a une demande RGPD.
+        POST /api/users/users/{id}/anonymize_rgpd/
+        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        """
+        from django.conf import settings
+
+        # Verifier que l'auth est locale
+        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+            return Response(
+                {'error': "La gestion des comptes est deleguee a Keycloak."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = self.get_object()
+
+        # Verifier qu'une demande RGPD est en cours
+        if not user.deletion_requested_at:
+            return Response(
+                {'error': "Aucune demande RGPD en cours pour cet utilisateur."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas deja anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': "Ce compte est deja anonymise."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Sauvegarder le nom pour le log
+        user_name = str(user)
+        user_id = user.id_role
+
+        # Anonymiser le compte
+        user.anonymize()
+
+        # Enregistrer l'activité
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user_id,
+            entity_name=user_name,
+            action='rgpd_anonymized',
+            actor=request.user,
+            description=f"Le compte de {user_name} a ete anonymise suite a une demande RGPD par {request.user}.",
+            visibility='system'
+        )
+
+        return Response({
+            'status': 'anonymized',
+            'message': f"Le compte a ete anonymise."
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def reject_rgpd(self, request, pk=None):
+        """
+        Rejeter/annuler une demande RGPD.
+        POST /api/users/users/{id}/reject_rgpd/
+        Accessible uniquement aux super_admins.
+        """
+        user = self.get_object()
+
+        # Verifier qu'une demande RGPD est en cours
+        if not user.deletion_requested_at:
+            return Response(
+                {'error': "Aucune demande RGPD en cours pour cet utilisateur."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que le compte n'est pas deja anonymise
+        if user.is_anonymized:
+            return Response(
+                {'error': "Ce compte est deja anonymise."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Annuler la demande
+        user.deletion_requested_at = None
+        user.save(update_fields=['deletion_requested_at'])
+
+        # Enregistrer l'activité
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=str(user),
+            action='rgpd_cancelled',
+            actor=request.user,
+            description=f"La demande RGPD de {user} a ete rejetee par {request.user}.",
+            visibility='admin'
+        )
+
+        # Notifier l'utilisateur
+        from apps.notifications.services import NotificationService
+        NotificationService.create_notification(
+            recipient=user,
+            notification_type='system_alert',
+            title="Demande de suppression rejetee",
+            message="Votre demande de suppression de compte a ete rejetee par un administrateur. "
+                    "Votre compte reste actif.",
+            priority='medium'
+        )
+
+        return Response({
+            'status': 'rejected',
+            'message': f"La demande RGPD de {user} a ete rejetee."
+        })
+
+    @action(detail=False, methods=['get'])
+    def auth_provider(self, request):
+        """
+        Retourne le provider d'authentification configure.
+        GET /api/users/users/auth_provider/
+        """
+        from django.conf import settings
+        return Response({
+            'provider': getattr(settings, 'AUTH_PROVIDER', 'local')
+        })

@@ -2,27 +2,64 @@
   <!-- Conteneur de la carte -->
   <div #mapContainer class="map-container"></div>
 
+  <!-- Input caché pour l'import de fichiers géographiques -->
+  @if (enableGeometryImport) {
+    <input
+      #geometryFileInput
+      type="file"
+      accept=".geojson,.json,.zip,.shp"
+      (change)="onGeometryFileSelected($event)"
+      hidden>
+  }
+
   <!-- Barre d'outils personnalisée -->
   <div class="map-toolbar">
+    @if (enableGeometryImport) {
+      <button
+        type="button"
+        class="toolbar-btn toolbar-btn-import"
+        (click)="triggerGeometryImport()"
+        [disabled]="isImporting()"
+        [matTooltip]="'sites.form.geometry.import.tooltip' | translate"
+        matTooltipPosition="left"
+        matTooltipClass="multiline-tooltip">
+        @if (isImporting()) {
+          <mat-spinner diameter="16"></mat-spinner>
+        } @else {
+          <i class="fi fi-rr-folder-upload"></i>
+        }
+      </button>
+      <div class="toolbar-separator"></div>
+    }
     <button
       type="button"
       class="toolbar-btn"
       (click)="clearAll()"
-      title="Effacer tout">
+      [matTooltip]="'sites.form.geometry.clearAll' | translate"
+      matTooltipPosition="left">
       <i class="fi fi-rr-trash"></i>
     </button>
     <button
       type="button"
       class="toolbar-btn"
       (click)="recenter()"
-      title="Recentrer">
+      [matTooltip]="'sites.form.geometry.recenter' | translate"
+      matTooltipPosition="left">
       <i class="fi fi-rr-expand-arrows-alt"></i>
     </button>
   </div>
 
   <!-- Instructions -->
   <div class="map-instructions">
-    @if (geometryType === 'polygon') {
+    @if (geometryType === 'both') {
+      <span>
+        <i class="fi fi-rr-draw-polygon"></i>
+        Contour : dessinez un polygone
+        <span class="separator">|</span>
+        <i class="fi fi-rr-marker"></i>
+        Point : placez un marqueur
+      </span>
+    } @else if (geometryType === 'polygon') {
       <span>
         <i class="fi fi-rr-pencil"></i>
         Dessinez le contour : cliquez point par point, puis double-cliquez ou cliquez sur le 1er point pour fermer

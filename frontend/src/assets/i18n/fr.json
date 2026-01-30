@@ -12,66 +12,69 @@
       "confirm": "Confirmer",
       "back": "Retour",
       "view": "Voir",
-      "create": "Creer",
-      "update": "Mettre a jour",
+      "create": "Créer",
+      "update": "Mettre à jour",
       "restore": "Restaurer",
       "archive": "Archiver",
       "validate": "Valider",
       "associate": "Associer",
-      "searching": "Recherche en cours"
+      "searching": "Recherche en cours",
+      "reset": "Réinitialiser"
     },
     "status": {
       "active": "Actif",
       "inactive": "Inactif",
       "pending": "En attente",
-      "approved": "Approuve",
-      "rejected": "Rejete",
+      "approved": "Approuvé",
+      "rejected": "Rejeté",
       "new": "Nouveau",
-      "deleted": "Supprime",
+      "deleted": "Supprimé",
       "draft": "Brouillon",
       "valid": "Valide",
-      "archived": "Archive"
+      "archived": "Archivé"
     },
-    "loading": "Chargement des donnees...",
+    "loading": "Chargement des données...",
     "none": "Aucun",
     "messages": {
       "loading": "Chargement...",
-      "noResults": "Aucun resultat",
+      "noResults": "Aucun résultat",
       "error": "Une erreur est survenue",
-      "success": "Operation reussie",
-      "confirmDelete": "Etes-vous sur de vouloir supprimer cet element ?",
-      "featureComingSoon": "Cette fonctionnalite sera disponible prochainement"
+      "success": "Opération réussie",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?",
+      "featureComingSoon": "Cette fonctionnalité sera disponible prochainement"
     },
     "validation": {
       "required": "Ce champ est requis",
       "email": "Adresse email invalide",
-      "minLength": "Minimum {{min}} caracteres requis",
-      "maxLength": "Maximum {{max}} caracteres autorises",
+      "minLength": "Minimum {{min}} caractères requis",
+      "maxLength": "Maximum {{max}} caractères autorisés",
       "passwordMismatch": "Les mots de passe ne correspondent pas"
     },
     "pagination": {
       "showing": "{{count}} sur {{total}}",
-      "noItems": "Aucun element"
+      "noItems": "Aucun élément"
     },
     "filters": {
       "all": "Tous",
-      "allRoles": "Tous les roles",
+      "allRoles": "Tous les rôles",
       "allOrganismes": "Tous les organismes",
       "allStatus": "Tous les statuts",
       "allTypes": "Tous les types"
     },
     "table": {
       "actions": "Actions",
-      "noData": "Aucune donnee"
+      "noData": "Aucune donnée"
     },
     "date": {
       "never": "Jamais"
-    }
+    },
+    "all": "Tout",
+    "reset": "Réinitialiser"
   },
   "auth": {
     "login": {
       "title": "Connexion",
-      "subtitle": "Accedez a votre espace de gestion",
+      "subtitle": "Accédez à votre espace de gestion",
       "username": "Identifiant ou email",
       "usernamePlaceholder": "votre.identifiant ou email",
       "password": "Mot de passe",
@@ -81,8 +84,8 @@
       "showPassword": "Afficher le mot de passe",
       "hidePassword": "Masquer le mot de passe",
       "noAccount": "Pas encore inscrit ?",
-      "createAccount": "Creer un compte",
-      "backToHome": "Retour a l'accueil",
+      "createAccount": "Créer un compte",
+      "backToHome": "Retour à l'accueil",
       "errors": {
         "usernameRequired": "L'identifiant ou l'email est requis",
         "passwordRequired": "Le mot de passe est requis"
@@ -90,55 +93,55 @@
     },
     "register": {
       "title": "Inscription",
-      "subtitle": "Creez votre compte pour acceder a l'application",
-      "firstName": "Prenom",
-      "firstNamePlaceholder": "Votre prenom",
+      "subtitle": "Créez votre compte pour accéder à l'application",
+      "firstName": "Prénom",
+      "firstNamePlaceholder": "Votre prénom",
       "lastName": "Nom",
       "lastNamePlaceholder": "Votre nom",
       "email": "Adresse email",
       "emailPlaceholder": "votre.email@exemple.fr",
       "organisme": "Organisme",
-      "organismePlaceholder": "Selectionnez ou recherchez votre organisme",
+      "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "password": "Mot de passe",
-      "passwordPlaceholder": "Minimum 8 caracteres",
+      "passwordPlaceholder": "Minimum 8 caractères",
       "confirmPassword": "Confirmer le mot de passe",
       "confirmPasswordPlaceholder": "Retapez votre mot de passe",
       "justification": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous souhaitez rejoindre cet organisme...",
-      "justificationHint": "Cette information sera transmise a l'administrateur pour validation",
-      "infoBox": "Votre inscription sera soumise a validation par un administrateur de l'organisme choisi. Vous recevrez un email une fois votre demande traitee.",
+      "justificationHint": "Cette information sera transmise à l'administrateur pour validation",
+      "infoBox": "Votre inscription sera soumise à validation par un administrateur de l'organisme choisi. Vous recevrez un email une fois votre demande traitée.",
       "submit": "S'inscrire",
       "loading": "Inscription en cours...",
-      "alreadyRegistered": "Deja inscrit ?",
+      "alreadyRegistered": "Déjà inscrit ?",
       "backToLogin": "Se connecter",
-      "backToHome": "Retour a l'accueil",
+      "backToHome": "Retour à l'accueil",
       "errors": {
-        "firstNameRequired": "Le prenom est requis",
+        "firstNameRequired": "Le prénom est requis",
         "lastNameRequired": "Le nom est requis",
         "emailRequired": "L'email est requis",
         "emailInvalid": "Veuillez entrer une adresse email valide",
         "organismeRequired": "L'organisme est requis",
         "passwordRequired": "Le mot de passe est requis",
-        "passwordMinLength": "Minimum 8 caracteres",
+        "passwordMinLength": "Minimum 8 caractères",
         "confirmPasswordRequired": "Veuillez confirmer le mot de passe",
         "passwordMismatch": "Les mots de passe ne correspondent pas",
-        "maxLength": "{{max}} caracteres maximum",
-        "emailAlreadyUsed": "Cette adresse email est deja utilisee."
+        "maxLength": "{{max}} caractères maximum",
+        "emailAlreadyUsed": "Cette adresse email est déjà utilisée."
       }
     },
     "registrationPending": {
       "title": "Demande en attente",
-      "message": "Votre demande d'inscription a ete envoyee. Vous recevrez un email une fois votre compte valide par un administrateur."
+      "message": "Votre demande d'inscription a été envoyée. Vous recevrez un email une fois votre compte validé par un administrateur."
     },
-    "logout": "Deconnexion"
+    "logout": "Déconnexion"
   },
   "header": {
     "administration": "Administration",
     "profile": "Mon profil",
     "myRequests": "Mes demandes",
-    "settings": "Parametres",
+    "settings": "Paramètres",
     "validations": "Validations",
-    "logout": "Deconnexion",
+    "logout": "Déconnexion",
     "login": "Se connecter",
     "menu": "Menu",
     "home": "Accueil",
@@ -147,47 +150,63 @@
     "impersonation": {
       "banner": "Mode visualisation",
       "viewing": "Vous visualisez en tant que",
-      "connectedAs": "connecte en tant que",
-      "stopButton": "Revenir a mon compte"
+      "connectedAs": "connecté en tant que",
+      "stopButton": "Revenir à mon compte",
+      "readOnlyError": "Les modifications sont désactivées pendant l'impersonnation. Mode consultation uniquement.",
+      "readOnlyMode": "Mode lecture seule"
+    },
+    "sidebar": {
+      "home": "Accueil",
+      "plans": "Plans de gestion",
+      "sites": "Mes sites",
+      "dataCollection": "Collecte de données",
+      "zonages": "Zonages réglementaires",
+      "exploration": "Exploration des données",
+      "adminPanel": "Panneau d'administration",
+      "validations": "Gestion des validations",
+      "comingSoon": "À venir",
+      "comingSoonShort": "Prochainement"
     }
   },
   "home": {
     "heroTitle": "CICADA, l'outil des plans de gestion",
-    "heroSubtitle": "Explorez les donnees du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
+    "heroSubtitle": "Explorez les données du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
-      "title": "Exploration des donnees",
-      "description": "Decouvrez les espaces naturels proteges, comparez les indicateurs, filtrez par territoire."
+      "title": "Exploration des données",
+      "description": "Explorez les données, comparez les indicateurs et filtrez par territoire."
     },
     "tiles": {
       "plans": "Mes plans de gestion",
       "sites": "Mes sites",
-      "zonages": "Zonages reglementaires",
+      "zonages": "Zonages réglementaires",
       "inventaires": "Mes inventaires et suivis"
     },
-    "referentials": "Referentiels de donnees",
+    "referentials": "Référentiels de données",
     "guest": {
-      "title": "Bienvenue sur CICADA",
+      "title": "CICADA, l'outil de Capitalisation Inter-réseaux pour la Centralisation et l'Analyse des Données des Aires protégées",
+      "subtitle": "Explorez les données des autres aires protégées, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
+      "createAccount": "Créer un compte",
       "description": {
-        "intro": "L'outil collaboratif de gestion des espaces naturels proteges en France.",
-        "details": "CICADA accompagne les gestionnaires d'espaces naturels dans la redaction, le suivi et l'evaluation de leurs plans de gestion. Concu en partenariat avec les reseaux nationaux de conservation, l'outil permet de centraliser les donnees, suivre les indicateurs et partager les bonnes pratiques."
+        "intro": "L'outil collaboratif de gestion des espaces naturels protégés en France.",
+        "details": "CICADA accompagne les gestionnaires d'espaces naturels dans la rédaction, le suivi et l'évaluation de leurs plans de gestion. Conçu en partenariat avec les réseaux nationaux de conservation, l'outil permet de centraliser les données, suivre les indicateurs et partager les bonnes pratiques."
       },
       "partners": {
-        "label": "Un projet porte par"
+        "label": "Un projet porté par"
       },
       "actions": {
         "login": {
           "title": "Se connecter",
-          "description": "Accedez a vos plans de gestion et suivez vos indicateurs"
+          "description": "Accédez à vos plans de gestion et suivez vos indicateurs"
         },
         "register": {
-          "title": "Creer un compte",
-          "description": "Rejoignez votre organisme et commencez a utiliser l'outil"
+          "title": "Créer un compte",
+          "description": "Rejoignez votre organisme et commencez à utiliser l'outil"
         }
       },
       "stats": {
         "title": "En quelques chiffres",
-        "subtitle": "Decouvrez l'etendue du reseau des espaces naturels proteges",
-        "sites": "Sites proteges",
+        "subtitle": "Les données clés de la plateforme",
+        "sites": "Sites protégés",
         "plans": "Plans de gestion",
         "organismes": "Organismes gestionnaires"
       }
@@ -208,11 +227,11 @@
         "user": "Utilisateur",
         "email": "Email",
         "organisme": "Organisme",
-        "role": "Role",
+        "role": "Rôle",
         "sites": "Sites",
         "plans": "Plans de gestion",
         "status": "Statut",
-        "lastLogin": "Derniere connexion",
+        "lastLogin": "Dernière connexion",
         "actions": "Actions"
       },
       "roles": {
@@ -222,7 +241,7 @@
       },
       "sites": {
         "noSite": "Aucun site",
-        "referent": "Referent",
+        "referent": "Référent",
         "others": "+{{count}} autres"
       },
       "plans": {
@@ -230,92 +249,103 @@
       },
       "actions": {
         "assignOrganisme": "Assigner un organisme",
-        "assignSite": "Assigner un site (referent)",
+        "assignSite": "Assigner un site (référent)",
         "removeFromOrganisme": "Retirer de l'organisme",
         "activate": "Activer",
-        "deactivate": "Desactiver",
-        "viewAs": "Voir en tant que cet utilisateur"
+        "deactivate": "Désactiver",
+        "viewAs": "Voir en tant que cet utilisateur",
+        "requestPromotion": "Demander la promotion en admin",
+        "requestDemotion": "Demander la rétrogradation"
       },
       "messages": {
         "loading": "Chargement des utilisateurs...",
-        "noUsers": "Aucun utilisateur trouve",
-        "organismeUpdated": "Organisme mis a jour",
-        "sitesUpdated": "Sites de l'utilisateur mis a jour",
-        "userActivated": "Utilisateur active",
-        "userDeactivated": "Utilisateur desactive",
+        "noUsers": "Aucun utilisateur trouvé",
+        "organismeUpdated": "Organisme mis à jour",
+        "sitesUpdated": "Sites de l'utilisateur mis à jour",
+        "userActivated": "Utilisateur activé",
+        "userDeactivated": "Utilisateur désactivé",
         "cannotModify": "Vous ne pouvez pas modifier cet utilisateur",
-        "impersonationStarting": "Demarrage de la session en tant que {{name}}...",
+        "impersonationStarting": "Démarrage de la session en tant que {{name}}...",
         "impersonationStarted": "Vous visualisez maintenant en tant que {{name}}",
         "deletionNotAvailable": "La suppression d'utilisateur n'est pas disponible ici. Utilisez l'admin Django.",
-        "removedFromOrganisme": "Utilisateur retire de l'organisme et desactive"
+        "removedFromOrganisme": "Utilisateur retiré de l'organisme et désactivé",
+        "promotionRequested": "Demande de promotion soumise aux super administrateurs",
+        "demotionRequested": "Demande de rétrogradation soumise aux super administrateurs",
+        "promotionError": "Erreur lors de la demande de promotion",
+        "demotionError": "Erreur lors de la demande de rétrogradation"
       },
       "pagination": "{{count}} utilisateur(s) sur {{total}}",
-      "notAssigned": "Non assigne"
+      "notAssigned": "Non assigné",
+      "status": {
+        "deletionPending": "Suppression en cours",
+        "deletionTooltip": "Compte sera supprimé dans {{days}} jours",
+        "anonymized": "Anonymisé"
+      }
     },
     "plans": {
       "title": "Gestion des plans de gestion",
       "subtitle": {
         "superAdmin": "Administration de tous les plans de gestion",
         "orgAdmin": "Plans de gestion de votre organisme",
-        "user": "Mes plans de gestion assignes"
+        "user": "Mes plans de gestion assignés"
       },
       "search": "Rechercher un plan...",
       "stats": {
         "total": "Total",
         "valides": "Valides",
         "brouillons": "Brouillons",
-        "archives": "Archives"
+        "archives": "Archivés"
       },
       "table": {
         "name": "Nom du plan",
         "status": "Statut",
-        "periode": "Periode",
+        "periode": "Période",
         "sites": "Sites",
-        "referents": "Referents",
-        "lastUpdate": "Derniere MAJ",
+        "referents": "Référents",
+        "lastUpdate": "Dernière MAJ",
         "actions": "Actions"
       },
       "status": {
         "draft": "Brouillon",
         "valide": "Valide",
-        "archive": "Archive"
+        "archive": "Archivé"
       },
       "periode": {
         "since": "Depuis {{year}}",
-        "undefined": "Non definie"
+        "undefined": "Non définie"
       },
       "actions": {
         "view": "Voir le plan",
-        "manageSites": "Gerer les sites",
-        "manageReferents": "Gerer les referents",
+        "manageSites": "Gérer les sites",
+        "manageReferents": "Gérer les référents",
         "validate": "Valider le plan",
         "archive": "Archiver",
         "restore": "Restaurer en brouillon"
       },
       "empty": {
         "noSite": "Aucun site",
-        "noReferent": "Aucun referent",
-        "noPlans": "Aucun plan de gestion trouve"
+        "noReferent": "Aucun référent",
+        "noPlans": "Aucun plan de gestion trouvé"
       },
       "others": "+{{count}} autres",
       "messages": {
         "loading": "Chargement des plans de gestion...",
-        "sitesUpdated": "Sites du plan mis a jour",
-        "referentsUpdated": "Referents du plan mis a jour",
-        "onlyDraftCanBeValidated": "Seuls les plans en brouillon peuvent etre valides",
-        "validated": "Plan valide avec succes",
-        "alreadyArchived": "Ce plan est deja archive",
-        "archived": "Plan archive avec succes",
-        "restored": "Plan restaure en brouillon"
+        "sitesUpdated": "Sites du plan mis à jour",
+        "referentsUpdated": "Référents du plan mis à jour",
+        "onlyDraftCanBeValidated": "Seuls les plans en brouillon peuvent être validés",
+        "validated": "Plan validé avec succès",
+        "alreadyArchived": "Ce plan est déjà archivé",
+        "archived": "Plan archivé avec succès",
+        "restored": "Plan restauré en brouillon"
       },
       "summary": "{{count}} plan(s) de gestion"
     },
     "sites": {
       "title": "Gestion des sites",
       "subtitle": {
-        "superAdmin": "Tous les espaces proteges",
+        "superAdmin": "Tous les espaces protégés",
         "orgAdmin": "Sites de {{orgName}}",
-        "user": "Mes sites assignes"
+        "user": "Mes sites assignés"
       },
       "search": "Rechercher un site...",
       "addSite": "Ajouter un site",
@@ -329,31 +359,31 @@
         "actions": "Actions"
       },
       "types": {
-        "RNN": "RNN - Reserve Naturelle Nationale",
-        "RNR": "RNR - Reserve Naturelle Regionale",
-        "PNR": "PNR - Parc Naturel Regional",
+        "RNN": "RNN - Réserve Naturelle Nationale",
+        "RNR": "RNR - Réserve Naturelle Régionale",
+        "PNR": "PNR - Parc Naturel Régional",
         "ENS": "ENS - Espace Naturel Sensible"
       },
       "empty": {
         "noOrganisme": "Aucun organisme",
         "noUser": "Aucun utilisateur",
-        "noSites": "Aucun site trouve"
+        "noSites": "Aucun site trouvé"
       },
       "principal": "Principal",
       "actions": {
-        "manageUsers": "Gerer les utilisateurs",
-        "assignOrganisme": "Associer a un organisme"
+        "manageUsers": "Gérer les utilisateurs",
+        "assignOrganisme": "Associer à un organisme"
       },
       "messages": {
         "loading": "Chargement des sites...",
-        "created": "Site cree avec succes",
-        "updated": "Site modifie avec succes",
-        "usersUpdated": "Utilisateurs du site mis a jour",
-        "organismesUpdated": "Organismes du site mis a jour",
+        "created": "Site créé avec succès",
+        "updated": "Site modifié avec succès",
+        "usersUpdated": "Utilisateurs du site mis à jour",
+        "organismesUpdated": "Organismes du site mis à jour",
         "deletionNotAvailable": "La suppression de site n'est pas disponible ici. Utilisez l'admin Django."
       },
       "others": "+{{count}} autres",
-      "referent": "Referent",
+      "referent": "Référent",
       "summary": "{{count}} site(s) - Surface totale: {{surface}} ha"
     },
     "organismes": {
@@ -372,15 +402,15 @@
         "actions": "Actions"
       },
       "empty": {
-        "noOrganismes": "Aucun organisme trouve"
+        "noOrganismes": "Aucun organisme trouvé"
       },
       "messages": {
         "loading": "Chargement des organismes...",
-        "created": "Organisme cree avec succes",
-        "updated": "Organisme modifie avec succes",
-        "userLinked": "Utilisateur associe a l'organisme",
-        "siteLinked": "Site associe a l'organisme",
-        "siteCreated": "Site cree et associe a votre organisme"
+        "created": "Organisme créé avec succès",
+        "updated": "Organisme modifié avec succès",
+        "userLinked": "Utilisateur associé à l'organisme",
+        "siteLinked": "Site associé à l'organisme",
+        "siteCreated": "Site créé et associé à votre organisme"
       },
       "stats": {
         "users": "{{count}} utilisateurs",
@@ -395,12 +425,12 @@
         "addUser": "Ajouter un utilisateur",
         "addSite": "Ajouter un site",
         "requestLink": "Demander un lien",
-        "createSite": "Creer un site"
+        "createSite": "Créer un site"
       },
       "contact": {
         "title": "Informations de contact",
         "email": "Email",
-        "phone": "Telephone",
+        "phone": "Téléphone",
         "address": "Adresse"
       }
     },
@@ -418,45 +448,51 @@
       },
       "types": {
         "user_registration": "Inscription",
-        "site_access": "Acces site",
-        "plan_access": "Acces plan",
-        "module_access": "Acces module",
-        "referent_validation": "Validation referent",
+        "site_access": "Accès site",
+        "plan_access": "Accès plan",
+        "module_access": "Accès module",
+        "referent_validation": "Validation référent",
         "site_org_link": "Lien site-organisme"
       },
       "actions": {
         "approve": "Approuver",
         "reject": "Rejeter",
-        "viewDetails": "Voir les details"
+        "viewDetails": "Voir les détails",
+        "approveAsReferent": "Approuver (référent)",
+        "approveAsUser": "Approuver (utilisateur)"
       },
       "empty": {
         "noValidations": "Aucune demande de validation"
+      },
+      "warnings": {
+        "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons.",
+        "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier."
       }
     },
     "modules": {
-      "title": "Gestion des acces aux modules",
-      "subtitle": "Gerez les demandes d'acces aux modules de l'application",
+      "title": "Gestion des accès aux modules",
+      "subtitle": "Gérez les demandes d'accès aux modules de l'application",
       "devNotice": {
-        "title": "Fonctionnalite en cours de developpement",
-        "message": "Cette gestion des acces aux modules est temporaire et constitue un debut de developpement. Elle sera amenee a evoluer significativement dans les prochaines versions."
+        "title": "Fonctionnalité en cours de développement",
+        "message": "Cette gestion des accès aux modules est temporaire et constitue un début de développement. Elle sera amenée à évoluer significativement dans les prochaines versions."
       },
       "availableModules": "Modules disponibles",
-      "noModulesRequiringAccess": "Aucun module ne necessite de demande d'acces",
-      "usersWithAccess": "utilisateur(s) avec acces",
+      "noModulesRequiringAccess": "Aucun module ne nécessite de demande d'accès",
+      "usersWithAccess": "utilisateur(s) avec accès",
       "pendingRequests": "Demandes en attente",
-      "noPendingRequests": "Aucune demande d'acces module en attente",
-      "grantAccess": "Gerer les acces",
-      "grantAccessTo": "Donner l'acces a",
+      "noPendingRequests": "Aucune demande d'accès module en attente",
+      "grantAccess": "Gérer les accès",
+      "grantAccessTo": "Donner l'accès à",
       "searchUser": "Rechercher un utilisateur",
-      "searchUserPlaceholder": "Nom, prenom ou email...",
-      "searchResults": "Resultats de recherche",
-      "noUsersFound": "Aucun utilisateur trouve",
-      "hasAccess": "A deja acces",
+      "searchUserPlaceholder": "Nom, prénom ou email...",
+      "searchResults": "Résultats de recherche",
+      "noUsersFound": "Aucun utilisateur trouvé",
+      "hasAccess": "A déjà accès",
       "pendingAccess": "Demande en cours",
-      "grant": "Donner l'acces",
-      "revokeAccess": "Retirer l'acces",
-      "usersWithAccessList": "Utilisateurs avec acces",
-      "noUsersWithAccess": "Aucun utilisateur n'a acces a ce module pour le moment",
+      "grant": "Donner l'accès",
+      "revokeAccess": "Retirer l'accès",
+      "usersWithAccessList": "Utilisateurs avec accès",
+      "noUsersWithAccess": "Aucun utilisateur n'a accès à ce module pour le moment",
       "table": {
         "requester": "Demandeur",
         "module": "Module",
@@ -464,197 +500,388 @@
         "justification": "Justification"
       },
       "messages": {
-        "approved": "Acces au module accorde",
-        "rejected": "Demande d'acces refusee",
-        "accessGranted": "Acces accorde a {{user}}",
-        "accessRevoked": "Acces retire a {{user}}"
+        "approved": "Accès au module accordé",
+        "rejected": "Demande d'accès refusée",
+        "accessGranted": "Accès accordé à {{user}}",
+        "accessRevoked": "Accès retiré à {{user}}"
+      }
+    },
+    "settings": {
+      "title": "Paramètres",
+      "subtitle": "Configuration globale de l'application",
+      "homepage": {
+        "title": "Image de la page d'accueil",
+        "description": "Cette image s'affiche sur la page d'accueil pour les visiteurs non connectés.",
+        "upload": "Changer l'image",
+        "restore": "Restaurer l'image par défaut",
+        "current": "Image actuelle",
+        "preview": "Aperçu",
+        "noImage": "Aucune image personnalisée (image par défaut utilisée)",
+        "lastUpdate": "Dernière modification",
+        "position": "Position verticale",
+        "positionTop": "Haut",
+        "positionCenter": "Centre",
+        "positionBottom": "Bas",
+        "positionHint": "Choisissez où centrer l'image verticalement"
+      },
+      "messages": {
+        "saved": "Paramètres enregistrés",
+        "error": "Erreur lors de la sauvegarde",
+        "restored": "Image par défaut restaurée",
+        "positionSaved": "Position de l'image mise à jour"
+      }
+    },
+    "rgpd": {
+      "title": "Demandes RGPD",
+      "subtitle": "Traitez les demandes de suppression de compte",
+      "table": {
+        "user": "Utilisateur",
+        "email": "Email",
+        "organisme": "Organisme",
+        "requestedAt": "Date de demande",
+        "days": "Delai",
+        "daysLabel": "jour(s)",
+        "status": "Statut compte"
+      },
+      "actions": {
+        "deactivate": "Desactiver",
+        "deactivateTooltip": "Desactiver le compte (l'utilisateur ne pourra plus se connecter)",
+        "anonymize": "Anonymiser",
+        "anonymizeTooltip": "Anonymiser definitivement les donnees personnelles",
+        "reject": "Rejeter",
+        "rejectTooltip": "Rejeter la demande et conserver le compte actif"
+      },
+      "empty": {
+        "title": "Aucune demande en cours",
+        "message": "Il n'y a actuellement aucune demande de suppression de compte a traiter."
+      },
+      "keycloakMode": {
+        "title": "Authentification Keycloak active",
+        "message": "La gestion des comptes utilisateurs est deleguee a Keycloak. Les actions RGPD doivent etre effectuees directement dans la console Keycloak.",
+        "actionNotice": "Via Keycloak"
+      },
+      "info": {
+        "title": "Actions disponibles",
+        "deactivate": "Desactiver : Le compte est desactive mais les donnees sont conservees. L'utilisateur ne peut plus se connecter.",
+        "anonymize": "Anonymiser : Les donnees personnelles sont definitivement supprimees (email, nom, prenom). Action irreversible.",
+        "reject": "Rejeter : La demande est annulee. L'utilisateur est notifie et son compte reste inchange."
+      },
+      "confirmDeactivate": "Voulez-vous desactiver le compte de {{name}} ? L'utilisateur ne pourra plus se connecter.",
+      "confirmAnonymize": "ATTENTION : Voulez-vous anonymiser definitivement le compte de {{name}} ? Cette action est irreversible.",
+      "confirmReject": "Voulez-vous rejeter la demande de suppression de {{name}} ? L'utilisateur sera notifie.",
+      "messages": {
+        "loadError": "Erreur lors du chargement des demandes RGPD",
+        "deactivated": "Le compte a ete desactive",
+        "anonymized": "Le compte a ete anonymise",
+        "rejected": "La demande a ete rejetee"
+      }
+    },
+    "logs": {
+      "title": "Logs d'erreurs",
+      "subtitle": "Consultez et acquittez les erreurs applicatives",
+      "table": {
+        "level": "Niveau",
+        "message": "Message",
+        "path": "Chemin",
+        "user": "Utilisateur",
+        "correlationId": "ID Corrélation",
+        "date": "Date",
+        "status": "Statut"
+      },
+      "filters": {
+        "level": "Niveau",
+        "acknowledged": "Statut",
+        "search": "Recherche",
+        "searchPlaceholder": "Rechercher par message, corrélation ID ou chemin...",
+        "reset": "Réinitialiser"
+      },
+      "status": {
+        "acknowledged": "Acquitté",
+        "unacknowledged": "Non acquitté"
+      },
+      "actions": {
+        "acknowledge": "Acquitter",
+        "acknowledgeAll": "Tout acquitter",
+        "acknowledgeAllTooltip": "Acquitter tous les logs non acquittés correspondant aux filtres",
+        "viewDetail": "Voir le détail"
+      },
+      "empty": {
+        "title": "Aucune erreur",
+        "message": "Aucune erreur ne correspond à vos critères de recherche."
+      },
+      "detail": {
+        "title": "Détail de l'erreur",
+        "message": "Message",
+        "requestInfo": "Informations de la requête",
+        "path": "Chemin",
+        "user": "Utilisateur",
+        "correlationId": "ID de corrélation",
+        "logger": "Logger",
+        "exception": "Exception",
+        "context": "Contexte additionnel",
+        "acknowledgedBy": "Acquitté par"
+      },
+      "messages": {
+        "loadError": "Erreur lors du chargement des logs",
+        "acknowledged": "Erreur acquittée",
+        "acknowledgedAll": "{{count}} erreur(s) acquittée(s)",
+        "acknowledgeError": "Erreur lors de l'acquittement"
       }
     }
   },
   "modals": {
     "deactivateUser": {
-      "title": "Desactiver l'utilisateur",
+      "title": "Désactiver l'utilisateur",
       "warning": {
         "title": "Attention",
-        "message": "La desactivation d'un utilisateur lui retirera l'acces a l'application. Il ne pourra plus se connecter."
+        "message": "La désactivation d'un utilisateur lui retirera l'accès à l'application. Il ne pourra plus se connecter."
       },
       "reason": {
-        "label": "Raison de la desactivation",
-        "placeholder": "Indiquez la raison de la desactivation (minimum 10 caracteres)...",
-        "hint": "{{count}} / 10 caracteres minimum"
+        "label": "Raison de la désactivation",
+        "placeholder": "Indiquez la raison de la désactivation (minimum 10 caractères)...",
+        "hint": "{{count}} / 10 caractères minimum"
       },
       "validation": {
-        "minLength": "Veuillez fournir une raison d'au moins 10 caracteres"
+        "minLength": "Veuillez fournir une raison d'au moins 10 caractères"
       },
-      "confirm": "Desactiver"
+      "confirm": "Désactiver"
     },
     "linkUserOrganisme": {
-      "titleManage": "Gerer les utilisateurs de l'organisme",
-      "titleAssociate": "Associer l'utilisateur a un organisme",
+      "titleManage": "Gérer les utilisateurs de l'organisme",
+      "titleAssociate": "Associer l'utilisateur à un organisme",
       "usersSection": "Utilisateurs ({{count}})",
       "emptyUsers": "Aucun utilisateur. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.",
       "addUser": "Ajouter un utilisateur",
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "allUsersAssigned": "Tous les utilisateurs sont deja associes",
-      "noUserFound": "Aucun utilisateur trouve",
+      "allUsersAssigned": "Tous les utilisateurs sont déjà associés",
+      "noUserFound": "Aucun utilisateur trouvé",
       "currently": "Actuellement",
       "noOrganisme": "Aucun organisme",
       "noOrganismeCurrent": "Aucun organisme actuellement",
       "organisme": "Organisme",
       "associate": "Associer",
-      "note": "Note: Un utilisateur ne peut appartenir qu'a un seul organisme. L'ajout d'un utilisateur le transferera vers cet organisme.",
+      "note": "Note: Un utilisateur ne peut appartenir qu'à un seul organisme. L'ajout d'un utilisateur le transférera vers cet organisme.",
       "removeUser": "Retirer cet utilisateur",
       "cancelRemoval": "Annuler la suppression",
       "badges": {
         "new": "Nouveau",
-        "deleted": "Supprime"
+        "deleted": "Supprimé"
       },
       "messages": {
-        "userAdded": "Utilisateur \"{{name}}\" ajoute a la liste",
+        "userAdded": "Utilisateur \"{{name}}\" ajouté à la liste",
         "removeError": "Erreur lors de la suppression: {{error}}",
         "addError": "Erreur: {{error}}"
       }
     },
     "linkUserSite": {
-      "titleManageSites": "Gerer les sites de l'utilisateur",
-      "titleManageUsers": "Gerer les utilisateurs du site",
-      "sitesSection": "Sites associes ({{count}})",
-      "usersSection": "Utilisateurs associes ({{count}})",
+      "titleManageSites": "Gérer les sites de l'utilisateur",
+      "titleManageUsers": "Gérer les utilisateurs du site",
+      "sitesSection": "Sites associés ({{count}})",
+      "usersSection": "Utilisateurs associés ({{count}})",
       "siteUsers": "Utilisateurs du site",
-      "emptySites": "Aucun site associe. Utilisez le formulaire ci-dessous pour ajouter un site.",
-      "emptyUsers": "Aucun utilisateur associe. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.",
+      "emptySites": "Aucun site associé. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "emptyUsers": "Aucun utilisateur associé. Utilisez le formulaire ci-dessous pour ajouter un utilisateur.",
       "addSite": "Ajouter un site",
       "addUser": "Ajouter un utilisateur",
       "searchSite": "Rechercher un site",
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "allSitesAssigned": "Tous les sites sont deja associes",
-      "allUsersAssigned": "Tous les utilisateurs sont deja associes",
-      "noSiteFound": "Aucun site trouve",
-      "noUserFound": "Aucun utilisateur trouve",
-      "referent": "Referent",
-      "referentInfo": "Referent: peut gerer le site et ses plans de gestion.",
-      "asReferent": "Comme referent",
-      "referentHint": "Cochez pour ajouter l'utilisateur comme referent du site",
-      "defaultRoles": "Roles par defaut:",
+      "allSitesAssigned": "Tous les sites sont déjà associés",
+      "allUsersAssigned": "Tous les utilisateurs sont déjà associés",
+      "noSiteFound": "Aucun site trouvé",
+      "noUserFound": "Aucun utilisateur trouvé",
+      "referent": "Référent",
+      "referentInfo": "Référent: peut gérer le site et ses plans de gestion.",
+      "asReferent": "Comme référent",
+      "referentHint": "Cochez pour ajouter l'utilisateur comme référent du site",
+      "defaultRoles": "Rôles par défaut:",
       "removeSite": "Retirer ce site",
       "removeUser": "Retirer cet utilisateur",
       "cancelRemoval": "Annuler la suppression",
       "badges": {
         "new": "Nouveau",
-        "modified": "Modifie",
-        "deleted": "Supprime"
+        "modified": "Modifié",
+        "deleted": "Supprimé"
       },
       "messages": {
-        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
-        "userAdded": "Utilisateur \"{{name}}\" ajoute a la liste",
+        "siteAdded": "Site \"{{name}}\" ajouté à la liste",
+        "userAdded": "Utilisateur \"{{name}}\" ajouté à la liste",
         "removeError": "Erreur lors de la suppression: {{error}}",
         "error": "Erreur: {{error}}"
       }
     },
     "linkPlanSite": {
-      "title": "Gerer les sites du plan",
+      "title": "Gérer les sites du plan",
       "planSites": "Sites du plan ({{count}})",
-      "emptySites": "Aucun site associe a ce plan. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "emptySites": "Aucun site associé à ce plan. Utilisez le formulaire ci-dessous pour ajouter un site.",
       "addSite": "Ajouter un site",
       "searchSite": "Rechercher un site",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "allSitesAssigned": "Tous les sites sont deja associes",
-      "noSiteFound": "Aucun site trouve",
+      "allSitesAssigned": "Tous les sites sont déjà associés",
+      "noSiteFound": "Aucun site trouvé",
       "removeSite": "Retirer ce site",
       "cancelRemoval": "Annuler la suppression",
       "badges": {
         "new": "Nouveau",
-        "deleted": "Supprime"
+        "deleted": "Supprimé"
       },
       "messages": {
-        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
+        "siteAdded": "Site \"{{name}}\" ajouté à la liste",
         "addError": "Erreur lors de l'ajout des sites: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
       }
     },
     "linkPlanReferent": {
-      "title": "Gerer les referents du plan",
+      "title": "Gérer les référents du plan",
       "sections": {
-        "currentReferents": "Referents du plan",
-        "addReferent": "Ajouter un referent"
+        "currentReferents": "Référents du plan",
+        "addReferent": "Ajouter un référent"
       },
-      "noReferent": "Aucun referent assigne a ce plan",
+      "noReferent": "Aucun référent assigné à ce plan",
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "infoText": "Les referents peuvent modifier et valider le plan de gestion. Les modifications ne seront appliquees qu'apres avoir clique sur <strong>Enregistrer</strong>.",
+      "infoText": "Les référents peuvent modifier et valider le plan de gestion. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
       "badges": {
         "new": "Nouveau",
-        "deleted": "Supprime"
+        "deleted": "Supprimé"
       },
       "actions": {
-        "removeReferent": "Retirer ce referent",
+        "removeReferent": "Retirer ce référent",
         "restore": "Restaurer"
       },
       "messages": {
-        "referentAdded": "Referent \"{{name}}\" ajoute a la liste",
-        "addError": "Erreur lors de l'ajout des referents: {{error}}",
+        "referentAdded": "Référent \"{{name}}\" ajouté à la liste",
+        "addError": "Erreur lors de l'ajout des référents: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
       }
     },
     "linkSiteOrganisme": {
-      "titleManageSites": "Gerer les sites de l'organisme",
-      "titleManageOrganismes": "Associer le site a un organisme",
+      "titleManageSites": "Gérer les sites de l'organisme",
+      "titleManageOrganismes": "Associer le site à un organisme",
       "organismes": "Organismes ({{count}})",
       "sites": "Sites ({{count}})",
-      "emptyOrganismes": "Aucun organisme associe a ce site.",
-      "emptySites": "Aucun site associe. Utilisez le formulaire ci-dessous pour ajouter un site.",
+      "emptyOrganismes": "Aucun organisme associé à ce site.",
+      "emptySites": "Aucun site associé. Utilisez le formulaire ci-dessous pour ajouter un site.",
       "addOrganisme": "Ajouter un organisme",
       "addSite": "Ajouter un site",
       "searchOrganisme": "Rechercher un organisme",
       "searchSite": "Rechercher un site",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "allOrganismesAssigned": "Tous les organismes sont deja associes",
-      "allSitesAssigned": "Tous les sites sont deja associes",
-      "noOrganismeFound": "Aucun organisme trouve",
-      "noSiteFound": "Aucun site trouve",
+      "allOrganismesAssigned": "Tous les organismes sont déjà associés",
+      "allSitesAssigned": "Tous les sites sont déjà associés",
+      "noOrganismeFound": "Aucun organisme trouvé",
+      "noSiteFound": "Aucun site trouvé",
       "principal": "Principal",
       "principalHint": "L'organisme principal est responsable du site",
       "principalInfo": "Principal: responsable de la gestion du site.",
       "asPrincipal": "Comme principal",
-      "defaultRoles": "Roles par defaut:",
+      "defaultRoles": "Rôles par défaut:",
       "removeOrganisme": "Retirer cet organisme",
       "removeSite": "Retirer ce site",
       "cancelRemoval": "Annuler la suppression",
       "badges": {
         "new": "Nouveau",
-        "modified": "Modifie",
-        "deleted": "Supprime"
+        "modified": "Modifié",
+        "deleted": "Supprimé"
       },
       "messages": {
-        "organismeAdded": "Organisme \"{{name}}\" ajoute a la liste",
-        "siteAdded": "Site \"{{name}}\" ajoute a la liste",
+        "organismeAdded": "Organisme \"{{name}}\" ajouté à la liste",
+        "siteAdded": "Site \"{{name}}\" ajouté à la liste",
         "removeError": "Erreur lors de la suppression: {{error}}",
         "error": "Erreur: {{error}}"
       }
+    },
+    "invite": {
+      "titleOrganisme": "Inviter un organisme",
+      "titleUser": "Inviter un utilisateur",
+      "descriptionOrganisme": "Ajoutez un organisme au site \"{{site}}\". Les administrateurs concernés seront notifiés.",
+      "descriptionUser": "Ajoutez un utilisateur au site \"{{site}}\". Les administrateurs concernés et l'utilisateur seront notifiés.",
+      "userRestriction": "Seuls les utilisateurs appartenant à un organisme déjà lié au site peuvent être invités.",
+      "searchOrganisme": "Rechercher un organisme",
+      "searchUser": "Rechercher un utilisateur",
+      "selectRequired": "Veuillez sélectionner un élément",
+      "justification": "Justification (optionnel)",
+      "justificationPlaceholder": "Expliquez pourquoi vous souhaitez inviter cet organisme/utilisateur...",
+      "justificationHint": "Cette justification sera incluse dans la notification",
+      "send": "Ajouter",
+      "success": "Ajouté avec succès",
+      "error": "Erreur lors de l'envoi de l'invitation",
+      "noLinkedOrganismes": "Aucun organisme n'est lié à ce site. Invitez d'abord un organisme avant de pouvoir inviter ses utilisateurs."
     },
     "removeUserOrganisme": {
       "title": "Retirer l'utilisateur de l'organisme",
       "warning": {
         "title": "Attention",
-        "message": "Cette action va retirer l'utilisateur de l'organisme et le desactiver."
+        "message": "Cette action va retirer l'utilisateur de l'organisme et le désactiver."
       },
       "reason": {
         "label": "Raison",
-        "placeholder": "Indiquez la raison (minimum 10 caracteres)...",
-        "hint": "{{count}} / 10 caracteres minimum"
+        "placeholder": "Indiquez la raison (minimum 10 caractères)...",
+        "hint": "{{count}} / 10 caractères minimum"
       },
       "validation": {
-        "minLength": "Veuillez fournir une raison d'au moins 10 caracteres"
+        "minLength": "Veuillez fournir une raison d'au moins 10 caractères"
       },
-      "confirm": "Retirer et desactiver"
+      "confirm": "Retirer et désactiver"
+    },
+    "manageSiteUsers": {
+      "title": "Gérer les utilisateurs du site",
+      "linkedOrganismes": "{{count}} organisme(s) lié(s)",
+      "noLinkedOrganismes": "Aucun organisme n'est lié à ce site. Les utilisateurs ne peuvent être ajoutés qu'à partir des organismes liés au site.",
+      "addUser": "Ajouter un utilisateur",
+      "filterByOrganisme": "Filtrer par organisme",
+      "allOrganismes": "Tous les organismes",
+      "searchUser": "Rechercher un utilisateur",
+      "searchPlaceholder": "Tapez le nom ou l'email...",
+      "addAsReferent": "Ajouter comme référent",
+      "currentUsers": "Utilisateurs actuels",
+      "noUsers": "Aucun utilisateur associé à ce site",
+      "noUsersFound": "Aucun utilisateur trouvé",
+      "referent": "Référent",
+      "referentTooltip": "Le référent peut gérer le site et ses plans",
+      "removeUser": "Retirer cet utilisateur",
+      "restoreUser": "Annuler le retrait",
+      "willBeRemoved": "Sera retiré",
+      "new": "Nouveau",
+      "modified": "Modifié",
+      "messages": {
+        "userAdded": "{{name}} a été ajouté à la liste"
+      }
+    },
+    "adminRoleChange": {
+      "promotion": {
+        "title": "Demander la promotion en administrateur",
+        "infoTitle": "Promotion en administrateur",
+        "warning": "Cet utilisateur deviendra administrateur de l'organisme et pourra gérer les utilisateurs et les demandes d'accès.",
+        "confirm": "Soumettre la demande"
+      },
+      "demotion": {
+        "title": "Demander la rétrogradation",
+        "infoTitle": "Rétrogradation en utilisateur",
+        "warning": "Cet administrateur perdra ses droits de gestion et redeviendra un utilisateur simple.",
+        "confirm": "Soumettre la demande"
+      },
+      "superAdminNotice": "Cette demande sera soumise aux super administrateurs pour validation.",
+      "justification": {
+        "label": "Justification",
+        "placeholder": "Expliquez pourquoi cette modification de rôle est nécessaire (minimum 10 caractères)...",
+        "hint": "{{count}} / 10 caractères minimum"
+      },
+      "validation": {
+        "minLength": "Veuillez fournir une justification d'au moins 10 caractères"
+      },
+      "messages": {
+        "promotionSuccess": "Demande de promotion soumise avec succès",
+        "demotionSuccess": "Demande de rétrogradation soumise avec succès",
+        "error": "Erreur lors de la soumission de la demande"
+      }
     },
     "organismeForm": {
       "titleCreate": "Nouvel organisme",
       "titleEdit": "Modifier l'organisme",
       "name": "Nom de l'organisme",
-      "namePlaceholder": "Ex: CEN Auvergne-Rhone-Alpes",
+      "namePlaceholder": "Ex: CEN Auvergne-Rhône-Alpes",
       "parent": "Organisme parent",
       "noParent": "Aucun (organisme principal)",
       "address": "Adresse",
@@ -663,7 +890,7 @@
       "postalCodePlaceholder": "Ex: 21000",
       "city": "Ville",
       "cityPlaceholder": "Ex: Dijon",
-      "phone": "Telephone",
+      "phone": "Téléphone",
       "phonePlaceholder": "Ex: 03 80 48 91 00",
       "email": "Email",
       "emailPlaceholder": "Ex: contact@organisme.fr",
@@ -686,75 +913,236 @@
         "surface": "Surface officielle (ha)",
         "marine": "Site marin",
         "overseas": "Outre-mer",
-        "active": "Site actif"
+        "active": "Site actif",
+        "requestAsReferent": "Demander à devenir référent de ce site"
       },
       "hints": {
-        "localId": "Code interne de reference",
-        "inpnId": "Code national INPN"
+        "localId": "Code interne de référence",
+        "inpnId": "Code national INPN",
+        "requestAsReferent": "En tant que référent, vous pourrez gérer les accès et inviter d'autres utilisateurs sur ce site"
       },
       "errors": {
         "nameRequired": "Le nom est requis",
-        "surfacePositive": "La surface doit etre positive"
+        "surfacePositive": "La surface doit être positive",
+        "inpnDuplicate": "Ce code INPN est déjà utilisé par un autre site."
       },
       "messages": {
-        "linkError": "Site cree mais erreur lors de la liaison: {{error}}"
+        "linkError": "Site créé mais erreur lors de la liaison: {{error}}"
+      },
+      "duplicates": {
+        "inpnUsed": "Ce code INPN est déjà utilisé par un site existant",
+        "similarFound": "Des sites avec un nom similaire existent déjà",
+        "suggestionsTitle": "Sites existants",
+        "requestAccess": "Demander l'accès",
+        "linkAndAccess": "Lier mon organisme et demander l'accès",
+        "linkOnly": "Lier mon organisme uniquement",
+        "alreadyAccess": "Accès actif",
+        "yourOrg": "Votre organisme",
+        "andOthers": "et {{count}} autre(s)",
+        "continueCreation": "Ignorer et créer un nouveau site",
+        "ignoreSuggestions": "Ignorer les suggestions",
+        "checking": "Recherche de sites similaires...",
+        "pendingOrgLinkBadge": "Demande de lien en cours",
+        "pendingAccessBadge": "Demande d'accès en cours"
       }
     },
     "planForm": {
-      "titleCreate": "Nouveau plan de gestion",
+      "titleCreate": "Saisie des informations générales",
       "titleEdit": "Modifier le plan de gestion",
+      "requiredFieldsNote": "Les champs avec * sont obligatoires",
       "sections": {
-        "generalInfo": "Informations generales",
-        "managementPeriod": "Periode de gestion",
-        "characteristics": "Caracteristiques",
-        "evaluationAndWriting": "Evaluation et redaction",
-        "associatedSites": "Sites associes",
-        "referents": "Referents",
+        "generalInfo": "Informations générales",
+        "managementPeriod": "Période de gestion",
+        "characteristics": "Caractéristiques",
+        "evaluationAndWriting": "Évaluation et rédaction",
+        "associatedSites": "Sites associés",
+        "referents": "Référents",
         "comment": "Commentaire"
       },
       "fields": {
-        "name": "Nom du plan",
+        "name": "Nom du plan de gestion",
+        "sites": "Choix des sites",
+        "rang": "Rang du plan de gestion",
+        "surface": "Surface totale concernée",
+        "ct88": "Méthode de rédaction CT88",
+        "startYear": "Année de début",
+        "endYear": "Année de fin",
+        "cspnDate": "Date de validation CSPN",
+        "docGestion": "ID_Doc'Gestion FCEN",
+        "editorType": "Type organisme rédacteur",
+        "editorName": "Nom organisme rédacteur",
+        "redacteurs": "Rédacteurs",
+        "relecteurs": "Relecteurs",
         "status": "Statut",
         "version": "Version",
-        "editorName": "Nom du redacteur",
-        "startYear": "Annee de debut",
-        "endYear": "Annee de fin",
-        "sharedManagement": "Gestion partagee",
-        "ct88": "CT88",
+        "sharedManagement": "Gestion partagée",
         "fireRisk": "Risque incendie",
-        "evaluationType": "Type d'evaluation",
-        "editorType": "Type de redacteur",
+        "evaluationType": "Type d'évaluation",
         "comment": "Commentaire"
+      },
+      "hints": {
+        "rang": "Saisissez un nombre entier",
+        "surface": "Saisissez un nombre",
+        "editorName": "Sélectionnez un organisme existant ou saisissez un texte libre",
+        "redacteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
+        "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)"
       },
       "placeholders": {
         "name": "Plan de gestion 2024-2034 - Site XYZ",
-        "editorName": "Bureau d'etude XYZ",
+        "editorName": "Rechercher un organisme ou saisir un nom...",
         "searchSite": "Rechercher un site...",
         "searchUser": "Rechercher un utilisateur...",
-        "comment": "Informations complementaires..."
+        "comment": "Informations complémentaires...",
+        "redacteurs": "Rechercher ou ajouter un rédacteur...",
+        "relecteurs": "Rechercher ou ajouter un relecteur..."
+      },
+      "ct88Options": {
+        "yes": "Oui",
+        "no": "Non"
+      },
+      "sitesHint": "Si votre site n'est pas dans la liste, vous devez d'abord ",
+      "sitesHintLink": "créer le site.",
+      "sitePending": "(en attente de validation)",
+      "addFreeText": "Ajouter en texte libre",
+      "messages": {
+        "siteCreated": "Site créé et sélectionné avec succès",
+        "sitePendingValidation": "Site créé et sélectionné. Il sera validé par un administrateur."
       },
       "validation": {
-        "nameRequired": "Le nom est requis"
+        "nameRequired": "Le nom est requis",
+        "sitesRequired": "Sélectionnez au moins un site",
+        "rangRequired": "Le rang est obligatoire",
+        "rangMin": "Le rang doit être au minimum 1"
       },
-      "noSiteMatching": "Aucun site correspondant a \"{{query}}\"",
+      "noSiteMatching": "Aucun site correspondant à \"{{query}}\"",
       "noSiteAvailable": "Aucun site disponible",
-      "noUserMatching": "Aucun utilisateur correspondant a \"{{query}}\"",
+      "noUserMatching": "Aucun utilisateur correspondant à \"{{query}}\"",
       "noUserAvailable": "Aucun utilisateur disponible"
     },
     "common": {
       "cancel": "Annuler",
       "save": "Enregistrer",
-      "create": "Creer",
+      "create": "Créer",
       "loading": "Chargement..."
+    },
+    "bulkImport": {
+      "title": "Import en masse de sites",
+      "steps": {
+        "upload": "1. Fichier",
+        "mapping": "2. Correspondance",
+        "preview": "3. Vérification",
+        "results": "4. Résultats"
+      },
+      "upload": {
+        "title": "Sélectionner un fichier",
+        "description": "Importez un fichier GeoJSON ou CSV contenant les sites à ajouter dans l'application.",
+        "dropzone": "Glissez-déposez un fichier ici ou cliquez pour sélectionner",
+        "formats": "Formats acceptés : .geojson, .json, .csv (max 10 Mo)",
+        "featuresDetected": "{{count}} site(s) détecté(s) dans le fichier",
+        "parsing": "Analyse du fichier...",
+        "downloadTemplates": "Télécharger un fichier exemple :",
+        "templateGeojson": "Exemple GeoJSON",
+        "templateCsv": "Exemple CSV",
+        "geometryNote": "Le format GeoJSON permet d'importer les géométries des sites (Polygon ou MultiPolygon). Le format CSV ne permet pas d'importer de géométries.",
+        "errors": {
+          "noFile": "Aucun fichier sélectionné",
+          "invalidFormat": "Format de fichier non supporté. Utilisez .geojson, .json ou .csv.",
+          "tooLarge": "Le fichier dépasse la taille maximale de 10 Mo.",
+          "parseError": "Erreur lors de la lecture du fichier"
+        }
+      },
+      "mapping": {
+        "title": "Correspondance des champs",
+        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet.",
+        "sourceProperty": "Colonne du fichier",
+        "targetField": "Champ dans l'application",
+        "exampleValues": "Exemples de valeurs",
+        "ignore": "— Ignorer —",
+        "revalidate": "Re-valider",
+        "fields": {
+          "nom_site": "Nom du site",
+          "id_inpn": "Code INPN",
+          "id_local": "Identifiant local",
+          "type_site_id": "Type de site (code ou libellé)",
+          "surf_off": "Surface (ha)",
+          "marin": "Milieu marin",
+          "outre_mer": "Outre-mer"
+        }
+      },
+      "preview": {
+        "title": "Vérification et sélection",
+        "description": "Vérifiez les données qui seront importées dans l'application. Décochez les lignes que vous ne souhaitez pas importer.",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
+        "columns": {
+          "select": "",
+          "row": "#",
+          "name": "Nom du site",
+          "inpn": "Code INPN",
+          "local": "ID local",
+          "type": "Type",
+          "surface": "Surface",
+          "geometry": "Géo",
+          "status": "Statut"
+        },
+        "status": {
+          "valid": "Valide",
+          "error": "Erreur",
+          "duplicate": "Doublon",
+          "warning": "Avertissement"
+        },
+        "summary": "{{valid}} valide(s) / {{errors}} erreur(s) / {{duplicates}} doublon(s)",
+        "selectedCount": "{{count}} site(s) sélectionné(s) pour l'import",
+        "noValidSites": "Aucun site valide à importer"
+      },
+      "results": {
+        "title": "Résultat de l'import",
+        "importing": "Import en cours...",
+        "progress": "{{processed}} / {{total}} site(s) traité(s)",
+        "completed": "Import terminé",
+        "failed": "L'import a échoué",
+        "summary": "{{created}} créé(s), {{pending}} en attente de validation, {{failed}} échoué(s)",
+        "columns": {
+          "name": "Nom du site",
+          "status": "Statut",
+          "error": "Erreur"
+        },
+        "itemStatus": {
+          "created": "Créé",
+          "validation_pending": "En attente",
+          "failed": "Échoué"
+        }
+      },
+      "actions": {
+        "next": "Suivant",
+        "previous": "Précédent",
+        "import": "Importer les sites sélectionnés",
+        "close": "Fermer"
+      }
     }
   },
   "plans": {
+    "title": "Plans de gestion",
+    "newPlan": "NOUVEAU PLAN DE GESTION",
+    "scope": {
+      "mine": "Mes plans",
+      "sites": "Plans de mes sites",
+      "organisme": "Plans de mon organisme",
+      "all": "Tous les plans"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "valide": "Validé",
+      "archive": "Archivé",
+      "en_cours": "En cours",
+      "annule": "Annulé"
+    },
     "list": {
       "title": "Plans de gestion",
-      "subtitle": "Consultez et gerez vos plans de gestion",
+      "subtitle": "Consultez et gérez vos plans de gestion",
       "search": "Rechercher un plan...",
       "empty": "Aucun plan de gestion",
-      "createPlan": "Creer un plan de gestion",
+      "createPlan": "Créer un plan de gestion",
       "newBlankPlan": "Nouveau plan vierge",
       "duplicatePlan": "Dupliquer un plan existant",
       "oldVersions": "Voir les anciennes versions",
@@ -765,7 +1153,7 @@
       },
       "table": {
         "name": "Nom du plan de gestion",
-        "period": "Periode de validite",
+        "period": "Période de validité",
         "status": "Statut",
         "site": "Site"
       },
@@ -776,56 +1164,100 @@
       }
     },
     "myPlans": {
-      "empty": "Vous n'avez acces a aucun plan de gestion pour le moment.",
-      "referent": "Referent"
+      "empty": "Vous n'avez accès à aucun plan de gestion pour le moment.",
+      "referent": "Référent"
+    },
+    "pendingPlans": {
+      "title": "Plans en attente de validation",
+      "description": "Ces demandes d'accès sont en attente de validation par un administrateur.",
+      "requestDate": "Date de demande",
+      "waiting": "En attente"
     },
     "requestAccess": {
-      "title": "Demander l'acces a un plan",
-      "description": "Recherchez et demandez l'acces aux plans de gestion qui vous interessent.",
+      "title": "Demander l'accès à un plan",
+      "description": "Recherchez et demandez l'accès aux plans de gestion qui vous intéressent.",
       "searchPlaceholder": "Rechercher un plan...",
-      "noResults": "Aucun plan trouve",
-      "button": "Demander l'acces",
+      "noResults": "Aucun plan trouvé",
+      "button": "Demander l'accès",
       "pending": "Demande en attente",
-      "rejected": "Acces refuse"
+      "rejected": "Refusé",
+      "retry": "Redemander"
     },
     "allPlans": {
       "title": "Tous les plans de gestion",
-      "loginPrompt": "Connectez-vous pour demander l'acces a un plan de gestion."
+      "loginPrompt": "Connectez-vous pour demander l'accès à un plan de gestion."
     },
     "detail": {
-      "title": "Detail du plan",
+      "title": "Détail du plan",
+      "noContent": "Aucun contenu pour le moment",
+      "sections": {
+        "synthese": "Synthèse",
+        "site": "Site",
+        "mindmap": "Mindmap",
+        "documents": "Documents"
+      },
+      "accordions": {
+        "enjeux": "Enjeux et Facteurs clés de réussite",
+        "objectifsLT": "Objectifs long terme",
+        "objectifsOP": "Objectifs opérationnels",
+        "actions": "Actions et suivis"
+      },
+      "viewDetails": "Voir en détails",
+      "generate": "Générer",
+      "sidebar": {
+        "title": "PLAN DE GESTION",
+        "overview": "Vue d'ensemble",
+        "detailsEntry": "Détails et saisie",
+        "generalInfo": "Informations générales",
+        "enjeux": "Enjeux",
+        "objectifs": "Objectifs",
+        "actions": "Actions",
+        "suivis": "Suivis",
+        "indicateurs": "Indicateurs",
+        "bilans": "Bilans"
+      },
       "tabs": {
-        "details": "Details et saisie",
-        "general": "Informations generales"
-      }
+        "details": "Détails et saisie",
+        "general": "Informations générales"
+      },
+      "siteInvalid": "Site en attente de validation ou rejeté",
+      "siteInvalidWarning": "Ce plan est lié à un site qui n'est pas encore validé ou qui a été rejeté. Vous pouvez le réassigner à un autre site.",
+      "reassignSite": "Réassigner le site",
+      "reassignSiteTitle": "Réassigner le plan à un autre site",
+      "reassignSiteDescription": "Sélectionnez un nouveau site pour remplacer le site invalide.",
+      "oldSite": "Site actuel (invalide)",
+      "newSite": "Nouveau site",
+      "selectNewSite": "Sélectionner un site...",
+      "reassignSuccess": "Le plan a été réassigné avec succès",
+      "reassignError": "Erreur lors de la réassignation"
     },
     "status": {
       "draft": "Brouillon",
       "valide": "Valide",
-      "archive": "Archive",
-      "inProgress": "En cours de revision",
-      "midterm": "Evaluation mi-parcours"
+      "archive": "Archivé",
+      "inProgress": "En cours de révision",
+      "midterm": "Évaluation mi-parcours"
     }
   },
   "profile": {
     "title": "Mon profil",
     "subtitle": "Consultez vos informations et suivez vos demandes",
-    "backToHome": "Retour a l'accueil",
+    "backToHome": "Retour à l'accueil",
     "tabs": {
       "info": "Informations",
       "requests": "Mes demandes"
     },
     "info": {
-      "role": "Role",
+      "role": "Rôle",
       "identifier": "Identifiant",
       "memberSince": "Membre depuis",
-      "lastLogin": "Derniere connexion"
+      "lastLogin": "Dernière connexion"
     },
     "organisme": {
       "title": "Mon organisme",
       "name": "Nom",
       "address": "Adresse",
-      "phone": "Telephone",
+      "phone": "Téléphone",
       "email": "Email"
     },
     "requests": {
@@ -833,32 +1265,63 @@
         "title": "Aucune demande",
         "message": "Vous n'avez fait aucune demande de validation pour le moment."
       },
-      "description": "Retrouvez ici l'etat de vos demandes d'acces aux sites et plans de gestion.",
+      "description": "Retrouvez ici l'état de vos demandes d'accès aux sites et plans de gestion.",
       "table": {
         "type": "Type",
         "target": "Cible",
         "date": "Demande",
-        "validatedAt": "Valide le",
+        "validatedAt": "Validé le",
         "status": "Statut",
-        "validator": "Traite par"
+        "validator": "Traité par"
       },
       "pending": "En attente",
       "loadError": "Erreur lors du chargement des demandes"
+    },
+    "rgpd": {
+      "title": "Gestion de mon compte",
+      "deleteAccount": "Demander la suppression de mon compte",
+      "deleteDescription": "Conformement au RGPD, vous pouvez demander la suppression de votre compte et de vos donnees personnelles.",
+      "pendingDeletion": {
+        "title": "Demande de suppression en cours",
+        "message": "Votre demande de suppression a ete enregistree le {{date}}. Un administrateur traitera votre demande dans les meilleurs delais.",
+        "cancelButton": "Annuler la suppression"
+      },
+      "dialog": {
+        "title": "Supprimer mon compte",
+        "warning": "Attention : cette demande est irreversible une fois traitee !",
+        "consequences": {
+          "title": "En demandant la suppression de votre compte :",
+          "item1": "Votre demande sera transmise aux administrateurs",
+          "item2": "Votre compte reste actif jusqu'au traitement",
+          "item3": "Vous serez notifie lorsque votre demande sera traitee",
+          "item4": "Vous pouvez annuler cette demande a tout moment avant son traitement"
+        },
+        "gracePeriod": "Vous pouvez annuler cette demande tant qu'elle n'a pas ete traitee par un administrateur.",
+        "confirmLabel": "Pour confirmer, tapez votre adresse email :",
+        "confirmPlaceholder": "Votre adresse email",
+        "confirmButton": "Demander la suppression de mon compte",
+        "cancelButton": "Annuler"
+      },
+      "messages": {
+        "deletionRequested": "Votre demande de suppression a ete enregistree. Un administrateur traitera votre demande dans les meilleurs delais.",
+        "deletionCancelled": "Votre demande de suppression a ete annulee.",
+        "error": "Une erreur est survenue. Veuillez reessayer."
+      }
     }
   },
   "myRequests": {
     "title": "Mes demandes",
-    "subtitle": "Suivez l'etat de vos demandes d'acces aux sites, plans et modules",
-    "backToHome": "Retour a l'accueil",
+    "subtitle": "Suivez l'état de vos demandes d'accès aux sites, plans et modules",
+    "backToHome": "Retour à l'accueil",
     "historyTitle": "Historique des demandes",
     "stats": {
       "pending": "En attente",
-      "approved": "Approuvees",
-      "rejected": "Refusees"
+      "approved": "Approuvées",
+      "rejected": "Refusées"
     },
     "empty": {
       "title": "Aucune demande",
-      "message": "Vous n'avez fait aucune demande d'acces pour le moment.",
+      "message": "Vous n'avez fait aucune demande d'accès pour le moment.",
       "goToPlans": "Voir les plans de gestion",
       "goToSites": "Voir les sites"
     },
@@ -868,114 +1331,134 @@
       "date": "Date demande",
       "validatedAt": "Date validation",
       "status": "Statut",
-      "validator": "Traite par",
+      "validator": "Traité par",
       "awaitingValidation": "En attente"
     },
     "actions": {
       "cancel": "Annuler la demande"
     },
     "loadError": "Erreur lors du chargement des demandes",
-    "cancelSuccess": "Demande annulee",
+    "cancelSuccess": "Demande annulée",
     "cancelError": "Erreur lors de l'annulation"
   },
   "moduleAccess": {
     "section": {
-      "title": "Demander l'acces a d'autres modules",
-      "description": "Demandez l'acces aux modules supplementaires pour etendre vos fonctionnalites."
+      "title": "Demander l'accès à d'autres modules",
+      "description": "Demandez l'accès aux modules supplémentaires pour étendre vos fonctionnalités."
     },
-    "requestButton": "Demander l'acces",
+    "requestButton": "Demander l'accès",
     "status": {
       "pending": "En attente",
-      "rejected": "Refuse",
-      "granted": "Accorde"
+      "rejected": "Refusé",
+      "granted": "Accordé"
     },
     "dialog": {
-      "title": "Demander l'acces a un module",
+      "title": "Demander l'accès à un module",
       "moduleLabel": "Module",
       "justificationLabel": "Justification (optionnel)",
-      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'acces a ce module...",
+      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès à ce module...",
       "justificationHint": "Cette information sera transmise aux administrateurs",
       "submit": "Envoyer la demande"
     },
-    "success": "Votre demande a ete envoyee et est en attente de validation",
+    "success": "Votre demande a été envoyée et est en attente de validation",
     "error": "Erreur lors de l'envoi de la demande"
   },
   "sites": {
-    "title": "Sites",
-    "subtitle": "Espaces naturels proteges",
-    "backToHome": "Retour a l'accueil",
+    "title": "Mes sites",
+    "subtitle": "Espaces naturels protégés",
+    "backToHome": "Retour à l'accueil",
     "tabs": {
       "active": "Actifs",
       "inactive": "Inactifs"
     },
     "mySites": {
-      "title": "Sites auxquels j'ai acces",
-      "empty": "Vous n'avez acces a aucun site pour le moment.",
-      "referent": "Referent",
-      "access": "Acces",
+      "title": "Sites auxquels j'ai accès",
+      "empty": "Vous n'avez accès à aucun site pour le moment.",
+      "referent": "Référent",
+      "access": "Accès",
       "searchPlaceholder": "Rechercher un site...",
-      "noSearchResults": "Aucun site ne correspond a votre recherche.",
+      "noSearchResults": "Aucun site ne correspond à votre recherche.",
       "clearSearch": "Effacer la recherche"
+    },
+    "organismesSites": {
+      "title": "Sites de mon organisme",
+      "empty": "Aucun site n'est associé à votre organisme."
     },
     "allSites": {
       "title": "Tous les sites",
-      "loginPrompt": "Connectez-vous pour demander l'acces a un site."
+      "empty": "Aucun site dans l'application.",
+      "loginPrompt": "Connectez-vous pour demander l'accès à un site."
     },
     "requestAccess": {
-      "title": "Demander l'acces a un autre site",
-      "description": "Vous pouvez demander l'acces aux autres sites de votre organisme.",
+      "title": "Demander l'accès à un autre site",
+      "description": "Vous pouvez demander l'accès aux autres sites de votre organisme.",
       "searchPlaceholder": "Rechercher un site...",
-      "noResults": "Aucun site trouve",
-      "button": "Demander l'acces",
+      "noResults": "Aucun site trouvé",
+      "button": "Demander l'accès",
       "pending": "Demande en attente",
-      "rejected": "Acces refuse",
-      "allAccess": "Vous avez deja acces a tous les sites de votre organisme."
+      "rejected": "Accès refusé",
+      "allAccess": "Vous avez déjà accès à tous les sites de votre organisme."
     },
     "findOrCreate": {
-      "title": "Acceder ou creer un site",
-      "description": "Recherchez un site existant pour demander l'acces, ou creez-en un nouveau.",
-      "button": "Rechercher ou creer",
-      "dialogTitle": "Gerer mes sites",
+      "title": "Accéder ou créer un site",
+      "description": "Recherchez un site existant pour demander l'accès, ou créez-en un nouveau.",
+      "button": "Rechercher ou créer",
+      "dialogTitle": "Gérer mes sites",
       "searchTitle": "Rechercher un site existant",
       "searchLabel": "Nom du site",
       "searchPlaceholder": "Rechercher un site...",
-      "searchHint": "Entrez au moins 2 caracteres pour rechercher un site et demander l'acces",
+      "searchHint": "Entrez au moins 2 caractères pour rechercher un site et demander l'accès",
       "loading": "Chargement des sites...",
-      "resultsTitle": "Sites trouves",
-      "alreadyAccess": "Vous avez acces",
+      "resultsTitle": "Sites trouvés",
+      "alreadyAccess": "Vous avez accès",
       "pendingRequest": "Demande en cours",
-      "requestAccess": "Demander l'acces",
-      "asReferent": "Comme referent",
+      "requestAccess": "Demander l'accès",
+      "asReferent": "Comme référent",
       "notAvailable": "Non disponible",
-      "accessRequested": "Demande d'acces envoyee pour {{ name }}",
-      "accessRequestedAsReferent": "Demande d'acces comme referent envoyee pour {{ name }}",
-      "noResults": "Aucun site ne correspond a votre recherche",
-      "createTitle": "Creer un nouveau site",
-      "createDescription": "Le site \"{{ name }}\" n'existe pas. Vous pouvez le creer.",
-      "createDescriptionSimple": "Creez un nouveau site pour votre organisme.",
+      "accessRequested": "Demande d'accès envoyée pour {{ name }}",
+      "accessRequestedAsReferent": "Demande d'accès comme référent envoyée pour {{ name }}",
+      "noResults": "Aucun site ne correspond à votre recherche",
+      "createTitle": "Créer un nouveau site",
+      "createDescription": "Le site \"{{ name }}\" n'existe pas. Vous pouvez le créer.",
+      "createDescriptionSimple": "Créez un nouveau site pour votre organisme.",
       "createButton": "Nouveau site",
       "autoMessage": "Demande automatique via recherche de site",
-      "requestOrgLink": "Lier a mon organisme",
+      "requestOrgLink": "Demander à lier à mon organisme",
       "pendingOrgLink": "Demande de lien en cours",
-      "orgLinkRequested": "Demande de lien avec le site {{ name }} envoyee",
+      "orgLinkRequested": "Demande de lien avec le site {{ name }} envoyée",
+      "orgLinkWithAccess": "Demander aussi l'accès au site",
+      "orgLinkAndAccessRequested": "Demandes de lien et d'accès au site {{ name }} envoyées",
+      "orgLinkAndAccessAsReferentRequested": "Demandes de lien et d'accès comme référent au site {{ name }} envoyées",
       "autoOrgLinkMessage": "Demande de lien site-organisme via recherche",
       "mySitesTitle": "Sites de mon organisme",
-      "mySitesDescription": "Sites lies a votre organisme. Demandez l'acces pour y travailler.",
+      "mySitesDescription": "Sites liés à votre organisme. Demandez l'accès pour y travailler.",
       "otherOrgSitesTitle": "Sites d'autres organismes",
-      "otherOrgSitesDescription": "Sites appartenant a d'autres organismes. Demandez a les lier au votre.",
+      "otherOrgSitesDescription": "Sites appartenant à d'autres organismes. Demandez à les lier au vôtre.",
       "orgLinkJustificationLabel": "Justification de la demande",
-      "orgLinkJustificationPlaceholder": "Expliquez pourquoi vous souhaitez lier ce site a votre organisme...",
+      "orgLinkJustificationPlaceholder": "Expliquez pourquoi vous souhaitez lier ce site à votre organisme...",
       "submitOrgLink": "Envoyer la demande"
     },
+    "pendingCreations": {
+      "title": "Sites en attente de validation",
+      "description": "Ces sites que vous avez créés sont en attente de validation par un administrateur.",
+      "requestedOn": "Demandé le",
+      "awaitingValidation": "En attente de validation"
+    },
+    "pendingOrgLinks": {
+      "title": "Demandes de lien organisme-site en attente",
+      "description": "Ces demandes de lien entre votre organisme et un site sont en attente de validation.",
+      "waiting": "En attente"
+    },
     "pendingSites": {
-      "title": "Demandes en attente",
-      "description": "Ces sites sont en attente de validation par un administrateur.",
+      "title": "Demandes d'accès en attente",
+      "description": "Ces demandes d'accès à des sites sont en attente de validation par un administrateur.",
       "waiting": "En attente"
     },
     "createSite": {
       "button": "Nouveau site",
-      "noOrganisme": "Vous devez etre rattache a un organisme pour creer un site.",
-      "success": "Le site a ete cree avec succes."
+      "noOrganisme": "Vous devez être rattaché à un organisme pour créer un site.",
+      "success": "Le site a été créé avec succès.",
+      "pendingValidation": "Le site a été créé et est en attente de validation. Vous deviendrez automatiquement référent une fois le site validé."
     },
     "table": {
       "name": "Nom du site",
@@ -987,7 +1470,7 @@
     },
     "map": {
       "title": "Localisation",
-      "noData": "Aucune donnee geographique",
+      "noData": "Aucune donnée géographique",
       "loading": "Chargement de la carte..."
     },
     "detail": {
@@ -995,18 +1478,20 @@
       "map": "Localisation",
       "info": "Informations",
       "users": "Utilisateurs du site",
-      "manageUsers": "Gerer les utilisateurs",
-      "noUsers": "Aucun utilisateur assigne a ce site",
-      "associatedPlans": "Plans de gestion associes",
+      "manageUsers": "Gérer les utilisateurs",
+      "manageUsersTooltip": "Ajouter, retirer ou modifier les utilisateurs du site",
+      "noUsers": "Aucun utilisateur assigné à ce site",
+      "associatedPlans": "Plans de gestion associés",
       "documents": "Documents",
       "organismes": "Organismes gestionnaires",
-      "noGeometry": "Geometrie non disponible",
-      "noPlans": "Aucun plan de gestion associe",
+      "noGeometry": "Géométrie non disponible",
+      "noPlans": "Aucun plan de gestion associé",
       "noDocuments": "Aucun document",
       "inactive": "Site inactif",
       "menu": {
         "overview": "Vue d'ensemble",
         "info": "Informations",
+        "organismes": "Organismes",
         "users": "Utilisateurs",
         "plans": "Plans de gestion",
         "documents": "Documents"
@@ -1022,40 +1507,70 @@
       },
       "yes": "Oui",
       "no": "Non",
-      "requestReferent": "Devenir referent",
+      "requestReferent": "Devenir référent",
       "referentRequestPending": "Demande en cours",
-      "referentRequestSent": "Votre demande pour devenir referent a ete envoyee",
-      "referentTooltip": "En tant que referent, vous pourrez : modifier les informations du site, gerer les utilisateurs, et valider les demandes d'acces."
+      "referentRequestSent": "Votre demande pour devenir référent a été envoyée",
+      "referentTooltip": "En tant que référent, vous pourrez : modifier les informations du site, gérer les utilisateurs, et valider les demandes d'accès.",
+      "shapefile": {
+        "import": "Importer Shapefile",
+        "tooltip": "Importer un fichier shapefile (.zip ou .shp) pour définir les limites du site",
+        "save": "Sauvegarder",
+        "cancel": "Annuler",
+        "imported": "Shapefile importé avec succès. Vérifiez la géométrie sur la carte puis sauvegardez.",
+        "saved": "Géométrie du site mise à jour avec succès",
+        "error": "Erreur lors de l'import du shapefile. Vérifiez le format du fichier.",
+        "saveError": "Erreur lors de la sauvegarde de la géométrie",
+        "invalidFormat": "Format de fichier invalide. Utilisez un fichier .zip ou .shp",
+        "noGeometry": "Aucune géométrie valide trouvée dans le fichier"
+      },
+      "invite": "Inviter",
+      "inviteOrganisme": "Inviter un organisme à rejoindre ce site",
+      "inviteUser": "Inviter un utilisateur d'un organisme lié",
+      "noOrganismes": "Aucun organisme gestionnaire",
+      "principalOrg": "Principal",
+      "gestionnaireOrg": "Gestionnaire"
     },
     "form": {
       "geometry": {
         "title": "Localisation du site",
         "polygon": "Contour (polygone)",
-        "point": "Point de reference",
+        "point": "Point de référence",
         "drawHelp": "Utilisez les outils pour dessiner le contour du site",
-        "pointHelp": "Cliquez sur la carte pour placer le point de reference"
+        "pointHelp": "Cliquez sur la carte pour placer le point de référence",
+        "bothHelp": "Utilisez les outils à gauche pour dessiner le contour (polygone/rectangle) ou placer un point de référence (marqueur)",
+        "importFile": "Importer un fichier (GeoJSON, Shapefile)",
+        "importShapefile": "Importer un fichier Shapefile (.zip ou .shp)",
+        "clearAll": "Effacer tout",
+        "recenter": "Recentrer la carte",
+        "import": {
+          "tooltip": "Importer un fichier géographique\n\n• GeoJSON (.geojson, .json)\n• Shapefile : fichier ZIP contenant\n  .shp, .shx, .dbf et .prj",
+          "success": "Géométrie importée avec succès",
+          "error": "Erreur lors de l'import. Vérifiez le format du fichier.",
+          "invalidFormat": "Format invalide. Utilisez .geojson, .json, .zip ou .shp",
+          "noGeometry": "Aucune géométrie valide trouvée dans le fichier"
+        }
       }
     },
     "actions": {
       "view": "Voir le site",
-      "back": "Retour a la liste"
+      "back": "Retour à la liste"
     }
   },
   "accessRequest": {
     "dialog": {
-      "titleSite": "Demander l'acces a un site",
-      "titlePlan": "Demander l'acces a un plan",
+      "titleSite": "Demander l'accès à un site",
+      "titlePlan": "Demander l'accès à un plan",
       "targetLabel": "Cible",
-      "selectSite": "Selectionner un site",
+      "selectSite": "Sélectionner un site",
       "justificationLabel": "Justification (optionnel)",
-      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'acces...",
+      "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès...",
       "justificationHint": "Cette information sera transmise aux administrateurs",
       "submit": "Envoyer la demande",
       "cancel": "Annuler"
     },
-    "success": "Votre demande a ete envoyee et est en attente de validation",
+    "success": "Votre demande a été envoyée et est en attente de validation",
     "error": "Erreur lors de l'envoi de la demande",
-    "alreadyPending": "Une demande est deja en cours pour cet element"
+    "alreadyPending": "Une demande est déjà en cours pour cet élément"
   },
   "notifications": {
     "title": "Notifications",
@@ -1063,27 +1578,102 @@
     "markAllRead": "Tout marquer comme lu",
     "newNotifications": "{{count}} nouvelle(s) notification(s)"
   },
+  "activity": {
+    "title": "Activité",
+    "subtitle": "Historique des actions et notifications",
+    "backToHome": "Retour à l'accueil",
+    "tabs": {
+      "all": "Tout",
+      "mySites": "Mes sites",
+      "myPlans": "Mes plans",
+      "myRights": "Mes droits",
+      "notifications": "Notifications",
+      "validations": "Validations",
+      "system": "Système",
+      "rgpd": "RGPD"
+    },
+    "filters": {
+      "entityType": "Type d'entité",
+      "action": "Action"
+    },
+    "entityTypes": {
+      "site": "Site",
+      "plan": "Plan de gestion",
+      "user": "Utilisateur",
+      "organisme": "Organisme",
+      "validation": "Demande de validation"
+    },
+    "actions": {
+      "create": "Création",
+      "update": "Modification",
+      "delete": "Suppression",
+      "add_member": "Ajout membre",
+      "remove_member": "Retrait membre",
+      "add_referent": "Ajout référent",
+      "remove_referent": "Retrait référent",
+      "status_change": "Changement de statut",
+      "activate": "Activation",
+      "deactivate": "Désactivation",
+      "rgpd_request": "Demande RGPD",
+      "rgpd_cancelled": "Annulation RGPD",
+      "rgpd_anonymized": "Anonymisation RGPD",
+      "access_granted": "Accès accordé",
+      "replace_site": "Réassignation de site",
+      "plan_needs_reassignment": "Plan à réassigner",
+      "access_revoked": "Accès retiré",
+      "validation_approved": "Validation approuvée",
+      "validation_rejected": "Validation rejetée",
+      "file_upload": "Fichier ajouté",
+      "file_delete": "Fichier supprimé"
+    },
+    "timeline": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "older": "Plus ancien"
+    },
+    "noActivity": "Aucune activité à afficher",
+    "noNotifications": "Aucune notification",
+    "markAllRead": "Tout marquer comme lu"
+  },
   "scores": {
-    "veryBad": "Tres mauvais",
+    "veryBad": "Très mauvais",
     "bad": "Mauvais",
     "neutral": "Moyen",
     "good": "Bon",
-    "veryGood": "Tres bon",
-    "noData": "Sans donnee"
+    "veryGood": "Très bon",
+    "noData": "Sans donnée"
   },
   "actionStatus": {
-    "planned": "Action prevue",
-    "plannedRealized": "Action prevue et realisee",
-    "plannedPartial": "Action prevue et partiellement realisee",
-    "realizedUnplanned": "Action realisee non prevue",
-    "partialUnplanned": "Action partiellement realisee non prevue"
+    "planned": "Action prévue",
+    "plannedRealized": "Action prévue et réalisée",
+    "plannedPartial": "Action prévue et partiellement réalisée",
+    "realizedUnplanned": "Action réalisée non prévue",
+    "partialUnplanned": "Action partiellement réalisée non prévue"
+  },
+  "exploration": {
+    "title": "Exploration des données",
+    "subtitle": "Explorez les données et les indicateurs de la plateforme",
+    "backToHome": "Retour à l'accueil",
+    "stats": {
+      "title": "En quelques chiffres",
+      "subtitle": "Les données clés de la plateforme",
+      "sites": "Sites protégés",
+      "plans": "Plans de gestion",
+      "organismes": "Organismes gestionnaires"
+    },
+    "comingSoon": {
+      "title": "Fonctionnalité en cours de développement",
+      "message": "L'exploration des données sera bientôt disponible. Vous pourrez découvrir les espaces naturels protégés, comparer les indicateurs et filtrer par territoire."
+    }
   },
   "errors": {
-    "generic": "Une erreur est survenue. Veuillez reessayer.",
-    "notFound": "Ressource non trouvee",
-    "serverError": "Erreur serveur. Veuillez reessayer.",
-    "unauthorized": "Vous n'etes pas autorise a effectuer cette action.",
-    "forbidden": "Acces refuse.",
-    "network": "Erreur de connexion. Verifiez votre connexion internet."
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "notFound": "Ressource non trouvée",
+    "serverError": "Erreur serveur. Veuillez réessayer.",
+    "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
+    "forbidden": "Accès refusé.",
+    "network": "Erreur de connexion. Vérifiez votre connexion internet."
   }
 }

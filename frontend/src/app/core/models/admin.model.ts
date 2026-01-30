@@ -61,6 +61,8 @@ export interface SiteTypeInfo {
  */
 export interface AdminSite {
   id_site: number;
+  /** URL slug unique pour le site */
+  slug: string;
   nom_site: string;
   id_local?: string;
   id_inpn?: string;
@@ -72,8 +74,11 @@ export interface AdminSite {
   marin?: boolean;
   outre_mer?: boolean;
   active?: boolean;
-  organismes?: AdminOrganisme[];
+  /** Organismes gestionnaires du site */
+  organismes?: SiteOrganisme[];
   users?: AdminUser[];
+  /** Nombre de plans de gestion associés */
+  plans_count?: number;
   // Informations sur l'acces de l'utilisateur courant
   current_user_is_referent?: boolean;
   current_user_access?: SiteUserAccess;
@@ -96,6 +101,8 @@ export interface SiteCreatePayload {
   geom_geojson?: GeoJSONGeometry | null;
   /** Point de référence au format GeoJSON */
   geom_pt_geojson?: GeoJSONGeometry | null;
+  /** Demander à devenir référent (seulement pour la création par utilisateur non-admin) */
+  request_as_referent?: boolean;
 }
 
 // ==================== GEOJSON ====================
@@ -117,6 +124,7 @@ export interface GeoJSONFeature {
   geometry: GeoJSONGeometry | null;
   properties: {
     id_site: number;
+    slug: string;
     nom_site: string;
     id_local?: string;
     id_inpn?: string;
@@ -189,6 +197,10 @@ export interface AdminUser {
   last_login?: string;
   sites_lies?: UserSiteRelation[];
   plans_referent?: UserPlanRelation[];
+  // RGPD fields
+  deletion_requested_at?: string | null;
+  is_anonymized?: boolean;
+  anonymized_at?: string | null;
 }
 
 /**
@@ -231,7 +243,8 @@ export interface SiteOrganisme {
   nom_organisme: string;
   ville_organisme?: string;
   email_organisme?: string;
-  principal: boolean;
+  /** Indique si c'est l'organisme principal/gestionnaire du site */
+  principal?: boolean;
 }
 
 /**
@@ -294,29 +307,50 @@ export interface PlanReferent {
 }
 
 /**
+ * Membre d'un plan de gestion (via CorRolePlan)
+ */
+export interface PlanMembre {
+  id_role: number;
+  email: string;
+  nom_role?: string;
+  prenom_role?: string;
+  nom_complet?: string;
+  referent: boolean;
+  date_association?: string;
+  commentaire?: string;
+}
+
+/**
  * Plan de gestion - modèle complet depuis l'API
  */
 export interface AdminPlan {
   id_pg: number;
   nom: string;
   id_cdr?: number;
+  rang?: number;
   statut: PlanStatut;
   version?: string;
   annee_debut?: number;
   annee_fin?: number;
+  surface?: number;
   gestion_partagee: boolean;
   ct88: boolean;
   risque_incendie: boolean;
+  date_validation_cspn?: string;
+  id_docgestion_fcen?: string;
   id_evaluation?: number;
   evaluation_label?: string;
   id_redacteur_type?: number;
   redacteur_type_label?: string;
   redacteur_nom?: string;
+  redacteurs?: string;
+  relecteurs?: string;
   commentaire?: string;
   date_ajout?: string;
   date_maj?: string;
   sites?: PlanSite[];
   referents?: PlanReferent[];
+  membres?: PlanMembre[];
   id_utilisateur_ajout?: number;
   id_utilisateur_maj?: number;
 }
@@ -325,19 +359,27 @@ export interface AdminPlan {
  * Payload pour créer/modifier un plan de gestion
  */
 export interface PlanCreatePayload {
+  // Champs obligatoires
   nom: string;
+  sites_ids: number[];
+  rang: number;
+  ct88: boolean;
+  annee_debut: number;
+  annee_fin: number;
+  // Champs optionnels
   statut?: PlanStatut;
   version?: string;
-  annee_debut?: number;
-  annee_fin?: number;
+  surface?: number;
   gestion_partagee?: boolean;
-  ct88?: boolean;
   risque_incendie?: boolean;
+  date_validation_cspn?: string;
+  id_docgestion_fcen?: string;
   id_evaluation?: number;
   id_redacteur_type?: number;
   redacteur_nom?: string;
+  redacteurs?: string;
+  relecteurs?: string;
   commentaire?: string;
-  sites_ids?: number[];
   referents_ids?: number[];
 }
 
@@ -357,4 +399,128 @@ export interface RedacteurType {
   id_nomenclature: number;
   cd_nomenclature: string;
   label: string;
+}
+
+// ==================== RGPD ====================
+
+/**
+ * Demande de suppression RGPD en attente
+ */
+export interface RgpdRequest {
+  id_role: number;
+  email: string;
+  full_name: string;
+  organisme_name: string | null;
+  deletion_requested_at: string;
+  active: boolean;
+  is_anonymized: boolean;
+  days_since_request: number | null;
+}
+
+// ==================== DUPLICATE DETECTION ====================
+
+/**
+ * Site retourné par l'endpoint de vérification des doublons
+ */
+export interface DuplicateSite {
+  id_site: number;
+  slug: string;
+  nom_site: string;
+  id_inpn: string | null;
+  id_local: string | null;
+  type_site_label: string | null;
+  surf_off: number | null;
+  organismes: Array<{
+    id_organisme: number;
+    nom_organisme: string;
+    principal: boolean;
+  }>;
+  /** Indique si le site appartient à l'organisme de l'utilisateur */
+  is_user_org: boolean;
+  /** Indique si l'utilisateur a déjà accès au site */
+  has_access: boolean;
+}
+
+/**
+ * Résultat de la vérification des doublons de site
+ */
+export interface DuplicateCheckResult {
+  /** Site avec code INPN identique (bloquant) */
+  exact_inpn_match: DuplicateSite | null;
+  /** Sites avec noms similaires (avertissement) */
+  similar_names: DuplicateSite[];
+}
+
+// ==================== BULK IMPORT ====================
+
+/** Mapping des champs source vers les champs cibles */
+export type BulkImportFieldMapping = Record<string, string>;
+
+/** Informations de doublon détecté */
+export interface BulkImportDuplicateInfo {
+  type: 'exact_inpn';
+  existing_site_id: number;
+  existing_site_name: string;
+}
+
+/** Une ligne de site dans le résultat de validation */
+export interface BulkImportSiteRow {
+  row_index: number;
+  original_properties: Record<string, any>;
+  mapped_data: Record<string, any>;
+  geometry?: any | null;
+  has_geometry: boolean;
+  errors: string[];
+  warnings: string[];
+  duplicate_info: BulkImportDuplicateInfo | null;
+  /** Sélectionné pour import (état local, non retourné par l'API) */
+  selected?: boolean;
+}
+
+/** Résultat de la validation d'import en masse */
+export interface BulkImportValidationResult {
+  detected_properties: string[];
+  suggested_mapping: BulkImportFieldMapping;
+  applied_mapping: BulkImportFieldMapping;
+  sites: BulkImportSiteRow[];
+  total: number;
+  valid: number;
+  errors: number;
+  warnings: number;
+  duplicates: number;
+}
+
+/** Détail du résultat d'import par site */
+export interface BulkImportDetailItem {
+  row_index: number;
+  nom_site: string;
+  status: 'created' | 'validation_pending' | 'failed';
+  site_id?: number;
+  validation_request_id?: number;
+  error?: string;
+}
+
+/** Résultat de l'exécution d'import en masse */
+export interface BulkImportResult {
+  async: boolean;
+  job_id?: number;
+  message?: string;
+  created?: number;
+  failed?: number;
+  validation_pending?: number;
+  details?: BulkImportDetailItem[];
+}
+
+/** Statut d'un job d'import asynchrone */
+export interface BulkImportJobStatus {
+  job_id: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total_sites: number;
+  processed_sites: number;
+  created_sites: number;
+  failed_sites: number;
+  validation_pending_sites: number;
+  result_data: any;
+  created_at: string | null;
+  completed_at: string | null;
 }

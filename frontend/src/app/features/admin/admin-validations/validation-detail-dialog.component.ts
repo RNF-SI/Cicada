@@ -12,6 +12,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { ValidationService } from '../../../core/services/validation.service';
 import { ValidationRequest, ValidationStatus, ValidationRequestType } from '../../../core/models/notification.model';
@@ -33,7 +34,8 @@ interface DialogData {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslateModule
   ],
   template: `
     <h2 mat-dialog-title>
@@ -84,6 +86,14 @@ interface DialogData {
             <div class="detail-row">
               <span class="detail-label">Site</span>
               <span class="detail-value">{{ validation()!.target_site!.nom_site }}</span>
+            </div>
+          }
+
+          <!-- Avertissement pour les demandes de creation de site -->
+          @if (validation()!.request_type === 'site_creation') {
+            <div class="duplicate-warning">
+              <i class="fi fi-rr-exclamation-triangle"></i>
+              <span>{{ 'admin.validations.warnings.checkDuplicateSite' | translate }}</span>
             </div>
           }
 
@@ -148,6 +158,24 @@ interface DialogData {
             </div>
           }
 
+          <!-- Info sur la demande de référent -->
+          @if (showApproveAsUserOption()) {
+            <div class="referent-request-info">
+              <i class="fi fi-rr-info"></i>
+              <div class="info-content">
+                <strong>Demande :</strong> souhaite devenir <strong>referent</strong> du site
+              </div>
+            </div>
+          }
+
+          <!-- Avertissement: site_access bloqué par site_org_link -->
+          @if (validation()!.blocked_by_org_link) {
+            <div class="blocked-warning">
+              <i class="fi fi-rr-exclamation-triangle"></i>
+              <span>{{ 'admin.validations.warnings.blockedByOrgLink' | translate }}</span>
+            </div>
+          }
+
           <!-- Formulaire action si en attente -->
           @if (validation()!.status === 'pending' && !actionSuccess()) {
             <div class="action-section">
@@ -170,15 +198,37 @@ interface DialogData {
                 </mat-form-field>
 
                 <div class="action-buttons">
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    (click)="approve()"
-                    [disabled]="processing()"
-                  >
-                    <i class="fi fi-rr-check"></i>
-                    Approuver
-                  </button>
+                  @if (showApproveAsUserOption()) {
+                    <!-- Demande avec demande de référent: deux options d'approbation -->
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="approveWithReferent(true)"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                    >
+                      <i class="fi fi-rr-user-check"></i>
+                      Approuver (référent)
+                    </button>
+                    <button
+                      mat-stroked-button
+                      (click)="approveWithReferent(false)"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                    >
+                      <i class="fi fi-rr-user"></i>
+                      Approuver (utilisateur)
+                    </button>
+                  } @else {
+                    <!-- Demande standard: un seul bouton d'approbation -->
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="approve()"
+                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                    >
+                      <i class="fi fi-rr-check"></i>
+                      Approuver
+                    </button>
+                  }
                   <button
                     mat-raised-button
                     color="warn"
@@ -211,7 +261,7 @@ interface DialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Fermer</button>
+      <button mat-button (click)="close()">Fermer</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -229,8 +279,8 @@ interface DialogData {
     }
 
     mat-dialog-content {
-      min-width: 500px;
-      max-height: 70vh;
+      min-width: 420px;
+      max-height: 65vh;
     }
 
     .loading-container {
@@ -242,7 +292,7 @@ interface DialogData {
     .detail-content {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 10px;
     }
 
     .detail-row {
@@ -270,9 +320,12 @@ interface DialogData {
 
         &.justification {
           background: v.$gray-light;
-          padding: 12px;
-          border-radius: 8px;
+          padding: 6px 10px;
+          border-radius: 6px;
           white-space: pre-wrap;
+          font-size: 12px;
+          max-height: 50px;
+          overflow-y: auto;
         }
       }
     }
@@ -293,13 +346,13 @@ interface DialogData {
     }
 
     .action-section {
-      margin-top: 24px;
-      padding-top: 24px;
+      margin-top: 16px;
+      padding-top: 16px;
       border-top: 1px solid v.$gray-light;
 
       h3 {
-        margin: 0 0 16px 0;
-        font-size: 16px;
+        margin: 0 0 12px 0;
+        font-size: 15px;
         color: v.$primary-color;
       }
 
@@ -398,6 +451,79 @@ interface DialogData {
       background-color: v.$gray-light !important;
       color: v.$gray !important;
     }
+
+    .referent-request-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: rgba(v.$info-color, 0.1);
+      border: 1px solid rgba(v.$info-color, 0.3);
+      border-radius: 6px;
+      font-size: 13px;
+
+      > i {
+        font-size: 16px;
+        color: v.$info-color;
+        flex-shrink: 0;
+      }
+
+      .info-content {
+        strong {
+          color: v.$primary-color;
+        }
+      }
+    }
+
+    .blocked-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+      margin-top: 8px;
+      background: rgba(v.$warning-color, 0.12);
+      border: 1px solid rgba(v.$warning-color, 0.4);
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.5;
+
+      > i {
+        font-size: 18px;
+        color: darken(v.$warning-color, 10%);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      > span {
+        color: darken(v.$warning-color, 20%);
+        font-weight: 700;
+      }
+    }
+
+    .duplicate-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: rgba(v.$warning-color, 0.12);
+      border: 1px solid rgba(v.$warning-color, 0.4);
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+
+      > i {
+        font-size: 16px;
+        color: darken(v.$warning-color, 10%);
+        flex-shrink: 0;
+      }
+
+      > span {
+        color: darken(v.$warning-color, 20%);
+        font-weight: 500;
+      }
+    }
   `]
 })
 export class ValidationDetailDialogComponent implements OnInit {
@@ -436,7 +562,19 @@ export class ValidationDetailDialogComponent implements OnInit {
   }
 
   /**
-   * Approuve la demande.
+   * Vérifie si l'option d'approbation avec choix référent/utilisateur doit être affichée.
+   * Affiche les deux boutons si c'est une demande de création ou d'accès site avec request_as_referent=true.
+   */
+  showApproveAsUserOption(): boolean {
+    const v = this.validation();
+    if (!v) return false;
+    // Afficher l'option si c'est une demande de création ou d'accès site avec request_as_referent
+    return (v.request_type === 'site_creation' || v.request_type === 'site_access')
+           && v.request_as_referent === true;
+  }
+
+  /**
+   * Approuve la demande (version standard sans choix de référent).
    */
   approve(): void {
     this.processing.set(true);
@@ -447,6 +585,36 @@ export class ValidationDetailDialogComponent implements OnInit {
       next: () => {
         this.processing.set(false);
         this.actionSuccess.set('Demande approuvee avec succes !');
+        // Fermer le dialog apres un court delai pour montrer le succes
+        setTimeout(() => {
+          this.dialogRef.close(true);
+        }, 1500);
+      },
+      error: (error: { error?: { error?: string } }) => {
+        this.snackBar.open(error.error?.error || 'Erreur lors de l\'approbation', 'Fermer', {
+          duration: 5000
+        });
+        this.processing.set(false);
+      }
+    });
+  }
+
+  /**
+   * Approuve la demande avec choix explicite du statut référent.
+   * @param asReferent true pour approuver comme référent, false pour utilisateur simple
+   */
+  approveWithReferent(asReferent: boolean): void {
+    this.processing.set(true);
+
+    const data: { comment?: string; approve_as_referent?: boolean } = {};
+    if (this.comment) data.comment = this.comment;
+    data.approve_as_referent = asReferent;
+
+    this.validationService.approveRequest(this.data.validationId, data).subscribe({
+      next: () => {
+        this.processing.set(false);
+        const roleText = asReferent ? 'comme référent' : 'comme utilisateur';
+        this.actionSuccess.set(`Demande approuvee ${roleText} !`);
         // Fermer le dialog apres un court delai pour montrer le succes
         setTimeout(() => {
           this.dialogRef.close(true);
@@ -493,6 +661,13 @@ export class ValidationDetailDialogComponent implements OnInit {
   }
 
   /**
+   * Ferme le dialog. Renvoie true si une action a ete effectuee pour rafraichir la liste.
+   */
+  close(): void {
+    this.dialogRef.close(!!this.actionSuccess());
+  }
+
+  /**
    * Obtient la classe CSS du statut.
    */
   getStatusClass(status: ValidationStatus): string {
@@ -514,10 +689,17 @@ export class ValidationDetailDialogComponent implements OnInit {
 
     const icons: Record<string, string> = {
       'user_registration': 'fi-rr-user-add',
+      'site_creation': 'fi-rr-marker-plus',
       'site_access': 'fi-rr-marker',
       'plan_access': 'fi-rr-document',
+      'module_access': 'fi-rr-apps',
       'admin_deactivation': 'fi-rr-user-slash',
-      'referent_validation': 'fi-rr-check',
+      'admin_promotion': 'fi-rr-user-crown',
+      'admin_demotion': 'fi-rr-user-minus',
+      'referent_validation': 'fi-rr-badge-check',
+      'site_org_link': 'fi-rr-link',
+      'invite_org_to_site': 'fi-rr-building',
+      'invite_user_to_site': 'fi-rr-user-add',
     };
     return icons[type] || 'fi-rr-check-circle';
   }

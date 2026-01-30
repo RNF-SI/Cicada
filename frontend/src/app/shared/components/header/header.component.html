@@ -1,12 +1,18 @@
 <!-- Impersonation Banner -->
 @if (isImpersonating()) {
-  <div class="impersonation-banner">
+  <div class="impersonation-banner" [class.read-only]="isReadOnly()">
     <div class="impersonation-content">
       <i class="fi fi-rr-eye"></i>
       <span class="impersonation-text">
         <strong>{{ 'header.impersonation.banner' | translate }}</strong> - {{ 'header.impersonation.viewing' | translate }} <strong>{{ userDisplayName }}</strong>
         <span class="impersonation-info">({{ 'header.impersonation.connectedAs' | translate }} {{ originalUserDisplayName }})</span>
       </span>
+      @if (isReadOnly()) {
+        <span class="read-only-badge">
+          <i class="fi fi-rr-lock"></i>
+          {{ 'header.impersonation.readOnlyMode' | translate }}
+        </span>
+      }
       <button class="stop-impersonation-btn" (click)="stopImpersonation()">
         <i class="fi fi-rr-cross-circle"></i>
         {{ 'header.impersonation.stopButton' | translate }}
@@ -17,12 +23,10 @@
 
 <header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()">
   <div class="header-content">
-    <!-- Hamburger Menu - Hidden on home page -->
-    @if (!isHomePage()) {
-      <button class="hamburger-btn" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
-        <i class="fi fi-rr-menu-burger"></i>
-      </button>
-    }
+    <!-- Hamburger Menu - Always visible on mobile/tablet, hidden on home page for desktop -->
+    <button class="hamburger-btn" [class.hide-desktop]="isHomePage()" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
+      <i class="fi fi-rr-menu-burger"></i>
+    </button>
 
     <!-- Logo centered -->
     <a routerLink="/" class="header-logo">
@@ -92,35 +96,64 @@
   </div>
 </header>
 
-<!-- Mobile Menu Overlay -->
+<!-- Sidebar Menu Overlay -->
 @if (menuOpen) {
-  <div class="menu-overlay" (click)="toggleMenu()"></div>
-  <nav class="mobile-menu">
-    <div class="mobile-menu-header">
-      <span class="mobile-menu-title">{{ 'header.menu' | translate }}</span>
-      <button class="close-btn" (click)="toggleMenu()">
-        <i class="fi fi-rr-cross"></i>
-      </button>
-    </div>
-    <div class="mobile-menu-content">
-      <a routerLink="/accueil" class="mobile-menu-item" (click)="toggleMenu()">
-        <i class="fi fi-rr-home"></i>
-        <span>{{ 'header.home' | translate }}</span>
-      </a>
-      <a routerLink="/plans" class="mobile-menu-item" (click)="toggleMenu()">
-        <i class="fi fi-rr-document"></i>
-        <span>{{ 'header.plans' | translate }}</span>
-      </a>
-      <a routerLink="/sites" class="mobile-menu-item" (click)="toggleMenu()">
-        <i class="fi fi-rr-marker"></i>
-        <span>{{ 'header.sites' | translate }}</span>
-      </a>
-      @if (isAuthenticated() && canAccessAdmin()) {
-        <a (click)="openAdmin(); toggleMenu()" class="mobile-menu-item" role="button" tabindex="0">
-          <i class="fi fi-rr-settings-sliders"></i>
-          <span>{{ 'header.administration' | translate }}</span>
-        </a>
-      }
-    </div>
-  </nav>
+  <div class="sidebar-overlay" (click)="toggleMenu()" [@fadeAnimation]></div>
 }
+
+<!-- Sidebar Menu -->
+<nav class="sidebar-menu" [class.open]="menuOpen" [@slideAnimation]="menuOpen ? 'open' : 'closed'">
+  <!-- Close button -->
+  <button class="sidebar-close-btn" (click)="toggleMenu()" [attr.aria-label]="'common.actions.close' | translate">
+    <i class="fi fi-rr-cross"></i>
+  </button>
+
+  <!-- Menu label -->
+  <div class="sidebar-label">MENU</div>
+
+  <div class="sidebar-content">
+    <!-- Accueil (toujours visible) -->
+    <a routerLink="/accueil"
+       class="sidebar-item"
+       [class.active]="isActiveRoute('/accueil') || isActiveRoute('/')"
+       (click)="toggleMenu()">
+      <i class="fi fi-rr-home"></i>
+      <span>{{ 'header.sidebar.home' | translate }}</span>
+    </a>
+
+    <!-- Modules dynamiques -->
+    @for (module of sidebarModules; track module.code) {
+      @if (shouldShowModule(module)) {
+        @if (module.isDeveloped && hasModuleAccess(module)) {
+          <!-- Module accessible et développé -->
+          <a [routerLink]="module.route"
+             class="sidebar-item"
+             [class.active]="isActiveRoute(module.route)"
+             (click)="toggleMenu()">
+            <i class="fi" [ngClass]="module.icon"></i>
+            <span>{{ module.name }}</span>
+          </a>
+        } @else {
+          <!-- Module pas encore développé -->
+          <div class="sidebar-item disabled">
+            <i class="fi" [ngClass]="module.icon"></i>
+            <span>{{ module.name }}</span>
+            <span class="coming-soon-badge">{{ 'header.sidebar.comingSoonShort' | translate }}</span>
+          </div>
+        }
+      }
+    }
+
+    <!-- Administration (si admin) -->
+    @if (isAuthenticated() && canAccessAdmin()) {
+      <a class="sidebar-item"
+         (click)="openAdmin(); toggleMenu()"
+         role="button"
+         tabindex="0">
+        <i class="fi fi-rr-settings"></i>
+        <span>{{ 'header.administration' | translate }}</span>
+        <i class="fi fi-rr-arrow-up-right-from-square external-icon"></i>
+      </a>
+    }
+  </div>
+</nav>

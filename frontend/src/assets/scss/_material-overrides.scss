@@ -8,7 +8,7 @@
 // BUTTONS (Kit UI 11/2025)
 // ============================================
 
-// All Material buttons
+// All Material buttons - Base styling
 .mat-mdc-button,
 .mat-mdc-raised-button,
 .mat-mdc-flat-button,
@@ -24,24 +24,131 @@
   &:not(.mat-mdc-icon-button):not(.mat-mdc-fab):not(.mat-mdc-mini-fab) {
     border-radius: $border-radius-pill !important; // 24px pill buttons
   }
+
+  // Ensure button label is always visible
+  .mdc-button__label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+  }
+
+  // Ensure icons inside buttons are visible
+  i, [class*="fi-"] {
+    display: inline-block !important;
+    line-height: 1;
+  }
 }
 
-// Primary buttons
-.mat-mdc-raised-button.mat-primary,
-.mat-mdc-flat-button.mat-primary {
+// ============================================
+// PRIMARY BUTTONS - Teal background, WHITE text/icons
+// Kit UI CICADA 11/2025: fond #025359, texte/icônes BLANC
+// ============================================
+
+// Material 3 CSS tokens for primary filled buttons (global)
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-unelevated-button {
+  &.mat-primary,
+  &[color="primary"] {
+    // M3 tokens - container and label
+    --mdc-filled-button-container-color: #{$primary-color};
+    --mdc-filled-button-label-text-color: #{$white};
+    --mdc-protected-button-container-color: #{$primary-color};
+    --mdc-protected-button-label-text-color: #{$white};
+
+    // Force background and text color
+    background-color: $primary-color !important;
+    color: $white !important;
+
+    // MDC internal structure - label span
+    .mdc-button__label {
+      color: $white !important;
+    }
+
+    // Mat internal structure
+    .mat-mdc-button-persistent-ripple {
+      background-color: transparent !important;
+    }
+
+    // ============================================
+    // ICONS - Force white on ALL icon types
+    // ============================================
+
+    // Standard icon element
+    i {
+      color: $white !important;
+    }
+
+    // Angular Material icons
+    .mat-icon,
+    mat-icon {
+      color: $white !important;
+
+      svg {
+        fill: $white !important;
+      }
+    }
+
+    // Flaticon icons (fi-rr-*, fi-sr-*, etc.)
+    [class*="fi-"],
+    [class^="fi-"],
+    .fi {
+      color: $white !important;
+
+      &::before {
+        color: $white !important;
+      }
+    }
+
+    // Any nested span or element that might contain text
+    span {
+      color: $white !important;
+    }
+
+    // Hover state
+    &:hover:not([disabled]) {
+      background-color: $primary-hover !important;
+
+      .mdc-button__label,
+      i, .mat-icon, [class*="fi-"], span {
+        color: $white !important;
+      }
+    }
+
+    // Active/pressed state
+    &:active:not([disabled]),
+    &:focus:not([disabled]) {
+      background-color: $primary-active !important;
+    }
+
+    // Disabled state
+    &[disabled],
+    &.mat-mdc-button-disabled {
+      background-color: $gray !important;
+      color: $white !important;
+      opacity: 0.7;
+
+      .mdc-button__label,
+      i, .mat-icon, [class*="fi-"], span {
+        color: $white !important;
+      }
+    }
+  }
+}
+
+// Extra specificity for buttons with color attribute
+button[mat-flat-button][color="primary"],
+button[mat-raised-button][color="primary"],
+a[mat-flat-button][color="primary"],
+a[mat-raised-button][color="primary"] {
   background-color: $primary-color !important;
   color: $white !important;
 
-  &:hover:not([disabled]) {
-    background-color: $primary-hover !important;
+  * {
+    color: $white !important;
   }
 
-  &:active:not([disabled]) {
-    background-color: $primary-active !important;
-  }
-
-  &[disabled] {
-    background-color: $gray !important;  // Kit UI: États inactifs
+  [class*="fi-"]::before {
     color: $white !important;
   }
 }
@@ -68,21 +175,43 @@
   color: $primary-color !important;
   background-color: transparent !important;
 
+  // Ensure icons inside buttons inherit primary color
+  i, .mat-icon, [class*="fi-"] {
+    color: $primary-color !important;
+  }
+
+  // Button label text
+  .mdc-button__label {
+    color: $primary-color !important;
+  }
+
   &:hover:not([disabled]) {
     background-color: $primary-color !important;
     color: $white !important;
+
+    i, .mat-icon, [class*="fi-"], .mdc-button__label {
+      color: $white !important;
+    }
   }
 
   &:active:not([disabled]) {
     background-color: $primary-active !important;
     border-color: $primary-active !important;
     color: $white !important;
+
+    i, .mat-icon, [class*="fi-"], .mdc-button__label {
+      color: $white !important;
+    }
   }
 
   &[disabled] {
     border-color: $gray !important;  // Kit UI: États inactifs
     color: $gray !important;
     background-color: transparent !important;
+
+    i, .mat-icon, [class*="fi-"] {
+      color: $gray !important;
+    }
   }
 }
 
@@ -91,6 +220,12 @@
   width: $btn-icon-size;
   height: $btn-icon-size;
   padding: 0;
+  color: $primary-color !important;
+
+  // Ensure icons inside icon buttons inherit color
+  i, .mat-icon, [class*="fi-"] {
+    color: inherit !important;
+  }
 
   &.mat-primary {
     color: $primary-color !important;
@@ -106,12 +241,26 @@
 
   &[disabled] {
     color: $gray !important;  // Kit UI: États inactifs
+
+    i, .mat-icon, [class*="fi-"] {
+      color: $gray !important;
+    }
   }
 }
 
 // Tertiary buttons (text only) - Kit UI
 .mat-mdc-button {
   color: $primary-color !important;
+
+  // Ensure icons inside buttons inherit primary color
+  i, .mat-icon, [class*="fi-"] {
+    color: $primary-color !important;
+  }
+
+  // Button label text
+  .mdc-button__label {
+    color: $primary-color !important;
+  }
 
   &:hover:not([disabled]) {
     background-color: rgba($primary-color, 0.08) !important;
@@ -120,10 +269,18 @@
   &:active:not([disabled]) {
     background-color: $primary-active !important;
     color: $white !important;
+
+    i, .mat-icon, [class*="fi-"], .mdc-button__label {
+      color: $white !important;
+    }
   }
 
   &[disabled] {
     color: $gray !important;  // Kit UI: États inactifs
+
+    i, .mat-icon, [class*="fi-"] {
+      color: $gray !important;
+    }
   }
 }
 
@@ -883,6 +1040,17 @@
   border-radius: $border-radius-sm;
 }
 
+// Tooltip multiligne (pour les aides détaillées)
+.multiline-tooltip {
+  .mdc-tooltip__surface {
+    white-space: pre-line !important;
+    text-align: left !important;
+    max-width: 280px !important;
+    line-height: 1.5 !important;
+    padding: $spacing-sm !important;
+  }
+}
+
 // ============================================
 // PROGRESS BAR & SPINNER
 // ============================================
@@ -901,51 +1069,235 @@
 }
 
 // ============================================
-// CHECKBOX & RADIO
+// CHECKBOX - Kit UI CICADA 11/2025
+// Cochée: fond #025359 (teal), coche BLANCHE
+// Non cochée: bordure #C6C6C6 (gris), fond blanc
 // ============================================
 
 .mat-mdc-checkbox {
   font-family: $font-family !important;
 
+  // ============================================
+  // Material 3 CSS tokens - CRITICAL for checkbox colors
+  // ============================================
+
+  // Selected (checked) state - background is primary, checkmark is WHITE
+  --mdc-checkbox-selected-checkmark-color: #{$white};
+  --mdc-checkbox-selected-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-focus-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-hover-icon-color: #{$primary-color};
+  --mdc-checkbox-selected-pressed-icon-color: #{$primary-color};
+
+  // State layer (ripple effect)
+  --mdc-checkbox-selected-focus-state-layer-color: #{$primary-color};
+  --mdc-checkbox-selected-hover-state-layer-color: #{$primary-color};
+  --mdc-checkbox-selected-pressed-state-layer-color: #{$primary-color};
+
+  // Unselected (unchecked) state
+  --mdc-checkbox-unselected-icon-color: #{$gray};
+  --mdc-checkbox-unselected-focus-icon-color: #{$gray-dark};
+  --mdc-checkbox-unselected-hover-icon-color: #{$primary-color};
+  --mdc-checkbox-unselected-pressed-icon-color: #{$primary-color};
+
+  // ============================================
+  // Direct MDC component styling
+  // ============================================
   .mdc-checkbox {
+    // Unchecked state - gray border
     .mdc-checkbox__background {
-      border-color: $gray;
+      border-color: $gray !important;
+      border-width: 2px !important;
+      background-color: $white !important;
     }
 
-    &.mdc-checkbox--selected .mdc-checkbox__background {
-      background-color: $primary-color;
-      border-color: $primary-color;
+    // The checkmark SVG path - MUST be white
+    .mdc-checkbox__checkmark {
+      color: $white !important;
+
+      .mdc-checkbox__checkmark-path {
+        stroke: $white !important;
+        stroke-width: 3px !important;
+      }
+    }
+
+    // Indeterminate mark
+    .mdc-checkbox__mixedmark {
+      border-color: $white !important;
+      background-color: $white !important;
     }
   }
 
-  .mdc-label {
+  // ============================================
+  // Checked state - teal background, white checkmark
+  // ============================================
+  &.mat-mdc-checkbox-checked,
+  &.mdc-checkbox--selected {
+    .mdc-checkbox {
+      .mdc-checkbox__background {
+        background-color: $primary-color !important;
+        border-color: $primary-color !important;
+      }
+
+      .mdc-checkbox__checkmark {
+        color: $white !important;
+        opacity: 1 !important;
+
+        .mdc-checkbox__checkmark-path {
+          stroke: $white !important;
+        }
+      }
+    }
+  }
+
+  // Alternative selector for checked state (Angular Material 3)
+  .mdc-checkbox--selected .mdc-checkbox__background,
+  .mdc-checkbox--indeterminate .mdc-checkbox__background {
+    background-color: $primary-color !important;
+    border-color: $primary-color !important;
+  }
+
+  .mdc-checkbox--selected .mdc-checkbox__checkmark,
+  .mdc-checkbox--indeterminate .mdc-checkbox__checkmark {
+    color: $white !important;
+  }
+
+  // ============================================
+  // Ripple and state layer
+  // ============================================
+  .mdc-checkbox__ripple {
+    background-color: rgba($primary-color, 0.1) !important;
+  }
+
+  .mat-mdc-checkbox-ripple,
+  .mat-ripple-element {
+    background-color: rgba($primary-color, 0.1) !important;
+  }
+
+  // ============================================
+  // Label styling
+  // ============================================
+  .mdc-label,
+  label {
     color: $black;
     font-size: $font-size-base;
+    font-family: $font-family;
+  }
+
+  // ============================================
+  // Disabled state
+  // ============================================
+  &.mat-mdc-checkbox-disabled {
+    .mdc-checkbox__background {
+      background-color: $gray-light !important;
+      border-color: $gray !important;
+    }
+
+    .mdc-label,
+    label {
+      color: $gray !important;
+    }
   }
 }
+
+// ============================================
+// RADIO BUTTON - Kit UI CICADA 11/2025
+// Cochée: bordure #025359, dot intérieur #025359
+// Non cochée: bordure #C6C6C6 (gris)
+// ============================================
 
 .mat-mdc-radio-button {
   font-family: $font-family !important;
 
+  // ============================================
+  // Material 3 CSS tokens
+  // ============================================
+
+  // Selected (checked) state
+  --mdc-radio-selected-icon-color: #{$primary-color};
+  --mdc-radio-selected-focus-icon-color: #{$primary-color};
+  --mdc-radio-selected-hover-icon-color: #{$primary-color};
+  --mdc-radio-selected-pressed-icon-color: #{$primary-color};
+
+  // Unselected state
+  --mdc-radio-unselected-icon-color: #{$gray};
+  --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
+  --mdc-radio-unselected-hover-icon-color: #{$primary-color};
+  --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
+
+  // Ripple
+  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+
+  // ============================================
+  // Direct MDC component styling
+  // ============================================
   .mdc-radio {
+    // Outer circle (border)
     .mdc-radio__outer-circle {
-      border-color: $gray;
+      border-color: $gray !important;
+      border-width: 2px !important;
     }
 
-    &.mdc-radio--checked {
+    // Inner circle (dot) - hidden when unchecked
+    .mdc-radio__inner-circle {
+      border-color: $primary-color !important;
+      background-color: $primary-color !important;
+    }
+
+    // Checked state
+    &.mdc-radio--checked,
+    &[aria-checked="true"] {
       .mdc-radio__outer-circle {
-        border-color: $primary-color;
+        border-color: $primary-color !important;
       }
 
       .mdc-radio__inner-circle {
-        border-color: $primary-color;
+        border-color: $primary-color !important;
+        background-color: $primary-color !important;
+        transform: scale(0.5) !important;
       }
     }
   }
 
-  .mdc-label {
+  // Alternative checked selector (Angular Material 3)
+  &.mat-mdc-radio-checked {
+    .mdc-radio__outer-circle {
+      border-color: $primary-color !important;
+    }
+
+    .mdc-radio__inner-circle {
+      border-color: $primary-color !important;
+      background-color: $primary-color !important;
+    }
+  }
+
+  // ============================================
+  // Label styling
+  // ============================================
+  .mdc-label,
+  label {
     color: $black;
     font-size: $font-size-base;
+    font-family: $font-family;
+  }
+
+  // ============================================
+  // Disabled state
+  // ============================================
+  &.mat-mdc-radio-disabled {
+    .mdc-radio__outer-circle {
+      border-color: $gray-light !important;
+    }
+
+    .mdc-radio__inner-circle {
+      border-color: $gray !important;
+      background-color: $gray !important;
+    }
+
+    .mdc-label,
+    label {
+      color: $gray !important;
+    }
   }
 }
 
@@ -956,13 +1308,72 @@
 .mat-mdc-slide-toggle {
   font-family: $font-family !important;
 
+  // CSS tokens for slide toggle
+  --mdc-switch-selected-track-color: #{$primary-color};
+  --mdc-switch-selected-hover-track-color: #{darken($primary-color, 5%)};
+  --mdc-switch-selected-focus-track-color: #{$primary-color};
+  --mdc-switch-selected-pressed-track-color: #{darken($primary-color, 5%)};
+  --mdc-switch-unselected-track-color: #{$gray-light};
+  --mdc-switch-selected-handle-color: #{$white};
+  --mdc-switch-unselected-handle-color: #{$white};
+  --mdc-switch-handle-surface-color: #{$white};
+
   .mdc-switch {
+    // Track (background bar)
     .mdc-switch__track {
-      background-color: $gray-light;
+      background-color: $gray-light !important;
+
+      &::before,
+      &::after {
+        background-color: inherit !important;
+      }
     }
 
-    &.mdc-switch--selected .mdc-switch__track {
-      background-color: $primary-color;
+    // Handle (the white knob that moves)
+    .mdc-switch__handle {
+      background-color: $white !important;
+
+      .mdc-switch__handle-track {
+        background-color: transparent !important;
+      }
+
+      // The actual visible handle shape
+      .mdc-switch__shadow,
+      .mdc-switch__ripple {
+        border-radius: 50%;
+      }
+    }
+
+    // When selected (ON state)
+    &.mdc-switch--selected {
+      .mdc-switch__track {
+        background-color: $primary-color !important;
+
+        &::before,
+        &::after {
+          background-color: $primary-color !important;
+        }
+      }
+
+      .mdc-switch__handle {
+        background-color: $white !important;
+      }
+
+      // The handle icon (checkmark when ON)
+      .mdc-switch__icon {
+        fill: $primary-color !important;
+      }
+    }
+
+    // When unselected (OFF state)
+    &.mdc-switch--unselected {
+      .mdc-switch__handle {
+        background-color: $white !important;
+      }
+
+      .mdc-switch__icon {
+        fill: $gray !important;
+      }
     }
   }
 

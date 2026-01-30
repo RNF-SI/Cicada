@@ -8,6 +8,7 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
+import { impersonationInterceptor } from './core/interceptors/impersonation.interceptor';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 
 export const appConfig: ApplicationConfig = {
@@ -16,7 +17,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimationsAsync(),
     // Note: loggingInterceptor doit etre avant authInterceptor pour capturer toutes les requetes
-    provideHttpClient(withInterceptors([loggingInterceptor, authInterceptor])),
+    // impersonationInterceptor doit etre apres authInterceptor pour verifier le statut d'impersonnation
+    provideHttpClient(withInterceptors([loggingInterceptor, authInterceptor, impersonationInterceptor])),
     provideTranslateService({
       defaultLanguage: 'fr',
       loader: provideTranslateHttpLoader({

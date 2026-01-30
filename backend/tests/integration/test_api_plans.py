@@ -247,6 +247,7 @@ class TestPlansCreateEndpoint:
         """Test super admin can create a plan."""
         admin = SuperAdminFactory()
 
+        site = SiteFactory()
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'New API Plan',
@@ -255,7 +256,9 @@ class TestPlansCreateEndpoint:
             'statut': 'draft',
             'gestion_partagee': False,
             'ct88': False,
-            'version': '1.0'
+            'version': '1.0',
+            'rang': 1,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -273,7 +276,11 @@ class TestPlansCreateEndpoint:
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Referent Plan',
             'statut': 'draft',
-            'annee_debut': 2024
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -289,7 +296,12 @@ class TestPlansCreateEndpoint:
         api_client.force_authenticate(user=referent)
         response = api_client.post('/api/plans/plans/', {
             'nom': 'Creator Test Plan',
-            'statut': 'draft'
+            'statut': 'draft',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
         })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -673,3 +685,368 @@ class TestPlansExport:
         if response.status_code == status.HTTP_200_OK:
             assert response.data['type'] == 'FeatureCollection'
             assert 'features' in response.data
+
+
+# =============================================================================
+# PLANS REFERENT ASSIGNMENT TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansReferentAssignment:
+    """Tests for plan referent assignment."""
+
+    def test_assign_referent_to_plan(self, api_client):
+        """Test assigning a referent to a plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {
+            'referent_id': referent.id_role
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert referent in plan.referents.all()
+
+    def test_assign_referent_without_id(self, api_client):
+        """Test assign referent fails without referent_id."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'referent_id' in str(response.data)
+
+    def test_assign_referent_non_referent_user(self, api_client):
+        """Test cannot assign user who is not a referent."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        regular_user = RoleFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {
+            'referent_id': regular_user.id_role
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert regular_user not in plan.referents.all()
+
+    def test_assign_referent_nonexistent_user(self, api_client):
+        """Test assign referent with non-existent user."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {
+            'referent_id': 99999
+        })
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_remove_referent_from_plan(self, api_client):
+        """Test removing a referent from a plan."""
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        plan = PlanGestionFactory()
+        plan.referents.add(referent)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_referent/?referent_id={referent.id_role}'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert referent not in plan.referents.all()
+
+    def test_remove_referent_without_id(self, api_client):
+        """Test remove referent fails without referent_id."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(f'/api/plans/plans/{plan.id_pg}/remove_referent/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_remove_referent_not_assigned(self, api_client):
+        """Test remove referent fails if not assigned to plan."""
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_referent/?referent_id={referent.id_role}'
+        )
+
+        # Note: Returns 400 if referent exists but not assigned, 404 if referent not found
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND]
+
+    def test_remove_referent_nonexistent_user(self, api_client):
+        """Test remove referent with non-existent user."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_referent/?referent_id=99999'
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_assign_referent_requires_admin_permission(self, api_client):
+        """Test only admin or admin_og can assign referents."""
+        regular_user = RoleFactory()
+        plan = PlanGestionFactory()
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        api_client.force_authenticate(user=regular_user)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {
+            'referent_id': referent.id_role
+        })
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# =============================================================================
+# SITE ASSIGNMENT ERROR HANDLING TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansSiteAssignmentErrors:
+    """Tests for plan site assignment error handling."""
+
+    def test_assign_site_without_id(self, api_client):
+        """Test assign site fails without site_id."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_site/', {})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'site_id' in str(response.data)
+
+    def test_assign_site_nonexistent(self, api_client):
+        """Test assign site fails with non-existent site."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_site/', {
+            'site_id': 99999
+        })
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_assign_site_no_permission(self, api_client):
+        """Test assign site fails without permission on site."""
+        # Use super admin to ensure access to plan, but no permission on site
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        other_org = OrganismeFactory()
+        site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=other_org)
+
+        # Create another admin with different organisme who can see plan but not manage site
+        admin_og = AdminOrganismeFactory()
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_site/', {
+            'site_id': site.id_site
+        })
+
+        # May get 404 (plan not visible) or 403 (no permission on site)
+        assert response.status_code in [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
+
+    def test_remove_site_without_id(self, api_client):
+        """Test remove site fails without site_id."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(f'/api/plans/plans/{plan.id_pg}/remove_site/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_remove_site_not_assigned(self, api_client):
+        """Test remove site fails if site not assigned to plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_site/?site_id={site.id_site}'
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# =============================================================================
+# FICHIERS DOWNLOAD TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansFichiersDownload:
+    """Tests for plan files download endpoint."""
+
+    def test_download_public_fichier(self, api_client, tmp_path):
+        """Test downloading a public file."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        # Create a temporary file
+        test_file = tmp_path / "test_document.pdf"
+        test_file.write_text("Test content")
+
+        fichier = CorPgFichierFactory(
+            plan_de_gestion=plan,
+            public=True,
+            chemin_fichier=str(test_file),
+            nom_fichier='test_document.pdf'
+        )
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/plans/fichiers/{fichier.id}/download/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response['Content-Disposition'] == 'attachment; filename="test_document.pdf"'
+
+    def test_download_private_fichier_with_permission(self, api_client, tmp_path):
+        """Test downloading a private file with proper permission."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        test_file = tmp_path / "private_doc.pdf"
+        test_file.write_text("Private content")
+
+        fichier = CorPgFichierFactory(
+            plan_de_gestion=plan,
+            public=False,
+            chemin_fichier=str(test_file),
+            nom_fichier='private_doc.pdf'
+        )
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/plans/fichiers/{fichier.id}/download/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_download_fichier_file_not_found(self, api_client):
+        """Test downloading file that doesn't exist on disk."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        fichier = CorPgFichierFactory(
+            plan_de_gestion=plan,
+            public=True,
+            chemin_fichier='/nonexistent/path/file.pdf',
+            nom_fichier='missing.pdf'
+        )
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/plans/fichiers/{fichier.id}/download/')
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# =============================================================================
+# BULK ASSIGN SITES TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestBulkAssignSites:
+    """Tests for bulk site assignment endpoint."""
+
+    def test_bulk_assign_sites_success(self, api_client):
+        """Test bulk assigning sites to plans."""
+        admin = SuperAdminFactory()
+        plan1 = PlanGestionFactory()
+        plan2 = PlanGestionFactory()
+        site1 = SiteFactory()
+        site2 = SiteFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/plans/plans/bulk_assign_sites/', {
+            'plan_ids': [plan1.id_pg, plan2.id_pg],
+            'site_ids': [site1.id_site, site2.id_site],
+            'commentaire': 'Test bulk assignment'
+        }, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert CorSitePg.objects.filter(plan_de_gestion=plan1, site=site1).exists()
+        assert CorSitePg.objects.filter(plan_de_gestion=plan1, site=site2).exists()
+        assert CorSitePg.objects.filter(plan_de_gestion=plan2, site=site1).exists()
+        assert CorSitePg.objects.filter(plan_de_gestion=plan2, site=site2).exists()
+
+    def test_bulk_assign_sites_missing_plan_ids(self, api_client):
+        """Test bulk assign fails without plan_ids."""
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/plans/plans/bulk_assign_sites/', {
+            'site_ids': [site.id_site]
+        }, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_bulk_assign_sites_missing_site_ids(self, api_client):
+        """Test bulk assign fails without site_ids."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/plans/plans/bulk_assign_sites/', {
+            'plan_ids': [plan.id_pg]
+        }, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_bulk_assign_sites_no_permission(self, api_client):
+        """Test bulk assign fails without permission on site."""
+        admin_og = AdminOrganismeFactory()
+        plan = PlanGestionFactory()
+        other_org = OrganismeFactory()
+        site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=other_org)
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.post('/api/plans/plans/bulk_assign_sites/', {
+            'plan_ids': [plan.id_pg],
+            'site_ids': [site.id_site]
+        }, format='json')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_bulk_assign_sites_requires_admin(self, api_client):
+        """Test bulk assign requires admin permission."""
+        regular_user = RoleFactory()
+        plan = PlanGestionFactory()
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=regular_user)
+        response = api_client.post('/api/plans/plans/bulk_assign_sites/', {
+            'plan_ids': [plan.id_pg],
+            'site_ids': [site.id_site]
+        }, format='json')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN

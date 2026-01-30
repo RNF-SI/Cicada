@@ -449,7 +449,7 @@ export class LinkUserSiteModalComponent implements OnInit {
   private saveSelectUser(): void {
     if (!this.data.site) return;
 
-    const siteId = this.data.site.id_site;
+    const siteSlug = this.data.site.slug;
     const toAdd = this.userAssignments().filter(a => a.isNew && !a.isDeleted);
     const toUpdate = this.userAssignments().filter(a => a.isModified && !a.isNew && !a.isDeleted);
     const toDelete = this.userAssignments().filter(a => a.isDeleted && !a.isNew);
@@ -463,11 +463,11 @@ export class LinkUserSiteModalComponent implements OnInit {
     this.errorMessage.set(null);
 
     // Process all operations
-    this.processUserOperations(siteId, toAdd, toUpdate, toDelete);
+    this.processUserOperations(siteSlug, toAdd, toUpdate, toDelete);
   }
 
   private processUserOperations(
-    siteId: number,
+    siteSlug: string,
     toAdd: UserAssignment[],
     toUpdate: UserAssignment[],
     toDelete: UserAssignment[]
@@ -489,7 +489,7 @@ export class LinkUserSiteModalComponent implements OnInit {
 
     allOperations.forEach(op => {
       if (op.type === 'delete') {
-        this.adminService.removeUserFromSite(siteId, op.assignment.user.id_role).subscribe({
+        this.adminService.removeUserFromSite(siteSlug, op.assignment.user.id_role).subscribe({
           next: () => {
             completed++;
             if (completed === allOperations.length && !hasError) {
@@ -505,7 +505,7 @@ export class LinkUserSiteModalComponent implements OnInit {
         });
       } else {
         this.adminService.assignUserToSite(
-          siteId,
+          siteSlug,
           op.assignment.user.id_role,
           op.assignment.referent
         ).subscribe({
@@ -569,7 +569,7 @@ export class LinkUserSiteModalComponent implements OnInit {
 
     allOperations.forEach(op => {
       if (op.type === 'delete') {
-        this.adminService.removeUserFromSite(op.assignment.site.id_site, userId).subscribe({
+        this.adminService.removeUserFromSite(op.assignment.site.slug, userId).subscribe({
           next: () => {
             completed++;
             if (completed === allOperations.length && !hasError) {
@@ -585,7 +585,7 @@ export class LinkUserSiteModalComponent implements OnInit {
         });
       } else {
         this.adminService.assignUserToSite(
-          op.assignment.site.id_site,
+          op.assignment.site.slug,
           userId,
           op.assignment.referent
         ).subscribe({

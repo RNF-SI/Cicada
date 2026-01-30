@@ -5,7 +5,7 @@ Uses Factory Boy for test data generation.
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.core.models import Nomenclature, TypeNomenclature
+from apps.core.models import Nomenclature, TypeNomenclature, ActivityLog
 
 
 class TypeNomenclatureFactory(DjangoModelFactory):
@@ -83,3 +83,56 @@ class RedacteurTypeNomenclatureFactory(NomenclatureFactory):
         'Gestionnaire',
         'Autre'
     ])
+
+
+class ActivityLogFactory(DjangoModelFactory):
+    """Factory for ActivityLog model."""
+
+    class Meta:
+        model = ActivityLog
+
+    entity_type = factory.Iterator(['site', 'plan', 'user', 'organisme', 'validation'])
+    entity_id = factory.Sequence(lambda n: n + 1)
+    entity_name = factory.Sequence(lambda n: f'Test Entity {n}')
+    action = factory.Iterator(['create', 'update', 'delete', 'add_member', 'remove_member'])
+    description = factory.Faker('sentence', locale='fr_FR')
+    actor_name = factory.Faker('name', locale='fr_FR')
+    visibility = 'public'
+    changes = factory.LazyFunction(dict)
+    metadata = factory.LazyFunction(dict)
+
+    @classmethod
+    def for_site(cls, site, action='create', **kwargs):
+        """Create activity log for a specific site."""
+        return cls(
+            entity_type='site',
+            entity_id=site.id_site,
+            entity_name=site.nom_site,
+            related_site=site,
+            action=action,
+            **kwargs
+        )
+
+    @classmethod
+    def for_plan(cls, plan, action='create', **kwargs):
+        """Create activity log for a specific plan."""
+        return cls(
+            entity_type='plan',
+            entity_id=plan.id_pg,
+            entity_name=plan.nom,
+            related_plan=plan,
+            action=action,
+            **kwargs
+        )
+
+    @classmethod
+    def for_user(cls, user, action='create', **kwargs):
+        """Create activity log for a specific user."""
+        return cls(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=user.get_full_name(),
+            related_user=user,
+            action=action,
+            **kwargs
+        )

@@ -689,3 +689,565 @@ class TestUsersPermissionsEndpoint:
         """Test permissions endpoint requires authentication."""
         response = api_client.get('/api/users/permissions/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDDeletion:
+    """Tests for RGPD account deletion functionality."""
+
+    def test_request_deletion_success(self, api_client):
+        """Test user can request account deletion - account stays active."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'requested'
+        assert 'message' in response.data
+
+        # Verify user stays ACTIVE and deletion_requested_at is set
+        user.refresh_from_db()
+        assert user.active is True  # Account stays active now
+        assert user.deletion_requested_at is not None
+
+    def test_request_deletion_unauthenticated(self, api_client):
+        """Test unauthenticated user cannot request deletion."""
+        response = api_client.post('/api/users/users/request_deletion/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_request_deletion_already_pending(self, api_client):
+        """Test user cannot request deletion twice."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_request_deletion_already_anonymized(self, api_client):
+        """Test anonymized user cannot request deletion."""
+        user = RoleFactory(
+            active=False,
+            is_anonymized=True,
+            email='anonymized_test@deleted.local'
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_success(self, api_client):
+        """Test user can cancel deletion request."""
+        from django.utils import timezone
+        user = RoleFactory(active=True)  # Account stays active in new logic
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'cancelled'
+
+        # Verify deletion_requested_at is cleared
+        user.refresh_from_db()
+        assert user.active is True
+        assert user.deletion_requested_at is None
+
+    def test_cancel_deletion_no_pending_request(self, api_client):
+        """Test cancel fails when no deletion is pending."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_already_anonymized(self, api_client):
+        """Test cancel fails for anonymized accounts."""
+        from django.utils import timezone
+        user = RoleFactory(
+            active=False,
+            is_anonymized=True,
+            email='anonymized_test2@deleted.local'
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/cancel_deletion/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_cancel_deletion_unauthenticated(self, api_client):
+        """Test unauthenticated user cannot cancel deletion."""
+        response = api_client.post('/api/users/users/cancel_deletion/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_me_returns_deletion_info(self, api_client):
+        """Test /me endpoint returns deletion_requested_at field."""
+        from django.utils import timezone
+        user = RoleFactory(active=True)  # Account stays active in new logic
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/me/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'deletion_requested_at' in response.data
+        assert response.data['deletion_requested_at'] is not None
+
+    def test_me_returns_anonymized_info(self, api_client):
+        """Test /me endpoint returns is_anonymized field."""
+        user = RoleFactory()
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/me/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'is_anonymized' in response.data
+        assert response.data['is_anonymized'] is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDModelMethods:
+    """Tests for RGPD model methods on User."""
+
+    def test_request_deletion_method(self):
+        """Test Role.request_deletion() method - still deactivates (for backward compat)."""
+        user = RoleFactory(active=True)
+
+        # The model method still deactivates (used internally)
+        # The API endpoint now keeps account active
+        user.request_deletion()
+
+        assert user.active is False  # Model method still deactivates
+        assert user.deletion_requested_at is not None
+
+    def test_anonymize_method(self):
+        """Test Role.anonymize() method."""
+        from django.utils import timezone
+        user = RoleFactory(
+            email='marie.dupont@test.fr',
+            nom_role='Dupont',
+            prenom_role='Marie',
+            active=False
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        user.anonymize()
+
+        assert user.is_anonymized is True
+        assert user.anonymized_at is not None
+        assert 'anonymized_' in user.email
+        assert '@deleted.local' in user.email
+        assert user.nom_role == 'Utilisateur'
+        assert user.prenom_role == 'Anonymise'
+
+    def test_can_be_anonymized_no_request(self):
+        """Test can_be_anonymized returns False when no deletion requested."""
+        user = RoleFactory(active=True)
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_already_anonymized(self):
+        """Test can_be_anonymized returns False when already anonymized."""
+        from django.utils import timezone
+        user = RoleFactory(
+            is_anonymized=True,
+            email='anonymized_123@deleted.local'
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_within_grace_period(self):
+        """Test can_be_anonymized returns False within 30-day grace period."""
+        from django.utils import timezone
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        assert user.can_be_anonymized() is False
+
+    def test_can_be_anonymized_after_grace_period(self):
+        """Test can_be_anonymized returns True after 30-day grace period."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        user = RoleFactory(active=False)
+        user.deletion_requested_at = timezone.now() - timedelta(days=31)
+        user.save()
+
+        assert user.can_be_anonymized() is True
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDNotifications:
+    """Tests for RGPD notifications sent to admins and referents."""
+
+    def test_request_deletion_notifies_super_admins(self, api_client):
+        """Test super admins receive notification on deletion request."""
+        from apps.notifications.models import Notification
+
+        # Create a super admin
+        super_admin = SuperAdminFactory(active=True)
+        # Create user requesting deletion
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check notification was created for super admin
+        notification = Notification.objects.filter(
+            recipient=super_admin,
+            notification_type='system_alert',
+            related_user=user
+        ).first()
+        assert notification is not None
+        assert 'RGPD' in notification.title
+        assert user.get_full_name() in notification.message or str(user) in notification.message
+
+    def test_request_deletion_notifies_organisme_admin(self, api_client):
+        """Test organisme admin receives notification on deletion request."""
+        from apps.notifications.models import Notification
+
+        # Create organisme and its admin
+        organisme = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=organisme, active=True)
+        # Create user in same organisme
+        user = RoleFactory(active=True, id_organisme=organisme)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check notification was created for organisme admin
+        notification = Notification.objects.filter(
+            recipient=admin_og,
+            notification_type='system_alert',
+            related_user=user
+        ).first()
+        assert notification is not None
+        assert 'RGPD' in notification.title
+
+    def test_request_deletion_notifies_site_referents(self, api_client):
+        """Test site referents receive notification on deletion request."""
+        from apps.notifications.models import Notification
+
+        # Create a site
+        site = SiteFactory()
+        # Create referent for this site
+        referent = RoleFactory(active=True)
+        CorRoleSiteFactory(
+            id_role=referent,
+            id_site=site,
+            referent=True,
+            referent_valid=True
+        )
+        # Create user who is member of this site
+        user = RoleFactory(active=True)
+        CorRoleSiteFactory(
+            id_role=user,
+            id_site=site,
+            referent=False
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check notification was created for site referent
+        notification = Notification.objects.filter(
+            recipient=referent,
+            notification_type='system_alert',
+            related_user=user
+        ).first()
+        assert notification is not None
+        assert 'RGPD' in notification.title
+
+    def test_request_deletion_notifies_plan_referents(self, api_client):
+        """Test plan referents receive notification on deletion request."""
+        from apps.notifications.models import Notification
+        from tests.factories.plans import PlanGestionFactory
+
+        # Create plan
+        plan = PlanGestionFactory()
+        # Create another referent for this plan
+        other_referent = RoleFactory(active=True)
+        plan.referents.add(other_referent)
+        # Create user who is also referent of this plan
+        user = RoleFactory(active=True)
+        plan.referents.add(user)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check notification was created for other plan referent
+        notification = Notification.objects.filter(
+            recipient=other_referent,
+            notification_type='system_alert',
+            related_user=user
+        ).first()
+        assert notification is not None
+        assert 'RGPD' in notification.title
+
+    def test_request_deletion_no_duplicate_notifications(self, api_client):
+        """Test no duplicate notifications when user has multiple roles."""
+        from apps.notifications.models import Notification
+
+        # Create organisme and site
+        organisme = OrganismeFactory()
+        site = SiteFactory()
+
+        # Create admin who is also referent of the site
+        admin_referent = AdminOrganismeFactory(id_organisme=organisme, active=True)
+        CorRoleSiteFactory(
+            id_role=admin_referent,
+            id_site=site,
+            referent=True,
+            referent_valid=True
+        )
+
+        # Create user in same organisme and member of same site
+        user = RoleFactory(active=True, id_organisme=organisme)
+        CorRoleSiteFactory(
+            id_role=user,
+            id_site=site,
+            referent=False
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check only ONE notification was created for admin_referent (not duplicated)
+        notifications = Notification.objects.filter(
+            recipient=admin_referent,
+            notification_type='system_alert',
+            related_user=user
+        )
+        assert notifications.count() == 1
+
+    def test_request_deletion_user_not_notified(self, api_client):
+        """Test the user requesting deletion does not receive a notification."""
+        from apps.notifications.models import Notification
+
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post('/api/users/users/request_deletion/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check no notification was created for the user themselves
+        notification = Notification.objects.filter(
+            recipient=user,
+            notification_type='system_alert',
+            related_user=user
+        ).first()
+        assert notification is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestUsersRGPDAdminEndpoints:
+    """Tests for RGPD admin endpoints (super_admin only)."""
+
+    def test_rgpd_requests_list_super_admin(self, api_client):
+        """Test super admin can list RGPD requests."""
+        from django.utils import timezone
+        admin = SuperAdminFactory()
+
+        # Create users with RGPD requests
+        user1 = RoleFactory(active=True)
+        user1.deletion_requested_at = timezone.now()
+        user1.save()
+
+        user2 = RoleFactory(active=True)
+        user2.deletion_requested_at = timezone.now()
+        user2.save()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get('/api/users/users/rgpd_requests/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['pagination']['count'] >= 2
+
+    def test_rgpd_requests_list_denied_for_regular_user(self, api_client):
+        """Test regular users cannot access RGPD requests list."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/rgpd_requests/')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_rgpd_requests_list_denied_for_admin_og(self, api_client):
+        """Test admin organisme cannot access RGPD requests list."""
+        admin_og = AdminOrganismeFactory()
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.get('/api/users/users/rgpd_requests/')
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_deactivate_rgpd_success(self, api_client):
+        """Test super admin can deactivate a user via RGPD."""
+        from django.utils import timezone
+        admin = SuperAdminFactory()
+        user = RoleFactory(active=True)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/deactivate_rgpd/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'deactivated'
+
+        user.refresh_from_db()
+        assert user.active is False
+        assert user.deletion_requested_at is None  # Request cleared
+
+    def test_deactivate_rgpd_no_request(self, api_client):
+        """Test cannot deactivate user without RGPD request."""
+        admin = SuperAdminFactory()
+        user = RoleFactory(active=True)  # No deletion_requested_at
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/deactivate_rgpd/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_anonymize_rgpd_success(self, api_client):
+        """Test super admin can anonymize a user via RGPD."""
+        from django.utils import timezone
+        admin = SuperAdminFactory()
+        user = RoleFactory(
+            active=True,
+            email='jean.dupont@test.fr',
+            nom_role='Dupont',
+            prenom_role='Jean'
+        )
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/anonymize_rgpd/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'anonymized'
+
+        user.refresh_from_db()
+        assert user.is_anonymized is True
+        assert '@deleted.local' in user.email
+        assert user.nom_role == 'Utilisateur'
+        assert user.prenom_role == 'Anonymise'
+
+    def test_anonymize_rgpd_no_request(self, api_client):
+        """Test cannot anonymize user without RGPD request."""
+        admin = SuperAdminFactory()
+        user = RoleFactory(active=True)  # No deletion_requested_at
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/anonymize_rgpd/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_reject_rgpd_success(self, api_client):
+        """Test super admin can reject a RGPD request."""
+        from django.utils import timezone
+        admin = SuperAdminFactory()
+        user = RoleFactory(active=True)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/reject_rgpd/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'rejected'
+
+        user.refresh_from_db()
+        assert user.active is True  # Still active
+        assert user.deletion_requested_at is None  # Request cleared
+
+    def test_reject_rgpd_notifies_user(self, api_client):
+        """Test rejecting RGPD request notifies the user."""
+        from django.utils import timezone
+        from apps.notifications.models import Notification
+
+        admin = SuperAdminFactory()
+        user = RoleFactory(active=True)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/users/users/{user.id_role}/reject_rgpd/')
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Check notification was created for user
+        notification = Notification.objects.filter(
+            recipient=user,
+            notification_type='system_alert'
+        ).first()
+        assert notification is not None
+        assert 'rejetee' in notification.title.lower() or 'reject' in notification.title.lower()
+
+    def test_auth_provider_endpoint(self, api_client):
+        """Test auth_provider endpoint returns the configured provider."""
+        user = RoleFactory(active=True)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get('/api/users/users/auth_provider/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'provider' in response.data
+        assert response.data['provider'] == 'local'  # Default value
+
+    def test_rgpd_admin_actions_denied_for_non_super_admin(self, api_client):
+        """Test RGPD admin actions are denied for non super_admin users."""
+        from django.utils import timezone
+        admin_og = AdminOrganismeFactory()
+        user = RoleFactory(active=True)
+        user.deletion_requested_at = timezone.now()
+        user.save()
+
+        api_client.force_authenticate(user=admin_og)
+
+        # Test deactivate_rgpd
+        response = api_client.post(f'/api/users/users/{user.id_role}/deactivate_rgpd/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        # Test anonymize_rgpd
+        response = api_client.post(f'/api/users/users/{user.id_role}/anonymize_rgpd/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        # Test reject_rgpd
+        response = api_client.post(f'/api/users/users/{user.id_role}/reject_rgpd/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN

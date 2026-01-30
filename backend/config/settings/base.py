@@ -16,6 +16,10 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
+# Authentication provider: 'local' (default) or 'keycloak'
+# When 'keycloak', RGPD account management is handled externally
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -200,6 +204,44 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
+# Celery Beat - Taches periodiques
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Nettoyage des anciens logs d'erreur - tous les jours a 3h du matin
+    'cleanup-old-error-logs': {
+        'task': 'core.cleanup_old_error_logs',
+        'schedule': crontab(hour=3, minute=0),
+        'kwargs': {'days': 90, 'acknowledged_days': 30},
+    },
+    # Audit hebdomadaire des organismes sans admin - tous les lundis a 8h
+    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
+    # Cette tache sert de filet de securite pour detecter les cas manques
+    'check-organismes-no-admin': {
+        'task': 'apps.notifications.tasks.check_organismes_without_admin',
+        'schedule': crontab(hour=8, minute=0, day_of_week=1),  # Lundi
+    },
+    # Audit hebdomadaire des sites orphelins - tous les lundis a 8h30
+    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
+    # Cette tache sert de filet de securite pour detecter les cas manques
+    'check-orphaned-sites': {
+        'task': 'apps.notifications.tasks.check_orphaned_sites',
+        'schedule': crontab(hour=8, minute=30, day_of_week=1),  # Lundi
+    },
+    # Nettoyage des anciennes notifications - tous les jours a 4h
+    'cleanup-old-notifications': {
+        'task': 'apps.notifications.tasks.cleanup_old_notifications',
+        'schedule': crontab(hour=4, minute=0),
+    },
+    # Expiration des inscriptions en attente - tous les jours a 5h
+    'cleanup-expired-pending-users': {
+        'task': 'apps.notifications.tasks.cleanup_expired_pending_users',
+        'schedule': crontab(hour=5, minute=0),
+    },
+    # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
+    # Les super_admins decident quand desactiver ou anonymiser les comptes
+}
+
 # Email backend (sera configure differemment en dev/prod)
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@outil-plan-gestion.fr')
@@ -294,6 +336,11 @@ LOGGING = {
             'formatter': 'json',
             'filters': ['correlation_id'],
         },
+        # Handler pour stocker les erreurs en base de donnees
+        'db_errors': {
+            'level': 'ERROR',
+            'class': 'apps.core.logging_handlers.DatabaseLogHandler',
+        },
     },
     'loggers': {
         # Logger racine
@@ -303,7 +350,7 @@ LOGGING = {
         },
         # Logger pour les applications
         'apps': {
-            'handlers': ['console'],
+            'handlers': ['console', 'db_errors'],
             'level': LOG_LEVEL,
             'propagate': False,
         },
@@ -315,7 +362,7 @@ LOGGING = {
         },
         # Logger pour les requetes Django (dev only)
         'django.request': {
-            'handlers': ['console'],
+            'handlers': ['console', 'db_errors'],
             'level': 'INFO',
             'propagate': False,
         },
