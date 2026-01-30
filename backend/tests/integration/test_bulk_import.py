@@ -259,13 +259,13 @@ class TestBulkImportValidation:
         # Second site should have the error
         assert response.data['errors'] >= 1
 
-    def test_similar_names_warning(self, api_client):
-        """Similar existing site names produce warnings."""
+    def test_duplicate_name_in_db(self, api_client):
+        """Existing site name (case-insensitive) produces blocking error."""
         admin = SuperAdminFactory()
-        SiteFactory(nom_site="Réserve Naturelle du Lac")
+        SiteFactory(nom_site="Réserve du Lac")
         api_client.force_authenticate(user=admin)
 
-        features = [_make_feature("Lac")]  # "Lac" is contained in existing name
+        features = [_make_feature("réserve du lac")]  # same name, different case
         f = _make_geojson_file(features)
 
         response = api_client.post(
@@ -275,7 +275,11 @@ class TestBulkImportValidation:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['warnings'] >= 1
+        assert response.data['errors'] >= 1
+        site = response.data['sites'][0]
+        assert len(site['errors']) > 0
+        assert site['duplicate_info'] is not None
+        assert site['duplicate_info']['type'] == 'exact_name'
 
     def test_permission_denied_for_regular_user(self, api_client):
         """Regular user cannot access bulk import."""
