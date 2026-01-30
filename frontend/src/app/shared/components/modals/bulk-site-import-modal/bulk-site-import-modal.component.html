@@ -1,0 +1,354 @@
+<h2 mat-dialog-title>
+  <i class="fi fi-rr-cloud-upload-alt"></i>
+  {{ 'modals.bulkImport.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <!-- Stepper header always visible -->
+  <mat-stepper #stepper [linear]="false" [selectedIndex]="currentStep()" (selectionChange)="currentStep.set($event.selectedIndex)">
+
+    <!-- Step 1: Upload -->
+    <mat-step [completed]="validationResult() !== null">
+      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.upload' | translate }}</ng-template>
+
+      <div class="step-content">
+        <p class="step-description">{{ 'modals.bulkImport.upload.description' | translate }}</p>
+
+        <div class="format-info">
+          <p class="geometry-note">
+            <i class="fi fi-rr-info"></i>
+            {{ 'modals.bulkImport.upload.geometryNote' | translate }}
+          </p>
+          <div class="download-templates">
+            <span>{{ 'modals.bulkImport.upload.downloadTemplates' | translate }}</span>
+            <a href="assets/templates/import-sites-exemple.geojson" download class="template-link">
+              <i class="fi fi-rr-download"></i>
+              {{ 'modals.bulkImport.upload.templateGeojson' | translate }}
+            </a>
+            <a href="assets/templates/import-sites-exemple.csv" download class="template-link">
+              <i class="fi fi-rr-download"></i>
+              {{ 'modals.bulkImport.upload.templateCsv' | translate }}
+            </a>
+          </div>
+        </div>
+
+        <div class="dropzone"
+             (drop)="onFileDrop($event)"
+             (dragover)="onDragOver($event)"
+             [class.has-file]="selectedFile()">
+
+          @if (selectedFile()) {
+            <div class="file-info">
+              <i class="fi fi-rr-document"></i>
+              <span>{{ selectedFile()!.name }}</span>
+              @if (validationResult()) {
+                <span class="feature-count">
+                  {{ 'modals.bulkImport.upload.featuresDetected' | translate:{ count: validationResult()!.total } }}
+                </span>
+              }
+            </div>
+          } @else {
+            <div class="dropzone-content">
+              <i class="fi fi-rr-cloud-upload-alt"></i>
+              <p>{{ 'modals.bulkImport.upload.dropzone' | translate }}</p>
+              <p class="formats-hint">{{ 'modals.bulkImport.upload.formats' | translate }}</p>
+            </div>
+          }
+
+          <input type="file"
+                 accept=".geojson,.json,.csv"
+                 (change)="onFileSelected($event)"
+                 class="file-input"
+                 data-testid="file-input">
+        </div>
+
+        @if (uploadError()) {
+          <p class="error-text">{{ uploadError() }}</p>
+        }
+
+        @if (uploading()) {
+          <div class="loading-inline">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>{{ 'modals.bulkImport.upload.parsing' | translate }}</span>
+          </div>
+        }
+
+        <div class="step-actions">
+          <button mat-flat-button color="primary"
+                  [disabled]="!validationResult()"
+                  (click)="stepNext()">
+            {{ 'modals.bulkImport.actions.next' | translate }}
+            <i class="fi fi-rr-angle-right"></i>
+          </button>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- Step 2: Mapping -->
+    <mat-step [completed]="currentStep() > 1">
+      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.mapping' | translate }}</ng-template>
+
+      <div class="step-content">
+        <p class="step-description">{{ 'modals.bulkImport.mapping.description' | translate }}</p>
+
+        <div class="mapping-table-wrapper">
+          <table class="mapping-table">
+            <thead>
+              <tr>
+                <th>{{ 'modals.bulkImport.mapping.sourceProperty' | translate }}</th>
+                <th>{{ 'modals.bulkImport.mapping.targetField' | translate }}</th>
+                <th>{{ 'modals.bulkImport.mapping.exampleValues' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (prop of detectedProperties(); track prop) {
+                <tr>
+                  <td class="prop-name">{{ prop }}</td>
+                  <td>
+                    <mat-form-field appearance="outline" class="mapping-select">
+                      <mat-select [value]="fieldMapping()[prop] || ''"
+                                  (selectionChange)="onMappingChange(prop, $event.value)">
+                        <mat-option value="">{{ 'modals.bulkImport.mapping.ignore' | translate }}</mat-option>
+                        @for (field of targetFields; track field.value) {
+                          <mat-option [value]="field.value">{{ field.label | translate }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </td>
+                  <td class="example-values">
+                    @for (val of getExampleValues(prop); track $index) {
+                      <span class="example-val">{{ val }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="step-actions">
+          <button mat-stroked-button (click)="stepPrevious()">
+            <i class="fi fi-rr-angle-left"></i>
+            {{ 'modals.bulkImport.actions.previous' | translate }}
+          </button>
+          <div class="step-actions-right">
+            <button mat-stroked-button (click)="revalidate()" [disabled]="validating()">
+              <i class="fi fi-rr-refresh"></i>
+              {{ 'modals.bulkImport.mapping.revalidate' | translate }}
+            </button>
+            <button mat-flat-button color="primary" (click)="goToPreview()">
+              {{ 'modals.bulkImport.actions.next' | translate }}
+              <i class="fi fi-rr-angle-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- Step 3: Preview -->
+    <mat-step [completed]="currentStep() > 2">
+      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.preview' | translate }}</ng-template>
+
+      <div class="step-content">
+        <p class="step-description">{{ 'modals.bulkImport.preview.description' | translate }}</p>
+
+        <!-- Summary bar -->
+        <div class="summary-bar">
+          <span class="summary-text">
+            {{ 'modals.bulkImport.preview.summary' | translate:{ valid: totalValid(), errors: totalErrors(), duplicates: totalDuplicates() } }}
+          </span>
+          <span class="selected-text">
+            {{ 'modals.bulkImport.preview.selectedCount' | translate:{ count: selectedCount() } }}
+          </span>
+        </div>
+
+        <!-- Sites table -->
+        <div class="preview-table-wrapper">
+          <table mat-table [dataSource]="sites()" class="preview-table">
+
+            <!-- Checkbox column -->
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox [checked]="allSelected()"
+                              (change)="toggleAll()"
+                              [indeterminate]="selectedCount() > 0 && !allSelected()">
+                </mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef="let site; let i = index">
+                <mat-checkbox [checked]="site.selected"
+                              [disabled]="site.errors.length > 0"
+                              (change)="toggleSite(i)">
+                </mat-checkbox>
+              </td>
+            </ng-container>
+
+            <!-- Row number -->
+            <ng-container matColumnDef="row">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.row' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ site.row_index + 1 }}</td>
+            </ng-container>
+
+            <!-- Name -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.name' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ site.mapped_data?.nom_site || '-' }}</td>
+            </ng-container>
+
+            <!-- INPN -->
+            <ng-container matColumnDef="inpn">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.inpn' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ site.mapped_data?.id_inpn || '-' }}</td>
+            </ng-container>
+
+            <!-- Local ID -->
+            <ng-container matColumnDef="local">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.local' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ site.mapped_data?.id_local || '-' }}</td>
+            </ng-container>
+
+            <!-- Surface -->
+            <ng-container matColumnDef="surface">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.surface' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ site.mapped_data?.surf_off || '-' }}</td>
+            </ng-container>
+
+            <!-- Geometry icon -->
+            <ng-container matColumnDef="geometry">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.geometry' | translate }}</th>
+              <td mat-cell *matCellDef="let site">
+                @if (site.has_geometry) {
+                  <i class="fi fi-rr-marker" matTooltip="Géométrie présente"></i>
+                } @else {
+                  <span>-</span>
+                }
+              </td>
+            </ng-container>
+
+            <!-- Status chip -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.status' | translate }}</th>
+              <td mat-cell *matCellDef="let site">
+                @switch (getSiteStatus(site)) {
+                  @case ('valid') {
+                    <span class="status-chip status-success">{{ 'modals.bulkImport.preview.status.valid' | translate }}</span>
+                  }
+                  @case ('error') {
+                    <span class="status-chip status-error"
+                          [matTooltip]="site.errors.join('; ')">{{ 'modals.bulkImport.preview.status.error' | translate }}</span>
+                  }
+                  @case ('duplicate') {
+                    <span class="status-chip status-warning"
+                          [matTooltip]="site.errors.join('; ')">{{ 'modals.bulkImport.preview.status.duplicate' | translate }}</span>
+                  }
+                  @case ('warning') {
+                    <span class="status-chip status-info"
+                          [matTooltip]="site.warnings.join('; ')">{{ 'modals.bulkImport.preview.status.warning' | translate }}</span>
+                  }
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="previewColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: previewColumns;"
+                [class.row-error]="row.errors.length > 0"
+                [class.row-warning]="row.warnings.length > 0 && row.errors.length === 0">
+            </tr>
+          </table>
+        </div>
+
+        @if (totalValid() === 0) {
+          <p class="no-valid-text">{{ 'modals.bulkImport.preview.noValidSites' | translate }}</p>
+        }
+
+        <div class="step-actions">
+          <button mat-stroked-button (click)="stepPrevious()">
+            <i class="fi fi-rr-angle-left"></i>
+            {{ 'modals.bulkImport.actions.previous' | translate }}
+          </button>
+          <button mat-flat-button color="primary"
+                  [disabled]="!canImport()"
+                  (click)="startImport()">
+            <i class="fi fi-rr-cloud-upload-alt"></i>
+            {{ 'modals.bulkImport.actions.import' | translate }}
+          </button>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- Step 4: Results -->
+    <mat-step>
+      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.results' | translate }}</ng-template>
+
+      <div class="step-content">
+        @if (importing()) {
+          <div class="import-progress">
+            <p>{{ 'modals.bulkImport.results.importing' | translate }}</p>
+            @if (jobStatus()) {
+              <mat-progress-bar mode="determinate" [value]="importProgress()"></mat-progress-bar>
+              <p class="progress-text">
+                {{ 'modals.bulkImport.results.progress' | translate:{ processed: jobStatus()!.processed_sites, total: jobStatus()!.total_sites } }}
+              </p>
+            } @else {
+              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            }
+          </div>
+        } @else if (importResult()) {
+          <div class="import-results">
+            <h3>
+              @if (importResult()!.failed === importResult()!.created && importResult()!.created === 0 && (importResult()!.validation_pending || 0) === 0) {
+                {{ 'modals.bulkImport.results.failed' | translate }}
+              } @else {
+                {{ 'modals.bulkImport.results.completed' | translate }}
+              }
+            </h3>
+
+            <p class="results-summary">
+              {{ 'modals.bulkImport.results.summary' | translate:{
+                created: importResult()!.created || 0,
+                pending: importResult()!.validation_pending || 0,
+                failed: importResult()!.failed || 0
+              } }}
+            </p>
+
+            @if (importDetails().length > 0) {
+              <div class="results-table-wrapper">
+                <table class="results-table">
+                  <thead>
+                    <tr>
+                      <th>{{ 'modals.bulkImport.results.columns.name' | translate }}</th>
+                      <th>{{ 'modals.bulkImport.results.columns.status' | translate }}</th>
+                      <th>{{ 'modals.bulkImport.results.columns.error' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (detail of importDetails(); track detail.row_index) {
+                      <tr [class]="'result-' + detail.status">
+                        <td>{{ detail.nom_site }}</td>
+                        <td>
+                          <span class="status-chip" [ngClass]="{
+                            'status-success': detail.status === 'created',
+                            'status-warning': detail.status === 'validation_pending',
+                            'status-error': detail.status === 'failed'
+                          }">
+                            {{ 'modals.bulkImport.results.itemStatus.' + detail.status | translate }}
+                          </span>
+                        </td>
+                        <td>{{ detail.error || '' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </mat-step>
+  </mat-stepper>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="close()">
+    {{ 'modals.bulkImport.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

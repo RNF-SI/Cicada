@@ -553,3 +553,7 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 - Janvier 2026 : Amélioration détermination accès (via sites liés) et gestion demandes rejetées
 - Janvier 2026 : Ajout scope toggle (Mes plans / Mon organisme / Tous) selon le rôle utilisateur
 - Janvier 2026 : Ajout relation membre/référent directe via `CorRolePlan` (comme `CorRoleSite` pour les sites)
+
+---
+
+← [Données de test (Seeders)](13-seeders.md) | [Index](../FONCTIONNALITES.md) | [Import en masse de sites](15-import-masse.md) →

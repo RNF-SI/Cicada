@@ -429,6 +429,8 @@ class SiteViewSet(viewsets.ModelViewSet):
             permission_classes = [IsReferent]  # Vérifié dans get_object
         elif self.action in ['destroy']:
             permission_classes = [IsAdminOrganisme]  # Vérifié dans get_object
+        elif self.action in ['bulk_import_validate', 'bulk_import_execute', 'bulk_import_status']:
+            permission_classes = [IsAdminOrganisme]
         else:
             permission_classes = [permissions.IsAuthenticated]
 
@@ -1431,3 +1433,239 @@ class SiteViewSet(viewsets.ModelViewSet):
         return Response({
             'message': f'L\'utilisateur "{target_user}" a ete ajoute au site "{site.nom_site}".',
         }, status=status.HTTP_201_CREATED)
+
+    # ==================== IMPORT EN MASSE ====================
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_validate')
+    def bulk_import_validate(self, request):
+        """
+        Valide un fichier d'import en masse de sites.
+        POST multipart: file (.geojson, .json, .csv) + field_mapping optionnel (JSON string).
+
+        Retourne les propriétés détectées, le mapping suggéré et la validation ligne par ligne.
+        """
+        from .services_bulk_import import BulkSiteImportService
+
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response(
+                {'error': 'Aucun fichier fourni.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check file size (10 MB max)
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return Response(
+                {'error': 'Le fichier dépasse la taille maximale de 10 Mo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Determine format
+        filename = uploaded_file.name.lower()
+        if filename.endswith(('.geojson', '.json')):
+            file_format = 'geojson'
+        elif filename.endswith('.csv'):
+            file_format = 'csv'
+        else:
+            return Response(
+                {'error': 'Format de fichier non supporté. Utilisez .geojson, .json ou .csv.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Read file content
+        try:
+            file_content = uploaded_file.read()
+            if isinstance(file_content, bytes):
+                file_content_str = file_content.decode('utf-8-sig')
+            else:
+                file_content_str = file_content
+        except Exception as e:
+            return Response(
+                {'error': f'Impossible de lire le fichier: {e}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Parse
+        try:
+            if file_format == 'geojson':
+                parsed = BulkSiteImportService.parse_geojson(file_content_str)
+            else:
+                parsed = BulkSiteImportService.parse_csv(file_content_str)
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Detect properties
+        all_properties = set()
+        for site_data in parsed:
+            all_properties.update(site_data['properties'].keys())
+        detected_properties = sorted(all_properties)
+
+        # Field mapping
+        field_mapping_str = request.data.get('field_mapping')
+        if field_mapping_str:
+            import json
+            try:
+                if isinstance(field_mapping_str, str):
+                    field_mapping = json.loads(field_mapping_str)
+                else:
+                    field_mapping = field_mapping_str
+            except (json.JSONDecodeError, ValueError):
+                return Response(
+                    {'error': 'Le field_mapping JSON est invalide.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            field_mapping = BulkSiteImportService.detect_field_mapping(detected_properties)
+
+        suggested_mapping = BulkSiteImportService.detect_field_mapping(detected_properties)
+
+        # Apply mapping
+        mapped = BulkSiteImportService.apply_field_mapping(parsed, field_mapping)
+
+        # Validate
+        validated = BulkSiteImportService.validate_batch(mapped)
+
+        # Build response
+        sites_response = []
+        total_valid = 0
+        total_errors = 0
+        total_warnings = 0
+        total_duplicates = 0
+
+        for site_data in validated:
+            has_errors = len(site_data.get('errors', [])) > 0
+            has_warnings = len(site_data.get('warnings', [])) > 0
+            has_duplicate = site_data.get('duplicate_info') is not None
+
+            if has_errors:
+                total_errors += 1
+            elif has_duplicate:
+                total_duplicates += 1
+            else:
+                total_valid += 1
+
+            if has_warnings:
+                total_warnings += 1
+
+            sites_response.append({
+                'row_index': site_data['row_index'],
+                'original_properties': site_data['original_properties'],
+                'mapped_data': site_data['mapped_data'],
+                'geometry': site_data.get('geometry'),
+                'has_geometry': site_data.get('has_geometry', False),
+                'errors': site_data.get('errors', []),
+                'warnings': site_data.get('warnings', []),
+                'duplicate_info': site_data.get('duplicate_info'),
+            })
+
+        return Response({
+            'detected_properties': detected_properties,
+            'suggested_mapping': suggested_mapping,
+            'applied_mapping': field_mapping,
+            'sites': sites_response,
+            'total': len(sites_response),
+            'valid': total_valid,
+            'errors': total_errors,
+            'warnings': total_warnings,
+            'duplicates': total_duplicates,
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_execute')
+    def bulk_import_execute(self, request):
+        """
+        Exécute l'import en masse des sites sélectionnés.
+        POST JSON: { sites: [...], selected_indices: [...] }
+
+        Si ≤50 sites: import synchrone.
+        Si >50 sites: import asynchrone via Celery, retourne job_id.
+        """
+        from .services_bulk_import import BulkSiteImportService
+        from .models import BulkImportJob
+
+        sites = request.data.get('sites', [])
+        selected_indices = request.data.get('selected_indices', [])
+
+        if not sites or not selected_indices:
+            return Response(
+                {'error': 'Aucun site sélectionné pour l\'import.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        selected_sites = [s for s in sites if s.get('row_index') in selected_indices]
+
+        if len(selected_sites) <= 50:
+            # Synchronous import
+            result = BulkSiteImportService.import_sites(selected_sites, request.user, selected_indices)
+            return Response({
+                'async': False,
+                **result,
+            }, status=status.HTTP_201_CREATED)
+        else:
+            # Async import via Celery
+            job = BulkImportJob.objects.create(
+                user=request.user,
+                status='pending',
+                total_sites=len(selected_sites),
+                import_data={
+                    'sites': selected_sites,
+                    'selected_indices': selected_indices,
+                },
+            )
+
+            from .tasks import bulk_import_sites_task
+            bulk_import_sites_task.delay(job.id)
+
+            return Response({
+                'async': True,
+                'job_id': job.id,
+                'message': f'Import de {len(selected_sites)} sites lancé en arrière-plan.',
+            }, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminOrganisme],
+            url_path='bulk_import_status')
+    def bulk_import_status(self, request):
+        """
+        Retourne le statut d'un job d'import en masse.
+        GET /api/users/sites/bulk_import_status/?job_id=X
+        """
+        from .models import BulkImportJob
+
+        job_id = request.query_params.get('job_id')
+        if not job_id:
+            return Response(
+                {'error': 'Paramètre job_id requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            job = BulkImportJob.objects.get(id=int(job_id))
+        except (BulkImportJob.DoesNotExist, ValueError):
+            return Response(
+                {'error': 'Job introuvable.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Verify ownership (super admin can see all)
+        if not request.user.is_super_admin() and job.user_id != request.user.pk:
+            return Response(
+                {'error': 'Accès refusé.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response({
+            'job_id': job.id,
+            'status': job.status,
+            'total_sites': job.total_sites,
+            'processed_sites': job.processed_sites,
+            'created_sites': job.created_sites,
+            'failed_sites': job.failed_sites,
+            'validation_pending_sites': job.validation_pending_sites,
+            'result_data': job.result_data,
+            'created_at': job.created_at.isoformat() if job.created_at else None,
+            'completed_at': job.completed_at.isoformat() if job.completed_at else None,
+        })

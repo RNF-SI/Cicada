@@ -20,6 +20,7 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 | 12 | [Page Exploration](fonctionnalites/12-exploration.md) | Page publique vitrine |
 | 13 | [Données de test (Seeders)](fonctionnalites/13-seeders.md) ⚠️ | Architecture modulaire des seeders |
 | 14 | [Plans de Gestion](fonctionnalites/14-plans.md) | Création, sites en attente, réassignation |
+| 15 | [Import en masse de sites](fonctionnalites/15-import-masse.md) | GeoJSON/CSV, validation, doublons, import sync/async |
 
 > ⚠️ = Section réservée aux développeurs
 
@@ -76,3 +77,4 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 - Janvier 2026 : Ajout fonctionnalité RGPD - Suppression de compte
 - Janvier 2026 : Ajout notification `organisme_changed` (changement d'organisme par admin)
 - Janvier 2026 : Ajout validation `site_org_unlink` (demande de retrait d'organisme d'un site)
+- Janvier 2026 : Ajout import en masse de sites (GeoJSON/CSV, validation, doublons, async Celery)

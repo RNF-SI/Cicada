@@ -1024,6 +1024,101 @@
       "save": "Enregistrer",
       "create": "Créer",
       "loading": "Chargement..."
+    },
+    "bulkImport": {
+      "title": "Import en masse de sites",
+      "steps": {
+        "upload": "1. Fichier",
+        "mapping": "2. Correspondance",
+        "preview": "3. Vérification",
+        "results": "4. Résultats"
+      },
+      "upload": {
+        "title": "Sélectionner un fichier",
+        "description": "Importez un fichier GeoJSON ou CSV contenant les sites à ajouter dans l'application.",
+        "dropzone": "Glissez-déposez un fichier ici ou cliquez pour sélectionner",
+        "formats": "Formats acceptés : .geojson, .json, .csv (max 10 Mo)",
+        "featuresDetected": "{{count}} site(s) détecté(s) dans le fichier",
+        "parsing": "Analyse du fichier...",
+        "downloadTemplates": "Télécharger un fichier exemple :",
+        "templateGeojson": "Exemple GeoJSON",
+        "templateCsv": "Exemple CSV",
+        "geometryNote": "Le format GeoJSON permet d'importer les géométries des sites (Polygon ou MultiPolygon). Le format CSV ne permet pas d'importer de géométries.",
+        "errors": {
+          "noFile": "Aucun fichier sélectionné",
+          "invalidFormat": "Format de fichier non supporté. Utilisez .geojson, .json ou .csv.",
+          "tooLarge": "Le fichier dépasse la taille maximale de 10 Mo.",
+          "parseError": "Erreur lors de la lecture du fichier"
+        }
+      },
+      "mapping": {
+        "title": "Correspondance des champs",
+        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet.",
+        "sourceProperty": "Colonne du fichier",
+        "targetField": "Champ dans l'application",
+        "exampleValues": "Exemples de valeurs",
+        "ignore": "— Ignorer —",
+        "revalidate": "Re-valider",
+        "fields": {
+          "nom_site": "Nom du site",
+          "id_inpn": "Code INPN",
+          "id_local": "Identifiant local",
+          "type_site_id": "Type de site (code ou libellé)",
+          "surf_off": "Surface (ha)",
+          "marin": "Milieu marin",
+          "outre_mer": "Outre-mer"
+        }
+      },
+      "preview": {
+        "title": "Vérification et sélection",
+        "description": "Vérifiez les données qui seront importées dans l'application. Décochez les lignes que vous ne souhaitez pas importer.",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
+        "columns": {
+          "select": "",
+          "row": "#",
+          "name": "Nom du site",
+          "inpn": "Code INPN",
+          "local": "ID local",
+          "type": "Type",
+          "surface": "Surface",
+          "geometry": "Géo",
+          "status": "Statut"
+        },
+        "status": {
+          "valid": "Valide",
+          "error": "Erreur",
+          "duplicate": "Doublon",
+          "warning": "Avertissement"
+        },
+        "summary": "{{valid}} valide(s) / {{errors}} erreur(s) / {{duplicates}} doublon(s)",
+        "selectedCount": "{{count}} site(s) sélectionné(s) pour l'import",
+        "noValidSites": "Aucun site valide à importer"
+      },
+      "results": {
+        "title": "Résultat de l'import",
+        "importing": "Import en cours...",
+        "progress": "{{processed}} / {{total}} site(s) traité(s)",
+        "completed": "Import terminé",
+        "failed": "L'import a échoué",
+        "summary": "{{created}} créé(s), {{pending}} en attente de validation, {{failed}} échoué(s)",
+        "columns": {
+          "name": "Nom du site",
+          "status": "Statut",
+          "error": "Erreur"
+        },
+        "itemStatus": {
+          "created": "Créé",
+          "validation_pending": "En attente",
+          "failed": "Échoué"
+        }
+      },
+      "actions": {
+        "next": "Suivant",
+        "previous": "Précédent",
+        "import": "Importer les sites sélectionnés",
+        "close": "Fermer"
+      }
     }
   },
   "plans": {

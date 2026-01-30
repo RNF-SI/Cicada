@@ -450,3 +450,77 @@ export interface DuplicateCheckResult {
   /** Sites avec noms similaires (avertissement) */
   similar_names: DuplicateSite[];
 }
+
+// ==================== BULK IMPORT ====================
+
+/** Mapping des champs source vers les champs cibles */
+export type BulkImportFieldMapping = Record<string, string>;
+
+/** Informations de doublon détecté */
+export interface BulkImportDuplicateInfo {
+  type: 'exact_inpn';
+  existing_site_id: number;
+  existing_site_name: string;
+}
+
+/** Une ligne de site dans le résultat de validation */
+export interface BulkImportSiteRow {
+  row_index: number;
+  original_properties: Record<string, any>;
+  mapped_data: Record<string, any>;
+  geometry?: any | null;
+  has_geometry: boolean;
+  errors: string[];
+  warnings: string[];
+  duplicate_info: BulkImportDuplicateInfo | null;
+  /** Sélectionné pour import (état local, non retourné par l'API) */
+  selected?: boolean;
+}
+
+/** Résultat de la validation d'import en masse */
+export interface BulkImportValidationResult {
+  detected_properties: string[];
+  suggested_mapping: BulkImportFieldMapping;
+  applied_mapping: BulkImportFieldMapping;
+  sites: BulkImportSiteRow[];
+  total: number;
+  valid: number;
+  errors: number;
+  warnings: number;
+  duplicates: number;
+}
+
+/** Détail du résultat d'import par site */
+export interface BulkImportDetailItem {
+  row_index: number;
+  nom_site: string;
+  status: 'created' | 'validation_pending' | 'failed';
+  site_id?: number;
+  validation_request_id?: number;
+  error?: string;
+}
+
+/** Résultat de l'exécution d'import en masse */
+export interface BulkImportResult {
+  async: boolean;
+  job_id?: number;
+  message?: string;
+  created?: number;
+  failed?: number;
+  validation_pending?: number;
+  details?: BulkImportDetailItem[];
+}
+
+/** Statut d'un job d'import asynchrone */
+export interface BulkImportJobStatus {
+  job_id: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total_sites: number;
+  processed_sites: number;
+  created_sites: number;
+  failed_sites: number;
+  validation_pending_sites: number;
+  result_data: any;
+  created_at: string | null;
+  completed_at: string | null;
+}

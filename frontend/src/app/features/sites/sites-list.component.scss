@@ -293,6 +293,12 @@ h1 { @include sites-h1; }
   &:hover { text-decoration: underline; }
 }
 // Bouton secondaire (design Figma: bordure + fond blanc)
+.action-buttons {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
 .btn-request {
   display: flex;
   align-items: center;

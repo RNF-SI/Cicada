@@ -1,0 +1,115 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nom": "Réserve naturelle du Lac de Grand-Lieu",
+        "inpn": "FR3600101",
+        "id_local": "RNN101",
+        "type_site": "RNN",
+        "surface": 2695,
+        "marin": false,
+        "outre_mer": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-1.6850, 47.0550],
+          [-1.6350, 47.0550],
+          [-1.6350, 47.0850],
+          [-1.6850, 47.0850],
+          [-1.6850, 47.0550]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nom": "Réserve naturelle des Gorges de l'Ardèche",
+        "inpn": "FR3600102",
+        "id_local": "RNN102",
+        "type_site": "RNN",
+        "surface": 1572,
+        "marin": false,
+        "outre_mer": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [4.3800, 44.3100],
+          [4.4400, 44.3100],
+          [4.4400, 44.3500],
+          [4.3800, 44.3500],
+          [4.3800, 44.3100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nom": "Réserve naturelle de la Baie de Saint-Brieuc",
+        "inpn": "FR3600103",
+        "id_local": "RNN103",
+        "type_site": "RNN",
+        "surface": 1140,
+        "marin": true,
+        "outre_mer": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-2.7800, 48.5200],
+          [-2.7000, 48.5200],
+          [-2.7000, 48.5600],
+          [-2.7800, 48.5600],
+          [-2.7800, 48.5200]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nom": "Parc naturel régional du Marais de Lavours",
+        "inpn": "FR3600104",
+        "id_local": "PNR104",
+        "type_site": "PNR",
+        "surface": 474,
+        "marin": false,
+        "outre_mer": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [5.7500, 45.8100],
+          [5.7900, 45.8100],
+          [5.7900, 45.8400],
+          [5.7500, 45.8400],
+          [5.7500, 45.8100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nom": "Espace naturel sensible de la Petite Camargue",
+        "inpn": "FR3600105",
+        "id_local": "ENS105",
+        "type_site": "ENS",
+        "surface": 904,
+        "marin": false,
+        "outre_mer": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [7.5000, 47.6100],
+          [7.5500, 47.6100],
+          [7.5500, 47.6400],
+          [7.5000, 47.6400],
+          [7.5000, 47.6100]
+        ]]
+      }
+    }
+  ]
+}

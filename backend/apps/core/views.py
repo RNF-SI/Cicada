@@ -18,7 +18,7 @@ from apps.users.permissions import IsSuperAdmin, IsAdminOrganisme
 from apps.notifications.models import ValidationRequest, Notification
 from apps.users.models import CorRoleSite, CorOgSite
 
-from .models import Module, ErrorLog, ActivityLog, SiteConfiguration
+from .models import Module, ErrorLog, ActivityLog, Nomenclature, SiteConfiguration
 from .serializers import (
     ModuleSerializer,
     ModuleListSerializer,
@@ -29,9 +29,39 @@ from .serializers import (
     ActivityLogListSerializer,
     ActivityLogDetailSerializer,
     ActivityLogStatsSerializer,
+    NomenclatureSerializer,
     SiteConfigurationSerializer,
     SiteConfigurationUpdateSerializer,
 )
+
+# Mapping des types frontend -> mnémonique backend TypeNomenclature
+NOMENCLATURE_TYPE_MAPPING = {
+    'TYPE_SITE': 'Espace naturel',
+    'TYPE_EVALUATION': 'Evaluation PG',
+    'TYPE_REDACTEUR': 'Redacteur type',
+}
+
+
+# =============================================================================
+# Nomenclature ViewSet
+# =============================================================================
+
+class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API en lecture seule pour les nomenclatures.
+    Filtrage par type via ?type=TYPE_SITE, ?type=TYPE_EVALUATION, etc.
+    """
+    serializer_class = NomenclatureSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Nomenclature.objects.filter(actif=True).select_related('id_type')
+        type_param = self.request.query_params.get('type')
+        if type_param:
+            mnemonique = NOMENCLATURE_TYPE_MAPPING.get(type_param, type_param)
+            qs = qs.filter(id_type__mnemonique=mnemonique)
+        return qs.order_by('label')
 
 
 # =============================================================================

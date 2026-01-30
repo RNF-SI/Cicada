@@ -3,7 +3,19 @@ Serializers pour les modeles du core.
 """
 from rest_framework import serializers
 
-from .models import Module, ErrorLog, ActivityLog, SiteConfiguration
+from .models import Module, ErrorLog, ActivityLog, Nomenclature, SiteConfiguration
+
+
+# =============================================================================
+# Nomenclature Serializers
+# =============================================================================
+
+class NomenclatureSerializer(serializers.ModelSerializer):
+    """Serializer pour les nomenclatures."""
+
+    class Meta:
+        model = Nomenclature
+        fields = ['id_nomenclature', 'cd_nomenclature', 'mnemonique', 'label']
 
 
 # =============================================================================

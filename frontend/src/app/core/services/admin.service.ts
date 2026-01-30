@@ -20,7 +20,11 @@ import {
   GeoJSONFeature,
   GeoJSONFeatureCollection,
   DuplicateCheckResult,
-  RgpdRequest
+  RgpdRequest,
+  BulkImportFieldMapping,
+  BulkImportValidationResult,
+  BulkImportResult,
+  BulkImportJobStatus
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -635,6 +639,46 @@ export class AdminService {
   getAuthProvider(): Observable<{ provider: string }> {
     return this.http.get<{ provider: string }>(`${this.apiUrl}/users/auth_provider/`)
       .pipe(catchError(this.handleError));
+  }
+
+  // ==================== BULK IMPORT ====================
+
+  /**
+   * Validate a bulk import file (GeoJSON or CSV)
+   * POST multipart /api/users/sites/bulk_import_validate/
+   */
+  bulkImportValidate(file: File, fieldMapping?: BulkImportFieldMapping): Observable<BulkImportValidationResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (fieldMapping) {
+      formData.append('field_mapping', JSON.stringify(fieldMapping));
+    }
+    return this.http.post<BulkImportValidationResult>(
+      `${this.apiUrl}/sites/bulk_import_validate/`,
+      formData
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Execute bulk import of selected sites
+   * POST JSON /api/users/sites/bulk_import_execute/
+   */
+  bulkImportExecute(sites: any[], selectedIndices: number[]): Observable<BulkImportResult> {
+    return this.http.post<BulkImportResult>(
+      `${this.apiUrl}/sites/bulk_import_execute/`,
+      { sites, selected_indices: selectedIndices }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get status of an async bulk import job
+   * GET /api/users/sites/bulk_import_status/?job_id=X
+   */
+  bulkImportStatus(jobId: number): Observable<BulkImportJobStatus> {
+    return this.http.get<BulkImportJobStatus>(
+      `${this.apiUrl}/sites/bulk_import_status/`,
+      { params: { job_id: jobId.toString() } }
+    ).pipe(catchError(this.handleError));
   }
 
   // ==================== ERROR HANDLING ====================

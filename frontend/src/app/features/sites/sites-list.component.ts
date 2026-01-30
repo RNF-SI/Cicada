@@ -30,6 +30,7 @@ import { ValidationRequestListItem } from '../../core/models/notification.model'
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
+import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
@@ -605,6 +606,30 @@ export class SitesListComponent implements OnInit {
    * Permet de rechercher un site existant et demander l'accès,
    * ou de créer un nouveau site si aucun n'existe.
    */
+  /**
+   * Ouvre le dialogue d'import en masse de sites.
+   * Visible uniquement pour admin_og et super_admin.
+   */
+  openBulkImportDialog(): void {
+    const dialogRef = this.dialog.open(BulkSiteImportModalComponent, {
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result: BulkSiteImportModalResult | null) => {
+      if (result?.imported) {
+        this.loadData();
+        this.snackBar.open(
+          `${result.created} site(s) importé(s) avec succès`,
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
   openFindOrCreateSiteDialog(): void {
     const dialogRef = this.dialog.open(FindOrCreateSiteModalComponent, {
       width: '1100px',

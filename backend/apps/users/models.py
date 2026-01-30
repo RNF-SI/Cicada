@@ -482,3 +482,49 @@ class CorOgSite(models.Model):
             return cor.uuid_og
         except cls.DoesNotExist:
             return None
+
+
+class BulkImportJob(models.Model):
+    """
+    Suivi des imports en masse de sites.
+    Utilisé pour les imports asynchrones (>50 sites) via Celery.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', _('En attente')),
+        ('processing', _('En cours')),
+        ('completed', _('Terminé')),
+        ('failed', _('Échoué')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name='bulk_import_jobs',
+        verbose_name=_('Utilisateur'),
+    )
+    status = models.CharField(
+        _('Statut'),
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default='pending',
+    )
+    total_sites = models.IntegerField(_('Total sites'), default=0)
+    processed_sites = models.IntegerField(_('Sites traités'), default=0)
+    created_sites = models.IntegerField(_('Sites créés'), default=0)
+    failed_sites = models.IntegerField(_('Sites échoués'), default=0)
+    validation_pending_sites = models.IntegerField(_('Sites en attente de validation'), default=0)
+    import_data = models.JSONField(_('Données d\'import'), default=dict)
+    result_data = models.JSONField(_('Données de résultat'), default=dict)
+    created_at = models.DateTimeField(_('Créé le'), auto_now_add=True)
+    completed_at = models.DateTimeField(_('Terminé le'), null=True, blank=True)
+
+    class Meta:
+        db_table = '"ccd_commons"."t_bulk_import_jobs"'
+        verbose_name = _('Job d\'import en masse')
+        verbose_name_plural = _('Jobs d\'import en masse')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"BulkImportJob #{self.id} - {self.status} ({self.processed_sites}/{self.total_sites})"
