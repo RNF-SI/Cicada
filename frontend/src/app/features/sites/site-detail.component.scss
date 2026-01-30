@@ -31,303 +31,141 @@ h1 { @include sites-h1; }
 .empty-state { @include sites-empty-state; }
 .empty-state--small { padding: 24px; }
 .empty-icon { @include sites-empty-icon; }
-.empty-state p { font-family: $font-family; font-size: $font-size-base; color: $gray-dark; margin: 0; }
+.empty-state p { @include sites-empty-text; }
 
-// Status badges (design Figma - style secondaire sur fond sombre)
+// Status badges
 .status-badges { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-top: $spacing-sm; }
-.status-inactive { background-color: $gray-light !important; color: $gray-dark !important; font-size: 12px; }
-.status-referent { background-color: $white !important; color: $primary-color !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; color: $primary-color; } }
-.status-user { background-color: $white !important; color: $primary-color !important; font-size: 12px; i { font-size: 12px; margin-right: 4px; color: $primary-color; } }
-.chip-icon { font-size: 12px; margin-right: 4px; }
+.status-inactive { background-color: $gray-light !important; color: $gray-dark !important; @include sites-status-chip-base; }
+.status-referent, .status-user {
+  background-color: $white !important; color: $primary-color !important; @include sites-status-chip-base;
+  i { @include sites-chip-icon; color: $primary-color; }
+}
+.chip-icon { @include sites-chip-icon; }
 
-// Title right buttons (sur fond sombre de la bannière)
+// Title right buttons
 .title-right { display: flex; align-items: center; gap: $spacing-sm; }
-// Boutons selon le design system Figma
-// Sur fond sombre:
-// - Primary: fond #025359, texte blanc
-// - Secondary: fond BLANC, texte #025359 (pas de bordure)
+
+// Shared button base for hero buttons
 .btn-edit, .btn-back, .btn-request-referent, .btn-pending {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: 10px 24px;
-  border-radius: 80px;
-  font-family: $font-family;
-  font-size: 15px; // Figma: boutons = 15px
-  font-weight: $font-weight-bold;
-  cursor: pointer;
+  @include sites-btn-pill;
+  padding: 10px 24px; font-size: 15px;
   box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
-  transition: all 200ms ease-out;
   i { font-size: 20px; }
 }
-
-// Bouton Modifier - Style secondaire sur fond sombre (Figma)
-// Fond blanc, texte primary
 .btn-edit {
-  background-color: $white;
-  border: none;
-  color: $primary-color;
-  &:hover {
-    background-color: rgba($white, 0.9);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
+  background-color: $white; border: none; color: $primary-color;
+  &:hover { background-color: rgba($white, 0.9); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
 }
-
-// Bouton Retour - Style primaire selon Figma
 .btn-back {
-  background-color: $primary-color;
-  border: none;
-  color: $white;
-  &:hover {
-    background-color: $primary-hover;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
+  background-color: $primary-color; border: none; color: $white;
+  &:hover { background-color: $primary-hover; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
 }
-
-// Bouton Demander référent - Style secondaire sur fond sombre (Figma)
-// Fond blanc, texte primary
 .btn-request-referent {
-  background-color: $white;
-  border: none;
-  color: $primary-color;
+  background-color: $white; border: none; color: $primary-color;
   mat-spinner { margin-right: 4px; }
-  &:hover:not(:disabled) {
-    background-color: rgba($white, 0.9);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
+  &:hover:not(:disabled) { background-color: rgba($white, 0.9); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
-
-// Bouton en attente - Style inactif selon Figma
-.btn-pending {
-  background-color: $gray-light;
-  border: none;
-  color: $gray-dark;
-  cursor: default;
-}
+.btn-pending { background-color: $gray-light; border: none; color: $gray-dark; cursor: default; }
 
 // Sidebar menu
 .sidebar-menu { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 1px solid $gray-light; }
 .sidebar-menu-item {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
-  background-color: $white;
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-pill;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  color: $gray-dark;
-  cursor: pointer;
+  @include sites-btn-pill;
+  padding: $spacing-xs $spacing-md; background-color: $white;
+  border: 1px solid $gray-light; font-size: $font-size-small; color: $gray-dark;
   i { font-size: 14px; }
   &:hover { border-color: $primary-color; color: $primary-color; }
   &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
 }
 
 // Subsection title
-.subsection-title { display: flex; align-items: center; gap: $spacing-sm; font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; margin: $spacing-lg 0 $spacing-md; i { font-size: 16px; color: $primary-color; } }
+.subsection-title { @include sites-subsection-title; margin: $spacing-lg 0 $spacing-md; }
 
 // Info section
 .info-section { margin-bottom: $spacing-xl; }
 .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: $spacing-md; }
 .info-item { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; }
-.info-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background-color: $white; border-radius: 50%; flex-shrink: 0; i { font-size: 18px; color: $primary-color; } }
+.info-icon { @include sites-avatar(40px); i { font-size: 18px; } }
 .info-content { display: flex; flex-direction: column; gap: 2px; }
 .info-label { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .info-value { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
+
 // Organismes section
 .organismes-section { margin-bottom: $spacing-xl; }
 .organismes-cards { display: flex; flex-direction: column; gap: $spacing-sm; }
-.organisme-card {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-md;
-  background-color: $gray-lighter;
-  border-radius: $border-radius-sm;
-  &:hover { background-color: rgba($primary-color, 0.05); }
-}
-.organisme-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: $white;
-  border-radius: 50%;
-  flex-shrink: 0;
-  i { font-size: 20px; color: $primary-color; }
-}
-.organisme-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.organisme-name {
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-bold;
-  color: $black;
-}
-.organisme-city {
-  font-family: $font-family;
-  font-size: $font-size-small;
-  color: $gray-dark;
-}
+.organisme-card { @include sites-card-base; }
+.organisme-avatar { @include sites-avatar; }
+.organisme-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.organisme-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
+.organisme-city { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .organisme-role { flex-shrink: 0; }
-.role-principal {
-  background-color: $secondary-yellow !important;
-  color: $black !important;
-  font-size: 12px;
-  i { font-size: 12px; margin-right: 4px; }
-}
-.role-gestionnaire {
-  background-color: $secondary-pale-green !important;
-  color: $black !important;
-  font-size: 12px;
-}
+.role-principal { background-color: $secondary-yellow !important; color: $black !important; @include sites-status-chip-base; i { @include sites-chip-icon; } }
+.role-gestionnaire { background-color: $secondary-pale-green !important; color: $black !important; @include sites-status-chip-base; }
 
 // Users section
 .users-section { margin-bottom: $spacing-xl; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; .section-title { margin: 0; padding-bottom: 0; border-bottom: none; } }
 .section-actions { display: flex; gap: $spacing-sm; }
-.btn-manage { display: flex; align-items: center; gap: $spacing-xs; padding: 8px 16px; background-color: $primary-color; color: $white; border: none; border-radius: $border-radius-pill; font-family: $font-family; font-size: $font-size-small; font-weight: $font-weight-bold; cursor: pointer; i { font-size: 14px; } &:hover { background-color: $primary-hover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); } }
-.btn-invite { display: flex; align-items: center; gap: $spacing-xs; padding: 8px 16px; background-color: $white; color: $primary-color; border: 2px solid $primary-color; border-radius: $border-radius-pill; font-family: $font-family; font-size: $font-size-small; font-weight: $font-weight-bold; cursor: pointer; i { font-size: 14px; } &:hover { background-color: $primary-color; color: $white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); } }
-
-// Subsection header (for organismes)
+.btn-manage { @include sites-btn-primary-sm; }
+.btn-invite { @include sites-btn-secondary-sm; }
 .subsection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-md; }
 .empty-text { color: $gray-dark; font-size: $font-size-small; font-style: italic; }
 .users-list { display: flex; flex-direction: column; gap: $spacing-sm; }
-.user-card { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; &:hover { background-color: rgba($primary-color, 0.05); } }
-.user-avatar { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: $white; border-radius: 50%; flex-shrink: 0; i { font-size: 20px; color: $primary-color; } }
+.user-card { @include sites-card-base; }
+.user-avatar { @include sites-avatar; }
 .user-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .user-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
 .user-email { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-org { font-family: $font-family; font-size: $font-size-small; color: $gray; font-style: italic; }
 .user-role { flex-shrink: 0; }
-.role-referent { background-color: $secondary-yellow !important; color: $black !important; font-size: 12px; }
-.role-conservateur { background-color: $secondary-pale-green !important; color: $black !important; font-size: 12px; }
-.role-user { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+.role-referent { @include sites-status-success; }
+.role-conservateur { background-color: $secondary-pale-green !important; color: $black !important; @include sites-status-chip-base; }
+.role-user { @include sites-status-neutre; }
 
 // Plans section
 .plans-section { margin-bottom: $spacing-xl; }
 .plans-list { display: flex; flex-direction: column; gap: $spacing-sm; }
-.plan-card { display: flex; justify-content: space-between; align-items: center; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; cursor: pointer; &:hover { background-color: rgba($primary-color, 0.08); transform: translateX(4px); } }
+.plan-card {
+  display: flex; justify-content: space-between; align-items: center; padding: $spacing-md;
+  background-color: $gray-lighter; border-radius: $border-radius-sm; cursor: pointer;
+  &:hover { background-color: rgba($primary-color, 0.08); transform: translateX(4px); }
+}
 .plan-info { display: flex; flex-direction: column; gap: 2px; }
 .plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
 .plan-period { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .plan-actions { display: flex; align-items: center; gap: $spacing-md; i { font-size: 16px; color: $primary-color; } }
-.status-success { background-color: $score-good !important; color: $black !important; font-size: 12px; }
-.status-warning { background-color: $secondary-orange-salmon !important; color: $black !important; font-size: 12px; }
-.status-neutre { background-color: $gray-light !important; color: $black !important; font-size: 12px; }
+.status-success { @include sites-status-success; }
+.status-warning { @include sites-status-warning; }
+.status-neutre { @include sites-status-neutre; }
 
 // Map toolbar for shapefile import
-.map-toolbar {
-  position: absolute;
-  top: $spacing-md;
-  right: $spacing-md;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
+.map-toolbar { position: absolute; top: $spacing-md; right: $spacing-md; z-index: 1000; display: flex; flex-direction: column; gap: $spacing-xs; }
 .btn-import-shapefile {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: 10px 16px;
-  background-color: $white;
-  color: $primary-color;
-  border: 2px solid $primary-color;
-  border-radius: $border-radius-pill;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-
+  @include sites-btn-secondary-sm;
+  padding: 10px 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   i { font-size: 16px; }
   mat-spinner { margin-right: 4px; }
-
-  &:hover:not(:disabled) {
-    background-color: $primary-color;
-    color: $white;
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
-
-.import-actions {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
+.import-actions { display: flex; flex-direction: column; gap: $spacing-xs; }
 .btn-save-geometry {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: 10px 16px;
-  background-color: $success-color;
-  color: $white;
-  border: none;
-  border-radius: $border-radius-pill;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-
+  @include sites-btn-pill;
+  padding: 10px 16px; background-color: $success-color; color: $white; border: none;
+  font-size: $font-size-small; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   i { font-size: 16px; }
   mat-spinner { margin-right: 4px; }
-
-  &:hover:not(:disabled) {
-    background-color: darken($success-color, 10%);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  &:hover:not(:disabled) { background-color: darken($success-color, 10%); }
+  &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
-
 .btn-cancel-import {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: 10px 16px;
-  background-color: $white;
-  color: $error-color;
-  border: 2px solid $error-color;
-  border-radius: $border-radius-pill;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  cursor: pointer;
+  @include sites-btn-pill;
+  padding: 10px 16px; background-color: $white; color: $error-color;
+  border: 2px solid $error-color; font-size: $font-size-small;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-
   i { font-size: 14px; }
-
-  &:hover:not(:disabled) {
-    background-color: $error-color;
-    color: $white;
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  &:hover:not(:disabled) { background-color: $error-color; color: $white; }
+  &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
 
 // Tooltip
