@@ -11,8 +11,12 @@ import { BulkImportValidationResult } from '../../../../core/models/admin.model'
 describe('BulkSiteImportModalComponent', () => {
   let component: BulkSiteImportModalComponent;
   let fixture: ComponentFixture<BulkSiteImportModalComponent>;
-  let adminServiceSpy: jasmine.SpyObj<AdminService>;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<BulkSiteImportModalComponent>>;
+  let adminServiceMock: {
+    bulkImportValidate: jest.Mock;
+    bulkImportExecute: jest.Mock;
+    bulkImportStatus: jest.Mock;
+  };
+  let dialogRefMock: { close: jest.Mock };
 
   const mockValidationResult: BulkImportValidationResult = {
     detected_properties: ['nom', 'inpn', 'surface'],
@@ -55,12 +59,12 @@ describe('BulkSiteImportModalComponent', () => {
   };
 
   beforeEach(async () => {
-    adminServiceSpy = jasmine.createSpyObj('AdminService', [
-      'bulkImportValidate',
-      'bulkImportExecute',
-      'bulkImportStatus',
-    ]);
-    dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
+    adminServiceMock = {
+      bulkImportValidate: jest.fn(),
+      bulkImportExecute: jest.fn(),
+      bulkImportStatus: jest.fn(),
+    };
+    dialogRefMock = { close: jest.fn() };
 
     await TestBed.configureTestingModule({
       imports: [
@@ -69,8 +73,8 @@ describe('BulkSiteImportModalComponent', () => {
         TranslateModule.forRoot(),
       ],
       providers: [
-        { provide: AdminService, useValue: adminServiceSpy },
-        { provide: MatDialogRef, useValue: dialogRefSpy },
+        { provide: AdminService, useValue: adminServiceMock },
+        { provide: MatDialogRef, useValue: dialogRefMock },
       ],
     }).compileComponents();
 
@@ -86,18 +90,18 @@ describe('BulkSiteImportModalComponent', () => {
   describe('File selection', () => {
     it('should accept .geojson files', () => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
 
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
 
       expect(component.selectedFile()).toBe(file);
-      expect(adminServiceSpy.bulkImportValidate).toHaveBeenCalled();
+      expect(adminServiceMock.bulkImportValidate).toHaveBeenCalled();
     });
 
     it('should accept .csv files', () => {
       const file = new File([''], 'test.csv', { type: 'text/csv' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
 
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
@@ -117,7 +121,7 @@ describe('BulkSiteImportModalComponent', () => {
 
     it('should show feature count after upload', fakeAsync(() => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
 
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
@@ -131,7 +135,7 @@ describe('BulkSiteImportModalComponent', () => {
   describe('Mapping', () => {
     beforeEach(fakeAsync(() => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
       tick();
@@ -155,7 +159,7 @@ describe('BulkSiteImportModalComponent', () => {
   describe('Preview', () => {
     beforeEach(fakeAsync(() => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
       tick();
@@ -170,7 +174,6 @@ describe('BulkSiteImportModalComponent', () => {
 
     it('should disable checkbox for error rows', () => {
       const sites = component.sites();
-      // Error row should not be selected
       expect(sites[2].selected).toBe(false);
     });
 
@@ -183,11 +186,9 @@ describe('BulkSiteImportModalComponent', () => {
 
     it('should support select all toggle', () => {
       component.toggleAll();
-      // After toggling all off (they were on for valid sites)
       const sites = component.sites();
       const validSites = sites.filter(s => s.errors.length === 0);
-      // All should now be deselected
-      expect(validSites.every(s => !s.selected)).toBeTrue();
+      expect(validSites.every(s => !s.selected)).toBe(true);
     });
 
     it('should show summary counts', () => {
@@ -196,7 +197,6 @@ describe('BulkSiteImportModalComponent', () => {
     });
 
     it('should count selected sites', () => {
-      // Valid sites auto-selected: 2
       expect(component.selectedCount()).toBe(2);
     });
   });
@@ -204,14 +204,14 @@ describe('BulkSiteImportModalComponent', () => {
   describe('Import', () => {
     beforeEach(fakeAsync(() => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
       const event = { target: { files: [file] } } as unknown as Event;
       component.onFileSelected(event);
       tick();
     }));
 
     it('should call bulkImportExecute on import', fakeAsync(() => {
-      adminServiceSpy.bulkImportExecute.and.returnValue(of({
+      adminServiceMock.bulkImportExecute.mockReturnValue(of({
         async: false,
         created: 2,
         failed: 0,
@@ -225,13 +225,13 @@ describe('BulkSiteImportModalComponent', () => {
       component.startImport();
       tick();
 
-      expect(adminServiceSpy.bulkImportExecute).toHaveBeenCalled();
+      expect(adminServiceMock.bulkImportExecute).toHaveBeenCalled();
       expect(component.importResult()).toBeTruthy();
       expect(component.importResult()!.created).toBe(2);
     }));
 
     it('should show results after import completes', fakeAsync(() => {
-      adminServiceSpy.bulkImportExecute.and.returnValue(of({
+      adminServiceMock.bulkImportExecute.mockReturnValue(of({
         async: false,
         created: 1,
         failed: 1,
@@ -246,16 +246,16 @@ describe('BulkSiteImportModalComponent', () => {
       tick();
 
       expect(component.importDetails().length).toBe(2);
-      expect(component.importing()).toBeFalse();
+      expect(component.importing()).toBe(false);
     }));
 
     it('should handle import errors', fakeAsync(() => {
-      adminServiceSpy.bulkImportExecute.and.returnValue(throwError(() => new Error('Server error')));
+      adminServiceMock.bulkImportExecute.mockReturnValue(throwError(() => new Error('Server error')));
 
       component.startImport();
       tick();
 
-      expect(component.importing()).toBeFalse();
+      expect(component.importing()).toBe(false);
       expect(component.importResult()).toBeTruthy();
     }));
   });
@@ -263,13 +263,13 @@ describe('BulkSiteImportModalComponent', () => {
   describe('Dialog close', () => {
     it('should close with null when no import was done', () => {
       component.close();
-      expect(dialogRefSpy.close).toHaveBeenCalledWith(null);
+      expect(dialogRefMock.close).toHaveBeenCalledWith(null);
     });
 
     it('should close with result when sites were imported', fakeAsync(() => {
       const file = new File(['{}'], 'test.geojson', { type: 'application/json' });
-      adminServiceSpy.bulkImportValidate.and.returnValue(of(mockValidationResult));
-      adminServiceSpy.bulkImportExecute.and.returnValue(of({
+      adminServiceMock.bulkImportValidate.mockReturnValue(of(mockValidationResult));
+      adminServiceMock.bulkImportExecute.mockReturnValue(of({
         async: false,
         created: 2,
         failed: 0,
@@ -285,7 +285,7 @@ describe('BulkSiteImportModalComponent', () => {
       tick();
 
       component.close();
-      expect(dialogRefSpy.close).toHaveBeenCalledWith({
+      expect(dialogRefMock.close).toHaveBeenCalledWith({
         imported: true,
         created: 2,
       });
