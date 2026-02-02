@@ -12,7 +12,9 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.production
 WORKDIR /app
 
 # Dependances systeme pour PostGIS + netcat pour les health checks
+# build-essential est necessaire pour compiler GDAL, supprime apres pip install
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     libpq-dev \
     gdal-bin \
     libgdal-dev \
@@ -23,7 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Dependances Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Code source
 COPY . .
