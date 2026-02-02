@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/RNF-SI/Cicada/compare/v0.1.2...v0.1.3) (2026-02-02)
+
+
+### Bug Fixes
+
+* **ci:** utiliser un PAT pour release-please ([3e12332](https://github.com/RNF-SI/Cicada/commit/3e12332ee34c87d568823d62f097438f60557d09))
+* **ci:** utiliser un PAT pour release-please ([d3d2120](https://github.com/RNF-SI/Cicada/commit/d3d2120fce84870b1fe6c1bdf8d7e7d5a1ee8180))
+
 ## [0.1.2](https://github.com/RNF-SI/Cicada/compare/v0.1.1...v0.1.2) (2026-02-02)
 
 
