@@ -25,10 +25,8 @@ RUN npm run build:prod
 # Stage 2: Serveur Apache pour servir l'application
 FROM httpd:2.4-alpine
 
-# Installation des modules Apache nécessaires
-RUN apk add --no-cache apache2-mod-rewrite
-
 # Copie de la configuration Apache personnalisée
+# Note: mod_rewrite est deja inclus dans httpd:2.4-alpine
 COPY docker/apache/httpd.conf /usr/local/apache2/conf/httpd.conf
 COPY docker/apache/.htaccess /usr/local/apache2/htdocs/
 
