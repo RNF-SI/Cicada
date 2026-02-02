@@ -101,6 +101,8 @@ Configuration : `commitlint.config.js` a la racine du projet.
 
 Quand la PR de release est mergee, release-please cree automatiquement un **tag Git** et une **GitHub Release**.
 
+> **Important** : release-please utilise un Personal Access Token (`RELEASE_PAT`) au lieu du `GITHUB_TOKEN` par defaut. C'est necessaire car les tags crees par `GITHUB_TOKEN` ne declenchent pas les autres workflows (protection anti-boucle de GitHub). Le secret `RELEASE_PAT` doit etre configure dans **Settings > Secrets > Actions** du repo avec les permissions `contents: write` et `pull-requests: write`.
+
 ### Fichiers de configuration
 
 | Fichier | Role |
