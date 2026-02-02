@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/RNF-SI/Cicada/compare/v0.1.3...v0.1.4) (2026-02-02)
+
+
+### Bug Fixes
+
+* **docker:** ajouter build-essential pour compiler GDAL dans Dockerfi… ([e797555](https://github.com/RNF-SI/Cicada/commit/e7975552548dd9a4188889902db7730ce12ba302))
+* **docker:** ajouter build-essential pour compiler GDAL dans Dockerfile.prod ([7a8c9e2](https://github.com/RNF-SI/Cicada/commit/7a8c9e2e18e9b28ec32186cf572c8c7e937c1aac))
+
 ## [0.1.3](https://github.com/RNF-SI/Cicada/compare/v0.1.2...v0.1.3) (2026-02-02)
 
 
