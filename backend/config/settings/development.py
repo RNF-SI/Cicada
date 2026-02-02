@@ -8,7 +8,8 @@ from .base import *
 DEBUG = True
 
 # Allowed hosts for development
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', 'frontend', '0.0.0.0', 'testserver']
+# Utilise la variable d'environnement si définie, sinon valeurs par défaut pour le dev local
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,web,frontend,0.0.0.0,testserver').split(',')
 
 # CORS settings for development
 CORS_ALLOW_ALL_ORIGINS = True
