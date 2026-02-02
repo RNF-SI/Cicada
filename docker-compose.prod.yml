@@ -1,3 +1,9 @@
+# Deux modes de deploiement :
+#   1. Images GHCR (defaut) : docker compose -f docker-compose.prod.yml up -d
+#      Utilise les images pre-buildees depuis GitHub Container Registry.
+#   2. Build local : docker compose -f docker-compose.prod.yml up -d --build
+#      Construit les images localement a partir des Dockerfiles du projet.
+
 services:
   # Base de donnees PostgreSQL avec PostGIS
   db:
@@ -39,6 +45,9 @@ services:
   # Backend Django (gunicorn)
   web:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     container_name: cicada_prod_web
     environment:
       - DEBUG=False
@@ -83,6 +92,9 @@ services:
   # Frontend Angular (Apache)
   frontend:
     image: ghcr.io/rnf-si/cicada-frontend:${CICADA_VERSION:-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: cicada_prod_frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
@@ -96,6 +108,9 @@ services:
   # Celery Worker
   celery-worker:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     container_name: cicada_prod_celery_worker
     environment:
       - DEBUG=False
@@ -134,6 +149,9 @@ services:
   # Celery Beat
   celery-beat:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     container_name: cicada_prod_celery_beat
     environment:
       - DEBUG=False

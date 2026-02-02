@@ -189,6 +189,22 @@ Le fichier `docker-compose.prod.yml` contient 6 services :
 | `celery-worker` | `ghcr.io/rnf-si/cicada-backend` | Taches asynchrones |
 | `celery-beat` | `ghcr.io/rnf-si/cicada-backend` | Taches planifiees |
 
+### Deploiement sans images GHCR (build local)
+
+Si les images GHCR ne sont pas disponibles (CI/CD pas encore en place, test d'une version avant publication, ou deploiement sur un serveur sans acces au registry), il est possible de construire les images localement a partir du code source :
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Le fichier `docker-compose.prod.yml` contient a la fois les directives `image` et `build` pour les services custom. Le comportement de Docker Compose est le suivant :
+
+- **`docker compose pull`** : telecharge les images depuis GHCR (mode par defaut)
+- **`docker compose up -d --build`** : construit les images localement a partir des Dockerfiles, en ignorant les images distantes
+- **`docker compose up -d`** (sans `--build`) : utilise les images locales si elles existent, sinon tente un pull
+
+> **Note** : Le build local du frontend peut etre long car il inclut la compilation Angular. Assurez-vous d'avoir suffisamment de memoire (minimum 4 Go recommandes).
+
 ### Mise a jour vers une nouvelle version
 
 ```bash
