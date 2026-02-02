@@ -232,4 +232,4 @@ docker compose -f docker-compose.prod.yml logs -f web
 | `tests.yml` | Push / PR vers main, develop | Lance pytest et jest |
 | `commitlint.yml` | PR vers main, develop | Valide les messages de commit |
 | `release-please.yml` | Push vers main | Cree/met a jour une PR de release |
-| `docker-publish.yml` | Release GitHub publiee | Build et push des images GHCR |
+| `docker-publish.yml` | Push d'un tag `v*` | Build et push des images GHCR |
