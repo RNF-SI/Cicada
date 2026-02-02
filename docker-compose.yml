@@ -66,6 +66,8 @@ services:
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-false}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin}
     volumes:
       - ./backend:/app
       - media_files:/app/media
