@@ -1,0 +1,12 @@
+RewriteEngine On
+RewriteBase /
+
+# Ne pas reecrire les fichiers et repertoires existants
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Ne pas reecrire les appels API
+RewriteCond %{REQUEST_URI} !^/api/
+
+# Rediriger tout vers index.html pour le routing Angular
+RewriteRule . /index.html [L]

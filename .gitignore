@@ -36,6 +36,7 @@ wheels/
 *.egg
 
 # Node.js / Angular
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
