@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/RNF-SI/Cicada/compare/v0.1.4...v0.1.5) (2026-02-02)
+
+
+### Bug Fixes
+
+* **docker:** retirer apache2-mod-rewrite du frontend Dockerfile ([383fb13](https://github.com/RNF-SI/Cicada/commit/383fb136f69b68867d380e414827dcaa3fd77ff1))
+* **settings:** utiliser la variable d'environnement ALLOWED_HOSTS en développement ([69b5895](https://github.com/RNF-SI/Cicada/commit/69b5895f310018f225463c7eac21c8deeb2dfce8))
+
 ## [0.1.4](https://github.com/RNF-SI/Cicada/compare/v0.1.3...v0.1.4) (2026-02-02)
 
 
