@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/RNF-SI/Cicada/compare/v0.1.5...v0.1.6) (2026-02-02)
+
+
+### Bug Fixes
+
+* **deploy:** utiliser les variables d'environnement pour le superutilisateur ([4ebfe02](https://github.com/RNF-SI/Cicada/commit/4ebfe02ecf2ae2b2877050551408f18fff1569b2))
+* **frontend:** autoriser tous les hosts pour le dev server Angular ([0a339c5](https://github.com/RNF-SI/Cicada/commit/0a339c5ecb02dd7d88e1716525083dbdb3bec731))
+
 ## [0.1.5](https://github.com/RNF-SI/Cicada/compare/v0.1.4...v0.1.5) (2026-02-02)
 
 
