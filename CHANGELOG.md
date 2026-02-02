@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/RNF-SI/Cicada/compare/v0.1.6...v0.1.7) (2026-02-02)
+
+
+### Features
+
+* **docker:** supporter le build local dans docker-compose.prod.yml ([e092eca](https://github.com/RNF-SI/Cicada/commit/e092eca68eaf7067503cb829fdd4e95ed45e4bdc))
+* **docker:** supporter le build local dans docker-compose.prod.yml ([e829ead](https://github.com/RNF-SI/Cicada/commit/e829eadf783a63d82012a5000806789881619631))
+
 ## [0.1.6](https://github.com/RNF-SI/Cicada/compare/v0.1.5...v0.1.6) (2026-02-02)
 
 
