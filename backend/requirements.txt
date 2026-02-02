@@ -18,6 +18,10 @@ drf-nested-routers==0.93.4
 celery==5.3.4
 redis==5.0.1
 
+# Production
+gunicorn==22.0.0
+django-redis==5.4.0
+
 # Environment management  
 python-decouple==3.8
 

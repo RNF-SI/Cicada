@@ -207,6 +207,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
 - **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
+- **[Release Pipeline](docs/RELEASE_PIPELINE.md)** - Conventional commits, versioning, Docker, deploiement
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 
 ## 🛠️ Technologies
@@ -215,12 +216,22 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - **Frontend** : Angular 19+ *(à venir)*
 - **Infrastructure** : Docker & Docker Compose
 
+## 🚢 Release et deploiement
+
+Le projet utilise un pipeline automatise : **conventional commits** → **release-please** → **images Docker sur GHCR** → **docker-compose.prod.yml**.
+
+- Les messages de commit suivent la convention [Conventional Commits](https://www.conventionalcommits.org/) (`feat(plans): ...`, `fix(auth): ...`)
+- Le versioning et le CHANGELOG sont generes automatiquement par [release-please](https://github.com/googleapis/release-please)
+- Chaque release publie des images Docker sur `ghcr.io/rnf-si/cicada-{backend,frontend}`
+
+**[Documentation complete du pipeline de release](docs/RELEASE_PIPELINE.md)**
+
 ## 🤝 Contribution
 
-1. Créer une branche depuis `develop`
-2. Faire vos modifications
+1. Creer une branche depuis `develop`
+2. Faire vos modifications en respectant les [conventional commits](docs/RELEASE_PIPELINE.md#1-conventional-commits)
 3. Tester localement
-4. Créer une Pull Request vers `develop`
+4. Creer une Pull Request vers `develop`
 
 ## 📄 Licence
 

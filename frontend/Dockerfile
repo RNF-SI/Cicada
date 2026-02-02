@@ -13,14 +13,14 @@ WORKDIR /app
 # Copie des fichiers de dépendances
 COPY package*.json ./
 
-# Installation des dépendances
-RUN npm ci --only=production
+# Installation des dépendances (inclut devDependencies pour le build Angular)
+RUN npm ci
 
 # Copie du code source
 COPY . .
 
 # Build de l'application en mode production
-RUN npm run build --prod
+RUN npm run build:prod
 
 # Stage 2: Serveur Apache pour servir l'application
 FROM httpd:2.4-alpine
@@ -33,7 +33,7 @@ COPY docker/apache/httpd.conf /usr/local/apache2/conf/httpd.conf
 COPY docker/apache/.htaccess /usr/local/apache2/htdocs/
 
 # Copie des fichiers buildés depuis le stage précédent
-COPY --from=builder /app/dist/cicada/ /usr/local/apache2/htdocs/
+COPY --from=builder /app/dist/cicada/browser/ /usr/local/apache2/htdocs/
 
 # Port d'exposition
 EXPOSE 80

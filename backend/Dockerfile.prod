@@ -1,0 +1,53 @@
+# Dockerfile de production pour le backend Django
+FROM python:3.11-slim
+
+LABEL maintainer="CEN/RNF"
+LABEL description="Backend Django pour CICADA (production)"
+
+# Variables d'environnement
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings.production
+
+WORKDIR /app
+
+# Dependances systeme pour PostGIS + netcat pour les health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependances Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Code source
+COPY . .
+
+# Repertoires pour media, static et logs
+RUN mkdir -p /app/media /app/static /app/logs
+
+# Script d'initialisation
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Utilisateur non-root
+RUN groupadd -r cicada && useradd -r -g cicada -d /app -s /sbin/nologin cicada \
+    && chown -R cicada:cicada /app
+USER cicada
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Gunicorn en production (3 workers)
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "120", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]
