@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/RNF-SI/Cicada/compare/v0.1.1...v0.1.2) (2026-02-02)
+
+
+### Bug Fixes
+
+* **ci:** declencher docker-publish sur push tag au lieu de release event ([a27fa25](https://github.com/RNF-SI/Cicada/commit/a27fa25b1f34451eaf3fcadb2a7ca02fb365254e))
+* **ci:** declencher docker-publish sur push tag au lieu de release event ([e92d572](https://github.com/RNF-SI/Cicada/commit/e92d5724a58b6b731ff4d8a2815080fbe60802d8))
+
 ## [0.1.1](https://github.com/RNF-SI/Cicada/compare/v0.1.0...v0.1.1) (2026-02-02)
 
 
