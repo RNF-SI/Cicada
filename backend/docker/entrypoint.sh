@@ -3,6 +3,12 @@
 # Script d'initialisation pour l'application Django
 set -e
 
+# Fixer les permissions des volumes montes (executes en root)
+if [ "$(id -u)" = "0" ]; then
+    chown -R cicada:cicada /app/logs /app/media /app/static 2>/dev/null || true
+    exec gosu cicada "$0" "$@"
+fi
+
 echo "=== Initialisation de l'application Django ==="
 
 # Fonction pour attendre que la base de données soit disponible
