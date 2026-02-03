@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.12](https://github.com/RNF-SI/Cicada/compare/v0.1.11...v0.1.12) (2026-02-03)
+
+
+### Bug Fixes
+
+* **email:** respect EMAIL_USE_TLS env variable in production ([383fc49](https://github.com/RNF-SI/Cicada/commit/383fc497d89246c5fb1b2bae197f4709232ea0c9))
+* **email:** respect EMAIL_USE_TLS env variable in production settings ([f5c7c1d](https://github.com/RNF-SI/Cicada/commit/f5c7c1def53e3fca7cd89c6d94cb79f16718ef3b))
+
 ## [0.1.11](https://github.com/RNF-SI/Cicada/compare/v0.1.10...v0.1.11) (2026-02-03)
 
 
