@@ -36,13 +36,13 @@
     align-items: center;
 
     .filter-field {
-      min-width: 180px;
+      min-width: 162px;
     }
 
     .search-field {
       flex: 1;
-      min-width: 250px;
-      max-width: 400px;
+      min-width: 225px;
+      max-width: 360px;
     }
   }
 
@@ -50,7 +50,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 200px;
+    min-height: 180px;
   }
 
   .empty-state {
@@ -87,7 +87,7 @@
     }
 
     .message-cell {
-      max-width: 300px;
+      max-width: 270px;
 
       span {
         display: block;
@@ -111,7 +111,7 @@
       .method-badge {
         background: $gray-light;
         color: $gray-dark;
-        padding: 2px 6px;
+        padding: 2px 5px;
         border-radius: 3px;
         font-size: 0.7rem;
         font-weight: 600;
@@ -131,7 +131,7 @@
     .acknowledged-badge {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: $spacing-xxs;
       color: $success-color;
       font-size: 0.85rem;
 
@@ -142,10 +142,10 @@
 
     .unacknowledged-badge {
       display: inline-block;
-      padding: 4px 8px;
+      padding: $spacing-xxs $spacing-xs;
       background: rgba($error-color, 0.1);
       color: $error-color;
-      border-radius: 4px;
+      border-radius: $border-radius-sm;
       font-size: 0.85rem;
       font-weight: 500;
     }
@@ -209,7 +209,7 @@
 
   mat-chip {
     i {
-      margin-right: 4px;
+      margin-right: $spacing-xxs;
       font-size: 0.9rem;
     }
   }
@@ -222,7 +222,7 @@
 
 // Tooltip pour les messages longs
 ::ng-deep .message-tooltip {
-  max-width: 500px;
+  max-width: 450px;
   white-space: pre-wrap;
   word-break: break-word;
 }

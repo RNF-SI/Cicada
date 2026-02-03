@@ -151,13 +151,13 @@
   line-height: $line-height-h1;
 
   @include tablet {
-    font-size: 36px;
-    line-height: 48px;
+    font-size: 32px;
+    line-height: 43px;
   }
 
   @include mobile {
-    font-size: 28px;
-    line-height: 36px;
+    font-size: 25px;
+    line-height: 32px;
   }
 }
 
@@ -167,13 +167,13 @@
   line-height: $line-height-h2;
 
   @include tablet {
-    font-size: 28px;
-    line-height: 36px;
+    font-size: 25px;
+    line-height: 32px;
   }
 
   @include mobile {
-    font-size: 22px;
-    line-height: 30px;
+    font-size: 20px;
+    line-height: 27px;
   }
 }
 
@@ -220,13 +220,13 @@
     -webkit-overflow-scrolling: touch;
 
     table {
-      min-width: 600px;
+      min-width: 540px;
     }
   }
 
   @include mobile {
     table {
-      min-width: 500px;
+      min-width: 450px;
     }
   }
 }
@@ -249,7 +249,7 @@
 }
 
 // Sidebar + content layout
-@mixin responsive-sidebar-layout($sidebar-width: 300px) {
+@mixin responsive-sidebar-layout($sidebar-width: 270px) {
   display: flex;
   gap: $spacing-lg;
 
@@ -311,7 +311,7 @@
 // Modales adaptatives
 // ============================================
 
-@mixin responsive-modal($desktop-width: 800px) {
+@mixin responsive-modal($desktop-width: 720px) {
   width: $desktop-width;
   max-width: 95vw;
   max-height: 90vh;
@@ -335,14 +335,14 @@
 // Cartes géographiques adaptatives
 // ============================================
 
-@mixin responsive-map-container($desktop-height: 500px) {
+@mixin responsive-map-container($desktop-height: 450px) {
   height: $desktop-height;
 
   @include tablet {
-    height: 350px;
+    height: 315px;
   }
 
   @include mobile {
-    height: 250px;
+    height: 225px;
   }
 }

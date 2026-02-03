@@ -41,11 +41,11 @@ $section-ellipse-size: $ellipse-size-md;
     }
 
     .title-icon {
-      font-size: 14px;
+      font-size: $font-size-small;
 
       &.custom-icon {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
       }
     }
   }
@@ -60,11 +60,11 @@ $section-ellipse-size: $ellipse-size-md;
     }
 
     .title-icon {
-      font-size: 16px;
+      font-size: $font-size-base;
 
       &.custom-icon {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
       }
     }
   }
@@ -79,11 +79,11 @@ $section-ellipse-size: $ellipse-size-md;
     }
 
     .title-icon {
-      font-size: 24px;
+      font-size: $font-size-h3;
 
       &.custom-icon {
-        width: 26px;
-        height: 26px;
+        width: 23px;
+        height: 23px;
       }
     }
   }
@@ -98,11 +98,11 @@ $section-ellipse-size: $ellipse-size-md;
     }
 
     .title-icon {
-      font-size: 28px;
+      font-size: 25px;
 
       &.custom-icon {
-        width: 32px;
-        height: 32px;
+        width: 29px;
+        height: 29px;
       }
     }
   }
@@ -117,11 +117,11 @@ $section-ellipse-size: $ellipse-size-md;
     }
 
     .title-icon {
-      font-size: 32px;
+      font-size: $font-size-h2;
 
       &.custom-icon {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
       }
     }
   }
@@ -142,7 +142,7 @@ $section-ellipse-size: $ellipse-size-md;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: $font-size-h3;
   color: $white;
   z-index: 1;
 
@@ -158,8 +158,8 @@ $section-ellipse-size: $ellipse-size-md;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 26px;
-    height: 26px;
+    width: 23px;
+    height: 23px;
     object-fit: contain;
     filter: brightness(0) invert(1); // Rend l'icône blanche
 
@@ -172,13 +172,13 @@ $section-ellipse-size: $ellipse-size-md;
 .section-title-text {
   margin: 0;
   font-family: $font-family;
-  font-size: $font-size-h2; // 32px
+  font-size: $font-size-h2; // $font-size-h2
   font-weight: $font-weight-bold;
   color: $primary-color;
-  line-height: $line-height-h2; // 48px
+  line-height: $line-height-h2; // $line-height-h2
 
   &.small {
-    font-size: $font-size-h4; // 20px
+    font-size: $font-size-h4; // $font-size-h4
     line-height: $line-height-h4;
   }
 }
@@ -188,7 +188,7 @@ $section-ellipse-size: $ellipse-size-md;
   height: 2px;
   margin-top: calc(-#{$spacing-xs} - 2px); // Remonte la ligne plus près du titre
   margin-bottom: $spacing-md;
-  margin-left: 48px; // Alignée avec le texte du titre
+  margin-left: $spacing-xxl; // Alignée avec le texte du titre
   background-color: $gray-light; // Défaut
 
   // Couleurs de ligne selon l'ellipse
@@ -230,6 +230,6 @@ $section-ellipse-size: $ellipse-size-md;
   }
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }

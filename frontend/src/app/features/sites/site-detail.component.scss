@@ -27,9 +27,9 @@ h1 { @include sites-h1; }
 .content-panel { @include sites-content-panel; }
 .section-title { @include sites-section-title; margin: 0 0 $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; }
 .badge { @include sites-badge; }
-.loading-container { @include sites-loading-container; min-height: 400px; }
+.loading-container { @include sites-loading-container; min-height: 360px; }
 .empty-state { @include sites-empty-state; }
-.empty-state--small { padding: 24px; }
+.empty-state--small { padding: 22px; }
 .empty-icon { @include sites-empty-icon; }
 .empty-state p { @include sites-empty-text; }
 
@@ -48,9 +48,9 @@ h1 { @include sites-h1; }
 // Shared button base for hero buttons
 .btn-edit, .btn-back, .btn-request-referent, .btn-pending {
   @include sites-btn-pill;
-  padding: 10px 24px; font-size: 15px;
+  padding: 10px $spacing-lg; font-size: $spacing-md;
   box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
-  i { font-size: 20px; }
+  i { font-size: 18px; }
 }
 .btn-edit {
   background-color: $white; border: none; color: $primary-color;
@@ -74,7 +74,7 @@ h1 { @include sites-h1; }
   @include sites-btn-pill;
   padding: $spacing-xs $spacing-md; background-color: $white;
   border: 1px solid $gray-light; font-size: $font-size-small; color: $gray-dark;
-  i { font-size: 14px; }
+  i { font-size: 13px; }
   &:hover { border-color: $primary-color; color: $primary-color; }
   &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
 }
@@ -86,7 +86,7 @@ h1 { @include sites-h1; }
 .info-section { margin-bottom: $spacing-xl; }
 .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: $spacing-md; }
 .info-item { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background-color: $gray-lighter; border-radius: $border-radius-sm; }
-.info-icon { @include sites-avatar(40px); i { font-size: 18px; } }
+.info-icon { @include sites-avatar(36px); i { font-size: 16px; } }
 .info-content { display: flex; flex-direction: column; gap: 2px; }
 .info-label { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .info-value { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
@@ -134,7 +134,7 @@ h1 { @include sites-h1; }
 .plan-info { display: flex; flex-direction: column; gap: 2px; }
 .plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
 .plan-period { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
-.plan-actions { display: flex; align-items: center; gap: $spacing-md; i { font-size: 16px; color: $primary-color; } }
+.plan-actions { display: flex; align-items: center; gap: $spacing-md; i { font-size: 14px; color: $primary-color; } }
 .status-success { @include sites-status-success; }
 .status-warning { @include sites-status-warning; }
 .status-neutre { @include sites-status-neutre; }
@@ -143,33 +143,33 @@ h1 { @include sites-h1; }
 .map-toolbar { position: absolute; top: $spacing-md; right: $spacing-md; z-index: 1000; display: flex; flex-direction: column; gap: $spacing-xs; }
 .btn-import-shapefile {
   @include sites-btn-secondary-sm;
-  padding: 10px 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  i { font-size: 16px; }
+  padding: 10px $spacing-md; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  i { font-size: 14px; }
   mat-spinner { margin-right: 4px; }
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
 .import-actions { display: flex; flex-direction: column; gap: $spacing-xs; }
 .btn-save-geometry {
   @include sites-btn-pill;
-  padding: 10px 16px; background-color: $success-color; color: $white; border: none;
+  padding: 10px $spacing-md; background-color: $success-color; color: $white; border: none;
   font-size: $font-size-small; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  i { font-size: 16px; }
+  i { font-size: 14px; }
   mat-spinner { margin-right: 4px; }
   &:hover:not(:disabled) { background-color: darken($success-color, 10%); }
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
 .btn-cancel-import {
   @include sites-btn-pill;
-  padding: 10px 16px; background-color: $white; color: $error-color;
+  padding: 10px $spacing-md; background-color: $white; color: $error-color;
   border: 2px solid $error-color; font-size: $font-size-small;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  i { font-size: 14px; }
+  i { font-size: 13px; }
   &:hover:not(:disabled) { background-color: $error-color; color: $white; }
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
 
 // Tooltip
-::ng-deep .referent-tooltip { font-size: 13px !important; max-width: 300px !important; white-space: normal !important; line-height: 1.4 !important; text-align: center !important; }
+::ng-deep .referent-tooltip { font-size: 12px !important; max-width: 270px !important; white-space: normal !important; line-height: 1.4 !important; text-align: center !important; }
 
 // Responsive
 @media (max-width: $breakpoint-desktop) {
@@ -185,9 +185,9 @@ h1 { @include sites-h1; }
 }
 @media (max-width: $breakpoint-mobile) {
   @include sites-responsive-mobile;
-  .btn-back { padding: 8px 16px; font-size: $font-size-small; }
-  .sidebar-menu-item { padding: $spacing-xs $spacing-sm; font-size: 12px; }
+  .btn-back { padding: 8px 14px; font-size: $font-size-small; }
+  .sidebar-menu-item { padding: $spacing-xs $spacing-sm; font-size: 11px; }
   .section-title { font-size: $font-size-base; }
   .info-item { padding: $spacing-sm; }
-  .info-icon { width: 32px; height: 32px; i { font-size: 14px; } }
+  .info-icon { width: 29px; height: 29px; i { font-size: 13px; } }
 }

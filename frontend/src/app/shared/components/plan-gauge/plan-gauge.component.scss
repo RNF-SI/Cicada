@@ -3,8 +3,8 @@
 .gauge {
   display: flex;
   align-items: center;
-  gap: 4px;
-  width: 117px;
+  gap: $spacing-xxs;
+  width: 105px;
 }
 
 .gauge-track {

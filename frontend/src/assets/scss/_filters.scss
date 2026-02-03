@@ -212,7 +212,7 @@
 // ============================================
 
 .sidebar-filters {
-  width: 280px;
+  width: 252px;
   background-color: $white;
   border-radius: $border-radius-md;
   padding: $spacing-lg;
@@ -285,7 +285,7 @@
 
   .search-input-wrapper {
     flex: 2;
-    min-width: 300px;
+    min-width: 270px;
 
     @media (max-width: $breakpoint-tablet) {
       min-width: 100%;
@@ -294,7 +294,7 @@
 
   .filter-select-wrapper {
     flex: 1;
-    min-width: 200px;
+    min-width: 180px;
 
     @media (max-width: $breakpoint-tablet) {
       min-width: 100%;
@@ -410,8 +410,8 @@
     align-items: center;
 
     .page-btn {
-      min-width: 36px;
-      height: 36px;
+      min-width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -511,7 +511,7 @@
     font-size: $font-size-small;
     background-color: $white;
     cursor: pointer;
-    min-width: 200px;
+    min-width: 180px;
 
     &:focus {
       outline: none;
@@ -596,7 +596,7 @@
   position: fixed;
   top: 0;
   right: -100%;
-  width: 320px;
+  width: 288px;
   max-width: 90vw;
   height: 100vh;
   background-color: $white;

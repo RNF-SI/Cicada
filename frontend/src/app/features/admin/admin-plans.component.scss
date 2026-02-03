@@ -42,7 +42,7 @@
   transition: background-color $transition-fast;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   &:hover {
@@ -72,10 +72,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   border-radius: $border-radius-md;
-  font-size: 24px;
+  font-size: $font-size-h3;
 
   &.total {
     background-color: rgba($primary-color, 0.1);
@@ -154,10 +154,10 @@
   background-color: $white;
   border: 1px solid $gray-light;
   border-radius: $border-radius-md;
-  min-width: 300px;
+  min-width: 270px;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $gray-dark;
   }
 
@@ -213,7 +213,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 40px;
+    width: 36px;
     background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
     pointer-events: none;
     opacity: 1;
@@ -227,7 +227,7 @@
 
 .plans-table {
   width: 100%;
-  min-width: 900px; // Force scroll on smaller screens
+  min-width: 810px; // Force scroll on smaller screens
   border-collapse: collapse;
   font-family: $font-family;
   table-layout: auto;
@@ -243,7 +243,7 @@
   td.sites-cell,
   td.referents-cell {
     white-space: normal;
-    min-width: 180px;
+    min-width: 162px;
   }
 
   // Première colonne sticky (Nom)
@@ -253,7 +253,7 @@
     left: 0;
     z-index: 2;
     background-color: inherit;
-    min-width: 200px;
+    min-width: 180px;
 
     &::after {
       content: '';
@@ -317,7 +317,7 @@
 
 // Name cell
 .name-cell {
-  min-width: 200px;
+  min-width: 180px;
 }
 
 .plan-info {
@@ -327,7 +327,7 @@
 }
 
 .plan-icon {
-  font-size: 20px;
+  font-size: $font-size-h4;
   color: $primary-color;
 }
 
@@ -351,13 +351,13 @@
   display: inline-flex;
   align-items: center;
   gap: $spacing-xxs;
-  padding: 4px $spacing-sm;
+  padding: $spacing-xxs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-small;
   font-weight: $font-weight-bold;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   &.statut-draft {
@@ -384,7 +384,7 @@
 
 // Sites column
 .sites-cell {
-  max-width: 180px;
+  max-width: 162px;
 }
 
 .sites-list {
@@ -401,10 +401,10 @@
   background-color: rgba($secondary-terra-cotta, 0.15);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
-  max-width: 160px;
+  max-width: 144px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     color: $secondary-terra-cotta;
     flex-shrink: 0;
   }
@@ -428,7 +428,7 @@
 
 // Referents column
 .referents-cell {
-  max-width: 180px;
+  max-width: 162px;
 }
 
 .referents-list {
@@ -445,10 +445,10 @@
   background-color: rgba($secondary-pale-green, 0.3);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
-  max-width: 160px;
+  max-width: 144px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     color: $primary-color;
     flex-shrink: 0;
   }
@@ -487,8 +487,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background: transparent;
   border: none;
   color: $primary-color;
@@ -563,7 +563,7 @@
 
     select {
       flex: 1;
-      min-width: 150px;
+      min-width: 135px;
     }
   }
 }
@@ -579,7 +579,7 @@
   }
 
   .plans-table {
-    min-width: 900px;
+    min-width: 810px;
   }
 }
 

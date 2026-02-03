@@ -24,7 +24,7 @@
     border: none;
     cursor: pointer;
     color: $white;
-    font-size: 22px;
+    font-size: $font-size-h3;
     padding: 0;
     border-radius: $border-radius-md;
 
@@ -78,7 +78,7 @@
   border: none;
   cursor: pointer;
   color: $white;
-  font-size: 18px;
+  font-size: $font-size-h4;
   padding: 0;
   border-radius: $border-radius-md;
   align-items: center;
@@ -112,7 +112,7 @@
   flex-wrap: wrap;
 
   > i {
-    font-size: 18px;
+    font-size: $font-size-h4;
   }
 }
 
@@ -147,7 +147,7 @@
   margin-left: $spacing-sm;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-base;
   }
 
   &:hover {
@@ -172,7 +172,7 @@
 
 // Sidebar
 .admin-sidebar {
-  width: 280px;
+  width: 252px;
   background-color: $primary-color;
   display: flex;
   flex-direction: column;
@@ -292,7 +292,7 @@
 // Main Content
 .admin-content {
   flex: 1;
-  margin-left: 280px;
+  margin-left: 252px;
   padding: $spacing-lg;
   min-height: 100vh;
 }
@@ -300,11 +300,11 @@
 // Responsive
 @media (max-width: $breakpoint-desktop) {
   .admin-sidebar {
-    width: 240px;
+    width: 216px;
   }
 
   .admin-content {
-    margin-left: 240px;
+    margin-left: 216px;
   }
 }
 
@@ -329,7 +329,7 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
+    width: 252px;
     max-width: 85vw;
     transform: translateX(-100%);
     transition: transform $transition-base;

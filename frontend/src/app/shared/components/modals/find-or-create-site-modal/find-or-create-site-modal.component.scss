@@ -20,7 +20,7 @@ h2[mat-dialog-title] {
 
 mat-dialog-content {
   padding-top: $spacing-md !important;
-  min-height: 300px;
+  min-height: 270px;
   max-height: 75vh;
 }
 
@@ -146,7 +146,7 @@ mat-dialog-content {
 
 // Badges
 .badge {
-  padding: 2px 8px;
+  padding: 2px $spacing-xs;
   border-radius: $border-radius-pill;
   font-size: 0.75rem;
   font-weight: 600;
@@ -224,7 +224,7 @@ mat-dialog-content {
 .site-org {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   font-size: 0.8rem;
   color: $gray;
 
@@ -247,7 +247,7 @@ mat-dialog-content {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: 0.75rem;
@@ -305,7 +305,7 @@ mat-dialog-content {
   padding: $spacing-xs $spacing-sm;
   font-size: 0.85rem;
   height: auto;
-  min-height: 32px;
+  min-height: 29px;
 
   i {
     margin-right: $spacing-xs;
@@ -317,7 +317,7 @@ mat-dialog-content {
   padding: $spacing-xs $spacing-sm;
   font-size: 0.85rem;
   height: auto;
-  min-height: 32px;
+  min-height: 29px;
   border-color: $secondary-orange-salmon;
   color: darken($secondary-orange-salmon, 10%);
 
@@ -363,7 +363,7 @@ mat-dialog-content {
 
     textarea {
       font-size: 0.85rem;
-      min-height: 50px;
+      min-height: 45px;
     }
   }
 }

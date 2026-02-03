@@ -780,9 +780,9 @@ body {
 
 // Notification menu panel (rendered in CDK overlay)
 .mat-mdc-menu-panel.notification-menu {
-  width: 600px !important;
-  max-width: 600px !important;
-  min-width: 600px !important;
+  width: 540px !important;
+  max-width: 540px !important;
+  min-width: 540px !important;
 
   .mat-mdc-menu-content {
     padding: 0 !important;
@@ -791,9 +791,9 @@ body {
 
 // Fallback si panelClass est utilisé
 .mat-mdc-menu-panel.notification-menu-panel {
-  width: 600px !important;
-  max-width: 600px !important;
-  min-width: 600px !important;
+  width: 540px !important;
+  max-width: 540px !important;
+  min-width: 540px !important;
 
   .mat-mdc-menu-content {
     padding: 0 !important;

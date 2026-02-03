@@ -42,7 +42,7 @@
   transition: background-color $transition-fast;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   &:hover {
@@ -90,10 +90,10 @@
   background-color: $white;
   border: 1px solid $gray-light;
   border-radius: $border-radius-md;
-  min-width: 300px;
+  min-width: 270px;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $gray-dark;
   }
 
@@ -149,7 +149,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 40px;
+    width: 36px;
     background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
     pointer-events: none;
     opacity: 1;
@@ -163,7 +163,7 @@
 
 .sites-table {
   width: 100%;
-  min-width: 750px; // Force scroll on smaller screens
+  min-width: 675px; // Force scroll on smaller screens
   border-collapse: collapse;
   font-family: $font-family;
 
@@ -187,7 +187,7 @@
     left: 0;
     z-index: 2;
     background-color: inherit;
-    min-width: 150px;
+    min-width: 135px;
 
     &::after {
       content: '';
@@ -261,7 +261,7 @@
   gap: $spacing-sm;
 
   .site-icon {
-    font-size: 18px;
+    font-size: 16px;
     color: $secondary-terra-cotta;
   }
 
@@ -282,7 +282,7 @@
 
 // Organismes column
 .organismes-cell {
-  max-width: 200px;
+  max-width: 180px;
 }
 
 .orgs-list {
@@ -299,10 +299,10 @@
   background-color: rgba($secondary-yellow, 0.2);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
-  max-width: 180px;
+  max-width: 162px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     color: $secondary-terra-cotta;
     flex-shrink: 0;
   }
@@ -323,12 +323,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background-color: $primary-color;
   color: $white;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: $font-weight-bold;
   flex-shrink: 0;
   margin-left: 2px;
@@ -346,7 +346,7 @@
 
 // Users column
 .users-cell {
-  max-width: 220px;
+  max-width: 198px;
 }
 
 .users-list {
@@ -363,10 +363,10 @@
   background-color: rgba($secondary-pale-green, 0.3);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
-  max-width: 200px;
+  max-width: 180px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     color: $primary-color;
     flex-shrink: 0;
   }
@@ -382,10 +382,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: $font-weight-bold;
   flex-shrink: 0;
 
@@ -419,8 +419,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background: transparent;
   border: none;
   color: $primary-color;
@@ -475,7 +475,7 @@
 
     select {
       flex: 1;
-      min-width: 150px;
+      min-width: 135px;
     }
   }
 }
@@ -491,6 +491,6 @@
   }
 
   .sites-table {
-    min-width: 700px;
+    min-width: 630px;
   }
 }

@@ -11,8 +11,8 @@
 }
 
 .plan-create-page {
-  min-height: calc(100vh - 64px);
-  padding-bottom: 80px; // Space for sticky action bar
+  min-height: calc(100vh - 58px);
+  padding-bottom: 72px; // Space for sticky action bar
 }
 
 // ============================================
@@ -22,10 +22,10 @@
 .hero-section {
   position: relative;
   background-color: $primary-color;
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 20px $border-radius-xl;
   margin: 0 $spacing-xl;
   padding: $spacing-lg $spacing-xl $spacing-xl;
-  min-height: 200px;
+  min-height: 180px;
   overflow: hidden;
 }
 
@@ -61,7 +61,7 @@
   justify-content: flex-start;
   gap: $spacing-md;
   margin-bottom: $spacing-md;
-  height: 48px;
+  height: 43px;
   background-color: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
@@ -71,8 +71,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   background-color: $white;
   border-radius: 50%;
   color: $primary-color;
@@ -82,7 +82,7 @@
   transition: transform $transition-fast;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   &:hover {
@@ -92,7 +92,7 @@
 
 .breadcrumb-lines {
   position: absolute;
-  left: 24px;
+  left: 22px;
   right: 0;
   top: 0;
   bottom: 0;
@@ -136,7 +136,7 @@
 
 .breadcrumb-chevron {
   color: $white;
-  font-size: 16px;
+  font-size: $font-size-base;
 }
 
 .breadcrumb-current {
@@ -162,13 +162,13 @@
   margin-bottom: $spacing-xs;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
 .hero-title {
   color: $white;
-  font-size: 32px;
+  font-size: $font-size-h2;
   font-weight: $font-weight-bold;
   font-family: $font-family;
   line-height: 1.2;
@@ -181,7 +181,7 @@
 
 .form-section {
   padding: $spacing-xl;
-  max-width: 900px;
+  max-width: 810px;
   margin: 0 auto;
 }
 
@@ -235,7 +235,7 @@
   font-size: $font-size-base;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -281,8 +281,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 $spacing-xs;
   background-color: $primary-color;
   color: $white;
@@ -304,7 +304,7 @@
 
   i {
     color: $gray-dark;
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   input {
@@ -326,7 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xxs;
-  max-height: 250px;
+  max-height: 225px;
   overflow-y: auto;
   border: 1px solid $gray-light;
   border-radius: $border-radius-md;
@@ -394,17 +394,17 @@
   .item-pending {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: $spacing-xxs;
     font-size: $font-size-small;
     color: darken($warning-color, 15%);
     font-style: italic;
     margin-left: auto;
-    padding: 2px 8px;
+    padding: 2px $spacing-xs;
     background-color: rgba($warning-color, 0.15);
     border-radius: $border-radius-pill;
 
     i {
-      font-size: 12px;
+      font-size: 11px;
     }
   }
 }
@@ -458,13 +458,13 @@
 }
 
 .chip-icon {
-  font-size: 14px;
+  font-size: $font-size-small;
   margin-right: $spacing-xxs;
 }
 
 // Autocomplete options
 .option-icon {
-  font-size: 16px;
+  font-size: $font-size-base;
   margin-right: $spacing-sm;
   color: $gray-dark;
 }
@@ -481,9 +481,9 @@
 
 // Count badge small variant
 .count-badge.small {
-  min-width: 18px;
-  height: 18px;
-  font-size: 11px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
 }
 
 // ============================================
@@ -503,7 +503,7 @@
 }
 
 .action-bar-content {
-  max-width: 900px;
+  max-width: 810px;
   margin: 0 auto;
   display: flex;
   justify-content: flex-end;
@@ -511,7 +511,7 @@
 
   button {
     font-family: $font-family;
-    min-width: 120px;
+    min-width: 108px;
   }
 }
 
@@ -546,7 +546,7 @@
   }
 
   .hero-title {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   .form-section {

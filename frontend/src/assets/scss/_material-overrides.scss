@@ -312,7 +312,7 @@ a[mat-raised-button][color="primary"] {
   // Input wrapper
   .mat-mdc-text-field-wrapper {
     background-color: $white;
-    border-radius: $border-radius-sm !important; // 4px
+    border-radius: $border-radius-sm !important; // $border-radius-sm
 
     .mat-mdc-form-field-flex {
       padding: 0 $input-padding-x;
@@ -1045,7 +1045,7 @@ a[mat-raised-button][color="primary"] {
   .mdc-tooltip__surface {
     white-space: pre-line !important;
     text-align: left !important;
-    max-width: 280px !important;
+    max-width: 252px !important;
     line-height: 1.5 !important;
     padding: $spacing-sm !important;
   }

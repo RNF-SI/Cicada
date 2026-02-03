@@ -42,7 +42,7 @@
   transition: background-color $transition-fast;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   &:hover {
@@ -90,10 +90,10 @@
   background-color: $white;
   border: 1px solid $gray-light;
   border-radius: $border-radius-md;
-  min-width: 300px;
+  min-width: 270px;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $gray-dark;
   }
 
@@ -149,7 +149,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 40px;
+    width: 36px;
     background: linear-gradient(to left, rgba($white, 0.95), rgba($white, 0));
     pointer-events: none;
     opacity: 1;
@@ -163,7 +163,7 @@
 
 .users-table {
   width: 100%;
-  min-width: 900px; // Force scroll on smaller screens
+  min-width: 810px; // Force scroll on smaller screens
   border-collapse: collapse;
   font-family: $font-family;
   table-layout: auto;
@@ -179,7 +179,7 @@
   td.sites-cell,
   td.plans-cell {
     white-space: normal;
-    min-width: 180px;
+    min-width: 162px;
   }
 
   // Première colonne sticky (Utilisateur)
@@ -189,7 +189,7 @@
     left: 0;
     z-index: 2;
     background-color: inherit;
-    min-width: 160px;
+    min-width: 144px;
 
     &::after {
       content: '';
@@ -267,8 +267,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background-color: $primary-color;
   color: $white;
   border-radius: $border-radius-round;
@@ -311,7 +311,7 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   padding: 2px $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-small;
@@ -331,20 +331,20 @@
     color: darken($warning-color, 15%);
 
     i {
-      font-size: 14px;
+      font-size: $font-size-small;
     }
 
     .days-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 26px;
-      height: 20px;
-      padding: 0 5px;
+      min-width: 23px;
+      height: 18px;
+      padding: 0 $spacing-xxs;
       background-color: $warning-color;
       color: $white;
-      border-radius: 10px;
-      font-size: 12px;
+      border-radius: 9px;
+      font-size: 11px;
       font-weight: $font-weight-bold;
       margin-left: 2px;
     }
@@ -355,35 +355,35 @@
     color: $gray-dark;
 
     i {
-      font-size: 14px;
+      font-size: $font-size-small;
     }
   }
 }
 
 // Sites column
 .sites-cell {
-  max-width: 250px;
+  max-width: 225px;
 }
 
 .sites-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 }
 
 .site-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   padding: 2px $spacing-xs;
   background-color: rgba($primary-color, 0.08);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: $primary-color;
-  max-width: 220px;
+  max-width: 198px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -398,9 +398,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    font-size: 11px;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
     font-weight: $font-weight-bold;
     border-radius: $border-radius-round;
     margin-left: 2px;
@@ -423,28 +423,28 @@
 
 // Plans column
 .plans-cell {
-  max-width: 250px;
+  max-width: 225px;
 }
 
 .plans-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 }
 
 .plan-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   padding: 2px $spacing-xs;
   background-color: rgba($secondary-pale-green, 0.4);
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: darken($secondary-pale-green, 35%);
-  max-width: 220px;
+  max-width: 198px;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
@@ -459,9 +459,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    font-size: 11px;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
     font-weight: $font-weight-bold;
     border-radius: $border-radius-round;
     margin-left: 2px;
@@ -496,8 +496,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background: transparent;
   border: none;
   color: $primary-color;
@@ -576,7 +576,7 @@
 
     select {
       flex: 1;
-      min-width: 150px;
+      min-width: 135px;
     }
   }
 }

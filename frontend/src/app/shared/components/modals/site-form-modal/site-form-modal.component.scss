@@ -7,43 +7,43 @@
 .site-form-layout {
   display: flex;
   gap: $spacing-lg;
-  min-width: 850px;
+  min-width: 765px;
   transition: all 0.3s ease;
 
   // When suggestions panel is visible - expand to fill dialog
   &.has-suggestions {
-    min-width: 1250px;
+    min-width: 1125px;
   }
 }
 
 // Colonne carte (gauche)
 .map-column {
   flex: 1 1 45%;
-  min-width: 350px;
+  min-width: 315px;
   transition: flex 0.3s ease;
 
   .has-suggestions & {
     flex: 1 1 35%;
-    min-width: 300px;
+    min-width: 270px;
   }
 }
 
 // Colonne formulaire (centre)
 .form-column {
   flex: 1 1 45%;
-  min-width: 350px;
+  min-width: 315px;
   transition: flex 0.3s ease;
 
   .has-suggestions & {
     flex: 1 1 35%;
-    min-width: 300px;
+    min-width: 270px;
   }
 }
 
 // Colonne suggestions (droite, conditionnelle)
 .suggestions-column {
-  flex: 0 0 340px;
-  max-width: 380px;
+  flex: 0 0 306px;
+  max-width: 342px;
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, rgba($secondary-yellow, 0.08) 0%, rgba($secondary-orange-salmon, 0.08) 100%);
@@ -56,7 +56,7 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(18px);
   }
   to {
     opacity: 1;
@@ -71,7 +71,7 @@
   margin-bottom: $spacing-xs;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
     color: $secondary-terra-cotta;
   }
 
@@ -97,7 +97,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-  max-height: 380px;
+  max-height: 342px;
   padding-right: $spacing-xs;
 
   // Custom scrollbar
@@ -129,7 +129,7 @@
 
     i {
       margin-right: $spacing-xs;
-      font-size: 14px;
+      font-size: $font-size-small;
     }
 
     &:hover {
@@ -150,7 +150,7 @@
   margin: 0 0 $spacing-md;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
@@ -159,13 +159,13 @@
 // ============================================
 
 .map-container {
-  height: 450px;
+  height: 405px;
   border-radius: $border-radius-sm;
   overflow: hidden;
   border: 1px solid $gray-light;
 
   .has-suggestions & {
-    height: 400px;
+    height: 360px;
   }
 }
 
@@ -183,7 +183,7 @@
 }
 
 .tab-icon {
-  font-size: 14px;
+  font-size: $font-size-small;
   margin-right: $spacing-xs;
 }
 
@@ -196,7 +196,7 @@
   .mat-mdc-tab-labels {
     background-color: $gray-lighter;
     border-radius: $border-radius-sm;
-    padding: 4px;
+    padding: $spacing-xxs;
   }
 
   .mat-mdc-tab {
@@ -266,7 +266,7 @@
   margin-bottom: $spacing-sm;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $error-color;
   }
 
@@ -293,10 +293,10 @@
   .site-type-badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 2px $spacing-xs;
     background-color: $primary-color;
     color: $white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: $font-weight-bold;
     text-transform: uppercase;
     border-radius: $border-radius-pill;
@@ -311,7 +311,7 @@
   button {
     i {
       margin-right: $spacing-xs;
-      font-size: 12px;
+      font-size: 11px;
     }
   }
 }
@@ -332,7 +332,7 @@
   margin-bottom: $spacing-md;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -408,47 +408,47 @@
   .site-type {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: $spacing-xxs;
     color: $white;
     background-color: $primary-color;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: $font-weight-bold;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: $border-radius-pill;
 
     .compact & {
-      font-size: 9px;
-      padding: 1px 5px;
+      font-size: 8px;
+      padding: 1px $spacing-xxs;
     }
   }
 
   .site-inpn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: $spacing-xxs;
     color: $gray-dark;
     font-family: $font-family;
     font-size: $font-size-small;
     background-color: $beige;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: $border-radius-sm;
 
     &::before {
       content: 'INPN';
-      font-size: 9px;
+      font-size: 8px;
       font-weight: $font-weight-bold;
       color: $primary-color;
       text-transform: uppercase;
     }
 
     .compact & {
-      font-size: 11px;
-      padding: 1px 4px;
+      font-size: 10px;
+      padding: 1px $spacing-xxs;
 
       &::before {
-        font-size: 8px;
+        font-size: 7px;
       }
     }
   }
@@ -456,12 +456,12 @@
   .site-surface {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: $spacing-xxs;
     color: $gray-dark;
     font-size: $font-size-small;
 
     i {
-      font-size: 12px;
+      font-size: 11px;
       color: $secondary-pale-green;
     }
   }
@@ -469,13 +469,13 @@
   .site-orgs {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: $spacing-xxs;
     color: $gray-dark;
     font-size: $font-size-small;
     margin-top: $spacing-xs;
 
     i {
-      font-size: 14px;
+      font-size: $font-size-small;
       color: $secondary-orange-salmon;
     }
   }
@@ -484,21 +484,21 @@
 .site-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
 
   .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: $spacing-xxs;
+    padding: $spacing-xxs 9px;
     border-radius: $border-radius-pill;
     font-family: $font-family;
     font-size: $font-size-small;
     font-weight: $font-weight-bold;
 
     i {
-      font-size: 12px;
+      font-size: 11px;
     }
 
     &.status-has-access {
@@ -517,11 +517,11 @@
     }
 
     .compact & {
-      padding: 2px 6px;
-      font-size: 11px;
+      padding: 2px 5px;
+      font-size: 10px;
 
       i {
-        font-size: 10px;
+        font-size: 9px;
       }
     }
   }
@@ -537,8 +537,8 @@
 
   button {
     i {
-      margin-right: 6px;
-      font-size: 14px;
+      margin-right: 5px;
+      font-size: $font-size-small;
     }
   }
 
@@ -550,16 +550,16 @@
 
     button {
       width: 100%;
-      font-size: 12px;
-      padding: 6px 12px;
-      min-height: 32px;
+      font-size: 11px;
+      padding: 6px $spacing-sm;
+      min-height: 29px;
       white-space: nowrap;
       text-align: center;
       justify-content: center;
 
       i {
-        margin-right: 6px;
-        font-size: 12px;
+        margin-right: 5px;
+        font-size: 11px;
         flex-shrink: 0;
       }
     }
@@ -596,7 +596,7 @@
 }
 
 mat-dialog-content {
-  min-height: 400px;
+  min-height: 360px;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -607,7 +607,7 @@ mat-dialog-actions {
   margin-top: $spacing-md;
 
   button {
-    min-width: 100px;
+    min-width: 90px;
   }
 }
 
@@ -649,7 +649,7 @@ mat-dialog-actions {
 
   .map-container,
   .has-suggestions .map-container {
-    height: 250px;
+    height: 225px;
   }
 }
 
@@ -671,7 +671,7 @@ mat-dialog-actions {
 
   .duplicate-actions.compact {
     button {
-      font-size: 11px;
+      font-size: 10px;
     }
   }
 }

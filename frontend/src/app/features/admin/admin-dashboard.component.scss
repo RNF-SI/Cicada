@@ -58,7 +58,7 @@
   color: $error-color;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   span {
@@ -94,7 +94,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: $spacing-md;
 }
 
@@ -112,10 +112,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 50px;
+  height: 50px;
   border-radius: $border-radius-round;
-  font-size: 24px;
+  font-size: $font-size-h3;
 
   &.plans {
     background-color: rgba($primary-color, 0.1);
@@ -200,7 +200,7 @@
   transition: all $transition-fast;
 
   i {
-    font-size: 28px;
+    font-size: 25px;
   }
 
   &:hover {
@@ -245,8 +245,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: $border-radius-round;
   flex-shrink: 0;
 
@@ -355,8 +355,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background: transparent;
   border: none;
   color: $primary-color;
@@ -388,9 +388,9 @@
   }
 
   .stat-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
+    width: 43px;
+    height: 43px;
+    font-size: $font-size-h4;
   }
 
   .stat-value {

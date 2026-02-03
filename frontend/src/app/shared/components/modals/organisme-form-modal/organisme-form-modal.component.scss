@@ -1,9 +1,11 @@
+@import 'variables';
+
 .organisme-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 500px;
-  padding-top: 16px;
+  gap: $spacing-xs;
+  min-width: 450px;
+  padding-top: $spacing-md;
 
   @media (max-width: 600px) {
     min-width: auto;
@@ -21,7 +23,7 @@
   &.two-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: $spacing-md;
 
     @media (max-width: 600px) {
       grid-template-columns: 1fr;
@@ -36,18 +38,18 @@
 .error-banner {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: $spacing-sm;
+  padding: 12px $spacing-md;
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   color: #dc2626;
-  font-size: 14px;
-  margin-bottom: 16px;
+  font-size: $font-size-small;
+  margin-bottom: $spacing-md;
   white-space: pre-line;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
     margin-top: 2px;
   }
 }
@@ -57,10 +59,10 @@ mat-dialog-content {
 }
 
 mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
+  padding: 16px $spacing-lg;
+  gap: $spacing-xs;
 
   button {
-    min-width: 100px;
+    min-width: 90px;
   }
 }

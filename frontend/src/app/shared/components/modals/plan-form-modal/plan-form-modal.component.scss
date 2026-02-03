@@ -71,7 +71,7 @@ mat-dialog-content {
   font-size: $font-size-base;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -165,7 +165,7 @@ mat-dialog-content {
   transition: all $transition-fast;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   &:hover {
@@ -198,8 +198,8 @@ mat-dialog-content {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 $spacing-xs;
   background-color: $primary-color;
   color: $white;
@@ -247,7 +247,7 @@ mat-dialog-content {
 
   i {
     color: $gray-dark;
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   input {
@@ -269,7 +269,7 @@ mat-dialog-content {
   display: flex;
   flex-direction: column;
   gap: $spacing-xxs;
-  max-height: 250px;
+  max-height: 225px;
   overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid $gray-light;
@@ -304,7 +304,7 @@ mat-dialog-content {
   min-width: 0;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
     color: $primary-color;
     flex-shrink: 0;
   }
@@ -330,7 +330,7 @@ mat-dialog-content {
     font-size: $font-size-small;
     color: $primary-color;
     background-color: rgba($primary-color, 0.1);
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: $border-radius-sm;
     margin-left: auto;
   }
@@ -340,14 +340,14 @@ mat-dialog-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: $border-radius-sm;
   flex-shrink: 0;
 
   i {
     color: $success-color;
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
@@ -383,7 +383,7 @@ mat-dialog-actions {
   }
 
   button[mat-raised-button] {
-    min-width: 100px;
+    min-width: 90px;
   }
 }
 
@@ -411,7 +411,7 @@ mat-dialog-actions {
   }
 
   .selection-list {
-    max-height: 200px;
+    max-height: 180px;
   }
 }
 

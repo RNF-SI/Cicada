@@ -9,7 +9,7 @@
 // ============================================
 
 html {
-  font-size: 16px;  // Augmenté pour lisibilité sur écrans laptop (was 15px)
+  font-size: 14px;  // Réduit à 90% pour meilleure densité (was 16px)
 }
 
 body {
@@ -267,54 +267,22 @@ pre {
 // Tablet (768px et moins)
 @media (max-width: $breakpoint-tablet) {
   html {
-    font-size: 14px;  // Base légèrement réduite
+    font-size: 13px;  // Base réduite pour tablet
   }
 
   h1, .h1 {
-    font-size: 36px;
-    line-height: 48px;
+    font-size: 32px;
+    line-height: 43px;
   }
 
   h2, .h2 {
-    font-size: 28px;
-    line-height: 36px;
-  }
-
-  h3, .h3 {
-    font-size: 20px;
-    line-height: 28px;
-  }
-
-  h4, .h4 {
-    font-size: 18px;
-    line-height: 24px;
-  }
-
-  .subtitle {
-    font-size: 13px;
-  }
-}
-
-// Mobile (576px et moins) - Textes plus lisibles
-@media (max-width: $breakpoint-mobile) {
-  html {
-    font-size: 14px;  // Maintenir la lisibilité
-  }
-
-  h1, .h1 {
-    font-size: 28px;
-    line-height: 36px;
-    margin-bottom: $spacing-md;
-  }
-
-  h2, .h2 {
-    font-size: 24px;
+    font-size: 25px;
     line-height: 32px;
   }
 
   h3, .h3 {
     font-size: 18px;
-    line-height: 26px;
+    line-height: 25px;
   }
 
   h4, .h4 {
@@ -324,12 +292,44 @@ pre {
 
   .subtitle {
     font-size: 12px;
+  }
+}
+
+// Mobile (576px et moins) - Textes plus lisibles
+@media (max-width: $breakpoint-mobile) {
+  html {
+    font-size: 13px;  // Maintenir la lisibilité
+  }
+
+  h1, .h1 {
+    font-size: 25px;
+    line-height: 32px;
+    margin-bottom: $spacing-md;
+  }
+
+  h2, .h2 {
+    font-size: 22px;
+    line-height: 29px;
+  }
+
+  h3, .h3 {
+    font-size: 16px;
+    line-height: 23px;
+  }
+
+  h4, .h4 {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .subtitle {
+    font-size: 11px;
     letter-spacing: 0.15em;  // Légèrement réduit pour mobile
   }
 
   .text-small, .text-mention {
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 11px;
+    line-height: 16px;
   }
 
   // Réduire les marges sur mobile
@@ -351,35 +351,35 @@ pre {
 // Mobile : texte plus grand pour lisibilité
 @media (max-width: $breakpoint-mobile) {
   .text-mobile-lg {
-    font-size: 16px !important;
-    line-height: 24px !important;
-  }
-
-  .text-mobile-md {
     font-size: 14px !important;
     line-height: 22px !important;
   }
 
+  .text-mobile-md {
+    font-size: 13px !important;
+    line-height: 20px !important;
+  }
+
   .text-mobile-sm {
-    font-size: 12px !important;
-    line-height: 18px !important;
+    font-size: 11px !important;
+    line-height: 16px !important;
   }
 }
 
 // Tablet : ajustements intermédiaires
 @media (max-width: $breakpoint-tablet) and (min-width: calc($breakpoint-mobile + 1px)) {
   .text-tablet-lg {
-    font-size: 17px !important;
-    line-height: 26px !important;
+    font-size: 15px !important;
+    line-height: 23px !important;
   }
 
   .text-tablet-md {
-    font-size: 15px !important;
-    line-height: 24px !important;
+    font-size: 14px !important;
+    line-height: 22px !important;
   }
 
   .text-tablet-sm {
-    font-size: 13px !important;
-    line-height: 20px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
   }
 }

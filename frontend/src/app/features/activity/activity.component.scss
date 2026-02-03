@@ -10,16 +10,16 @@
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   color: $primary-color;
   text-decoration: none;
   font-size: $font-size-base;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-md;
   transition: opacity 0.2s;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 
   &:hover {
@@ -59,9 +59,9 @@
       background-color: $primary-color;
       color: white;
       font-size: $font-size-small;
-      padding: 2px 8px;
+      padding: 2px $spacing-xs;
       border-radius: $border-radius-pill;
-      min-width: 22px;
+      min-width: 20px;
       text-align: center;
     }
   }
@@ -93,12 +93,12 @@
 
   .search-field {
     flex: 1;
-    min-width: 200px;
-    max-width: 400px;
+    min-width: 180px;
+    max-width: 360px;
   }
 
   .filter-field {
-    min-width: 180px;
+    min-width: 162px;
   }
 
   ::ng-deep {
@@ -110,14 +110,14 @@
 
 // Content area
 .content-area {
-  min-height: 400px;
+  min-height: 360px;
 }
 
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 300px;
+  min-height: 270px;
 }
 
 // Empty state
@@ -177,12 +177,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 32px;
+    width: 29px;
     flex-shrink: 0;
 
     .marker-icon {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: $border-radius-round;
       display: flex;
       align-items: center;
@@ -292,7 +292,7 @@
     .entity-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: $spacing-xxs;
 
       .entity-type {
         display: flex;
@@ -402,11 +402,11 @@ mat-paginator {
     }
 
     .timeline-marker {
-      width: 24px;
+      width: 22px;
 
       .marker-icon {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
 
         i {
           font-size: 0.75rem;
