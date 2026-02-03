@@ -1,9 +1,11 @@
+@import 'variables';
+
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-width: 500px;
-  padding-top: 16px;
+  gap: $spacing-md;
+  min-width: 450px;
+  padding-top: $spacing-md;
 
   @media (max-width: 600px) {
     min-width: auto;
@@ -20,16 +22,16 @@
 .site-info {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: $spacing-md;
+  padding: $spacing-md;
   background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-xs;
 }
 
 .user-avatar {
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   border-radius: 50%;
   background: #025359;
   color: white;
@@ -37,20 +39,20 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 16px;
+  font-size: $font-size-base;
   flex-shrink: 0;
 }
 
 .site-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 43px;
+  height: 43px;
+  border-radius: $border-radius-md;
   background: #025359;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: $font-size-h4;
   flex-shrink: 0;
 }
 
@@ -58,52 +60,52 @@
 .site-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 }
 
 .user-name,
 .site-name {
   font-weight: 600;
-  font-size: 16px;
+  font-size: $font-size-base;
   color: #212529;
 }
 
 .user-email,
 .site-type {
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #6c757d;
 }
 
 // Sites section
 .sites-section {
   background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
   font-weight: 600;
   color: #025359;
   margin: 0 0 12px 0;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
 .empty-state {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
   background: white;
-  border-radius: 6px;
+  border-radius: 5px;
   color: #6c757d;
-  font-size: 13px;
+  font-size: 12px;
 
   i {
     color: #81C9D8;
@@ -114,16 +116,16 @@
 .sites-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: $spacing-xs;
 }
 
 .site-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: $spacing-sm;
+  padding: 10px $spacing-sm;
   background: white;
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1px solid #e9ecef;
   transition: all 0.2s ease;
 
@@ -159,17 +161,17 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   min-width: 0;
 
   i {
     color: #025359;
-    font-size: 14px;
+    font-size: $font-size-small;
     flex-shrink: 0;
   }
 
   .site-name {
-    font-size: 14px;
+    font-size: $font-size-small;
     font-weight: 500;
     color: #212529;
     white-space: nowrap;
@@ -179,9 +181,9 @@
 }
 
 .badge {
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 9px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
   flex-shrink: 0;
@@ -204,14 +206,14 @@
 
 .site-item-roles {
   display: flex;
-  gap: 12px;
+  gap: $spacing-sm;
   flex-shrink: 0;
 }
 
 .role-checkbox {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xxs;
   cursor: pointer;
 
   input[type="checkbox"] {
@@ -222,9 +224,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
     font-weight: 700;
     border-radius: 50%;
     transition: all 0.2s ease;
@@ -236,7 +238,7 @@
   }
 
   .role-text {
-    font-size: 12px;
+    font-size: 11px;
     color: #6c757d;
   }
 
@@ -256,13 +258,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   background: transparent;
   border: none;
   color: #dc2626;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: $border-radius-sm;
   opacity: 0.6;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -273,21 +275,21 @@
   }
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
 .btn-restore {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 5px;
+  padding: $spacing-xxs 9px;
   background: transparent;
   border: 1px solid #6c757d;
   color: #6c757d;
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: $border-radius-sm;
+  font-size: 11px;
   transition: all 0.2s ease;
   flex-shrink: 0;
 
@@ -298,22 +300,22 @@
   }
 
   i {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
 // Add site section
 .add-site-section {
   background: #e8f4f8;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
   border: 1px dashed #81C9D8;
 }
 
 .add-site-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: $spacing-sm;
 }
 
 .site-search-field {
@@ -323,11 +325,11 @@
 .new-site-roles {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: $spacing-md;
   flex-wrap: wrap;
 
   .roles-label {
-    font-size: 13px;
+    font-size: 12px;
     color: #6c757d;
   }
 }
@@ -335,23 +337,23 @@
 // Users section (for select-user mode with list)
 .users-section {
   background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
 }
 
 .users-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: $spacing-xs;
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: $spacing-sm;
+  padding: 10px $spacing-sm;
   background: white;
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1px solid #e9ecef;
   transition: all 0.2s ease;
 
@@ -387,18 +389,18 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   min-width: 0;
   flex-wrap: wrap;
 
   i {
     color: #025359;
-    font-size: 14px;
+    font-size: $font-size-small;
     flex-shrink: 0;
   }
 
   .user-name {
-    font-size: 14px;
+    font-size: $font-size-small;
     font-weight: 500;
     color: #212529;
     white-space: nowrap;
@@ -407,7 +409,7 @@
   }
 
   .user-email-small {
-    font-size: 12px;
+    font-size: 11px;
     color: #6c757d;
     white-space: nowrap;
     overflow: hidden;
@@ -417,22 +419,22 @@
 
 .user-item-roles {
   display: flex;
-  gap: 12px;
+  gap: $spacing-sm;
   flex-shrink: 0;
 }
 
 // Add user section
 .add-user-section {
   background: #e8f4f8;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
   border: 1px dashed #81C9D8;
 }
 
 .add-user-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: $spacing-sm;
 }
 
 .user-search-field {
@@ -442,11 +444,11 @@
 .new-user-roles {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: $spacing-md;
   flex-wrap: wrap;
 
   .roles-label {
-    font-size: 13px;
+    font-size: 12px;
     color: #6c757d;
   }
 }
@@ -454,25 +456,25 @@
 .role-checkbox-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: #212529;
 
   input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     accent-color: #025359;
   }
 }
 
 // Roles section (for select-user mode)
 .roles-section {
-  margin-top: 8px;
+  margin-top: $spacing-xs;
 
   .roles-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: $font-size-small;
     color: #212529;
     margin: 0 0 12px 0;
   }
@@ -489,12 +491,12 @@
   .checkbox-label {
     font-weight: 600;
     display: block;
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   .checkbox-description {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     color: #6c757d;
     margin-top: 2px;
   }
@@ -505,7 +507,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 0;
+  padding: $spacing-xxs 0;
 
   .option-name {
     font-weight: 500;
@@ -514,7 +516,7 @@
 
   .option-type,
   .option-email {
-    font-size: 12px;
+    font-size: 11px;
     color: #6c757d;
   }
 }
@@ -523,17 +525,17 @@
 .info-box {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: $spacing-sm;
+  padding: 12px $spacing-md;
   background: #e8f4f8;
   border: 1px solid #81C9D8;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   color: #025359;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     margin-top: 2px;
     flex-shrink: 0;
   }
@@ -549,8 +551,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
-  gap: 16px;
+  padding: $spacing-xl;
+  gap: $spacing-md;
 
   p {
     color: #6c757d;
@@ -561,17 +563,17 @@
 .error-banner {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: $spacing-sm;
+  padding: 12px $spacing-md;
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   color: #dc2626;
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: $font-size-small;
+  margin-bottom: $spacing-xs;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
     margin-top: 2px;
   }
 }
@@ -579,17 +581,17 @@
 .success-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: $spacing-sm;
+  padding: 12px $spacing-md;
   background: rgba(130, 219, 138, 0.15);
   border: 1px solid #82DB8A;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   color: darken(#82DB8A, 35%);
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: $font-size-small;
+  margin-bottom: $spacing-xs;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -600,10 +602,10 @@ mat-dialog-content {
 }
 
 mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
+  padding: 16px $spacing-lg;
+  gap: $spacing-xs;
 
   button {
-    min-width: 100px;
+    min-width: 90px;
   }
 }

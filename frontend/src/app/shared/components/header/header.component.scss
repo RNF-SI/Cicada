@@ -22,7 +22,7 @@
   flex-wrap: wrap;
 
   > i {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -57,7 +57,7 @@
   margin-left: $spacing-sm;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   &:hover {
@@ -81,7 +81,7 @@
   margin-left: $spacing-xs;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
@@ -92,7 +92,7 @@
 
 .header {
   background-color: $white;
-  height: 64px;
+  height: 58px;
   position: sticky;
   top: 0;
   z-index: $z-index-sticky;
@@ -116,17 +116,17 @@
 // Hamburger menu button - positioned at far left of viewport
 .hamburger-btn {
   position: absolute;
-  left: 20px;
+  left: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: $primary-color;
-  font-size: 24px;
+  font-size: $font-size-h3;
   padding: 0;
   border-radius: $border-radius-md;
 
@@ -150,14 +150,14 @@
 }
 
 .logo-img {
-  height: 48px;
+  height: 43px;
   width: auto;
 }
 
 // Navigation - positioned at far right of viewport (68px from right edge as per Figma)
 .header-nav {
   position: absolute;
-  right: 68px;
+  right: 61px;
   display: flex;
   align-items: center;
   gap: $spacing-sm;
@@ -187,7 +187,7 @@
 // Administration button
 .admin-btn {
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   .btn-text {
@@ -198,7 +198,7 @@
 
 .user-menu-trigger {
   .user-icon {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   .user-name {
@@ -207,7 +207,7 @@
   }
 
   .chevron {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 }
 
@@ -233,7 +233,7 @@
 }
 
 .menu-icon {
-  font-size: 16px;
+  font-size: $font-size-base;
   margin-right: $spacing-xs;
   color: $primary-color;
 }
@@ -250,7 +250,7 @@
   font-family: $font-family;
   font-size: $font-size-base;
   color: $black;
-  min-height: 44px;
+  min-height: 40px;
 
   &:hover {
     background-color: rgba($primary-color, 0.08);
@@ -276,7 +276,7 @@
   top: 0;
   left: 0;
   bottom: 0;
-  width: 280px;
+  width: 252px;
   max-width: 85vw;
   background-color: $primary-color;
   z-index: $z-index-modal;
@@ -299,13 +299,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: $white;
-  font-size: 16px;
+  font-size: $font-size-base;
   padding: 0;
   transition: opacity $transition-fast;
 
@@ -349,9 +349,9 @@
   position: relative;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
     color: $white;
-    width: 24px;
+    width: 22px;
     text-align: center;
   }
 
@@ -388,8 +388,8 @@
 
 // Coming soon badge - horizontally and vertically centered
 .coming-soon-badge {
-  font-size: 11px;
-  padding: 4px 10px;
+  font-size: 10px;
+  padding: $spacing-xxs 9px;
   background-color: rgba($white, 0.2);
   color: $white;
   border-radius: $border-radius-pill;
@@ -404,7 +404,7 @@
 
 // External link icon for Administration
 .external-icon {
-  font-size: 14px;
+  font-size: $font-size-small;
   opacity: 0.7;
   margin-left: auto;
   flex-shrink: 0;
@@ -444,7 +444,7 @@
   }
 
   .sidebar-logo {
-    height: 32px;
+    height: 29px;
   }
 
   .sidebar-item {

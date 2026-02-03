@@ -1,28 +1,28 @@
 @import 'variables';
 
 .exploration-main {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 58px);
   background-color: $beige;
 }
 
 .exploration-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 48px;
+  padding: 32px $spacing-xxl;
 }
 
 .exploration-nav {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 }
 
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   color: $primary-color;
   text-decoration: none;
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   font-weight: 600;
   transition: opacity 200ms ease-out;
 
@@ -31,33 +31,33 @@
   }
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
 .exploration-header {
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
 .exploration-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   color: $primary-color;
   margin: 0 0 12px 0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: $spacing-md;
 
   i {
-    font-size: 40px;
+    font-size: 36px;
     color: $secondary-yellow;
   }
 }
 
 .exploration-subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   color: $gray-dark;
   margin: 0;
@@ -66,20 +66,20 @@
 /* Stats Section */
 .stats-section {
   background: $white;
-  border-radius: 20px;
-  padding: 32px;
+  border-radius: $border-radius-xl;
+  padding: $spacing-xl;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .stats-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .stats-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 24px;
+  font-size: $font-size-h3;
   font-weight: 700;
   color: $primary-color;
   margin: 0 0 8px 0;
@@ -87,7 +87,7 @@
 
 .stats-subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;
   margin: 0;
@@ -96,14 +96,14 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: $spacing-lg;
 }
 
 .stat-card {
   text-align: center;
-  padding: 32px 24px;
+  padding: 32px $spacing-lg;
   background: linear-gradient(135deg, rgba($primary-color, 0.03) 0%, rgba($secondary-yellow, 0.05) 100%);
-  border-radius: 16px;
+  border-radius: $border-radius-lg;
   transition: transform 200ms ease-out, box-shadow 200ms ease-out;
 
   &:hover {
@@ -113,9 +113,9 @@
 }
 
 .stat-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 20px;
+  width: 65px;
+  height: 65px;
+  margin: 0 auto 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -123,7 +123,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   i {
-    font-size: 32px;
+    font-size: $font-size-h2;
     color: $white;
   }
 
@@ -142,16 +142,16 @@
 
 .stat-value {
   font-family: 'Nunito', sans-serif;
-  font-size: 48px;
+  font-size: $font-size-h1;
   font-weight: 700;
   color: $primary-color;
   line-height: 1.1;
-  margin-bottom: 8px;
+  margin-bottom: $spacing-xs;
 }
 
 .stat-label {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 600;
   color: $gray-dark;
   text-transform: uppercase;
@@ -164,22 +164,22 @@
 
 /* Coming Soon Section */
 .coming-soon-section {
-  margin-top: 24px;
+  margin-top: $spacing-lg;
 }
 
 .coming-soon-card {
   background: $white;
-  border-radius: 16px;
-  padding: 48px;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xxl;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 2px dashed $gray-light;
 }
 
 .coming-soon-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 24px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto $spacing-lg;
   background: linear-gradient(135deg, $secondary-yellow 0%, $secondary-orange-salmon 100%);
   border-radius: 50%;
   display: flex;
@@ -187,14 +187,14 @@
   justify-content: center;
 
   i {
-    font-size: 36px;
+    font-size: 32px;
     color: $primary-color;
   }
 }
 
 .coming-soon-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
   color: $primary-color;
   margin: 0 0 12px 0;
@@ -202,11 +202,11 @@
 
 .coming-soon-message {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;
   margin: 0;
-  max-width: 600px;
+  max-width: 540px;
   margin: 0 auto;
   line-height: 1.6;
 }
@@ -223,56 +223,56 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .exploration-container {
-    padding: 24px 32px;
+    padding: 24px $spacing-xl;
   }
 
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: $spacing-md;
   }
 
   .stat-card {
-    padding: 24px 16px;
+    padding: 24px $spacing-md;
   }
 
   .stat-value {
-    font-size: 36px;
+    font-size: 32px;
   }
 
   .stat-icon {
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
 
     i {
-      font-size: 28px;
+      font-size: 25px;
     }
   }
 }
 
 @media (max-width: 768px) {
   .exploration-container {
-    padding: 20px 16px;
+    padding: 20px $spacing-md;
   }
 
   .exploration-title {
-    font-size: 28px;
+    font-size: 25px;
 
     i {
-      font-size: 32px;
+      font-size: $font-size-h2;
     }
   }
 
   .exploration-subtitle {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 
   .stats-section {
-    padding: 24px 16px;
+    padding: 24px $spacing-md;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: $spacing-md;
   }
 
   .stat-card {
@@ -280,8 +280,8 @@
     flex-direction: row;
     align-items: center;
     text-align: left;
-    gap: 20px;
-    padding: 20px;
+    gap: 18px;
+    padding: 18px;
   }
 
   .stat-icon {
@@ -290,32 +290,32 @@
   }
 
   .stat-value {
-    font-size: 32px;
-    margin-bottom: 4px;
+    font-size: $font-size-h2;
+    margin-bottom: $spacing-xxs;
   }
 
   .stat-label {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   .coming-soon-card {
-    padding: 32px 20px;
+    padding: 32px 18px;
   }
 
   .coming-soon-icon {
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
 
     i {
-      font-size: 28px;
+      font-size: 25px;
     }
   }
 
   .coming-soon-title {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .coming-soon-message {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }

@@ -1,3 +1,5 @@
+@import 'variables';
+
 // Variables
 $primary-color: #025359;
 
@@ -79,7 +81,7 @@ $card-border-radius-tr: 48px;
   left: 0;
   right: 0;
   height: calc(100% - #{$bg-height});
-  padding: 16px 28px 16px 24px;
+  padding: 16px 28px 16px $spacing-lg;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -88,17 +90,17 @@ $card-border-radius-tr: 48px;
 
 .tile-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
-  line-height: 30px;
+  line-height: $line-height-h4;
   color: $primary-color;
   flex: 1;
-  margin-right: 12px;
+  margin-right: $spacing-sm;
 }
 
 .tile-arrow {
   color: $primary-color;
-  font-size: 24px;
+  font-size: $font-size-h3;
   flex-shrink: 0;
   transition: transform 200ms ease-out;
 
@@ -133,9 +135,9 @@ $card-border-radius-tr: 48px;
   left: 50%;
   transform: translate(-50%, -50%);
   color: #FFFFFF;
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
+  font-size: $font-size-h2;
+  width: 29px;
+  height: 29px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -160,31 +162,31 @@ $card-border-radius-tr: 48px;
 // Responsive
 @media (max-width: 576px) {
   .tile-wrapper {
-    height: 220px;
+    height: 198px;
   }
 
   .tile-background {
-    height: 120px;
+    height: 108px;
   }
 
   .tile-footer {
-    padding: 12px 16px;
-    height: calc(100% - 120px);
+    padding: 12px $spacing-md;
+    height: calc(100% - 108px);
   }
 
   .tile-title {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: $font-size-base;
+    line-height: 22px;
   }
 
   .tile-corner {
-    width: 70px;
-    height: 70px;
+    width: 63px;
+    height: 63px;
   }
 
   .corner-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: $font-size-h3;
+    width: 22px;
+    height: 22px;
   }
 }

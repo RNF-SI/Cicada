@@ -115,8 +115,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
+    min-width: 18px;
+    height: 18px;
     padding: 0 $spacing-xs;
     background-color: $primary-color;
     color: $white;
@@ -290,8 +290,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background-color: rgba($primary-color, 0.1);
   border-radius: $border-radius-round;
   flex-shrink: 0;
@@ -363,8 +363,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   border: none;
   border-radius: $border-radius-round;
   cursor: pointer;
@@ -438,7 +438,7 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-9px);
   }
   to {
     opacity: 1;

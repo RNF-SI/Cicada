@@ -1,17 +1,17 @@
 @import 'variables';
 
 .admin-settings {
-  padding: 24px;
-  max-width: 900px;
+  padding: $spacing-lg;
+  max-width: 810px;
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .page-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 700;
   color: $primary-color;
   margin: 0 0 8px 0;
@@ -19,7 +19,7 @@
 
 .page-subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;
   margin: 0;
@@ -27,34 +27,34 @@
 
 .settings-section {
   background: $white;
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 11px;
+  padding: $spacing-lg;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .section-header {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 }
 
 .section-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
   color: $primary-color;
   margin: 0 0 8px 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: $spacing-sm;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
     color: $secondary-yellow;
   }
 }
 
 .section-description {
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   font-weight: 400;
   color: $gray-dark;
   margin: 0;
@@ -63,22 +63,22 @@
 .image-settings {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: $spacing-lg;
 }
 
 .image-preview-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: $spacing-sm;
 }
 
 .image-preview {
   position: relative;
   width: 100%;
-  max-width: 600px;
+  max-width: 540px;
   aspect-ratio: 16 / 9;
   background: $gray-lighter;
-  border-radius: 16px;
+  border-radius: $border-radius-lg;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -100,34 +100,34 @@
 
   .preview-badge {
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: 11px;
+    left: 11px;
     background: $secondary-yellow;
     color: $black;
     font-family: 'Nunito', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 4px;
+    padding: $spacing-xxs $spacing-sm;
+    border-radius: $border-radius-sm;
   }
 }
 
 .image-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 }
 
 .image-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   font-weight: 600;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 
   &--custom {
@@ -141,7 +141,7 @@
 
 .image-meta {
   font-family: 'Nunito', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   color: $gray;
 }
@@ -149,29 +149,29 @@
 .position-selector {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 16px;
+  gap: $spacing-xs;
+  padding-top: $spacing-md;
   border-top: 1px solid $gray-lighter;
-  margin-top: 8px;
+  margin-top: $spacing-xs;
 
   .position-label {
     font-family: 'Nunito', sans-serif;
-    font-size: 14px;
+    font-size: $font-size-small;
     font-weight: 600;
     color: $black;
   }
 
   mat-button-toggle-group {
-    border-radius: 8px;
+    border-radius: $border-radius-md;
     border: 1px solid $gray-light;
 
     mat-button-toggle {
       font-family: 'Nunito', sans-serif;
-      font-size: 13px;
+      font-size: 12px;
 
       i {
-        margin-right: 6px;
-        font-size: 14px;
+        margin-right: 5px;
+        font-size: $font-size-small;
       }
 
       &.mat-button-toggle-checked {
@@ -183,7 +183,7 @@
 
   .position-hint {
     font-family: 'Nunito', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
     color: $gray;
   }
@@ -191,20 +191,20 @@
 
 .image-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-sm;
   flex-wrap: wrap;
 
   button, .upload-button {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: $spacing-xs;
 
     i {
-      font-size: 16px;
+      font-size: $font-size-base;
     }
 
     mat-spinner {
-      margin-right: 8px;
+      margin-right: $spacing-xs;
     }
   }
 }
@@ -215,14 +215,14 @@
   .upload-btn-content {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: $spacing-xs;
     background: $primary-color;
     color: $white;
     font-family: 'Nunito', sans-serif;
-    font-size: 14px;
+    font-size: $font-size-small;
     font-weight: 600;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 10px 18px;
+    border-radius: $border-radius-sm;
     transition: background 200ms ease-out;
 
     &:hover {
@@ -230,22 +230,22 @@
     }
 
     i {
-      font-size: 16px;
+      font-size: $font-size-base;
     }
   }
 }
 
 @media (max-width: 768px) {
   .admin-settings {
-    padding: 16px;
+    padding: $spacing-md;
   }
 
   .page-title {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   .settings-section {
-    padding: 16px;
+    padding: $spacing-md;
   }
 
   .image-preview {

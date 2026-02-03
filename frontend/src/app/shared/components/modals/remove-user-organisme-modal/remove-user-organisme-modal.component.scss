@@ -1,9 +1,11 @@
+@import 'variables';
+
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-width: 400px;
-  padding-top: 16px;
+  gap: $spacing-md;
+  min-width: 360px;
+  padding-top: $spacing-md;
 
   @media (max-width: 500px) {
     min-width: auto;
@@ -19,15 +21,15 @@
 .user-info {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: $spacing-md;
+  padding: $spacing-md;
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
 }
 
 .user-avatar {
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   border-radius: 50%;
   background: #025359;
   color: white;
@@ -35,24 +37,24 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 }
 
 .user-name {
   font-weight: 600;
-  font-size: 16px;
+  font-size: $font-size-base;
   color: #212529;
 }
 
 .user-email {
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #6c757d;
 }
 
@@ -60,15 +62,15 @@
 .warning-box {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: $spacing-sm;
+  padding: $spacing-md;
   background: #fef3cd;
   border: 1px solid #ffc107;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   color: #856404;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
     margin-top: 2px;
     flex-shrink: 0;
   }
@@ -76,12 +78,12 @@
   strong {
     display: block;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: $spacing-xxs;
   }
 
   p {
     margin: 0;
-    font-size: 14px;
+    font-size: $font-size-small;
     line-height: 1.4;
   }
 }
@@ -90,28 +92,28 @@
 .reason-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: $spacing-xs;
 }
 
 .reason-label {
   font-weight: 600;
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #212529;
 }
 
 .error-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: $spacing-xs;
+  padding: 8px $spacing-sm;
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 6px;
+  border-radius: 5px;
   color: #dc2626;
-  font-size: 13px;
+  font-size: 12px;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
@@ -122,10 +124,10 @@ mat-dialog-content {
 }
 
 mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
+  padding: 16px $spacing-lg;
+  gap: $spacing-xs;
 
   button {
-    min-width: 100px;
+    min-width: 90px;
   }
 }

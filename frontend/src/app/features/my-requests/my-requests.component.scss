@@ -1,43 +1,45 @@
+@import 'variables';
+
 .my-requests-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 32px $spacing-lg;
 }
 
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   color: #025359;
   text-decoration: none;
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 
   &:hover {
     text-decoration: underline;
   }
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 
   h1 {
     font-family: 'Nunito', sans-serif;
-    font-size: 32px;
+    font-size: $font-size-h2;
     font-weight: 700;
     color: #025359;
-    margin: 0 0 8px;
+    margin: 0 0 $spacing-xs;
   }
 
   .subtitle {
     font-family: 'Nunito', sans-serif;
-    font-size: 16px;
+    font-size: $font-size-base;
     color: #5C5C5C;
     margin: 0;
   }
@@ -47,30 +49,30 @@
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: $spacing-md;
+  padding: 18px;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 11px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 43px;
+  height: 43px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
     color: white;
   }
 }
@@ -94,7 +96,7 @@
 
 .stat-value {
   font-family: 'Nunito', sans-serif;
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 700;
   color: #343433;
   line-height: 1.2;
@@ -102,51 +104,51 @@
 
 .stat-label {
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #5C5C5C;
 }
 
 /* Modules section */
 .modules-section {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: $spacing-sm;
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
   color: #343433;
-  margin: 0 0 8px;
+  margin: 0 0 $spacing-xs;
 }
 
 .section-icon {
-  font-size: 24px;
+  font-size: $font-size-h3;
   color: #025359;
 }
 
 .section-description {
   font-family: 'Nunito', sans-serif;
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #5C5C5C;
-  margin: 0 0 16px;
+  margin: 0 0 $spacing-md;
 }
 
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(288px, 1fr));
+  gap: $spacing-md;
 }
 
 .module-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: $spacing-md;
+  padding: 18px;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 11px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s ease;
 
@@ -156,9 +158,9 @@
 }
 
 .module-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 43px;
+  height: 43px;
+  border-radius: 11px;
   background-color: #E8F5F5;
   display: flex;
   align-items: center;
@@ -166,7 +168,7 @@
   flex-shrink: 0;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
     color: #025359;
   }
 }
@@ -178,15 +180,15 @@
 
 .module-name {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 700;
   color: #343433;
-  margin: 0 0 4px;
+  margin: 0 0 $spacing-xxs;
 }
 
 .module-description {
   font-family: 'Nunito', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   color: #5C5C5C;
   margin: 0;
   line-height: 1.4;
@@ -198,25 +200,25 @@
   button {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
   }
 }
 
 .chip-icon {
-  font-size: 12px;
-  margin-right: 4px;
+  font-size: 11px;
+  margin-right: $spacing-xxs;
 }
 
 /* Content */
 .content-section {
-  min-height: 300px;
+  min-height: 270px;
 }
 
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 200px;
+  min-height: 180px;
 }
 
 /* Empty state */
@@ -225,48 +227,48 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px 24px;
+  padding: 64px $spacing-lg;
   background-color: white;
-  border-radius: 16px;
+  border-radius: $border-radius-lg;
   text-align: center;
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 58px;
   color: #DADADA;
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 }
 
 .empty-state h3 {
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
   color: #343433;
-  margin: 0 0 8px;
+  margin: 0 0 $spacing-xs;
 }
 
 .empty-state p {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   color: #5C5C5C;
-  margin: 0 0 24px;
-  max-width: 400px;
+  margin: 0 0 $spacing-lg;
+  max-width: 360px;
 }
 
 .empty-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-sm;
 
   a {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: $spacing-xs;
   }
 }
 
 /* Requests card */
 .requests-card {
-  border-radius: 12px;
+  border-radius: 11px;
   overflow: hidden;
 }
 
@@ -275,7 +277,7 @@
 
   th {
     font-family: 'Nunito', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #5C5C5C;
     text-transform: uppercase;
@@ -285,7 +287,7 @@
 
   td {
     font-family: 'Nunito', sans-serif;
-    font-size: 14px;
+    font-size: $font-size-small;
     color: #343433;
   }
 }
@@ -293,15 +295,15 @@
 .type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
+  gap: $spacing-xs;
+  padding: $spacing-xxs $spacing-sm;
   background-color: #F0F0F0;
-  border-radius: 16px;
-  font-size: 13px;
+  border-radius: $border-radius-lg;
+  font-size: 12px;
   font-weight: 600;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
     color: #025359;
   }
 }
@@ -319,11 +321,11 @@
 .validator-info {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .validator-icon {
-  font-size: 14px;
+  font-size: $font-size-small;
   color: #04854B;
 }
 
@@ -332,11 +334,11 @@
 /* Responsive */
 @media (max-width: 768px) {
   .my-requests-page {
-    padding: 16px;
+    padding: $spacing-md;
   }
 
   .page-header h1 {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   .stats-cards {
@@ -354,7 +356,7 @@
   }
 
   .requests-table {
-    font-size: 12px;
+    font-size: 11px;
 
     // Hide some columns on mobile
     .mat-column-validated_at,

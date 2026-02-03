@@ -18,8 +18,8 @@
   &-bar {
     display: flex;
     align-items: center;
-    width: 100px;
-    height: 8px;
+    width: 90px;
+    height: 7px;
     background-color: $gray-lighter;
     border-radius: $border-radius-sm;
     overflow: hidden;
@@ -52,7 +52,7 @@
       right: 0;
       top: 0;
       bottom: 0;
-      width: 8px;
+      width: 7px;
       background-color: $gauge-mid-progress;
       border-radius: 0 $border-radius-sm $border-radius-sm 0;
     }
@@ -74,8 +74,8 @@
         90deg,
         $gauge-exceeded 0px,
         $gauge-exceeded 6px,
-        transparent 6px,
-        transparent 10px
+        transparent 5px,
+        transparent 9px
       );
     }
 
@@ -98,8 +98,8 @@
   font-size: $font-size-small;
 
   &-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -160,10 +160,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: $border-radius-round;
-  font-size: 16px;
+  font-size: $font-size-base;
 
   &.score-very-bad {
     background-color: $score-very-bad;
@@ -192,7 +192,7 @@
 
   &.score-no-data {
     background-color: $gray;
-    &::before { content: '/'; font-size: 12px; }
+    &::before { content: '/'; font-size: 11px; }
   }
 }
 
@@ -217,7 +217,7 @@
 
   &-image {
     position: relative;
-    height: 120px;
+    height: 108px;
     background-size: cover;
     background-position: center;
     overflow: hidden;
@@ -237,7 +237,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       color: $white;
-      font-size: 32px;
+      font-size: $font-size-h2;
       z-index: 1;
     }
   }
@@ -258,7 +258,7 @@
 
   &-arrow {
     color: $primary-color;
-    font-size: 20px;
+    font-size: $font-size-h4;
 
     &::after {
       content: '→';
@@ -279,13 +279,13 @@
 
   &-icon {
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: $secondary-yellow;
-    font-size: 20px;
+    font-size: $font-size-h4;
 
     &::before {
       content: '💡';
@@ -355,14 +355,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 29px;
+    height: 29px;
     background-color: $white;
     border-radius: $border-radius-round;
     color: $primary-color;
 
     mat-icon, .material-icons {
-      font-size: 18px;
+      font-size: 16px;
     }
   }
 
@@ -462,8 +462,8 @@
     }
 
     &-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -536,7 +536,7 @@
       max-height: 0;
 
       &.open {
-        max-height: 500px;
+        max-height: 450px;
       }
     }
   }
@@ -631,7 +631,7 @@
     margin-bottom: $spacing-md;
 
     mat-icon, .material-icons {
-      font-size: 24px;
+      font-size: $font-size-h3;
     }
   }
 
@@ -704,8 +704,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 29px;
+    height: 29px;
     border: 1px solid $gray-light;
     border-radius: $border-radius-sm;
     background-color: $white;
@@ -755,27 +755,27 @@
 
 // Icon sizes
 .icon-xs {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .icon-sm {
-  font-size: 16px;
+  font-size: $font-size-base;
 }
 
 .icon-md {
-  font-size: 20px;
+  font-size: $font-size-h4;
 }
 
 .icon-lg {
-  font-size: 24px;
+  font-size: $font-size-h3;
 }
 
 .icon-xl {
-  font-size: 32px;
+  font-size: $font-size-h2;
 }
 
 .icon-xxl {
-  font-size: 48px;
+  font-size: $font-size-h1;
 }
 
 // Icon colors
@@ -828,8 +828,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   border: none;
   border-radius: $border-radius-sm;
   background: transparent;
@@ -857,15 +857,15 @@
   }
 
   &.icon-btn-sm {
-    width: 24px;
-    height: 24px;
-    font-size: 14px;
+    width: 22px;
+    height: 22px;
+    font-size: $font-size-small;
   }
 
   &.icon-btn-lg {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    font-size: $font-size-h4;
   }
 }
 
@@ -874,8 +874,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: $border-radius-round;
   background-color: $gray-lighter;
   color: $primary-color;
@@ -901,14 +901,14 @@
   }
 
   &.icon-circle-sm {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
+    width: 25px;
+    height: 25px;
+    font-size: $font-size-small;
   }
 
   &.icon-circle-lg {
-    width: 56px;
-    height: 56px;
-    font-size: 24px;
+    width: 50px;
+    height: 50px;
+    font-size: $font-size-h3;
   }
 }

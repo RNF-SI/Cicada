@@ -39,8 +39,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
   background-color: $white;
   border: 2px solid rgba($primary-color, 0.2);
   border-radius: $border-radius-sm;
@@ -55,7 +55,7 @@
   }
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
@@ -76,7 +76,7 @@
   color: $gray-dark;
 
   i {
-    font-size: 48px;
+    font-size: $font-size-h1;
     opacity: 0.5;
   }
 
@@ -121,10 +121,10 @@
       background-color: $white !important;
       color: $primary-color !important;
       border: none !important;
-      width: 32px !important;
-      height: 32px !important;
-      line-height: 32px !important;
-      font-size: 18px !important;
+      width: 29px !important;
+      height: 29px !important;
+      line-height: 29px !important;
+      font-size: 16px !important;
 
       &:hover {
         background-color: $primary-color !important;
@@ -149,8 +149,8 @@
   // Attribution
   .leaflet-control-attribution {
     background: rgba($white, 0.8) !important;
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: 9px;
+    padding: 2px 5px;
 
     a {
       color: $primary-color;
@@ -166,11 +166,11 @@
   }
 
   .map-control-btn {
-    width: 28px;
-    height: 28px;
+    width: 25px;
+    height: 25px;
 
     i {
-      font-size: 14px;
+      font-size: $font-size-small;
     }
   }
 }

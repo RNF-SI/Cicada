@@ -11,7 +11,7 @@
 }
 
 .plans-page {
-  min-height: calc(100vh - 64px); // Hauteur moins le header
+  min-height: calc(100vh - 58px); // Hauteur moins le header
   background-color: $beige;
 }
 
@@ -22,10 +22,10 @@
 .hero-section {
   position: relative;
   background-color: $primary-color;
-  border-radius: 0 0 20px 20px;
-  margin: 0 72px;
-  padding: 32px 38px;
-  min-height: 200px;
+  border-radius: 0 0 20px $border-radius-xl;
+  margin: 0 65px;
+  padding: 32px 34px;
+  min-height: 180px;
   overflow: hidden;
 }
 
@@ -61,7 +61,7 @@
   justify-content: flex-start;
   gap: $spacing-md;
   margin-bottom: $spacing-lg;
-  height: 48px;
+  height: 43px;
   background-color: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
@@ -71,8 +71,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   background-color: $white;
   border-radius: 50%;
   color: $primary-color;
@@ -82,7 +82,7 @@
   z-index: 2;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   &:hover {
@@ -94,7 +94,7 @@
 // Positionnées en absolu pour traverser la bannière
 .breadcrumb-lines {
   position: absolute;
-  left: 24px; // Commence depuis le centre du bouton home
+  left: 22px; // Commence depuis le centre du bouton home
   right: 0;
   top: 0;
   bottom: 0;
@@ -154,7 +154,7 @@
   margin-bottom: $spacing-xs;
 
   i {
-    font-size: 15px;
+    font-size: $font-size-base;
   }
 }
 
@@ -176,11 +176,11 @@ h1 {
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: 10px 24px;
+  padding: 10px $spacing-lg;
   background-color: $white;
   color: $primary-color;
   border: none;
-  border-radius: 80px;
+  border-radius: 72px;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
@@ -189,7 +189,7 @@ h1 {
   transition: all $transition-fast;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   &:hover {
@@ -205,7 +205,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 72px;
+  margin: 0 65px;
   padding-top: $spacing-lg;
   padding-bottom: $spacing-md;
   gap: $spacing-lg;
@@ -222,7 +222,7 @@ h1 {
 // ============================================
 
 .content-section {
-  padding: 0 72px 48px;
+  padding: 0 72px $spacing-xxl;
 }
 
 .tab {
@@ -237,7 +237,7 @@ h1 {
   transition: all $transition-fast;
 
   &:first-child {
-    border-radius: 8px 0 0 8px;
+    border-radius: 8px 0 0 $border-radius-md;
   }
 
   &:last-child {
@@ -269,10 +269,10 @@ h1 {
   gap: $spacing-xs;
   padding-bottom: $spacing-xs;
   border-bottom: 1px solid $black;
-  width: 398px;
+  width: 358px;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $black;
   }
 
@@ -305,7 +305,7 @@ h1 {
   cursor: pointer;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   &:hover {
@@ -330,7 +330,7 @@ h1 {
 
   th, td {
     text-align: left;
-    padding: 12px 16px;
+    padding: 12px $spacing-md;
   }
 
   thead {
@@ -346,7 +346,7 @@ h1 {
       }
 
       i {
-        font-size: 24px;
+        font-size: $font-size-h3;
         vertical-align: middle;
         margin-left: $spacing-xs;
         opacity: 0.6;
@@ -370,7 +370,7 @@ h1 {
 
     td {
       border-right: 1px solid $gray-light;
-      height: 64px;
+      height: 58px;
 
       &:first-child {
         border-right: 2px solid $primary-color;
@@ -384,15 +384,15 @@ h1 {
 }
 
 .col-name {
-  width: 466px;
+  width: 419px;
 }
 
 .col-period {
-  width: 260px;
+  width: 234px;
 }
 
 .col-status {
-  width: 280px;
+  width: 252px;
 }
 
 .col-actions {
@@ -436,8 +436,8 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 12px;
-  border-radius: 40px;
+  padding: 2px $spacing-sm;
+  border-radius: 36px;
   font-size: $font-size-base;
   color: $black;
 
@@ -458,15 +458,15 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   background: transparent;
   border: none;
   color: $primary-color;
   cursor: pointer;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   &:hover {
@@ -494,7 +494,7 @@ h1 {
   cursor: pointer;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   &:hover {
@@ -519,9 +519,9 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  height: 42px;
-  padding: 9px 8px;
+  min-width: 36px;
+  height: 38px;
+  padding: 9px $spacing-xs;
   background-color: $white;
   border: 1px solid $gray-light;
   border-right: none;
@@ -532,7 +532,7 @@ h1 {
   transition: all $transition-fast;
 
   &:first-child {
-    border-radius: 8px 0 0 8px;
+    border-radius: 8px 0 0 $border-radius-md;
   }
 
   &:last-child {
@@ -559,7 +559,7 @@ h1 {
     color: $gray-light;
 
     i {
-      font-size: 20px;
+      font-size: $font-size-h4;
     }
 
     &:not(:disabled) {
@@ -572,9 +572,9 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  height: 42px;
-  padding: 9px 8px;
+  min-width: 36px;
+  height: 38px;
+  padding: 9px $spacing-xs;
   background-color: $white;
   border: 1px solid $gray-light;
   border-right: none;
@@ -591,7 +591,7 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 300px;
+  min-height: 270px;
 }
 
 .empty-state {
@@ -599,20 +599,20 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 48px $spacing-lg;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 11px;
   text-align: center;
 }
 
 .empty-state--small {
-  padding: 32px 24px;
+  padding: 32px $spacing-lg;
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: $font-size-h1;
   color: $gray-light;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-md;
 }
 
 .empty-state p {
@@ -653,7 +653,7 @@ h1 {
 }
 
 .col-date {
-  width: 150px;
+  width: 135px;
 }
 
 // ============================================
@@ -661,24 +661,24 @@ h1 {
 // ============================================
 
 .request-section {
-  margin-top: 48px;
-  padding-top: 32px;
+  margin-top: $spacing-xxl;
+  padding-top: $spacing-xl;
   border-top: 1px solid $gray-light;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: $spacing-sm;
   font-family: $font-family;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: $font-weight-bold;
   color: $black;
-  margin: 0 0 16px;
+  margin: 0 0 $spacing-md;
 }
 
 .section-icon {
-  font-size: 24px;
+  font-size: $font-size-h3;
   color: $primary-color;
 }
 
@@ -686,38 +686,38 @@ h1 {
   font-family: $font-family;
   font-size: $font-size-base;
   color: $gray-dark;
-  margin: 0 0 16px;
+  margin: 0 0 $spacing-md;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 $spacing-xs;
   background-color: $primary-color;
   color: white;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: $font-weight-bold;
-  border-radius: 12px;
+  border-radius: 11px;
 }
 
 // Login prompt for non-authenticated users
 .login-prompt {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: $spacing-xs;
+  padding: 12px $spacing-md;
   background-color: #E8F5F5;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-md;
   font-family: $font-family;
   font-size: $font-size-base;
   color: $primary-color;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 
   .login-link {
@@ -733,12 +733,12 @@ h1 {
 
 // Search bar for request section
 .search-bar {
-  margin-bottom: 16px;
+  margin-bottom: $spacing-md;
 }
 
 .search-field {
   width: 100%;
-  max-width: 400px;
+  max-width: 360px;
 }
 
 .search-icon {
@@ -747,7 +747,7 @@ h1 {
 
 // Plans card for other plans
 .plans-card {
-  border-radius: 12px;
+  border-radius: 11px;
   overflow: hidden;
 }
 
@@ -756,7 +756,7 @@ h1 {
 
   th {
     font-family: $font-family;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: $font-weight-bold;
     color: $gray-dark;
     text-transform: uppercase;
@@ -772,20 +772,20 @@ h1 {
 }
 
 .others {
-  font-size: 12px;
+  font-size: 11px;
   color: $gray;
-  margin-left: 4px;
+  margin-left: $spacing-xxs;
 }
 
 .chip-icon {
-  font-size: 12px;
-  margin-right: 4px;
+  font-size: 11px;
+  margin-right: $spacing-xxs;
 }
 
 .referent-chip {
   background-color: $secondary-yellow !important;
-  font-size: 12px;
-  margin-left: 8px;
+  font-size: 11px;
+  margin-left: $spacing-xs;
 }
 
 .status-neutre {
@@ -800,11 +800,11 @@ h1 {
 }
 
 .status-chip-small {
-  font-size: 11px;
-  height: 24px;
+  font-size: 10px;
+  height: 22px;
 
   .chip-icon {
-    font-size: 10px;
+    font-size: 9px;
   }
 }
 
@@ -814,16 +814,16 @@ h1 {
 
 @media (max-width: $breakpoint-desktop) {
   .hero-section {
-    margin: 0 24px;
-    padding: 24px;
+    margin: 0 $spacing-lg;
+    padding: $spacing-lg;
   }
 
   .tabs-container {
-    margin: 0 24px;
+    margin: 0 $spacing-lg;
   }
 
   .content-section {
-    padding: 0 24px 32px;
+    padding: 0 24px $spacing-xl;
   }
 
   .title-section {
@@ -846,43 +846,43 @@ h1 {
   }
 
   .plans-table {
-    min-width: 900px;
+    min-width: 810px;
   }
 }
 
 @media (max-width: $breakpoint-tablet) {
   .hero-section {
-    margin: 0 16px;
-    padding: 16px;
+    margin: 0 $spacing-md;
+    padding: $spacing-md;
   }
 
   .tabs-container {
-    margin: 0 16px;
+    margin: 0 $spacing-md;
   }
 
   .content-section {
-    padding: 0 16px 24px;
+    padding: 0 16px $spacing-lg;
   }
 
   h1 {
-    font-size: 32px;
-    line-height: 40px;
+    font-size: $font-size-h2;
+    line-height: 36px;
   }
 
   .breadcrumb {
-    height: 40px;
+    height: 36px;
   }
 
   .breadcrumb-home {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
 
     i {
-      font-size: 20px;
+      font-size: $font-size-h4;
     }
   }
 
   .breadcrumb-lines {
-    left: 20px; // Ajusté pour la taille réduite du bouton home
+    left: 18px; // Ajusté pour la taille réduite du bouton home
   }
 }

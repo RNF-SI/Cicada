@@ -1,45 +1,47 @@
+@import 'variables';
+
 .home-main {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 58px);
   background-color: #F8F5F1;
 }
 
 .home-container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 48px 72px;
+  padding: 48px 65px;
 }
 
 /* Hero Section */
 .hero-section {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .hero-logo {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 }
 
 .logo-large {
-  width: 235px;
-  height: 96px;
+  width: 212px;
+  height: 86px;
 }
 
 .hero-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 48px;
+  font-size: $font-size-h1;
   font-weight: 700;
-  line-height: 72px;
+  line-height: $line-height-h1;
   color: #025359;
   margin: 0 0 8px 0;
 }
 
 .hero-subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 24px;
+  font-size: $font-size-h3;
   font-weight: 400;
-  line-height: 36px;
+  line-height: $line-height-h3;
   color: #343433;
   margin: 0;
-  max-width: 963px;
+  max-width: 867px;
 }
 
 /* Search Section - Exploration des données */
@@ -50,7 +52,7 @@ $corner-right-offset: -7px;
 $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
 
 .search-section {
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
 // Wrapper avec positionnement relatif pour le corner (comme tile-wrapper)
@@ -74,7 +76,7 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
   &:focus-visible {
     outline: 2px solid #025359;
     outline-offset: 4px;
-    border-radius: 20px;
+    border-radius: $border-radius-xl;
   }
 }
 
@@ -85,44 +87,44 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
   background-color: #025359;
   // Coins asymétriques selon Kit UI: bas-gauche 20px, haut-droit 48px
   border-radius: 0 48px 20px 0;
-  padding: 24px 32px;
-  padding-right: 120px; // Espace pour le corner
+  padding: 24px $spacing-xl;
+  padding-right: 108px; // Espace pour le corner
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: $spacing-lg;
   overflow: hidden;
   box-shadow: -1px 1px 4px 0px rgba(0, 0, 0, 0.1);
   transition: box-shadow 200ms ease-out, transform 200ms ease-out;
-  min-height: 128px;
+  min-height: 115px;
 }
 
 .search-content {
   flex: 0 0 auto;
   z-index: 2;
-  max-width: 350px;
+  max-width: 315px;
 }
 
 .search-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 20px;
+  font-size: $font-size-h4;
   font-weight: 700;
-  line-height: 30px;
+  line-height: $line-height-h4;
   color: #FFFFFF;
-  margin: 0 0 4px 0;
+  margin: 0 0 $spacing-xxs 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
 
   i {
-    font-size: 20px; // Taille augmentée pour la flèche
+    font-size: $font-size-h4; // Taille augmentée pour la flèche
   }
 }
 
 .search-description {
   font-family: 'Nunito', sans-serif;
-  font-size: 15px;
+  font-size: $font-size-base;
   font-weight: 400;
-  line-height: 24px;
+  line-height: 22px;
   color: #FFFFFF;
   margin: 0;
 }
@@ -175,9 +177,9 @@ $corner-size: 94px;
   left: 50%;
   transform: translate(-50%, -50%);
   color: #025359;
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
+  font-size: $font-size-h2;
+  width: 29px;
+  height: 29px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,18 +188,18 @@ $corner-size: 94px;
 
 /* Tiles Section */
 .tiles-section {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
 }
 
 .modules-loading {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 200px;
+  min-height: 180px;
 
   .loading-text {
     font-family: 'Nunito', sans-serif;
-    font-size: 16px;
+    font-size: $font-size-base;
     color: #949494;
     animation: pulse 1.5s ease-in-out infinite;
   }
@@ -206,11 +208,11 @@ $corner-size: 94px;
 .tiles-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: $spacing-lg;
 
   &--three {
     // Centrer les 3 tuiles en utilisant une grille avec largeur fixe
-    grid-template-columns: repeat(3, minmax(0, 300px));
+    grid-template-columns: repeat(3, minmax(0, 270px));
     justify-content: center;
   }
 
@@ -235,12 +237,12 @@ $corner-size: 94px;
 .referentials-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: $spacing-sm;
+  padding: 16px $spacing-lg;
   color: #025359;
   text-decoration: none;
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 600;
   transition: opacity 150ms ease-in-out;
 
@@ -249,11 +251,11 @@ $corner-size: 94px;
   }
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
   }
 
   .arrow {
-    margin-left: 4px;
+    margin-left: $spacing-xxs;
   }
 }
 
@@ -264,22 +266,22 @@ $corner-size: 94px;
 .guest-hero {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 36px;
   padding: 0;
 }
 
 .guest-hero__content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: $spacing-md;
   width: 100%;
 }
 
 .guest-hero__logo {
-  margin-bottom: 8px;
+  margin-bottom: $spacing-xs;
 
   .biodiv-logo {
-    height: 56px;
+    height: 50px;
     width: auto;
     object-fit: contain;
   }
@@ -287,9 +289,9 @@ $corner-size: 94px;
 
 .guest-hero__title {
   font-family: 'Nunito', sans-serif;
-  font-size: 43px;
+  font-size: 39px;
   font-weight: 700;
-  line-height: 72px;
+  line-height: $line-height-h1;
   color: #025359;
   margin: 0;
   width: 100%;
@@ -297,9 +299,9 @@ $corner-size: 94px;
 
 .guest-hero__subtitle {
   font-family: 'Nunito', sans-serif;
-  font-size: 24px;
+  font-size: $font-size-h3;
   font-weight: 400;
-  line-height: 36px;
+  line-height: $line-height-h3;
   color: #343433;
   margin: 0;
   width: 100%;
@@ -309,21 +311,21 @@ $corner-size: 94px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 24px;
-  margin-top: 8px;
+  gap: $spacing-lg;
+  margin-top: $spacing-xs;
 }
 
 .guest-hero__btn {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 700;
-  padding: 14px 32px;
-  border-radius: 8px;
+  padding: $spacing-md $spacing-xl;
+  border-radius: $border-radius-md;
   text-decoration: none;
   transition: all 200ms ease-out;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
 
   &--primary {
     background-color: #025359;
@@ -339,13 +341,13 @@ $corner-size: 94px;
 
 .guest-hero__link {
   font-family: 'Nunito', sans-serif;
-  font-size: 16px;
+  font-size: $font-size-base;
   font-weight: 600;
   color: #025359;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   transition: opacity 200ms ease-out;
 
   &:hover {
@@ -357,7 +359,7 @@ $corner-size: 94px;
   }
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
     transition: transform 200ms ease-out;
   }
 }
@@ -372,9 +374,9 @@ $corner-size: 94px;
 
 .guest-hero__image {
   width: 100%;
-  height: 485px;
+  height: 436px;
   object-fit: cover;
-  border-radius: 30px;
+  border-radius: 27px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   opacity: 0.9;
 }
@@ -397,17 +399,17 @@ $corner-size: 94px;
 
 @media (max-width: 768px) {
   .home-container {
-    padding: 24px 16px;
+    padding: 24px $spacing-md;
   }
 
   .hero-title {
-    font-size: 32px;
-    line-height: 48px;
+    font-size: $font-size-h2;
+    line-height: $line-height-h2;
   }
 
   .hero-subtitle {
-    font-size: 18px;
-    line-height: 28px;
+    font-size: 16px;
+    line-height: 25px;
   }
 
   .tiles-grid {
@@ -419,10 +421,10 @@ $corner-size: 94px;
     text-align: center;
     border-radius: 0 24px 12px 0;
     min-height: auto;
-    padding: 20px 24px;
-    padding-right: 24px;
-    padding-top: 50px; // Espace pour le corner
-    gap: 16px;
+    padding: 20px $spacing-lg;
+    padding-right: $spacing-lg;
+    padding-top: 45px; // Espace pour le corner
+    gap: $spacing-md;
   }
 
   .search-content {
@@ -434,99 +436,99 @@ $corner-size: 94px;
   }
 
   .search-corner {
-    width: 70px;
-    height: 70px;
-    right: -5px;
+    width: 63px;
+    height: 63px;
+    right: -4px;
 
     .corner-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
+      font-size: $font-size-h3;
+      width: 22px;
+      height: 22px;
     }
   }
 }
 
 @media (max-width: 576px) {
   .logo-large {
-    width: 180px;
-    height: 74px;
+    width: 162px;
+    height: 67px;
   }
 
   .hero-title {
-    font-size: 24px;
-    line-height: 36px;
+    font-size: $font-size-h3;
+    line-height: $line-height-h3;
   }
 }
 
 /* Guest View Responsive */
 @media (max-width: 1024px) {
   .guest-hero {
-    gap: 32px;
+    gap: $spacing-xl;
   }
 
   .guest-hero__title {
-    font-size: 36px;
-    line-height: 54px;
+    font-size: 32px;
+    line-height: 49px;
   }
 
   .guest-hero__subtitle {
-    font-size: 20px;
-    line-height: 30px;
+    font-size: $font-size-h4;
+    line-height: $line-height-h4;
   }
 
   .guest-hero__image {
-    height: 400px;
-    border-radius: 24px;
+    height: 360px;
+    border-radius: $border-radius-pill;
   }
 }
 
 @media (max-width: 768px) {
   .guest-hero__title {
-    font-size: 28px;
-    line-height: 42px;
+    font-size: 25px;
+    line-height: 38px;
   }
 
   .guest-hero__subtitle {
-    font-size: 18px;
-    line-height: 28px;
+    font-size: 16px;
+    line-height: 25px;
   }
 
   .guest-hero__actions {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: $spacing-md;
   }
 
   .guest-hero__image {
-    height: 320px;
-    border-radius: 20px;
+    height: 288px;
+    border-radius: $border-radius-xl;
   }
 
   .guest-hero__btn {
-    padding: 12px 24px;
-    font-size: 15px;
+    padding: 12px $spacing-lg;
+    font-size: $font-size-base;
   }
 }
 
 @media (max-width: 576px) {
   .guest-hero__logo {
     .biodiv-logo {
-      height: 44px;
+      height: 40px;
     }
   }
 
   .guest-hero__title {
-    font-size: 24px;
-    line-height: 36px;
+    font-size: $font-size-h3;
+    line-height: $line-height-h3;
   }
 
   .guest-hero__subtitle {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: $font-size-base;
+    line-height: 22px;
   }
 
   .guest-hero__image {
-    height: 260px;
-    border-radius: 16px;
+    height: 234px;
+    border-radius: $border-radius-lg;
   }
 }

@@ -1,3 +1,5 @@
+@import 'variables';
+
 // Variables
 $primary-color: #025359;
 $secondary-yellow: #FEC180;
@@ -9,7 +11,7 @@ $gray: #999;
 $white: #fff;
 
 .profile-page {
-  padding: 24px;
+  padding: $spacing-lg;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -17,16 +19,16 @@ $white: #fff;
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-xs;
   color: $primary-color;
   text-decoration: none;
-  font-size: 14px;
+  font-size: $font-size-small;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-md;
   transition: opacity 0.2s;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   &:hover {
@@ -35,17 +37,17 @@ $white: #fff;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-lg;
 
   h1 {
-    font-size: 28px;
+    font-size: 25px;
     font-weight: 700;
     color: $primary-color;
     margin: 0 0 8px 0;
   }
 
   .subtitle {
-    font-size: 14px;
+    font-size: $font-size-small;
     color: $gray;
     margin: 0;
   }
@@ -53,23 +55,23 @@ $white: #fff;
 
 // Onglets
 .tab-icon {
-  margin-right: 8px;
-  font-size: 16px;
+  margin-right: $spacing-xs;
+  font-size: $font-size-base;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  margin-left: 8px;
-  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: $spacing-xs;
+  font-size: 10px;
   font-weight: 600;
   color: $white;
   background-color: $warning-color;
-  border-radius: 10px;
+  border-radius: 9px;
 }
 
 .tab-content {
@@ -79,23 +81,23 @@ $white: #fff;
 // Cartes profil
 .profile-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: $spacing-lg;
 }
 
 .profile-card {
-  border-radius: 12px;
+  border-radius: 11px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   .card-header-content {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: $spacing-md;
   }
 
   .avatar {
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     background: linear-gradient(135deg, $primary-color, lighten($primary-color, 15%));
     display: flex;
@@ -103,52 +105,52 @@ $white: #fff;
     justify-content: center;
 
     i {
-      font-size: 28px;
+      font-size: 25px;
       color: $white;
     }
   }
 
   .user-info {
     mat-card-title {
-      font-size: 20px;
+      font-size: $font-size-h4;
       font-weight: 600;
       color: #333;
-      margin-bottom: 4px;
+      margin-bottom: $spacing-xxs;
     }
 
     mat-card-subtitle {
-      font-size: 14px;
+      font-size: $font-size-small;
       color: $gray;
     }
   }
 
   .card-title-icon {
-    margin-right: 8px;
+    margin-right: $spacing-xs;
     color: $primary-color;
   }
 
   mat-card-content {
-    padding-top: 16px;
+    padding-top: $spacing-md;
   }
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: $spacing-md;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xxs;
 
   &.full-width {
     grid-column: 1 / -1;
   }
 
   .info-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: $gray;
     text-transform: uppercase;
@@ -156,7 +158,7 @@ $white: #fff;
   }
 
   .info-value {
-    font-size: 14px;
+    font-size: $font-size-small;
     color: #333;
 
     &.org-name {
@@ -169,22 +171,22 @@ $white: #fff;
 .role-chip {
   background-color: rgba($primary-color, 0.1) !important;
   color: $primary-color !important;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 // Section demandes
 .requests-section {
   .section-description {
     color: $gray;
-    margin-bottom: 16px;
-    font-size: 14px;
+    margin-bottom: $spacing-md;
+    font-size: $font-size-small;
   }
 }
 
 .requests-table {
   width: 100%;
   background: white;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
@@ -198,14 +200,14 @@ $white: #fff;
 .type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 5px;
+  padding: $spacing-xxs $spacing-xs;
   background-color: $gray-light;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: $border-radius-sm;
+  font-size: 12px;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
     color: $primary-color;
   }
 }
@@ -213,12 +215,12 @@ $white: #fff;
 .validator-info {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 12px;
   color: $success-color;
 
   .validator-icon {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
@@ -252,20 +254,20 @@ $white: #fff;
 .loading-container {
   display: flex;
   justify-content: center;
-  padding: 48px;
+  padding: $spacing-xxl;
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px;
+  padding: $spacing-xxl;
   text-align: center;
 
   .empty-icon {
-    font-size: 48px;
+    font-size: $font-size-h1;
     color: $gray;
-    margin-bottom: 16px;
+    margin-bottom: $spacing-md;
   }
 
   h3 {
@@ -286,7 +288,7 @@ $white: #fff;
   mat-card-title {
     display: flex;
     align-items: center;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #333;
   }
@@ -294,7 +296,7 @@ $white: #fff;
 
 .rgpd-description {
   color: $gray;
-  font-size: 14px;
+  font-size: $font-size-small;
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
@@ -303,7 +305,7 @@ $white: #fff;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: $spacing-md;
 }
 
 .delete-button {
@@ -315,27 +317,27 @@ $white: #fff;
   }
 
   i {
-    margin-right: 8px;
+    margin-right: $spacing-xs;
   }
 }
 
 .deletion-pending {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: $spacing-md;
 }
 
 .deletion-warning {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: $spacing-sm;
+  padding: $spacing-md;
   background-color: rgba($warning-color, 0.1);
   border: 1px solid $warning-color;
-  border-radius: 8px;
+  border-radius: $border-radius-md;
 
   > i {
-    font-size: 20px;
+    font-size: $font-size-h4;
     color: $warning-color;
     flex-shrink: 0;
     margin-top: 2px;
@@ -345,13 +347,13 @@ $white: #fff;
     strong {
       display: block;
       color: darken($warning-color, 15%);
-      margin-bottom: 4px;
+      margin-bottom: $spacing-xxs;
     }
 
     p {
       margin: 0;
       color: $gray;
-      font-size: 14px;
+      font-size: $font-size-small;
       line-height: 1.5;
     }
   }
@@ -359,7 +361,7 @@ $white: #fff;
 
 .spinning {
   animation: spin 1s linear infinite;
-  margin-right: 8px;
+  margin-right: $spacing-xs;
 }
 
 @keyframes spin {
@@ -374,7 +376,7 @@ $white: #fff;
 // Responsive
 @media (max-width: 768px) {
   .profile-page {
-    padding: 16px;
+    padding: $spacing-md;
   }
 
   .profile-cards {

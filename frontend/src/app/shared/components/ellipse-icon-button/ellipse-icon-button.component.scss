@@ -1,3 +1,5 @@
+@import 'variables';
+
 // Variables locales (référence au design system)
 $primary-color: #025359;
 $secondary-yellow: #FEC180;
@@ -22,47 +24,47 @@ $gray-light: #DADADA;
 // SIZES
 // ===================
 .size-xs {
-  width: 32px;
-  height: 32px;
+  width: 29px;
+  height: 29px;
 
   .ellipse-icon {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
 .size-sm {
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
 
   .ellipse-icon {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
 .size-md {
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
 
   .ellipse-icon {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 
 .size-lg {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
 
   .ellipse-icon {
-    font-size: 28px;
+    font-size: 25px;
   }
 }
 
 .size-xl {
-  width: 96px;
-  height: 96px;
+  width: 86px;
+  height: 86px;
 
   .ellipse-icon {
-    font-size: 36px;
+    font-size: 32px;
   }
 }
 

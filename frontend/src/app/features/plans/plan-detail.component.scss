@@ -12,7 +12,7 @@
 
 .plan-detail-layout {
   display: flex;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 58px);
   gap: $spacing-lg; // Espace entre sidebar et contenu principal
 }
 
@@ -23,7 +23,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  min-height: 360px;
   width: 100%;
   padding: $spacing-xl;
   text-align: center;
@@ -37,7 +37,7 @@
 
 .error-container {
   i {
-    font-size: 48px;
+    font-size: $font-size-h1;
     color: $error-color;
   }
 
@@ -71,7 +71,7 @@
 // ============================================
 
 .plan-sidebar {
-  width: 260px;
+  width: 234px;
   background-color: $secondary-pale-green;
   flex-shrink: 0;
   display: flex;
@@ -98,7 +98,7 @@
 }
 
 .menu-item-wrapper {
-  margin-bottom: 4px;
+  margin-bottom: $spacing-xxs;
 }
 
 .menu-item {
@@ -120,13 +120,13 @@
   margin-left: 0;
 
   i:first-child {
-    font-size: 18px;
+    font-size: 16px;
     color: $primary-color;
   }
 
   .chevron {
     margin-left: auto;
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $primary-color;
     opacity: 0.7;
     transition: transform $transition-fast;
@@ -202,11 +202,11 @@
 .hero-section {
   position: relative;
   background-color: $primary-color;
-  border-radius: 0 0 0 20px;
+  border-radius: 0 0 0 $border-radius-xl;
   margin: 0;
   margin-right: -$spacing-lg; // Étend jusqu'au bord droit
   padding: $spacing-lg $spacing-xl $spacing-xl;
-  min-height: 280px;
+  min-height: 252px;
   overflow: hidden;
 }
 
@@ -242,7 +242,7 @@
   justify-content: flex-start;
   gap: $spacing-md;
   margin-bottom: $spacing-md;
-  height: 48px;
+  height: 43px;
   background-color: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
@@ -252,8 +252,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 43px;
+  height: 43px;
   background-color: $white;
   border-radius: 50%;
   color: $primary-color;
@@ -263,7 +263,7 @@
   transition: transform $transition-fast;
 
   i {
-    font-size: 24px;
+    font-size: $font-size-h3;
   }
 
   &:hover {
@@ -274,7 +274,7 @@
 // Lignes horizontales blanches (design Figma)
 .breadcrumb-lines {
   position: absolute;
-  left: 24px;
+  left: 22px;
   right: 0;
   top: 0;
   bottom: 0;
@@ -319,7 +319,7 @@
 
 .breadcrumb-chevron {
   color: $white;
-  font-size: 16px;
+  font-size: $font-size-base;
 }
 
 .breadcrumb-current {
@@ -350,13 +350,13 @@
   margin-bottom: $spacing-xs;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 }
 
 .plan-title {
   color: $white;
-  font-size: 36px;
+  font-size: 32px;
   font-weight: $font-weight-bold;
   font-family: $font-family;
   line-height: 1.2;
@@ -407,7 +407,7 @@
   cursor: pointer;
 
   i {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   &:hover {
@@ -426,7 +426,7 @@
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 288px;
   gap: $spacing-xl;
 }
 
@@ -468,7 +468,7 @@
 // Carte accordéon principale
 .accordion-card {
   background-color: $white;
-  border-radius: 0 20px 0 20px; // top-right 20px, bottom-left 20px
+  border-radius: 0 20px 0 $border-radius-xl; // top-right $border-radius-xl, bottom-left $border-radius-xl
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 
@@ -514,8 +514,8 @@
 
 // Indicateur coloré carré (Design Figma)
 .accordion-indicator {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 2px; // Carré avec coins légèrement arrondis
   flex-shrink: 0;
 }
@@ -523,7 +523,7 @@
 .accordion-title {
   flex: 1;
   font-family: $font-family;
-  font-size: $font-size-h4; // 20px
+  font-size: $font-size-h4; // $font-size-h4
   font-weight: $font-weight-bold;
   line-height: $line-height-h4;
 }
@@ -533,18 +533,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   border: 2px solid $primary-color;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: $font-size-base;
   color: $primary-color;
   flex-shrink: 0;
 }
 
 .accordion-content {
   padding: 0 $spacing-lg $spacing-lg;
-  padding-left: calc(#{$spacing-lg} + 12px + #{$spacing-md}); // Aligné avec le texte
+  padding-left: calc(#{$spacing-lg} + $spacing-sm + #{$spacing-md}); // Aligné avec le texte
 }
 
 .accordion-placeholder {
@@ -598,7 +598,7 @@
 
 // Chevron pour sub-accordions (^/v)
 .sub-accordion-header i {
-  font-size: 20px;
+  font-size: $font-size-h4;
   color: $gray-dark;
   transition: transform $transition-fast;
 }
@@ -632,10 +632,10 @@
 // Puce personnalisée (4 carrés en croix selon design Figma)
 .action-bullet {
   position: relative;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   flex-shrink: 0;
-  margin-top: 7px;
+  margin-top: 6px;
 
   // 4 carrés disposés en croix
   &::before {
@@ -659,7 +659,7 @@
   font-size: $font-size-base;
   font-weight: $font-weight-regular;
   color: $black;
-  line-height: 24px;
+  line-height: 22px;
 }
 
 // Placeholders
@@ -669,13 +669,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 180px;
+  height: 162px;
   background-color: $gray-lighter;
   border-radius: $border-radius-sm;
   color: $gray;
 
   i {
-    font-size: 32px;
+    font-size: $font-size-h2;
     margin-bottom: $spacing-xs;
   }
 
@@ -708,8 +708,8 @@
 // Icône document (carrés décorés selon design Figma)
 .doc-icon {
   display: inline-flex;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   position: relative;
 
@@ -721,7 +721,7 @@
     background-color: $secondary-terra-cotta;
     border-radius: 1px;
     top: 0;
-    left: 6px;
+    left: 5px;
     box-shadow:
       0 6px 0 0 $secondary-terra-cotta,
       -3px 3px 0 0 $secondary-terra-cotta,
@@ -733,15 +733,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   background: transparent;
   border: none;
   color: $primary-color;
   cursor: pointer;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 
   &:hover {
@@ -765,7 +765,7 @@
   cursor: pointer;
 
   i {
-    font-size: 14px;
+    font-size: $font-size-small;
   }
 
   &:hover {
@@ -835,7 +835,7 @@
   }
 
   .plan-title {
-    font-size: 28px;
+    font-size: 25px;
   }
 
   .side-column {

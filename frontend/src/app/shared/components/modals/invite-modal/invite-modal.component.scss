@@ -12,7 +12,7 @@
   margin-bottom: $spacing-md;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
   }
 }
 
@@ -29,7 +29,7 @@
   font-size: $font-size-small;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -48,7 +48,7 @@
   font-size: $font-size-small;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -71,7 +71,7 @@
   gap: $spacing-sm;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $primary-color;
   }
 }
@@ -105,7 +105,7 @@
   margin-bottom: $spacing-md;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h4;
     color: $primary-color;
   }
 
@@ -124,5 +124,5 @@
 }
 
 mat-dialog-content {
-  min-width: 400px;
+  min-width: 360px;
 }

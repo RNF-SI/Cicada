@@ -48,22 +48,22 @@ $bg-info-light: #F8F5F1;  // Beige pour blocs info (remplace rose pâle)
 // Font Family
 $font-family: 'Nunito', sans-serif;
 
-// Font Sizes (Kit UI specs - augmenté pour lisibilité écrans laptop)
-$font-size-h1: 48px;
-$font-size-h2: 32px;
-$font-size-h3: 24px;
-$font-size-h4: 20px;
-$font-size-subtitle: 16px;  // Subtitle: Bold, uppercase, letter-spacing 20%
-$font-size-base: 16px;      // Texte standard (was 15px)
-$font-size-small: 14px;     // Texte mention (was 13px)
+// Font Sizes (Kit UI specs - réduit à 90% pour meilleure densité)
+$font-size-h1: 43px;
+$font-size-h2: 29px;
+$font-size-h3: 22px;
+$font-size-h4: 18px;
+$font-size-subtitle: 14px;  // Subtitle: Bold, uppercase, letter-spacing 20%
+$font-size-base: 14px;      // Texte standard (90% de 16px)
+$font-size-small: 13px;     // Texte mention (90% de 14px)
 
-// Line Heights (Kit UI specs - ajusté pour nouvelles tailles)
-$line-height-h1: 72px;
-$line-height-h2: 48px;
-$line-height-h3: 36px;
-$line-height-h4: 30px;
-$line-height-base: 26px;   // Augmenté (was 24px)
-$line-height-small: 22px;  // Augmenté (was 19px)
+// Line Heights (Kit UI specs - réduit à 90%)
+$line-height-h1: 65px;
+$line-height-h2: 43px;
+$line-height-h3: 32px;
+$line-height-h4: 27px;
+$line-height-base: 23px;
+$line-height-small: 20px;
 
 // Font Weights
 $font-weight-regular: 400;
@@ -79,22 +79,22 @@ $letter-spacing-subtitle: 0.2em;  // 20% for subtitle (uppercase)
 // ============================================
 
 $spacing-xxs: 4px;
-$spacing-xs: 8px;
-$spacing-sm: 12px;
-$spacing-md: 16px;
-$spacing-lg: 24px;
-$spacing-xl: 32px;
-$spacing-xxl: 48px;
+$spacing-xs: 7px;
+$spacing-sm: 11px;
+$spacing-md: 14px;
+$spacing-lg: 22px;
+$spacing-xl: 29px;
+$spacing-xxl: 43px;
 
 // ============================================
 // BORDERS & RADIUS (Kit UI 11/2025)
 // ============================================
 
 $border-radius-sm: 4px;      // Tables, inputs
-$border-radius-md: 8px;
-$border-radius-lg: 16px;     // Tags
-$border-radius-xl: 20px;     // Tuiles (asymétriques)
-$border-radius-pill: 24px;   // Boutons pill
+$border-radius-md: 7px;
+$border-radius-lg: 14px;     // Tags
+$border-radius-xl: 18px;     // Tuiles (asymétriques)
+$border-radius-pill: 22px;   // Boutons pill
 $border-radius-round: 50%;   // Boutons icône
 
 // Tuiles asymétriques (Kit UI spec: 20px bas-gauche et haut-droit)
@@ -109,8 +109,8 @@ $border-width-accent: 4px;
 // ============================================
 
 $shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
-$shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
-$shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.2);
+$shadow-medium: 0 4px 7px rgba(0, 0, 0, 0.15);
+$shadow-heavy: 0 7px 14px rgba(0, 0, 0, 0.2);
 
 // ============================================
 // TRANSITIONS
@@ -146,9 +146,9 @@ $z-index-tooltip: 1070;
 // ============================================
 
 // Navigation
-$nav-height: 64px;
-$sidebar-width: 250px;
-$sidebar-collapsed-width: 64px;
+$nav-height: 58px;
+$sidebar-width: 225px;
+$sidebar-collapsed-width: 58px;
 
 // Buttons
 $btn-padding-y: $spacing-sm;
@@ -157,7 +157,7 @@ $btn-padding-sm-y: $spacing-xs;
 $btn-padding-sm-x: $spacing-md;
 $btn-padding-lg-y: $spacing-md;
 $btn-padding-lg-x: $spacing-xl;
-$btn-icon-size: 40px;
+$btn-icon-size: 36px;
 
 // Inputs
 $input-padding-y: $spacing-sm;

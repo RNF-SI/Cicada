@@ -21,7 +21,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 30px;
+    width: 27px;
     background: linear-gradient(to left, rgba($white, 1), rgba($white, 0));
     pointer-events: none;
     opacity: 0;
@@ -133,7 +133,7 @@
 
 .admin-table {
   width: 100%;
-  min-width: 700px; // Largeur minimale pour forcer le scroll
+  min-width: 630px; // Largeur minimale pour forcer le scroll
   background: $white;
   border-radius: $border-radius-md;
   overflow: hidden;
@@ -197,14 +197,14 @@
 .cell-primary {
   font-weight: $font-weight-semibold;
   color: $primary-color;
-  min-width: 150px;
+  min-width: 135px;
 
   display: flex;
   align-items: center;
   gap: $spacing-xs;
 
   i {
-    font-size: 16px;
+    font-size: $font-size-base;
     color: $primary-color;
   }
 }
@@ -222,7 +222,7 @@
     white-space: nowrap;
 
     i {
-      font-size: 12px;
+      font-size: 11px;
     }
   }
 }
@@ -250,13 +250,13 @@
 
 // Cellule texte tronqué
 .cell-truncate {
-  max-width: 200px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   @media (max-width: $breakpoint-tablet) {
-    max-width: 150px;
+    max-width: 135px;
   }
 }
 
@@ -379,13 +379,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 $spacing-xxs;
   background-color: $primary-color;
   color: $white;
   border-radius: $border-radius-pill;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: $font-weight-bold;
   margin-left: $spacing-xxs;
 }
