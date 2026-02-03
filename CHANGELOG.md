@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.8](https://github.com/RNF-SI/Cicada/compare/v0.1.7...v0.1.8) (2026-02-03)
+
+
+### Bug Fixes
+
+* **docker:** ajouter labels OCI pour lier les images GHCR au repo ([4dd0d4c](https://github.com/RNF-SI/Cicada/commit/4dd0d4c66bc4363f42f5fb26b1ff98e9d637b4be))
+* **docker:** corriger les permissions des volumes en production ([d12b7f6](https://github.com/RNF-SI/Cicada/commit/d12b7f613f877b4a835708eeb52ce5b06d80313e))
+
 ## [0.1.7](https://github.com/RNF-SI/Cicada/compare/v0.1.6...v0.1.7) (2026-02-02)
 
 
