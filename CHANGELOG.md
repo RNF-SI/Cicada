@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.10](https://github.com/RNF-SI/Cicada/compare/v0.1.9...v0.1.10) (2026-02-03)
+
+
+### Bug Fixes
+
+* **deploy:** rendre la redirection SSL configurable via ENABLE_SSL ([e1f5bac](https://github.com/RNF-SI/Cicada/commit/e1f5bac4639deead3a2e4d9c862d6f45652aab94))
+* **deploy:** rendre la redirection SSL configurable via ENABLE_SSL ([c5c14c9](https://github.com/RNF-SI/Cicada/commit/c5c14c9e7efd7184124204dfd456c1a40fe42326))
+
 ## [0.1.9](https://github.com/RNF-SI/Cicada/compare/v0.1.8...v0.1.9) (2026-02-03)
 
 
