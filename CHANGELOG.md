@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9](https://github.com/RNF-SI/Cicada/compare/v0.1.8...v0.1.9) (2026-02-03)
+
+
+### Bug Fixes
+
+* **settings:** add SECURE_REDIRECT_EXEMPT for health check endpoint ([17efd13](https://github.com/RNF-SI/Cicada/commit/17efd1349028dc3637a90647f6f7be5dbbcc1f95))
+* **settings:** add SECURE_REDIRECT_EXEMPT for health check endpoint ([1135e24](https://github.com/RNF-SI/Cicada/commit/1135e24bf7c095b5bedf2c324b096079c4ff4978))
+
 ## [0.1.8](https://github.com/RNF-SI/Cicada/compare/v0.1.7...v0.1.8) (2026-02-03)
 
 
