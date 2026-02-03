@@ -422,6 +422,16 @@ class PublicRegistrationSerializer(serializers.Serializer):
         from .services import NotificationService
         NotificationService.notify_validators(validation_request)
 
+        # Envoyer un email de confirmation au demandeur
+        try:
+            from .tasks import send_registration_pending_email
+            full_name = f"{pending_user.prenom_role} {pending_user.nom_role}".strip() or pending_user.email
+            send_registration_pending_email.delay(pending_user.email, nom_complet=full_name)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not send registration pending email: {e}")
+
         return pending_user
 
 
