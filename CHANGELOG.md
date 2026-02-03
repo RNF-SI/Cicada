@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11](https://github.com/RNF-SI/Cicada/compare/v0.1.10...v0.1.11) (2026-02-03)
+
+
+### Bug Fixes
+
+* **settings:** filter empty CORS origins in production ([6e78c40](https://github.com/RNF-SI/Cicada/commit/6e78c40b6eb34375e16bd8fa0787603f28623e1e))
+* **settings:** filter empty CORS origins in production settings ([e0894d2](https://github.com/RNF-SI/Cicada/commit/e0894d26c72cc0a62a70d6d08db8d2c467942215))
+
 ## [0.1.10](https://github.com/RNF-SI/Cicada/compare/v0.1.9...v0.1.10) (2026-02-03)
 
 
