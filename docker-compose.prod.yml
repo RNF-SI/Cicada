@@ -70,6 +70,7 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.fr}
+      - SITE_URL=${SITE_URL:-http://localhost:4200}
     volumes:
       - media_files:/app/media
       - static_files:/app/static
@@ -131,6 +132,7 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.fr}
+      - SITE_URL=${SITE_URL:-http://localhost:4200}
     volumes:
       - media_files:/app/media
       - logs_data:/app/logs
