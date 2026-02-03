@@ -25,6 +25,10 @@ RUN npm run build:prod
 # Stage 2: Serveur Apache pour servir l'application
 FROM httpd:2.4-alpine
 
+LABEL org.opencontainers.image.source="https://github.com/RNF-SI/Cicada"
+LABEL org.opencontainers.image.description="Frontend Angular pour CICADA"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
+
 # Copie de la configuration Apache personnalisée
 # Note: mod_rewrite est deja inclus dans httpd:2.4-alpine
 COPY docker/apache/httpd.conf /usr/local/apache2/conf/httpd.conf

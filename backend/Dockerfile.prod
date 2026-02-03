@@ -3,6 +3,9 @@ FROM python:3.11-slim
 
 LABEL maintainer="CEN/RNF"
 LABEL description="Backend Django pour CICADA (production)"
+LABEL org.opencontainers.image.source="https://github.com/RNF-SI/Cicada"
+LABEL org.opencontainers.image.description="Backend Django pour CICADA"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # Variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1
