@@ -799,3 +799,20 @@ body {
     padding: 0 !important;
   }
 }
+
+// Leaflet map fullscreen mode - hide other page content
+body.leaflet-map-fullscreen-active {
+  overflow: hidden;
+
+  // Hide header so it doesn't overlay the fullscreen map
+  app-header {
+    display: none;
+  }
+
+  // Remove overflow clipping on ancestor containers so the fixed-position map can escape
+  .map-container,
+  .map-column {
+    overflow: visible;
+    position: static;
+  }
+}
