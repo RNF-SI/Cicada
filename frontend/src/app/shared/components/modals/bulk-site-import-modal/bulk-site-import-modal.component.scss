@@ -15,6 +15,19 @@
   margin-bottom: $spacing-sm;
 }
 
+// Force Flaticon Uicons font inside stepper icon circles.
+// Material stepper overrides font-family on .mat-step-icon, breaking web font icons.
+// Also ensure color is inherited (white on selected, dark on others).
+::ng-deep .mat-step-icon,
+::ng-deep .mat-step-icon-selected {
+  .fi {
+    font-family: 'uicons-regular-rounded' !important;
+    font-size: 14px;
+    line-height: 1;
+    color: inherit;
+  }
+}
+
 .step-content {
   padding: $spacing-sm 0 $spacing-md;
 }
@@ -244,6 +257,7 @@
   button i {
     font-size: 0.75rem;
   }
+
 }
 
 // Summary bar
@@ -267,9 +281,10 @@
   }
 }
 
-// Preview table with scrollable body and sticky header
+// Preview table: scrolls independently so buttons below always stay visible.
+// Height is capped to leave room for description, summary bar, buttons, and dialog chrome.
 .preview-table-wrapper {
-  max-height: 315px;
+  max-height: 350px;
   overflow-y: auto;
   border: 1px solid $gray-lighter;
   border-radius: $border-radius-sm;

@@ -5,6 +5,7 @@ import csv
 import io
 import json
 import logging
+import re
 
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from django.db import transaction
@@ -204,6 +205,69 @@ class BulkSiteImportService:
                 for site in Site.objects.filter(name_q, active=True).values('nom_site', 'id_site'):
                     existing_name_sites[site['nom_site'].lower()] = site
 
+        # Collect similar names in DB (word-based + icontains)
+        similar_name_sites = {}
+        batch_name_words = {}
+        names_to_check = [
+            n for n in all_names_in_batch
+            if n and len(n) >= 3 and n.lower() not in existing_name_sites
+        ]
+        if names_to_check:
+            # Pre-compute significant words per batch name
+            all_search_words = set()
+            for name in names_to_check:
+                words = _extract_significant_words(name)
+                batch_name_words[name.lower()] = words
+                all_search_words.update(words)
+
+            # Build DB query: icontains for full names + significant words
+            search_q = Q()
+            for name in names_to_check:
+                search_q |= Q(nom_site__icontains=name)
+            for word in sorted(w for w in all_search_words if len(w) >= 5)[:50]:
+                search_q |= Q(nom_site__icontains=word)
+
+            # Exclude exact name matches
+            exclude_q = Q()
+            for name in all_names_in_batch:
+                if name:
+                    exclude_q |= Q(nom_site__iexact=name)
+
+            db_candidates = list(
+                Site.objects.filter(search_q, active=True)
+                .exclude(exclude_q)
+                .values('id_site', 'nom_site')
+                .distinct()[:200]
+            )
+
+            # Match candidates to each batch name
+            for name_lower, words in batch_name_words.items():
+                matches = []
+                for cand in db_candidates:
+                    cand_lower = cand['nom_site'].lower()
+                    if cand_lower == name_lower:
+                        continue
+                    # Original substring match
+                    is_substring = name_lower in cand_lower
+                    # Word overlap match (2+ shared significant words)
+                    has_word_overlap = _names_are_similar_words(
+                        words, _extract_significant_words(cand['nom_site'])
+                    )
+                    if is_substring or has_word_overlap:
+                        matches.append(cand)
+                if matches:
+                    similar_name_sites[name_lower] = matches[:5]
+
+        # Pre-compute significant words for intra-batch comparison
+        batch_site_words = {}
+        for site_data in sites:
+            nom = (site_data['mapped_data'].get('nom_site') or '').strip()
+            if nom and len(nom) >= 3:
+                batch_site_words[site_data['row_index']] = {
+                    'name': nom,
+                    'words': _extract_significant_words(nom),
+                }
+
         # Track intra-batch duplicates
         seen_inpn = {}
         seen_names = {}
@@ -307,6 +371,40 @@ class BulkSiteImportService:
                     )
                 else:
                     seen_names[nom_site_lower] = site_data['row_index']
+
+                # Similar names in DB (non-blocking warning)
+                if nom_site_lower not in existing_name_sites and len(nom_site) >= 3:
+                    similar = similar_name_sites.get(nom_site_lower, [])
+                    if similar:
+                        names_list = ", ".join(
+                            f'"{s["nom_site"]}"' for s in similar
+                        )
+                        warnings.append(
+                            f"Nom similaire à des sites existants : {names_list}."
+                        )
+                        site_data['similar_names'] = similar
+
+                # Similar names intra-batch (non-blocking warning)
+                if len(nom_site) >= 3:
+                    current_info = batch_site_words.get(site_data['row_index'])
+                    if current_info and current_info['words']:
+                        similar_in_batch = []
+                        for other_idx, other_info in batch_site_words.items():
+                            if other_idx == site_data['row_index']:
+                                continue
+                            if other_info['name'].lower() == nom_site_lower:
+                                continue
+                            if _names_are_similar_words(
+                                current_info['words'], other_info['words']
+                            ):
+                                similar_in_batch.append(other_info['name'])
+                        if similar_in_batch:
+                            names_list = ", ".join(
+                                f'"{n}"' for n in similar_in_batch[:5]
+                            )
+                            warnings.append(
+                                f"Nom similaire à d'autres sites du fichier : {names_list}."
+                            )
 
             # Validate geometry
             geometry = site_data.get('geometry')
@@ -493,3 +591,32 @@ def _parse_bool(value):
     if isinstance(value, str):
         return value.lower() in ('true', '1', 'oui', 'yes', 'o', 'y')
     return bool(value)
+
+
+# Common words in French conservation site names that should be ignored
+# when comparing name similarity (they appear in nearly all site names).
+_SITE_NAME_COMMON_WORDS = {
+    'réserve', 'reserve', 'naturelle', 'naturel', 'nationale', 'national',
+    'régionale', 'regional', 'régional', 'regionale',
+    'parc', 'espace', 'site', 'zone', 'aire',
+    'forêt', 'foret', 'protection', 'conservatoire', 'domaine',
+    'dans', 'avec', 'pour', 'plus', 'sans', 'sous',
+    'tout', 'tous', 'cette', 'entre', 'aussi',
+}
+
+
+def _extract_significant_words(name):
+    """
+    Extract significant words from a site name for similarity comparison.
+    Filters out short words (< 4 chars) and common conservation terms.
+    """
+    normalized = re.sub(r"[''`\-/]", " ", name.lower())
+    words = normalized.split()
+    return {w for w in words if len(w) >= 4 and w not in _SITE_NAME_COMMON_WORDS}
+
+
+def _names_are_similar_words(words_a, words_b):
+    """Check if two sets of significant words share enough overlap (>= 2)."""
+    if not words_a or not words_b:
+        return False
+    return len(words_a & words_b) >= 2

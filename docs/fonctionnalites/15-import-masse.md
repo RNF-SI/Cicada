@@ -66,7 +66,7 @@ Ces fichiers sont stockés dans `frontend/src/assets/templates/`.
 
 ### Interface utilisateur (Modal stepper)
 
-L'import se fait via un modal en 4 étapes avec un stepper Angular Material :
+L'import se fait via un modal en 4 étapes avec un stepper Angular Material. Chaque étape affiche une icône descriptive (upload, mapping, aperçu, validation) à la place des numéros par défaut :
 
 #### Étape 1 : Fichier
 
@@ -102,8 +102,11 @@ Tableau de prévisualisation avec les sites parsés, affichant :
 - Statut de chaque ligne (valide, erreur, doublon, avertissement)
 - Checkbox de sélection (les lignes en erreur sont désactivées)
 - Compteurs récapitulatifs (valides, erreurs, doublons, sélectionnés)
+- Avertissements de noms similaires (en base et intra-batch) visibles en tooltip sur le chip de statut
 
 L'utilisateur peut sélectionner/désélectionner les sites à importer. Par défaut, tous les sites sans erreur et sans doublon sont sélectionnés.
+
+Le bouton **"Importer les sites sélectionnés"** est affiché en position fixe (sticky) en bas de la zone de contenu pour rester toujours visible, même si le tableau nécessite un défilement.
 
 #### Étape 4 : Résultats
 
@@ -131,7 +134,7 @@ La validation s'effectue côté backend lors de l'étape de vérification. Voici
 | `marin` / `outre_mer` | Accepte : `true/false`, `1/0`, `oui/non`, `yes/no`, `o/y` |
 | `geometry` | Doit être un `Polygon` ou `MultiPolygon` GeoJSON valide |
 
-#### Détection des doublons
+#### Détection des doublons et noms similaires
 
 | Type | Portée | Comportement |
 |------|--------|--------------|
@@ -139,6 +142,18 @@ La validation s'effectue côté backend lors de l'étape de vérification. Voici
 | Code INPN identique dans le fichier | Intra-batch | Erreur bloquante |
 | Nom de site identique en base | Base de données (insensible à la casse) | Erreur bloquante |
 | Nom de site identique dans le fichier | Intra-batch (insensible à la casse) | Erreur bloquante |
+| Nom similaire en base | Base de données | Avertissement non bloquant |
+| Nom similaire dans le fichier | Intra-batch | Avertissement non bloquant |
+
+**Détection de noms similaires :** La similarité est évaluée par recouvrement de mots significatifs. Les termes génériques de conservation (réserve, naturelle, naturel, nationale, parc, régional, etc.) sont ignorés. Si deux noms partagent **2 mots significatifs ou plus** (≥ 4 caractères), un avertissement est émis.
+
+*Exemple :*
+- "Réserve naturelle du **Marais** de **Lavours**" et "Parc naturel régional du **Marais** de **Lavours**" → 2 mots partagés → **avertissement**
+- "Réserve naturelle de Camargue" et "Réserve naturelle de la Vanoise" → 0 mot partagé → **pas d'avertissement**
+
+En complément, la détection par sous-chaîne (`icontains`) est conservée pour les cas simples (ex : import de "Camargue" quand "Réserve de Camargue" existe en base).
+
+Les sites avec avertissement restent **sélectionnables** et **pré-sélectionnés** pour l'import. Le champ `similar_names` (liste de `{id_site, nom_site}`) est retourné dans la réponse de validation pour les correspondances en base.
 
 ### Comportement à l'import
 
@@ -226,7 +241,8 @@ Pour les imports volumineux, le traitement s'exécute en arrière-plan via Celer
       "has_geometry": true,
       "errors": [],
       "warnings": [],
-      "duplicate_info": null
+      "duplicate_info": null,
+      "similar_names": []
     }
   ],
   "total": 5,
@@ -267,13 +283,13 @@ Pour les imports volumineux, le traitement s'exécute en arrière-plan via Celer
 
 ### Tests
 
-La fonctionnalité est couverte par **38 tests** :
+La fonctionnalité est couverte par **46 tests** :
 
-#### Backend (19 tests) — `backend/tests/integration/test_bulk_import.py`
+#### Backend (27 tests) — `backend/tests/integration/test_bulk_import.py`
 
 | Classe | Tests | Couverture |
 |--------|-------|------------|
-| `TestBulkImportValidation` | 11 | Parsing GeoJSON/CSV, auto-détection mapping, mapping custom, validation nom court, doublon INPN en base, doublon INPN intra-batch, noms similaires, permissions |
+| `TestBulkImportValidation` | 19 | Parsing GeoJSON/CSV, auto-détection mapping, mapping custom, validation nom court, doublon INPN en base, doublon INPN intra-batch, doublon nom en base, noms similaires en base (icontains + mots significatifs), noms similaires intra-batch, absence de faux positifs, noms courts ignorés, sites inactifs exclus, non-blocage de l'import, permissions |
 | `TestBulkImportExecution` | 5 | Import sync, comportement super_admin vs admin_og, sélection partielle, rejet sélection vide |
 | `TestBulkImportStatus` | 3 | Statut job, job inexistant, accès cross-user interdit |
 

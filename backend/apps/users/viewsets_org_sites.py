@@ -1560,6 +1560,7 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'errors': site_data.get('errors', []),
                 'warnings': site_data.get('warnings', []),
                 'duplicate_info': site_data.get('duplicate_info'),
+                'similar_names': site_data.get('similar_names', []),
             })
 
         return Response({

@@ -473,6 +473,8 @@ export interface BulkImportSiteRow {
   errors: string[];
   warnings: string[];
   duplicate_info: BulkImportDuplicateInfo | null;
+  /** Sites avec noms similaires (avertissement non bloquant) */
+  similar_names?: { id_site: number; nom_site: string }[];
   /** Sélectionné pour import (état local, non retourné par l'API) */
   selected?: boolean;
 }
