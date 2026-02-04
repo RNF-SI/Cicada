@@ -69,7 +69,8 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "buildTarget": "cicada:build",
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "allowedHosts": true
           },
           "configurations": {
             "production": {
