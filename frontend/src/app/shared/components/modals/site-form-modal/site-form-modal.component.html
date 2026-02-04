@@ -222,7 +222,7 @@
               } @else {
                 @for (type of siteTypes(); track type.id_nomenclature) {
                   <mat-option [value]="type.id_nomenclature">
-                    {{ type.label }} ({{ type.cd_nomenclature }})
+                    {{ type.label }}{{ type.cd_nomenclature ? ' (' + type.cd_nomenclature + ')' : '' }}
                   </mat-option>
                 }
               }

@@ -19,7 +19,8 @@
       "validate": "Valider",
       "associate": "Associer",
       "searching": "Recherche en cours",
-      "reset": "Réinitialiser"
+      "reset": "Réinitialiser",
+      "select": "Sélectionner"
     },
     "status": {
       "active": "Actif",
