@@ -185,7 +185,7 @@ class SiteListSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
             'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
         ]
@@ -248,7 +248,7 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'organismes',
             'users_assignes', 'modif_adm', 'modif_geo'
         ]
@@ -323,7 +323,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'date_crea',
+            'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea',
             'marin', 'outre_mer', 'active', 'modif_adm', 'modif_geo',
             'geom_geojson', 'geom_pt_geojson', 'organismes',
             'users_assignes', 'current_user_is_referent', 'current_user_access'
@@ -474,7 +474,7 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
-            'surf_off', 'type_site_id', 'date_crea', 'marin',
+            'surf_off', 'type_site_id', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_geojson', 'geom_pt_geojson'
         ]
         read_only_fields = ['id_site', 'slug']
@@ -543,7 +543,28 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
             except Exception as e:
                 raise serializers.ValidationError(_("Point GeoJSON invalide: %(error)s") % {'error': str(e)})
         return value
-    
+
+    def validate(self, attrs):
+        """Validation croisée des champs."""
+        type_site_data = attrs.get('id_type_site')
+        type_site_precision = attrs.get('type_site_precision')
+
+        # Si le type de site est "Autre", la précision est requise
+        if type_site_data and type_site_data.get('id_nomenclature'):
+            try:
+                nomenclature = Nomenclature.objects.get(id_nomenclature=type_site_data['id_nomenclature'])
+                if nomenclature.mnemonique == 'AUTRE' and not type_site_precision:
+                    raise serializers.ValidationError({
+                        'type_site_precision': _("La précision du type est requise quand le type est 'Autre'.")
+                    })
+                # Si le type n'est pas "Autre", on efface la précision
+                if nomenclature.mnemonique != 'AUTRE':
+                    attrs['type_site_precision'] = None
+            except Nomenclature.DoesNotExist:
+                pass
+
+        return attrs
+
     def create(self, validated_data):
         """Crée un nouveau site."""
         type_site_data = validated_data.pop('id_type_site', None)

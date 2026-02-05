@@ -909,6 +909,7 @@
       "fields": {
         "name": "Nom du site",
         "type": "Type de site",
+        "typePrecision": "Précisez le type de site",
         "localId": "Identifiant local",
         "inpnId": "Identifiant INPN",
         "surface": "Surface officielle (ha)",
@@ -920,12 +921,14 @@
       "hints": {
         "localId": "Code interne de référence",
         "inpnId": "Code national INPN",
+        "typePrecision": "Indiquez le type de site non présent dans la liste",
         "requestAsReferent": "En tant que référent, vous pourrez gérer les accès et inviter d'autres utilisateurs sur ce site"
       },
       "errors": {
         "nameRequired": "Le nom est requis",
         "surfacePositive": "La surface doit être positive",
-        "inpnDuplicate": "Ce code INPN est déjà utilisé par un autre site."
+        "inpnDuplicate": "Ce code INPN est déjà utilisé par un autre site.",
+        "typePrecisionRequired": "La précision du type est requise pour \"Autre\""
       },
       "messages": {
         "linkError": "Site créé mais erreur lors de la liaison: {{error}}"

@@ -22,7 +22,7 @@
           <h4 class="site-name">{{ site.nom_site }}</h4>
           <div class="site-meta">
             @if (site.type_site_label) {
-              <span class="site-type">{{ site.type_site_label }}</span>
+              <span class="site-type">{{ site | siteTypeDisplay }}</span>
             }
             @if (site.id_inpn) {
               <span class="site-inpn">{{ site.id_inpn }}</span>
@@ -143,7 +143,7 @@
           <div class="inpn-alert-site">
             <strong>{{ site.nom_site }}</strong>
             @if (site.type_site_label) {
-              <span class="site-type-badge">{{ site.type_site_label }}</span>
+              <span class="site-type-badge">{{ site | siteTypeDisplay }}</span>
             }
           </div>
           <div class="inpn-alert-actions">
@@ -237,6 +237,15 @@
             }
           </mat-form-field>
         </div>
+
+        <!-- Precision field (only shown when type is "Autre") -->
+        @if (isTypeAutre) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.siteForm.fields.typePrecision' | translate }} *</mat-label>
+            <input matInput formControlName="type_site_precision" [placeholder]="'modals.siteForm.hints.typePrecision' | translate">
+            <mat-hint>{{ 'modals.siteForm.hints.typePrecision' | translate }}</mat-hint>
+          </mat-form-field>
+        }
 
         <div class="checkbox-row">
           <mat-checkbox formControlName="marin">{{ 'modals.siteForm.fields.marine' | translate }}</mat-checkbox>

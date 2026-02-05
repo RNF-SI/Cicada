@@ -34,6 +34,7 @@ import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../s
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
+import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
 
 interface SiteUserRelation {
   id_role: number;
@@ -75,7 +76,8 @@ interface SiteWithAccess extends SiteWithUsers {
     TranslateModule,
     HeaderComponent,
     LeafletMapComponent,
-    ViewScopeToggleComponent
+    ViewScopeToggleComponent,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'

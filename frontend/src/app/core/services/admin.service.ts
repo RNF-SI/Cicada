@@ -261,7 +261,7 @@ export class AdminService {
   /**
    * Get site types (nomenclatures)
    */
-  getSiteTypes(): Observable<{ id_nomenclature: number; cd_nomenclature: string; label: string }[]> {
+  getSiteTypes(): Observable<{ id_nomenclature: number; cd_nomenclature: string | null; mnemonique: string; label: string }[]> {
     return this.http.get<any>('/api/nomenclatures/?type=TYPE_SITE')
       .pipe(
         map(res => res.results || res),

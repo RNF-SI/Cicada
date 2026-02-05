@@ -12,12 +12,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite } from '../../../../core/models/admin.model';
+import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
 
 // Interface for site linked to plan
 interface PlanSiteInfo {
   id_site: number;
   nom_site: string;
   type_site_label?: string;
+  type_site_precision?: string | null;
   rang?: number;
 }
 
@@ -50,7 +52,8 @@ export interface LinkPlanSiteModalData {
     MatProgressSpinnerModule,
     MatInputModule,
     MatIconModule,
-    TranslateModule
+    TranslateModule,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './link-plan-site-modal.component.html',
   styleUrl: './link-plan-site-modal.component.scss'

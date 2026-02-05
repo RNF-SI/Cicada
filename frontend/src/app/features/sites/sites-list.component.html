@@ -168,7 +168,7 @@
                         <span class="site-name">{{ site.nom_site }}</span>
                       </td>
                       <td class="col-type">
-                        <mat-chip class="type-chip">{{ site.type_site_label || '-' }}</mat-chip>
+                        <mat-chip class="type-chip">{{ site | siteTypeDisplay }}</mat-chip>
                       </td>
                       <td class="col-surface">{{ formatSurface(site.surf_off) }}</td>
                       <td class="col-organisme">
@@ -331,7 +331,7 @@
                         </td>
                         <td class="col-type">
                           @if (site.type_site_label) {
-                            <mat-chip class="type-chip">{{ site.type_site_label }}</mat-chip>
+                            <mat-chip class="type-chip">{{ site | siteTypeDisplay }}</mat-chip>
                           } @else {
                             -
                           }

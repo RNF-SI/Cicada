@@ -70,6 +70,8 @@ export interface AdminSite {
   type_site?: SiteTypeInfo | null;
   /** Label du type de site (retourné par tous les serializers) */
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   marin?: boolean;
   outre_mer?: boolean;
@@ -93,6 +95,8 @@ export interface SiteCreatePayload {
   id_inpn?: string;
   /** ID de nomenclature pour le type de site (envoyé comme type_site_id au backend) */
   type_site_id?: number;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   marin?: boolean;
   outre_mer?: boolean;
@@ -231,6 +235,8 @@ export interface OrganismeSite {
   surf_off?: number;
   type_site?: string;
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   active?: boolean;
   principal?: boolean;
 }
@@ -291,6 +297,8 @@ export interface PlanSite {
   id_site: number;
   nom_site: string;
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   rang?: number;
 }
@@ -429,6 +437,8 @@ export interface DuplicateSite {
   id_inpn: string | null;
   id_local: string | null;
   type_site_label: string | null;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off: number | null;
   organismes: Array<{
     id_organisme: number;

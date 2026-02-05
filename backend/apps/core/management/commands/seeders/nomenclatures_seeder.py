@@ -37,6 +37,7 @@ class NomenclaturesSeeder(BaseSeeder):
         {'id': 600, 'mnemonique': 'PNR', 'label': 'Parc Naturel Regional'},
         {'id': 601, 'mnemonique': 'ENS', 'label': 'Espace Naturel Sensible'},
         {'id': 602, 'mnemonique': 'APB', 'label': 'Arrete de Protection de Biotope'},
+        {'id': 604, 'mnemonique': 'AUTRE', 'label': 'Autre'},
     ]
 
     # Types d'evaluation
@@ -150,7 +151,7 @@ class NomenclaturesSeeder(BaseSeeder):
         return [
             '\nNomenclatures:',
             '  - 3 types de nomenclature (site, evaluation, redacteur)',
-            '  - 7 types de site (RNN, RNR, RNC, PPRN, PNR, ENS, APB)',
+            '  - 8 types de site (RNN, RNR, RNC, PPRN, PNR, ENS, APB, Autre)',
             "  - 3 types d'evaluation",
             '  - 3 types de redacteur',
         ]

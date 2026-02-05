@@ -33,7 +33,7 @@
           <div class="title-left">
             <div class="subtitle">
               <i class="fi fi-rr-marker"></i>
-              <span>{{ site()!.type_site_label || 'Site' }}</span>
+              <span>{{ (site() | siteTypeDisplay) !== '-' ? (site() | siteTypeDisplay) : 'Site' }}</span>
             </div>
             <h1>{{ site()!.nom_site }}</h1>
             <div class="status-badges">

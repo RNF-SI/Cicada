@@ -337,6 +337,13 @@ class Site(models.Model):
         blank=True,
         verbose_name=_("Type de site")
     )
+    type_site_precision = models.CharField(
+        _("Précision du type de site"),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_("Précision quand le type est 'Autre'")
+    )
     date_crea = models.DateField(_("Date de création"), null=True, blank=True)
     nom_site = models.CharField(_("Nom du site"), max_length=255)
     jonction_nom = models.CharField(_("Jonction nom"), max_length=50, null=True, blank=True)

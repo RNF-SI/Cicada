@@ -27,6 +27,7 @@ import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet
 import { SiteFormModalComponent, SiteFormModalData } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { ManageSiteUsersModalComponent, ManageSiteUsersModalData } from '../../shared/components/modals/manage-site-users-modal/manage-site-users-modal.component';
 import { InviteModalComponent, InviteModalData } from '../../shared/components/modals/invite-modal/invite-modal.component';
+import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
 
 // Interface pour les utilisateurs assignes au site (depuis SiteDetailSerializer)
 interface SiteUserAssignment {
@@ -65,7 +66,8 @@ interface MenuItem {
     MatDialogModule,
     TranslateModule,
     HeaderComponent,
-    LeafletMapComponent
+    LeafletMapComponent,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './site-detail.component.html',
   styleUrl: './site-detail.component.scss'
@@ -109,13 +111,16 @@ export class SiteDetailComponent implements OnInit {
     };
   });
 
+  // Pipe for site type display
+  private readonly siteTypePipe = new SiteTypeDisplayPipe();
+
   // Informations formatees
   readonly siteInfo = computed(() => {
     const s = this.site();
     if (!s) return [];
 
     return [
-      { label: 'sites.detail.fields.type', value: s.type_site_label || '-', icon: 'fi-rr-apps' },
+      { label: 'sites.detail.fields.type', value: this.siteTypePipe.transform(s), icon: 'fi-rr-apps' },
       { label: 'sites.detail.fields.surface', value: this.formatSurface(s.surf_off), icon: 'fi-rr-map' },
       { label: 'sites.detail.fields.idLocal', value: s.id_local || '-', icon: 'fi-rr-key' },
       { label: 'sites.detail.fields.idInpn', value: s.id_inpn || '-', icon: 'fi-rr-database' },
