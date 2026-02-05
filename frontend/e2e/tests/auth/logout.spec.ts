@@ -1,0 +1,41 @@
+import { test, expect } from '../../fixtures/auth.fixture';
+
+test.describe('Logout', () => {
+  test('should clear tokens from localStorage on logout', async ({ superAdminPage: page }) => {
+    await page.goto('/accueil');
+    await expect(page).toHaveURL(/\/accueil/);
+
+    // Open user menu and click logout
+    await page.locator('button[matmenutriggerfor="userMenu"]').click();
+    await page.locator('button.logout-item').click();
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
+
+    // Tokens should be cleared
+    const authTokens = await page.evaluate(() => window.localStorage.getItem('auth_tokens'));
+    expect(authTokens).toBeFalsy();
+  });
+
+  test('should redirect to login when accessing protected route after logout', async ({ superAdminPage: page }) => {
+    await page.goto('/accueil');
+
+    // Manually clear tokens to simulate logout
+    await page.evaluate(() => {
+      window.localStorage.removeItem('auth_tokens');
+      window.localStorage.removeItem('current_user');
+      window.localStorage.removeItem('auth_token_timestamp');
+    });
+
+    await page.goto('/administration/dashboard');
+    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
+  });
+
+  test('should show logout button in user menu', async ({ superAdminPage: page }) => {
+    await page.goto('/accueil');
+    await page.locator('button[matmenutriggerfor="userMenu"]').click();
+
+    const logoutItem = page.locator('button.logout-item');
+    await expect(logoutItem).toBeVisible();
+  });
+});

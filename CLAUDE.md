@@ -393,8 +393,9 @@ docker compose exec web python manage.py seed_testdata --only=users,plans
 | Stack | Framework | Tests | Couverture |
 |-------|-----------|-------|------------|
 | Backend | pytest + pytest-django + Factory Boy | 356 | 56% |
-| Frontend | Jest + jest-preset-angular | 132 | 7% |
-| **Total** | | **488** | |
+| Frontend (unitaires) | Jest + jest-preset-angular | 132 | 7% |
+| **Frontend (E2E)** | **Playwright** | **155** | **Admin + Features + Access** |
+| **Total** | | **~643** | |
 
 #### Backend (pytest)
 
@@ -486,9 +487,61 @@ npm run test:coverage
 - `action-icon.component.spec.ts` - Composant ActionIcon (10 tests)
 - `navigation-tile.component.spec.ts` - Composant NavigationTile (24 tests)
 
+#### Frontend E2E (Playwright)
+
+```bash
+cd frontend
+
+# Tous les tests E2E (headless)
+npm run e2e
+
+# Interface visuelle Playwright
+npm run e2e:ui
+
+# Tests visibles dans le navigateur
+npm run e2e:headed
+
+# Mode debug
+npm run e2e:debug
+```
+
+**Prérequis** : Stack Docker en cours (`docker compose up -d`) + données de test (`seed_testdata`).
+
+**Tests E2E disponibles (155 tests) :**
+
+*Authentication & Access:*
+- `auth/login.spec.ts` - Login valide/invalide, champs vides, returnUrl (5 tests)
+- `auth/logout.spec.ts` - Déconnexion, suppression tokens (3 tests)
+- `auth/register.spec.ts` - Inscription, validation, email doublon (5 tests)
+- `access/role-access.spec.ts` - Contrôle d'accès par rôle (8 tests)
+- `access/data-scope.spec.ts` - Scope données par organisme (5 tests)
+
+*Admin:*
+- `admin/users-list.spec.ts` - Liste utilisateurs, recherche, filtres (6 tests)
+- `admin/users-actions.spec.ts` - Activation/désactivation, assign site (5 tests)
+- `admin/users-sites.spec.ts` - Associations sites/plans (4 tests)
+- `admin/sites-list.spec.ts` - Liste sites, recherche, filtres (5 tests)
+- `admin/sites-crud.spec.ts` - Création site, validation formulaire (5 tests)
+- `admin/sites-orgs.spec.ts` - Liens organismes/sites (3 tests)
+- `admin/validations.spec.ts` - Liste, filtres, approbation (6 tests)
+- `admin/validation-workflow.spec.ts` - **Workflow multi-utilisateurs** : demande → vue admin → approbation/rejet → vérification (8 tests)
+- `admin/organismes.spec.ts` - Grille, détail, recherche (4 tests)
+- `admin/dashboard.spec.ts` - Statistiques, accès (3 tests)
+
+*Features:*
+- `features/notifications.spec.ts` - Liste notifications, marquer lu, état vide (7 tests)
+- `features/activity.spec.ts` - Timeline activité, onglets par rôle, filtres, pagination (20 tests)
+- `features/profile.spec.ts` - Page profil, infos utilisateur, RGPD, mes demandes (19 tests)
+- `features/bulk-import.spec.ts` - Import en masse sites, stepper, upload, mapping (10 tests)
+- `features/duplicate-detection.spec.ts` - Détection doublons INPN et noms similaires (9 tests)
+- `features/impersonation.spec.ts` - Impersonation admin, bannière, navigation (9 tests)
+
+*Navigation:*
+- `navigation/navigation.spec.ts` - Header, sidebar, liens (4 tests)
+
 #### CI/CD
 
-Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`.
+Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`, et sur les tags de release `v*`.
 Configuration : `.github/workflows/tests.yml`
 
 ### Frontend Development
