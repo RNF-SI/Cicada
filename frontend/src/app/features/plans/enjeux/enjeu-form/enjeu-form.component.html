@@ -1,0 +1,155 @@
+<app-header></app-header>
+
+<div class="enjeu-form-page">
+  <!-- Hero Section (card-like) -->
+  <div class="hero-section">
+    <h1 class="hero-title">
+      {{ isEditMode() ? ('enjeux.enjeuForm.titleEdit' | translate) : ('enjeux.enjeuForm.titleNew' | translate) }}
+    </h1>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Form Content -->
+  @if (!isLoadingData()) {
+    <div class="form-container">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <i class="fi fi-rr-exclamation"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- Main Section -->
+        <div class="form-card">
+          <!-- Required fields notice -->
+          <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
+          <!-- Intitulé -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.enjeuForm.libelle' | translate }} <span class="required-star">*</span></mat-label>
+            <textarea matInput
+                      formControlName="libelle"
+                      rows="3"
+                      [placeholder]="'enjeux.enjeuForm.libellePlaceholder' | translate">
+            </textarea>
+            @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
+              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+            }
+            @if (form.get('libelle')?.hasError('maxlength')) {
+              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Intitulé court -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.enjeuForm.intituleCourt' | translate }} <span class="required-star">*</span></mat-label>
+            <input matInput
+                   formControlName="intitule_court"
+                   maxlength="50"
+                   [placeholder]="'enjeux.enjeuForm.intituleCourtPlaceholder' | translate">
+            <mat-hint align="end">{{ intituleCourtLength }}/50</mat-hint>
+            <button mat-icon-button matSuffix type="button"
+                    [matTooltip]="'enjeux.enjeuForm.intituleCourtHint' | translate"
+                    matTooltipPosition="above">
+              <i class="fi fi-rr-interrogation"></i>
+            </button>
+          </mat-form-field>
+
+          <!-- Priorité -->
+          <div class="form-group">
+            <label class="form-label">{{ 'enjeux.enjeuForm.priorite' | translate }} <span class="required-star">*</span></label>
+            <mat-radio-group formControlName="rang" class="priority-radio-group">
+              <mat-radio-button [value]="1">1</mat-radio-button>
+              <mat-radio-button [value]="2">2</mat-radio-button>
+              <mat-radio-button [value]="3">3</mat-radio-button>
+            </mat-radio-group>
+          </div>
+
+          <!-- Catégorie écologique -->
+          <div class="form-group">
+            <label class="form-label">{{ 'enjeux.enjeuForm.categorie' | translate }} <span class="required-star">*</span></label>
+            <mat-radio-group formControlName="categorie_ecologique" class="category-radio-group">
+              <mat-radio-button [value]="true">
+                {{ 'enjeux.enjeuForm.ecologique' | translate }}
+              </mat-radio-button>
+              <mat-radio-button [value]="false">
+                {{ 'enjeux.enjeuForm.socioEconomique' | translate }}
+              </mat-radio-button>
+            </mat-radio-group>
+          </div>
+
+          <!-- Type d'enjeu (checkboxes) -->
+          <div class="form-group">
+            <label class="form-label">{{ 'enjeux.accordion.enjeuLieA' | translate }}</label>
+            <div class="checkbox-group">
+              <mat-checkbox formControlName="habitat" color="primary">
+                {{ 'enjeux.accordion.habitats' | translate }}
+              </mat-checkbox>
+              <mat-checkbox formControlName="espece" color="primary">
+                {{ 'enjeux.accordion.especes' | translate }}
+              </mat-checkbox>
+              <mat-checkbox formControlName="processus" color="primary">
+                {{ 'enjeux.accordion.processus' | translate }}
+              </mat-checkbox>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Détails (accordéon) -->
+        <mat-expansion-panel class="details-panel" hideToggle>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
+              <span class="panel-title-text">{{ 'enjeux.enjeuForm.details' | translate }}</span>
+              <i class="fi fi-rr-menu-burger panel-toggle-icon"></i>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="panel-content">
+            <!-- État de l'enjeu -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'enjeux.enjeuForm.etatEnjeu' | translate }}</mat-label>
+              <textarea matInput
+                        formControlName="etat_enjeu"
+                        rows="4"
+                        [placeholder]="'enjeux.enjeuForm.etatEnjeuPlaceholder' | translate">
+              </textarea>
+            </mat-form-field>
+
+            <!-- Commentaires -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'enjeux.enjeuForm.commentaires' | translate }}</mat-label>
+              <textarea matInput
+                        formControlName="description"
+                        rows="4"
+                        [placeholder]="'enjeux.enjeuForm.commentairesPlaceholder' | translate">
+              </textarea>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+      </form>
+    </div>
+
+    <!-- Action Bar (full-width, dark) -->
+    <div class="action-bar">
+      <button class="btn-action-cancel" type="button" (click)="onCancel()" [disabled]="isLoading()">
+        {{ 'common.actions.cancel' | translate }}
+      </button>
+      <button class="btn-action-validate" type="button" (click)="onSubmit()" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          {{ 'common.actions.validate' | translate }}
+        }
+      </button>
+    </div>
+  }
+</div>

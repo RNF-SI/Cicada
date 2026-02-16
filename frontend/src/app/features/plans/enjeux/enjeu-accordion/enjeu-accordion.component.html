@@ -1,0 +1,148 @@
+<div class="accordion" [id]="id" [class.expanded]="expanded()" [class.fcr]="isFcr">
+  <!-- Header -->
+  <div class="accordion-header" (click)="toggle()">
+    <div class="header-content">
+      <!-- Ellipse icon -->
+      <div class="header-icon" [class.fcr-icon]="isFcr">
+        <img [src]="isFcr ? 'assets/images/ellipses/ellipse-salmon.png' : 'assets/images/ellipses/ellipse-terra-cotta.png'"
+             alt="" class="header-ellipse-img">
+        @if (isFcr) {
+          <i class="fi fi-rr-key header-ellipse-icon"></i>
+        } @else {
+          <i class="fi fi-rr-mountains header-ellipse-icon"></i>
+        }
+      </div>
+
+      <!-- Title -->
+      <h3 class="accordion-title">
+        @if (isFcr) {
+          {{ 'enjeux.types.fcr' | translate }} {{ displayIndex }} : {{ enjeu.libelle }}
+        } @else {
+          {{ 'enjeux.types.enjeu' | translate }} {{ displayIndex }} : {{ enjeu.libelle }}
+        }
+      </h3>
+    </div>
+
+    <!-- Header actions -->
+    <div class="header-actions">
+      @if (expanded()) {
+        <button mat-icon-button
+                class="action-btn"
+                (click)="onEdit($event)"
+                [matTooltip]="'common.actions.edit' | translate">
+          <i class="fi fi-rr-pencil"></i>
+        </button>
+      }
+      <button mat-icon-button class="expand-btn">
+        <i class="fi" [ngClass]="expanded() ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Body (expanded) -->
+  @if (expanded()) {
+    <div class="accordion-body">
+      <!-- Sub-header: small ellipse + title + actions -->
+      <div class="body-sub-header">
+        <div class="body-sub-left">
+          <img [src]="isFcr ? 'assets/images/ellipses/ellipse-salmon.png' : 'assets/images/ellipses/ellipse-terra-cotta.png'"
+               alt="" class="body-sub-ellipse">
+          <h4 class="body-sub-title">{{ enjeu.intitule_court || enjeu.libelle }}</h4>
+        </div>
+        <div class="body-actions">
+          <button mat-icon-button
+                  (click)="onEdit($event)"
+                  [matTooltip]="'common.actions.edit' | translate"
+                  class="action-btn">
+            <i class="fi fi-rr-pencil"></i>
+          </button>
+          <button mat-icon-button
+                  (click)="onDelete($event)"
+                  [matTooltip]="'common.actions.delete' | translate"
+                  class="action-btn">
+            <i class="fi fi-rr-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Properties (inline lines) -->
+      <div class="property-lines">
+        @if (!isFcr) {
+          <div class="property-line">
+            <span class="prop-label">{{ 'enjeux.accordion.priorite' | translate }} :</span>
+            <span class="prop-value">{{ enjeu.rang || '-' }}</span>
+          </div>
+          <div class="property-line">
+            <span class="prop-label">{{ 'enjeux.accordion.categorie' | translate }} :</span>
+            <span class="prop-value">{{ categoryLabel || '-' }}</span>
+          </div>
+          <div class="property-line">
+            <span class="prop-label">{{ 'enjeux.accordion.enjeuLieA' | translate }} :</span>
+            <span class="prop-value">{{ typeLabels.length > 0 ? typeLabels.join(', ') : '-' }}</span>
+          </div>
+          @if (hasTaxons) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} :</span>
+              <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+            </div>
+          }
+          @if (hasHabitats) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.listeHabitats' | translate }} :</span>
+              <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+            </div>
+          }
+        } @else {
+          <!-- FCR properties -->
+          <div class="property-line">
+            <span class="prop-label">{{ 'enjeux.fcrForm.categorie' | translate }} :</span>
+            <span class="prop-value">{{ fcrCategoryLabel || '-' }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- État de l'enjeu (Enjeu only) -->
+      @if (!isFcr && enjeu.etat_enjeu) {
+        <div class="detail-section">
+          <h4 class="detail-title">{{ 'enjeux.accordion.etatEnjeu' | translate }}</h4>
+          <p class="detail-text">{{ enjeu.etat_enjeu }}</p>
+        </div>
+      }
+
+      <!-- Description / Commentaires -->
+      @if (enjeu.description) {
+        <div class="detail-section">
+          <h4 class="detail-title">{{ 'enjeux.accordion.detailsCommentaires' | translate }}</h4>
+          <p class="detail-text">{{ enjeu.description }}</p>
+        </div>
+      }
+
+      <!-- Facteurs d'influence (enjeux uniquement) -->
+      @if (!isFcr) {
+        <div class="facteurs-summary">
+          <div class="facteurs-count">
+            <i class="fi fi-rr-chart-tree"></i>
+            <span>{{ facteurCount }} {{ 'enjeux.facteurInfluence.countSuffix' | translate }}</span>
+          </div>
+          @if (facteurCount > 0) {
+            <button mat-stroked-button class="btn-sm" (click)="onNavigateToDetail($event)">
+              {{ 'enjeux.facteurInfluence.viewButton' | translate }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Metadata -->
+      <div class="metadata">
+        <span class="metadata-item">
+          {{ 'common.createdAt' | translate }}: {{ enjeu.date_ajout | date:'dd/MM/yyyy' }}
+        </span>
+        @if (enjeu.createur_nom) {
+          <span class="metadata-item">
+            {{ 'common.by' | translate }} {{ enjeu.createur_nom }}
+          </span>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,917 @@
+<app-header></app-header>
+
+<div class="enjeux-layout">
+  <!-- Sidebar Menu (composant partagé) -->
+  @if (planId(); as id) {
+    <app-plan-sidebar
+      [planId]="id"
+      activePage="enjeux"
+      [selectedEnjeuId]="selectedEnjeuId()">
+    </app-plan-sidebar>
+  }
+
+  <!-- Main Content -->
+  <main class="plan-main">
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+        <button mat-stroked-button (click)="loadPlanData()">
+          {{ 'common.actions.retry' | translate }}
+        </button>
+      </div>
+    } @else {
+      <!-- Hero Section (bannière primaire) -->
+      <section class="hero-section">
+        <div class="hero-background">
+          <div class="hero-pattern"></div>
+        </div>
+
+        <div class="hero-content">
+          <!-- Fil d'Ariane -->
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">
+                {{ 'plans.detail.sidebar.title' | translate }}
+              </a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planId()]" class="breadcrumb-link">
+                {{ planNom() }}
+              </a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              @if (selectedEnjeu()) {
+                <a [routerLink]="['/plans', planId(), 'enjeux']" class="breadcrumb-link">
+                  {{ 'enjeux.title' | translate }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                <span class="breadcrumb-current">{{ selectedEnjeu()!.intitule_court || selectedEnjeu()!.libelle }}</span>
+              } @else {
+                <span class="breadcrumb-current">{{ 'enjeux.title' | translate }}</span>
+              }
+            </div>
+          </nav>
+
+          <!-- Titre de la page / enjeu sélectionné -->
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-document"></i>
+              <span>{{ 'plans.detail.sidebar.detailsEntry' | translate | uppercase }} {{ 'plans.detail.sidebar.title' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">
+              @if (selectedEnjeu()) {
+                @if (isSelectedFcr()) {
+                  {{ 'enjeux.types.fcr' | translate }} {{ selectedDisplayIndex() }} : {{ selectedEnjeu()!.libelle }}
+                } @else {
+                  {{ 'enjeux.types.enjeu' | translate }} {{ selectedDisplayIndex() }} : {{ selectedEnjeu()!.libelle }}
+                }
+              } @else {
+                {{ 'enjeux.title' | translate }}
+              }
+            </h1>
+
+            <div class="hero-actions">
+              <button class="btn-hero-primary" [matMenuTriggerFor]="generateMenu">
+                <i class="fi fi-rr-download"></i>
+                <span>{{ 'plans.detail.generate' | translate }}</span>
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #generateMenu="matMenu">
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-pdf"></i>
+                  <span>Exporter en PDF</span>
+                </button>
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-word"></i>
+                  <span>Exporter en Word</span>
+                </button>
+              </mat-menu>
+
+              <button class="btn-hero-outline">
+                <i class="fi fi-rr-eye"></i>
+                <span>Visualiser mindmap</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content Section -->
+      <section class="content-section">
+        @if (selectedEnjeu(); as enjeu) {
+          <!-- ===== VUE DÉTAIL ENJEU (avec onglets) ===== -->
+
+          <!-- Onglets -->
+          <div class="tabs-container">
+            <button
+              class="tab-item"
+              [class.active]="activeTab() === 'detail'"
+              (click)="setActiveTab('detail')">
+              {{ 'enjeux.tabs.detail' | translate }}
+            </button>
+            <button
+              class="tab-item"
+              [class.active]="activeTab() === 'olt'"
+              (click)="setActiveTab('olt')">
+              {{ 'enjeux.tabs.olt' | translate }}
+            </button>
+            <button
+              class="tab-item"
+              [class.active]="activeTab() === 'operations'"
+              (click)="setActiveTab('operations')">
+              {{ 'enjeux.tabs.operations' | translate }}
+            </button>
+          </div>
+
+          <!-- Tab: Détail enjeu -->
+          @if (activeTab() === 'detail') {
+            <div class="enjeux-content">
+              <!-- H2 Enjeu title section -->
+              <div class="enjeu-header-section">
+                <div class="enjeu-icon-wrapper">
+                  <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="enjeu-ellipse-img">
+                  @if (isSelectedFcr()) {
+                    <i class="fi fi-rr-key enjeu-ellipse-icon"></i>
+                  } @else {
+                    <i class="fi fi-rr-mountains enjeu-ellipse-icon"></i>
+                  }
+                </div>
+                <div class="enjeu-header-middle">
+                  <h2 class="enjeu-main-title">
+                    @if (isSelectedFcr()) {
+                      {{ 'enjeux.types.fcr' | translate }} {{ selectedDisplayIndex() }} : {{ enjeu.libelle }}
+                    } @else {
+                      {{ 'enjeux.types.enjeu' | translate }} {{ selectedDisplayIndex() }} : {{ enjeu.libelle }}
+                    }
+                  </h2>
+                  <div class="enjeu-header-actions">
+                    <button class="icon-btn-flat" (click)="navigateToEdit(enjeu)" [title]="'common.actions.edit' | translate">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="icon-btn-flat" (click)="onEnjeuDelete(enjeu)" [title]="'common.actions.delete' | translate">
+                      <i class="fi fi-rr-minus-circle"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="enjeu-header-divider"></div>
+
+              <!-- Enjeu detail card (terra-cotta) -->
+              <div class="enjeu-detail-card">
+                <!-- Card section header -->
+                <div class="card-section-header" (click)="toggleEnjeuDetail()">
+                  <div class="card-section-left">
+                    <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="card-section-ellipse">
+                    <h3 class="card-section-name">{{ enjeu.intitule_court || enjeu.libelle }}</h3>
+                  </div>
+                  <div class="card-section-actions">
+                    <button class="icon-btn-flat" (click)="navigateToEdit(enjeu); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="icon-btn-flat" (click)="toggleEnjeuDetail(); $event.stopPropagation()">
+                      <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
+                    </button>
+                  </div>
+                </div>
+
+                @if (enjeuDetailExpanded()) {
+                  <div class="card-detail-body">
+                    <!-- Properties (enjeu only) -->
+                    @if (!isSelectedFcr()) {
+                      <div class="property-line">
+                        <span class="prop-label">{{ 'enjeux.accordion.priorite' | translate }} :</span>
+                        <span class="prop-value">{{ enjeu.rang || '-' }}</span>
+                      </div>
+                      <div class="property-line">
+                        <span class="prop-label">{{ 'enjeux.accordion.categorie' | translate }} :</span>
+                        <span class="prop-value">{{ selectedCategoryLabel() || '-' }}</span>
+                      </div>
+                      <div class="property-line">
+                        <span class="prop-label">{{ 'enjeux.accordion.enjeuLieA' | translate }} :</span>
+                        <span class="prop-value">{{ selectedTypeLabels().length > 0 ? selectedTypeLabels().join(', ') : '-' }}</span>
+                      </div>
+                      @if (selectedHasTaxons()) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} :</span>
+                          <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+                        </div>
+                      }
+                    } @else {
+                      <!-- FCR properties -->
+                      <div class="property-line">
+                        <span class="prop-label">{{ 'enjeux.fcrForm.categorie' | translate }} :</span>
+                        <span class="prop-value">{{ selectedFcrCategoryLabel() || '-' }}</span>
+                      </div>
+                    }
+
+                    <!-- État de l'enjeu -->
+                    @if (!isSelectedFcr() && enjeu.etat_enjeu) {
+                      <div class="section-block">
+                        <div class="section-line"></div>
+                        <h4 class="section-title-uppercase">{{ 'enjeux.accordion.etatEnjeu' | translate }}</h4>
+                      </div>
+                      <p class="section-text">{{ enjeu.etat_enjeu }}</p>
+                    }
+
+                    <!-- Détails/commentaires -->
+                    @if (enjeu.description) {
+                      <div class="section-block">
+                        <div class="section-line"></div>
+                        <h4 class="section-title-uppercase">{{ 'enjeux.accordion.detailsCommentaires' | translate }}</h4>
+                      </div>
+                      <p class="section-text">{{ enjeu.description }}</p>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Facteurs d'Influence (enjeux uniquement, pas FCR) -->
+              @if (!isSelectedFcr()) {
+                @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
+                  <div class="facteur-influence-card" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
+                    <div class="facteur-card-header" (click)="toggleFacteur(facteur.id_facteur_influence)">
+                      <div class="facteur-card-left">
+                        <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                        <h3 class="facteur-card-title">
+                          {{ 'enjeux.facteurInfluence.label' | translate }} : {{ facteur.libelle }}
+                        </h3>
+                      </div>
+                      <div class="facteur-card-actions">
+                        <button class="icon-btn-flat" (click)="deleteFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                        <button class="icon-btn-flat" (click)="$event.stopPropagation(); toggleFacteur(facteur.id_facteur_influence)">
+                          <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (isFacteurExpanded(facteur.id_facteur_influence)) {
+                      <div class="facteur-card-body">
+                        <!-- Détails du facteur -->
+                        @if (facteur.description) {
+                          <div class="section-block">
+                            <h4 class="section-title-uppercase">{{ 'enjeux.facteurInfluence.details' | translate }}</h4>
+                          </div>
+                          <p class="section-text">{{ facteur.description }}</p>
+                        }
+
+                        <!-- Pressions du facteur -->
+                        @for (pression of facteur.pressions || []; track pression.id_pression) {
+                          <div class="pression-card" [class.expanded]="isPressionExpanded(pression.id_pression)">
+                            <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
+                              <div class="pression-card-left">
+                                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                                <h4 class="pression-card-title">
+                                  {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
+                                </h4>
+                              </div>
+                              <div class="pression-card-actions">
+                                <button class="icon-btn-flat" (click)="deletePression(pression); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                  <i class="fi fi-rr-trash"></i>
+                                </button>
+                                <button class="icon-btn-flat" (click)="$event.stopPropagation(); togglePression(pression.id_pression)">
+                                  <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
+                                </button>
+                              </div>
+                            </div>
+
+                            @if (isPressionExpanded(pression.id_pression)) {
+                              <div class="pression-card-body">
+                                @if (pression.description) {
+                                  <div class="section-block">
+                                    <h4 class="section-title-uppercase">{{ 'enjeux.pression.details' | translate }}</h4>
+                                  </div>
+                                  <p class="section-text">{{ pression.description }}</p>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <!-- Formulaire inline nouvelle pression -->
+                        @if (addingPressionForFacteur() === facteur.id_facteur_influence) {
+                          <div class="inline-form">
+                            <div class="inline-form-header">
+                              <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                              <h4 class="inline-form-title">{{ 'enjeux.pression.newTitle' | translate }}</h4>
+                            </div>
+                            <div class="inline-form-body">
+                              <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="newPressionLibelle">
+                              </mat-form-field>
+                              <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
+                                <textarea matInput [(ngModel)]="newPressionDescription" rows="3"></textarea>
+                              </mat-form-field>
+                            </div>
+                            <div class="inline-form-actions">
+                              <button mat-flat-button color="primary" (click)="savePression(facteur)" [disabled]="!newPressionLibelle.trim()">
+                                {{ 'common.actions.save' | translate }}
+                              </button>
+                              <button mat-stroked-button (click)="cancelAddPression()">
+                                {{ 'common.actions.cancel' | translate }}
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <button class="add-pression-btn" (click)="startAddPression(facteur.id_facteur_influence)">
+                            {{ 'enjeux.pression.addButton' | translate }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Formulaire inline nouveau facteur d'influence -->
+                @if (addingFacteurInfluence()) {
+                  <div class="inline-form">
+                    <div class="inline-form-header">
+                      <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                      <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.newTitle' | translate }}</h4>
+                    </div>
+                    <div class="inline-form-body">
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>{{ 'enjeux.facteurInfluence.libelleLabel' | translate }}</mat-label>
+                        <input matInput [(ngModel)]="newFacteurLibelle">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>{{ 'enjeux.facteurInfluence.descriptionLabel' | translate }}</mat-label>
+                        <textarea matInput [(ngModel)]="newFacteurDescription" rows="3"></textarea>
+                      </mat-form-field>
+                    </div>
+                    <div class="inline-form-actions">
+                      <button mat-flat-button color="primary" (click)="saveFacteurInfluence()" [disabled]="!newFacteurLibelle.trim()">
+                        {{ 'common.actions.save' | translate }}
+                      </button>
+                      <button mat-stroked-button (click)="cancelAddFacteur()">
+                        {{ 'common.actions.cancel' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <button mat-stroked-button class="add-facteur-btn" (click)="startAddFacteur()">
+                    <i class="fi fi-rr-plus"></i>
+                    {{ 'enjeux.facteurInfluence.addButton' | translate }}
+                  </button>
+                }
+              }
+            </div>
+          }
+
+          <!-- Tab: Vision à long terme -->
+          @if (activeTab() === 'olt') {
+            <div class="olt-content">
+              <!-- Note contextuelle -->
+              <div class="olt-info-note">
+                <i class="fi fi-rr-info"></i>
+                <span>{{ 'enjeux.olt.usageNote' | translate }}</span>
+              </div>
+
+              <!-- Barre haut : compteur -->
+              <div class="olt-top-bar">
+                <p class="count-text">{{ totalOltCount() }} {{ 'enjeux.olt.countSuffix' | translate }}</p>
+              </div>
+
+              <!-- Pour chaque OLT de l'enjeu -->
+              @for (olt of selectedOlts(); track olt.id_olt; let idx = $index) {
+                <!-- Mode édition OLT -->
+                @if (editingOltId() === olt.id_olt) {
+                  <div class="inline-form olt-inline-form">
+                    <div class="inline-form-header">
+                      <h4 class="inline-form-title">{{ 'enjeux.olt.editTitle' | translate }}</h4>
+                    </div>
+                    <div class="inline-form-body">
+                      <mat-form-field class="full-width" appearance="outline">
+                        <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                        <input matInput [(ngModel)]="editOltLibelle">
+                      </mat-form-field>
+                      <mat-form-field class="full-width" appearance="outline">
+                        <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                        <textarea matInput [(ngModel)]="editOltDescription" rows="2"></textarea>
+                      </mat-form-field>
+                    </div>
+                    <div class="inline-form-actions">
+                      <button mat-flat-button color="primary" (click)="saveEditOlt(olt)" [disabled]="!editOltLibelle.trim()">
+                        {{ 'common.actions.save' | translate }}
+                      </button>
+                      <button mat-stroked-button (click)="cancelEditOlt()">
+                        {{ 'common.actions.cancel' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <!-- Barre OLT (utilise app-section-title réutilisable) -->
+                  <div class="olt-section-header" (click)="toggleOlt(olt.id_olt)">
+                    <app-section-title
+                      [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
+                      icon="fi-rr-eye"
+                      ellipseColor="terra-cotta"
+                      size="md"
+                      [showLine]="true">
+                      <div sectionActions class="olt-header-actions">
+                        <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                          <i class="fi fi-rr-pencil"></i>
+                        </button>
+                        <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                          <i class="fi fi-rr-minus-circle"></i>
+                        </button>
+                        <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOltExpanded(olt.id_olt)" [class.fi-rr-angle-small-up]="isOltExpanded(olt.id_olt)"></i>
+                      </div>
+                    </app-section-title>
+                  </div>
+
+                  <!-- Contenu déplié de l'OLT -->
+                  @if (isOltExpanded(olt.id_olt)) {
+                    <div class="olt-expanded-content">
+                      <!-- Description OLT -->
+                      @if (olt.description) {
+                        <p class="olt-description">{{ olt.description }}</p>
+                      }
+
+                      <!-- État actuel (style facteur d'influence, carte avec bordure gauche) -->
+                      @if (olt.etat_actuel) {
+                        <div class="etat-actuel-card" [class.expanded]="isEtatExpanded(olt.etat_actuel.id_etat_actuel)">
+                          <!-- Mode édition état actuel -->
+                          @if (editingEtatId() === olt.etat_actuel.id_etat_actuel) {
+                            <div class="etat-card-body">
+                              <div class="inline-form etat-inline-form">
+                                <div class="inline-form-header">
+                                  <h4 class="inline-form-title">{{ 'enjeux.etatActuel.editTitle' | translate }}</h4>
+                                </div>
+                                <div class="inline-form-body">
+                                  <mat-form-field class="full-width" appearance="outline">
+                                    <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
+                                    <input matInput [(ngModel)]="editEtatLibelle">
+                                  </mat-form-field>
+                                  <mat-form-field class="full-width" appearance="outline">
+                                    <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
+                                    <textarea matInput [(ngModel)]="editEtatDescription" rows="2"></textarea>
+                                  </mat-form-field>
+                                </div>
+                                <div class="inline-form-actions">
+                                  <button mat-flat-button color="primary" (click)="saveEditEtat(olt.etat_actuel)" [disabled]="!editEtatLibelle.trim()">
+                                    {{ 'common.actions.save' | translate }}
+                                  </button>
+                                  <button mat-stroked-button (click)="cancelEditEtat()">
+                                    {{ 'common.actions.cancel' | translate }}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          } @else {
+                            <div class="etat-card-header" (click)="toggleEtat(olt.etat_actuel.id_etat_actuel)">
+                              <div class="etat-card-left">
+                                <img src="assets/images/ellipses/ellipse-pale-green.png" alt="" class="etat-ellipse">
+                                <h3 class="etat-card-title">{{ 'enjeux.etatActuel.label' | translate }} : {{ olt.etat_actuel.libelle }}</h3>
+                              </div>
+                              <div class="etat-card-actions">
+                                <button class="icon-btn-flat" (click)="startEditEtat(olt.etat_actuel); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                  <i class="fi fi-rr-pencil"></i>
+                                </button>
+                                <button class="icon-btn-flat" (click)="deleteEtatActuel(olt.etat_actuel); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                  <i class="fi fi-rr-trash"></i>
+                                </button>
+                                <i class="fi" [class.fi-rr-angle-small-down]="!isEtatExpanded(olt.etat_actuel.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(olt.etat_actuel.id_etat_actuel)"></i>
+                              </div>
+                            </div>
+                            @if (isEtatExpanded(olt.etat_actuel.id_etat_actuel)) {
+                              <div class="etat-card-body">
+                                <p>{{ olt.etat_actuel.description }}</p>
+                              </div>
+                            }
+                          }
+                        </div>
+                      } @else {
+                        <!-- Bouton ajouter état actuel -->
+                        @if (addingEtatForOlt() === olt.id_olt) {
+                          <div class="inline-form etat-inline-form">
+                            <div class="inline-form-header">
+                              <h4 class="inline-form-title">{{ 'enjeux.etatActuel.newTitle' | translate }}</h4>
+                            </div>
+                            <div class="inline-form-body">
+                              <mat-form-field class="full-width" appearance="outline">
+                                <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="newEtatLibelle">
+                              </mat-form-field>
+                              <mat-form-field class="full-width" appearance="outline">
+                                <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
+                                <textarea matInput [(ngModel)]="newEtatDescription" rows="2"></textarea>
+                              </mat-form-field>
+                            </div>
+                            <div class="inline-form-actions">
+                              <button mat-flat-button color="primary" (click)="saveEtatActuel(olt)" [disabled]="!newEtatLibelle.trim()">
+                                {{ 'common.actions.save' | translate }}
+                              </button>
+                              <button mat-stroked-button (click)="cancelAddEtat()">
+                                {{ 'common.actions.cancel' | translate }}
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <button class="add-etat-btn" (click)="startAddEtat(olt.id_olt)">
+                            + {{ 'enjeux.etatActuel.addButton' | translate }}
+                          </button>
+                        }
+                      }
+
+                      <!-- Niveaux d'exigence -->
+                      @for (ne of olt.niveaux_exigence || []; track ne.id_ne) {
+                        <!-- Mode édition NE -->
+                        @if (editingNeId() === ne.id_ne) {
+                          <div class="inline-form ne-inline-form">
+                            <div class="inline-form-body">
+                              <mat-form-field class="full-width" appearance="outline">
+                                <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="editNeLibelle">
+                              </mat-form-field>
+                              <mat-form-field class="full-width" appearance="outline">
+                                <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
+                                <textarea matInput [(ngModel)]="editNeDescription" rows="2"></textarea>
+                              </mat-form-field>
+                            </div>
+                            <div class="inline-form-actions">
+                              <button mat-flat-button color="primary" (click)="saveEditNe(ne)" [disabled]="!editNeLibelle.trim()">
+                                {{ 'common.actions.save' | translate }}
+                              </button>
+                              <button mat-stroked-button (click)="cancelEditNe()">
+                                {{ 'common.actions.cancel' | translate }}
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="ne-card">
+                            <div class="ne-card-header">
+                              <div class="ne-card-left">
+                                <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
+                                <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
+                              </div>
+                              <div class="ne-card-actions">
+                                <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                                  <i class="fi fi-rr-pencil"></i>
+                                </button>
+                                <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
+                                  <i class="fi fi-rr-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                            @if (ne.description) {
+                              <p class="ne-description">{{ ne.description }}</p>
+                            }
+
+                            <!-- Indicateurs de ce NE -->
+                            @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
+                              <div class="indicateur-block">
+                                @if (editingIndicateurId() === ind.id_indicateur) {
+                                  <!-- Edit mode -->
+                                  <div class="inline-form">
+                                    <mat-form-field appearance="outline" class="full-width">
+                                      <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }}</mat-label>
+                                      <input matInput [(ngModel)]="editIndicateurNom">
+                                    </mat-form-field>
+                                    <div class="inline-form-actions">
+                                      <button mat-flat-button color="primary" (click)="saveEditIndicateur(ind)" [disabled]="!editIndicateurNom.trim()">
+                                        {{ 'common.actions.save' | translate }}
+                                      </button>
+                                      <button mat-stroked-button (click)="cancelEditIndicateur()">
+                                        {{ 'common.actions.cancel' | translate }}
+                                      </button>
+                                    </div>
+                                  </div>
+                                } @else {
+                                  <!-- Display mode -->
+                                  <div class="indicateur-subtitle" (click)="toggleIndicateur(ind.id_indicateur)">
+                                    <div class="indicateur-subtitle-left">
+                                      <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                      <span class="indicateur-nom">{{ 'enjeux.indicateurs.label' | translate }} : {{ ind.nom_indicateur }}</span>
+                                      @if (ind.type_indicateur_label) {
+                                        <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
+                                      }
+                                      @if (ind.est_standardise) {
+                                        <span class="indicateur-std-chip">STD</span>
+                                      }
+                                    </div>
+                                    <div class="indicateur-actions">
+                                      <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
+                                        <i class="fi fi-rr-pencil"></i>
+                                      </button>
+                                      <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
+                                        <i class="fi fi-rr-trash"></i>
+                                      </button>
+                                      <i class="fi" [class.fi-rr-angle-down]="!isIndicateurExpanded(ind.id_indicateur)" [class.fi-rr-angle-up]="isIndicateurExpanded(ind.id_indicateur)"></i>
+                                    </div>
+                                  </div>
+
+                                  <!-- Contenu déplié de l'indicateur -->
+                                  @if (isIndicateurExpanded(ind.id_indicateur)) {
+                                    <div class="indicateur-content">
+                                      <div class="indicateur-meta">
+                                        <span class="meta-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                        <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
+                                      </div>
+
+                                      <!-- Métriques en tableau -->
+                                      @if (ind.metriques && ind.metriques.length > 0) {
+                                        <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }}s :</p>
+                                        <div class="metriques-table-wrapper">
+                                          <table class="metriques-table">
+                                            <thead>
+                                              <tr>
+                                                <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
+                                                <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
+                                                <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
+                                                <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
+                                                <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
+                                                <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
+                                                <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
+                                                <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
+                                                <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
+                                                <th class="actions-col"></th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              @for (met of ind.metriques; track met.id_metrique) {
+                                                <tr>
+                                                  <td>{{ met.nom_metrique }}</td>
+                                                  <td>{{ met.unite || '-' }}</td>
+                                                  <td>{{ met.ponderation || '-' }}</td>
+                                                  <td>{{ met.etat_reference || '-' }}</td>
+                                                  <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
+                                                  <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
+                                                  <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
+                                                  <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
+                                                  <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                  <td class="actions-col">
+                                                    <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                      <i class="fi fi-rr-trash"></i>
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                              }
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      }
+
+                                      <!-- Formulaire ajout métrique -->
+                                      @if (addingMetriqueForIndicateur() === ind.id_indicateur) {
+                                        <div class="inline-form">
+                                          <mat-form-field appearance="outline" class="full-width">
+                                            <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }}</mat-label>
+                                            <input matInput [(ngModel)]="newMetriqueNom">
+                                          </mat-form-field>
+                                          <mat-form-field appearance="outline">
+                                            <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                            <input matInput [(ngModel)]="newMetriqueUnite">
+                                          </mat-form-field>
+                                          <div class="inline-form-actions">
+                                            <button mat-flat-button color="primary" (click)="saveMetrique(ind)" [disabled]="!newMetriqueNom.trim()">
+                                              {{ 'common.actions.save' | translate }}
+                                            </button>
+                                            <button mat-stroked-button (click)="cancelAddMetrique()">
+                                              {{ 'common.actions.cancel' | translate }}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      } @else {
+                                        <button class="add-link-btn" (click)="startAddMetrique(ind.id_indicateur)">
+                                          + {{ 'enjeux.metriques.addButton' | translate }}
+                                        </button>
+                                      }
+                                    </div>
+                                  }
+                                }
+                              </div>
+                            }
+
+                            <!-- Formulaire ajout indicateur -->
+                            @if (addingIndicateurForNe() === ne.id_ne) {
+                              <div class="inline-form indicateur-form">
+                                <mat-form-field appearance="outline" class="full-width">
+                                  <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }}</mat-label>
+                                  <input matInput [(ngModel)]="newIndicateurNom">
+                                </mat-form-field>
+                                <div class="inline-form-actions">
+                                  <button mat-flat-button color="primary" (click)="saveIndicateur(ne)" [disabled]="!newIndicateurNom.trim()">
+                                    {{ 'common.actions.save' | translate }}
+                                  </button>
+                                  <button mat-stroked-button (click)="cancelAddIndicateur()">
+                                    {{ 'common.actions.cancel' | translate }}
+                                  </button>
+                                </div>
+                              </div>
+                            } @else {
+                              <button class="add-indicateur-btn" (click)="startAddIndicateur(ne.id_ne)">
+                                + {{ 'enjeux.indicateurs.addButton' | translate }}
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+
+                      <!-- Formulaire inline nouveau NE -->
+                      @if (addingNeForOlt() === olt.id_olt) {
+                        <div class="inline-form ne-inline-form">
+                          <div class="inline-form-header">
+                            <h4 class="inline-form-title">{{ 'enjeux.niveauExigence.newTitle' | translate }}</h4>
+                          </div>
+                          <div class="inline-form-body">
+                            <mat-form-field class="full-width" appearance="outline">
+                              <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
+                              <input matInput [(ngModel)]="newNeLibelle">
+                            </mat-form-field>
+                            <mat-form-field class="full-width" appearance="outline">
+                              <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
+                              <textarea matInput [(ngModel)]="newNeDescription" rows="2"></textarea>
+                            </mat-form-field>
+                          </div>
+                          <div class="inline-form-actions">
+                            <button mat-flat-button color="primary" (click)="saveNe(olt)" [disabled]="!newNeLibelle.trim()">
+                              {{ 'common.actions.save' | translate }}
+                            </button>
+                            <button mat-stroked-button (click)="cancelAddNe()">
+                              {{ 'common.actions.cancel' | translate }}
+                            </button>
+                          </div>
+                        </div>
+                      } @else {
+                        <button class="add-ne-btn" (click)="startAddNe(olt.id_olt)">
+                          {{ 'enjeux.niveauExigence.addButton' | translate }}
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              }
+
+              <!-- Formulaire inline nouvel OLT -->
+              @if (addingOlt()) {
+                <div class="inline-form olt-inline-form">
+                  <div class="inline-form-header">
+                    <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
+                  </div>
+                  <div class="inline-form-body">
+                    <mat-form-field class="full-width" appearance="outline">
+                      <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                      <input matInput [(ngModel)]="newOltLibelle">
+                    </mat-form-field>
+                    <mat-form-field class="full-width" appearance="outline">
+                      <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                      <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
+                    </mat-form-field>
+                  </div>
+                  <div class="inline-form-actions">
+                    <button mat-flat-button color="primary" (click)="saveOlt()" [disabled]="!newOltLibelle.trim()">
+                      {{ 'common.actions.save' | translate }}
+                    </button>
+                    <button mat-stroked-button (click)="cancelAddOlt()">
+                      {{ 'common.actions.cancel' | translate }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Bouton ajouter un OLT (toujours visible) -->
+              @if (!addingOlt()) {
+                <button mat-stroked-button class="add-olt-btn" (click)="startAddOlt()">
+                  <i class="fi fi-rr-plus"></i>
+                  {{ 'enjeux.olt.addButton' | translate }}
+                </button>
+              }
+
+              <!-- Empty state si aucun OLT -->
+              @if (totalOltCount() === 0 && !addingOlt()) {
+                <div class="info-block">
+                  <div class="info-icon">
+                    <i class="fi fi-rr-lightbulb-on"></i>
+                  </div>
+                  <div class="info-content">
+                    <p class="info-title">{{ 'enjeux.olt.hint' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.olt.description' | translate }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Tab: Vision opérationnelle (empty state) -->
+          @if (activeTab() === 'operations') {
+            <div class="tab-empty-state">
+              <div class="tab-empty-header">
+                <p class="tab-empty-text">{{ 'enjeux.operations.empty' | translate }}</p>
+                <button mat-stroked-button color="primary">
+                  <i class="fi fi-rr-plus"></i>
+                  {{ 'enjeux.operations.addButton' | translate }}
+                </button>
+              </div>
+              <div class="info-block">
+                <div class="info-icon">
+                  <i class="fi fi-rr-lightbulb-on"></i>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">{{ 'enjeux.operations.hint' | translate }}</p>
+                  <p class="info-description">{{ 'enjeux.operations.description' | translate }}</p>
+                </div>
+              </div>
+            </div>
+          }
+
+        } @else {
+          <!-- ===== VUE LISTE (pas d'enjeu sélectionné) ===== -->
+
+          <!-- État vide -->
+          @if (!hasData()) {
+            <div class="empty-state">
+              <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
+              <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
+                <i class="fi fi-rr-plus"></i>
+                {{ 'enjeux.addButton' | translate }}
+              </button>
+              <mat-menu #addMenuEmpty="matMenu">
+                <button mat-menu-item (click)="navigateToNewEnjeu()">
+                  <i class="fi fi-rr-bullseye-arrow"></i>
+                  <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                </button>
+                <button mat-menu-item (click)="navigateToNewFcr()">
+                  <i class="fi fi-rr-key"></i>
+                  <span>{{ 'enjeux.types.fcr' | translate }}</span>
+                </button>
+              </mat-menu>
+
+              <div class="info-block">
+                <div class="info-icon">
+                  <i class="fi fi-rr-lightbulb-on"></i>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">{{ 'enjeux.empty.hint' | translate }}</p>
+                  <p class="info-description">{{ 'enjeux.empty.description' | translate }}</p>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Liste plate des enjeux et FCR -->
+          @if (hasData()) {
+            <div class="enjeux-content">
+              <!-- Barre haut : compteur + bouton ajouter -->
+              <div class="list-top-bar">
+                <p class="count-text">{{ totalCount() }} {{ 'enjeux.countSuffix' | translate }}</p>
+                <button mat-stroked-button [matMenuTriggerFor]="addMenu">
+                  <i class="fi fi-rr-plus"></i>
+                  {{ 'enjeux.addButton' | translate }}
+                </button>
+                <mat-menu #addMenu="matMenu">
+                  <button mat-menu-item (click)="navigateToNewEnjeu()">
+                    <i class="fi fi-rr-bullseye-arrow"></i>
+                    <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                  </button>
+                  <button mat-menu-item (click)="navigateToNewFcr()">
+                    <i class="fi fi-rr-key"></i>
+                    <span>{{ 'enjeux.types.fcr' | translate }}</span>
+                  </button>
+                </mat-menu>
+              </div>
+
+              <!-- Liste plate : enjeux d'abord, puis FCR -->
+              <div class="enjeux-flat-list">
+                @for (enjeu of enjeux(); track enjeu.id_enjeu; let idx = $index) {
+                  <app-enjeu-accordion
+                    [id]="'enjeu-' + enjeu.id_enjeu"
+                    [enjeu]="enjeu"
+                    [displayIndex]="idx + 1"
+                    [initiallyExpanded]="selectedEnjeuId() === enjeu.id_enjeu"
+                    (edit)="navigateToEdit(enjeu)"
+                    (delete)="onEnjeuDelete(enjeu)"
+                    (navigateToDetail)="navigateToEnjeuDetail($event)">
+                  </app-enjeu-accordion>
+                }
+                @for (item of fcr(); track item.id_enjeu; let idx = $index) {
+                  <app-enjeu-accordion
+                    [id]="'fcr-' + item.id_enjeu"
+                    [enjeu]="item"
+                    [isFcr]="true"
+                    [displayIndex]="idx + 1"
+                    [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
+                    (edit)="navigateToEdit(item)"
+                    (delete)="onEnjeuDelete(item)">
+                  </app-enjeu-accordion>
+                }
+              </div>
+            </div>
+          }
+        }
+      </section>
+    }
+  </main>
+</div>

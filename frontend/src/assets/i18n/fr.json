@@ -36,6 +36,9 @@
     },
     "loading": "Chargement des données...",
     "none": "Aucun",
+    "createdAt": "Créé le",
+    "by": "par",
+    "retry": "Réessayer",
     "messages": {
       "loading": "Chargement...",
       "noResults": "Aucun résultat",
@@ -1207,6 +1210,7 @@
         "actions": "Actions et suivis"
       },
       "viewDetails": "Voir en détails",
+      "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
       "sidebar": {
         "title": "PLAN DE GESTION",
@@ -1679,5 +1683,278 @@
     "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
     "forbidden": "Accès refusé.",
     "network": "Erreur de connexion. Vérifiez votre connexion internet."
+  },
+  "enjeux": {
+    "title": "Enjeux et facteurs clés de réussite",
+    "subtitle": "Plan de gestion",
+    "empty": {
+      "message": "Aucun enjeu ou facteur clef de réussite (FCR) saisi",
+      "hint": "Commencez par ajouter un enjeu ou un facteur clef de réussite",
+      "description": "Les enjeux et facteurs clefs de réussite permettent de définir les priorités du plan de gestion.",
+      "noEnjeu": "Aucun enjeu ou facteur clef de réussite n'a été saisi pour ce plan."
+    },
+    "tabs": {
+      "detail": "Détail enjeu",
+      "olt": "Vision à long terme",
+      "operations": "Vision opérationnelle"
+    },
+    "count": "{{count}} enjeu(x) ou FCR saisi(s)",
+    "countZero": "Aucun enjeu ou FCR",
+    "countOne": "1 enjeu ou FCR saisi",
+    "addButton": "Ajouter enjeu/FCR",
+    "types": {
+      "enjeu": "Enjeu",
+      "fcr": "Facteur clef de réussite"
+    },
+    "sections": {
+      "enjeux": "ENJEUX",
+      "fcr": "FACTEURS CLÉS DE RÉUSSITE"
+    },
+    "enjeuForm": {
+      "titleNew": "Ajouter un enjeu",
+      "titleEdit": "Modifier l'enjeu",
+      "required": "Les champs avec * sont obligatoires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "libelle": "Intitulé de l'enjeu",
+      "libellePlaceholder": "Saisissez l'intitulé de l'enjeu",
+      "intituleCourt": "Intitulé court de l'enjeu",
+      "intituleCourtPlaceholder": "Intitulé court (max 25 car.)",
+      "intituleCourtHint": "Veuillez définir un nom raccourci pour l'enjeu (max 25 caractères)",
+      "priorite": "Priorité de l'enjeu",
+      "priorite1": "1",
+      "priorite2": "2",
+      "priorite3": "3",
+      "categorie": "Catégorie de l'enjeu",
+      "ecologique": "Écologique",
+      "socioEconomique": "Socio-économique",
+      "typeEnjeu": "L'enjeu est lié à",
+      "habitat": "Un/des habitats",
+      "espece": "Une/des espèces",
+      "processus": "Un processus",
+      "details": "Détails",
+      "etatEnjeu": "Précisions sur l'état de l'enjeu",
+      "etatEnjeuPlaceholder": "Décrivez l'état actuel de l'enjeu",
+      "commentaires": "Détails / commentaires",
+      "commentairesPlaceholder": "Informations complémentaires"
+    },
+    "fcrForm": {
+      "titleNew": "Ajouter un facteur clef de réussite",
+      "titleEdit": "Modifier le facteur clef de réussite",
+      "required": "Les champs avec * sont obligatoires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "libelle": "Intitulé du facteur clef de réussite",
+      "libellePlaceholder": "Saisissez l'intitulé du FCR",
+      "intituleCourt": "Intitulé court du facteur clef de réussite",
+      "intituleCourtPlaceholder": "Intitulé court (max 25 car.)",
+      "intituleCourtHint": "Veuillez définir un nom raccourci pour le FCR (max 25 caractères)",
+      "categorie": "Catégorie du FCR",
+      "connaissance": "Connaissance",
+      "ancrage": "Ancrage territorial",
+      "fonctionnement": "Fonctionnement de l'aire protégée",
+      "autre": "Autre",
+      "details": "Détails",
+      "commentaires": "Détails / commentaires",
+      "commentairesPlaceholder": "Informations complémentaires"
+    },
+    "accordion": {
+      "priorite": "Priorité",
+      "categorie": "Catégorie",
+      "categorieEnjeu": "Enjeu écologique",
+      "categorieSocioEco": "Enjeu socio-économique",
+      "enjeuLieA": "Enjeu lié à",
+      "especes": "Une/des espèces",
+      "habitats": "Un/des habitats",
+      "processus": "Un processus",
+      "listeEspeces": "Liste des espèces concernées par l'enjeu",
+      "listeHabitats": "Liste des habitats concernés par l'enjeu",
+      "voirListe": "Voir liste",
+      "etatEnjeu": "État de l'enjeu",
+      "detailsCommentaires": "Détails/commentaires"
+    },
+    "sidebar": {
+      "title": "Liste enjeux et FCR",
+      "enjeux": "Enjeux",
+      "fcr": "Facteurs clés de réussite"
+    },
+    "messages": {
+      "enjeuCreateSuccess": "Enjeu créé avec succès",
+      "enjeuUpdateSuccess": "Enjeu mis à jour avec succès",
+      "enjeuDeleteSuccess": "Enjeu supprimé avec succès",
+      "enjeuDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cet enjeu ?",
+      "enjeuDeleteConfirmTitle": "Supprimer l'enjeu",
+      "fcrCreateSuccess": "Facteur clef de réussite créé avec succès",
+      "fcrUpdateSuccess": "Facteur clef de réussite mis à jour avec succès",
+      "fcrDeleteSuccess": "Facteur clef de réussite supprimé avec succès",
+      "fcrDeleteConfirm": "Êtes-vous sûr de vouloir supprimer ce facteur clef de réussite ?",
+      "fcrDeleteConfirmTitle": "Supprimer le FCR",
+      "loadError": "Erreur lors du chargement des enjeux",
+      "createError": "Erreur lors de la création",
+      "updateError": "Erreur lors de la mise à jour",
+      "deleteError": "Erreur lors de la suppression",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
+    },
+    "countSuffix": "enjeu(x) ou FCR saisi(s)",
+    "etatActuel": {
+      "label": "État actuel",
+      "newTitle": "Nouvel état actuel",
+      "editTitle": "Modifier l'état actuel",
+      "addButton": "+ Ajouter un état actuel",
+      "libelleLabel": "Description de l'état actuel",
+      "descriptionLabel": "Détails / commentaires",
+      "deleteTitle": "Supprimer l'état actuel",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet état actuel ? Ses objectifs à long terme et niveaux d'exigence seront également supprimés.",
+      "createSuccess": "État actuel créé avec succès",
+      "updateSuccess": "État actuel mis à jour avec succès",
+      "deleteSuccess": "État actuel supprimé avec succès"
+    },
+    "olt": {
+      "empty": "Aucun objectif à long terme (OLT) saisi",
+      "addButton": "+ Ajouter un objectif à long terme",
+      "hint": "Qu'est-ce qu'un objectif à long terme ?",
+      "description": "Un objectif à long terme (OLT) traduit l'état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion.",
+      "usageNote": "En général, un enjeu est associé à un seul état actuel et un seul objectif à long terme (OLT). Il est toutefois possible d'en ajouter plusieurs si nécessaire.",
+      "countSuffix": "objectif(s) à long terme (OLT) saisi(s)",
+      "label": "OLT",
+      "newTitle": "Nouvel objectif à long terme",
+      "editTitle": "Modifier l'OLT",
+      "deleteTitle": "Supprimer l'OLT",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet OLT ? Ses niveaux d'exigence seront également supprimés.",
+      "libelleLabel": "Intitulé de l'objectif à long terme",
+      "descriptionLabel": "Détails / commentaires",
+      "createSuccess": "Objectif à long terme créé avec succès",
+      "updateSuccess": "Objectif à long terme mis à jour avec succès",
+      "deleteSuccess": "Objectif à long terme supprimé avec succès"
+    },
+    "niveauExigence": {
+      "label": "Niveau d'exigence",
+      "newTitle": "Nouveau niveau d'exigence",
+      "addButton": "+ Ajouter un niveau d'exigence",
+      "libelleLabel": "Intitulé du niveau d'exigence",
+      "descriptionLabel": "Détails / commentaires",
+      "deleteTitle": "Supprimer le niveau d'exigence",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce niveau d'exigence ?",
+      "createSuccess": "Niveau d'exigence créé avec succès",
+      "updateSuccess": "Niveau d'exigence mis à jour avec succès",
+      "deleteSuccess": "Niveau d'exigence supprimé avec succès"
+    },
+    "operations": {
+      "empty": "Aucun objectif opérationnel saisi",
+      "addButton": "Ajouter un objectif opérationnel",
+      "hint": "Qu'est-ce qu'un objectif opérationnel ?",
+      "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme."
+    },
+    "facteurInfluence": {
+      "label": "Facteur d'influence",
+      "newTitle": "Nouveau facteur d'influence",
+      "addButton": "+ Ajouter un facteur d'influence",
+      "viewButton": "Voir les facteurs",
+      "countSuffix": "facteur(s) d'influence",
+      "libelleLabel": "Intitulé du facteur d'influence",
+      "descriptionLabel": "Détails / commentaires",
+      "details": "DÉTAILS",
+      "deleteTitle": "Supprimer le facteur d'influence",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce facteur d'influence ? Ses pressions seront également supprimées.",
+      "createSuccess": "Facteur d'influence créé avec succès",
+      "deleteSuccess": "Facteur d'influence supprimé avec succès"
+    },
+    "pression": {
+      "label": "Pression",
+      "newTitle": "Nouvelle pression à gérer",
+      "addButton": "+ Ajouter une pression",
+      "libelleLabel": "Intitulé de la pression à gérer",
+      "descriptionLabel": "Détails / commentaires",
+      "details": "DÉTAILS",
+      "deleteTitle": "Supprimer la pression",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette pression ?",
+      "createSuccess": "Pression créée avec succès",
+      "deleteSuccess": "Pression supprimée avec succès"
+    },
+    "indicateurs": {
+      "label": "Indicateur d'état",
+      "addButton": "Ajouter un indicateur",
+      "newTitle": "Nouvel indicateur d'état",
+      "nomLabel": "Intitulé de l'indicateur",
+      "typeLabel": "Type d'indicateur",
+      "standardiseLabel": "Indicateur standardisé",
+      "descriptionLabel": "Description",
+      "createSuccess": "Indicateur créé avec succès",
+      "updateSuccess": "Indicateur mis à jour avec succès",
+      "deleteSuccess": "Indicateur supprimé avec succès",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet indicateur ? Ses métriques et mesures seront également supprimées.",
+      "types": { "etat": "État", "pression": "Pression", "reponse": "Réponse" }
+    },
+    "metriques": {
+      "label": "Métrique",
+      "addButton": "Ajouter une métrique",
+      "nomLabel": "Intitulé de la métrique",
+      "typeLabel": "Type de métrique",
+      "uniteLabel": "Unité",
+      "ponderationLabel": "Pondération",
+      "etatReferenceLabel": "État de référence",
+      "seuilsTitle": "Seuils de scores",
+      "createSuccess": "Métrique créée avec succès",
+      "updateSuccess": "Métrique mise à jour avec succès",
+      "deleteSuccess": "Métrique supprimée avec succès",
+      "scores": {
+        "tresMauvais": "Très mauvais", "mauvais": "Mauvais",
+        "moyen": "Moyen", "bon": "Bon", "tresBon": "Très bon"
+      }
+    },
+    "mesures": {
+      "label": "Mesure",
+      "addButton": "Ajouter une mesure",
+      "valeurLabel": "Valeur",
+      "dateLabel": "Date de mesure",
+      "commentaireLabel": "Commentaire",
+      "createSuccess": "Mesure créée avec succès",
+      "deleteSuccess": "Mesure supprimée avec succès"
+    }
+  },
+  "taxonomie": {
+    "searchTaxon": "Rechercher un taxon...",
+    "searchHabitat": "Rechercher un habitat...",
+    "noResults": "Aucun résultat",
+    "minChars": "Saisissez au moins 3 caractères",
+    "addTaxon": "Ajouter un taxon",
+    "addHabitat": "Ajouter un habitat",
+    "taxons": "Taxons",
+    "habitats": "Habitats"
+  },
+  "responsabilites": {
+    "title": "Responsabilités",
+    "subtitle": "Responsabilités du site",
+    "empty": {
+      "message": "Aucune responsabilité définie",
+      "hint": "Définissez les responsabilités du site en termes de conservation"
+    },
+    "type": {
+      "floristique": "Floristique",
+      "faunistique": "Faunistique",
+      "habitat": "Habitat",
+      "geologique": "Géologique",
+      "paysager": "Paysager"
+    },
+    "niveau": {
+      "local": "Local",
+      "regional": "Régional",
+      "national": "National",
+      "international": "International"
+    },
+    "form": {
+      "titleNew": "Ajouter une responsabilité",
+      "titleEdit": "Modifier la responsabilité",
+      "type": "Type de responsabilité",
+      "niveau": "Niveau de responsabilité",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez cette responsabilité"
+    },
+    "messages": {
+      "createSuccess": "Responsabilité créée avec succès",
+      "updateSuccess": "Responsabilité mise à jour avec succès",
+      "deleteSuccess": "Responsabilité supprimée avec succès",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette responsabilité ?"
+    }
   }
 }

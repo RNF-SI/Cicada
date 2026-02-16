@@ -8,7 +8,12 @@
     "build:prod": "ng build --configuration production",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "e2e": "playwright test --config=e2e/playwright.config.ts",
+    "e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
+    "e2e:headed": "playwright test --config=e2e/playwright.config.ts --headed",
+    "e2e:debug": "playwright test --config=e2e/playwright.config.ts --debug",
+    "e2e:codegen": "playwright codegen http://localhost:4200"
   },
   "dependencies": {
     "@angular/animations": "^19.0.0",
@@ -33,6 +38,7 @@
     "@angular-devkit/build-angular": "^19.0.0",
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
+    "@playwright/test": "^1.58.1",
     "@types/jest": "^29.5.12",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet-draw": "^1.0.13",

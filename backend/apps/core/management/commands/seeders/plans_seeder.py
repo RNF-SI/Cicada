@@ -1,6 +1,7 @@
 """
 Seeder pour les plans de gestion.
 """
+from datetime import date
 from typing import Any, Dict, List
 
 from apps.core.models import Nomenclature
@@ -44,6 +45,8 @@ class PlansSeeder(BaseSeeder):
                 'nom': 'Plan de gestion 2020-2030 - Reserve de la Camargue',
                 'annee_debut': 2020,
                 'annee_fin': 2030,
+                'rang': 3,
+                'surface': 13117,
                 'statut': 'valide',
                 'version': '2.0',
                 'gestion_partagee': False,
@@ -52,7 +55,13 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': eval_int,
                 'id_redacteur_type': redac_gest,
                 'redacteur_nom': 'RNF - Equipe Camargue',
-                'commentaire': 'Plan de gestion valide pour la periode 2020-2030',
+                'redacteurs': 'Marie Dupont, Jean-Pierre Martin (RNF)',
+                'relecteurs': 'CSRPN PACA, Commission Biodiversite RNF',
+                'date_validation_cspn': date(2020, 3, 15),
+                'commentaire': 'Plan de gestion valide pour la periode 2020-2030. '
+                               '3eme plan successif, faisant suite au plan 2010-2020. '
+                               'Enjeux principaux : habitats humides, flamant rose, '
+                               'gestion hydraulique et activites traditionnelles.',
                 'sites': [sites[0]],
                 # Format: (user, is_referent)
                 'membres': [
@@ -66,6 +75,8 @@ class PlansSeeder(BaseSeeder):
                 'nom': 'Plan de gestion 2018-2028 - Aiguilles Rouges',
                 'annee_debut': 2018,
                 'annee_fin': 2028,
+                'rang': 2,
+                'surface': 3279,
                 'statut': 'valide',
                 'version': '1.1',
                 'gestion_partagee': False,
@@ -73,8 +84,13 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': False,
                 'id_evaluation': eval_fin,
                 'id_redacteur_type': redac_be,
-                'redacteur_nom': 'Bureau Natura 2000',
-                'commentaire': 'Plan actuellement en cours de revision',
+                'redacteur_nom': 'Cabinet Natura Consulting',
+                'redacteurs': 'Cabinet Natura Consulting (F. Leroy, A. Bernard)',
+                'relecteurs': 'CSRPN Auvergne-Rhone-Alpes, DREAL ARA',
+                'date_validation_cspn': date(2018, 6, 20),
+                'commentaire': 'Plan de gestion en vigueur. Evaluation finale positive. '
+                               'Enjeux centres sur les pelouses alpines, la faune '
+                               'de haute montagne et la maitrise de la frequentation.',
                 'sites': [sites[1]],
                 'membres': [
                     (users[1], True),   # admin.rnf - referent
@@ -142,6 +158,8 @@ class PlansSeeder(BaseSeeder):
                 'nom': 'Plan de gestion 2023-2033 - Lac de Remoray',
                 'annee_debut': 2023,
                 'annee_fin': 2033,
+                'rang': 3,
+                'surface': 286,
                 'statut': 'draft',
                 'version': '0.9',
                 'gestion_partagee': False,
@@ -150,7 +168,12 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': None,
                 'id_redacteur_type': redac_gest,
                 'redacteur_nom': 'RNF - Equipe Franche-Comte',
-                'commentaire': 'Nouveau plan en cours de finalisation',
+                'redacteurs': 'Sophie Moreau, Pierre Leclerc (DREAL BFC)',
+                'relecteurs': 'CSRPN Bourgogne-Franche-Comte',
+                'commentaire': 'Nouveau plan en cours de finalisation. '
+                               'Enjeux principaux : qualite des eaux du lac, '
+                               'tourbieres et prairies humides, balbuzard pecheur, '
+                               'gestion des especes exotiques envahissantes.',
                 'sites': [sites[6]],
                 'membres': [
                     (users[0], True),   # super_admin - referent
@@ -162,6 +185,8 @@ class PlansSeeder(BaseSeeder):
                 'nom': 'Plan de gestion 2010-2020 - Camargue (ancien)',
                 'annee_debut': 2010,
                 'annee_fin': 2020,
+                'rang': 2,
+                'surface': 13117,
                 'statut': 'archive',
                 'version': '1.5',
                 'gestion_partagee': False,
@@ -170,7 +195,11 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': eval_fin,
                 'id_redacteur_type': redac_gest,
                 'redacteur_nom': 'RNF - Equipe Camargue',
-                'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030',
+                'redacteurs': 'P. Grillas, A. Crivelli (Tour du Valat / RNF)',
+                'relecteurs': 'CSRPN PACA',
+                'date_validation_cspn': date(2010, 1, 10),
+                'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030. '
+                               'Evaluation finale realisee en 2019.',
                 'sites': [sites[0]],
                 'membres': []
             },
@@ -178,6 +207,8 @@ class PlansSeeder(BaseSeeder):
                 'nom': 'Plan de gestion 2008-2018 - Aiguilles Rouges (ancien)',
                 'annee_debut': 2008,
                 'annee_fin': 2018,
+                'rang': 1,
+                'surface': 3279,
                 'statut': 'archive',
                 'version': '2.0',
                 'gestion_partagee': False,
@@ -186,7 +217,11 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': eval_fin,
                 'id_redacteur_type': redac_be,
                 'redacteur_nom': 'Bureau Natura 2000',
-                'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028',
+                'redacteurs': 'Bureau Natura 2000 (D. Petit)',
+                'relecteurs': 'CSRPN Rhone-Alpes',
+                'date_validation_cspn': date(2008, 9, 5),
+                'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028. '
+                               '1er plan de gestion de la reserve.',
                 'sites': [sites[1]],
                 'membres': []
             },

@@ -549,6 +549,34 @@ export class AdminService {
       );
   }
 
+  /**
+   * Get nomenclatures by type
+   */
+  getNomenclaturesByType(typeMnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string }[]> {
+    return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}`)
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get a specific nomenclature by type and mnemonique
+   */
+  getNomenclatureByMnemonique(typeMnemonique: string, mnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string }> {
+    return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}&mnemonique=${mnemonique}`)
+      .pipe(
+        map(res => {
+          const results = res.results || res;
+          if (Array.isArray(results) && results.length > 0) {
+            return results[0];
+          }
+          throw new Error(`Nomenclature ${mnemonique} not found for type ${typeMnemonique}`);
+        }),
+        catchError(this.handleError)
+      );
+  }
+
   // ==================== DASHBOARD ====================
 
   /**

@@ -18,17 +18,27 @@
            [class.icon-primary]="iconColor === 'primary'"></i>
       }
     </div>
-    <h2 class="section-title-text" [class.small]="titleSize === 'small'">{{ title }}</h2>
+    <h2 class="section-title-text"
+        [class.small]="titleSize === 'small'"
+        [class.color-terra-cotta]="titleColor === 'terra-cotta'"
+        [class.color-salmon]="titleColor === 'salmon'"
+        [class.color-yellow]="titleColor === 'yellow'">
+      {{ title }}
+    </h2>
   </div>
-  @if (linkText) {
-    <a
-      class="section-title-link"
-      [routerLink]="linkUrl"
-      [attr.href]="linkUrl ? null : '#'">
-      {{ linkText }}
-      <i class="fi fi-rr-arrow-right"></i>
-    </a>
-  }
+  <!-- Actions projetées ou lien -->
+  <div class="section-title-right">
+    <ng-content select="[sectionActions]"></ng-content>
+    @if (linkText) {
+      <a
+        class="section-title-link"
+        [routerLink]="linkUrl"
+        [attr.href]="linkUrl ? null : '#'">
+        {{ linkText }}
+        <i class="fi fi-rr-arrow-right"></i>
+      </a>
+    }
+  </div>
 </div>
 <!-- Ligne de séparation sous le titre avec couleur -->
 @if (showLine) {

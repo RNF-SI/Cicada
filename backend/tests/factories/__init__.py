@@ -30,6 +30,32 @@ from tests.factories.notifications import (
     UserRegistrationRequestFactory,
     PendingUserFactory,
 )
+from tests.factories.enjeux import (
+    CategorieEnjeuTypeFactory,
+    NomenclatureEnjeuFactory,
+    NomenclatureFcrFactory,
+    CategorieFcrTypeFactory,
+    NomenclatureCategorieFcrFactory,
+    EnjeuFactory,
+    FcrFactory,
+    FacteurInfluenceFactory,
+    PressionFactory,
+    EtatActuelFactory,
+    ObjectifLongTermeFactory,
+    NiveauExigenceFactory,
+    CorEnjeuTaxonFactory,
+    CorEnjeuHabitatFactory,
+    CorEnjeuGeologieFactory,
+    # Indicateur / Metrique / Mesure factories
+    TypeIndicateurTypeFactory,
+    NomenclatureTypeIndicateurFactory,
+    TypeMetriqueTypeFactory,
+    NomenclatureTypeMetriqueFactory,
+    IndicateurFactory,
+    MetriqueFactory,
+    MesureFactory,
+    CorIndicateurTaxonFactory,
+)
 
 __all__ = [
     # Users factories
@@ -57,4 +83,29 @@ __all__ = [
     'SiteAccessRequestFactory',
     'UserRegistrationRequestFactory',
     'PendingUserFactory',
+    # Enjeux factories
+    'CategorieEnjeuTypeFactory',
+    'NomenclatureEnjeuFactory',
+    'NomenclatureFcrFactory',
+    'CategorieFcrTypeFactory',
+    'NomenclatureCategorieFcrFactory',
+    'EnjeuFactory',
+    'FcrFactory',
+    'FacteurInfluenceFactory',
+    'PressionFactory',
+    'EtatActuelFactory',
+    'ObjectifLongTermeFactory',
+    'NiveauExigenceFactory',
+    'CorEnjeuTaxonFactory',
+    'CorEnjeuHabitatFactory',
+    'CorEnjeuGeologieFactory',
+    # Indicateur / Metrique / Mesure factories
+    'TypeIndicateurTypeFactory',
+    'NomenclatureTypeIndicateurFactory',
+    'TypeMetriqueTypeFactory',
+    'NomenclatureTypeMetriqueFactory',
+    'IndicateurFactory',
+    'MetriqueFactory',
+    'MesureFactory',
+    'CorIndicateurTaxonFactory',
 ]

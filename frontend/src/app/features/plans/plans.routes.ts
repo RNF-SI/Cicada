@@ -19,5 +19,10 @@ export const PLANS_ROUTES: Routes = [
     path: ':id',
     component: PlanDetailComponent,
     canActivate: [authGuard]
+  },
+  {
+    path: ':id/enjeux',
+    loadChildren: () => import('./enjeux/enjeux.routes').then(m => m.ENJEUX_ROUTES),
+    canActivate: [authGuard]
   }
 ];

@@ -82,6 +82,12 @@ FIGMA_LINKS.md
 captures_maquettes/*
 
 KitUI/*
+# Playwright
+frontend/e2e/.auth/
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e-results.xml
+
 # Fichiers generes
 backend/static/
 backend/celerybeat-schedule

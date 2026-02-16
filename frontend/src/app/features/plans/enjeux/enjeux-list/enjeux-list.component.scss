@@ -1,0 +1,1559 @@
+@import 'variables';
+
+// ============================================
+// LAYOUT
+// ============================================
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.enjeux-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+}
+
+// Loading & Error states
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container {
+  i {
+    font-size: $font-size-h1;
+    color: $error-color;
+  }
+
+  p {
+    color: $error-color;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+// ============================================
+// MAIN CONTENT
+// ============================================
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+.hero-section {
+  position: relative;
+  background-color: $primary-color;
+  border-radius: 0 0 20px 20px;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 0.2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+// Breadcrumb
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $white;
+  border-radius: 50%;
+  color: $primary-color;
+  text-decoration: none;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 12px;
+  transition: transform $transition-fast;
+
+  i {
+    font-size: 20px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $white;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.breadcrumb-link {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.breadcrumb-chevron {
+  color: $white;
+  font-size: $font-size-base;
+}
+
+.breadcrumb-current {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+// Plan Header
+.plan-header {
+  margin-top: $spacing-md;
+}
+
+.plan-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-sm;
+  line-height: 24px;
+
+  i {
+    font-size: 15px;
+  }
+}
+
+.plan-title {
+  color: $white;
+  font-size: 48px;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: 72px;
+  margin: 0 0 $spacing-lg 0;
+}
+
+// Hero buttons
+.hero-actions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: $white;
+  color: $primary-color;
+  border: none;
+  border-radius: 80px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: box-shadow $transition-fast;
+  box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+  line-height: 24px;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.btn-hero-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: transparent;
+  color: $white;
+  border: 1px solid $white;
+  border-radius: 80px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  line-height: 24px;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background-color: rgba($white, 0.1);
+  }
+}
+
+// ============================================
+// CONTENT SECTION
+// ============================================
+
+.content-section {
+  padding: $spacing-xl $spacing-xl;
+}
+
+// ============================================
+// EMPTY STATE
+// ============================================
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xxl;
+  text-align: center;
+
+  .empty-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.info-block {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  background-color: rgba($secondary-orange-salmon, 0.15);
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  max-width: 600px;
+  margin-top: $spacing-xl;
+  text-align: left;
+
+  .info-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background-color: $secondary-orange-salmon;
+    border-radius: $border-radius-round;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      color: $black;
+      font-size: 20px;
+    }
+  }
+
+  .info-content {
+    flex: 1;
+
+    .info-title {
+      font-weight: $font-weight-bold;
+      color: $black;
+      margin: 0 0 $spacing-xs 0;
+    }
+
+    .info-description {
+      color: $gray-dark;
+      margin: 0;
+      font-size: $font-size-small;
+    }
+  }
+}
+
+// ============================================
+// TABS (vue détail enjeu)
+// ============================================
+
+.tabs-container {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xl;
+  border-bottom: 2px solid $gray-light;
+  padding-bottom: 0;
+}
+
+.tab-item {
+  padding: $spacing-sm $spacing-lg;
+  border: none;
+  background: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $gray-dark;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &.active {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    border-bottom-color: $primary-color;
+  }
+}
+
+// ============================================
+// ENJEU HEADER (vue détail)
+// ============================================
+
+.enjeu-header-section {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.enjeu-icon-wrapper {
+  width: 68px;
+  height: 68px;
+  position: relative;
+  flex-shrink: 0;
+
+  .enjeu-ellipse-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: rotate(-90deg) scaleY(-1);
+  }
+
+  .enjeu-ellipse-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: $white;
+  }
+}
+
+.enjeu-header-middle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.enjeu-main-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.enjeu-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.enjeu-header-divider {
+  width: 100%;
+  height: 1px;
+  background-color: $gray-light;
+  margin-bottom: $spacing-lg;
+}
+
+// Icon button flat (utilisé dans le header et les cartes)
+.icon-btn-flat {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  border-radius: $border-radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $gray-dark;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// ============================================
+// ENJEU DETAIL CARD (terra-cotta)
+// ============================================
+
+.enjeu-detail-card {
+  background-color: rgba($secondary-terra-cotta, 0.08);
+  border: 1px solid $secondary-terra-cotta;
+  border-radius: 0 20px 20px 0;
+  overflow: hidden;
+}
+
+.card-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+}
+
+.card-section-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-section-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+  flex-shrink: 0;
+}
+
+.card-section-name {
+  margin: 0;
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-section-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.expand-arrow {
+  font-size: 16px;
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+.card-detail-body {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+// Property lines
+.property-line {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+  padding: $spacing-xs 0;
+}
+
+.prop-label {
+  font-size: 15px;
+  color: $gray-dark;
+  flex-shrink: 0;
+}
+
+.prop-value {
+  font-size: 15px;
+  color: $black;
+  font-weight: $font-weight-regular;
+
+  &.prop-link {
+    color: $black;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+// Section blocks (état de l'enjeu, détails/commentaires)
+.section-block {
+  margin-top: $spacing-lg;
+  margin-bottom: $spacing-sm;
+}
+
+.section-line {
+  height: 1px;
+  background-color: rgba($black, 0.1);
+  margin-bottom: $spacing-md;
+}
+
+.section-title-uppercase {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 24px;
+}
+
+.section-text {
+  margin: 0;
+  font-size: 15px;
+  color: $black;
+  line-height: $line-height-base;
+  white-space: pre-wrap;
+}
+
+// ============================================
+// FACTEUR D'INFLUENCE CARDS (terra-cotta)
+// ============================================
+
+.facteur-influence-card {
+  background-color: $white;
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: 0 $border-radius-lg $border-radius-lg 0;
+  overflow: hidden;
+  transition: box-shadow $transition-fast;
+
+  &.expanded {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.facteur-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+}
+
+.facteur-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.facteur-bullet {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.facteur-card-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.facteur-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.facteur-card-body {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+// ============================================
+// PRESSION CARDS (nested inside facteur)
+// ============================================
+
+.pression-card {
+  background-color: rgba($secondary-terra-cotta, 0.04);
+  border-left: 2px solid rgba($secondary-terra-cotta, 0.4);
+  border-radius: 0 $border-radius-md $border-radius-md 0;
+  margin-top: $spacing-sm;
+  margin-left: $spacing-lg;
+  overflow: hidden;
+}
+
+.pression-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+}
+
+.pression-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.pression-bullet {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.pression-card-title {
+  margin: 0;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pression-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.pression-card-body {
+  padding: $spacing-sm $spacing-md $spacing-md;
+  border-top: 1px solid $gray-light;
+}
+
+// ============================================
+// INLINE FORMS (facteur + pression creation)
+// ============================================
+
+.inline-form {
+  background-color: rgba($secondary-terra-cotta, 0.06);
+  border: 1px dashed rgba($secondary-terra-cotta, 0.4);
+  border-radius: $border-radius-md;
+  padding: $spacing-md $spacing-lg;
+  margin-top: $spacing-md;
+}
+
+.inline-form-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.inline-form-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.inline-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  .full-width {
+    width: 100%;
+  }
+}
+
+.inline-form-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+// Add buttons
+.add-facteur-btn {
+  margin-top: $spacing-sm;
+
+  i {
+    margin-right: $spacing-xxs;
+  }
+}
+
+.add-pression-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-md;
+  background: none;
+  border: 1px dashed rgba($secondary-terra-cotta, 0.4);
+  border-radius: $border-radius-pill;
+  color: $secondary-terra-cotta;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.06);
+    border-color: $secondary-terra-cotta;
+  }
+}
+
+// ============================================
+// OLT CONTENT (Vision à long terme)
+// ============================================
+
+.olt-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// Note d'usage en haut de l'onglet
+.olt-info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($info-color, 0.08);
+  border-left: 3px solid $info-color;
+  border-radius: 0 $border-radius-md $border-radius-md 0;
+  margin-bottom: $spacing-xs;
+
+  i {
+    color: $info-color;
+    font-size: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  span {
+    color: $gray-dark;
+    font-size: $font-size-small;
+    line-height: $line-height-base;
+  }
+}
+
+.olt-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+
+  .count-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+}
+
+// ============================================
+// ÉTAT ACTUEL CARD (vert pâle conteneur)
+// ============================================
+
+.etat-actuel-card {
+  background-color: rgba($secondary-pale-green, 0.15);
+  border-left: 3px solid $secondary-pale-green;
+  border-radius: 0 20px 20px 0;
+  overflow: hidden;
+  margin-bottom: $spacing-sm;
+}
+
+.etat-actuel-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+}
+
+.etat-actuel-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.etat-actuel-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: $border-radius-round;
+  background-color: $secondary-pale-green;
+  flex-shrink: 0;
+}
+
+.etat-actuel-card-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.etat-actuel-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.etat-actuel-card-body {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+.etat-description {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+}
+
+// État card inner layout (used inside etat-actuel-card)
+.etat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+}
+
+.etat-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.etat-ellipse {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.etat-card-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.etat-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.etat-card-body {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+// État actuel inline form variant
+.etat-inline-form {
+  background-color: rgba($secondary-pale-green, 0.12);
+  border-color: rgba($secondary-pale-green, 0.5);
+}
+
+// ============================================
+// OLT HEADER (uses app-section-title)
+// ============================================
+
+.olt-section-header {
+  cursor: pointer;
+  margin-bottom: $spacing-sm;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.olt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.expand-arrow-olt {
+  font-size: 16px;
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+// OLT expanded content
+.olt-expanded-content {
+  padding: $spacing-sm 0 $spacing-md $spacing-xl;
+}
+
+.olt-description {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+}
+
+// OLT inline form variant
+.olt-inline-form {
+  background-color: rgba($primary-color, 0.04);
+  border-color: rgba($primary-color, 0.3);
+}
+
+// ============================================
+// NE CARDS (terra-cotta, inside OLT)
+// ============================================
+
+.ne-card {
+  margin-bottom: $spacing-lg;
+}
+
+.ne-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-sm;
+}
+
+.ne-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.ne-ellipse {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.ne-card-title {
+  margin: 0;
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $secondary-terra-cotta;
+  line-height: 36px;
+}
+
+.ne-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.ne-description {
+  color: $gray-dark;
+  font-size: $font-size-base;
+  margin: 0 0 $spacing-md $spacing-lg;
+  line-height: $line-height-base;
+}
+
+// NE inline form variant
+.ne-inline-form {
+  margin-bottom: $spacing-sm;
+}
+
+// ============================================
+// ADD BUTTONS (OLT tab)
+// ============================================
+
+// Add état actuel button (always visible at bottom)
+.add-etat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// Add OLT button (inside état actuel card)
+.add-olt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// Add NE button (inside OLT expanded)
+.add-ne-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// ============================================
+// TAB EMPTY STATE (OLT / Opérations)
+// ============================================
+
+.tab-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xxl;
+  text-align: center;
+}
+
+.tab-empty-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.tab-empty-text {
+  color: $gray-dark;
+  font-size: $font-size-base;
+  margin: 0;
+}
+
+// ============================================
+// ENJEUX CONTENT (liste plate)
+// ============================================
+
+.enjeux-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+// Barre haut : compteur + bouton ajouter
+.list-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .count-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+}
+
+// Liste plate d'accordéons
+.enjeux-flat-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// ============================================
+// Indicateurs & Métriques
+// ============================================
+
+// Indicateur d'état block (orange-salmon bordered box)
+.indicateur-block {
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: 0 $border-radius-xl $border-radius-xl 0;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.indicateur-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.indicateur-subtitle-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.indicateur-ellipse {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.indicateur-nom {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  color: $black;
+}
+
+.indicateur-type-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $border-radius-pill;
+  font-size: 12px;
+  font-weight: $font-weight-semibold;
+  background: rgba($secondary-orange-salmon, 0.2);
+  color: $primary-color;
+}
+
+.indicateur-std-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $border-radius-sm;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  background: $primary-color;
+  color: $white;
+}
+
+.indicateur-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.indicateur-content {
+  margin-top: $spacing-md;
+}
+
+.indicateur-meta {
+  display: flex;
+  gap: $spacing-xs;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-md;
+
+  .meta-label {
+    color: $gray-dark;
+  }
+
+  .meta-value {
+    color: $black;
+  }
+}
+
+.metriques-title {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  color: $black;
+  margin: 0 0 $spacing-sm 0;
+}
+
+// Métriques table
+.metriques-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: $spacing-sm;
+}
+
+.metriques-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  font-size: $font-size-small;
+
+  thead {
+    th {
+      background-color: $primary-color;
+      color: $white;
+      font-weight: $font-weight-bold;
+      text-align: left;
+      padding: $spacing-sm $spacing-md;
+      white-space: nowrap;
+      border-right: 1px solid rgba($white, 0.2);
+      font-size: 13px;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &.score-col {
+        text-align: center;
+        min-width: 100px;
+      }
+
+      &.score-col-1 { background-color: $score-very-bad; color: $black; }
+      &.score-col-2 { background-color: $score-bad; color: $black; }
+      &.score-col-3 { background-color: $score-neutral; color: $black; }
+      &.score-col-4 { background-color: $score-good; color: $black; }
+      &.score-col-5 { background-color: $score-very-good; color: $black; }
+
+      &.actions-col {
+        width: 40px;
+        min-width: 40px;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      &:nth-child(even) {
+        background-color: rgba($gray-lighter, 0.3);
+      }
+    }
+
+    td {
+      padding: $spacing-xs $spacing-md;
+      border-right: 1px solid $gray-light;
+      border-top: 1px solid $gray-light;
+      color: $black;
+      vertical-align: middle;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &.score-cell {
+        text-align: center;
+        font-size: 12px;
+      }
+
+      &.score-cell-1 { background-color: rgba($score-very-bad, 0.12); }
+      &.score-cell-2 { background-color: rgba($score-bad, 0.12); }
+      &.score-cell-3 { background-color: rgba($score-neutral, 0.12); }
+      &.score-cell-4 { background-color: rgba($score-good, 0.12); }
+      &.score-cell-5 { background-color: rgba($score-very-good, 0.12); }
+
+      &.actions-col {
+        text-align: center;
+        border-right: none;
+      }
+    }
+  }
+}
+
+.indicateur-form {
+  margin-top: $spacing-sm;
+}
+
+// Add indicateur button (inside NE)
+.add-indicateur-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// Add link button (inside indicateur, for métriques)
+.add-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-desktop) {
+  .plan-title {
+    font-size: 36px;
+    line-height: 48px;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .enjeux-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .plan-sidebar {
+    width: 100%;
+    border-bottom: 1px solid rgba($primary-color, 0.15);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: $spacing-xs $spacing-sm;
+    gap: $spacing-xs;
+  }
+
+  .menu-item-wrapper {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  .menu-item {
+    white-space: nowrap;
+    border-radius: $border-radius-pill;
+    margin: 0 $spacing-xs;
+    width: auto;
+  }
+
+  .submenu {
+    display: none;
+  }
+
+  .hero-section {
+    border-radius: 0;
+    min-height: auto;
+  }
+
+  .plan-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .content-section {
+    padding: $spacing-lg $spacing-md;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap;
+  }
+
+  .info-block {
+    flex-direction: column;
+    text-align: center;
+
+    .info-content {
+      text-align: center;
+    }
+  }
+
+  .list-top-bar {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .tabs-container {
+    overflow-x: auto;
+    gap: 0;
+  }
+
+  .tab-item {
+    white-space: nowrap;
+    padding: $spacing-sm $spacing-md;
+  }
+
+  .enjeu-header-section {
+    flex-wrap: wrap;
+  }
+
+  .enjeu-header-middle {
+    flex-wrap: wrap;
+  }
+
+  .card-section-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .facteur-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .pression-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .inline-form-actions {
+    flex-wrap: wrap;
+  }
+
+  .pression-card {
+    margin-left: $spacing-sm;
+  }
+
+  .etat-actuel-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .olt-section-header {
+    ::ng-deep .section-title-wrapper {
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+    }
+  }
+
+  .olt-expanded-content {
+    padding-left: $spacing-md;
+  }
+
+  .olt-info-note {
+    span {
+      font-size: $font-size-small;
+    }
+  }
+}

@@ -66,124 +66,7 @@
   }
 }
 
-// ============================================
-// SIDEBAR - Design Figma avec fond vert pâle
-// ============================================
-
-.plan-sidebar {
-  width: 234px;
-  background-color: $secondary-pale-green;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-header {
-  padding: $spacing-lg $spacing-md;
-  border-bottom: 1px solid rgba($primary-color, 0.15);
-}
-
-.sidebar-title {
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: $spacing-md 0;
-}
-
-.menu-item-wrapper {
-  margin-bottom: $spacing-xxs;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  width: calc(100% - #{$spacing-md});
-  padding: $spacing-sm $spacing-md;
-  background: transparent;
-  border: none;
-  border-radius: 0 $border-radius-pill $border-radius-pill 0;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  color: $primary-color;
-  cursor: pointer;
-  transition: all $transition-fast;
-  text-align: left;
-  margin: 0;
-  margin-left: 0;
-
-  i:first-child {
-    font-size: 16px;
-    color: $primary-color;
-  }
-
-  .chevron {
-    margin-left: auto;
-    font-size: $font-size-base;
-    color: $primary-color;
-    opacity: 0.7;
-    transition: transform $transition-fast;
-
-    &.expanded {
-      transform: rotate(180deg);
-    }
-  }
-
-  &:hover {
-    background-color: rgba($primary-color, 0.1);
-  }
-
-  &.active {
-    background-color: $white;
-    color: $primary-color;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-    i:first-child {
-      color: $primary-color;
-    }
-
-    .chevron {
-      color: $primary-color;
-      opacity: 1;
-    }
-  }
-}
-
-.submenu {
-  padding-left: $spacing-xl;
-  margin-top: $spacing-xs;
-}
-
-.submenu-item {
-  display: block;
-  width: 100%;
-  padding: $spacing-xs $spacing-md;
-  background: transparent;
-  border: none;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  color: $primary-color;
-  opacity: 0.8;
-  cursor: pointer;
-  text-align: left;
-  transition: all $transition-fast;
-
-  &:hover {
-    opacity: 1;
-  }
-
-  &.active {
-    opacity: 1;
-    font-weight: $font-weight-bold;
-  }
-}
+// Sidebar styles are in shared/plan-sidebar component
 
 // ============================================
 // MAIN CONTENT
@@ -474,10 +357,6 @@
 
   // Couleur terra-cotta (Enjeux, Objectifs)
   &.terra-cotta {
-    .accordion-indicator {
-      background-color: $secondary-terra-cotta;
-    }
-
     .accordion-title {
       color: $secondary-terra-cotta;
     }
@@ -485,10 +364,6 @@
 
   // Couleur orange (Actions)
   &.orange {
-    .accordion-indicator {
-      background-color: $secondary-orange-salmon;
-    }
-
     .accordion-title {
       color: $secondary-orange-salmon;
     }
@@ -512,12 +387,12 @@
   }
 }
 
-// Indicateur coloré carré (Design Figma)
-.accordion-indicator {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px; // Carré avec coins légèrement arrondis
+// Ellipse colorée (Design Figma)
+.accordion-ellipse {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .accordion-title {
@@ -551,6 +426,39 @@
   color: $gray-dark;
   font-size: $font-size-base;
   font-style: italic;
+}
+
+// Conteneur pour lien vers les enjeux
+.accordion-link-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-md;
+}
+
+.btn-view-details {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+  }
 }
 
 // ============================================
@@ -629,29 +537,13 @@
   padding: $spacing-xs 0;
 }
 
-// Puce personnalisée (4 carrés en croix selon design Figma)
+// Puce personnalisée (image Design System)
 .action-bullet {
-  position: relative;
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
-  margin-top: 6px;
-
-  // 4 carrés disposés en croix
-  &::before {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background-color: $secondary-terra-cotta;
-    border-radius: 1px;
-    top: 0;
-    left: 3px;
-    box-shadow:
-      0 6px 0 0 $secondary-terra-cotta,    // Bas
-      -3px 3px 0 0 $secondary-terra-cotta, // Gauche
-      3px 3px 0 0 $secondary-terra-cotta;  // Droite
-  }
+  margin-top: 5px;
+  object-fit: contain;
 }
 
 .action-text {
@@ -705,28 +597,12 @@
   }
 }
 
-// Icône document (carrés décorés selon design Figma)
+// Icône document (puce image Design System)
 .doc-icon {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background-color: $secondary-terra-cotta;
-    border-radius: 1px;
-    top: 0;
-    left: 5px;
-    box-shadow:
-      0 6px 0 0 $secondary-terra-cotta,
-      -3px 3px 0 0 $secondary-terra-cotta,
-      3px 3px 0 0 $secondary-terra-cotta;
-  }
+  object-fit: contain;
 }
 
 .btn-download {
@@ -774,6 +650,80 @@
 }
 
 // ============================================
+// SYNTHÈSE - Liste enjeux et FCR
+// ============================================
+
+.synthese-enjeux-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.synthese-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+}
+
+.synthese-section-title {
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  margin-bottom: $spacing-xxs;
+}
+
+.synthese-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xxs 0;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.synthese-item-bullet {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.synthese-item-label {
+  flex: 1;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $primary-color;
+  font-weight: $font-weight-regular;
+}
+
+.synthese-item-priority {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $white;
+  background-color: $secondary-terra-cotta;
+  border-radius: $border-radius-sm;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.synthese-loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+}
+
+// ============================================
 // RESPONSIVE
 // ============================================
 
@@ -796,37 +746,11 @@
 @media (max-width: $breakpoint-tablet) {
   .plan-detail-layout {
     flex-direction: column;
-    gap: 0; // Pas de gap en mobile
-  }
-
-  .plan-sidebar {
-    width: 100%;
-    border-bottom: 1px solid rgba($primary-color, 0.15);
+    gap: 0;
   }
 
   .plan-main {
     padding-right: 0;
-  }
-
-  .sidebar-nav {
-    display: flex;
-    overflow-x: auto;
-    padding: $spacing-xs $spacing-sm;
-  }
-
-  .menu-item-wrapper {
-    flex-shrink: 0;
-    margin-bottom: 0;
-  }
-
-  .menu-item {
-    white-space: nowrap;
-    border-radius: $border-radius-pill;
-    margin: 0 $spacing-xs;
-  }
-
-  .submenu {
-    display: none;
   }
 
   .hero-section {

@@ -6,6 +6,32 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
 
+# Import des modèles Enjeux et Responsabilités pour exposition
+from .models_enjeux import (
+    Enjeu,
+    FacteurInfluence,
+    Pression,
+    Responsabilite,
+    EtatActuel,
+    ObjectifLongTerme,
+    NiveauExigence,
+    CorResponsabiliteTaxon,
+    CorResponsabiliteHabitat,
+    CorResponsabiliteGeologie,
+    CorResponsabiliteEnjeu,
+    CorEnjeuTaxon,
+    CorEnjeuHabitat,
+    CorEnjeuGeologie,
+)
+from .models_indicateurs import (
+    Indicateur,
+    CorIndicateurTaxon,
+    CorIndicateurHabitat,
+    CorIndicateurGeologie,
+    Metrique,
+    Mesure,
+)
+
 
 class PlanGestion(models.Model):
     """

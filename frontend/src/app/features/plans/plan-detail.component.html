@@ -3,43 +3,13 @@
 
 <!-- Layout avec sidebar -->
 <div class="plan-detail-layout">
-  <!-- Sidebar Menu -->
-  <aside class="plan-sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">{{ 'plans.detail.sidebar.title' | translate }}</span>
-    </div>
-
-    <nav class="sidebar-nav">
-      @for (item of menuItems(); track item.label) {
-        <div class="menu-item-wrapper">
-          <button
-            class="menu-item"
-            [class.active]="activeMenuItem() === item.route"
-            [class.has-children]="item.children"
-            (click)="toggleMenu(item)">
-            <i class="fi" [class]="item.icon"></i>
-            <span>{{ item.label }}</span>
-            @if (item.children) {
-              <i class="fi fi-rr-angle-small-down chevron" [class.expanded]="item.expanded"></i>
-            }
-          </button>
-
-          @if (item.children && item.expanded) {
-            <div class="submenu">
-              @for (child of item.children; track child.label) {
-                <button
-                  class="submenu-item"
-                  [class.active]="activeMenuItem() === child.route"
-                  (click)="navigateToChild(child)">
-                  {{ child.label }}
-                </button>
-              }
-            </div>
-          }
-        </div>
-      }
-    </nav>
-  </aside>
+  <!-- Sidebar Menu (composant partagé avec la page enjeux) -->
+  @if (planId(); as id) {
+    <app-plan-sidebar
+      [planId]="id"
+      activePage="overview">
+    </app-plan-sidebar>
+  }
 
   <!-- Main Content -->
   <main class="plan-main">
@@ -161,7 +131,8 @@
 
                   <!-- Header de l'accordéon -->
                   <button class="accordion-header" (click)="toggleAccordion(accordion.id)">
-                    <span class="accordion-indicator"></span>
+                    <img [src]="'assets/images/ellipses/ellipse-' + (accordion.colorClass === 'orange' ? 'salmon' : accordion.colorClass) + '.png'"
+                         alt="" class="accordion-ellipse">
                     <span class="accordion-title" [class.terra-cotta]="accordion.colorClass === 'terra-cotta'">
                       {{ accordion.title }}
                     </span>
@@ -191,7 +162,7 @@
                                   <ul class="action-list">
                                     @for (item of subItem.items; track item) {
                                       <li class="action-item">
-                                        <span class="action-bullet"></span>
+                                        <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="action-bullet">
                                         <span class="action-text">{{ item }}</span>
                                       </li>
                                     }
@@ -201,6 +172,56 @@
                             </div>
                           }
                         </div>
+                      } @else if (accordion.id === 'enjeux') {
+                        <!-- Enjeux et FCR depuis l'API -->
+                        @if (enjeuxLoading()) {
+                          <div class="synthese-loading">
+                            <mat-spinner diameter="16"></mat-spinner>
+                            <span>{{ 'common.loading' | translate }}</span>
+                          </div>
+                        } @else if (enjeuxData().length === 0 && fcrData().length === 0) {
+                          <div class="accordion-link-container">
+                            <p class="accordion-placeholder">
+                              {{ 'plans.detail.noContent' | translate }}
+                            </p>
+                            <button class="btn-view-details" (click)="navigateToEnjeux()">
+                              <i class="fi fi-rr-arrow-right"></i>
+                              {{ 'plans.detail.viewEnjeux' | translate }}
+                            </button>
+                          </div>
+                        } @else {
+                          <div class="synthese-enjeux-list">
+                            @if (enjeuxData().length > 0) {
+                              <div class="synthese-section">
+                                <span class="synthese-section-title">{{ 'enjeux.sidebar.enjeux' | translate }} ({{ enjeuxData().length }})</span>
+                                @for (enjeu of enjeuxData(); track enjeu.id_enjeu) {
+                                  <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                    <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
+                                    <span class="synthese-item-label">{{ enjeu.libelle }}</span>
+                                    @if (enjeu.rang) {
+                                      <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+                            }
+                            @if (fcrData().length > 0) {
+                              <div class="synthese-section">
+                                <span class="synthese-section-title">{{ 'enjeux.sidebar.fcr' | translate }} ({{ fcrData().length }})</span>
+                                @for (fcr of fcrData(); track fcr.id_enjeu) {
+                                  <div class="synthese-item" (click)="navigateToEnjeuDetail(fcr.id_enjeu)">
+                                    <img src="assets/images/puces/puce-salmon.png" alt="" class="synthese-item-bullet">
+                                    <span class="synthese-item-label">{{ fcr.libelle }}</span>
+                                  </div>
+                                }
+                              </div>
+                            }
+                            <button class="btn-view-details" (click)="navigateToEnjeux()">
+                              <i class="fi fi-rr-arrow-right"></i>
+                              {{ 'plans.detail.viewEnjeux' | translate }}
+                            </button>
+                          </div>
+                        }
                       } @else {
                         <!-- Placeholder pour les accordéons sans contenu encore -->
                         <p class="accordion-placeholder">
@@ -260,21 +281,21 @@
             </app-section-title>
             <div class="documents-list">
               <div class="document-item">
-                <span class="doc-icon"></span>
+                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
                 <span>PdG - Partie 1</span>
                 <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
-                <span class="doc-icon"></span>
+                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
                 <span>PdG - Partie 2</span>
                 <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>
                 </button>
               </div>
               <div class="document-item">
-                <span class="doc-icon"></span>
+                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
                 <span>PdG - Annexes</span>
                 <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
                   <i class="fi fi-rr-download"></i>

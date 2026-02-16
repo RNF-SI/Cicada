@@ -29,6 +29,7 @@ from .organismes_seeder import OrganismesSeeder
 from .sites_seeder import SitesSeeder
 from .users_seeder import UsersSeeder
 from .plans_seeder import PlansSeeder
+from .enjeux_seeder import EnjeuxSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -49,6 +50,7 @@ SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     SitesSeeder,         # deps: organismes, nomenclatures
     UsersSeeder,         # deps: organismes, sites, groups
     PlansSeeder,         # deps: users, sites, nomenclatures
+    EnjeuxSeeder,        # deps: plans, nomenclatures
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes
@@ -156,6 +158,7 @@ __all__ = [
     'SitesSeeder',
     'UsersSeeder',
     'PlansSeeder',
+    'EnjeuxSeeder',
     'PendingUsersSeeder',
     'ValidationRequestsSeeder',
     'NotificationsSeeder',

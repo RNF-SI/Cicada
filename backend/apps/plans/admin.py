@@ -11,7 +11,16 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import PlanGestion, CorSitePg, CorPgFichier
+from .models import (
+    PlanGestion, CorSitePg, CorPgFichier,
+    Enjeu, FacteurInfluence, Pression, Responsabilite,
+    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
+    CorResponsabiliteEnjeu,
+    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+    Metrique, Mesure,
+)
 
 
 # =============================================================================
@@ -523,4 +532,788 @@ class CorPgFichierAdmin(admin.ModelAdmin):
         """Enregistrer le fichier en ajoutant l'utilisateur actuel."""
         if not change:  # Création
             obj.id_utilisateur_upload = request.user
+        super().save_model(request, obj, form, change)
+
+
+# =============================================================================
+# Administration des Enjeux et FCR
+# =============================================================================
+
+class CorEnjeuTaxonInline(admin.TabularInline):
+    """Inline pour les taxons liés à un enjeu."""
+    model = CorEnjeuTaxon
+    extra = 0
+    fields = ['cd_nom', 'nom_complet', 'nom_vern']
+    ordering = ['nom_complet']
+
+
+class CorEnjeuHabitatInline(admin.TabularInline):
+    """Inline pour les habitats liés à un enjeu."""
+    model = CorEnjeuHabitat
+    extra = 0
+    fields = ['cd_hab', 'lb_hab_fr']
+    ordering = ['lb_hab_fr']
+
+
+class CorEnjeuGeologieInline(admin.TabularInline):
+    """Inline pour les éléments géologiques liés à un enjeu."""
+    model = CorEnjeuGeologie
+    extra = 0
+    fields = ['id_inpg', 'nom']
+    ordering = ['nom']
+
+
+@admin.register(Enjeu)
+class EnjeuAdmin(GISModelAdmin):
+    """Interface d'administration pour les Enjeux et FCR."""
+
+    list_display = [
+        'libelle',
+        'id_pg',
+        'categorie_display',
+        'rang',
+        'categorie_ecologique',
+        'type_enjeu_display',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_categorie',
+        'rang',
+        'categorie_ecologique',
+        'habitat',
+        'espece',
+        'processus',
+        'id_categorie_fcr',
+        'id_pg__statut',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'intitule_court',
+        'description',
+        'etat_enjeu',
+        'id_pg__nom'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_pg',
+        'id_categorie',
+        'id_categorie_fcr',
+        'id_importance',
+        'id_utilisateur_maj'
+    ]
+
+    inlines = [CorEnjeuTaxonInline, CorEnjeuHabitatInline, CorEnjeuGeologieInline]
+
+    list_per_page = 25
+
+    fieldsets = (
+        ('Informations générales', {
+            'fields': (
+                'id_pg',
+                'id_categorie',
+                'libelle',
+                'intitule_court',
+                'description'
+            )
+        }),
+        ('Caractéristiques Enjeu', {
+            'fields': (
+                'rang',
+                'categorie_ecologique',
+                'habitat',
+                'espece',
+                'processus',
+                'etat_enjeu'
+            ),
+            'classes': ['collapse'],
+            'description': 'Champs spécifiques aux Enjeux de conservation'
+        }),
+        ('Caractéristiques FCR', {
+            'fields': (
+                'id_categorie_fcr',
+            ),
+            'classes': ['collapse'],
+            'description': 'Champs spécifiques aux Facteurs Clés de Réussite'
+        }),
+        ('Options', {
+            'fields': (
+                'id_importance',
+                'geom'
+            ),
+            'classes': ['collapse']
+        }),
+        ('Métadonnées', {
+            'fields': (
+                'date_ajout',
+                'date_maj',
+                'id_utilisateur_ajout',
+                'id_utilisateur_maj'
+            ),
+            'classes': ['collapse']
+        })
+    )
+
+    # Configuration de la carte
+    default_lon = 200000
+    default_lat = 6600000
+    default_zoom = 6
+    map_srid = 4326
+    map_width = 800
+    map_height = 400
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_pg',
+            'id_categorie',
+            'id_categorie_fcr',
+            'id_importance',
+            'id_utilisateur_ajout',
+            'id_utilisateur_maj'
+        )
+
+    def categorie_display(self, obj):
+        """Affichage de la catégorie (Enjeu ou FCR)."""
+        if obj.id_categorie:
+            if obj.id_categorie.mnemonique == 'ENJEU':
+                return mark_safe('<span style="color: #B74D5D; font-weight: bold;">Enjeu</span>')
+            elif obj.id_categorie.mnemonique == 'FCR':
+                return mark_safe('<span style="color: #025359; font-weight: bold;">FCR</span>')
+        return obj.id_categorie.label if obj.id_categorie else '-'
+    categorie_display.short_description = "Type"
+    categorie_display.admin_order_field = 'id_categorie'
+
+    def type_enjeu_display(self, obj):
+        """Affichage des types d'enjeu (habitat, espèce, processus)."""
+        types = []
+        if obj.habitat:
+            types.append('Habitat')
+        if obj.espece:
+            types.append('Espèce')
+        if obj.processus:
+            types.append('Processus')
+        return ', '.join(types) if types else '-'
+    type_enjeu_display.short_description = "Lié à"
+
+    def save_model(self, request, obj, form, change):
+        """Enregistrer l'enjeu en ajoutant l'utilisateur actuel."""
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+# =============================================================================
+# Administration des Facteurs d'Influence et Pressions
+# =============================================================================
+
+class PressionInline(admin.TabularInline):
+    """Inline pour les pressions liées à un facteur d'influence."""
+    model = Pression
+    extra = 0
+    fields = ['libelle', 'description', 'id_pressref']
+    ordering = ['libelle']
+
+
+@admin.register(FacteurInfluence)
+class FacteurInfluenceAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Facteurs d'Influence."""
+
+    list_display = [
+        'libelle',
+        'id_enjeu',
+        'nb_pressions',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'description',
+        'id_enjeu__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_enjeu',
+        'id_utilisateur_maj'
+    ]
+
+    inlines = [PressionInline]
+
+    list_per_page = 25
+
+    def nb_pressions(self, obj):
+        return obj.pressions.count()
+    nb_pressions.short_description = "Pressions"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        ).prefetch_related('pressions')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            if not instance.pk:
+                instance.id_utilisateur_ajout = request.user
+            instance.id_utilisateur_maj = request.user
+            instance.save()
+        formset.save_m2m()
+
+
+@admin.register(Pression)
+class PressionAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Pressions."""
+
+    list_display = [
+        'libelle',
+        'id_facteur_influence',
+        'id_pressref',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_facteur_influence__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'description',
+        'id_facteur_influence__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_facteur_influence',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+# =============================================================================
+# Administration des Responsabilités
+# =============================================================================
+
+class CorResponsabiliteTaxonInline(admin.TabularInline):
+    """Inline pour les taxons liés à une responsabilité."""
+    model = CorResponsabiliteTaxon
+    extra = 0
+    fields = ['cd_nom', 'nom_complet', 'nom_vern']
+    ordering = ['nom_complet']
+
+
+class CorResponsabiliteHabitatInline(admin.TabularInline):
+    """Inline pour les habitats liés à une responsabilité."""
+    model = CorResponsabiliteHabitat
+    extra = 0
+    fields = ['cd_hab', 'lb_hab_fr']
+    ordering = ['lb_hab_fr']
+
+
+class CorResponsabiliteGeologieInline(admin.TabularInline):
+    """Inline pour les éléments géologiques liés à une responsabilité."""
+    model = CorResponsabiliteGeologie
+    extra = 0
+    fields = ['id_inpg', 'nom']
+    ordering = ['nom']
+
+
+class CorResponsabiliteEnjeuInline(admin.TabularInline):
+    """Inline pour les enjeux liés à une responsabilité."""
+    model = CorResponsabiliteEnjeu
+    extra = 0
+    autocomplete_fields = ['id_enjeu']
+
+
+@admin.register(Responsabilite)
+class ResponsabiliteAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Responsabilités."""
+
+    list_display = [
+        'id_site',
+        'id_type_responsabilite',
+        'id_niveau_responsabilite',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_type_responsabilite',
+        'id_niveau_responsabilite',
+        'id_site__id_type_site',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'id_site__nom_site',
+        'description'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_site',
+        'id_type_responsabilite',
+        'id_niveau_responsabilite',
+        'id_utilisateur_maj'
+    ]
+
+    inlines = [
+        CorResponsabiliteTaxonInline,
+        CorResponsabiliteHabitatInline,
+        CorResponsabiliteGeologieInline,
+        CorResponsabiliteEnjeuInline
+    ]
+
+    list_per_page = 25
+
+    fieldsets = (
+        ('Informations générales', {
+            'fields': (
+                'id_site',
+                'id_type_responsabilite',
+                'id_niveau_responsabilite',
+                'description'
+            )
+        }),
+        ('Métadonnées', {
+            'fields': (
+                'date_ajout',
+                'date_maj',
+                'id_utilisateur_ajout',
+                'id_utilisateur_maj'
+            ),
+            'classes': ['collapse']
+        })
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_site',
+            'id_type_responsabilite',
+            'id_niveau_responsabilite',
+            'id_utilisateur_ajout',
+            'id_utilisateur_maj'
+        )
+
+    def save_model(self, request, obj, form, change):
+        """Enregistrer la responsabilité en ajoutant l'utilisateur actuel."""
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+# =============================================================================
+# Administration des États Actuels, OLT et Niveaux d'Exigence
+# =============================================================================
+
+@admin.register(EtatActuel)
+class EtatActuelAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les États Actuels."""
+
+    list_display = [
+        'libelle',
+        'id_olt',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_olt__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'description',
+        'id_olt__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_olt',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_olt', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(ObjectifLongTerme)
+class ObjectifLongTermeAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Objectifs à Long Terme."""
+
+    list_display = [
+        'libelle',
+        'id_enjeu',
+        'nb_niveaux_exigence',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'description',
+        'id_enjeu__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_enjeu',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    def nb_niveaux_exigence(self, obj):
+        return obj.niveaux_exigence.count()
+    nb_niveaux_exigence.short_description = "Niveaux d'exigence"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        ).prefetch_related('etat_actuel', 'niveaux_exigence')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(NiveauExigence)
+class NiveauExigenceAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Niveaux d'Exigence."""
+
+    list_display = [
+        'libelle',
+        'id_olt',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'id_olt__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'libelle',
+        'description',
+        'id_olt__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_olt',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_olt', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+# =============================================================================
+# Administration des Indicateurs, Métriques et Mesures
+# =============================================================================
+
+class CorIndicateurTaxonInline(admin.TabularInline):
+    """Inline pour les taxons liés à un indicateur."""
+    model = CorIndicateurTaxon
+    extra = 0
+    fields = ['cd_nom', 'nom_complet', 'nom_vern']
+    ordering = ['nom_complet']
+
+
+class CorIndicateurHabitatInline(admin.TabularInline):
+    """Inline pour les habitats liés à un indicateur."""
+    model = CorIndicateurHabitat
+    extra = 0
+    fields = ['cd_hab', 'lb_hab_fr']
+    ordering = ['lb_hab_fr']
+
+
+class CorIndicateurGeologieInline(admin.TabularInline):
+    """Inline pour les éléments géologiques liés à un indicateur."""
+    model = CorIndicateurGeologie
+    extra = 0
+    fields = ['id_inpg', 'nom']
+    ordering = ['nom']
+
+
+@admin.register(Indicateur)
+class IndicateurAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Indicateurs."""
+
+    list_display = [
+        'nom_indicateur',
+        'id_ne',
+        'type_indicateur',
+        'est_standardise',
+        'nb_metriques',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'type_indicateur',
+        'est_standardise',
+        'id_ne__id_olt__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'nom_indicateur',
+        'description',
+        'id_ne__libelle'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_ne',
+        'type_indicateur',
+        'id_utilisateur_maj'
+    ]
+
+    inlines = [CorIndicateurTaxonInline, CorIndicateurHabitatInline, CorIndicateurGeologieInline]
+
+    list_per_page = 25
+
+    def nb_metriques(self, obj):
+        return obj.metriques.count()
+    nb_metriques.short_description = "Métriques"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_ne', 'type_indicateur', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        ).prefetch_related('metriques')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Metrique)
+class MetriqueAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Métriques."""
+
+    list_display = [
+        'nom_metrique',
+        'id_indicateur',
+        'type_metrique',
+        'unite',
+        'nb_mesures',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'type_metrique',
+        'id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'nom_metrique',
+        'description',
+        'id_indicateur__nom_indicateur'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_indicateur',
+        'type_metrique',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    fieldsets = (
+        ('Informations générales', {
+            'fields': (
+                'id_indicateur',
+                'nom_metrique',
+                'description',
+                'type_metrique',
+                'unite',
+                'ponderation',
+                'etat_reference'
+            )
+        }),
+        ('Seuils de scores', {
+            'fields': (
+                ('score_1_inf', 'score_1_sup', 'score_1_label'),
+                ('score_2_inf', 'score_2_sup', 'score_2_label'),
+                ('score_3_inf', 'score_3_sup', 'score_3_label'),
+                ('score_4_inf', 'score_4_sup', 'score_4_label'),
+                ('score_5_inf', 'score_5_sup', 'score_5_label'),
+            ),
+            'classes': ['collapse'],
+            'description': 'Seuils numériques et labels qualitatifs pour les 5 niveaux de score'
+        }),
+        ('Métadonnées', {
+            'fields': (
+                'date_ajout',
+                'date_maj',
+                'id_utilisateur_ajout',
+                'id_utilisateur_maj'
+            ),
+            'classes': ['collapse']
+        })
+    )
+
+    def nb_mesures(self, obj):
+        return obj.mesures.count()
+    nb_mesures.short_description = "Mesures"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_indicateur', 'type_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        ).prefetch_related('mesures')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Mesure)
+class MesureAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Mesures."""
+
+    list_display = [
+        'valeur',
+        'id_metrique',
+        'date_mesure',
+        'date_maj'
+    ]
+
+    list_filter = [
+        'date_mesure',
+        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
+        'date_ajout'
+    ]
+
+    search_fields = [
+        'valeur',
+        'commentaire',
+        'id_metrique__nom_metrique'
+    ]
+
+    readonly_fields = [
+        'date_ajout',
+        'date_maj',
+        'id_utilisateur_ajout'
+    ]
+
+    autocomplete_fields = [
+        'id_metrique',
+        'id_utilisateur_maj'
+    ]
+
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.id_utilisateur_ajout = request.user
+        obj.id_utilisateur_maj = request.user
         super().save_model(request, obj, form, change)

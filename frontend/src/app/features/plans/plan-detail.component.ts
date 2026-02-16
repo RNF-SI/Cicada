@@ -1,20 +1,15 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
+import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
+import { EnjeuService } from '../../core/services/enjeu.service';
 import { AdminPlan } from '../../core/models/admin.model';
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  route?: string;
-  expanded?: boolean;
-  children?: MenuItem[];
-}
+import { Enjeu } from '../../core/models/enjeu.model';
 
 interface SyntheseAccordion {
   id: string;
@@ -41,7 +36,8 @@ interface SubAccordion {
     MatProgressSpinnerModule,
     TranslateModule,
     HeaderComponent,
-    SectionTitleComponent
+    SectionTitleComponent,
+    PlanSidebarComponent
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -50,6 +46,7 @@ export class PlanDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
+  private readonly enjeuService = inject(EnjeuService);
 
   planId = signal<number | null>(null);
   isLoading = signal(true);
@@ -58,36 +55,10 @@ export class PlanDetailComponent implements OnInit {
   // Plan data from API
   plan = signal<AdminPlan | null>(null);
 
-  // Menu latéral du plan
-  menuItems = signal<MenuItem[]>([
-    {
-      label: 'Vue d\'ensemble',
-      icon: 'fi-rr-home',
-      route: 'overview'
-    },
-    {
-      label: 'Détails et saisie',
-      icon: 'fi-rr-document-signed',
-      expanded: false,
-      children: [
-        { label: 'Informations générales', icon: '', route: 'details/general' },
-        { label: 'Enjeux', icon: '', route: 'details/enjeux' },
-        { label: 'Objectifs', icon: '', route: 'details/objectifs' },
-        { label: 'Actions', icon: '', route: 'details/actions' }
-      ]
-    },
-    {
-      label: 'Suivis',
-      icon: 'fi-rr-chart-histogram',
-      expanded: false,
-      children: [
-        { label: 'Indicateurs', icon: '', route: 'suivis/indicateurs' },
-        { label: 'Bilans', icon: '', route: 'suivis/bilans' }
-      ]
-    }
-  ]);
-
-  activeMenuItem = signal<string>('overview');
+  // Enjeux/FCR data for synthèse and sidebar
+  enjeuxData = signal<Enjeu[]>([]);
+  fcrData = signal<Enjeu[]>([]);
+  enjeuxLoading = signal(false);
 
   // Accordéons de la section Synthèse
   syntheseAccordions = signal<SyntheseAccordion[]>([
@@ -176,6 +147,7 @@ export class PlanDetailComponent implements OnInit {
       next: (plan) => {
         this.plan.set(plan);
         this.isLoading.set(false);
+        this.loadEnjeux(id);
       },
       error: (error) => {
         this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
@@ -184,18 +156,31 @@ export class PlanDetailComponent implements OnInit {
     });
   }
 
-  toggleMenu(item: MenuItem): void {
-    if (item.children) {
-      item.expanded = !item.expanded;
-      this.menuItems.update(items => [...items]);
-    } else if (item.route) {
-      this.activeMenuItem.set(item.route);
+  loadEnjeux(planId: number): void {
+    this.enjeuxLoading.set(true);
+    this.enjeuService.getPlanEnjeux(planId).subscribe({
+      next: (response) => {
+        this.enjeuxData.set(response.enjeux);
+        this.fcrData.set(response.fcr);
+        this.enjeuxLoading.set(false);
+      },
+      error: () => {
+        this.enjeuxLoading.set(false);
+      }
+    });
+  }
+
+  navigateToEnjeux(): void {
+    const planId = this.planId();
+    if (planId) {
+      this.router.navigate(['/plans', planId, 'enjeux']);
     }
   }
 
-  navigateToChild(child: MenuItem): void {
-    if (child.route) {
-      this.activeMenuItem.set(child.route);
+  navigateToEnjeuDetail(enjeuId: number): void {
+    const planId = this.planId();
+    if (planId) {
+      this.router.navigate(['/plans', planId, 'enjeux', enjeuId]);
     }
   }
 

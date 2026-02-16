@@ -28,6 +28,12 @@ from django.db import connection, transaction
 from apps.users.models import Role, BibOrganismes, Site
 from apps.core.models import Module, Nomenclature, ErrorLog, ActivityLog
 from apps.plans.models import PlanGestion
+from apps.plans.models_enjeux import (
+    Enjeu, Responsabilite,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
+    CorResponsabiliteEnjeu
+)
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
 from .seeders import (
@@ -184,6 +190,7 @@ class Command(BaseCommand):
             self._delete_notifications()
             self._delete_pending_users()
             self._delete_validation_requests()
+            self._delete_enjeux()  # Doit etre avant plans et users car FK vers Role
             self._delete_plans()
             self._delete_users()
             self._delete_sites()
@@ -215,6 +222,20 @@ class Command(BaseCommand):
         """Supprime les demandes de validation."""
         count = ValidationRequest.objects.all().delete()[0]
         self.stdout.write(f'  Demandes de validation supprimees: {count}')
+
+    def _delete_enjeux(self):
+        """Supprime les enjeux, FCR, responsabilites et leurs correlations."""
+        count = 0
+        count += CorResponsabiliteEnjeu.objects.all().delete()[0]
+        count += CorResponsabiliteTaxon.objects.all().delete()[0]
+        count += CorResponsabiliteHabitat.objects.all().delete()[0]
+        count += CorResponsabiliteGeologie.objects.all().delete()[0]
+        count += CorEnjeuTaxon.objects.all().delete()[0]
+        count += CorEnjeuHabitat.objects.all().delete()[0]
+        count += CorEnjeuGeologie.objects.all().delete()[0]
+        count += Responsabilite.objects.all().delete()[0]
+        count += Enjeu.objects.all().delete()[0]
+        self.stdout.write(f'  Enjeux et responsabilites supprimes: {count}')
 
     def _delete_plans(self):
         """Supprime les plans de gestion."""
@@ -280,6 +301,7 @@ class Command(BaseCommand):
         self.stdout.write('Notifications: toutes seraient supprimees')
         self.stdout.write('Demandes de validation: toutes seraient supprimees')
         self.stdout.write('Utilisateurs en attente: tous seraient supprimes')
+        self.stdout.write('Enjeux et responsabilites: tous seraient supprimes')
         self.stdout.write('Plans de gestion: tous seraient supprimes')
         self.stdout.write('Utilisateurs de test: 14 seraient supprimes')
         self.stdout.write('Sites: tous seraient supprimes')
@@ -300,11 +322,17 @@ class Command(BaseCommand):
         validation_requests_pending = ValidationRequest.objects.filter(status='pending').count()
         notifications_unread = Notification.objects.filter(read=False).count()
 
+        enjeux_count = Enjeu.objects.filter(id_categorie__mnemonique='ENJEU').count()
+        fcr_count = Enjeu.objects.filter(id_categorie__mnemonique='FCR').count()
+        responsabilites_count = Responsabilite.objects.count()
+
         self.stdout.write(f'\n  Modules:              {Module.objects.count()}')
         self.stdout.write(f'  Organismes:           {BibOrganismes.objects.count()}')
         self.stdout.write(f'  Sites:                {Site.objects.count()}')
         self.stdout.write(f'  Utilisateurs:         {Role.objects.count()} ({users_actifs} actifs, {users_pending} en attente, {users_inactifs} inactifs)')
         self.stdout.write(f'  Plans de gestion:     {PlanGestion.objects.count()} ({plans_actifs} actifs, {plans_archives} archives)')
+        self.stdout.write(f'  Enjeux/FCR:           {Enjeu.objects.count()} ({enjeux_count} enjeux, {fcr_count} FCR)')
+        self.stdout.write(f'  Responsabilites:      {responsabilites_count}')
         self.stdout.write(f'  Groupes Django:       {Group.objects.count()}')
         self.stdout.write(f'  Nomenclatures:        {Nomenclature.objects.count()}')
         self.stdout.write(f'  Inscriptions attente: {pending_users_count}')

@@ -1,0 +1,229 @@
+@import 'variables';
+
+:host {
+  display: flex;
+  flex-shrink: 0;
+}
+
+// ============================================
+// SIDEBAR - Figma: fond vert pâle (#C0E3CF)
+// ============================================
+
+.plan-sidebar {
+  min-height: 100%;
+  width: 252px;
+  background-color: $secondary-pale-green;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: $spacing-xl $spacing-md $spacing-md;
+}
+
+.sidebar-title {
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  text-transform: uppercase;
+  letter-spacing: 2.2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: $spacing-lg 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.menu-item-wrapper {
+  margin-bottom: 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  width: 236px;
+  padding: $spacing-sm $spacing-md;
+  background: transparent;
+  border: none;
+  border-radius: 0 $border-radius-pill $border-radius-pill 0;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: left;
+  margin: 0;
+  line-height: 24px;
+
+  i:first-child {
+    font-size: 18px;
+    color: $primary-color;
+  }
+
+  .chevron {
+    margin-left: auto;
+    font-size: $font-size-base;
+    color: $primary-color;
+    opacity: 0.7;
+    transition: transform $transition-fast;
+
+    &.collapsed {
+      transform: rotate(180deg);
+    }
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+
+  // Figma active state: primary bg, white text, pill-right shape
+  &.active {
+    background-color: $primary-color;
+    color: $white;
+
+    i:first-child {
+      color: $white;
+    }
+
+    .chevron {
+      color: $white;
+      opacity: 1;
+    }
+  }
+}
+
+.submenu {
+  padding-left: $spacing-lg;
+  margin-top: $spacing-sm;
+}
+
+.submenu-item {
+  display: block;
+  width: 100%;
+  padding: $spacing-xs $spacing-md;
+  background: transparent;
+  border: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  cursor: pointer;
+  text-align: left;
+  transition: all $transition-fast;
+  line-height: 24px;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &.active {
+    font-weight: $font-weight-bold;
+  }
+}
+
+// Sections dans le sous-menu
+.submenu-section {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+
+  &:first-of-type {
+    padding-top: 0;
+  }
+}
+
+.submenu-section-title {
+  display: block;
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-regular;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  padding: $spacing-xs $spacing-md;
+  margin-bottom: $spacing-xxs;
+  line-height: 20px;
+}
+
+.submenu-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+
+  // Vertical tree line
+  &::before {
+    content: '';
+    position: absolute;
+    left: $spacing-md;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: rgba($primary-color, 0.3);
+  }
+}
+
+.submenu-tree-item {
+  display: block;
+  width: 100%;
+  padding: $spacing-xs $spacing-md;
+  padding-left: calc(#{$spacing-md} + 12px);
+  background: transparent;
+  border: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $primary-color;
+  cursor: pointer;
+  text-align: left;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 24px;
+
+  &:hover {
+    font-weight: $font-weight-semibold;
+  }
+
+  &.selected {
+    font-weight: $font-weight-bold;
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-tablet) {
+  .plan-sidebar {
+    width: 100%;
+    border-bottom: 1px solid rgba($primary-color, 0.15);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  .menu-item-wrapper {
+    flex-shrink: 0;
+  }
+
+  .menu-item {
+    white-space: nowrap;
+    border-radius: $border-radius-pill;
+    margin: 0 $spacing-xs;
+    width: auto;
+  }
+
+  .submenu {
+    display: none;
+  }
+}

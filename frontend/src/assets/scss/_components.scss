@@ -598,9 +598,14 @@
     transition: color $transition-fast;
 
     &::before {
-      content: '╋';
-      color: $error-color;
-      font-weight: $font-weight-bold;
+      content: '';
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin-top: 4px;
+      background-image: url('/assets/images/puces/puce-terra-cotta.png');
+      background-size: contain;
+      background-repeat: no-repeat;
       flex-shrink: 0;
     }
 
@@ -654,8 +659,14 @@
       font-size: $font-size-base;
 
       &::before {
-        content: '╋';
-        color: $error-color;
+        content: '';
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        background-image: url('/assets/images/puces/puce-terra-cotta.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        flex-shrink: 0;
       }
     }
 

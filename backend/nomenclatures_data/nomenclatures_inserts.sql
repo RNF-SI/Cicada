@@ -218,3 +218,49 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (602, 1, NULL, 'APB', 'Arrêté de Protection de Biotope', 'Protection réglementaire d''un biotope nécessaire à la survie d''espèces protégées', 'CICADA', 'Validé', NULL, '2026-01-19 00:00:00', '2026-01-19 00:00:00', true);
 -- Nomenclature ajoutée pour le type de rédacteur manquant (id_type=3)
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (603, 3, NULL, 'BE', 'Bureau d''études', 'Rédaction par un bureau d''études externe', 'CICADA', 'Validé', NULL, '2026-01-19 00:00:00', '2026-01-19 00:00:00', true);
+
+-- ============================================
+-- NOMENCLATURES POUR ENJEUX, FCR ET RESPONSABILITÉS
+-- ============================================
+
+-- TYPE_RESPONSABILITE (id_type=40) - Type de responsabilité du site
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (700, 40, 'FLORISTIQUE', 'FLORISTIQUE', 'Floristique', 'Responsabilité relative à la flore', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (701, 40, 'FAUNISTIQUE', 'FAUNISTIQUE', 'Faunistique', 'Responsabilité relative à la faune', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (702, 40, 'HABITAT', 'HABITAT', 'Habitat', 'Responsabilité relative aux habitats naturels', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (703, 40, 'GEOLOGIQUE', 'GEOLOGIQUE', 'Géologique', 'Responsabilité relative au patrimoine géologique', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (704, 40, 'PAYSAGER', 'PAYSAGER', 'Paysager', 'Responsabilité relative au paysage', 'CICADA', 'Validé', '5', NOW(), NOW(), true);
+
+-- NIVEAU_RESPONSABILITE (id_type=41) - Niveau géographique
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (710, 41, 'LOCAL', 'LOCAL', 'Local', 'Responsabilité au niveau local', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (711, 41, 'REGIONAL', 'REGIONAL', 'Régional', 'Responsabilité au niveau régional', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (712, 41, 'NATIONAL', 'NATIONAL', 'National', 'Responsabilité au niveau national', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (713, 41, 'INTERNATIONAL', 'INTERNATIONAL', 'International', 'Responsabilité au niveau international', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+
+-- CATEGORIE_ENJEU (id_type=42) - Enjeu ou FCR
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (720, 42, 'ENJEU', 'ENJEU', 'Enjeu de conservation', 'Enjeu de conservation du plan de gestion', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (721, 42, 'FCR', 'FCR', 'Facteur Clé de Réussite', 'Facteur Clé de Réussite du plan de gestion', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+
+-- IMPORTANCE_ENJEU (id_type=43) - Priorité 1, 2, 3
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (730, 43, 'PRIORITE_1', 'PRIORITE_1', 'Priorité 1', 'Enjeu de priorité 1 (haute)', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (731, 43, 'PRIORITE_2', 'PRIORITE_2', 'Priorité 2', 'Enjeu de priorité 2 (moyenne)', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (732, 43, 'PRIORITE_3', 'PRIORITE_3', 'Priorité 3', 'Enjeu de priorité 3 (basse)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+
+-- CATEGORIE_FCR (id_type=44) - Catégories des Facteurs Clés de Réussite
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (740, 44, 'CONNAISSANCE', 'CONNAISSANCE', 'Connaissance', 'FCR lié à l''acquisition de connaissances', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (741, 44, 'ANCRAGE', 'ANCRAGE', 'Ancrage territorial', 'FCR lié à l''ancrage territorial', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (742, 44, 'FONCTIONNEMENT', 'FONCTIONNEMENT', 'Fonctionnement de l''aire protégée', 'FCR lié au fonctionnement de l''aire protégée', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (743, 44, 'AUTRE', 'AUTRE', 'Autre', 'Autre catégorie de FCR', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+
+-- ============================================
+-- NOMENCLATURES POUR INDICATEURS ET MÉTRIQUES
+-- ============================================
+
+-- TYPE_INDICATEUR (id_type=46) - Type d'indicateur
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (750, 46, 'ETAT', 'ETAT', 'État', 'Indicateur d''état de conservation', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (751, 46, 'PRESSION', 'PRESSION', 'Pression', 'Indicateur de pression', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (752, 46, 'REPONSE', 'REPONSE', 'Réponse', 'Indicateur de réponse', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+
+-- TYPE_METRIQUE (id_type=48) - Type de métrique
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (760, 48, 'NUMERIQUE', 'NUMERIQUE', 'Numérique', 'Métrique de type numérique', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (761, 48, 'QUALITATIF', 'QUALITATIF', 'Qualitatif', 'Métrique de type qualitatif', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (762, 48, 'BOOLEEN', 'BOOLEEN', 'Booléen', 'Métrique de type booléen (oui/non)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
