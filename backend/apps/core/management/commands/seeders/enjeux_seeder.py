@@ -16,6 +16,7 @@ from apps.plans.models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
     CorIndicateurGeologie, Metrique, Mesure
 )
+from apps.plans.models_operations import Operation, CorOperationIndicateur
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
@@ -2468,6 +2469,253 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
+        # =====================================================================
+        # Opérations (Actions)
+        # =====================================================================
+        operations_created = []
+
+        # Récupérer nomenclatures de priorité d'opération
+        prio_op_1 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_1')
+        prio_op_2 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_2')
+        prio_op_3 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_3')
+
+        # --- Opérations Camargue ---
+        # Liée à l'indicateur "Surface des habitats humides en bon état de conservation"
+        ind_surface = next((i for i in indicateurs_created if 'Surface des habitats humides' in i.nom_indicateur), None)
+        if ind_surface and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Restauration hydraulique du marais sud',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'CAM-SE01',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Travaux de remise en eau du marais sud par suppression '
+                                   'des endiguements et restauration des connexions hydrauliques.',
+                    'annee_min': 2024,
+                    'annee_max': 2026,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_surface)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+            op2, created = Operation.objects.update_or_create(
+                libelle='Suivi cartographique des habitats humides',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'CAM-SE02',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Cartographie annuelle de l\'état de conservation '
+                                   'des habitats humides par télédétection et terrain.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op2, id_indicateur=ind_surface)
+            operations_created.append(op2)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+        # Liée à l'indicateur "Succès de reproduction du Flamant rose"
+        ind_flamant = next((i for i in indicateurs_created if 'Flamant rose' in i.nom_indicateur), None)
+        if ind_flamant and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Régulation de la fréquentation autour des colonies',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'CAM-IP01',
+                    'id_referentiel_operations': 'IP',
+                    'description': 'Mise en place de zones d\'exclusion temporaires '
+                                   'autour des colonies de nidification en période de reproduction.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_flamant)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Liée à l'indicateur "Pression des prélèvements d'eau"
+        ind_debit = next((i for i in indicateurs_created if 'prélèvements d\'eau' in i.nom_indicateur), None)
+        if ind_debit and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Négociation de quotas de prélèvement avec les irrigants',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'CAM-GE01',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Animation de la concertation avec les acteurs agricoles '
+                                   'pour la définition de quotas respectant le débit écologique.',
+                    'annee_min': 2024,
+                    'annee_max': 2028,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_debit)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # --- Opérations Aiguilles Rouges ---
+        # Liée à l'indicateur "Nombre de stations d'espèces arctico-alpines"
+        ind_stations = next((i for i in indicateurs_created if 'stations d\'espèces arctico-alpines' in i.nom_indicateur), None)
+        if ind_stations and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Inventaire annuel des placettes permanentes',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'AR-CS01',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Suivi annuel des 24 placettes permanentes pour le comptage '
+                                   'des stations d\'espèces arctico-alpines.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_stations)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Liée à l'indicateur "Efficacité des zones de quiétude hivernale"
+        ind_quietude = next((i for i in indicateurs_created if 'zones de quiétude' in i.nom_indicateur), None)
+        if ind_quietude and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Mise en défens hivernale des zones de quiétude',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'AR-PR01',
+                    'id_referentiel_operations': 'PR',
+                    'description': 'Balisage et surveillance des zones de quiétude '
+                                   'pour le tétras-lyre en période hivernale (nov-avr).',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_quietude)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+            op2, created = Operation.objects.update_or_create(
+                libelle='Sensibilisation des pratiquants de sports d\'hiver',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'AR-CC01',
+                    'id_referentiel_operations': 'CC',
+                    'description': 'Campagnes de communication et panneaux d\'information '
+                                   'auprès des randonneurs et skieurs de randonnée.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op2, id_indicateur=ind_quietude)
+            operations_created.append(op2)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+        # --- Opérations Lac de Remoray ---
+        # Liée à l'indicateur "Concentration en phosphore total"
+        ind_phosphore = next((i for i in indicateurs_created if 'phosphore total' in i.nom_indicateur), None)
+        if ind_phosphore and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Prélèvements mensuels qualité eau lac',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-CS01',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Campagnes de prélèvements mensuels sur 3 points '
+                                   'du lac pour le suivi de la qualité physico-chimique.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_phosphore)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Liée à l'indicateur "Apports en nutriments du bassin versant"
+        ind_nutriments = next((i for i in indicateurs_created if 'nutriments' in i.nom_indicateur), None)
+        if ind_nutriments and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Diagnostic des pratiques agricoles du bassin versant',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-GE01',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Enquête et accompagnement des exploitants agricoles '
+                                   'pour la réduction des intrants sur le bassin versant.',
+                    'annee_min': 2024,
+                    'annee_max': 2027,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_nutriments)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Liée à l'indicateur "Surface de prairies en gestion extensive"
+        ind_prairies = next((i for i in indicateurs_created if 'prairies en gestion extensive' in i.nom_indicateur), None)
+        if ind_prairies and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Renouvellement des conventions de fauche tardive',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-GE02',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Négociation et renouvellement des conventions '
+                                   'avec les agriculteurs pour la fauche tardive (après le 15 juillet).',
+                    'annee_min': 2024,
+                    'annee_max': 2028,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_prairies)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Liée à l'indicateur "Expansion de la Renouée du Japon"
+        ind_renouee = next((i for i in indicateurs_created if 'Renouée du Japon' in i.nom_indicateur and 'Expansion' in i.nom_indicateur), None)
+        if ind_renouee and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Campagnes d\'arrachage de la Renouée du Japon',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-SE01',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Trois campagnes annuelles d\'arrachage mécanique '
+                                   'et de suivi des repousses sur les 3 stations connues.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_renouee)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # Opération multi-indicateurs : liée à la fois au phosphore et aux nutriments
+        if ind_phosphore and ind_nutriments and prio_op_3:
+            op, created = Operation.objects.update_or_create(
+                libelle='Étude globale du fonctionnement hydrologique du bassin',
+                defaults={
+                    'id_priorite': prio_op_3,
+                    'code_operation': 'REM-CS02',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Étude hydrologique intégrée pour comprendre les flux '
+                                   'de nutriments et la dynamique de la qualité des eaux.',
+                    'annee_min': 2025,
+                    'annee_max': 2026,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_phosphore)
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_nutriments)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
         self.log_summary(len(enjeux_created), 'enjeux')
         self.log_summary(len(fcr_created), 'FCR')
         self.log_summary(len(responsabilites_created), 'responsabilités')
@@ -2479,6 +2727,7 @@ class EnjeuxSeeder(BaseSeeder):
         self.log_summary(len(indicateurs_created), 'indicateurs')
         self.log_summary(len(metriques_created), 'métriques')
         self.log_summary(len(mesures_created), 'mesures')
+        self.log_summary(len(operations_created), 'opérations')
 
         result = {
             'enjeux': enjeux_created,
@@ -2497,6 +2746,8 @@ class EnjeuxSeeder(BaseSeeder):
             Nombre total d'éléments supprimés
         """
         count = 0
+        count += CorOperationIndicateur.objects.all().delete()[0]
+        count += Operation.objects.all().delete()[0]
         count += Mesure.objects.all().delete()[0]
         count += Metrique.objects.all().delete()[0]
         count += CorIndicateurTaxon.objects.all().delete()[0]
@@ -2579,4 +2830,9 @@ class EnjeuxSeeder(BaseSeeder):
             '  - Jours sous débit min, stations actives, respect zones quiétude',
             '\nMesures (8):',
             '  - 2 mesures par métrique (campagnes 2022-2024)',
+            '\nOpérations (14):',
+            '  - Camargue: 4 (restauration hydraulique, suivi carto, régulation fréquentation, quotas prélèvement)',
+            '  - Aiguilles Rouges: 3 (inventaire placettes, mise en défens, sensibilisation)',
+            '  - Remoray: 7 (prélèvements eau, diagnostic agricole, conventions fauche, arrachage renouée, étude hydro, ...)',
+            '  - Dont 1 opération multi-indicateurs (phosphore + nutriments)',
         ]

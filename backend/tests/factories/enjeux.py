@@ -13,6 +13,7 @@ from apps.plans.models_enjeux import (
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, CorIndicateurTaxon,
 )
+from apps.plans.models_operations import Operation, CorOperationIndicateur
 from tests.factories.core import TypeNomenclatureFactory, NomenclatureFactory
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -301,3 +302,49 @@ class CorIndicateurTaxonFactory(DjangoModelFactory):
     cd_nom = factory.Sequence(lambda n: 200000 + n)
     nom_complet = factory.Sequence(lambda n: f'Taxon indicateur {n}')
     nom_vern = factory.Sequence(lambda n: f'Taxon vern indicateur {n}')
+
+
+# =============================================================================
+# Operation factories
+# =============================================================================
+
+class PrioriteOperationTypeFactory(TypeNomenclatureFactory):
+    """Factory for TypeNomenclature PRIORITE_OPERATION."""
+
+    mnemonique = 'PRIORITE_OPERATION'
+    label = "Priorité d'opération"
+
+
+class NomenclaturePrioriteOperationFactory(NomenclatureFactory):
+    """Factory for a specific operation priority nomenclature."""
+
+    id_type = factory.SubFactory(PrioriteOperationTypeFactory)
+    cd_nomenclature = factory.Iterator(['P1', 'P2', 'P3'])
+    mnemonique = factory.Iterator(['PRIORITE_1', 'PRIORITE_2', 'PRIORITE_3'])
+    label = factory.Iterator(['Priorité 1', 'Priorité 2', 'Priorité 3'])
+
+
+class OperationFactory(DjangoModelFactory):
+    """Factory for Operation model."""
+
+    class Meta:
+        model = Operation
+
+    libelle = factory.Sequence(lambda n: f'Opération Test {n}')
+    description = factory.Faker('sentence', locale='fr_FR')
+    id_priorite = factory.SubFactory(NomenclaturePrioriteOperationFactory)
+    code_operation = factory.Sequence(lambda n: f'OP-{n:03d}')
+    id_referentiel_operations = factory.Sequence(lambda n: f'REF-{n:03d}')
+    annee_min = 2024
+    annee_max = 2030
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
+class CorOperationIndicateurFactory(DjangoModelFactory):
+    """Factory for CorOperationIndicateur (operation-indicateur relationship)."""
+
+    class Meta:
+        model = CorOperationIndicateur
+
+    id_operation = factory.SubFactory(OperationFactory)
+    id_indicateur = factory.SubFactory(IndicateurFactory)
