@@ -35,3 +35,9 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 -- Types pour Indicateurs, Métriques et Mesures (CICADA - Issues #45, #46)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (46, 'TYPE_INDICATEUR', 'Type d''indicateur', 'Type d''indicateur (état, pression, réponse)', 'CICADA', 'Validé', NOW(), NOW());
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (48, 'TYPE_METRIQUE', 'Type de métrique', 'Type de métrique (numérique, qualitatif, booléen)', 'CICADA', 'Validé', NOW(), NOW());
+-- Types pour Opérations (CICADA - Issue #48)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (50, 'PRIORITE_OPERATION', 'Priorité d''opération', 'Niveau de priorité de l''opération (1, 2, 3)', 'CICADA', 'Validé', NOW(), NOW());
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (51, 'TYPE_ACTION', 'Type d''action', 'Type d''action (SE, CS, TU, PI, etc.)', 'CICADA', 'Validé', NOW(), NOW());
+-- Types pour Programmation Opérations (CICADA - Refactoring JSON → tables relationnelles)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (52, 'OPERATEUR_TYPE', 'Type d''opérateur', 'Type d''opérateur (prestataire, agent, etc.)', 'CICADA', 'Validé', NOW(), NOW());
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (53, 'CATEGORIE_FINANCE', 'Catégorie de financement', 'Catégorie de source de financement', 'CICADA', 'Validé', NOW(), NOW());
