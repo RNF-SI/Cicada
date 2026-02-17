@@ -31,6 +31,14 @@ from .models_indicateurs import (
     Metrique,
     Mesure,
 )
+from .models_operations import (
+    Operation,
+    CorOperationIndicateur,
+    CorOperationSite,
+    CorOperationMetrique,
+    OperationAnnee,
+    FinanceOperation,
+)
 
 
 class PlanGestion(models.Model):

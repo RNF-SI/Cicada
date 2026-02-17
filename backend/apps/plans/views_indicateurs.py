@@ -39,7 +39,8 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         'metriques', 'metriques__type_metrique', 'metriques__id_utilisateur_ajout',
         'metriques__mesures', 'metriques__mesures__id_utilisateur_ajout',
-        'taxons', 'habitats', 'geologies'
+        'taxons', 'habitats', 'geologies',
+        'operations', 'operations__id_priorite', 'operations__id_utilisateur_ajout'
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]

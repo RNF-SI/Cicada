@@ -151,7 +151,7 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class IndicateurSerializer(serializers.ModelSerializer):
-    """Serializer détaillé pour un Indicateur avec métriques et corrélations imbriquées."""
+    """Serializer détaillé pour un Indicateur avec métriques, opérations et corrélations imbriquées."""
     metriques = MetriqueSerializer(many=True, read_only=True)
     taxons = CorIndicateurTaxonSerializer(many=True, read_only=True)
     habitats = CorIndicateurHabitatSerializer(many=True, read_only=True)
@@ -159,6 +159,10 @@ class IndicateurSerializer(serializers.ModelSerializer):
     nb_metriques = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
+
+    # Operations (lazy import to avoid circular imports)
+    operations = serializers.SerializerMethodField()
+    nb_operations = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
@@ -169,6 +173,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'est_standardise',
             # Relations
             'metriques', 'nb_metriques',
+            'operations', 'nb_operations',
             'taxons', 'habitats', 'geologies',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
@@ -178,10 +183,18 @@ class IndicateurSerializer(serializers.ModelSerializer):
     def get_nb_metriques(self, obj):
         return obj.metriques.count()
 
+    def get_operations(self, obj):
+        from .serializers_operations import OperationListSerializer
+        return OperationListSerializer(obj.operations.all(), many=True).data
+
+    def get_nb_operations(self, obj):
+        return obj.operations.count()
+
 
 class IndicateurListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Indicateurs."""
     nb_metriques = serializers.SerializerMethodField()
+    nb_operations = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
 
@@ -192,13 +205,16 @@ class IndicateurListSerializer(serializers.ModelSerializer):
             'nom_indicateur', 'description',
             'type_indicateur', 'type_indicateur_label',
             'est_standardise',
-            'nb_metriques',
+            'nb_metriques', 'nb_operations',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_indicateur', 'date_ajout', 'date_maj']
 
     def get_nb_metriques(self, obj):
         return obj.metriques.count()
+
+    def get_nb_operations(self, obj):
+        return obj.operations.count()
 
 
 class IndicateurCreateSerializer(serializers.ModelSerializer):
