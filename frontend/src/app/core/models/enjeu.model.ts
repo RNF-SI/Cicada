@@ -218,6 +218,8 @@ export interface Indicateur {
   est_standardise: boolean;
   metriques?: Metrique[];
   nb_metriques?: number;
+  operations?: Operation[];
+  nb_operations?: number;
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
@@ -263,6 +265,148 @@ export interface Mesure {
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
+}
+
+/**
+ * Opération (action) rattachée à un ou plusieurs indicateurs
+ */
+/**
+ * Programmation annuelle row data (per year) - LEGACY, kept for backwards compat
+ */
+export interface ProgrammationAnnuelleRow {
+  ponctuelle: boolean;
+  budget: number | null;
+  travail: number | null;
+}
+
+/**
+ * Programmation annuelle d'une opération (table relationnelle)
+ */
+export interface OperationAnnee {
+  id_operation_annee?: number;
+  annee: number;
+  periodicite: boolean;
+  budget: number | null;
+  etp: number | null;
+  id_operateur?: number | null;
+  operateur_label?: string;
+  periodicite_mensuelle: Record<string, boolean>;
+  geom?: GeoJSONGeometry;
+}
+
+/**
+ * Source de financement d'une opération
+ */
+export interface FinanceOperation {
+  id_finance_operation?: number;
+  libelle: string;
+  id_categorie?: number | null;
+  categorie_label?: string;
+}
+
+export interface Operation {
+  id_operation: number;
+  libelle: string;
+  id_priorite?: number;
+  priorite_label?: string;
+  id_type_action?: number;
+  type_action_label?: string;
+  id_referentiel_operations?: string;
+  code_operation?: string;
+  description?: string;
+  annee_min?: number;
+  annee_max?: number;
+  // Détails inventaire/suivi
+  objectif_principal?: string;
+  cibles_principales?: string;
+  taxon_taxref?: string;
+  protocole_dans_campanule?: boolean;
+  protocole_campanule_nom?: string;
+  respect_protocole?: boolean;
+  justification_non_respect?: string;
+  differences_protocole?: string;
+  annee_lancement_suivi?: number;
+  outil_bancarisation?: string;
+  outil_saisie?: string;
+  transmission_donnee?: boolean;
+  // Fréquence & acteurs
+  frequence_nombre?: number;
+  frequence_unite?: string;
+  operateurs?: string;
+  partenaires?: string;
+  financeurs?: string;
+  programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
+  programmation_mensuelle?: Record<string, Record<string, boolean>>;
+  programmation_mensuelle_defaut?: Record<string, boolean>;
+  geom?: GeoJSONGeometry;
+  indicateur_ids?: number[];
+  nb_indicateurs?: number;
+  site_ids?: number[];
+  nb_sites?: number;
+  metrique_ids?: number[];
+  nb_metriques?: number;
+  // Nested relational data
+  operation_annees?: OperationAnnee[];
+  finances?: FinanceOperation[];
+  date_ajout: string;
+  date_maj: string;
+  createur_nom?: string;
+}
+
+/**
+ * Payload for creating an Operation
+ */
+export interface OperationCreatePayload {
+  libelle: string;
+  id_priorite?: number;
+  id_type_action?: number;
+  id_referentiel_operations?: string;
+  code_operation?: string;
+  description?: string;
+  annee_min?: number;
+  annee_max?: number;
+  // Détails inventaire/suivi
+  objectif_principal?: string;
+  cibles_principales?: string;
+  taxon_taxref?: string;
+  protocole_dans_campanule?: boolean;
+  protocole_campanule_nom?: string;
+  respect_protocole?: boolean;
+  justification_non_respect?: string;
+  differences_protocole?: string;
+  annee_lancement_suivi?: number;
+  outil_bancarisation?: string;
+  outil_saisie?: string;
+  transmission_donnee?: boolean;
+  // Fréquence & acteurs
+  frequence_nombre?: number;
+  frequence_unite?: string;
+  operateurs?: string;
+  partenaires?: string;
+  financeurs?: string;
+  programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
+  programmation_mensuelle?: Record<string, Record<string, boolean>>;
+  programmation_mensuelle_defaut?: Record<string, boolean>;
+  indicateur_ids?: number[];
+  site_ids?: number[];
+  metrique_ids?: number[];
+  // Nested relational data
+  operation_annees?: Omit<OperationAnnee, 'id_operation_annee' | 'operateur_label'>[];
+  finances?: Omit<FinanceOperation, 'id_finance_operation' | 'categorie_label'>[];
+}
+
+/**
+ * Form data for a metrique within the unified indicateur creation form
+ */
+export interface MetriqueFormData {
+  id_metrique?: number;  // undefined = new, number = existing
+  nom_metrique: string;
+  type_metrique: number | null;
+  unite: string;
+  ponderation: number | null;
+  etat_reference: string;
+  scores: { [level: number]: { inf: number | null; sup: number | null } };
+  _deleted?: boolean;  // marked for deletion
 }
 
 /**

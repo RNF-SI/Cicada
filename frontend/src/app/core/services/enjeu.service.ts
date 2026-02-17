@@ -30,6 +30,8 @@ import {
   MetriqueCreatePayload,
   Mesure,
   MesureCreatePayload,
+  Operation,
+  OperationCreatePayload,
   Responsabilite,
   ResponsabiliteCreatePayload,
   SiteResponsabilitesResponse,
@@ -416,6 +418,37 @@ export class EnjeuService {
 
   deleteMesure(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/mesures/${id}/`);
+  }
+
+  // ==========================================================================
+  // Operations CRUD
+  // ==========================================================================
+
+  getOperation(id: number): Observable<Operation> {
+    return this.http.get<Operation>(`${this.apiUrl}/operations/${id}/`);
+  }
+
+  createOperation(payload: OperationCreatePayload): Observable<Operation> {
+    return this.http.post<Operation>(`${this.apiUrl}/operations/`, payload);
+  }
+
+  updateOperation(id: number, payload: Partial<OperationCreatePayload>): Observable<Operation> {
+    return this.http.patch<Operation>(`${this.apiUrl}/operations/${id}/`, payload);
+  }
+
+  deleteOperation(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/operations/${id}/`);
+  }
+
+  getOperationsByIndicateur(indicateurId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/operations/by-indicateur/${indicateurId}/`);
+  }
+
+  getMetriquesByIndicateur(indicateurId: number): Observable<Metrique[]> {
+    return this.http.get<any>(`${this.apiUrl}/indicateurs/${indicateurId}/`).pipe(
+      tap(() => {}),
+      catchError(err => throwError(() => err))
+    );
   }
 
   // ==========================================================================

@@ -20,6 +20,20 @@ export const ENJEUX_ROUTES: Routes = [
     title: 'Nouvel enjeu'
   },
   {
+    path: 'operations/nouveau',
+    loadComponent: () => import('./operation-form/operation-form.component')
+      .then(m => m.OperationFormComponent),
+    canActivate: [authGuard],
+    title: 'Nouvelle action'
+  },
+  {
+    path: 'operations/:operationId/modifier',
+    loadComponent: () => import('./operation-form/operation-form.component')
+      .then(m => m.OperationFormComponent),
+    canActivate: [authGuard],
+    title: 'Modifier action'
+  },
+  {
     path: 'fcr/nouveau',
     loadComponent: () => import('./fcr-form/fcr-form.component')
       .then(m => m.FcrFormComponent),

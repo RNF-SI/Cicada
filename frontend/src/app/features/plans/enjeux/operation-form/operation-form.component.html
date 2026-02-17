@@ -1,0 +1,515 @@
+<app-header></app-header>
+
+<div class="enjeu-form-page">
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <h1 class="hero-title">
+      {{ isEditMode() ? ('enjeux.operations.editTitle' | translate) : ('enjeux.operations.createTitle' | translate) }}
+    </h1>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Form Content -->
+  @if (!isLoadingData()) {
+    <div class="form-container">
+      <form [formGroup]="form">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <i class="fi fi-rr-exclamation"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- MAIN CARD (flush under hero)                   -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card form-card-flush">
+          <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
+
+          <!-- Intitulé de l'action -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }} <span class="required-star">*</span></mat-label>
+            <input matInput formControlName="libelle"
+                   [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
+            @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
+              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+            }
+            @if (form.get('libelle')?.hasError('maxlength')) {
+              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Type d'action -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.operations.typeActionLabel' | translate }}</mat-label>
+            <mat-select formControlName="id_type_action">
+              <mat-option [value]="null">—</mat-option>
+              @for (opt of typeActionOptions(); track opt.id_nomenclature) {
+                <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Métrique associée -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.operations.metriqueAssocieeLabel' | translate }}</mat-label>
+            <mat-select formControlName="metrique_ids" multiple>
+              @for (met of planMetriques(); track met.id_metrique) {
+                <mat-option [value]="met.id_metrique">
+                  {{ met.nom_metrique }} ({{ met.indicateur_nom }})
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Priorité (radio buttons : 1, 2, 3) -->
+          <div class="priorite-row">
+            <span class="priorite-label">{{ 'enjeux.operations.prioriteLabel' | translate }}</span>
+            <mat-radio-group formControlName="id_priorite" class="priorite-radio-group">
+              @for (opt of prioriteOptions(); track opt.id_nomenclature) {
+                <mat-radio-button [value]="opt.id_nomenclature" color="primary">
+                  {{ opt.label }}
+                </mat-radio-button>
+              }
+            </mat-radio-group>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SECTION: Détails de l'inventaire ou du suivi   -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card">
+          <div class="section-header" (click)="toggleSection('details_suivi')">
+            <div class="section-title-row">
+              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+              <h3 class="section-label">{{ 'enjeux.operations.detailsSuiviTitle' | translate }}</h3>
+            </div>
+            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['details_suivi']" [class.fi-rr-angle-down]="!sectionsOpen['details_suivi']"></i>
+          </div>
+          <div class="section-underline"></div>
+
+          @if (sectionsOpen['details_suivi']) {
+            <div class="section-content">
+              <!-- Objectif principal -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.objectifPrincipal' | translate }}</mat-label>
+                <mat-select formControlName="objectif_principal">
+                  <mat-option [value]="null">—</mat-option>
+                  <mat-option value="conservation">{{ 'enjeux.operations.objectifConservation' | translate }}</mat-option>
+                  <mat-option value="connaissance">{{ 'enjeux.operations.objectifConnaissance' | translate }}</mat-option>
+                  <mat-option value="sensibilisation">{{ 'enjeux.operations.objectifSensibilisation' | translate }}</mat-option>
+                  <mat-option value="gestion">{{ 'enjeux.operations.objectifGestion' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Cible(s) principale(s) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.ciblesPrincipales' | translate }}</mat-label>
+                <mat-select formControlName="cibles_principales">
+                  <mat-option [value]="null">—</mat-option>
+                  <mat-option value="flore">{{ 'enjeux.operations.cibleFlore' | translate }}</mat-option>
+                  <mat-option value="faune">{{ 'enjeux.operations.cibleFaune' | translate }}</mat-option>
+                  <mat-option value="habitat">{{ 'enjeux.operations.cibleHabitat' | translate }}</mat-option>
+                  <mat-option value="geologie">{{ 'enjeux.operations.cibleGeologie' | translate }}</mat-option>
+                  <mat-option value="paysage">{{ 'enjeux.operations.ciblePaysage' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Taxon - Taxref -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.taxonTaxref' | translate }}</mat-label>
+                <mat-select formControlName="taxon_taxref">
+                  <mat-option [value]="null">—</mat-option>
+                  <mat-option value="flore">{{ 'enjeux.operations.cibleFlore' | translate }}</mat-option>
+                  <mat-option value="faune">{{ 'enjeux.operations.cibleFaune' | translate }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Protocole répertorié dans Campanule -->
+              <div class="radio-field-row">
+                <span class="radio-field-label">{{ 'enjeux.operations.protocoleCampanule' | translate }}</span>
+                <mat-radio-group formControlName="protocole_dans_campanule" class="radio-inline">
+                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                </mat-radio-group>
+              </div>
+
+              <!-- Protocole Campanule -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.protocoleNom' | translate }}</mat-label>
+                <mat-select formControlName="protocole_campanule_nom">
+                  <mat-option [value]="null">—</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Respectez-vous strictement le protocole ? -->
+              <div class="radio-field-row">
+                <span class="radio-field-label">{{ 'enjeux.operations.respectProtocole' | translate }}</span>
+                <mat-radio-group formControlName="respect_protocole" class="radio-inline">
+                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                </mat-radio-group>
+              </div>
+
+              <!-- Pourquoi ne respectez-vous pas le protocole ? -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.justificationNonRespect' | translate }}</mat-label>
+                <textarea matInput formControlName="justification_non_respect" rows="3"></textarea>
+              </mat-form-field>
+
+              <!-- Quelle(s) différence(s) avec le protocole ? -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.differencesProtocole' | translate }}</mat-label>
+                <textarea matInput formControlName="differences_protocole" rows="3"></textarea>
+              </mat-form-field>
+
+              <!-- Année de lancement du suivi (si antérieur) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.anneeLancement' | translate }}</mat-label>
+                <input matInput type="number" formControlName="annee_lancement_suivi">
+              </mat-form-field>
+
+              <!-- Outil de bancarisation -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.outilBancarisation' | translate }}</mat-label>
+                <mat-select formControlName="outil_bancarisation">
+                  <mat-option [value]="null">—</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Existe t-il un outil de saisie ? -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.outilSaisie' | translate }}</mat-label>
+                <mat-select formControlName="outil_saisie">
+                  <mat-option [value]="null">—</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Transmission de la donnée à l'organisme porteur ? -->
+              <div class="radio-field-row">
+                <span class="radio-field-label">{{ 'enjeux.operations.transmissionDonnee' | translate }}</span>
+                <mat-radio-group formControlName="transmission_donnee" class="radio-inline">
+                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                </mat-radio-group>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SECTION: Programmation                         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card">
+          <div class="section-header" (click)="toggleSection('programmation')">
+            <div class="section-title-row">
+              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+              <h3 class="section-label">{{ 'enjeux.operations.programmationTitle' | translate }}</h3>
+            </div>
+            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['programmation']" [class.fi-rr-angle-down]="!sectionsOpen['programmation']"></i>
+          </div>
+          <div class="section-underline"></div>
+
+          @if (sectionsOpen['programmation']) {
+            <div class="section-content">
+              <!-- L'action est liée au/aux -->
+              @if (planSites().length > 0) {
+                <div class="sites-selection">
+                  <span class="field-label">{{ 'enjeux.operations.actionLieeAux' | translate }}</span>
+                  <div class="sites-checkboxes">
+                    @for (site of planSites(); track site.id_site) {
+                      <mat-checkbox
+                        [checked]="selectedSiteIds[site.id_site]"
+                        (change)="toggleSite(site.id_site)"
+                        color="primary">
+                        {{ site.nom_site }}
+                      </mat-checkbox>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Programmation annuelle (OperationAnnee[]) -->
+              @if (operationAnnees.length > 0) {
+                <div class="programmation-section">
+                  <div class="programmation-table">
+                    <table>
+                      <thead>
+                        <tr class="header-row-primary">
+                          <th class="label-cell">{{ 'enjeux.operations.programmationAnnuelle' | translate }}</th>
+                          @for (annee of operationAnnees; track annee.annee) {
+                            <th>{{ annee.annee }}</th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Row: Périodicité -->
+                        <tr>
+                          <td class="label-cell">{{ 'enjeux.operations.progPonctuelle' | translate }}</td>
+                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            <td>
+                              <mat-checkbox
+                                [checked]="annee.periodicite"
+                                (change)="togglePeriodicite(i)"
+                                color="primary">
+                              </mat-checkbox>
+                            </td>
+                          }
+                        </tr>
+                        <!-- Row: Budget prévisionnel -->
+                        <tr>
+                          <td class="label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            <td>
+                              <div class="prog-input-wrapper">
+                                <input type="number"
+                                       class="prog-input prog-input-suffixed"
+                                       [value]="annee.budget"
+                                       (change)="updateBudget(i, $any($event.target).value)">
+                                <span class="prog-input-suffix">€</span>
+                              </div>
+                            </td>
+                          }
+                        </tr>
+                        <!-- Row: Travail prévisionnel (jours) -->
+                        <tr>
+                          <td class="label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            <td>
+                              <div class="prog-input-wrapper">
+                                <input type="number"
+                                       class="prog-input prog-input-suffixed"
+                                       [value]="annee.etp"
+                                       (change)="updateEtp(i, $any($event.target).value)">
+                                <span class="prog-input-suffix">j</span>
+                              </div>
+                            </td>
+                          }
+                        </tr>
+                        <!-- Row: Opérateur -->
+                        <tr>
+                          <td class="label-cell">{{ 'enjeux.operations.operateurTypeLabel' | translate }}</td>
+                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            <td>
+                              <select class="prog-select"
+                                      [ngModel]="annee.id_operateur"
+                                      [ngModelOptions]="{standalone: true}"
+                                      (ngModelChange)="updateOperateur(i, $event)">
+                                <option [ngValue]="null">—</option>
+                                @for (opt of operateurOptions(); track opt.id_nomenclature) {
+                                  <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                                }
+                              </select>
+                            </td>
+                          }
+                        </tr>
+                        <!-- Row: Dupliquer -->
+                        <tr class="duplicate-row">
+                          <td class="label-cell"></td>
+                          <td [attr.colspan]="operationAnnees.length">
+                            <button type="button" class="duplicate-btn" (click)="duplicateFirstColumn()">
+                              <img src="assets/images/icons/remplir-ligne.png" alt="" class="duplicate-icon">
+                              {{ 'enjeux.operations.duplicateFirstCol' | translate }}
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="prog-bar"></div>
+                  </div>
+                </div>
+
+                <!-- Programmation mensuelle (mêmes mois chaque année) -->
+                <div class="programmation-section">
+                  <p class="mensuelle-hint">{{ 'enjeux.operations.recurringHint' | translate }}</p>
+                  <div class="programmation-table">
+                    <table>
+                      <thead>
+                        <tr class="header-row-primary">
+                          <th class="label-cell">{{ 'enjeux.operations.programmationMensuelle' | translate }}</th>
+                          @for (label of monthLabels; track $index) {
+                            <th>{{ label }}</th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="label-cell">{{ 'enjeux.operations.progPonctuelle' | translate }}</td>
+                          @for (month of months; track month) {
+                            <td>
+                              <mat-checkbox
+                                [checked]="programmationMensuelleDefaut[month.toString()]"
+                                (change)="toggleMensuelleDefaut(month.toString())"
+                                color="primary">
+                              </mat-checkbox>
+                            </td>
+                          }
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="prog-bar"></div>
+                  </div>
+                </div>
+              }
+
+              <!-- Fréquence de l'action -->
+              <div class="frequence-row">
+                <span class="field-label">{{ 'enjeux.operations.frequenceAction' | translate }}</span>
+                <div class="frequence-controls">
+                  <div class="frequence-number">
+                    <button type="button" class="freq-btn" (click)="decrementFrequence()">-</button>
+                    <input type="number" formControlName="frequence_nombre" class="freq-input" min="1">
+                    <button type="button" class="freq-btn" (click)="incrementFrequence()">+</button>
+                  </div>
+                  <span class="frequence-separator">{{ 'enjeux.operations.foisPar' | translate }}</span>
+                  <mat-form-field appearance="outline" class="frequence-unite-field">
+                    <mat-select formControlName="frequence_unite">
+                      <mat-option [value]="null">—</mat-option>
+                      @for (unite of frequenceUnites; track unite.value) {
+                        <mat-option [value]="unite.value">{{ unite.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <!-- Opérateur(s) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.operateursLabel' | translate }}</mat-label>
+                <input matInput formControlName="operateurs">
+              </mat-form-field>
+
+              <!-- Partenaire(s) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.partenairesLabel' | translate }}</mat-label>
+                <textarea matInput formControlName="partenaires" rows="2"></textarea>
+              </mat-form-field>
+
+              <!-- Financeur(s) (text field) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.financeursLabel' | translate }}</mat-label>
+                <textarea matInput formControlName="financeurs" rows="2"></textarea>
+              </mat-form-field>
+
+              <!-- Finances (relational) -->
+              <div class="finances-section">
+                @for (finance of finances; track $index) {
+                  <div class="finance-row">
+                    <mat-form-field appearance="outline" class="finance-libelle">
+                      <mat-label>{{ 'enjeux.operations.financeLibelleLabel' | translate }}</mat-label>
+                      <input matInput [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="finance-categorie">
+                      <mat-label>{{ 'enjeux.operations.categorieFinanceLabel' | translate }}</mat-label>
+                      <mat-select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
+                        <mat-option [value]="null">—</mat-option>
+                        @for (cat of categorieFinanceOptions(); track cat.id_nomenclature) {
+                          <mat-option [value]="cat.id_nomenclature">{{ cat.label }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <button type="button" class="finance-remove-btn" (click)="removeFinance($index)">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                }
+                <button type="button" class="add-link-btn" (click)="addFinance()">
+                  + {{ 'enjeux.operations.addFinance' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SECTION: Détails                               -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card">
+          <div class="section-header" (click)="toggleSection('details')">
+            <div class="section-title-row">
+              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+              <h3 class="section-label">{{ 'enjeux.operations.detailsLabel' | translate }}</h3>
+            </div>
+            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['details']" [class.fi-rr-angle-down]="!sectionsOpen['details']"></i>
+          </div>
+          <div class="section-underline"></div>
+
+          @if (sectionsOpen['details']) {
+            <div class="section-content">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.detailsCommentaires' | translate }}</mat-label>
+                <textarea matInput formControlName="description" rows="5"></textarea>
+              </mat-form-field>
+            </div>
+          }
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SECTION: Emprise spatiale                      -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card">
+          <div class="section-header" (click)="toggleSection('emprise')">
+            <div class="section-title-row">
+              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+              <h3 class="section-label">{{ 'enjeux.operations.empriseSpatiale' | translate }}</h3>
+            </div>
+            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['emprise']" [class.fi-rr-angle-down]="!sectionsOpen['emprise']"></i>
+          </div>
+          <div class="section-underline"></div>
+
+          @if (sectionsOpen['emprise']) {
+            <div class="section-content">
+              <button type="button" class="add-link-btn">
+                + {{ 'enjeux.operations.ajouterEmprise' | translate }}
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SECTION: Indicateur(s) de réponse              -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="form-card">
+          <div class="section-header" (click)="toggleSection('indicateurs_reponse')">
+            <div class="section-title-row">
+              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+              <h3 class="section-label">{{ 'enjeux.operations.indicateursReponse' | translate }}</h3>
+            </div>
+            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['indicateurs_reponse']" [class.fi-rr-angle-down]="!sectionsOpen['indicateurs_reponse']"></i>
+          </div>
+          <div class="section-underline"></div>
+
+          @if (sectionsOpen['indicateurs_reponse']) {
+            <div class="section-content">
+              <button type="button" class="add-link-btn">
+                + {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
+              </button>
+            </div>
+          }
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
+        {{ 'common.actions.cancel' | translate }}
+      </button>
+      <button class="btn-action-validate" type="button" (click)="save()" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          {{ 'common.actions.validate' | translate }}
+        }
+      </button>
+    </div>
+  }
+</div>
