@@ -8,12 +8,15 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, Observable } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -25,7 +28,8 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
-  EtatActuel, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique
+  EtatActuel, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
+  MetriqueFormData, MetriqueCreatePayload, Operation
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
@@ -45,6 +49,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
+    MatRadioModule,
     MatDialogModule,
     MatSnackBarModule,
     TranslateModule,
@@ -128,15 +134,12 @@ export class EnjeuxListComponent implements OnInit {
   editIndicateurStandardise = false;
   editIndicateurDescription = '';
 
-  // Métriques state
-  addingMetriqueForIndicateur = signal<number | null>(null);
-  editingMetriqueId = signal<number | null>(null);
-  newMetriqueNom = '';
-  newMetriqueType: number | null = null;
-  newMetriqueUnite = '';
-  editMetriqueNom = '';
-  editMetriqueType: number | null = null;
-  editMetriqueUnite = '';
+  // Unified indicateur form state (indicateur + inline metriques)
+  indicateurFormMetriques: MetriqueFormData[] = [];
+  // Edit indicateur: metriques inline editing
+  editIndicateurMetriques: MetriqueFormData[] = [];
+  typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  isSavingIndicateur = signal(false);
 
   // Enjeux et FCR séparés
   enjeux = computed(() => {
@@ -913,14 +916,69 @@ export class EnjeuxListComponent implements OnInit {
     this.newIndicateurType = null;
     this.newIndicateurStandardise = false;
     this.newIndicateurDescription = '';
+    this.indicateurFormMetriques = [];
+    this.loadTypeMetriqueOptions();
   }
 
   cancelAddIndicateur(): void {
     this.addingIndicateurForNe.set(null);
+    this.indicateurFormMetriques = [];
+  }
+
+  loadTypeMetriqueOptions(): void {
+    if (this.typeMetriqueOptions().length > 0) return;
+    this.adminService.getNomenclaturesByType('TYPE_METRIQUE').subscribe({
+      next: (options) => this.typeMetriqueOptions.set(options),
+      error: () => this.typeMetriqueOptions.set([])
+    });
+  }
+
+  createEmptyMetrique(): MetriqueFormData {
+    return {
+      nom_metrique: '',
+      type_metrique: null,
+      unite: '',
+      ponderation: null,
+      etat_reference: '',
+      scores: {
+        1: { inf: null, sup: null },
+        2: { inf: null, sup: null },
+        3: { inf: null, sup: null },
+        4: { inf: null, sup: null },
+        5: { inf: null, sup: null }
+      }
+    };
+  }
+
+  addMetriqueToForm(): void {
+    this.indicateurFormMetriques = [...this.indicateurFormMetriques, this.createEmptyMetrique()];
+  }
+
+  removeMetriqueFromForm(index: number): void {
+    this.indicateurFormMetriques = this.indicateurFormMetriques.filter((_, i) => i !== index);
+  }
+
+  buildMetriquePayload(indicateurId: number, met: MetriqueFormData): MetriqueCreatePayload {
+    const payload: MetriqueCreatePayload = {
+      id_indicateur: indicateurId,
+      nom_metrique: met.nom_metrique.trim(),
+    };
+    if (met.type_metrique) payload.type_metrique = met.type_metrique;
+    if (met.unite.trim()) payload.unite = met.unite.trim();
+    if (met.ponderation != null) payload.ponderation = met.ponderation;
+    if (met.etat_reference.trim()) payload.etat_reference = met.etat_reference.trim();
+    for (let level = 1; level <= 5; level++) {
+      const s = met.scores[level];
+      if (s?.inf != null) (payload as any)[`score_${level}_inf`] = s.inf;
+      if (s?.sup != null) (payload as any)[`score_${level}_sup`] = s.sup;
+    }
+    return payload;
   }
 
   saveIndicateur(ne: any): void {
     if (!this.newIndicateurNom.trim()) return;
+    this.isSavingIndicateur.set(true);
+
     const payload: any = {
       id_ne: ne.id_ne,
       nom_indicateur: this.newIndicateurNom.trim(),
@@ -929,20 +987,67 @@ export class EnjeuxListComponent implements OnInit {
     if (this.newIndicateurType) payload.type_indicateur = this.newIndicateurType;
     if (this.newIndicateurDescription.trim()) payload.description = this.newIndicateurDescription.trim();
 
+    // Filter metriques that have a name
+    const validMetriques = this.indicateurFormMetriques.filter(m => m.nom_metrique.trim());
+
     this.enjeuService.createIndicateur(payload).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: () => {
+      next: (createdIndicateur: any) => {
+        const indicateurId = createdIndicateur.id_indicateur;
+
+        if (validMetriques.length === 0) {
+          // No metriques to create
+          this.snackBar.open(
+            this.translate.instant('enjeux.indicateurs.createSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.addingIndicateurForNe.set(null);
+          this.indicateurFormMetriques = [];
+          this.isSavingIndicateur.set(false);
+          this.enjeuService.refreshCurrentPlanEnjeux();
+          return;
+        }
+
+        // Create all metriques in parallel
+        const metriqueRequests = validMetriques.map(met =>
+          this.enjeuService.createMetrique(this.buildMetriquePayload(indicateurId, met))
+        );
+
+        forkJoin(metriqueRequests).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.indicateurs.createSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.addingIndicateurForNe.set(null);
+            this.indicateurFormMetriques = [];
+            this.isSavingIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          },
+          error: () => {
+            // Partial success: indicateur created but some metriques failed
+            this.snackBar.open(
+              this.translate.instant('enjeux.metriques.partialError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+            this.addingIndicateurForNe.set(null);
+            this.indicateurFormMetriques = [];
+            this.isSavingIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          }
+        });
+      },
+      error: () => {
+        this.isSavingIndicateur.set(false);
         this.snackBar.open(
-          this.translate.instant('enjeux.indicateurs.createSuccess'),
+          this.translate.instant('enjeux.messages.createError'),
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
-        this.addingIndicateurForNe.set(null);
-        this.enjeuService.refreshCurrentPlanEnjeux();
-      },
-      error: () => {
-        this.snackBar.open('Erreur lors de la création', this.translate.instant('common.actions.close'), { duration: 3000 });
       }
     });
   }
@@ -953,14 +1058,52 @@ export class EnjeuxListComponent implements OnInit {
     this.editIndicateurType = ind.type_indicateur || null;
     this.editIndicateurStandardise = ind.est_standardise;
     this.editIndicateurDescription = ind.description || '';
+    this.loadTypeMetriqueOptions();
+
+    // Load existing metriques into edit form
+    this.editIndicateurMetriques = (ind.metriques || []).map((met: Metrique) => ({
+      id_metrique: met.id_metrique,
+      nom_metrique: met.nom_metrique,
+      type_metrique: met.type_metrique || null,
+      unite: met.unite || '',
+      ponderation: met.ponderation ?? null,
+      etat_reference: met.etat_reference || '',
+      scores: {
+        1: { inf: met.score_1_inf ?? null, sup: met.score_1_sup ?? null },
+        2: { inf: met.score_2_inf ?? null, sup: met.score_2_sup ?? null },
+        3: { inf: met.score_3_inf ?? null, sup: met.score_3_sup ?? null },
+        4: { inf: met.score_4_inf ?? null, sup: met.score_4_sup ?? null },
+        5: { inf: met.score_5_inf ?? null, sup: met.score_5_sup ?? null }
+      }
+    } as MetriqueFormData));
   }
 
   cancelEditIndicateur(): void {
     this.editingIndicateurId.set(null);
+    this.editIndicateurMetriques = [];
+  }
+
+  addMetriqueToEdit(): void {
+    this.editIndicateurMetriques = [...this.editIndicateurMetriques, this.createEmptyMetrique()];
+  }
+
+  removeMetriqueFromEdit(index: number): void {
+    const met = this.editIndicateurMetriques[index];
+    if (met.id_metrique) {
+      // Mark existing metrique for deletion
+      this.editIndicateurMetriques = this.editIndicateurMetriques.map((m, i) =>
+        i === index ? { ...m, _deleted: true } : m
+      );
+    } else {
+      // Remove new metrique entirely
+      this.editIndicateurMetriques = this.editIndicateurMetriques.filter((_, i) => i !== index);
+    }
   }
 
   saveEditIndicateur(ind: any): void {
     if (!this.editIndicateurNom.trim()) return;
+    this.isSavingIndicateur.set(true);
+
     const payload: any = {
       nom_indicateur: this.editIndicateurNom.trim(),
       est_standardise: this.editIndicateurStandardise,
@@ -972,16 +1115,69 @@ export class EnjeuxListComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: () => {
+        // Process metriques: create new, update existing, delete removed
+        const metriqueOps: Observable<any>[] = [];
+
+        for (const met of this.editIndicateurMetriques) {
+          if (met._deleted && met.id_metrique) {
+            // Delete existing metrique
+            metriqueOps.push(this.enjeuService.deleteMetrique(met.id_metrique));
+          } else if (!met._deleted && met.nom_metrique.trim()) {
+            if (met.id_metrique) {
+              // Update existing metrique
+              metriqueOps.push(this.enjeuService.updateMetrique(met.id_metrique, this.buildMetriquePayload(ind.id_indicateur, met)));
+            } else {
+              // Create new metrique
+              metriqueOps.push(this.enjeuService.createMetrique(this.buildMetriquePayload(ind.id_indicateur, met)));
+            }
+          }
+        }
+
+        if (metriqueOps.length === 0) {
+          this.snackBar.open(
+            this.translate.instant('enjeux.indicateurs.updateSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.editingIndicateurId.set(null);
+          this.editIndicateurMetriques = [];
+          this.isSavingIndicateur.set(false);
+          this.enjeuService.refreshCurrentPlanEnjeux();
+          return;
+        }
+
+        forkJoin(metriqueOps).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.indicateurs.updateSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.editingIndicateurId.set(null);
+            this.editIndicateurMetriques = [];
+            this.isSavingIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.metriques.partialError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+            this.editingIndicateurId.set(null);
+            this.editIndicateurMetriques = [];
+            this.isSavingIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          }
+        });
+      },
+      error: () => {
+        this.isSavingIndicateur.set(false);
         this.snackBar.open(
-          this.translate.instant('enjeux.indicateurs.updateSuccess'),
+          this.translate.instant('enjeux.messages.updateError'),
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
-        this.editingIndicateurId.set(null);
-        this.enjeuService.refreshCurrentPlanEnjeux();
-      },
-      error: () => {
-        this.snackBar.open('Erreur lors de la mise à jour', this.translate.instant('common.actions.close'), { duration: 3000 });
       }
     });
   }
@@ -1019,43 +1215,7 @@ export class EnjeuxListComponent implements OnInit {
   // Métriques CRUD
   // ============================================
 
-  startAddMetrique(indicateurId: number): void {
-    this.addingMetriqueForIndicateur.set(indicateurId);
-    this.newMetriqueNom = '';
-    this.newMetriqueType = null;
-    this.newMetriqueUnite = '';
-  }
-
-  cancelAddMetrique(): void {
-    this.addingMetriqueForIndicateur.set(null);
-  }
-
-  saveMetrique(ind: any): void {
-    if (!this.newMetriqueNom.trim()) return;
-    const payload: any = {
-      id_indicateur: ind.id_indicateur,
-      nom_metrique: this.newMetriqueNom.trim(),
-    };
-    if (this.newMetriqueType) payload.type_metrique = this.newMetriqueType;
-    if (this.newMetriqueUnite.trim()) payload.unite = this.newMetriqueUnite.trim();
-
-    this.enjeuService.createMetrique(payload).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('enjeux.metriques.createSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.addingMetriqueForIndicateur.set(null);
-        this.enjeuService.refreshCurrentPlanEnjeux();
-      },
-      error: () => {
-        this.snackBar.open('Erreur lors de la création', this.translate.instant('common.actions.close'), { duration: 3000 });
-      }
-    });
-  }
+  readonly scoreLevels = [1, 2, 3, 4, 5];
 
   deleteMetrique(met: any): void {
     this.enjeuService.deleteMetrique(met.id_metrique).pipe(
@@ -1102,5 +1262,72 @@ export class EnjeuxListComponent implements OnInit {
     if (inf != null) return `≥ ${inf}`;
     if (sup != null) return `≤ ${sup}`;
     return '- - -';
+  }
+
+  // ============================================
+  // Operations (Actions) - Navigation vers page dédiée
+  // ============================================
+
+  navigateToOperationForm(indicateurId?: number): void {
+    const planId = this.planId();
+    if (!planId) return;
+    const extras: any = {};
+    if (indicateurId) {
+      extras.queryParams = { indicateurId };
+    }
+    this.router.navigate(['/plans', planId, 'enjeux', 'operations', 'nouveau'], extras);
+  }
+
+  navigateToEditOperation(operationId: number): void {
+    const planId = this.planId();
+    if (!planId) return;
+    this.router.navigate(['/plans', planId, 'enjeux', 'operations', operationId, 'modifier']);
+  }
+
+  deleteOperation(operation: Operation): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.operations.deleteTitle'),
+        message: this.translate.instant('enjeux.operations.deleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteOperation(operation.id_operation).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.deleteSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.messages.deleteError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  getPrioriteClass(op: Operation): string {
+    if (!op.priorite_label) return '';
+    if (op.priorite_label.includes('1')) return '1';
+    if (op.priorite_label.includes('2')) return '2';
+    if (op.priorite_label.includes('3')) return '3';
+    return '';
   }
 }

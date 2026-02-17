@@ -574,17 +574,114 @@
                             @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
                               <div class="indicateur-block">
                                 @if (editingIndicateurId() === ind.id_indicateur) {
-                                  <!-- Edit mode -->
-                                  <div class="inline-form">
+                                  <!-- Edit mode (extended with metriques) -->
+                                  <div class="unified-indicateur-form">
+                                    <div class="unified-form-header">
+                                      <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                      <h4 class="unified-form-title">{{ 'enjeux.indicateurs.editTitle' | translate }}</h4>
+                                    </div>
+
+                                    <!-- Intitulé indicateur -->
                                     <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }}</mat-label>
+                                      <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
                                       <input matInput [(ngModel)]="editIndicateurNom">
                                     </mat-form-field>
+
+                                    <!-- Indicateur standardisé -->
+                                    <div class="form-radio-row">
+                                      <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                      <mat-radio-group [(ngModel)]="editIndicateurStandardise">
+                                        <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                                        <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                                      </mat-radio-group>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <mat-form-field appearance="outline" class="full-width">
+                                      <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
+                                      <textarea matInput [(ngModel)]="editIndicateurDescription" rows="2"></textarea>
+                                    </mat-form-field>
+
+                                    <!-- Section MÉTRIQUES -->
+                                    <div class="metriques-section">
+                                      <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
+
+                                      @for (met of editIndicateurMetriques; track $index; let i = $index) {
+                                        @if (!met._deleted) {
+                                          <div class="metrique-form-block">
+                                            <div class="metrique-row">
+                                              <mat-form-field appearance="outline" class="flex-grow">
+                                                <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                                <input matInput [(ngModel)]="met.nom_metrique">
+                                              </mat-form-field>
+                                              <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
+                                                <i class="fi fi-rr-trash"></i>
+                                              </button>
+                                            </div>
+
+                                            <div class="metrique-row-2col">
+                                              <mat-form-field appearance="outline">
+                                                <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                                <input matInput [(ngModel)]="met.unite">
+                                              </mat-form-field>
+                                              <mat-form-field appearance="outline">
+                                                <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                <mat-select [(ngModel)]="met.type_metrique">
+                                                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                                    <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                                  }
+                                                </mat-select>
+                                              </mat-form-field>
+                                            </div>
+
+                                            <div class="metrique-row-2col">
+                                              <mat-form-field appearance="outline" class="col-narrow">
+                                                <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                                <input matInput type="number" [(ngModel)]="met.ponderation">
+                                              </mat-form-field>
+                                              <mat-form-field appearance="outline" class="col-wide">
+                                                <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                                <input matInput [(ngModel)]="met.etat_reference">
+                                              </mat-form-field>
+                                            </div>
+
+                                            <div class="score-threshold-grid">
+                                              @for (level of scoreLevels; track level) {
+                                                <div class="score-column">
+                                                  <div class="score-column-header score-header-{{level}}">
+                                                    <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                                    <span class="score-header-value">= {{level}}</span>
+                                                  </div>
+                                                  <div class="score-column-inputs">
+                                                    <mat-form-field appearance="outline" class="score-input">
+                                                      <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                      <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                    </mat-form-field>
+                                                    <mat-form-field appearance="outline" class="score-input">
+                                                      <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                      <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                    </mat-form-field>
+                                                  </div>
+                                                </div>
+                                              }
+                                            </div>
+                                          </div>
+                                        }
+                                      }
+
+                                      <button class="add-metrique-link-btn" (click)="addMetriqueToEdit()">
+                                        + {{ 'enjeux.metriques.addButton' | translate }}
+                                      </button>
+                                    </div>
+
+                                    <!-- Actions -->
                                     <div class="inline-form-actions">
-                                      <button mat-flat-button color="primary" (click)="saveEditIndicateur(ind)" [disabled]="!editIndicateurNom.trim()">
+                                      <button mat-flat-button color="primary"
+                                        (click)="saveEditIndicateur(ind)"
+                                        [disabled]="!editIndicateurNom.trim() || isSavingIndicateur()">
                                         {{ 'common.actions.save' | translate }}
                                       </button>
-                                      <button mat-stroked-button (click)="cancelEditIndicateur()">
+                                      <button mat-stroked-button (click)="cancelEditIndicateur()" [disabled]="isSavingIndicateur()">
                                         {{ 'common.actions.cancel' | translate }}
                                       </button>
                                     </div>
@@ -664,49 +761,162 @@
                                         </div>
                                       }
 
-                                      <!-- Formulaire ajout métrique -->
-                                      @if (addingMetriqueForIndicateur() === ind.id_indicateur) {
-                                        <div class="inline-form">
-                                          <mat-form-field appearance="outline" class="full-width">
-                                            <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }}</mat-label>
-                                            <input matInput [(ngModel)]="newMetriqueNom">
-                                          </mat-form-field>
-                                          <mat-form-field appearance="outline">
-                                            <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                            <input matInput [(ngModel)]="newMetriqueUnite">
-                                          </mat-form-field>
-                                          <div class="inline-form-actions">
-                                            <button mat-flat-button color="primary" (click)="saveMetrique(ind)" [disabled]="!newMetriqueNom.trim()">
-                                              {{ 'common.actions.save' | translate }}
-                                            </button>
-                                            <button mat-stroked-button (click)="cancelAddMetrique()">
-                                              {{ 'common.actions.cancel' | translate }}
-                                            </button>
-                                          </div>
+                                      <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                    </div>
+                                  }
+                                }
+
+                                <!-- Opérations (Actions) de l'indicateur -->
+                                @if (ind.operations && ind.operations.length > 0) {
+                                  <p class="operations-title">{{ 'enjeux.operations.title' | translate }} :</p>
+                                  @for (op of ind.operations; track op.id_operation) {
+                                    <div class="operation-card">
+                                      <div class="operation-header">
+                                        <span class="operation-libelle">{{ op.libelle }}</span>
+                                        @if (op.priorite_label) {
+                                          <span class="priority-chip priority-{{ getPrioriteClass(op) }}">
+                                            {{ op.priorite_label }}
+                                          </span>
+                                        }
+                                        @if (op.code_operation) {
+                                          <span class="operation-code">{{ op.code_operation }}</span>
+                                        }
+                                        <div class="operation-actions">
+                                          <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation)" [title]="'common.actions.edit' | translate">
+                                            <i class="fi fi-rr-pencil"></i>
+                                          </button>
+                                          <button class="icon-btn-flat" (click)="deleteOperation(op)" [title]="'common.actions.delete' | translate">
+                                            <i class="fi fi-rr-trash"></i>
+                                          </button>
                                         </div>
-                                      } @else {
-                                        <button class="add-link-btn" (click)="startAddMetrique(ind.id_indicateur)">
-                                          + {{ 'enjeux.metriques.addButton' | translate }}
-                                        </button>
+                                      </div>
+                                      @if (op.description) {
+                                        <p class="operation-description">{{ op.description }}</p>
+                                      }
+                                      @if (op.annee_min || op.annee_max) {
+                                        <span class="operation-period">
+                                          {{ 'enjeux.operations.periodLabel' | translate }} : {{ op.annee_min || '?' }} - {{ op.annee_max || '?' }}
+                                        </span>
                                       }
                                     </div>
                                   }
                                 }
+
+                                <!-- Bouton ajout opération (navigue vers page dédiée) -->
+                                <button class="add-link-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
+                                  + {{ 'enjeux.operations.addAction' | translate }}
+                                </button>
                               </div>
                             }
 
-                            <!-- Formulaire ajout indicateur -->
+                            <!-- Formulaire unifié ajout indicateur + métriques -->
                             @if (addingIndicateurForNe() === ne.id_ne) {
-                              <div class="inline-form indicateur-form">
+                              <div class="unified-indicateur-form">
+                                <!-- Header -->
+                                <div class="unified-form-header">
+                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                  <h4 class="unified-form-title">{{ 'enjeux.indicateurs.newTitle' | translate }}</h4>
+                                </div>
+                                <p class="form-required-note">{{ 'common.requiredFields' | translate }}</p>
+
+                                <!-- Intitulé indicateur -->
                                 <mat-form-field appearance="outline" class="full-width">
-                                  <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }}</mat-label>
+                                  <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
                                   <input matInput [(ngModel)]="newIndicateurNom">
                                 </mat-form-field>
+
+                                <!-- Indicateur standardisé -->
+                                <div class="form-radio-row">
+                                  <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                  <mat-radio-group [(ngModel)]="newIndicateurStandardise">
+                                    <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                                    <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                                  </mat-radio-group>
+                                </div>
+
+                                <!-- Section MÉTRIQUES -->
+                                <div class="metriques-section">
+                                  <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
+
+                                  @for (met of indicateurFormMetriques; track $index; let i = $index) {
+                                    <div class="metrique-form-block">
+                                      <!-- Row 1: Nom + delete -->
+                                      <div class="metrique-row">
+                                        <mat-form-field appearance="outline" class="flex-grow">
+                                          <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                          <input matInput [(ngModel)]="met.nom_metrique">
+                                        </mat-form-field>
+                                        <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromForm(i)" [title]="'common.actions.delete' | translate">
+                                          <i class="fi fi-rr-trash"></i>
+                                        </button>
+                                      </div>
+
+                                      <!-- Row 2: Unité + Type -->
+                                      <div class="metrique-row-2col">
+                                        <mat-form-field appearance="outline">
+                                          <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                          <input matInput [(ngModel)]="met.unite">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline">
+                                          <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                          <mat-select [(ngModel)]="met.type_metrique">
+                                            @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                              <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                            }
+                                          </mat-select>
+                                        </mat-form-field>
+                                      </div>
+
+                                      <!-- Row 3: Pondération + État de référence -->
+                                      <div class="metrique-row-2col">
+                                        <mat-form-field appearance="outline" class="col-narrow">
+                                          <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                          <input matInput type="number" [(ngModel)]="met.ponderation">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-wide">
+                                          <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                          <input matInput [(ngModel)]="met.etat_reference">
+                                        </mat-form-field>
+                                      </div>
+
+                                      <!-- Score threshold grid -->
+                                      <div class="score-threshold-grid">
+                                        @for (level of scoreLevels; track level) {
+                                          <div class="score-column">
+                                            <div class="score-column-header score-header-{{level}}">
+                                              <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                              <span class="score-header-value">= {{level}}</span>
+                                            </div>
+                                            <div class="score-column-inputs">
+                                              <mat-form-field appearance="outline" class="score-input">
+                                                <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                              </mat-form-field>
+                                              <mat-form-field appearance="outline" class="score-input">
+                                                <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                              </mat-form-field>
+                                            </div>
+                                          </div>
+                                        }
+                                      </div>
+                                    </div>
+                                  }
+
+                                  <!-- Add metrique link -->
+                                  <button class="add-metrique-link-btn" (click)="addMetriqueToForm()">
+                                    + {{ 'enjeux.metriques.addButton' | translate }}
+                                  </button>
+                                </div>
+
+                                <!-- Actions -->
                                 <div class="inline-form-actions">
-                                  <button mat-flat-button color="primary" (click)="saveIndicateur(ne)" [disabled]="!newIndicateurNom.trim()">
+                                  <button mat-flat-button color="primary"
+                                    (click)="saveIndicateur(ne)"
+                                    [disabled]="!newIndicateurNom.trim() || isSavingIndicateur()">
                                     {{ 'common.actions.save' | translate }}
                                   </button>
-                                  <button mat-stroked-button (click)="cancelAddIndicateur()">
+                                  <button mat-stroked-button (click)="cancelAddIndicateur()" [disabled]="isSavingIndicateur()">
                                     {{ 'common.actions.cancel' | translate }}
                                   </button>
                                 </div>

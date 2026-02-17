@@ -1395,6 +1395,227 @@
   }
 }
 
+// ============================================
+// UNIFIED INDICATEUR FORM (with inline métriques)
+// ============================================
+
+.unified-indicateur-form {
+  background-color: rgba($secondary-orange-salmon, 0.08);
+  border: 1px dashed rgba($secondary-orange-salmon, 0.5);
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-top: $spacing-md;
+}
+
+.unified-form-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.unified-form-title {
+  margin: 0;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.form-required-note {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+}
+
+.form-radio-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .form-radio-label {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  mat-radio-group {
+    display: flex;
+    gap: $spacing-md;
+  }
+}
+
+// Métriques section inside unified form
+.metriques-section {
+  margin-top: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.metriques-section-title {
+  margin: 0 0 $spacing-md 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+// Metrique form block (used in both unified and standalone)
+.metrique-form-block {
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  &.standalone-metrique-form {
+    margin-top: $spacing-md;
+    background-color: rgba($secondary-orange-salmon, 0.06);
+    border: 1px dashed rgba($secondary-orange-salmon, 0.4);
+  }
+}
+
+.metrique-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .flex-grow {
+    flex: 1;
+  }
+
+  .metrique-delete-btn {
+    margin-top: $spacing-xs;
+    color: $error-color;
+
+    &:hover {
+      background-color: rgba($error-color, 0.06);
+    }
+  }
+}
+
+.metrique-row-2col {
+  display: flex;
+  gap: $spacing-md;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  .col-narrow {
+    flex: 0.4;
+  }
+
+  .col-wide {
+    flex: 0.6;
+  }
+}
+
+// Score threshold grid (5 colored columns)
+.score-threshold-grid {
+  display: flex;
+  gap: 0;
+  margin-top: $spacing-sm;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  border: 1px solid $gray-light;
+}
+
+.score-column {
+  flex: 1;
+  min-width: 0;
+
+  &:not(:last-child) {
+    border-right: 1px solid $gray-light;
+  }
+}
+
+.score-column-header {
+  padding: $spacing-xs $spacing-xs;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  .score-header-label {
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    line-height: 1.2;
+  }
+
+  .score-header-value {
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  &.score-header-1 { background-color: $score-very-bad; }
+  &.score-header-2 { background-color: $score-bad; }
+  &.score-header-3 { background-color: $score-neutral; }
+  &.score-header-4 { background-color: $score-good; }
+  &.score-header-5 { background-color: $score-very-good; }
+}
+
+.score-column-inputs {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs;
+  gap: $spacing-xxs;
+
+  .score-input {
+    width: 100%;
+
+    ::ng-deep {
+      .mat-mdc-form-field-infix {
+        min-height: 32px;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        padding: 0 8px;
+      }
+
+      .mdc-floating-label {
+        font-size: 11px;
+      }
+
+      input {
+        font-size: 13px;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+    }
+  }
+}
+
+// Add metrique link button (inside unified form)
+.add-metrique-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px dashed rgba($secondary-orange-salmon, 0.5);
+  border-radius: $border-radius-pill;
+  color: $secondary-terra-cotta;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-orange-salmon, 0.08);
+    border-color: $secondary-terra-cotta;
+  }
+}
+
 // Add link button (inside indicateur, for métriques)
 .add-link-btn {
   display: inline-flex;
@@ -1414,6 +1635,123 @@
 
   &:hover {
     background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// ============================================
+// OPERATIONS (ACTIONS)
+// ============================================
+
+.operations-title {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-small;
+  color: $primary-color;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: $spacing-md 0 $spacing-xs 0;
+}
+
+.operation-card {
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-xs;
+  background: $white;
+  transition: border-color $transition-fast;
+
+  &:hover {
+    border-color: $primary-color;
+  }
+}
+
+.operation-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.operation-libelle {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  color: $black;
+  flex: 1;
+  min-width: 0;
+}
+
+.operation-code {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $border-radius-sm;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  background: rgba($gray-light, 0.5);
+  color: $gray-dark;
+}
+
+.priority-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $border-radius-pill;
+  font-size: 12px;
+  font-weight: $font-weight-semibold;
+  color: $white;
+
+  &.priority-1 {
+    background: $error-color;
+  }
+
+  &.priority-2 {
+    background: $warning-color;
+  }
+
+  &.priority-3 {
+    background: $info-color;
+  }
+}
+
+.operation-actions {
+  margin-left: auto;
+  display: flex;
+  gap: $spacing-xxs;
+}
+
+.operation-description {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin: $spacing-xxs 0 0 0;
+  line-height: 1.4;
+}
+
+.operation-period {
+  display: inline-block;
+  font-size: $font-size-small;
+  color: $gray;
+  margin-top: $spacing-xxs;
+}
+
+// Operation form
+.operation-form {
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  margin-top: $spacing-sm;
+  background: rgba($secondary-orange-salmon, 0.03);
+}
+
+.operation-form-title {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  color: $primary-color;
+  margin: 0 0 $spacing-sm 0;
+}
+
+.operation-form-row {
+  display: flex;
+  gap: $spacing-md;
+
+  > mat-form-field {
+    flex: 1;
   }
 }
 
@@ -1555,5 +1893,30 @@
     span {
       font-size: $font-size-small;
     }
+  }
+
+  .metrique-row-2col {
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    .col-narrow,
+    .col-wide {
+      flex: 1;
+    }
+  }
+
+  .score-threshold-grid {
+    flex-wrap: wrap;
+
+    .score-column {
+      flex: 1 1 calc(50% - 1px);
+      min-width: 100px;
+    }
+  }
+
+  .form-radio-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
   }
 }
