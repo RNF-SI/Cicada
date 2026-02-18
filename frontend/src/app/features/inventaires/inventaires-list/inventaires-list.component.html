@@ -1,0 +1,145 @@
+<app-header></app-header>
+
+<div class="inventaires-layout">
+  <main class="inventaires-main">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <span class="breadcrumb-current">
+              {{ 'inventaires.title' | translate }}
+            </span>
+          </div>
+        </nav>
+
+        <!-- Title and Actions -->
+        <div class="hero-title-row">
+          <h1>{{ 'inventaires.title' | translate }}</h1>
+          <button mat-flat-button color="primary" class="btn-add" (click)="navigateToCreate()">
+            <i class="fi fi-rr-plus"></i>
+            {{ 'inventaires.actions.add' | translate }}
+          </button>
+        </div>
+
+        <!-- Toggle Tabs -->
+        <div class="toggle-tabs">
+          <button
+            class="toggle-tab"
+            [class.active]="activeTab() === 'actifs'"
+            (click)="setTab('actifs')">
+            {{ 'inventaires.tabs.actifs' | translate }}
+          </button>
+          <button
+            class="toggle-tab"
+            [class.active]="activeTab() === 'inactifs'"
+            (click)="setTab('inactifs')">
+            {{ 'inventaires.tabs.inactifs' | translate }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Area -->
+    <section class="content-section">
+      <!-- Search Bar -->
+      <div class="search-bar">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>{{ 'common.actions.search' | translate }}</mat-label>
+          <input matInput
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearch($event)"
+            [placeholder]="'inventaires.searchPlaceholder' | translate">
+          <i matPrefix class="fi fi-rr-search search-icon"></i>
+        </mat-form-field>
+        <span class="results-count">
+          {{ 'inventaires.resultsCount' | translate:{ count: totalCount() } }}
+        </span>
+      </div>
+
+      <!-- Loading State -->
+      @if (isLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>{{ 'common.loading' | translate }}</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="error-container">
+          <i class="fi fi-rr-exclamation"></i>
+          <p>{{ errorMessage() }}</p>
+          <button mat-stroked-button (click)="loadData()">
+            {{ 'common.actions.retry' | translate }}
+          </button>
+        </div>
+      } @else if (suivis().length === 0) {
+        <!-- Empty State -->
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fi fi-rr-test-tube"></i>
+          </div>
+          <h3>{{ 'inventaires.empty.title' | translate }}</h3>
+          <p>{{ 'inventaires.empty.description' | translate }}</p>
+          @if (activeTab() === 'actifs') {
+            <button mat-flat-button color="primary" (click)="navigateToCreate()">
+              <i class="fi fi-rr-plus"></i>
+              {{ 'inventaires.actions.add' | translate }}
+            </button>
+          }
+        </div>
+      } @else {
+        <!-- Table -->
+        <div class="table-container">
+          <table class="suivis-table">
+            <thead>
+              <tr>
+                <th class="col-nom">{{ 'inventaires.table.nom' | translate }}</th>
+                <th class="col-periode">{{ 'inventaires.table.periode' | translate }}</th>
+                <th class="col-statut">{{ 'inventaires.table.statut' | translate }}</th>
+                <th class="col-actions">{{ 'inventaires.table.details' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (suivi of suivis(); track suivi.id_suivi_inventaire) {
+                <tr>
+                  <td class="col-nom">
+                    <span class="suivi-intitule">{{ suivi.intitule || '-' }}</span>
+                    @if (suivi.type_label) {
+                      <span class="suivi-type">{{ suivi.type_label }}</span>
+                    }
+                  </td>
+                  <td class="col-periode">
+                    {{ formatPeriode(suivi) }}
+                  </td>
+                  <td class="col-statut">
+                    @if (suivi.statut_label) {
+                      <span class="status-chip" [ngClass]="getStatutClass(suivi)">
+                        {{ suivi.statut_label }}
+                      </span>
+                    } @else {
+                      <span class="status-chip status-neutre">-</span>
+                    }
+                  </td>
+                  <td class="col-actions">
+                    <button class="btn-detail" (click)="navigateToDetail(suivi)"
+                      [title]="'inventaires.actions.viewDetail' | translate">
+                      <i class="fi fi-rr-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</div>

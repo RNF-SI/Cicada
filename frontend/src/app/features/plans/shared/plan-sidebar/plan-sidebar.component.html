@@ -71,10 +71,38 @@
     </div>
 
     <!-- Suivis -->
-    <button class="menu-item has-children">
-      <i class="fi fi-rr-stats"></i>
-      <span>{{ 'plans.detail.sidebar.suivis' | translate }}</span>
-      <i class="fi fi-rr-angle-small-down chevron"></i>
-    </button>
+    <div class="menu-item-wrapper">
+      <button
+        class="menu-item has-children"
+        [class.active]="isSuivisActive()"
+        (click)="toggleSuivisMenu()">
+        <i class="fi fi-rr-stats"></i>
+        <span>{{ 'plans.detail.sidebar.suivis' | translate }}</span>
+        <i class="fi fi-rr-angle-small-up chevron" [class.collapsed]="!suivisMenuExpanded()"></i>
+      </button>
+
+      @if (suivisMenuExpanded()) {
+        <div class="submenu">
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'bilan'"
+            (click)="navigateToBilan()">
+            {{ 'plans.detail.sidebar.bilan' | translate }}
+          </button>
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'suivi-actions'"
+            (click)="navigateToSuiviActions()">
+            {{ 'plans.detail.sidebar.suiviActions' | translate }}
+          </button>
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'tableau-de-bord'"
+            (click)="navigateToTableauDeBord()">
+            {{ 'plans.detail.sidebar.tableauDeBord' | translate }}
+          </button>
+        </div>
+      }
+    </div>
   </nav>
 </aside>

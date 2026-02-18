@@ -1,0 +1,309 @@
+/**
+ * Formulaire Suivi/Inventaire (standalone) - création + édition.
+ */
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+
+import { HeaderComponent } from '../../../shared/components/header/header.component';
+import { InventaireService } from '../../../core/services/inventaire.service';
+import { AdminService } from '../../../core/services/admin.service';
+import { SuiviInventaireDetail, SuiviInventaireCreatePayload } from '../../../core/models/inventaire.model';
+
+@Component({
+  selector: 'app-inventaire-form',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatRadioModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    TranslateModule,
+    HeaderComponent
+  ],
+  templateUrl: './inventaire-form.component.html',
+  styleUrl: './inventaire-form.component.scss'
+})
+export class InventaireFormComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly inventaireService = inject(InventaireService);
+  private readonly adminService = inject(AdminService);
+  private readonly translate = inject(TranslateService);
+  private readonly snackBar = inject(MatSnackBar);
+
+  form!: FormGroup;
+  isLoading = signal(false);
+  isLoadingData = signal(true);
+  errorMessage = signal<string | null>(null);
+
+  suiviId = signal<number | null>(null);
+  isEditMode = signal(false);
+  existingSuivi = signal<SuiviInventaireDetail | null>(null);
+
+  // Nomenclatures
+  typeSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  statutSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  objectifSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  cibleSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+
+  // Collapsible sections state
+  sectionsOpen: Record<string, boolean> = {
+    protocole: true,
+    bancarisation: true,
+    details: true
+  };
+
+  // Frequency units
+  frequenceUnites: { value: string; label: string }[] = [];
+
+  ngOnInit(): void {
+    this.initFrequenceLabels();
+    this.initForm();
+    this.loadNomenclatures();
+    this.loadRouteParams();
+  }
+
+  private initFrequenceLabels(): void {
+    this.frequenceUnites = [
+      { value: 'jour', label: this.translate.instant('inventaires.form.uniteJour') },
+      { value: 'semaine', label: this.translate.instant('inventaires.form.uniteSemaine') },
+      { value: 'mois', label: this.translate.instant('inventaires.form.uniteMois') },
+      { value: 'an', label: this.translate.instant('inventaires.form.uniteAn') },
+    ];
+  }
+
+  private initForm(): void {
+    this.form = this.fb.group({
+      // Main card
+      intitule: ['', [Validators.required, Validators.maxLength(500)]],
+      prix_indicatif: [null],
+      id_type_suivi: [null],
+      integre_plan_gestion: [null],
+      objectif_principal: [''],
+      cibles_principales: [null],
+      cible_secondaire: [''],
+      taxon_taxref: [''],
+      habitat_ref: [''],
+      annee_lancement_suivi: [null],
+      // Protocole section
+      protocole_dans_campanule: [null],
+      protocole_campanule_nom: [''],
+      nom_protocole: [''],
+      description_protocole: [''],
+      objectif_protocole: [''],
+      periode_echantillonnage: [''],
+      respect_protocole: [null],
+      justification_non_respect: [''],
+      differences_protocole: [''],
+      mode_validation: [''],
+      // Bancarisation section
+      outil_bancarisation: [''],
+      outil_saisie: [''],
+      transmission_donnee: [null],
+      // Details section
+      id_statut: [null],
+      annee_fin_suivi: [null],
+      frequence_nombre: [null],
+      frequence_unite: [null],
+      commentaires: [''],
+    });
+  }
+
+  private loadNomenclatures(): void {
+    this.adminService.getNomenclaturesByType('TYPE_SUIVI').subscribe({
+      next: (data) => this.typeSuiviOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('STATUT_SUIVI').subscribe({
+      next: (data) => this.statutSuiviOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('OBJECTIF_SUIVI').subscribe({
+      next: (data) => this.objectifSuiviOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('CIBLE_SUIVI').subscribe({
+      next: (data) => this.cibleSuiviOptions.set(data),
+    });
+  }
+
+  private loadRouteParams(): void {
+    const suiviIdStr = this.route.snapshot.paramMap.get('suiviId');
+    if (suiviIdStr) {
+      const id = parseInt(suiviIdStr, 10);
+      if (!isNaN(id)) {
+        this.suiviId.set(id);
+        this.isEditMode.set(true);
+        this.loadSuivi(id);
+        return;
+      }
+    }
+    this.isLoadingData.set(false);
+  }
+
+  private loadSuivi(id: number): void {
+    this.inventaireService.getInventaire(id).subscribe({
+      next: (suivi) => {
+        this.existingSuivi.set(suivi);
+        this.populateForm(suivi);
+        this.isLoadingData.set(false);
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('inventaires.errors.loadFailed'));
+        this.isLoadingData.set(false);
+      }
+    });
+  }
+
+  private populateForm(suivi: SuiviInventaireDetail): void {
+    this.form.patchValue({
+      intitule: suivi.intitule || '',
+      prix_indicatif: suivi.prix_indicatif,
+      id_type_suivi: suivi.id_type_suivi,
+      integre_plan_gestion: suivi.integre_plan_gestion,
+      objectif_principal: suivi.objectif_principal || '',
+      cibles_principales: suivi.cibles_principales || '',
+      cible_secondaire: suivi.cible_secondaire || '',
+      taxon_taxref: suivi.taxon_taxref || '',
+      habitat_ref: suivi.habitat_ref || '',
+      annee_lancement_suivi: suivi.annee_lancement_suivi,
+      // Bancarisation
+      outil_bancarisation: suivi.outil_bancarisation || '',
+      outil_saisie: suivi.outil_saisie || '',
+      transmission_donnee: suivi.transmission_donnee,
+      // Details
+      id_statut: suivi.id_statut,
+      annee_fin_suivi: suivi.annee_fin_suivi,
+      frequence_nombre: suivi.frequence_nombre,
+      frequence_unite: suivi.frequence_unite,
+      commentaires: suivi.commentaires || '',
+    });
+
+    // Populate protocole fields
+    if (suivi.protocole) {
+      const p = suivi.protocole;
+      this.form.patchValue({
+        protocole_dans_campanule: p.protocole_dans_campanule,
+        protocole_campanule_nom: p.protocole_campanule_nom || '',
+        nom_protocole: p.nom_protocole || '',
+        description_protocole: p.description_protocole || '',
+        objectif_protocole: p.objectif_protocole || '',
+        periode_echantillonnage: p.periode_echantillonnage || '',
+        respect_protocole: p.respect_protocole,
+        justification_non_respect: p.justification_non_respect || '',
+        differences_protocole: p.differences_protocole || '',
+        mode_validation: p.mode_validation || '',
+      });
+    }
+  }
+
+  toggleSection(section: string): void {
+    this.sectionsOpen[section] = !this.sectionsOpen[section];
+  }
+
+  incrementFrequence(delta: number): void {
+    const current = this.form.get('frequence_nombre')?.value || 0;
+    const newVal = Math.max(0, current + delta);
+    this.form.patchValue({ frequence_nombre: newVal || null });
+  }
+
+  cancel(): void {
+    this.router.navigate(['/inventaires']);
+  }
+
+  save(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    const fv = this.form.value;
+
+    const payload: SuiviInventaireCreatePayload = {
+      intitule: fv.intitule,
+    };
+
+    // Main fields
+    if (fv.prix_indicatif != null) payload.prix_indicatif = fv.prix_indicatif;
+    if (fv.id_type_suivi) payload.id_type_suivi = fv.id_type_suivi;
+    if (fv.integre_plan_gestion != null) payload.integre_plan_gestion = fv.integre_plan_gestion;
+    if (fv.objectif_principal?.trim()) payload.objectif_principal = fv.objectif_principal.trim();
+    if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
+    if (fv.cible_secondaire?.trim()) payload.cible_secondaire = fv.cible_secondaire.trim();
+    if (fv.taxon_taxref?.trim()) payload.taxon_taxref = fv.taxon_taxref.trim();
+    if (fv.habitat_ref?.trim()) payload.habitat_ref = fv.habitat_ref.trim();
+    if (fv.annee_lancement_suivi != null) payload.annee_lancement_suivi = fv.annee_lancement_suivi;
+
+    // Bancarisation
+    if (fv.outil_bancarisation?.trim()) payload.outil_bancarisation = fv.outil_bancarisation.trim();
+    if (fv.outil_saisie?.trim()) payload.outil_saisie = fv.outil_saisie.trim();
+    if (fv.transmission_donnee != null) payload.transmission_donnee = fv.transmission_donnee;
+
+    // Details
+    if (fv.id_statut) payload.id_statut = fv.id_statut;
+    if (fv.annee_fin_suivi != null) payload.annee_fin_suivi = fv.annee_fin_suivi;
+    if (fv.frequence_nombre != null) payload.frequence_nombre = fv.frequence_nombre;
+    if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
+    if (fv.commentaires?.trim()) payload.commentaires = fv.commentaires.trim();
+
+    // Build nested protocole
+    const protocoleData: Record<string, unknown> = {};
+    if (fv.protocole_dans_campanule != null) protocoleData['protocole_dans_campanule'] = fv.protocole_dans_campanule;
+    if (fv.protocole_campanule_nom?.trim()) protocoleData['protocole_campanule_nom'] = fv.protocole_campanule_nom.trim();
+    if (fv.nom_protocole?.trim()) protocoleData['nom_protocole'] = fv.nom_protocole.trim();
+    if (fv.description_protocole?.trim()) protocoleData['description_protocole'] = fv.description_protocole.trim();
+    if (fv.objectif_protocole?.trim()) protocoleData['objectif_protocole'] = fv.objectif_protocole.trim();
+    if (fv.periode_echantillonnage?.trim()) protocoleData['periode_echantillonnage'] = fv.periode_echantillonnage.trim();
+    if (fv.respect_protocole != null) protocoleData['respect_protocole'] = fv.respect_protocole;
+    if (fv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = fv.justification_non_respect.trim();
+    if (fv.differences_protocole?.trim()) protocoleData['differences_protocole'] = fv.differences_protocole.trim();
+    if (fv.mode_validation?.trim()) protocoleData['mode_validation'] = fv.mode_validation.trim();
+
+    if (Object.keys(protocoleData).length > 0) {
+      payload.protocole = protocoleData;
+    }
+
+    const request$ = this.isEditMode()
+      ? this.inventaireService.updateInventaire(this.suiviId()!, payload)
+      : this.inventaireService.createInventaire(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        const msgKey = this.isEditMode()
+          ? 'inventaires.messages.updateSuccess'
+          : 'inventaires.messages.createSuccess';
+        this.snackBar.open(
+          this.translate.instant(msgKey),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.router.navigate(['/inventaires']);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(
+          this.translate.instant('inventaires.errors.saveFailed')
+        );
+      }
+    });
+  }
+}

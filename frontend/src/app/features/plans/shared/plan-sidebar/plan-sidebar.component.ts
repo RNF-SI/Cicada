@@ -1,4 +1,4 @@
-import { Component, OnInit, input, inject, signal } from '@angular/core';
+import { Component, OnInit, input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -17,12 +17,18 @@ export class PlanSidebarComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
 
   planId = input.required<number>();
-  activePage = input<'overview' | 'enjeux'>('overview');
+  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord'>('overview');
   selectedEnjeuId = input<number | null>(null);
 
   enjeux = signal<Enjeu[]>([]);
   fcr = signal<Enjeu[]>([]);
   detailsMenuExpanded = signal(true);
+  suivisMenuExpanded = signal(true);
+
+  isSuivisActive = computed(() => {
+    const page = this.activePage();
+    return page === 'bilan' || page === 'suivi-actions' || page === 'tableau-de-bord';
+  });
 
   ngOnInit(): void {
     this.enjeuService.getPlanEnjeux(this.planId()).subscribe(response => {
@@ -35,6 +41,10 @@ export class PlanSidebarComponent implements OnInit {
     this.detailsMenuExpanded.update(v => !v);
   }
 
+  toggleSuivisMenu(): void {
+    this.suivisMenuExpanded.update(v => !v);
+  }
+
   navigateToOverview(): void {
     this.router.navigate(['/plans', this.planId()]);
   }
@@ -45,5 +55,17 @@ export class PlanSidebarComponent implements OnInit {
 
   selectEnjeu(item: Enjeu): void {
     this.router.navigate(['/plans', this.planId(), 'enjeux', item.id_enjeu]);
+  }
+
+  navigateToBilan(): void {
+    this.router.navigate(['/plans', this.planId(), 'bilan']);
+  }
+
+  navigateToSuiviActions(): void {
+    this.router.navigate(['/plans', this.planId(), 'suivi-actions']);
+  }
+
+  navigateToTableauDeBord(): void {
+    this.router.navigate(['/plans', this.planId(), 'tableau-de-bord']);
   }
 }

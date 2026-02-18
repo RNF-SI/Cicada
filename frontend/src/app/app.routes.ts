@@ -45,5 +45,9 @@ export const routes: Routes = [
   {
     path: 'exploration',
     loadChildren: () => import('./features/exploration/exploration.routes').then(m => m.EXPLORATION_ROUTES)
+  },
+  {
+    path: 'inventaires',
+    loadChildren: () => import('./features/inventaires/inventaires.routes').then(m => m.INVENTAIRES_ROUTES)
   }
 ];

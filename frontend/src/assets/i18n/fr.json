@@ -1225,7 +1225,10 @@
         "actions": "Actions",
         "suivis": "Suivis",
         "indicateurs": "Indicateurs",
-        "bilans": "Bilans"
+        "bilans": "Bilans",
+        "bilan": "Bilan",
+        "suiviActions": "Suivi des actions",
+        "tableauDeBord": "Tableau de bord"
       },
       "tabs": {
         "details": "Détails et saisie",
@@ -1241,6 +1244,51 @@
       "selectNewSite": "Sélectionner un site...",
       "reassignSuccess": "Le plan a été réassigné avec succès",
       "reassignError": "Erreur lors de la réassignation"
+    },
+    "suivis": {
+      "bilan": {
+        "title": "Bilan",
+        "comingSoon": "Cette fonctionnalité est en cours de développement."
+      },
+      "actions": {
+        "title": "Suivi des actions",
+        "filterLabel": "FILTRER",
+        "categorieAction": "Catégorie d'action",
+        "enjeu": "Enjeu",
+        "priorite": "Priorité",
+        "exportTable": "Exporter le tableau",
+        "global": "Global",
+        "annuel": "Annuel",
+        "legendLabel": "Légende :",
+        "actionPrevue": "Action prévue",
+        "actionPrevueRealisee": "Action prévue et réalisée",
+        "actionPrevuePartielle": "Action prévue et partiellement réalisée",
+        "actionRealiseeNonPrevue": "Action réalisée non prévue",
+        "actionPartielleNonPrevue": "Action partiellement réalisée non prévue",
+        "tableHeader": "Actions (priorité)",
+        "leCasEcheant": "le cas échéant",
+        "noOperations": "Aucune action n'est encore définie pour ce plan.",
+        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Vision opérationnelle d'un enjeu."
+      },
+      "tableauDeBord": {
+        "title": "Tableau de bord",
+        "etat": "Etat",
+        "pression": "Pression",
+        "filterLabel": "FILTRER",
+        "typeObjectif": "Type d'objectif",
+        "nomObjectif": "Nom de l'objectif",
+        "legendLabel": "Légende :",
+        "tresMauvais": "Très mauvais",
+        "mauvais": "Mauvais",
+        "moyen": "Moyen",
+        "bon": "Bon",
+        "tresBon": "Très bon",
+        "sansDonnee": "Sans donnée",
+        "niveauExigence": "Niveau d'exigence",
+        "indicateurs": "Indicateurs",
+        "noData": "Aucun indicateur n'est encore défini pour ce plan.",
+        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu."
+      }
     },
     "status": {
       "draft": "Brouillon",
@@ -1880,9 +1928,13 @@
       "outilSaisie": "Existe t-il un outil de saisie ?",
       "transmissionDonnee": "Transmission de la donnée à l'organisme porteur ?",
       "programmationTitle": "Programmation",
+      "programmation": "Programmation",
       "programmationAnnuelle": "Programmation annuelle",
       "programmationMensuelle": "Programmation mensuelle",
+      "progPeriodicite": "Périodicité",
       "progPonctuelle": "Ponctuelle",
+      "progMois": "Mois programmés",
+      "sitesLies": "L'action est liée au/aux",
       "progBudget": "Budget prévisionnel (€)",
       "progTravail": "Travail prévisionnel (jours)",
       "duplicateFirstCol": "Dupliquer valeurs de la 1ère colonne",
@@ -1895,6 +1947,7 @@
       "operateursLabel": "Opérateur(s) de l'action",
       "partenairesLabel": "Partenaire(s) de l'action",
       "financeursLabel": "Financeur(s) de l'action",
+      "financementsLabel": "Financement(s) de l'action",
       "acteursTitle": "Acteurs",
       "detailsLabel": "Détails",
       "detailsCommentaires": "Détails / commentaires",
@@ -1923,7 +1976,16 @@
       "financeLibelleLabel": "Libellé",
       "categorieFinanceLabel": "Catégorie",
       "addFinance": "+ Ajouter un financeur",
-      "recurringHint": "Les mois cochés ci-dessous seront appliqués à toutes les années sélectionnées."
+      "recurringHint": "Les mois cochés ci-dessous seront appliqués à toutes les années sélectionnées.",
+      "estSuiviExistantLabel": "Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?",
+      "intituleSuiviLabel": "Intitulé de l'inventaire ou suivi",
+      "aucunSuiviDisponible": "Aucun suivi disponible - module à venir",
+      "protocoleTitle": "Protocole",
+      "descriptionProtocole": "Description du protocole",
+      "objectifProtocole": "Détails de l'objectif du protocole",
+      "periodeEchantillonnage": "Période d'échantillonnage",
+      "periodeEchantillonnagePlaceholder": "Ex: Avril - Juin",
+      "bancarisationTitle": "Bancarisation et stockage de la donnée"
     },
     "facteurInfluence": {
       "label": "Facteur d'influence",
@@ -2040,6 +2102,80 @@
       "updateSuccess": "Responsabilité mise à jour avec succès",
       "deleteSuccess": "Responsabilité supprimée avec succès",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette responsabilité ?"
+    }
+  },
+  "inventaires": {
+    "title": "Suivis et inventaires",
+    "tabs": {
+      "actifs": "Actifs",
+      "inactifs": "Inactifs"
+    },
+    "actions": {
+      "add": "Ajouter un inventaire/suivi",
+      "viewDetail": "Voir le détail"
+    },
+    "searchPlaceholder": "Rechercher un suivi ou inventaire...",
+    "resultsCount": "{{count}} résultat(s)",
+    "empty": {
+      "title": "Aucun suivi ou inventaire",
+      "description": "Commencez par ajouter un suivi ou un inventaire pour cette catégorie."
+    },
+    "table": {
+      "nom": "Nom du suivi",
+      "periode": "Période active",
+      "statut": "Statut",
+      "details": "Détails"
+    },
+    "form": {
+      "createTitle": "Nouveau suivi / inventaire",
+      "editTitle": "Modifier le suivi / inventaire",
+      "intitule": "Intitulé",
+      "intitulePlaceholder": "Nom du suivi ou inventaire",
+      "prixIndicatif": "Prix à titre indicatif",
+      "prixPlaceholder": "0.00",
+      "typeSuivi": "Type de suivi",
+      "integrePG": "Intégré dans le plan de gestion ?",
+      "objectifPrincipal": "Objectif principal",
+      "ciblesPrincipales": "Cible(s) principale(s)",
+      "cibleSecondaire": "Cible secondaire",
+      "taxonRef": "Taxon(s) référé(s)",
+      "habitat": "Habitat",
+      "anneeLancement": "Année de lancement du suivi",
+      "sections": {
+        "protocole": "Détails du protocole",
+        "bancarisation": "Bancarisation et stockage",
+        "details": "Détails"
+      },
+      "protocoleCampanule": "Protocole dans Campanule ?",
+      "protocoleCampanuleNom": "Protocole Campanule",
+      "nomProtocole": "Nom du protocole",
+      "descriptionProtocole": "Description du protocole",
+      "modeValidation": "Mode et champ de validation",
+      "objectifProtocole": "Objectif du protocole",
+      "periodeEchantillonnage": "Période d'échantillonnage",
+      "respectProtocole": "Respect strict du protocole ?",
+      "justificationNonRespect": "Justification du non-respect",
+      "differencesProtocole": "Différences avec le protocole",
+      "frequence": "Fréquence de l'inventaire",
+      "uniteJour": "jour(s)",
+      "uniteSemaine": "semaine(s)",
+      "uniteMois": "mois",
+      "uniteAn": "an(s)",
+      "outilBancarisation": "Outil de bancarisation",
+      "outilSaisie": "Outil de saisie",
+      "transmissionDonnee": "Transmission de la donnée ?",
+      "statut": "Statut",
+      "anneeFin": "Année de fin",
+      "commentaires": "Commentaires"
+    },
+    "messages": {
+      "createSuccess": "Suivi / inventaire créé avec succès",
+      "updateSuccess": "Suivi / inventaire mis à jour avec succès",
+      "deleteSuccess": "Suivi / inventaire supprimé avec succès"
+    },
+    "errors": {
+      "loadFailed": "Erreur lors du chargement des données",
+      "saveFailed": "Erreur lors de l'enregistrement"
     }
   }
 }

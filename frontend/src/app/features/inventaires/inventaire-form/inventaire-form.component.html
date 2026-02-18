@@ -1,0 +1,343 @@
+<app-header></app-header>
+
+<div class="form-layout">
+  <main class="form-main">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <a routerLink="/inventaires" class="breadcrumb-link">
+              {{ 'inventaires.title' | translate }}
+            </a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <span class="breadcrumb-current">
+              @if (isEditMode()) {
+                {{ 'inventaires.form.editTitle' | translate }}
+              } @else {
+                {{ 'inventaires.form.createTitle' | translate }}
+              }
+            </span>
+          </div>
+        </nav>
+
+        <h1>
+          @if (isEditMode()) {
+            {{ 'inventaires.form.editTitle' | translate }}
+          } @else {
+            {{ 'inventaires.form.createTitle' | translate }}
+          }
+        </h1>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else {
+      <!-- Error Banner -->
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <!-- Main Card -->
+        <div class="form-card">
+          <div class="form-grid">
+            <!-- Intitulé -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'inventaires.form.intitule' | translate }} *</mat-label>
+              <input matInput formControlName="intitule"
+                [placeholder]="'inventaires.form.intitulePlaceholder' | translate">
+              @if (form.get('intitule')?.hasError('required') && form.get('intitule')?.touched) {
+                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- Prix indicatif -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.prixIndicatif' | translate }}</mat-label>
+              <input matInput type="number" formControlName="prix_indicatif"
+                [placeholder]="'inventaires.form.prixPlaceholder' | translate">
+              <span matSuffix>€/an</span>
+            </mat-form-field>
+
+            <!-- Type de suivi -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.typeSuivi' | translate }}</mat-label>
+              <mat-select formControlName="id_type_suivi">
+                <mat-option [value]="null">-</mat-option>
+                @for (opt of typeSuiviOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Intégré dans le plan de gestion -->
+            <div class="radio-field">
+              <label class="field-label">{{ 'inventaires.form.integrePG' | translate }}</label>
+              <mat-radio-group formControlName="integre_plan_gestion">
+                <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+              </mat-radio-group>
+            </div>
+
+            <!-- Objectif principal -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.objectifPrincipal' | translate }}</mat-label>
+              <mat-select formControlName="objectif_principal">
+                <mat-option [value]="''">-</mat-option>
+                @for (opt of objectifSuiviOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Cible(s) principale(s) -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.ciblesPrincipales' | translate }}</mat-label>
+              <mat-select formControlName="cibles_principales">
+                <mat-option [value]="null">-</mat-option>
+                @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Cible secondaire -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.cibleSecondaire' | translate }}</mat-label>
+              <mat-select formControlName="cible_secondaire">
+                <mat-option value="">-</mat-option>
+                @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Taxon(s) référé(s) -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.taxonRef' | translate }}</mat-label>
+              <input matInput formControlName="taxon_taxref">
+            </mat-form-field>
+
+            <!-- Habitat -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.habitat' | translate }}</mat-label>
+              <input matInput formControlName="habitat_ref">
+            </mat-form-field>
+
+            <!-- Année de lancement -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.anneeLancement' | translate }}</mat-label>
+              <input matInput type="number" formControlName="annee_lancement_suivi">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Section: Détails du protocole -->
+        <div class="form-card collapsible">
+          <div class="section-header" (click)="toggleSection('protocole')">
+            <h2>{{ 'inventaires.form.sections.protocole' | translate }}</h2>
+            <i class="fi" [class.fi-rr-angle-small-down]="sectionsOpen['protocole']"
+              [class.fi-rr-angle-small-right]="!sectionsOpen['protocole']"></i>
+          </div>
+
+          @if (sectionsOpen['protocole']) {
+            <div class="section-content">
+              <div class="form-grid">
+                <!-- Protocole dans Campanule ? -->
+                <div class="radio-field">
+                  <label class="field-label">{{ 'inventaires.form.protocoleCampanule' | translate }}</label>
+                  <mat-radio-group formControlName="protocole_dans_campanule">
+                    <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                    <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                @if (form.get('protocole_dans_campanule')?.value === true) {
+                  <!-- Protocole Campanule nom -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{ 'inventaires.form.protocoleCampanuleNom' | translate }}</mat-label>
+                    <input matInput formControlName="protocole_campanule_nom">
+                  </mat-form-field>
+                } @else if (form.get('protocole_dans_campanule')?.value === false) {
+                  <!-- Nom du protocole (si pas Campanule) -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{ 'inventaires.form.nomProtocole' | translate }}</mat-label>
+                    <input matInput formControlName="nom_protocole">
+                  </mat-form-field>
+                }
+
+                <!-- Description du protocole -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'inventaires.form.descriptionProtocole' | translate }}</mat-label>
+                  <textarea matInput formControlName="description_protocole" rows="3"></textarea>
+                </mat-form-field>
+
+                <!-- Mode et champ de validation -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'inventaires.form.modeValidation' | translate }}</mat-label>
+                  <input matInput formControlName="mode_validation">
+                </mat-form-field>
+
+                <!-- Objectif du protocole -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'inventaires.form.objectifProtocole' | translate }}</mat-label>
+                  <textarea matInput formControlName="objectif_protocole" rows="2"></textarea>
+                </mat-form-field>
+
+                <!-- Période d'échantillonnage -->
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'inventaires.form.periodeEchantillonnage' | translate }}</mat-label>
+                  <input matInput formControlName="periode_echantillonnage">
+                </mat-form-field>
+
+                <!-- Respect strict du protocole ? -->
+                <div class="radio-field">
+                  <label class="field-label">{{ 'inventaires.form.respectProtocole' | translate }}</label>
+                  <mat-radio-group formControlName="respect_protocole">
+                    <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                    <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                @if (form.get('respect_protocole')?.value === false) {
+                  <!-- Justification non-respect -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{ 'inventaires.form.justificationNonRespect' | translate }}</mat-label>
+                    <textarea matInput formControlName="justification_non_respect" rows="2"></textarea>
+                  </mat-form-field>
+
+                  <!-- Différences protocole -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{ 'inventaires.form.differencesProtocole' | translate }}</mat-label>
+                    <textarea matInput formControlName="differences_protocole" rows="2"></textarea>
+                  </mat-form-field>
+                }
+
+                <!-- Fréquence -->
+                <div class="frequence-field">
+                  <label class="field-label">{{ 'inventaires.form.frequence' | translate }}</label>
+                  <div class="frequence-row">
+                    <button type="button" mat-stroked-button class="btn-sm" (click)="incrementFrequence(-1)">-</button>
+                    <input matInput type="number" formControlName="frequence_nombre" class="frequence-input">
+                    <button type="button" mat-stroked-button class="btn-sm" (click)="incrementFrequence(1)">+</button>
+                    <mat-form-field appearance="outline" class="frequence-unite-field">
+                      <mat-select formControlName="frequence_unite">
+                        <mat-option [value]="null">-</mat-option>
+                        @for (u of frequenceUnites; track u.value) {
+                          <mat-option [value]="u.value">{{ u.label }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Section: Bancarisation et stockage -->
+        <div class="form-card collapsible">
+          <div class="section-header" (click)="toggleSection('bancarisation')">
+            <h2>{{ 'inventaires.form.sections.bancarisation' | translate }}</h2>
+            <i class="fi" [class.fi-rr-angle-small-down]="sectionsOpen['bancarisation']"
+              [class.fi-rr-angle-small-right]="!sectionsOpen['bancarisation']"></i>
+          </div>
+
+          @if (sectionsOpen['bancarisation']) {
+            <div class="section-content">
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'inventaires.form.outilBancarisation' | translate }}</mat-label>
+                  <input matInput formControlName="outil_bancarisation">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'inventaires.form.outilSaisie' | translate }}</mat-label>
+                  <input matInput formControlName="outil_saisie">
+                </mat-form-field>
+
+                <div class="radio-field">
+                  <label class="field-label">{{ 'inventaires.form.transmissionDonnee' | translate }}</label>
+                  <mat-radio-group formControlName="transmission_donnee">
+                    <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                    <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Section: Détails -->
+        <div class="form-card collapsible">
+          <div class="section-header" (click)="toggleSection('details')">
+            <h2>{{ 'inventaires.form.sections.details' | translate }}</h2>
+            <i class="fi" [class.fi-rr-angle-small-down]="sectionsOpen['details']"
+              [class.fi-rr-angle-small-right]="!sectionsOpen['details']"></i>
+          </div>
+
+          @if (sectionsOpen['details']) {
+            <div class="section-content">
+              <div class="form-grid">
+                <!-- Statut -->
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'inventaires.form.statut' | translate }}</mat-label>
+                  <mat-select formControlName="id_statut">
+                    <mat-option [value]="null">-</mat-option>
+                    @for (opt of statutSuiviOptions(); track opt.id_nomenclature) {
+                      <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Année de fin -->
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'inventaires.form.anneeFin' | translate }}</mat-label>
+                  <input matInput type="number" formControlName="annee_fin_suivi">
+                </mat-form-field>
+
+                <!-- Commentaires -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'inventaires.form.commentaires' | translate }}</mat-label>
+                  <textarea matInput formControlName="commentaires" rows="4"></textarea>
+                </mat-form-field>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <button type="button" mat-stroked-button (click)="cancel()">
+            {{ 'common.actions.cancel' | translate }}
+          </button>
+          <button type="submit" mat-flat-button color="primary" [disabled]="isLoading()">
+            @if (isLoading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              {{ 'common.actions.save' | translate }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </main>
+</div>

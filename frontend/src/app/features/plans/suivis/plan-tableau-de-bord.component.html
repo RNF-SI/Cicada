@@ -1,0 +1,219 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planId(); as id) {
+    <app-plan-sidebar [planId]="id" activePage="tableau-de-bord"></app-plan-sidebar>
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else {
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planId()]" class="breadcrumb-link">{{ planNom() }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ 'plans.suivis.tableauDeBord.title' | translate }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-document"></i>
+              <span>{{ 'plans.detail.sidebar.title' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ 'plans.suivis.tableauDeBord.title' | translate }}</h1>
+            <div class="hero-actions">
+              <button class="btn-hero-primary" [matMenuTriggerFor]="generateMenu">
+                <i class="fi fi-rr-download"></i>
+                <span>{{ 'plans.detail.generate' | translate }}</span>
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #generateMenu="matMenu">
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-pdf"></i>
+                  <span>Exporter en PDF</span>
+                </button>
+              </mat-menu>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content -->
+      <section class="content-section">
+        <!-- Toggle Etat / Pression -->
+        <div class="view-toggle">
+          <button
+            class="toggle-btn"
+            [class.active]="activeTab() === 'etat'"
+            (click)="setTab('etat')">
+            {{ 'plans.suivis.tableauDeBord.etat' | translate }}
+          </button>
+          <button
+            class="toggle-btn"
+            [class.active]="activeTab() === 'pression'"
+            (click)="setTab('pression')">
+            {{ 'plans.suivis.tableauDeBord.pression' | translate }}
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+          <div class="filter-bar-left">
+            <div class="filter-label">{{ 'plans.suivis.tableauDeBord.filterLabel' | translate }}</div>
+            <div class="filter-buttons">
+              <button class="filter-btn" [matMenuTriggerFor]="typeMenu">
+                {{ 'plans.suivis.tableauDeBord.typeObjectif' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #typeMenu="matMenu">
+                <button mat-menu-item><em>Tous</em></button>
+              </mat-menu>
+              <div class="filter-separator"></div>
+
+              <button class="filter-btn" [matMenuTriggerFor]="nomMenu">
+                {{ 'plans.suivis.tableauDeBord.nomObjectif' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #nomMenu="matMenu">
+                <button mat-menu-item><em>Tous</em></button>
+              </mat-menu>
+              <div class="filter-separator"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Légende -->
+        <div class="legend">
+          <span class="legend-label">{{ 'plans.suivis.tableauDeBord.legendLabel' | translate }}</span>
+          <div class="legend-items">
+            @for (item of legendItems; track item.level) {
+              <div class="legend-item">
+                <span class="score-trait-icons">
+                  @for (icon of getScoreIcons(item.level); track $index) {
+                    <img [src]="icon" class="score-trait-icon legend-icon" alt="">
+                  }
+                </span>
+                <span class="legend-text">{{ item.labelKey | translate }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Table -->
+        @if (!hasData()) {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            <p>{{ 'plans.suivis.tableauDeBord.noData' | translate }}</p>
+            <p class="empty-hint">{{ 'plans.suivis.tableauDeBord.noDataHint' | translate }}</p>
+          </div>
+        } @else {
+          <div class="table-wrapper">
+            <table class="tdb-table">
+              <thead>
+                <tr>
+                  <th class="col-ne">{{ 'plans.suivis.tableauDeBord.niveauExigence' | translate }}</th>
+                  <th class="col-indicateur">{{ 'plans.suivis.tableauDeBord.indicateurs' | translate }}</th>
+                  @for (year of yearColumns(); track year) {
+                    <th class="col-year">{{ year }}</th>
+                  }
+                  <th class="col-icons"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (group of oltGroups(); track group.olt.id_olt; let gIdx = $index) {
+                  <!-- OLT header row -->
+                  <tr class="olt-header-row">
+                    <td [attr.colspan]="yearColumns().length + 3">
+                      OLT {{ group.oltIndex }} : {{ group.olt.libelle | uppercase }}
+                    </td>
+                  </tr>
+
+                  @for (row of group.rows; track row.indicateur.id_indicateur; let rIdx = $index) {
+                    <!-- Indicator row -->
+                    <tr class="indicator-row" [class.row-alt]="rIdx % 2 === 1">
+                      @if (isFirstIndicatorOfNe(group, rIdx)) {
+                        <td class="col-ne" [attr.rowspan]="getNeRowspan(group, rIdx)">
+                          {{ row.ne.libelle }}
+                        </td>
+                      }
+                      <td class="col-indicateur">
+                        <div class="indicateur-cell" (click)="toggleIndicator(gIdx, rIdx)">
+                          <span class="indicateur-name">{{ row.indicateur.nom_indicateur }}</span>
+                          <i class="fi" [class.fi-rr-angle-small-down]="!row.expanded" [class.fi-rr-angle-small-up]="row.expanded"></i>
+                        </div>
+                      </td>
+                      @for (year of yearColumns(); track year) {
+                        <td class="col-year">
+                          @if (getScoreForYear(row, year); as score) {
+                            <span class="score-trait-icons">
+                              @for (icon of getScoreIcons(score); track $index) {
+                                <img [src]="icon" class="score-trait-icon" alt="">
+                              }
+                            </span>
+                          }
+                        </td>
+                      }
+                      <td class="col-icons">
+                        <div class="row-actions">
+                          <button class="icon-btn-flat" title="Statistiques">
+                            <i class="fi fi-rr-chart-histogram"></i>
+                          </button>
+                          <button class="icon-btn-flat" title="Voir détails">
+                            <i class="fi fi-rr-eye"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Expanded metriques rows -->
+                    @if (row.expanded && row.metriques.length > 0) {
+                      @for (met of row.metriques; track met.id_metrique) {
+                        <tr class="metrique-row">
+                          <td class="col-ne metrique-ne-cell"></td>
+                          <td class="col-indicateur metrique-name">
+                            {{ met.nom_metrique }}
+                          </td>
+                          @for (year of yearColumns(); track year) {
+                            <td class="col-year">
+                              @if (getMetriqueScoreForYear(met, year); as score) {
+                                <span class="score-trait-icons">
+                                  @for (icon of getScoreIcons(score); track $index) {
+                                    <img [src]="icon" class="score-trait-icon" alt="">
+                                  }
+                                </span>
+                              }
+                            </td>
+                          }
+                          <td class="col-icons"></td>
+                        </tr>
+                      }
+                    }
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  </main>
+</div>

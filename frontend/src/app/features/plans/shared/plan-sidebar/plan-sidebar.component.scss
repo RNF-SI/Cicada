@@ -126,6 +126,11 @@
   &.active {
     font-weight: $font-weight-bold;
   }
+
+  &.active-sub {
+    font-weight: $font-weight-bold;
+    text-decoration: underline;
+  }
 }
 
 // Sections dans le sous-menu
