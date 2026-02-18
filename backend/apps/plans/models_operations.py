@@ -6,6 +6,313 @@ from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class Protocole(models.Model):
+    """
+    Protocole associé à un suivi/inventaire.
+    Contient les informations du protocole (Campanule) et les détails associés.
+    """
+
+    id_protocole = models.AutoField(primary_key=True)
+
+    # Champs extraits de SuiviInventaire
+    protocole_dans_campanule = models.BooleanField(
+        _("Protocole répertorié dans Campanule"),
+        null=True,
+        blank=True,
+        help_text=_("Le protocole est-il répertorié dans Campanule ?")
+    )
+    protocole_campanule_nom = models.CharField(
+        _("Protocole (Campanule)"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Nom du protocole dans Campanule")
+    )
+    respect_protocole = models.BooleanField(
+        _("Respect strict du protocole"),
+        null=True,
+        blank=True,
+        help_text=_("Respectez-vous strictement le protocole ?")
+    )
+    justification_non_respect = models.TextField(
+        _("Justification non-respect"),
+        blank=True,
+        default='',
+        help_text=_("Pourquoi ne respectez-vous pas le protocole ?")
+    )
+    differences_protocole = models.TextField(
+        _("Différences avec le protocole"),
+        blank=True,
+        default='',
+        help_text=_("Quelques différences avec le protocole ?")
+    )
+
+    nom_protocole = models.CharField(
+        _("Nom du protocole"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Nom du protocole (si non Campanule)")
+    )
+    mode_validation = models.CharField(
+        _("Mode et champ de validation"),
+        max_length=500,
+        blank=True,
+        default='',
+        help_text=_("Mode et champ de validation du protocole")
+    )
+
+    # Nouveaux champs (Figma)
+    description_protocole = models.TextField(
+        _("Description du protocole"),
+        blank=True,
+        default='',
+        help_text=_("Description du protocole (depuis Campanule)")
+    )
+    objectif_protocole = models.TextField(
+        _("Objectif du protocole"),
+        blank=True,
+        default='',
+        help_text=_("Détails de l'objectif du protocole")
+    )
+    periode_echantillonnage = models.CharField(
+        _("Période d'échantillonnage"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Période d'échantillonnage du protocole")
+    )
+
+    # Audit
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_ajout = models.ForeignKey(
+        'users.Role',
+        on_delete=models.PROTECT,
+        related_name='+',
+        db_column='id_utilisateur_ajout',
+        verbose_name=_("Créateur")
+    )
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_protocoles"'
+        db_table_comment = "Protocoles associés aux suivis/inventaires"
+        verbose_name = _("Protocole")
+        verbose_name_plural = _("Protocoles")
+
+    def __str__(self):
+        return self.protocole_campanule_nom or f"Protocole #{self.id_protocole}"
+
+
+class SuiviInventaire(models.Model):
+    """
+    Suivi ou inventaire associé à une opération.
+    Contient les détails de la bancarisation et du suivi.
+    Le protocole est dans une table dédiée (Protocole).
+    """
+
+    id_suivi_inventaire = models.AutoField(primary_key=True)
+
+    # Champs standalone
+    intitule = models.CharField(
+        _("Intitulé"),
+        max_length=500,
+        blank=True,
+        default='',
+        help_text=_("Nom affiché dans la liste des suivis/inventaires")
+    )
+    prix_indicatif = models.DecimalField(
+        _("Prix indicatif (€/an)"),
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_("Prix indicatif en euros par an")
+    )
+    id_type_suivi = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suivis_type',
+        db_column='id_type_suivi',
+        verbose_name=_("Type de suivi"),
+        help_text=_("Type : Suivi, Inventaire, ou Suivi et inventaire"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_SUIVI'}
+    )
+    integre_plan_gestion = models.BooleanField(
+        _("Intégré dans un plan de gestion"),
+        null=True,
+        blank=True,
+        help_text=_("Ce suivi est-il intégré dans un plan de gestion ?")
+    )
+    id_pg = models.ForeignKey(
+        'plans.PlanGestion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suivis_inventaires',
+        db_column='id_pg',
+        verbose_name=_("Plan de gestion lié"),
+        help_text=_("Plan de gestion associé (optionnel)")
+    )
+    cible_secondaire = models.CharField(
+        _("Cible secondaire"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Cible secondaire du suivi/inventaire")
+    )
+    habitat_ref = models.CharField(
+        _("Référentiel habitat"),
+        max_length=500,
+        blank=True,
+        default='',
+        help_text=_("Référentiel habitat associé")
+    )
+    id_statut = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suivis_statut',
+        db_column='id_statut',
+        verbose_name=_("Statut"),
+        help_text=_("Statut du suivi (En cours, Terminé, A venir)"),
+        limit_choices_to={'id_type__mnemonique': 'STATUT_SUIVI'}
+    )
+    actif = models.BooleanField(
+        _("Actif"),
+        default=True,
+        help_text=_("Suivi actif ou inactif")
+    )
+    annee_fin_suivi = models.IntegerField(
+        _("Année de fin du suivi"),
+        null=True,
+        blank=True,
+        help_text=_("Année de fin du suivi")
+    )
+    frequence_nombre = models.IntegerField(
+        _("Fréquence (nombre)"),
+        null=True,
+        blank=True,
+        help_text=_("Nombre de répétitions")
+    )
+    frequence_unite = models.CharField(
+        _("Fréquence (unité)"),
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text=_("Unité de fréquence (jour, semaine, mois, an)")
+    )
+    commentaires = models.TextField(
+        _("Commentaires"),
+        blank=True,
+        default='',
+        help_text=_("Détails et commentaires")
+    )
+
+    # Détails de l'inventaire ou du suivi
+    objectif_principal = models.TextField(
+        _("Objectif principal"),
+        blank=True,
+        default='',
+        help_text=_("Objectif principal de l'action")
+    )
+    cibles_principales = models.CharField(
+        _("Cible(s) principale(s)"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Cible(s) principale(s) (Flore, Faune, Habitat, etc.)")
+    )
+    taxon_taxref = models.CharField(
+        _("Taxon - Taxref"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Référence taxon dans Taxref")
+    )
+    annee_lancement_suivi = models.IntegerField(
+        _("Année de lancement du suivi"),
+        null=True,
+        blank=True,
+        help_text=_("Année de lancement du suivi (si antérieur)")
+    )
+
+    # Protocole (FK vers table dédiée)
+    id_protocole = models.ForeignKey(
+        Protocole,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suivis',
+        db_column='id_protocole',
+        verbose_name=_("Protocole"),
+        help_text=_("Protocole associé au suivi/inventaire")
+    )
+
+    # Bancarisation et stockage
+    outil_bancarisation = models.CharField(
+        _("Outil de bancarisation"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Outil de bancarisation utilisé")
+    )
+    outil_saisie = models.CharField(
+        _("Outil de saisie"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Existe t-il un outil de saisie ?")
+    )
+    transmission_donnee = models.BooleanField(
+        _("Transmission de la donnée"),
+        null=True,
+        blank=True,
+        help_text=_("Transmission de la donnée à l'organisme porteur ?")
+    )
+
+    # Audit
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_ajout = models.ForeignKey(
+        'users.Role',
+        on_delete=models.PROTECT,
+        related_name='+',
+        db_column='id_utilisateur_ajout',
+        verbose_name=_("Créateur")
+    )
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_suivi_inventaires"'
+        db_table_comment = "Suivis et inventaires associés aux opérations"
+        verbose_name = _("Suivi / Inventaire")
+        verbose_name_plural = _("Suivis / Inventaires")
+
+    def __str__(self):
+        return self.intitule or f"Suivi #{self.id_suivi_inventaire}"
+
+
 class Operation(models.Model):
     """
     Opération (action) rattachée à un ou plusieurs indicateurs
@@ -73,83 +380,21 @@ class Operation(models.Model):
         help_text=_("Année de fin de l'opération")
     )
 
-    # Section "Détails de l'inventaire ou du suivi"
-    objectif_principal = models.TextField(
-        _("Objectif principal"),
-        blank=True,
-        null=True,
-        help_text=_("Objectif principal de l'action")
+    # Lien vers un suivi/inventaire existant
+    est_suivi_existant = models.BooleanField(
+        _("Inventaire ou suivi existant"),
+        default=False,
+        help_text=_("Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?")
     )
-    cibles_principales = models.CharField(
-        _("Cible(s) principale(s)"),
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Cible(s) principale(s) (Flore, Faune, Habitat, etc.)")
-    )
-    taxon_taxref = models.CharField(
-        _("Taxon - Taxref"),
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Référence taxon dans Taxref")
-    )
-    protocole_dans_campanule = models.BooleanField(
-        _("Protocole répertorié dans Campanule"),
+    id_suivi = models.ForeignKey(
+        SuiviInventaire,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text=_("Le protocole est-il répertorié dans Campanule ?")
-    )
-    protocole_campanule_nom = models.CharField(
-        _("Protocole (Campanule)"),
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Nom du protocole dans Campanule")
-    )
-    respect_protocole = models.BooleanField(
-        _("Respect strict du protocole"),
-        null=True,
-        blank=True,
-        help_text=_("Respectez-vous strictement le protocole ?")
-    )
-    justification_non_respect = models.TextField(
-        _("Justification non-respect"),
-        blank=True,
-        null=True,
-        help_text=_("Pourquoi ne respectez-vous pas le protocole ?")
-    )
-    differences_protocole = models.TextField(
-        _("Différences avec le protocole"),
-        blank=True,
-        null=True,
-        help_text=_("Quelques différences avec le protocole ?")
-    )
-    annee_lancement_suivi = models.IntegerField(
-        _("Année de lancement du suivi"),
-        null=True,
-        blank=True,
-        help_text=_("Année de lancement du suivi (si antérieur)")
-    )
-    outil_bancarisation = models.CharField(
-        _("Outil de bancarisation"),
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Outil de bancarisation utilisé")
-    )
-    outil_saisie = models.CharField(
-        _("Outil de saisie"),
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text=_("Existe t-il un outil de saisie ?")
-    )
-    transmission_donnee = models.BooleanField(
-        _("Transmission de la donnée"),
-        null=True,
-        blank=True,
-        help_text=_("Transmission de la donnée à l'organisme porteur ?")
+        related_name='operations',
+        db_column='id_suivi',
+        verbose_name=_("Suivi / Inventaire lié"),
+        help_text=_("Suivi ou inventaire associé à cette opération")
     )
 
     # Fréquence de l'action

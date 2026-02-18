@@ -4,6 +4,7 @@ Serializers pour l'API REST Opérations (Actions).
 from rest_framework import serializers
 
 from .models_operations import (
+    Protocole, SuiviInventaire,
     Operation, CorOperationIndicateur, CorOperationSite, CorOperationMetrique,
     OperationAnnee, FinanceOperation
 )
@@ -40,6 +41,62 @@ class FinanceOperationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_finance_operation']
 
 
+class ProtocoleSerializer(serializers.ModelSerializer):
+    """Serializer pour un protocole."""
+
+    class Meta:
+        model = Protocole
+        fields = [
+            'id_protocole',
+            'protocole_dans_campanule', 'protocole_campanule_nom',
+            'nom_protocole', 'mode_validation',
+            'respect_protocole', 'justification_non_respect', 'differences_protocole',
+            'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+            'date_ajout', 'date_maj',
+        ]
+        read_only_fields = ['id_protocole', 'date_ajout', 'date_maj']
+
+
+class SuiviInventaireSerializer(serializers.ModelSerializer):
+    """Serializer pour un suivi/inventaire (lecture)."""
+    protocole = ProtocoleSerializer(source='id_protocole', read_only=True)
+
+    class Meta:
+        model = SuiviInventaire
+        fields = [
+            'id_suivi_inventaire',
+            # Détails
+            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'annee_lancement_suivi',
+            # Protocole (nested)
+            'protocole',
+            # Bancarisation
+            'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+            # Audit
+            'date_ajout', 'date_maj',
+        ]
+        read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
+
+
+class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
+    """Serializer pour un suivi/inventaire (écriture, accepte protocole nested)."""
+    protocole = ProtocoleSerializer(required=False, allow_null=True)
+
+    class Meta:
+        model = SuiviInventaire
+        fields = [
+            'id_suivi_inventaire',
+            # Détails
+            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'annee_lancement_suivi',
+            # Protocole (nested writable)
+            'protocole',
+            # Bancarisation
+            'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+        ]
+        read_only_fields = ['id_suivi_inventaire']
+
+
 # =============================================================================
 # Serializer détaillé
 # =============================================================================
@@ -57,6 +114,7 @@ class OperationSerializer(serializers.ModelSerializer):
     nb_metriques = serializers.SerializerMethodField()
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
+    suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
 
     class Meta:
         model = Operation
@@ -67,12 +125,8 @@ class OperationSerializer(serializers.ModelSerializer):
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
-            # Détails inventaire/suivi
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
-            'protocole_dans_campanule', 'protocole_campanule_nom',
-            'respect_protocole', 'justification_non_respect', 'differences_protocole',
-            'annee_lancement_suivi', 'outil_bancarisation', 'outil_saisie',
-            'transmission_donnee',
+            # Suivi/inventaire
+            'est_suivi_existant', 'id_suivi', 'suivi_inventaire',
             # Fréquence & acteurs
             'frequence_nombre', 'frequence_unite',
             'operateurs', 'partenaires', 'financeurs',
@@ -135,12 +189,8 @@ class OperationListSerializer(serializers.ModelSerializer):
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
-            # Détails inventaire/suivi
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
-            'protocole_dans_campanule', 'protocole_campanule_nom',
-            'respect_protocole', 'justification_non_respect', 'differences_protocole',
-            'annee_lancement_suivi', 'outil_bancarisation', 'outil_saisie',
-            'transmission_donnee',
+            # Suivi/inventaire
+            'est_suivi_existant', 'id_suivi',
             # Fréquence & acteurs
             'frequence_nombre', 'frequence_unite',
             'operateurs', 'partenaires', 'financeurs',
@@ -199,6 +249,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     )
     operation_annees = OperationAnneeSerializer(many=True, required=False, default=[])
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
+    suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Operation
@@ -208,12 +259,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
-            # Détails inventaire/suivi
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
-            'protocole_dans_campanule', 'protocole_campanule_nom',
-            'respect_protocole', 'justification_non_respect', 'differences_protocole',
-            'annee_lancement_suivi', 'outil_bancarisation', 'outil_saisie',
-            'transmission_donnee',
+            # Suivi/inventaire
+            'est_suivi_existant', 'suivi_inventaire',
             # Fréquence & acteurs
             'frequence_nombre', 'frequence_unite',
             'operateurs', 'partenaires', 'financeurs',
@@ -249,6 +296,27 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         metrique_ids = validated_data.pop('metrique_ids', [])
         annees_data = validated_data.pop('operation_annees', [])
         finances_data = validated_data.pop('finances', [])
+        suivi_data = validated_data.pop('suivi_inventaire', None)
+
+        # Create SuiviInventaire if provided
+        if suivi_data:
+            user = validated_data.get('id_utilisateur_ajout')
+            protocole_data = suivi_data.pop('protocole', None)
+
+            # Create Protocole if provided
+            protocole = None
+            if protocole_data:
+                protocole = Protocole.objects.create(
+                    id_utilisateur_ajout=user,
+                    **protocole_data
+                )
+
+            suivi = SuiviInventaire.objects.create(
+                id_utilisateur_ajout=user,
+                id_protocole=protocole,
+                **suivi_data
+            )
+            validated_data['id_suivi'] = suivi
 
         operation = Operation.objects.create(**validated_data)
 
@@ -294,6 +362,51 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         metrique_ids = validated_data.pop('metrique_ids', None)
         annees_data = validated_data.pop('operation_annees', None)
         finances_data = validated_data.pop('finances', None)
+        suivi_data = validated_data.pop('suivi_inventaire', None)
+
+        # Handle nested suivi_inventaire
+        if suivi_data is not None:
+            user = validated_data.get('id_utilisateur_maj') or instance.id_utilisateur_ajout
+            protocole_data = suivi_data.pop('protocole', None)
+
+            if instance.id_suivi:
+                # Handle protocole nested in suivi
+                if protocole_data is not None:
+                    if instance.id_suivi.id_protocole:
+                        # Update existing Protocole
+                        for attr, value in protocole_data.items():
+                            setattr(instance.id_suivi.id_protocole, attr, value)
+                        instance.id_suivi.id_protocole.id_utilisateur_maj = user
+                        instance.id_suivi.id_protocole.save()
+                    else:
+                        # Create new Protocole
+                        protocole = Protocole.objects.create(
+                            id_utilisateur_ajout=user,
+                            **protocole_data
+                        )
+                        instance.id_suivi.id_protocole = protocole
+
+                # Update existing SuiviInventaire
+                for attr, value in suivi_data.items():
+                    setattr(instance.id_suivi, attr, value)
+                instance.id_suivi.id_utilisateur_maj = user
+                instance.id_suivi.save()
+            else:
+                # Create new Protocole if provided
+                protocole = None
+                if protocole_data:
+                    protocole = Protocole.objects.create(
+                        id_utilisateur_ajout=user,
+                        **protocole_data
+                    )
+
+                # Create new SuiviInventaire
+                suivi = SuiviInventaire.objects.create(
+                    id_utilisateur_ajout=user,
+                    id_protocole=protocole,
+                    **suivi_data
+                )
+                validated_data['id_suivi'] = suivi
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

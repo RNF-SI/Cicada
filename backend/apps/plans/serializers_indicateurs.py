@@ -184,8 +184,8 @@ class IndicateurSerializer(serializers.ModelSerializer):
         return obj.metriques.count()
 
     def get_operations(self, obj):
-        from .serializers_operations import OperationListSerializer
-        return OperationListSerializer(obj.operations.all(), many=True).data
+        from .serializers_operations import OperationSerializer
+        return OperationSerializer(obj.operations.all(), many=True).data
 
     def get_nb_operations(self, obj):
         return obj.operations.count()

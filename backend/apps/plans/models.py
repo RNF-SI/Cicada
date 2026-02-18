@@ -32,6 +32,8 @@ from .models_indicateurs import (
     Mesure,
 )
 from .models_operations import (
+    Protocole,
+    SuiviInventaire,
     Operation,
     CorOperationIndicateur,
     CorOperationSite,
