@@ -29,7 +29,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
   EtatActuel, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
-  MetriqueFormData, MetriqueCreatePayload, Operation
+  MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
@@ -74,6 +74,8 @@ export class EnjeuxListComponent implements OnInit {
 
   planId = signal<number | null>(null);
   planNom = signal<string>('');
+  planAnneeDebut = signal<number | null>(null);
+  planAnneeFin = signal<number | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
@@ -120,6 +122,9 @@ export class EnjeuxListComponent implements OnInit {
   editOltDescription = '';
   editNeLibelle = '';
   editNeDescription = '';
+
+  // Opérations expand/collapse
+  expandedOperationIds = signal<Set<number>>(new Set());
 
   // Indicateurs state
   expandedIndicateurIds = signal<Set<number>>(new Set());
@@ -257,6 +262,8 @@ export class EnjeuxListComponent implements OnInit {
     this.adminService.getPlan(id).subscribe({
       next: (plan) => {
         this.planNom.set(plan.nom);
+        this.planAnneeDebut.set(plan.annee_debut || null);
+        this.planAnneeFin.set(plan.annee_fin || null);
       },
       error: () => {
         // Non bloquant, on continue
@@ -1262,6 +1269,161 @@ export class EnjeuxListComponent implements OnInit {
     if (inf != null) return `≥ ${inf}`;
     if (sup != null) return `≤ ${sup}`;
     return '- - -';
+  }
+
+  // ============================================
+  // Operations (Actions) - Expand/collapse + helpers
+  // ============================================
+
+  toggleOperation(id: number): void {
+    this.expandedOperationIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) {
+        newIds.delete(id);
+      } else {
+        newIds.add(id);
+      }
+      return newIds;
+    });
+  }
+
+  isOperationExpanded(id: number): boolean {
+    return this.expandedOperationIds().has(id);
+  }
+
+  /**
+   * Get the plan's full year range for the programmation table.
+   * All operations use the same columns (plan years).
+   */
+  getPlanYears(): number[] {
+    const debut = this.planAnneeDebut();
+    const fin = this.planAnneeFin();
+    if (!debut || !fin) return [];
+    const years: number[] = [];
+    for (let y = debut; y <= fin; y++) {
+      years.push(y);
+    }
+    return years;
+  }
+
+  /**
+   * Get sorted year range for the programmation table (operation-specific fallback).
+   */
+  getOperationYears(op: Operation): number[] {
+    if (op.operation_annees && op.operation_annees.length > 0) {
+      return op.operation_annees
+        .map(a => a.annee)
+        .sort((a, b) => a - b);
+    }
+    // Fallback to annee_min/annee_max
+    if (op.annee_min && op.annee_max) {
+      const years: number[] = [];
+      for (let y = op.annee_min; y <= op.annee_max; y++) {
+        years.push(y);
+      }
+      return years;
+    }
+    return [];
+  }
+
+  /**
+   * Get OperationAnnee for a given year, or null.
+   */
+  getOperationAnnee(op: Operation, year: number): OperationAnnee | null {
+    if (!op.operation_annees) return null;
+    return op.operation_annees.find(a => a.annee === year) || null;
+  }
+
+  /**
+   * Check if an operation year is planned (periodicite or monthly planning).
+   */
+  isYearPlanned(op: Operation, year: number): boolean {
+    const annee = this.getOperationAnnee(op, year);
+    if (!annee) return false;
+    if (annee.periodicite) return true;
+    if (annee.periodicite_mensuelle) {
+      return Object.values(annee.periodicite_mensuelle).some(v => v === true);
+    }
+    return false;
+  }
+
+  /**
+   * Check if any year of the operation has monthly planning details.
+   */
+  hasAnyMonthlyPlanning(op: Operation): boolean {
+    if (!op.operation_annees) return false;
+    return op.operation_annees.some(a =>
+      a.periodicite_mensuelle && Object.values(a.periodicite_mensuelle).some(v => v === true)
+    );
+  }
+
+  private readonly monthNames = [
+    'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+    'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+  ];
+
+  /**
+   * Get list of planned month names for a given year.
+   */
+  getPlannedMonths(op: Operation, year: number): string[] {
+    const annee = this.getOperationAnnee(op, year);
+    if (!annee || !annee.periodicite_mensuelle) return [];
+    const months: string[] = [];
+    for (let m = 1; m <= 12; m++) {
+      if (annee.periodicite_mensuelle[m.toString()] === true) {
+        months.push(this.monthNames[m - 1]);
+      }
+    }
+    return months;
+  }
+
+  /**
+   * Get the planned months for the entire operation (same for all years).
+   * Takes the monthly planning from the first year that has it.
+   */
+  getPlannedMonthsForOperation(op: Operation): string[] {
+    if (!op.operation_annees) return [];
+    const anneeWithMonths = op.operation_annees.find(a =>
+      a.periodicite_mensuelle && Object.values(a.periodicite_mensuelle).some(v => v === true)
+    );
+    if (!anneeWithMonths || !anneeWithMonths.periodicite_mensuelle) return [];
+    const months: string[] = [];
+    for (let m = 1; m <= 12; m++) {
+      if (anneeWithMonths.periodicite_mensuelle[m.toString()] === true) {
+        months.push(this.monthNames[m - 1]);
+      }
+    }
+    return months;
+  }
+
+  /**
+   * Format budget value for display.
+   */
+  formatBudget(value: number | null | undefined): string {
+    if (value == null) return '-';
+    return value.toLocaleString('fr-FR') + '€';
+  }
+
+  /**
+   * Format ETP/travail value for display.
+   */
+  formatTravail(value: number | null | undefined): string {
+    if (value == null) return '-';
+    return value.toString();
+  }
+
+  /**
+   * Format frequency display.
+   */
+  getFrequenceDisplay(op: Operation): string {
+    if (!op.frequence_nombre || !op.frequence_unite) return '';
+    const unite = this.translate.instant('enjeux.operations.unite' + this.capitalizeFirst(op.frequence_unite));
+    return `${op.frequence_nombre} ${this.translate.instant('enjeux.operations.foisPar')} ${unite}`;
+  }
+
+  private capitalizeFirst(s: string): string {
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
 
   // ============================================

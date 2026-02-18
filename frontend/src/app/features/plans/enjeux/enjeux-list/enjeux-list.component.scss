@@ -1642,51 +1642,256 @@
 // OPERATIONS (ACTIONS)
 // ============================================
 
-.operations-title {
-  font-weight: $font-weight-bold;
-  font-size: $font-size-small;
-  color: $primary-color;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: $spacing-md 0 $spacing-xs 0;
-}
+// ============================================
+// OPERATION CARDS (expandable)
+// ============================================
 
 .operation-card {
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-sm;
-  padding: $spacing-sm $spacing-md;
-  margin-bottom: $spacing-xs;
-  background: $white;
+  border: 1px solid $secondary-yellow;
+  border-radius: 0 20px 0 20px;
+  margin-bottom: $spacing-sm;
+  background: rgba($secondary-yellow, 0.08);
   transition: border-color $transition-fast;
+  overflow: hidden;
+  padding: $spacing-md;
 
   &:hover {
-    border-color: $primary-color;
+    border-color: darken($secondary-yellow, 10%);
+  }
+
+  &.expanded {
+    border-color: $secondary-yellow;
   }
 }
 
 .operation-header {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  cursor: pointer;
+  gap: $spacing-md;
+
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
-.operation-libelle {
-  font-weight: $font-weight-semibold;
-  font-size: $font-size-base;
-  color: $black;
+.operation-header-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
   flex: 1;
   min-width: 0;
 }
 
-.operation-code {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: $border-radius-sm;
-  font-size: 11px;
+.operation-ellipse {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.operation-libelle {
   font-weight: $font-weight-bold;
-  background: rgba($gray-light, 0.5);
+  font-size: 20px;
+  line-height: 30px;
+  color: $black;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.operation-header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  flex-shrink: 0;
+}
+
+.expand-arrow-op {
+  font-size: 18px;
   color: $gray-dark;
+  transition: transform 0.2s;
+}
+
+// Expanded content
+.operation-expanded-content {
+  padding-top: $spacing-md;
+}
+
+.operation-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.operation-meta-item {
+  display: flex;
+  gap: $spacing-xs;
+  font-size: 15px;
+  line-height: 24px;
+  color: $black;
+
+  .meta-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+  }
+}
+
+.operation-section {
+  margin-bottom: $spacing-md;
+}
+
+.operation-section-separator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md 0 $spacing-xs 0;
+
+  .separator-line {
+    width: 214px;
+    height: 1px;
+    background: $gray-lighter;
+  }
+}
+
+.operation-section-title {
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 24px;
+  margin: 0 0 $spacing-sm 0;
+}
+
+.operation-detail-line {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xxs;
+  font-size: 15px;
+  line-height: 24px;
+
+  .detail-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+    white-space: nowrap;
+    min-width: fit-content;
+  }
+
+  .detail-value {
+    color: $black;
+  }
+}
+
+.operation-actors-section {
+  margin-bottom: $spacing-md;
+}
+
+.operation-description {
+  font-size: 15px;
+  color: $black;
+  margin: 0;
+  line-height: 24px;
+}
+
+// Programmation table
+.programmation-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: $spacing-sm;
+}
+
+.programmation-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+  font-size: 15px;
+  line-height: 24px;
+
+  th, td {
+    padding: 12px $spacing-md;
+    text-align: center;
+    border: 1px solid $gray-lighter;
+  }
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    font-weight: $font-weight-bold;
+    font-size: 15px;
+    line-height: 24px;
+    white-space: nowrap;
+    border-color: $white;
+    height: 44px;
+  }
+
+  .prog-label-col {
+    text-align: left;
+    min-width: 200px;
+  }
+
+  .prog-year-col {
+    min-width: 70px;
+  }
+
+  .prog-label-cell {
+    text-align: left;
+    font-weight: $font-weight-bold;
+    color: $black;
+    font-size: 15px;
+    background: $white;
+    white-space: nowrap;
+  }
+
+  .prog-cell {
+    font-size: 15px;
+    color: $black;
+    vertical-align: middle;
+    background: $white;
+    height: 64px;
+  }
+
+  .prog-budget {
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+  }
+
+  .prog-dash {
+    color: $gray;
+  }
+
+  .prog-months-cell {
+    font-size: 13px;
+    color: $gray-dark;
+    line-height: 1.4;
+  }
+}
+
+.prevu-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.monthly-planning {
+  display: flex;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  font-size: 15px;
+  line-height: 24px;
+
+  .monthly-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+  }
+
+  .monthly-months {
+    color: $black;
+    font-weight: $font-weight-bold;
+  }
 }
 
 .priority-chip {
@@ -1708,26 +1913,6 @@
   &.priority-3 {
     background: $info-color;
   }
-}
-
-.operation-actions {
-  margin-left: auto;
-  display: flex;
-  gap: $spacing-xxs;
-}
-
-.operation-description {
-  font-size: $font-size-small;
-  color: $gray-dark;
-  margin: $spacing-xxs 0 0 0;
-  line-height: 1.4;
-}
-
-.operation-period {
-  display: inline-block;
-  font-size: $font-size-small;
-  color: $gray;
-  margin-top: $spacing-xxs;
 }
 
 // Operation form
