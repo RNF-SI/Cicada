@@ -4,11 +4,12 @@ Tests d'intégration pour l'API REST Opérations (Actions).
 import pytest
 from rest_framework import status
 
-from apps.plans.models_operations import Operation, CorOperationIndicateur
+from apps.plans.models_operations import Operation, Protocole, SuiviInventaire, CorOperationIndicateur
 from tests.factories.enjeux import (
     EnjeuFactory, NomenclatureEnjeuFactory,
     ObjectifLongTermeFactory, NiveauExigenceFactory,
-    IndicateurFactory, OperationFactory, CorOperationIndicateurFactory,
+    IndicateurFactory, ProtocoleFactory, SuiviInventaireFactory, OperationFactory,
+    CorOperationIndicateurFactory,
     NomenclaturePrioriteOperationFactory,
 )
 from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
@@ -282,6 +283,42 @@ class TestOperationCreateEndpoint:
         op = Operation.objects.get(libelle='Opération Audit')
         assert op.id_utilisateur_ajout == operation_test_data['super_admin']
 
+    def test_create_with_suivi_inventaire(self, api_client, operation_test_data):
+        """Test creating operation with nested suivi_inventaire and protocole."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Opération avec suivi',
+            'est_suivi_existant': False,
+            'suivi_inventaire': {
+                'objectif_principal': 'conservation',
+                'cibles_principales': 'flore',
+                'taxon_taxref': 'Taxon Test',
+                'protocole': {
+                    'protocole_dans_campanule': True,
+                    'protocole_campanule_nom': 'Proto Test',
+                },
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        op = Operation.objects.get(libelle='Opération avec suivi')
+        assert op.id_suivi is not None
+        assert op.id_suivi.objectif_principal == 'conservation'
+        assert op.id_suivi.cibles_principales == 'flore'
+        assert op.id_suivi.id_protocole is not None
+        assert op.id_suivi.id_protocole.protocole_dans_campanule is True
+        assert op.id_suivi.id_protocole.protocole_campanule_nom == 'Proto Test'
+
+    def test_create_without_suivi_inventaire(self, api_client, operation_test_data):
+        """Test creating operation without suivi_inventaire."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Opération sans suivi',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        op = Operation.objects.get(libelle='Opération sans suivi')
+        assert op.id_suivi is None
+        assert op.est_suivi_existant is False
+
 
 # =============================================================================
 # TestOperationDetailEndpoint
@@ -336,6 +373,39 @@ class TestOperationDetailEndpoint:
         op_id = operation_test_data['op1'].id_operation
         response = api_client.get(f'/api/plans/operations/{op_id}/')
         assert 'createur_nom' in response.data
+
+    def test_detail_includes_est_suivi_existant(self, api_client, operation_test_data):
+        """Test detail includes est_suivi_existant field."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert 'est_suivi_existant' in response.data
+        assert response.data['est_suivi_existant'] is False
+
+    def test_detail_includes_suivi_inventaire(self, api_client, operation_test_data):
+        """Test detail includes nested suivi_inventaire with protocole when linked."""
+        protocole = ProtocoleFactory(
+            protocole_dans_campanule=True,
+            protocole_campanule_nom='Proto Detail Test',
+            id_utilisateur_ajout=operation_test_data['referent']
+        )
+        suivi = SuiviInventaireFactory(
+            objectif_principal='test objectif',
+            id_protocole=protocole,
+            id_utilisateur_ajout=operation_test_data['referent']
+        )
+        op = operation_test_data['op1']
+        op.id_suivi = suivi
+        op.save(update_fields=['id_suivi'])
+
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.get(f'/api/plans/operations/{op.id_operation}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['suivi_inventaire'] is not None
+        assert response.data['suivi_inventaire']['objectif_principal'] == 'test objectif'
+        assert response.data['suivi_inventaire']['protocole'] is not None
+        assert response.data['suivi_inventaire']['protocole']['protocole_campanule_nom'] == 'Proto Detail Test'
 
     def test_nonexistent_id_returns_404(self, api_client, operation_test_data):
         """Test nonexistent ID returns 404."""

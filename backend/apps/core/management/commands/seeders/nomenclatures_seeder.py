@@ -3,6 +3,7 @@ Seeder pour les nomenclatures.
 """
 from typing import Any, Dict, List
 
+from django.db import connection
 from apps.core.models import TypeNomenclature, Nomenclature
 
 from .base import BaseSeeder
@@ -54,6 +55,34 @@ class NomenclaturesSeeder(BaseSeeder):
         {'id': 50, 'mnemonique': 'Autre', 'label': 'Autre'},
     ]
 
+    # Types de suivi/inventaire
+    TYPE_SUIVI_VALUES = [
+        {'mnemonique': 'SUIVI', 'label': 'Suivi'},
+        {'mnemonique': 'INVENTAIRE', 'label': 'Inventaire'},
+        {'mnemonique': 'SUIVI_INVENTAIRE', 'label': 'Suivi et inventaire'},
+    ]
+
+    STATUT_SUIVI_VALUES = [
+        {'mnemonique': 'EN_COURS', 'label': 'En cours'},
+        {'mnemonique': 'TERMINE', 'label': 'Termine'},
+        {'mnemonique': 'A_VENIR', 'label': 'A venir'},
+    ]
+
+    OBJECTIF_SUIVI_VALUES = [
+        {'mnemonique': 'CONSERVATION', 'label': 'Conservation'},
+        {'mnemonique': 'CONNAISSANCE', 'label': 'Connaissance'},
+        {'mnemonique': 'EVALUATION', 'label': 'Evaluation'},
+        {'mnemonique': 'SURVEILLANCE', 'label': 'Surveillance'},
+    ]
+
+    CIBLE_SUIVI_VALUES = [
+        {'mnemonique': 'FLORE', 'label': 'Flore'},
+        {'mnemonique': 'FAUNE', 'label': 'Faune'},
+        {'mnemonique': 'HABITAT', 'label': 'Habitat'},
+        {'mnemonique': 'PROCESSUS', 'label': 'Processus ecologiques'},
+        {'mnemonique': 'PAYSAGE', 'label': 'Paysage'},
+    ]
+
     def seed(self) -> Dict[str, TypeNomenclature]:
         """
         Cree les nomenclatures.
@@ -62,6 +91,15 @@ class NomenclaturesSeeder(BaseSeeder):
             Dict avec les types de nomenclature crees
         """
         self.log_header('Creation des nomenclatures')
+
+        # Fix sequence if out of sync (SQL imports may not update it)
+        max_id = TypeNomenclature.objects.order_by('-id_type').values_list('id_type', flat=True).first()
+        if max_id:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT setval(pg_get_serial_sequence('ref_nomenclatures.bib_nomenclatures_types', 'id_type'), %s, true)",
+                    [max_id]
+                )
 
         # Creer les types de nomenclature
         type_site, _ = TypeNomenclature.objects.get_or_create(
@@ -122,12 +160,81 @@ class NomenclaturesSeeder(BaseSeeder):
             )
             self.log_item('redac', f"{rt['label']} ({rt['mnemonique']})")
 
+        # Creer les types et nomenclatures pour suivis/inventaires
+        type_suivi, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='TYPE_SUIVI',
+            defaults={'label': 'Type de suivi/inventaire'}
+        )
+        for val in self.TYPE_SUIVI_VALUES:
+            Nomenclature.objects.update_or_create(
+                id_type=type_suivi,
+                mnemonique=val['mnemonique'],
+                defaults={
+                    'cd_nomenclature': val['mnemonique'],
+                    'label': val['label'],
+                    'actif': True
+                }
+            )
+            self.log_item('type_suivi', f"{val['label']} ({val['mnemonique']})")
+
+        type_statut_suivi, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='STATUT_SUIVI',
+            defaults={'label': 'Statut du suivi/inventaire'}
+        )
+        for val in self.STATUT_SUIVI_VALUES:
+            Nomenclature.objects.update_or_create(
+                id_type=type_statut_suivi,
+                mnemonique=val['mnemonique'],
+                defaults={
+                    'cd_nomenclature': val['mnemonique'],
+                    'label': val['label'],
+                    'actif': True
+                }
+            )
+            self.log_item('statut_suivi', f"{val['label']} ({val['mnemonique']})")
+
+        type_objectif_suivi, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='OBJECTIF_SUIVI',
+            defaults={'label': 'Objectif du suivi/inventaire'}
+        )
+        for val in self.OBJECTIF_SUIVI_VALUES:
+            Nomenclature.objects.update_or_create(
+                id_type=type_objectif_suivi,
+                mnemonique=val['mnemonique'],
+                defaults={
+                    'cd_nomenclature': val['mnemonique'],
+                    'label': val['label'],
+                    'actif': True
+                }
+            )
+            self.log_item('objectif_suivi', f"{val['label']} ({val['mnemonique']})")
+
+        type_cible_suivi, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='CIBLE_SUIVI',
+            defaults={'label': 'Cible du suivi/inventaire'}
+        )
+        for val in self.CIBLE_SUIVI_VALUES:
+            Nomenclature.objects.update_or_create(
+                id_type=type_cible_suivi,
+                mnemonique=val['mnemonique'],
+                defaults={
+                    'cd_nomenclature': val['mnemonique'],
+                    'label': val['label'],
+                    'actif': True
+                }
+            )
+            self.log_item('cible_suivi', f"{val['label']} ({val['mnemonique']})")
+
         self.log('  Nomenclatures creees', 'SUCCESS')
 
         result = {
             'type_site': type_site,
             'type_eval': type_eval,
-            'type_redac': type_redac
+            'type_redac': type_redac,
+            'type_suivi': type_suivi,
+            'type_statut_suivi': type_statut_suivi,
+            'type_objectif_suivi': type_objectif_suivi,
+            'type_cible_suivi': type_cible_suivi,
         }
         self.context.set('nomenclatures', result)
         return result
@@ -150,8 +257,12 @@ class NomenclaturesSeeder(BaseSeeder):
         """
         return [
             '\nNomenclatures:',
-            '  - 3 types de nomenclature (site, evaluation, redacteur)',
+            '  - 7 types de nomenclature (site, evaluation, redacteur, type_suivi, statut_suivi, objectif_suivi, cible_suivi)',
             '  - 8 types de site (RNN, RNR, RNC, PPRN, PNR, ENS, APB, Autre)',
             "  - 3 types d'evaluation",
             '  - 3 types de redacteur',
+            '  - 3 types de suivi (Suivi, Inventaire, Suivi et inventaire)',
+            '  - 3 statuts de suivi (En cours, Termine, A venir)',
+            '  - 4 objectifs de suivi (Conservation, Connaissance, Evaluation, Surveillance)',
+            '  - 5 cibles de suivi (Flore, Faune, Habitat, Processus ecologiques, Paysage)',
         ]

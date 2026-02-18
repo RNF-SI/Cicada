@@ -13,7 +13,7 @@ from apps.plans.models_enjeux import (
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, CorIndicateurTaxon,
 )
-from apps.plans.models_operations import Operation, CorOperationIndicateur
+from apps.plans.models_operations import Protocole, SuiviInventaire, Operation, CorOperationIndicateur
 from tests.factories.core import TypeNomenclatureFactory, NomenclatureFactory
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -307,6 +307,42 @@ class CorIndicateurTaxonFactory(DjangoModelFactory):
 # =============================================================================
 # Operation factories
 # =============================================================================
+
+class ProtocoleFactory(DjangoModelFactory):
+    """Factory for Protocole model."""
+
+    class Meta:
+        model = Protocole
+
+    protocole_dans_campanule = None
+    protocole_campanule_nom = ''
+    respect_protocole = None
+    justification_non_respect = ''
+    differences_protocole = ''
+    description_protocole = ''
+    objectif_protocole = ''
+    periode_echantillonnage = ''
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
+class SuiviInventaireFactory(DjangoModelFactory):
+    """Factory for SuiviInventaire model."""
+
+    class Meta:
+        model = SuiviInventaire
+
+    intitule = factory.Sequence(lambda n: f'Suivi Test {n}')
+    actif = True
+    objectif_principal = 'conservation'
+    cibles_principales = 'flore'
+    taxon_taxref = ''
+    annee_lancement_suivi = None
+    id_protocole = None
+    outil_bancarisation = ''
+    outil_saisie = ''
+    transmission_donnee = None
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
 
 class PrioriteOperationTypeFactory(TypeNomenclatureFactory):
     """Factory for TypeNomenclature PRIORITE_OPERATION."""

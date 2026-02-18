@@ -29,10 +29,19 @@ from apps.users.models import Role, BibOrganismes, Site
 from apps.core.models import Module, Nomenclature, ErrorLog, ActivityLog
 from apps.plans.models import PlanGestion
 from apps.plans.models_enjeux import (
-    Enjeu, Responsabilite,
+    Enjeu, FacteurInfluence, Pression, Responsabilite,
+    EtatActuel, ObjectifLongTerme, NiveauExigence,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
+)
+from apps.plans.models_indicateurs import (
+    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
+    CorIndicateurGeologie, Metrique, Mesure
+)
+from apps.plans.models_operations import (
+    Protocole, SuiviInventaire, Operation, CorOperationIndicateur,
+    CorOperationSite, OperationAnnee, FinanceOperation
 )
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
@@ -224,18 +233,39 @@ class Command(BaseCommand):
         self.stdout.write(f'  Demandes de validation supprimees: {count}')
 
     def _delete_enjeux(self):
-        """Supprime les enjeux, FCR, responsabilites et leurs correlations."""
+        """Supprime les enjeux, FCR, responsabilites, indicateurs, operations et leurs correlations."""
         count = 0
+        # Operations et dépendances
+        count += FinanceOperation.objects.all().delete()[0]
+        count += OperationAnnee.objects.all().delete()[0]
+        count += CorOperationSite.objects.all().delete()[0]
+        count += CorOperationIndicateur.objects.all().delete()[0]
+        count += Operation.objects.all().delete()[0]
+        count += SuiviInventaire.objects.all().delete()[0]
+        count += Protocole.objects.all().delete()[0]
+        # Indicateurs et dépendances
+        count += Mesure.objects.all().delete()[0]
+        count += Metrique.objects.all().delete()[0]
+        count += CorIndicateurTaxon.objects.all().delete()[0]
+        count += CorIndicateurHabitat.objects.all().delete()[0]
+        count += CorIndicateurGeologie.objects.all().delete()[0]
+        count += Indicateur.objects.all().delete()[0]
+        # Enjeux sous-entités
+        count += NiveauExigence.objects.all().delete()[0]
+        count += ObjectifLongTerme.objects.all().delete()[0]
+        count += EtatActuel.objects.all().delete()[0]
+        count += Pression.objects.all().delete()[0]
+        count += FacteurInfluence.objects.all().delete()[0]
+        # Corrélations
         count += CorResponsabiliteEnjeu.objects.all().delete()[0]
         count += CorResponsabiliteTaxon.objects.all().delete()[0]
         count += CorResponsabiliteHabitat.objects.all().delete()[0]
-        count += CorResponsabiliteGeologie.objects.all().delete()[0]
         count += CorEnjeuTaxon.objects.all().delete()[0]
         count += CorEnjeuHabitat.objects.all().delete()[0]
         count += CorEnjeuGeologie.objects.all().delete()[0]
         count += Responsabilite.objects.all().delete()[0]
         count += Enjeu.objects.all().delete()[0]
-        self.stdout.write(f'  Enjeux et responsabilites supprimes: {count}')
+        self.stdout.write(f'  Enjeux, indicateurs et operations supprimes: {count}')
 
     def _delete_plans(self):
         """Supprime les plans de gestion."""

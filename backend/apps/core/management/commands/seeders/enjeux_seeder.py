@@ -16,7 +16,10 @@ from apps.plans.models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
     CorIndicateurGeologie, Metrique, Mesure
 )
-from apps.plans.models_operations import Operation, CorOperationIndicateur
+from apps.plans.models_operations import (
+    Protocole, SuiviInventaire, Operation, CorOperationIndicateur,
+    CorOperationSite, OperationAnnee, FinanceOperation
+)
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
@@ -1640,24 +1643,11 @@ class EnjeuxSeeder(BaseSeeder):
             nes_created.append(ne2)
             self.log_item('créé' if created else 'mis à jour', f'NE: {ne2.libelle[:50]}')
 
-        # Remoray - EEE : état actuel + OLT + NE
+        # Remoray - EEE : OLT + état actuel + NE
         enjeu_eee = next((e for e in enjeux_created if e.intitule_court == 'EEE'), None)
         if enjeu_eee:
-            etat, created = EtatActuel.objects.update_or_create(
-                id_enjeu=enjeu_eee,
-                libelle='Colonisation active par les espèces exotiques envahissantes',
-                defaults={
-                    'description': 'Présence confirmée de Renouée du Japon sur 3 stations '
-                                   'le long du Drugeon et d\'Écrevisse de Californie dans le lac. '
-                                   'Expansion des stations de Renouée de +15% sur 3 ans.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            etats_created.append(etat)
-            self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
-
             olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_etat=etat,
+                id_enjeu=enjeu_eee,
                 libelle='Contenir et réduire les populations d\'EEE',
                 defaults={
                     'description': 'Empêcher l\'extension des espèces exotiques '
@@ -1668,6 +1658,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             olts_created.append(olt)
             self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
+
+            etat, created = EtatActuel.objects.update_or_create(
+                id_olt=olt,
+                libelle='Colonisation active par la Renouée du Japon',
+                defaults={
+                    'description': 'La Renouée du Japon colonise activement les berges '
+                                   'du lac et les zones humides adjacentes, menaçant '
+                                   'la biodiversité locale par compétition.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            etats_created.append(etat)
+            self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -2716,6 +2719,284 @@ class EnjeuxSeeder(BaseSeeder):
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
+        # ============================================
+        # Enrichir les opérations avec données détaillées
+        # (programmation annuelle, finances, suivi, fréquence, etc.)
+        # ============================================
+        self.log_header('Enrichissement des opérations avec données détaillées')
+
+        type_action_se = self._get_nomenclature('TYPE_ACTION', 'SUIVI_EVALUATION')
+        type_action_cs = self._get_nomenclature('TYPE_ACTION', 'CONNAISSANCE_SCIENTIFIQUE')
+        type_action_ge = self._get_nomenclature('TYPE_ACTION', 'GESTION_ENTRETIEN')
+        type_action_cc = self._get_nomenclature('TYPE_ACTION', 'COMMUNICATION')
+        operateur_agent = self._get_nomenclature('OPERATEUR_TYPE', 'AGENT_RESERVE')
+        operateur_presta = self._get_nomenclature('OPERATEUR_TYPE', 'PRESTATAIRE')
+        cat_finance_region = self._get_nomenclature('CATEGORIE_FINANCE', 'REGION')
+        cat_finance_dept = self._get_nomenclature('CATEGORIE_FINANCE', 'DEPARTEMENT')
+        cat_finance_etat = self._get_nomenclature('CATEGORIE_FINANCE', 'ETAT')
+        cat_finance_europe = self._get_nomenclature('CATEGORIE_FINANCE', 'EUROPE')
+
+        annees_created = 0
+        finances_created = 0
+        suivis_created = 0
+
+        for op in operations_created:
+            # Set type_action based on id_referentiel_operations
+            ref_to_type = {
+                'SE': type_action_se, 'CS': type_action_cs,
+                'GE': type_action_ge, 'CC': type_action_cc,
+            }
+            if op.id_referentiel_operations and op.id_referentiel_operations in ref_to_type:
+                ta = ref_to_type[op.id_referentiel_operations]
+                if ta:
+                    op.id_type_action = ta
+
+            # Set frequency and operators for all ops
+            op.frequence_nombre = 1
+            op.frequence_unite = 'an'
+            op.operateurs = 'Agent de la réserve'
+            op.save()
+
+            # Create OperationAnnee entries
+            if op.annee_min and op.annee_max:
+                # Same months for all years (as in the form: monthly template applied to all years)
+                mens = {"3": True, "4": True, "5": True, "6": True}
+                for year in range(op.annee_min, op.annee_max + 1):
+                    budget = 1200 if year % 3 != 0 else 700
+                    etp = 5 if year % 2 == 0 else 3
+
+                    oa, _ = OperationAnnee.objects.update_or_create(
+                        id_operation=op, annee=year,
+                        defaults={
+                            'periodicite': True,
+                            'budget': budget,
+                            'etp': etp,
+                            'id_operateur': operateur_agent if year % 2 == 0 else operateur_presta,
+                            'periodicite_mensuelle': mens,
+                        }
+                    )
+                    annees_created += 1
+
+        # Create SuiviInventaire + Protocole + finances for the first 3 operations (for variety)
+        protocoles_created = 0
+        for i, op in enumerate(operations_created[:3]):
+            # Create Protocole for first 2 operations
+            protocole = None
+            if i < 2:
+                protocole = Protocole.objects.create(
+                    protocole_dans_campanule=i == 0,
+                    protocole_campanule_nom='Protocole STOC' if i == 0 else 'Protocole CMR',
+                    respect_protocole=True if i == 0 else None,
+                    justification_non_respect='',
+                    differences_protocole='',
+                    description_protocole='Suivi Temporel des Oiseaux Communs' if i == 0
+                        else 'Capture-Marquage-Recapture pour suivi démographique',
+                    objectif_protocole='Évaluer les tendances des populations d\'oiseaux communs' if i == 0
+                        else 'Estimer les effectifs et la dynamique des populations',
+                    periode_echantillonnage='Avril - Juin' if i == 0 else 'Mai - Septembre',
+                    id_utilisateur_ajout=admin,
+                )
+                protocoles_created += 1
+                self.log_item('créé', f'Protocole: {protocole.protocole_campanule_nom}')
+
+            suivi_intitules = [
+                'Suivi entomologique des carabiques',
+                'Suivi démographique du flamant rose',
+                'Cartographie évolutive des habitats',
+            ]
+            suivi = SuiviInventaire.objects.create(
+                intitule=suivi_intitules[i],
+                objectif_principal='Suivre les populations à enjeu' if i == 0
+                    else 'Évaluer l\'état de conservation' if i == 1
+                    else 'Cartographier l\'évolution spatiale',
+                cibles_principales='Flore' if i == 0 else 'Faune' if i == 1 else 'Habitats',
+                taxon_taxref='Coléoptères, Carabidae' if i == 0 else 'Phoenicopterus roseus' if i == 1 else '',
+                annee_lancement_suivi=1998 if i == 0 else 2010 if i == 1 else None,
+                id_protocole=protocole,
+                outil_bancarisation='SERENA' if i == 0 else 'GeoNature' if i == 1 else '',
+                outil_saisie='Formulaire terrain' if i <= 1 else '',
+                transmission_donnee=True if i == 0 else None,
+                id_utilisateur_ajout=admin,
+            )
+            op.est_suivi_existant = False
+            op.id_suivi = suivi
+            op.save()
+            suivis_created += 1
+            self.log_item('créé', f'SuiviInventaire pour: {op.libelle[:50]}')
+
+            # Finances for enriched ops
+            finances_data = [
+                ('Région Auvergne-Rhône-Alpes', cat_finance_region),
+                ('DREAL', cat_finance_etat),
+            ]
+            if i == 0:
+                finances_data.append(('Agence de l\'Eau', cat_finance_dept))
+            for lib, cat in finances_data:
+                FinanceOperation.objects.update_or_create(
+                    id_operation=op, libelle=lib,
+                    defaults={'id_categorie': cat}
+                )
+                finances_created += 1
+
+        # Add finances to remaining operations (without suivi)
+        for op in operations_created[3:]:
+            FinanceOperation.objects.update_or_create(
+                id_operation=op, libelle='DREAL',
+                defaults={'id_categorie': cat_finance_etat}
+            )
+            finances_created += 1
+
+        # Link first few operations to sites
+        site_camargue = sites[0] if len(sites) > 0 else None
+        site_aiguilles = sites[1] if len(sites) > 1 else None
+        site_remoray = sites[6] if len(sites) > 6 else None
+
+        site_map = {}
+        for op in operations_created:
+            code = op.code_operation or ''
+            if code.startswith('CAM'):
+                site_map[op.id_operation] = site_camargue
+            elif code.startswith('AR'):
+                site_map[op.id_operation] = site_aiguilles
+            elif code.startswith('REM'):
+                site_map[op.id_operation] = site_remoray
+
+        for op_id, site in site_map.items():
+            if site:
+                CorOperationSite.objects.get_or_create(
+                    id_operation_id=op_id, id_site=site
+                )
+
+        # =====================================================================
+        # Standalone SuiviInventaire (not linked to operations)
+        # =====================================================================
+        standalone_suivis_created = 0
+
+        # Get nomenclatures for standalone suivis
+        type_suivi = self._get_nomenclature('TYPE_SUIVI', 'SUIVI')
+        type_inventaire = self._get_nomenclature('TYPE_SUIVI', 'INVENTAIRE')
+        type_suivi_inv = self._get_nomenclature('TYPE_SUIVI', 'SUIVI_INVENTAIRE')
+        statut_en_cours = self._get_nomenclature('STATUT_SUIVI', 'EN_COURS')
+        statut_termine = self._get_nomenclature('STATUT_SUIVI', 'TERMINE')
+        statut_a_venir = self._get_nomenclature('STATUT_SUIVI', 'A_VENIR')
+
+        # Reference to first plan for some suivis
+        plan_ref = plans[0] if plans else None
+
+        standalone_data = [
+            {
+                'intitule': 'Suivi phénologique des orchidées',
+                'objectif_principal': 'Évaluer les dates de floraison',
+                'cibles_principales': 'Flore',
+                'taxon_taxref': 'Orchidaceae',
+                'annee_lancement_suivi': 2022,
+                'actif': True,
+                'id_type_suivi': type_suivi,
+                'id_statut': statut_en_cours,
+                'integre_plan_gestion': True,
+                'id_pg': plan_ref,
+                'commentaires': 'Suivi mensuel d\'avril à juillet',
+                'frequence_nombre': 1,
+                'frequence_unite': 'mois',
+            },
+            {
+                'intitule': 'Inventaire chiroptères estival',
+                'objectif_principal': 'Dénombrer les colonies de reproduction',
+                'cibles_principales': 'Faune',
+                'taxon_taxref': 'Chiroptera',
+                'annee_lancement_suivi': 2019,
+                'actif': True,
+                'id_type_suivi': type_inventaire,
+                'id_statut': statut_en_cours,
+                'integre_plan_gestion': False,
+                'commentaires': 'Comptage en sortie de gîte',
+                'frequence_nombre': 2,
+                'frequence_unite': 'an',
+            },
+            {
+                'intitule': 'Suivi qualité des eaux de surface',
+                'objectif_principal': 'Surveiller les paramètres physico-chimiques',
+                'cibles_principales': 'Habitat',
+                'annee_lancement_suivi': 2015,
+                'annee_fin_suivi': 2025,
+                'actif': True,
+                'id_type_suivi': type_suivi,
+                'id_statut': statut_en_cours,
+                'integre_plan_gestion': True,
+                'id_pg': plan_ref,
+                'commentaires': 'Prélèvements trimestriels',
+                'frequence_nombre': 4,
+                'frequence_unite': 'an',
+                'prix_indicatif': 3500,
+            },
+            {
+                'intitule': 'Inventaire bryophytes tourbières',
+                'objectif_principal': 'Cartographier la diversité bryologique',
+                'cibles_principales': 'Flore',
+                'annee_lancement_suivi': 2020,
+                'annee_fin_suivi': 2022,
+                'actif': False,
+                'id_type_suivi': type_inventaire,
+                'id_statut': statut_termine,
+                'commentaires': 'Inventaire terminé, rapport final disponible',
+            },
+            {
+                'intitule': 'Suivi et inventaire amphibiens',
+                'objectif_principal': 'Suivre les populations d\'amphibiens',
+                'cibles_principales': 'Faune',
+                'taxon_taxref': 'Amphibia',
+                'annee_lancement_suivi': 2024,
+                'actif': True,
+                'id_type_suivi': type_suivi_inv,
+                'id_statut': statut_en_cours,
+                'integre_plan_gestion': False,
+                'commentaires': 'Points d\'écoute nocturne + pêche électrique',
+                'frequence_nombre': 3,
+                'frequence_unite': 'an',
+                'prix_indicatif': 5000,
+            },
+            {
+                'intitule': 'Suivi photographique des paysages',
+                'objectif_principal': 'Documenter l\'évolution paysagère',
+                'cibles_principales': 'Paysage',
+                'annee_lancement_suivi': 2026,
+                'actif': True,
+                'id_type_suivi': type_suivi,
+                'id_statut': statut_a_venir,
+                'commentaires': 'Points de vue fixes, photographies saisonnières',
+                'frequence_nombre': 4,
+                'frequence_unite': 'an',
+            },
+            {
+                'intitule': 'Inventaire entomologique prairies',
+                'objectif_principal': 'Recenser la diversité des insectes pollinisateurs',
+                'cibles_principales': 'Faune',
+                'annee_lancement_suivi': 2016,
+                'annee_fin_suivi': 2019,
+                'actif': False,
+                'id_type_suivi': type_inventaire,
+                'id_statut': statut_termine,
+                'commentaires': 'Étude terminée, résultats publiés',
+            },
+        ]
+
+        for data in standalone_data:
+            prix = data.pop('prix_indicatif', None)
+            suivi = SuiviInventaire.objects.create(
+                id_utilisateur_ajout=admin,
+                **data,
+            )
+            if prix is not None:
+                suivi.prix_indicatif = prix
+                suivi.save()
+            standalone_suivis_created += 1
+            self.log_item('créé', f'Standalone suivi: {suivi.intitule[:50]}')
+
+        self.log_summary(annees_created, 'années de programmation')
+        self.log_summary(finances_created, 'sources de financement')
+        self.log_summary(protocoles_created, 'protocoles')
+        self.log_summary(suivis_created + standalone_suivis_created, 'suivis/inventaires (dont {} standalone)'.format(standalone_suivis_created))
+
         self.log_summary(len(enjeux_created), 'enjeux')
         self.log_summary(len(fcr_created), 'FCR')
         self.log_summary(len(responsabilites_created), 'responsabilités')
@@ -2746,8 +3027,13 @@ class EnjeuxSeeder(BaseSeeder):
             Nombre total d'éléments supprimés
         """
         count = 0
+        count += FinanceOperation.objects.all().delete()[0]
+        count += OperationAnnee.objects.all().delete()[0]
+        count += CorOperationSite.objects.all().delete()[0]
         count += CorOperationIndicateur.objects.all().delete()[0]
         count += Operation.objects.all().delete()[0]
+        count += SuiviInventaire.objects.all().delete()[0]
+        count += Protocole.objects.all().delete()[0]
         count += Mesure.objects.all().delete()[0]
         count += Metrique.objects.all().delete()[0]
         count += CorIndicateurTaxon.objects.all().delete()[0]
