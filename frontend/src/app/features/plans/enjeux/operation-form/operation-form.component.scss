@@ -558,6 +558,28 @@ $form-side-margin: $spacing-xxl;
 }
 
 // ═══════════════════════════════════════════════
+// Readonly Sections (when suivi existant = Oui)
+// ═══════════════════════════════════════════════
+.readonly-section {
+  background-color: $gray-lighter;
+  pointer-events: none;
+
+  .section-header {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .section-content {
+    opacity: 0.7;
+  }
+}
+
+.empty-select-hint {
+  color: $gray-dark;
+  font-style: italic;
+}
+
+// ═══════════════════════════════════════════════
 // Action Bar
 // ═══════════════════════════════════════════════
 .action-bar {

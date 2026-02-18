@@ -22,7 +22,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation, SuiviInventaire } from '../../../../core/models/enjeu.model';
 import { PlanSite } from '../../../../core/models/admin.model';
 
 @Component({
@@ -97,9 +97,14 @@ export class OperationFormComponent implements OnInit {
   // Sites M2M checkboxes
   selectedSiteIds: Record<number, boolean> = {};
 
+  // Suivi existant toggle
+  estSuiviExistant = signal(false);
+
   // Collapsible sections state
   sectionsOpen: Record<string, boolean> = {
     details_suivi: true,
+    protocole: true,
+    bancarisation: true,
     programmation: true,
     details: true,
     emprise: true,
@@ -136,16 +141,19 @@ export class OperationFormComponent implements OnInit {
       id_type_action: [null],
       metrique_ids: [[]],
       id_priorite: [null],
-      // Détails inventaire/suivi
+      // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
       cibles_principales: [null],
       taxon_taxref: [null],
+      annee_lancement_suivi: [null],
       protocole_dans_campanule: [null],
       protocole_campanule_nom: [null],
       respect_protocole: [null],
       justification_non_respect: [''],
       differences_protocole: [''],
-      annee_lancement_suivi: [null],
+      description_protocole: [''],
+      objectif_protocole: [''],
+      periode_echantillonnage: [''],
       outil_bancarisation: [null],
       outil_saisie: [null],
       transmission_donnee: [null],
@@ -331,6 +339,11 @@ export class OperationFormComponent implements OnInit {
   }
 
   private populateForm(op: Operation): void {
+    // Set est_suivi_existant state
+    if (op.est_suivi_existant) {
+      this.estSuiviExistant.set(true);
+    }
+
     this.form.patchValue({
       libelle: op.libelle,
       id_type_action: op.id_type_action || null,
@@ -340,19 +353,6 @@ export class OperationFormComponent implements OnInit {
       description: op.description || '',
       annee_min: op.annee_min || null,
       annee_max: op.annee_max || null,
-      // Détails inventaire/suivi
-      objectif_principal: op.objectif_principal || '',
-      cibles_principales: op.cibles_principales || null,
-      taxon_taxref: op.taxon_taxref || null,
-      protocole_dans_campanule: op.protocole_dans_campanule ?? null,
-      protocole_campanule_nom: op.protocole_campanule_nom || null,
-      respect_protocole: op.respect_protocole ?? null,
-      justification_non_respect: op.justification_non_respect || '',
-      differences_protocole: op.differences_protocole || '',
-      annee_lancement_suivi: op.annee_lancement_suivi || null,
-      outil_bancarisation: op.outil_bancarisation || null,
-      outil_saisie: op.outil_saisie || null,
-      transmission_donnee: op.transmission_donnee ?? null,
       // Fréquence & acteurs
       frequence_nombre: op.frequence_nombre || null,
       frequence_unite: op.frequence_unite || null,
@@ -362,6 +362,40 @@ export class OperationFormComponent implements OnInit {
       indicateur_ids: op.indicateur_ids || [],
       metrique_ids: op.metrique_ids || []
     });
+
+    // Populate suivi fields from nested suivi_inventaire
+    const suivi = op.suivi_inventaire;
+    if (suivi) {
+      this.form.patchValue({
+        objectif_principal: suivi.objectif_principal || '',
+        cibles_principales: suivi.cibles_principales || null,
+        taxon_taxref: suivi.taxon_taxref || null,
+        annee_lancement_suivi: suivi.annee_lancement_suivi || null,
+        outil_bancarisation: suivi.outil_bancarisation || null,
+        outil_saisie: suivi.outil_saisie || null,
+        transmission_donnee: suivi.transmission_donnee ?? null,
+      });
+
+      // Populate protocole fields from nested protocole
+      const proto = suivi.protocole;
+      if (proto) {
+        this.form.patchValue({
+          protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
+          protocole_campanule_nom: proto.protocole_campanule_nom || null,
+          respect_protocole: proto.respect_protocole ?? null,
+          justification_non_respect: proto.justification_non_respect || '',
+          differences_protocole: proto.differences_protocole || '',
+          description_protocole: proto.description_protocole || '',
+          objectif_protocole: proto.objectif_protocole || '',
+          periode_echantillonnage: proto.periode_echantillonnage || '',
+        });
+      }
+    }
+
+    // Disable fields if est_suivi_existant
+    if (op.est_suivi_existant) {
+      this.setSuiviFieldsEnabled(false);
+    }
 
     // Restore site selections
     if (op.site_ids) {
@@ -410,6 +444,9 @@ export class OperationFormComponent implements OnInit {
 
     const fv = this.form.value;
 
+    // getRawValue() includes disabled fields (for readonly suivi mode)
+    const rawFv = this.form.getRawValue();
+
     const payload: OperationCreatePayload = {
       libelle: fv.libelle,
     };
@@ -422,19 +459,39 @@ export class OperationFormComponent implements OnInit {
     if (fv.annee_min != null) payload.annee_min = fv.annee_min;
     if (fv.annee_max != null) payload.annee_max = fv.annee_max;
 
-    // Détails inventaire/suivi
-    if (fv.objectif_principal?.trim()) payload.objectif_principal = fv.objectif_principal.trim();
-    if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
-    if (fv.taxon_taxref) payload.taxon_taxref = fv.taxon_taxref;
-    if (fv.protocole_dans_campanule != null) payload.protocole_dans_campanule = fv.protocole_dans_campanule;
-    if (fv.protocole_campanule_nom) payload.protocole_campanule_nom = fv.protocole_campanule_nom;
-    if (fv.respect_protocole != null) payload.respect_protocole = fv.respect_protocole;
-    if (fv.justification_non_respect?.trim()) payload.justification_non_respect = fv.justification_non_respect.trim();
-    if (fv.differences_protocole?.trim()) payload.differences_protocole = fv.differences_protocole.trim();
-    if (fv.annee_lancement_suivi != null) payload.annee_lancement_suivi = fv.annee_lancement_suivi;
-    if (fv.outil_bancarisation) payload.outil_bancarisation = fv.outil_bancarisation;
-    if (fv.outil_saisie) payload.outil_saisie = fv.outil_saisie;
-    if (fv.transmission_donnee != null) payload.transmission_donnee = fv.transmission_donnee;
+    // est_suivi_existant
+    payload.est_suivi_existant = this.estSuiviExistant();
+
+    // Build nested suivi_inventaire from form fields (only if not in "existing suivi" mode)
+    if (!this.estSuiviExistant()) {
+      const suiviData: Record<string, unknown> = {};
+      if (rawFv.objectif_principal?.trim()) suiviData['objectif_principal'] = rawFv.objectif_principal.trim();
+      if (rawFv.cibles_principales) suiviData['cibles_principales'] = rawFv.cibles_principales;
+      if (rawFv.taxon_taxref) suiviData['taxon_taxref'] = rawFv.taxon_taxref;
+      if (rawFv.annee_lancement_suivi != null) suiviData['annee_lancement_suivi'] = rawFv.annee_lancement_suivi;
+      if (rawFv.outil_bancarisation) suiviData['outil_bancarisation'] = rawFv.outil_bancarisation;
+      if (rawFv.outil_saisie) suiviData['outil_saisie'] = rawFv.outil_saisie;
+      if (rawFv.transmission_donnee != null) suiviData['transmission_donnee'] = rawFv.transmission_donnee;
+
+      // Build nested protocole
+      const protocoleData: Record<string, unknown> = {};
+      if (rawFv.protocole_dans_campanule != null) protocoleData['protocole_dans_campanule'] = rawFv.protocole_dans_campanule;
+      if (rawFv.protocole_campanule_nom) protocoleData['protocole_campanule_nom'] = rawFv.protocole_campanule_nom;
+      if (rawFv.respect_protocole != null) protocoleData['respect_protocole'] = rawFv.respect_protocole;
+      if (rawFv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = rawFv.justification_non_respect.trim();
+      if (rawFv.differences_protocole?.trim()) protocoleData['differences_protocole'] = rawFv.differences_protocole.trim();
+      if (rawFv.description_protocole?.trim()) protocoleData['description_protocole'] = rawFv.description_protocole.trim();
+      if (rawFv.objectif_protocole?.trim()) protocoleData['objectif_protocole'] = rawFv.objectif_protocole.trim();
+      if (rawFv.periode_echantillonnage?.trim()) protocoleData['periode_echantillonnage'] = rawFv.periode_echantillonnage.trim();
+
+      if (Object.keys(protocoleData).length > 0) {
+        suiviData['protocole'] = protocoleData;
+      }
+
+      if (Object.keys(suiviData).length > 0) {
+        payload.suivi_inventaire = suiviData;
+      }
+    }
 
     // Fréquence
     if (fv.frequence_nombre != null) payload.frequence_nombre = fv.frequence_nombre;
@@ -535,6 +592,37 @@ export class OperationFormComponent implements OnInit {
 
   toggleSection(section: string): void {
     this.sectionsOpen[section] = !this.sectionsOpen[section];
+  }
+
+  setEstSuiviExistant(value: boolean): void {
+    this.estSuiviExistant.set(value);
+    if (value) {
+      // When switching to "existing suivi" mode, disable suivi fields
+      this.setSuiviFieldsEnabled(false);
+    } else {
+      // When switching back to manual mode, re-enable suivi fields
+      this.setSuiviFieldsEnabled(true);
+    }
+  }
+
+  private setSuiviFieldsEnabled(enabled: boolean): void {
+    const fields = [
+      'objectif_principal', 'cibles_principales', 'taxon_taxref',
+      'annee_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
+      'respect_protocole', 'justification_non_respect', 'differences_protocole',
+      'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+      'outil_bancarisation', 'outil_saisie', 'transmission_donnee'
+    ];
+    for (const field of fields) {
+      const control = this.form.get(field);
+      if (control) {
+        if (enabled) {
+          control.enable();
+        } else {
+          control.disable();
+        }
+      }
+    }
   }
 
   toggleSite(siteId: number): void {
