@@ -268,6 +268,47 @@ export interface Mesure {
 }
 
 /**
+ * Protocole associé à un suivi/inventaire
+ */
+export interface Protocole {
+  id_protocole?: number;
+  protocole_dans_campanule?: boolean;
+  protocole_campanule_nom?: string;
+  nom_protocole?: string;
+  respect_protocole?: boolean;
+  justification_non_respect?: string;
+  differences_protocole?: string;
+  description_protocole?: string;
+  objectif_protocole?: string;
+  periode_echantillonnage?: string;
+  mode_validation?: string;
+  // Audit
+  date_ajout?: string;
+  date_maj?: string;
+}
+
+/**
+ * Suivi / Inventaire lié à une opération
+ */
+export interface SuiviInventaire {
+  id_suivi_inventaire?: number;
+  // Détails
+  objectif_principal?: string;
+  cibles_principales?: string;
+  taxon_taxref?: string;
+  annee_lancement_suivi?: number;
+  // Protocole (nested)
+  protocole?: Protocole;
+  // Bancarisation
+  outil_bancarisation?: string;
+  outil_saisie?: string;
+  transmission_donnee?: boolean;
+  // Audit
+  date_ajout?: string;
+  date_maj?: string;
+}
+
+/**
  * Opération (action) rattachée à un ou plusieurs indicateurs
  */
 /**
@@ -316,19 +357,10 @@ export interface Operation {
   description?: string;
   annee_min?: number;
   annee_max?: number;
-  // Détails inventaire/suivi
-  objectif_principal?: string;
-  cibles_principales?: string;
-  taxon_taxref?: string;
-  protocole_dans_campanule?: boolean;
-  protocole_campanule_nom?: string;
-  respect_protocole?: boolean;
-  justification_non_respect?: string;
-  differences_protocole?: string;
-  annee_lancement_suivi?: number;
-  outil_bancarisation?: string;
-  outil_saisie?: string;
-  transmission_donnee?: boolean;
+  // Suivi/inventaire
+  est_suivi_existant?: boolean;
+  id_suivi?: number;
+  suivi_inventaire?: SuiviInventaire;
   // Fréquence & acteurs
   frequence_nombre?: number;
   frequence_unite?: string;
@@ -365,19 +397,9 @@ export interface OperationCreatePayload {
   description?: string;
   annee_min?: number;
   annee_max?: number;
-  // Détails inventaire/suivi
-  objectif_principal?: string;
-  cibles_principales?: string;
-  taxon_taxref?: string;
-  protocole_dans_campanule?: boolean;
-  protocole_campanule_nom?: string;
-  respect_protocole?: boolean;
-  justification_non_respect?: string;
-  differences_protocole?: string;
-  annee_lancement_suivi?: number;
-  outil_bancarisation?: string;
-  outil_saisie?: string;
-  transmission_donnee?: boolean;
+  // Suivi/inventaire
+  est_suivi_existant?: boolean;
+  suivi_inventaire?: Omit<SuiviInventaire, 'id_suivi_inventaire' | 'date_ajout' | 'date_maj'>;
   // Fréquence & acteurs
   frequence_nombre?: number;
   frequence_unite?: string;
