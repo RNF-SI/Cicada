@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -60,6 +60,30 @@ export class PlanDetailComponent implements OnInit {
   fcrData = signal<Enjeu[]>([]);
   enjeuxLoading = signal(false);
 
+  // Aggregated OLT/OO across all enjeux
+  allOlts = computed(() => {
+    return this.enjeuxData().flatMap(enjeu =>
+      (enjeu.objectifs_long_terme || []).map(olt => ({
+        ...olt,
+        enjeu_libelle: enjeu.libelle,
+        enjeu_id: enjeu.id_enjeu
+      }))
+    );
+  });
+
+  allOos = computed(() => {
+    return this.enjeuxData().flatMap(enjeu =>
+      (enjeu.objectifs_operationnels || []).map(oo => ({
+        ...oo,
+        enjeu_libelle: enjeu.libelle,
+        enjeu_id: enjeu.id_enjeu
+      }))
+    );
+  });
+
+  // Operations loading state
+  operationsLoading = signal(false);
+
   // Accordéons de la section Synthèse
   syntheseAccordions = signal<SyntheseAccordion[]>([
     {
@@ -86,44 +110,7 @@ export class PlanDetailComponent implements OnInit {
       colorClass: 'orange',
       expanded: true,
       hasSubItems: true,
-      subItems: [
-        {
-          id: 'intervention-patrimoine',
-          title: 'Intervention patrimoine naturel',
-          expanded: true,
-          items: [
-            'IP 01 : Restauration des ouvrages de régulation des niveaux d\'eau (y compris grillage contre les ragondins)',
-            'IP 02 : Entretien et gestion des ouvrages de régulation des niveaux d\'eau',
-            'IP 03 : Pâturage (Marterin)',
-            'IP 04 : Broyage sur l\'ensemble des marais',
-            'IP 05 : Broyage sur le Grand Étang et l\'Empoissonnement (1 fois /PG)'
-          ]
-        },
-        {
-          id: 'surveillance',
-          title: 'Surveillance du territoire et police de l\'environnement',
-          expanded: false,
-          items: []
-        },
-        {
-          id: 'participation',
-          title: 'Participation à la recherche',
-          expanded: false,
-          items: []
-        },
-        {
-          id: 'intervention-naturel',
-          title: 'Intervention patrimoine naturel',
-          expanded: false,
-          items: []
-        },
-        {
-          id: 'infrastructure',
-          title: 'Création et maintenance d\'infrastructure d\'accueil',
-          expanded: false,
-          items: []
-        }
-      ]
+      subItems: []
     }
   ]);
 
@@ -148,6 +135,7 @@ export class PlanDetailComponent implements OnInit {
         this.plan.set(plan);
         this.isLoading.set(false);
         this.loadEnjeux(id);
+        this.loadOperations(id);
       },
       error: (error) => {
         this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
@@ -166,6 +154,36 @@ export class PlanDetailComponent implements OnInit {
       },
       error: () => {
         this.enjeuxLoading.set(false);
+      }
+    });
+  }
+
+  loadOperations(planId: number): void {
+    this.operationsLoading.set(true);
+    this.enjeuService.getOperationsByPlan(planId).subscribe({
+      next: (response) => {
+        const subItems: SubAccordion[] = (response.groups || []).map((group: any, index: number) => ({
+          id: `action-group-${index}`,
+          title: `${group.type_action} (${group.count})`,
+          expanded: index === 0,
+          items: (group.operations || []).map((op: any) => {
+            const code = op.code_operation ? `${op.code_operation} : ` : '';
+            return `${code}${op.libelle}`;
+          })
+        }));
+
+        this.syntheseAccordions.update(accordions =>
+          accordions.map(acc => {
+            if (acc.id === 'actions') {
+              return { ...acc, hasSubItems: subItems.length > 0, subItems };
+            }
+            return acc;
+          })
+        );
+        this.operationsLoading.set(false);
+      },
+      error: () => {
+        this.operationsLoading.set(false);
       }
     });
   }

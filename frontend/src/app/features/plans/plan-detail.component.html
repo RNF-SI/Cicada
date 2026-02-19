@@ -144,7 +144,12 @@
                   <!-- Contenu de l'accordéon (si ouvert) -->
                   @if (accordion.expanded) {
                     <div class="accordion-content">
-                      @if (accordion.hasSubItems && accordion.subItems) {
+                      @if (accordion.id === 'actions' && operationsLoading()) {
+                        <div class="synthese-loading">
+                          <mat-spinner diameter="16"></mat-spinner>
+                          <span>{{ 'common.loading' | translate }}</span>
+                        </div>
+                      } @else if (accordion.hasSubItems && accordion.subItems) {
                         <!-- Sous-accordéons pour Actions et suivis -->
                         <div class="sub-accordions">
                           @for (subItem of accordion.subItems; track subItem.id) {
@@ -195,11 +200,35 @@
                               <div class="synthese-section">
                                 <span class="synthese-section-title">{{ 'enjeux.sidebar.enjeux' | translate }} ({{ enjeuxData().length }})</span>
                                 @for (enjeu of enjeuxData(); track enjeu.id_enjeu) {
-                                  <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
-                                    <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
-                                    <span class="synthese-item-label">{{ enjeu.libelle }}</span>
-                                    @if (enjeu.rang) {
-                                      <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
+                                  <div class="synthese-enjeu-block">
+                                    <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                      <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
+                                      <span class="synthese-item-label">{{ enjeu.libelle }}</span>
+                                      @if (enjeu.rang) {
+                                        <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
+                                      }
+                                    </div>
+                                    <!-- OLT sous l'enjeu -->
+                                    @if (enjeu.objectifs_long_terme && enjeu.objectifs_long_terme.length > 0) {
+                                      <div class="synthese-sub-list">
+                                        @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
+                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                            <span class="synthese-sub-tag olt">{{ 'enjeux.olt.label' | translate }}</span>
+                                            <span class="synthese-sub-label">{{ olt.libelle }}</span>
+                                          </div>
+                                        }
+                                      </div>
+                                    }
+                                    <!-- OO sous l'enjeu -->
+                                    @if (enjeu.objectifs_operationnels && enjeu.objectifs_operationnels.length > 0) {
+                                      <div class="synthese-sub-list">
+                                        @for (oo of enjeu.objectifs_operationnels; track oo.id_oo) {
+                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                            <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
+                                            <span class="synthese-sub-label">{{ oo.libelle }}</span>
+                                          </div>
+                                        }
+                                      </div>
                                     }
                                   </div>
                                 }
@@ -220,6 +249,50 @@
                               <i class="fi fi-rr-arrow-right"></i>
                               {{ 'plans.detail.viewEnjeux' | translate }}
                             </button>
+                          </div>
+                        }
+                      } @else if (accordion.id === 'objectifs-lt') {
+                        <!-- Objectifs Long Terme combinés de tous les enjeux -->
+                        @if (enjeuxLoading()) {
+                          <div class="synthese-loading">
+                            <mat-spinner diameter="16"></mat-spinner>
+                            <span>{{ 'common.loading' | translate }}</span>
+                          </div>
+                        } @else if (allOlts().length === 0) {
+                          <p class="accordion-placeholder">
+                            {{ 'plans.detail.noContent' | translate }}
+                          </p>
+                        } @else {
+                          <div class="synthese-enjeux-list">
+                            @for (olt of allOlts(); track olt.id_olt) {
+                              <div class="synthese-item" (click)="navigateToEnjeuDetail(olt.enjeu_id)">
+                                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
+                                <span class="synthese-item-label">{{ olt.libelle }}</span>
+                                <span class="synthese-item-enjeu">{{ olt.enjeu_libelle }}</span>
+                              </div>
+                            }
+                          </div>
+                        }
+                      } @else if (accordion.id === 'objectifs-op') {
+                        <!-- Objectifs Opérationnels combinés de tous les enjeux -->
+                        @if (enjeuxLoading()) {
+                          <div class="synthese-loading">
+                            <mat-spinner diameter="16"></mat-spinner>
+                            <span>{{ 'common.loading' | translate }}</span>
+                          </div>
+                        } @else if (allOos().length === 0) {
+                          <p class="accordion-placeholder">
+                            {{ 'plans.detail.noContent' | translate }}
+                          </p>
+                        } @else {
+                          <div class="synthese-enjeux-list">
+                            @for (oo of allOos(); track oo.id_oo) {
+                              <div class="synthese-item" (click)="navigateToEnjeuDetail(oo.enjeu_id)">
+                                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
+                                <span class="synthese-item-label">{{ oo.libelle }}</span>
+                                <span class="synthese-item-enjeu">{{ oo.enjeu_libelle }}</span>
+                              </div>
+                            }
                           </div>
                         }
                       } @else {

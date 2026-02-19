@@ -10,8 +10,11 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+from collections import defaultdict
+
 from .models_operations import Operation, OperationAnnee, FinanceOperation
 from .models_indicateurs import Indicateur
+from .models import PlanGestion
 from apps.users.permissions import IsReferent
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -95,5 +98,35 @@ class OperationViewSet(viewsets.ModelViewSet):
             'indicateur_id': int(indicateur_id),
             'indicateur_nom': indicateur.nom_indicateur,
             'operations': OperationSerializer(operations, many=True).data,
+            'total': operations.count()
+        })
+
+    @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
+    def by_plan(self, request, plan_id=None):
+        """
+        Récupérer les opérations d'un plan, groupées par type d'action.
+
+        GET /api/plans/operations/by-plan/{plan_id}/
+        """
+        plan = get_object_or_404(PlanGestion, id_pg=plan_id)
+        operations = self.get_queryset().filter(
+            Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(indicateurs__id_resultat_attendu__id_oo__id_enjeu__id_pg=plan)
+        ).distinct()
+
+        grouped = defaultdict(list)
+        for op in operations:
+            key = op.id_type_action.label if op.id_type_action else 'Autre'
+            grouped[key].append(OperationListSerializer(op).data)
+
+        groups = [
+            {'type_action': key, 'operations': ops, 'count': len(ops)}
+            for key, ops in sorted(grouped.items())
+        ]
+
+        return Response({
+            'plan_id': int(plan_id),
+            'plan_nom': plan.nom,
+            'groups': groups,
             'total': operations.count()
         })
