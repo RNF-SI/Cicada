@@ -38,7 +38,7 @@ from .serializers import (
 NOMENCLATURE_TYPE_MAPPING = {
     'TYPE_SITE': 'Espace naturel',
     'TYPE_EVALUATION': 'Evaluation PG',
-    'TYPE_REDACTEUR': 'Redacteur type',
+    'TYPE_REDACTEUR': 'Rédacteur type',
 }
 
 

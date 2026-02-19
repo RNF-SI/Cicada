@@ -38,11 +38,11 @@ class PlanGestionFilter(filters.FilterSet):
     # Filtres par nomenclatures
     evaluation = filters.ModelChoiceFilter(
         field_name='id_evaluation',
-        queryset=Nomenclature.objects.filter(id_type__mnemonique='PLAN_EVALUATION')
+        queryset=Nomenclature.objects.filter(id_type__mnemonique='Evaluation PG')
     )
     redacteur_type = filters.ModelChoiceFilter(
-        field_name='id_redacteur_type', 
-        queryset=Nomenclature.objects.filter(id_type__mnemonique='PLAN_REDACTEUR_TYPE')
+        field_name='id_redacteur_type',
+        queryset=Nomenclature.objects.filter(id_type__mnemonique='Rédacteur type')
     )
     
     # Filtres par relations

@@ -16,7 +16,7 @@ class NomenclaturesSeeder(BaseSeeder):
     Types de nomenclatures:
     - Espace naturel (type_site)
     - Evaluation PG (type_eval)
-    - Redacteur type (type_redac)
+    - Rédacteur type (type_redac)
     """
 
     name = 'nomenclatures'
@@ -26,7 +26,7 @@ class NomenclaturesSeeder(BaseSeeder):
     TYPES_DATA = [
         {'id': 1, 'mnemonique': 'Espace naturel', 'label': "Type d'espace naturel"},
         {'id': 2, 'mnemonique': 'Evaluation PG', 'label': "Niveau d'evaluation des plans de gestion"},
-        {'id': 3, 'mnemonique': 'Redacteur type', 'label': "Type de redacteur d'un plan de gestion"},
+        {'id': 3, 'mnemonique': 'Rédacteur type', 'label': "Type de rédacteur d'un plan de gestion"},
     ]
 
     # Types de site (alignes sur nomenclatures_inserts.sql)
@@ -114,7 +114,7 @@ class NomenclaturesSeeder(BaseSeeder):
 
         type_redac, _ = TypeNomenclature.objects.get_or_create(
             id_type=3,
-            defaults={'mnemonique': 'Redacteur type', 'label': "Type de redacteur d'un plan de gestion"}
+            defaults={'mnemonique': 'Rédacteur type', 'label': "Type de rédacteur d'un plan de gestion"}
         )
 
         # Creer les nomenclatures de type de site
