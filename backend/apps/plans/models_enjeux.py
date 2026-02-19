@@ -3,6 +3,7 @@ Modèles pour les Enjeux, FCR (Facteurs Clés de Réussite) et Responsabilités.
 """
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 
@@ -119,6 +120,11 @@ class Enjeu(models.Model):
         null=True,
         help_text=_("Max 25 caractères pour affichage")
     )
+    slug = models.SlugField(
+        _("Slug"),
+        max_length=300,
+        help_text=_("Identifiant URL lisible, généré automatiquement")
+    )
     description = models.TextField(
         _("Détails/Commentaires"),
         blank=True,
@@ -226,6 +232,7 @@ class Enjeu(models.Model):
         verbose_name = _("Enjeu / FCR")
         verbose_name_plural = _("Enjeux / FCR")
         ordering = ['rang', 'libelle']
+        unique_together = [('id_pg', 'slug'), ('id_pg', 'libelle')]
 
     @property
     def nb_facteurs_influence(self):
@@ -234,6 +241,28 @@ class Enjeu(models.Model):
 
     def __str__(self):
         return f"{self.libelle} ({self.id_pg})"
+
+    def save(self, *args, **kwargs):
+        """Auto-générer le slug depuis intitule_court ou libelle."""
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+        super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self):
+        """Génère un slug unique par plan à partir de intitule_court ou libelle."""
+        source = self.intitule_court or self.libelle
+        base_slug = slugify(source)
+        if not base_slug:
+            base_slug = 'enjeu'
+        slug = base_slug
+        counter = 2
+        qs = Enjeu.objects.filter(id_pg=self.id_pg)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        while qs.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        return slug
 
     def is_enjeu(self) -> bool:
         """Retourne True si c'est un Enjeu (pas un FCR)."""

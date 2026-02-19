@@ -63,6 +63,7 @@ const mockEnjeu1: Enjeu = {
   id_categorie: 100,
   categorie_mnemonique: 'ENJEU',
   libelle: 'Protection zones humides',
+  slug: 'protection-zones-humides',
   rang: 1,
   categorie_ecologique: true,
   habitat: true,
@@ -83,6 +84,7 @@ const mockEnjeu2: Enjeu = {
   id_categorie: 100,
   categorie_mnemonique: 'ENJEU',
   libelle: 'Biodiversité aquatique',
+  slug: 'biodiversite-aquatique',
   rang: 2,
   categorie_ecologique: false,
   habitat: false,
@@ -98,6 +100,7 @@ const mockFcr: Enjeu = {
   id_categorie: 101,
   categorie_mnemonique: 'FCR',
   libelle: 'Connaissance scientifique',
+  slug: 'connaissance-scientifique',
   categorie_fcr_label: 'Connaissance',
   habitat: false,
   espece: false,
@@ -109,6 +112,7 @@ const mockFcr: Enjeu = {
 const mockPlanEnjeuxResponse: PlanEnjeuxResponse = {
   plan_id: 10,
   plan_nom: 'Plan Test',
+  plan_slug: 'plan-test',
   enjeux: [mockEnjeu1, mockEnjeu2],
   fcr: [mockFcr],
   total_enjeux: 2,
@@ -130,10 +134,10 @@ describe('EnjeuxListComponent', () => {
     createPression: jest.Mock;
     deletePression: jest.Mock;
   };
-  let mockAdminService: { getPlan: jest.Mock };
+  let mockAdminService: { getPlanBySlug: jest.Mock };
   let routeParamsSubject: Subject<any>;
 
-  function setup(parentParams: Record<string, string> = { id: '10' }, routeParams: Record<string, string> = {}): void {
+  function setup(parentParams: Record<string, string> = { slug: 'plan-test' }, routeParams: Record<string, string> = {}): void {
     routeParamsSubject = new Subject<any>();
 
     mockEnjeuService = {
@@ -145,7 +149,7 @@ describe('EnjeuxListComponent', () => {
       deletePression: jest.fn().mockReturnValue(of(void 0)),
     };
     mockAdminService = {
-      getPlan: jest.fn().mockReturnValue(of({ nom: 'Plan Test' })),
+      getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),
     };
 
     const activatedRoute = {
@@ -207,15 +211,15 @@ describe('EnjeuxListComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should load planId from parent route', () => {
+    it('should load planSlug from parent route', () => {
       setup();
-      expect(component.planId()).toBe(10);
+      expect(component.planSlug()).toBe('plan-test');
     });
 
     it('should call loadPlanData on init', () => {
       setup();
-      expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10);
-      expect(mockAdminService.getPlan).toHaveBeenCalledWith(10);
+      expect(mockAdminService.getPlanBySlug).toHaveBeenCalledWith('plan-test');
+      expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10, true);
     });
 
     it('should set isLoading false after data loaded', () => {
@@ -223,24 +227,24 @@ describe('EnjeuxListComponent', () => {
       expect(component.isLoading()).toBe(false);
     });
 
-    it('should set errorMessage if no planId', () => {
+    it('should set errorMessage if no planSlug', () => {
       setup({});
-      expect(component.errorMessage()).toBe('ID du plan non trouvé');
+      expect(component.errorMessage()).toBe('Slug du plan non trouvé');
       expect(component.isLoading()).toBe(false);
     });
 
-    it('should set selectedEnjeuId from route params', () => {
+    it('should set selectedEnjeuSlug from route params', () => {
       setup();
-      routeParamsSubject.next({ enjeuId: '1' });
-      expect(component.selectedEnjeuId()).toBe(1);
+      routeParamsSubject.next({ enjeuSlug: 'protection-zones-humides' });
+      expect(component.selectedEnjeuSlug()).toBe('protection-zones-humides');
     });
 
-    it('should clear selectedEnjeuId when no enjeuId in route', () => {
+    it('should clear selectedEnjeuSlug when no enjeuSlug in route', () => {
       setup();
-      routeParamsSubject.next({ enjeuId: '1' });
-      expect(component.selectedEnjeuId()).toBe(1);
+      routeParamsSubject.next({ enjeuSlug: 'protection-zones-humides' });
+      expect(component.selectedEnjeuSlug()).toBe('protection-zones-humides');
       routeParamsSubject.next({});
-      expect(component.selectedEnjeuId()).toBeNull();
+      expect(component.selectedEnjeuSlug()).toBeNull();
     });
   });
 
@@ -278,17 +282,17 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should find selectedEnjeu from enjeux list', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       expect(component.selectedEnjeu()?.libelle).toBe('Protection zones humides');
     });
 
     it('should find selectedEnjeu from fcr list', () => {
-      component['selectedEnjeuId'].set(2);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
       expect(component.selectedEnjeu()?.libelle).toBe('Connaissance scientifique');
     });
 
-    it('should return null selectedEnjeu when no id', () => {
-      component['selectedEnjeuId'].set(null);
+    it('should return null selectedEnjeu when no slug', () => {
+      component['selectedEnjeuSlug'].set(null);
       expect(component.selectedEnjeu()).toBeNull();
     });
   });
@@ -301,27 +305,27 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     it('should compute isSelectedFcr', () => {
-      component['selectedEnjeuId'].set(2);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
       expect(component.isSelectedFcr()).toBe(true);
 
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       expect(component.isSelectedFcr()).toBe(false);
     });
 
     it('should compute selectedCategoryLabel for ecologique', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       const label = component.selectedCategoryLabel();
       expect(label).toBe('Écologique');
     });
 
     it('should compute selectedCategoryLabel for socio-economique', () => {
-      component['selectedEnjeuId'].set(3);
+      component['selectedEnjeuSlug'].set('biodiversite-aquatique');
       const label = component.selectedCategoryLabel();
       expect(label).toBe('Socio-économique');
     });
 
     it('should compute selectedTypeLabels', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       const labels = component.selectedTypeLabels();
       expect(labels).toContain('Habitats');
       expect(labels).toContain('Espèces');
@@ -329,30 +333,30 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should compute selectedHasTaxons', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       expect(component.selectedHasTaxons()).toBe(false);
     });
 
     it('should compute selectedDisplayIndex for enjeu', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       expect(component.selectedDisplayIndex()).toBe(1);
 
-      component['selectedEnjeuId'].set(3);
+      component['selectedEnjeuSlug'].set('biodiversite-aquatique');
       expect(component.selectedDisplayIndex()).toBe(2);
     });
 
     it('should compute selectedDisplayIndex for fcr', () => {
-      component['selectedEnjeuId'].set(2);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
       expect(component.selectedDisplayIndex()).toBe(1);
     });
 
     it('should return 0 for selectedDisplayIndex when no selection', () => {
-      component['selectedEnjeuId'].set(null);
+      component['selectedEnjeuSlug'].set(null);
       expect(component.selectedDisplayIndex()).toBe(0);
     });
 
     it('should compute selectedFcrCategoryLabel', () => {
-      component['selectedEnjeuId'].set(2);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
       expect(component.selectedFcrCategoryLabel()).toBe('Connaissance');
     });
   });
@@ -366,27 +370,27 @@ describe('EnjeuxListComponent', () => {
 
     it('should navigate to new enjeu', () => {
       component.navigateToNewEnjeu();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 'nouveau']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'nouveau']);
     });
 
     it('should navigate to new FCR', () => {
       component.navigateToNewFcr();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 'fcr', 'nouveau']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'fcr', 'nouveau']);
     });
 
     it('should navigate to edit enjeu', () => {
       component.navigateToEdit(mockEnjeu1);
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 1, 'modifier']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides', 'modifier']);
     });
 
     it('should navigate to edit FCR', () => {
       component.navigateToEdit(mockFcr);
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 'fcr', 2, 'modifier']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'fcr', 2, 'modifier']);
     });
 
     it('should navigate to enjeu detail', () => {
       component.navigateToEnjeuDetail(mockEnjeu1);
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 1]);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
     });
   });
 
@@ -435,9 +439,9 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should navigate back to list if deleted enjeu was selected', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.onEnjeuDelete(mockEnjeu1);
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should set errorMessage on delete error', () => {
@@ -477,7 +481,7 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should call createFacteurInfluence on save', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newFacteurLibelle = 'Nouveau facteur';
       component.newFacteurDescription = 'Description';
       component.saveFacteurInfluence();
@@ -490,7 +494,7 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should not save facteur with empty libelle', () => {
-      component['selectedEnjeuId'].set(1);
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newFacteurLibelle = '   ';
       component.saveFacteurInfluence();
       expect(mockEnjeuService.createFacteurInfluence).not.toHaveBeenCalled();
@@ -649,7 +653,7 @@ describe('EnjeuxListComponent', () => {
         deletePression: jest.fn(),
       };
       mockAdminService = {
-        getPlan: jest.fn().mockReturnValue(of({ nom: 'Plan Test' })),
+        getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),
       };
 
       routeParamsSubject = new Subject<any>();
@@ -669,7 +673,7 @@ describe('EnjeuxListComponent', () => {
           {
             provide: ActivatedRoute, useValue: {
               snapshot: { paramMap: { get: () => null } },
-              parent: { snapshot: { paramMap: { get: (key: string) => key === 'id' ? '10' : null } } },
+              parent: { snapshot: { paramMap: { get: (key: string) => key === 'slug' ? 'plan-test' : null } } },
               params: routeParamsSubject.asObservable(),
             }
           },

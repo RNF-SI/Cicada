@@ -13,8 +13,8 @@ import { AdminService } from '../../../core/services/admin.service';
   template: `
     <app-header></app-header>
     <div class="suivis-layout">
-      @if (planId(); as id) {
-        <app-plan-sidebar [planId]="id" activePage="bilan"></app-plan-sidebar>
+      @if (planSlug(); as slug) {
+        <app-plan-sidebar [planId]="planId()!" [planSlug]="slug" activePage="bilan"></app-plan-sidebar>
       }
       <main class="plan-main">
         <section class="hero-section">
@@ -28,7 +28,7 @@ import { AdminService } from '../../../core/services/admin.service';
               <div class="breadcrumb-text">
                 <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-                <a [routerLink]="['/plans', planId()]" class="breadcrumb-link">{{ planNom() }}</a>
+                <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
                 <span class="breadcrumb-current">{{ 'plans.suivis.bilan.title' | translate }}</span>
               </div>
@@ -58,15 +58,18 @@ export class PlanBilanComponent implements OnInit {
   private readonly adminService = inject(AdminService);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      const planId = parseInt(id, 10);
-      this.planId.set(planId);
-      this.adminService.getPlan(planId).subscribe({
-        next: (plan) => this.planNom.set(plan.nom)
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (slug) {
+      this.planSlug.set(slug);
+      this.adminService.getPlanBySlug(slug).subscribe({
+        next: (plan) => {
+          this.planId.set(plan.id_pg);
+          this.planNom.set(plan.nom);
+        }
       });
     }
   }

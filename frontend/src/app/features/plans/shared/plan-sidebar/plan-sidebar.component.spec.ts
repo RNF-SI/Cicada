@@ -31,6 +31,7 @@ const mockEnjeu: Enjeu = {
   id_categorie: 100,
   categorie_mnemonique: 'ENJEU',
   libelle: 'Protection zones humides',
+  slug: 'protection-zones-humides',
   habitat: true,
   espece: false,
   processus: false,
@@ -44,6 +45,7 @@ const mockFcr: Enjeu = {
   id_categorie: 101,
   categorie_mnemonique: 'FCR',
   libelle: 'Connaissance scientifique',
+  slug: 'connaissance-scientifique',
   habitat: false,
   espece: false,
   processus: false,
@@ -54,6 +56,7 @@ const mockFcr: Enjeu = {
 const mockPlanEnjeuxResponse: PlanEnjeuxResponse = {
   plan_id: 10,
   plan_nom: 'Plan Test',
+  plan_slug: 'plan-test',
   enjeux: [mockEnjeu],
   fcr: [mockFcr],
   total_enjeux: 1,
@@ -94,6 +97,7 @@ describe('PlanSidebarComponent', () => {
     component = fixture.componentInstance;
     componentRef = fixture.componentRef;
     componentRef.setInput('planId', 10);
+    componentRef.setInput('planSlug', 'plan-test');
     fixture.detectChanges();
   });
 
@@ -127,16 +131,16 @@ describe('PlanSidebarComponent', () => {
 
   it('should navigate to overview', () => {
     component.navigateToOverview();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 10]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test']);
   });
 
   it('should navigate to enjeux list', () => {
     component.navigateToEnjeux();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
   });
 
   it('should navigate to enjeu detail on selectEnjeu', () => {
     component.selectEnjeu(mockEnjeu);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux', 1]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
   });
 });

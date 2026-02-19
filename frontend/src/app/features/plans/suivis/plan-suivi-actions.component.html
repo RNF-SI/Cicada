@@ -1,8 +1,8 @@
 <app-header></app-header>
 
 <div class="suivis-layout">
-  @if (planId(); as id) {
-    <app-plan-sidebar [planId]="id" activePage="suivi-actions"></app-plan-sidebar>
+  @if (planSlug(); as slug) {
+    <app-plan-sidebar [planId]="planId()!" [planSlug]="slug" activePage="suivi-actions"></app-plan-sidebar>
   }
 
   <main class="plan-main">
@@ -30,7 +30,7 @@
             <div class="breadcrumb-text">
               <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
               <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-              <a [routerLink]="['/plans', planId()]" class="breadcrumb-link">{{ planNom() }}</a>
+              <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
               <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
               <span class="breadcrumb-current">{{ 'plans.suivis.actions.title' | translate }}</span>
             </div>

@@ -4,9 +4,10 @@
 <!-- Layout avec sidebar -->
 <div class="plan-detail-layout">
   <!-- Sidebar Menu (composant partagé avec la page enjeux) -->
-  @if (planId(); as id) {
+  @if (planSlug(); as slug) {
     <app-plan-sidebar
-      [planId]="id"
+      [planId]="planId()!"
+      [planSlug]="slug"
       activePage="overview">
     </app-plan-sidebar>
   }
@@ -201,7 +202,7 @@
                                 <span class="synthese-section-title">{{ 'enjeux.sidebar.enjeux' | translate }} ({{ enjeuxData().length }})</span>
                                 @for (enjeu of enjeuxData(); track enjeu.id_enjeu) {
                                   <div class="synthese-enjeu-block">
-                                    <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                    <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu)">
                                       <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                       <span class="synthese-item-label">{{ enjeu.libelle }}</span>
                                       @if (enjeu.rang) {
@@ -212,7 +213,7 @@
                                     @if (enjeu.objectifs_long_terme && enjeu.objectifs_long_terme.length > 0) {
                                       <div class="synthese-sub-list">
                                         @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
-                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
                                             <span class="synthese-sub-tag olt">{{ 'enjeux.olt.label' | translate }}</span>
                                             <span class="synthese-sub-label">{{ olt.libelle }}</span>
                                           </div>
@@ -223,7 +224,7 @@
                                     @if (enjeu.objectifs_operationnels && enjeu.objectifs_operationnels.length > 0) {
                                       <div class="synthese-sub-list">
                                         @for (oo of enjeu.objectifs_operationnels; track oo.id_oo) {
-                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu.id_enjeu)">
+                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
                                             <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
                                             <span class="synthese-sub-label">{{ oo.libelle }}</span>
                                           </div>
@@ -238,7 +239,7 @@
                               <div class="synthese-section">
                                 <span class="synthese-section-title">{{ 'enjeux.sidebar.fcr' | translate }} ({{ fcrData().length }})</span>
                                 @for (fcr of fcrData(); track fcr.id_enjeu) {
-                                  <div class="synthese-item" (click)="navigateToEnjeuDetail(fcr.id_enjeu)">
+                                  <div class="synthese-item" (click)="navigateToEnjeuDetail(fcr)">
                                     <img src="assets/images/puces/puce-salmon.png" alt="" class="synthese-item-bullet">
                                     <span class="synthese-item-label">{{ fcr.libelle }}</span>
                                   </div>
@@ -265,7 +266,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (olt of allOlts(); track olt.id_olt) {
-                              <div class="synthese-item" (click)="navigateToEnjeuDetail(olt.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(olt.enjeu_id)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ olt.libelle }}</span>
                                 <span class="synthese-item-enjeu">{{ olt.enjeu_libelle }}</span>
@@ -287,7 +288,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (oo of allOos(); track oo.id_oo) {
-                              <div class="synthese-item" (click)="navigateToEnjeuDetail(oo.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(oo.enjeu_id)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ oo.libelle }}</span>
                                 <span class="synthese-item-enjeu">{{ oo.enjeu_libelle }}</span>

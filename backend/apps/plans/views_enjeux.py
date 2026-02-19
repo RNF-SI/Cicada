@@ -169,6 +169,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         return Response({
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
+            'plan_slug': plan.slug,
             'enjeux': EnjeuDetailSerializer(enjeux_list, many=True).data,
             'fcr': EnjeuDetailSerializer(fcr_list, many=True).data,
             'total_enjeux': enjeux_list.count(),

@@ -39,6 +39,7 @@ export class PlanSuiviActionsComponent implements OnInit {
   private readonly translate = inject(TranslateService);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
@@ -129,27 +130,25 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      const planId = parseInt(id, 10);
-      this.planId.set(planId);
-      this.loadData(planId);
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (slug) {
+      this.planSlug.set(slug);
+      this.adminService.getPlanBySlug(slug).subscribe({
+        next: (plan) => {
+          this.planId.set(plan.id_pg);
+          this.planNom.set(plan.nom);
+          if (plan.annee_debut && plan.annee_fin) {
+            this.planYearStart.set(plan.annee_debut);
+            this.planYearEnd.set(plan.annee_fin);
+          }
+          this.loadData(plan.id_pg);
+        }
+      });
     }
   }
 
   private loadData(planId: number): void {
     this.isLoading.set(true);
-
-    // Load plan info
-    this.adminService.getPlan(planId).subscribe({
-      next: (plan) => {
-        this.planNom.set(plan.nom);
-        if (plan.annee_debut && plan.annee_fin) {
-          this.planYearStart.set(plan.annee_debut);
-          this.planYearEnd.set(plan.annee_fin);
-        }
-      }
-    });
 
     // Load enjeux with nested operations
     this.enjeuService.getPlanEnjeux(planId).subscribe({

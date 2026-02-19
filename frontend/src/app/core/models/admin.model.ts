@@ -334,6 +334,7 @@ export interface PlanMembre {
 export interface AdminPlan {
   id_pg: number;
   nom: string;
+  slug?: string;
   id_cdr?: number;
   rang?: number;
   statut: PlanStatut;

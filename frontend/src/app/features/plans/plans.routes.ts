@@ -16,27 +16,27 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: ':id',
+    path: ':slug',
     component: PlanDetailComponent,
     canActivate: [authGuard]
   },
   {
-    path: ':id/enjeux',
+    path: ':slug/enjeux',
     loadChildren: () => import('./enjeux/enjeux.routes').then(m => m.ENJEUX_ROUTES),
     canActivate: [authGuard]
   },
   {
-    path: ':id/bilan',
+    path: ':slug/bilan',
     loadComponent: () => import('./suivis/plan-bilan.component').then(m => m.PlanBilanComponent),
     canActivate: [authGuard]
   },
   {
-    path: ':id/suivi-actions',
+    path: ':slug/suivi-actions',
     loadComponent: () => import('./suivis/plan-suivi-actions.component').then(m => m.PlanSuiviActionsComponent),
     canActivate: [authGuard]
   },
   {
-    path: ':id/tableau-de-bord',
+    path: ':slug/tableau-de-bord',
     loadComponent: () => import('./suivis/plan-tableau-de-bord.component').then(m => m.PlanTableauDeBordComponent),
     canActivate: [authGuard]
   }

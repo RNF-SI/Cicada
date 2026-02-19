@@ -446,7 +446,7 @@ export class PlansListComponent implements OnInit {
   }
 
   viewPlan(plan: PlanWithAccess): void {
-    this.router.navigate(['/plans', plan.id_pg]);
+    this.router.navigate(['/plans', plan.slug]);
   }
 
   followPlan(plan: PlanWithAccess): void {

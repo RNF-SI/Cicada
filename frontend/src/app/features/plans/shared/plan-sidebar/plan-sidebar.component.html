@@ -41,7 +41,7 @@
                 @for (enjeu of enjeux(); track enjeu.id_enjeu) {
                   <button
                     class="submenu-tree-item"
-                    [class.selected]="selectedEnjeuId() === enjeu.id_enjeu"
+                    [class.selected]="selectedEnjeuSlug() === enjeu.slug"
                     (click)="selectEnjeu(enjeu)">
                     {{ enjeu.intitule_court || enjeu.libelle }}
                   </button>
@@ -58,7 +58,7 @@
                 @for (item of fcr(); track item.id_enjeu) {
                   <button
                     class="submenu-tree-item"
-                    [class.selected]="selectedEnjeuId() === item.id_enjeu"
+                    [class.selected]="selectedEnjeuSlug() === item.slug"
                     (click)="selectEnjeu(item)">
                     {{ item.intitule_court || item.libelle }}
                   </button>

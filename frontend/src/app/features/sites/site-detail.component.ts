@@ -217,7 +217,7 @@ export class SiteDetailComponent implements OnInit {
    * Navigation vers un plan.
    */
   viewPlan(plan: AdminPlan): void {
-    this.router.navigate(['/plans', plan.id_pg]);
+    this.router.navigate(['/plans', plan.slug || plan.id_pg]);
   }
 
   /**

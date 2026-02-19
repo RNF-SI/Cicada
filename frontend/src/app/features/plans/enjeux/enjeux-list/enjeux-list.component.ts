@@ -74,6 +74,7 @@ export class EnjeuxListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   planAnneeDebut = signal<number | null>(null);
   planAnneeFin = signal<number | null>(null);
@@ -85,8 +86,9 @@ export class EnjeuxListComponent implements OnInit {
   // Onglet actif (vue détail uniquement)
   activeTab = signal<TabType>('detail');
 
-  // Enjeu sélectionné (via route :enjeuId)
+  // Enjeu sélectionné (via route :enjeuSlug)
   selectedEnjeuId = signal<number | null>(null);
+  selectedEnjeuSlug = signal<string | null>(null);
 
   // Expand/collapse state pour la vue détail
   enjeuDetailExpanded = signal(true);
@@ -204,13 +206,13 @@ export class EnjeuxListComponent implements OnInit {
 
   // Enjeu sélectionné
   selectedEnjeu = computed(() => {
-    const id = this.selectedEnjeuId();
-    if (!id) return null;
+    const slug = this.selectedEnjeuSlug();
+    if (!slug) return null;
 
-    const enjeu = this.enjeux().find(e => e.id_enjeu === id);
+    const enjeu = this.enjeux().find(e => e.slug === slug);
     if (enjeu) return enjeu;
 
-    const fcrItem = this.fcr().find(f => f.id_enjeu === id);
+    const fcrItem = this.fcr().find(f => f.slug === slug);
     return fcrItem || null;
   });
 
@@ -251,72 +253,74 @@ export class EnjeuxListComponent implements OnInit {
 
   // Index d'affichage de l'enjeu sélectionné (1-based)
   selectedDisplayIndex = computed(() => {
-    const id = this.selectedEnjeuId();
-    if (!id) return 0;
-    const idx = this.enjeux().findIndex(e => e.id_enjeu === id);
+    const slug = this.selectedEnjeuSlug();
+    if (!slug) return 0;
+    const idx = this.enjeux().findIndex(e => e.slug === slug);
     if (idx >= 0) return idx + 1;
-    const fcrIdx = this.fcr().findIndex(f => f.id_enjeu === id);
+    const fcrIdx = this.fcr().findIndex(f => f.slug === slug);
     if (fcrIdx >= 0) return fcrIdx + 1;
     return 0;
   });
 
   ngOnInit(): void {
-    // Récupérer l'ID du plan depuis les paramètres parent
+    // Récupérer le slug du plan depuis les paramètres parent
     const parentParams = this.route.parent?.snapshot.paramMap;
-    const id = parentParams?.get('id') || this.route.snapshot.paramMap.get('planId');
+    const slug = parentParams?.get('slug');
 
-    if (id) {
-      this.planId.set(parseInt(id, 10));
+    if (slug) {
+      this.planSlug.set(slug);
       this.loadPlanData();
     } else {
-      this.errorMessage.set('ID du plan non trouvé');
+      this.errorMessage.set('Slug du plan non trouvé');
       this.isLoading.set(false);
     }
 
-    // Écouter les changements de l'enjeuId dans la route
+    // Écouter les changements de l'enjeuSlug dans la route
     this.route.params.pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(params => {
-      const enjeuId = params['enjeuId'];
-      if (enjeuId) {
-        this.selectedEnjeuId.set(parseInt(enjeuId, 10));
+      const enjeuSlug = params['enjeuSlug'];
+      if (enjeuSlug) {
+        this.selectedEnjeuSlug.set(enjeuSlug);
         this.enjeuDetailExpanded.set(true);
         this.activeTab.set('detail');
       } else {
-        this.selectedEnjeuId.set(null);
+        this.selectedEnjeuSlug.set(null);
       }
     });
   }
 
   loadPlanData(): void {
-    const id = this.planId();
-    if (!id) return;
+    const slug = this.planSlug();
+    if (!slug) return;
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    // Charger les infos du plan
-    this.adminService.getPlan(id).subscribe({
+    // Charger les infos du plan par slug
+    this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
+        this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(plan.annee_fin || null);
-      },
-      error: () => {
-        // Non bloquant, on continue
-      }
-    });
 
-    // Charger les enjeux et FCR
-    this.enjeuService.getPlanEnjeux(id).subscribe({
-      next: (response) => {
-        this.planEnjeuxData.set(response);
-        this.isLoading.set(false);
+        // Charger les enjeux et FCR (forceRefresh pour éviter le cache stale)
+        this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
+          next: (response) => {
+            this.planEnjeuxData.set(response);
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.errorMessage.set(
+              this.translate.instant('enjeux.messages.loadError')
+            );
+            this.isLoading.set(false);
+          }
+        });
       },
       error: () => {
-        this.errorMessage.set(
-          this.translate.instant('enjeux.messages.loadError')
-        );
+        this.errorMessage.set('Plan non trouvé');
         this.isLoading.set(false);
       }
     });
@@ -324,27 +328,27 @@ export class EnjeuxListComponent implements OnInit {
 
   // Navigation
   navigateToNewEnjeu(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux', 'nouveau']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', 'nouveau']);
     }
   }
 
   navigateToNewFcr(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux', 'fcr', 'nouveau']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', 'fcr', 'nouveau']);
     }
   }
 
   navigateToEdit(item: Enjeu): void {
-    const planId = this.planId();
-    if (!planId) return;
+    const slug = this.planSlug();
+    if (!slug) return;
 
     if (item.categorie_mnemonique === 'FCR') {
-      this.router.navigate(['/plans', planId, 'enjeux', 'fcr', item.id_enjeu, 'modifier']);
+      this.router.navigate(['/plans', slug, 'enjeux', 'fcr', item.id_enjeu, 'modifier']);
     } else {
-      this.router.navigate(['/plans', planId, 'enjeux', item.id_enjeu, 'modifier']);
+      this.router.navigate(['/plans', slug, 'enjeux', item.slug, 'modifier']);
     }
   }
 
@@ -403,10 +407,10 @@ export class EnjeuxListComponent implements OnInit {
     this.enjeuService.deleteEnjeu(enjeu.id_enjeu).subscribe({
       next: () => {
         // Si l'enjeu supprimé était sélectionné, retourner à la liste
-        if (this.selectedEnjeuId() === enjeu.id_enjeu) {
-          const planId = this.planId();
-          if (planId) {
-            this.router.navigate(['/plans', planId, 'enjeux']);
+        if (this.selectedEnjeu()?.id_enjeu === enjeu.id_enjeu) {
+          const slug = this.planSlug();
+          if (slug) {
+            this.router.navigate(['/plans', slug, 'enjeux']);
           }
         }
         this.loadPlanData();
@@ -421,9 +425,9 @@ export class EnjeuxListComponent implements OnInit {
 
   // Navigation vers le détail depuis l'accordéon
   navigateToEnjeuDetail(enjeu: Enjeu): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux', enjeu.id_enjeu]);
+    const slug = this.planSlug();
+    if (slug && enjeu.slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug]);
     }
   }
 
@@ -1059,7 +1063,7 @@ export class EnjeuxListComponent implements OnInit {
           this.addingIndicateurForNe.set(null);
           this.indicateurFormMetriques = [];
           this.isSavingIndicateur.set(false);
-          this.enjeuService.refreshCurrentPlanEnjeux();
+          this.loadPlanData();
           return;
         }
 
@@ -1078,7 +1082,7 @@ export class EnjeuxListComponent implements OnInit {
             this.addingIndicateurForNe.set(null);
             this.indicateurFormMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           },
           error: () => {
             // Partial success: indicateur created but some metriques failed
@@ -1090,7 +1094,7 @@ export class EnjeuxListComponent implements OnInit {
             this.addingIndicateurForNe.set(null);
             this.indicateurFormMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           }
         });
       },
@@ -1195,7 +1199,7 @@ export class EnjeuxListComponent implements OnInit {
           this.editingIndicateurId.set(null);
           this.editIndicateurMetriques = [];
           this.isSavingIndicateur.set(false);
-          this.enjeuService.refreshCurrentPlanEnjeux();
+          this.loadPlanData();
           return;
         }
 
@@ -1209,7 +1213,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingIndicateurId.set(null);
             this.editIndicateurMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           },
           error: () => {
             this.snackBar.open(
@@ -1220,7 +1224,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingIndicateurId.set(null);
             this.editIndicateurMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           }
         });
       },
@@ -1257,7 +1261,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           }
         });
       }
@@ -1280,7 +1284,7 @@ export class EnjeuxListComponent implements OnInit {
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
-        this.enjeuService.refreshCurrentPlanEnjeux();
+        this.loadPlanData();
       }
     });
   }
@@ -1477,19 +1481,19 @@ export class EnjeuxListComponent implements OnInit {
   // ============================================
 
   navigateToOperationForm(indicateurId?: number): void {
-    const planId = this.planId();
-    if (!planId) return;
+    const slug = this.planSlug();
+    if (!slug) return;
     const extras: any = {};
     if (indicateurId) {
       extras.queryParams = { indicateurId };
     }
-    this.router.navigate(['/plans', planId, 'enjeux', 'operations', 'nouveau'], extras);
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
 
   navigateToEditOperation(operationId: number): void {
-    const planId = this.planId();
-    if (!planId) return;
-    this.router.navigate(['/plans', planId, 'enjeux', 'operations', operationId, 'modifier']);
+    const slug = this.planSlug();
+    if (!slug) return;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId, 'modifier']);
   }
 
   deleteOperation(operation: Operation): void {
@@ -1517,7 +1521,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           },
           error: () => {
             this.snackBar.open(
@@ -1985,7 +1989,7 @@ export class EnjeuxListComponent implements OnInit {
           this.editingOoIndicateurId.set(null);
           this.editOoIndicateurMetriques = [];
           this.isSavingOoIndicateur.set(false);
-          this.enjeuService.refreshCurrentPlanEnjeux();
+          this.loadPlanData();
           return;
         }
 
@@ -1999,7 +2003,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingOoIndicateurId.set(null);
             this.editOoIndicateurMetriques = [];
             this.isSavingOoIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           },
           error: () => {
             this.snackBar.open(
@@ -2010,7 +2014,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingOoIndicateurId.set(null);
             this.editOoIndicateurMetriques = [];
             this.isSavingOoIndicateur.set(false);
-            this.enjeuService.refreshCurrentPlanEnjeux();
+            this.loadPlanData();
           }
         });
       },

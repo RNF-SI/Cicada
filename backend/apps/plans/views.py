@@ -100,11 +100,30 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """Définir l'utilisateur modificateur."""
         serializer.save(id_utilisateur_maj=self.request.user)
     
+    @action(detail=False, methods=['get'], url_path=r'by-slug/(?P<slug>[-\w]+)')
+    def by_slug(self, request, slug=None):
+        """
+        Récupérer un plan par son slug.
+
+        GET /api/plans/plans/by-slug/{slug}/
+        """
+        plan = get_object_or_404(PlanGestion, slug=slug)
+
+        # Vérifier les permissions via le queryset filtré
+        if not self.get_queryset().filter(pk=plan.pk).exists():
+            return Response(
+                {'error': 'Vous n\'avez pas accès à ce plan'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):
         """
         Liste des plans au format GeoJSON FeatureCollection.
-        
+
         GET /api/plans/geojson_list/
         """
         queryset = self.filter_queryset(self.get_queryset())

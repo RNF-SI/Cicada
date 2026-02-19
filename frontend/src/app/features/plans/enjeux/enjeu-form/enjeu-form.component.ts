@@ -58,8 +58,10 @@ export class EnjeuFormComponent implements OnInit {
   errorMessage = signal<string | null>(null);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   enjeuId = signal<number | null>(null);
+  enjeuSlug = signal<string | null>(null);
   isEditMode = signal(false);
   existingEnjeu = signal<Enjeu | null>(null);
 
@@ -86,18 +88,18 @@ export class EnjeuFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
-    // Récupérer l'ID du plan depuis l'URL parent
+    // Récupérer le slug du plan depuis l'URL parent
     const parentParams = this.route.parent?.parent?.snapshot.paramMap;
-    const planIdStr = parentParams?.get('id') || this.route.snapshot.paramMap.get('planId');
+    const slug = parentParams?.get('slug');
 
-    if (planIdStr) {
-      this.planId.set(parseInt(planIdStr, 10));
+    if (slug) {
+      this.planSlug.set(slug);
     }
 
-    // Récupérer l'ID de l'enjeu si mode édition
-    const enjeuIdStr = this.route.snapshot.paramMap.get('enjeuId');
-    if (enjeuIdStr) {
-      this.enjeuId.set(parseInt(enjeuIdStr, 10));
+    // Récupérer le slug de l'enjeu si mode édition
+    const enjeuSlug = this.route.snapshot.paramMap.get('enjeuSlug');
+    if (enjeuSlug) {
+      this.enjeuSlug.set(enjeuSlug);
       this.isEditMode.set(true);
     }
 
@@ -107,11 +109,12 @@ export class EnjeuFormComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    // Charger le nom du plan
-    const planId = this.planId();
-    if (planId) {
-      this.adminService.getPlan(planId).subscribe({
+    // Charger le plan par slug
+    const slug = this.planSlug();
+    if (slug) {
+      this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+          this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
         },
         error: () => {
@@ -134,22 +137,29 @@ export class EnjeuFormComponent implements OnInit {
   }
 
   private loadEnjeuIfEdit(): void {
-    const enjeuId = this.enjeuId();
-    if (!enjeuId) {
+    const slug = this.enjeuSlug();
+    const planId = this.planId();
+    if (!slug || !planId) {
       this.isLoadingData.set(false);
       return;
     }
 
-    this.enjeuService.getEnjeu(enjeuId).subscribe({
-      next: (enjeu) => {
-        this.existingEnjeu.set(enjeu);
-        this.populateForm(enjeu);
+    // Load all enjeux for the plan and find by slug
+    this.enjeuService.getPlanEnjeux(planId).subscribe({
+      next: (response) => {
+        const all = [...response.enjeux, ...response.fcr];
+        const enjeu = all.find(e => e.slug === slug);
+        if (enjeu) {
+          this.enjeuId.set(enjeu.id_enjeu);
+          this.existingEnjeu.set(enjeu);
+          this.populateForm(enjeu);
+        } else {
+          this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+        }
         this.isLoadingData.set(false);
       },
-      error: (error) => {
-        this.errorMessage.set(
-          this.translate.instant('enjeux.messages.loadError')
-        );
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
         this.isLoadingData.set(false);
       }
     });
@@ -274,9 +284,9 @@ export class EnjeuFormComponent implements OnInit {
   }
 
   private navigateBack(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux']);
     } else {
       this.router.navigate(['/plans']);
     }

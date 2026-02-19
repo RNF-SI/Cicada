@@ -432,6 +432,14 @@ export class AdminService {
   }
 
   /**
+   * Get a plan de gestion by slug
+   */
+  getPlanBySlug(slug: string): Observable<AdminPlan> {
+    return this.http.get<AdminPlan>(`${this.plansApiUrl}/plans/by-slug/${slug}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Create a new plan de gestion
    */
   createPlan(payload: PlanCreatePayload): Observable<AdminPlan> {

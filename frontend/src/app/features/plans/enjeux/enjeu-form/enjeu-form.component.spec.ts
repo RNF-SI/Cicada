@@ -57,9 +57,10 @@ const existingEnjeu: Enjeu = {
   description: 'Description existante',
   date_ajout: '2024-01-01T00:00:00Z',
   date_maj: '2024-01-15T00:00:00Z',
+  slug: 'enjeu-existant',
 };
 
-function buildActivatedRoute(params: Record<string, string> = {}, parentParentParams: Record<string, string> = {}): any {
+function buildActivatedRoute(params: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): any {
   return {
     snapshot: {
       paramMap: {
@@ -86,21 +87,26 @@ describe('EnjeuFormComponent', () => {
   let mockEnjeuService: {
     createEnjeu: jest.Mock;
     updateEnjeu: jest.Mock;
-    getEnjeu: jest.Mock;
+    getPlanEnjeux: jest.Mock;
   };
   let mockAdminService: {
-    getPlan: jest.Mock;
+    getPlanBySlug: jest.Mock;
     getNomenclatureByMnemonique: jest.Mock;
   };
 
-  function setup(routeParams: Record<string, string> = {}, parentParentParams: Record<string, string> = { id: '10' }): void {
+  function setup(routeParams: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): void {
     mockEnjeuService = {
       createEnjeu: jest.fn().mockReturnValue(of(existingEnjeu)),
       updateEnjeu: jest.fn().mockReturnValue(of(existingEnjeu)),
-      getEnjeu: jest.fn().mockReturnValue(of(existingEnjeu)),
+      getPlanEnjeux: jest.fn().mockReturnValue(of({
+        plan_id: 10, plan_nom: 'Plan Test',
+        enjeux: [existingEnjeu], fcr: [],
+        total_enjeux: 1, total_fcr: 0,
+        plan_slug: 'plan-test'
+      })),
     };
     mockAdminService = {
-      getPlan: jest.fn().mockReturnValue(of({ nom: 'Plan Test' })),
+      getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test' })),
       getNomenclatureByMnemonique: jest.fn().mockReturnValue(of({ id_nomenclature: 42, mnemonique: 'ENJEU', label: 'Enjeu' })),
     };
     TestBed.configureTestingModule({
@@ -154,26 +160,26 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('processus')?.value).toBe(false);
     });
 
-    it('should detect create mode when no enjeuId param', () => {
+    it('should detect create mode when no enjeuSlug param', () => {
       setup();
       expect(component.isEditMode()).toBe(false);
       expect(component.enjeuId()).toBeNull();
     });
 
-    it('should detect edit mode when enjeuId param present', () => {
-      setup({ enjeuId: '5' });
+    it('should detect edit mode when enjeuSlug param present', () => {
+      setup({ enjeuSlug: 'enjeu-existant' });
       expect(component.isEditMode()).toBe(true);
-      expect(component.enjeuId()).toBe(5);
+      expect(component.enjeuSlug()).toBe('enjeu-existant');
     });
 
-    it('should load planId from parent route', () => {
+    it('should load planSlug from parent route', () => {
       setup();
-      expect(component.planId()).toBe(10);
+      expect(component.planSlug()).toBe('plan-test');
     });
 
     it('should load plan name', () => {
       setup();
-      expect(mockAdminService.getPlan).toHaveBeenCalledWith(10);
+      expect(mockAdminService.getPlanBySlug).toHaveBeenCalledWith('plan-test');
       expect(component.planNom()).toBe('Plan Test');
     });
 
@@ -278,7 +284,7 @@ describe('EnjeuFormComponent', () => {
     it('should navigate back on success', () => {
       component.form.patchValue({ libelle: 'Test', rang: 1 });
       component.onSubmit();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should set errorMessage on error', () => {
@@ -294,10 +300,10 @@ describe('EnjeuFormComponent', () => {
   // =========================================================================
 
   describe('edition', () => {
-    beforeEach(() => setup({ enjeuId: '5' }));
+    beforeEach(() => setup({ enjeuSlug: 'enjeu-existant' }));
 
     it('should load existing enjeu and populate form', () => {
-      expect(mockEnjeuService.getEnjeu).toHaveBeenCalledWith(5);
+      expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10);
       expect(component.form.get('libelle')?.value).toBe('Enjeu existant');
       expect(component.form.get('rang')?.value).toBe(2);
       expect(component.form.get('categorie_ecologique')?.value).toBe(false);
@@ -332,7 +338,7 @@ describe('EnjeuFormComponent', () => {
     it('should navigate back to enjeux list on cancel', () => {
       setup();
       component.onCancel();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should navigate to /plans if no planId', () => {

@@ -2,11 +2,12 @@
 
 <div class="enjeux-layout">
   <!-- Sidebar Menu (composant partagé) -->
-  @if (planId(); as id) {
+  @if (planSlug(); as slug) {
     <app-plan-sidebar
-      [planId]="id"
+      [planId]="planId()!"
+      [planSlug]="slug"
       activePage="enjeux"
-      [selectedEnjeuId]="selectedEnjeuId()">
+      [selectedEnjeuSlug]="selectedEnjeuSlug()">
     </app-plan-sidebar>
   }
 
@@ -45,16 +46,20 @@
                 {{ 'plans.detail.sidebar.title' | translate }}
               </a>
               <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-              <a [routerLink]="['/plans', planId()]" class="breadcrumb-link">
+              <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">
                 {{ planNom() }}
               </a>
               <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
               @if (selectedEnjeu()) {
-                <a [routerLink]="['/plans', planId(), 'enjeux']" class="breadcrumb-link">
+                <a [routerLink]="['/plans', planSlug(), 'enjeux']" class="breadcrumb-link">
                   {{ 'enjeux.title' | translate }}
                 </a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-                <span class="breadcrumb-current">{{ selectedEnjeu()!.intitule_court || selectedEnjeu()!.libelle }}</span>
+                <a [routerLink]="['/plans', planSlug(), 'enjeux', selectedEnjeuSlug()]" class="breadcrumb-link" (click)="setActiveTab('detail')">
+                  {{ selectedEnjeu()!.intitule_court || selectedEnjeu()!.libelle }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                <span class="breadcrumb-current">{{ 'enjeux.tabs.' + activeTab() | translate }}</span>
               } @else {
                 <span class="breadcrumb-current">{{ 'enjeux.title' | translate }}</span>
               }

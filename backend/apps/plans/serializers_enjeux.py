@@ -457,7 +457,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enjeu
         fields = [
-            'id_enjeu', 'id_pg', 'plan_nom',
+            'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court',
             # Champs Enjeu
@@ -471,7 +471,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
             # Audit
             'date_ajout', 'date_maj'
         ]
-        read_only_fields = ['id_enjeu', 'date_ajout', 'date_maj']
+        read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj']
 
     def get_nb_taxons(self, obj):
         return obj.taxons.count()
@@ -519,7 +519,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enjeu
         fields = [
-            'id_enjeu', 'id_pg', 'plan_nom',
+            'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court', 'description',
             # Champs Enjeu
@@ -539,7 +539,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             # Audit
             'date_ajout', 'date_maj', 'id_utilisateur_ajout', 'createur_nom'
         ]
-        read_only_fields = ['id_enjeu', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
+        read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
 
     def get_nb_facteurs_influence(self, obj):
         return obj.facteurs_influence.count()
@@ -597,7 +597,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enjeu
         fields = [
-            'id_enjeu', 'id_pg', 'id_categorie',
+            'id_enjeu', 'id_pg', 'slug', 'id_categorie',
             'libelle', 'intitule_court', 'description',
             # Champs Enjeu
             'rang', 'categorie_ecologique', 'habitat', 'espece', 'processus', 'etat_enjeu',
@@ -609,7 +609,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             'taxon_ids', 'habitat_ids', 'geologie_ids',
             'taxons_data', 'habitats_data', 'geologies_data'
         ]
-        read_only_fields = ['id_enjeu']
+        read_only_fields = ['id_enjeu', 'slug']
 
     def validate(self, attrs):
         """Validation métier selon le type (Enjeu ou FCR)."""

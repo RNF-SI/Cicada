@@ -49,6 +49,7 @@ export class PlanDetailComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
@@ -115,27 +116,28 @@ export class PlanDetailComponent implements OnInit {
   ]);
 
   ngOnInit(): void {
-    // Récupérer l'ID du plan depuis l'URL
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.planId.set(parseInt(id, 10));
+    // Récupérer le slug du plan depuis l'URL
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (slug) {
+      this.planSlug.set(slug);
       this.loadPlan();
     }
   }
 
   loadPlan(): void {
-    const id = this.planId();
-    if (!id) return;
+    const slug = this.planSlug();
+    if (!slug) return;
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.adminService.getPlan(id).subscribe({
+    this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
         this.plan.set(plan);
+        this.planId.set(plan.id_pg);
         this.isLoading.set(false);
-        this.loadEnjeux(id);
-        this.loadOperations(id);
+        this.loadEnjeux(plan.id_pg);
+        this.loadOperations(plan.id_pg);
       },
       error: (error) => {
         this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
@@ -189,16 +191,23 @@ export class PlanDetailComponent implements OnInit {
   }
 
   navigateToEnjeux(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux']);
     }
   }
 
-  navigateToEnjeuDetail(enjeuId: number): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux', enjeuId]);
+  navigateToEnjeuDetail(enjeu: Enjeu): void {
+    const slug = this.planSlug();
+    if (slug && enjeu.slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug]);
+    }
+  }
+
+  navigateToEnjeuByOltOo(enjeuId: number): void {
+    const enjeu = this.enjeuxData().find(e => e.id_enjeu === enjeuId);
+    if (enjeu) {
+      this.navigateToEnjeuDetail(enjeu);
     }
   }
 

@@ -48,14 +48,14 @@ export const ENJEUX_ROUTES: Routes = [
     title: 'Modifier FCR'
   },
   {
-    path: ':enjeuId/modifier',
+    path: ':enjeuSlug/modifier',
     loadComponent: () => import('./enjeu-form/enjeu-form.component')
       .then(m => m.EnjeuFormComponent),
     canActivate: [authGuard],
     title: 'Modifier enjeu'
   },
   {
-    path: ':enjeuId',
+    path: ':enjeuSlug',
     loadComponent: () => import('./enjeux-list/enjeux-list.component')
       .then(m => m.EnjeuxListComponent),
     canActivate: [authGuard],

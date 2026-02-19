@@ -152,7 +152,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang', 'annee_debut', 'annee_fin', 'periode_gestion',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin', 'periode_gestion',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie', 'statut', 'statut_display', 'version',
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_display', 'redacteur_type_display', 'redacteur_nom',
@@ -220,7 +220,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang',
             'annee_debut', 'annee_fin', 'periode_gestion',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
@@ -233,7 +233,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj'
         ]
         read_only_fields = [
-            'id_pg', 'date_ajout', 'date_maj'
+            'id_pg', 'slug', 'date_ajout', 'date_maj'
         ]
     
     def create(self, validated_data):
@@ -325,7 +325,7 @@ class PlanGestionGeoJSONSerializer(serializers.ModelSerializer):
         model = PlanGestion
         geo_field = 'geometrie'
         fields = [
-            'id_pg', 'nom', 'periode_gestion', 'gestion_partagee',
+            'id_pg', 'nom', 'slug', 'periode_gestion', 'gestion_partagee',
             'statut', 'statut_display', 'nb_sites'
         ]
 
@@ -339,7 +339,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang', 'annee_debut', 'annee_fin',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
@@ -347,7 +347,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'commentaire', 'statut', 'version', 'geometrie',
             'sites_ids', 'referents_ids'
         ]
-        read_only_fields = ['id_pg']
+        read_only_fields = ['id_pg', 'slug']
         extra_kwargs = {
             'nom': {'required': True},
             'rang': {'required': True},

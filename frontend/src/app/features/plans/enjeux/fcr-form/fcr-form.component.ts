@@ -63,6 +63,7 @@ export class FcrFormComponent implements OnInit {
   errorMessage = signal<string | null>(null);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   fcrId = signal<number | null>(null);
   isEditMode = signal(false);
@@ -89,15 +90,15 @@ export class FcrFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
-    // Récupérer l'ID du plan depuis l'URL parent
+    // Récupérer le slug du plan depuis l'URL parent
     const parentParams = this.route.parent?.parent?.snapshot.paramMap;
-    const planIdStr = parentParams?.get('id') || this.route.snapshot.paramMap.get('planId');
+    const slug = parentParams?.get('slug');
 
-    if (planIdStr) {
-      this.planId.set(parseInt(planIdStr, 10));
+    if (slug) {
+      this.planSlug.set(slug);
     }
 
-    // Récupérer l'ID du FCR si mode édition
+    // Récupérer l'ID du FCR si mode édition (FCRs keep numeric IDs in URLs)
     const fcrIdStr = this.route.snapshot.paramMap.get('fcrId');
     if (fcrIdStr) {
       this.fcrId.set(parseInt(fcrIdStr, 10));
@@ -110,11 +111,12 @@ export class FcrFormComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    // Charger le nom du plan
-    const planId = this.planId();
-    if (planId) {
-      this.adminService.getPlan(planId).subscribe({
+    // Charger le plan par slug
+    const slug = this.planSlug();
+    if (slug) {
+      this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+          this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
         },
         error: () => {
@@ -294,9 +296,9 @@ export class FcrFormComponent implements OnInit {
   }
 
   private navigateBack(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux']);
     } else {
       this.router.navigate(['/plans']);
     }

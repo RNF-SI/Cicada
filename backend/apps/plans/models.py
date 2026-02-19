@@ -3,6 +3,7 @@ Modèles pour la gestion des Plans de Gestion.
 """
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
 
@@ -60,7 +61,13 @@ class PlanGestion(models.Model):
     
     id_pg = models.AutoField(primary_key=True)
     id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
-    nom = models.CharField(_("Nom du plan de gestion"), max_length=255)
+    nom = models.CharField(_("Nom du plan de gestion"), max_length=255, unique=True)
+    slug = models.SlugField(
+        _("Slug"),
+        max_length=300,
+        unique=True,
+        help_text=_("Identifiant URL lisible, généré automatiquement depuis le nom")
+    )
 
     # Gestion multi-sites
     gestion_partagee = models.BooleanField(
@@ -241,12 +248,31 @@ class PlanGestion(models.Model):
             if not self.pk:  # Création
                 self.id_utilisateur_ajout = self._current_user
             self.id_utilisateur_maj = self._current_user
-            
+
+        # Auto-générer le slug depuis le nom
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+
         super().save(*args, **kwargs)
-        
+
         # Mettre à jour la géométrie si nécessaire
         if not self.geometrie:
             self.update_geometrie()
+
+    def _generate_unique_slug(self):
+        """Génère un slug unique à partir du nom."""
+        base_slug = slugify(self.nom)
+        if not base_slug:
+            base_slug = 'plan'
+        slug = base_slug
+        counter = 2
+        qs = PlanGestion.objects.all()
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        while qs.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        return slug
 
     def update_geometrie(self):
         """Calcule et met à jour la géométrie du plan basée sur ses sites."""

@@ -61,6 +61,7 @@ export interface Enjeu {
   id_enjeu: number;
   id_pg: number;
   plan_nom?: string;
+  slug?: string;
 
   // Type (Enjeu or FCR)
   id_categorie: number;
@@ -625,6 +626,7 @@ export interface EnjeuUpdatePayload {
 export interface PlanEnjeuxResponse {
   plan_id: number;
   plan_nom: string;
+  plan_slug?: string;
   enjeux: Enjeu[];
   fcr: Enjeu[];
   total_enjeux: number;

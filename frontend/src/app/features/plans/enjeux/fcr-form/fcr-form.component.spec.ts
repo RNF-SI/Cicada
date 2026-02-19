@@ -67,7 +67,7 @@ const mockNomenclatures = [
   { id_nomenclature: 204, mnemonique: 'AUTRE', label: 'Autre' },
 ];
 
-function buildActivatedRoute(params: Record<string, string> = {}, parentParentParams: Record<string, string> = {}): any {
+function buildActivatedRoute(params: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): any {
   return {
     snapshot: {
       paramMap: {
@@ -97,19 +97,19 @@ describe('FcrFormComponent', () => {
     getEnjeu: jest.Mock;
   };
   let mockAdminService: {
-    getPlan: jest.Mock;
+    getPlanBySlug: jest.Mock;
     getNomenclatureByMnemonique: jest.Mock;
     getNomenclaturesByType: jest.Mock;
   };
 
-  function setup(routeParams: Record<string, string> = {}, parentParentParams: Record<string, string> = { id: '10' }): void {
+  function setup(routeParams: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): void {
     mockEnjeuService = {
       createFcr: jest.fn().mockReturnValue(of(existingFcr)),
       updateEnjeu: jest.fn().mockReturnValue(of(existingFcr)),
       getEnjeu: jest.fn().mockReturnValue(of(existingFcr)),
     };
     mockAdminService = {
-      getPlan: jest.fn().mockReturnValue(of({ nom: 'Plan Test' })),
+      getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test' })),
       getNomenclatureByMnemonique: jest.fn().mockReturnValue(of({ id_nomenclature: 101, mnemonique: 'FCR', label: 'FCR' })),
       getNomenclaturesByType: jest.fn().mockReturnValue(of(mockNomenclatures)),
     };
@@ -225,7 +225,7 @@ describe('FcrFormComponent', () => {
         getEnjeu: jest.fn().mockReturnValue(of(existingFcr)),
       };
       const errorAdminService = {
-        getPlan: jest.fn().mockReturnValue(of({ nom: 'Plan Test' })),
+        getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test' })),
         getNomenclatureByMnemonique: jest.fn().mockReturnValue(of({ id_nomenclature: 101 })),
         getNomenclaturesByType: jest.fn().mockReturnValue(throwError(() => new Error('API error'))),
       };
@@ -242,7 +242,7 @@ describe('FcrFormComponent', () => {
           }),
         ],
         providers: [
-          { provide: ActivatedRoute, useValue: buildActivatedRoute({}, { id: '10' }) },
+          { provide: ActivatedRoute, useValue: buildActivatedRoute({}, { slug: 'plan-test' }) },
           { provide: EnjeuService, useValue: errorEnjeuService },
           { provide: AdminService, useValue: errorAdminService },
         ],
@@ -298,7 +298,7 @@ describe('FcrFormComponent', () => {
       component.form.patchValue({ libelle: 'FCR', id_categorie_fcr: 201 });
       component.onSubmit();
       expect(mockSnackBarOpen).toHaveBeenCalled();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should set errorMessage on error', () => {
@@ -350,7 +350,7 @@ describe('FcrFormComponent', () => {
     it('should navigate back on cancel', () => {
       setup();
       component.onCancel();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 10, 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should navigate to /plans if no planId', () => {

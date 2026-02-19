@@ -61,6 +61,7 @@ export class OperationFormComponent implements OnInit {
   errorMessage = signal<string | null>(null);
 
   planId = signal<number | null>(null);
+  planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   operationId = signal<number | null>(null);
   isEditMode = signal(false);
@@ -175,10 +176,10 @@ export class OperationFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
-    // Walk up the route tree to find the 'id' param (plan ID)
-    const planIdStr = this.findRouteParam('id');
-    if (planIdStr) {
-      this.planId.set(parseInt(planIdStr, 10));
+    // Walk up the route tree to find the 'slug' param (plan slug)
+    const slug = this.findRouteParam('slug');
+    if (slug) {
+      this.planSlug.set(slug);
     }
 
     const opIdStr = this.route.snapshot.paramMap.get('operationId');
@@ -211,10 +212,11 @@ export class OperationFormComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    const planId = this.planId();
-    if (planId) {
-      this.adminService.getPlan(planId).subscribe({
+    const slug = this.planSlug();
+    if (slug) {
+      this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+          this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.computeYears(plan.annee_debut, plan.annee_fin);
           // Extract plan sites
@@ -224,42 +226,42 @@ export class OperationFormComponent implements OnInit {
               this.selectedSiteIds[site.id_site] = false;
             }
           }
+          // Load enjeux after plan is loaded
+          this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
+            next: (response) => {
+              const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
+              const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string }[] = [];
+
+              const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
+              for (const enjeu of allEnjeux) {
+                for (const olt of enjeu.objectifs_long_terme || []) {
+                  for (const ne of olt.niveaux_exigence || []) {
+                    for (const ind of ne.indicateurs || []) {
+                      indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
+                      for (const met of ind.metriques || []) {
+                        metriques.push({
+                          id_metrique: met.id_metrique,
+                          nom_metrique: met.nom_metrique,
+                          indicateur_nom: ind.nom_indicateur
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+
+              this.planIndicateurs.set(indicateurs);
+              this.planMetriques.set(metriques);
+            },
+            error: () => {}
+          });
         },
         error: () => {
           this.computeYears(null, null);
         }
       });
-
-      this.enjeuService.getPlanEnjeux(planId).subscribe({
-        next: (response) => {
-          const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
-          const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string }[] = [];
-
-          const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
-          for (const enjeu of allEnjeux) {
-            for (const olt of enjeu.objectifs_long_terme || []) {
-              for (const ne of olt.niveaux_exigence || []) {
-                for (const ind of ne.indicateurs || []) {
-                  indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
-                  for (const met of ind.metriques || []) {
-                    metriques.push({
-                      id_metrique: met.id_metrique,
-                      nom_metrique: met.nom_metrique,
-                      indicateur_nom: ind.nom_indicateur
-                    });
-                  }
-                }
-              }
-            }
-          }
-
-          this.planIndicateurs.set(indicateurs);
-          this.planMetriques.set(metriques);
-        },
-        error: () => {}
-      });
     } else {
-      // No plan ID found: generate default years so tables render
+      // No plan slug found: generate default years so tables render
       this.computeYears(null, null);
     }
 
@@ -582,9 +584,9 @@ export class OperationFormComponent implements OnInit {
   }
 
   goBack(): void {
-    const planId = this.planId();
-    if (planId) {
-      this.router.navigate(['/plans', planId, 'enjeux']);
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'enjeux']);
     } else {
       this.router.navigate(['/plans']);
     }

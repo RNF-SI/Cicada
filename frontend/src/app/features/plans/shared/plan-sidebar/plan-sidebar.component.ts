@@ -17,8 +17,9 @@ export class PlanSidebarComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
 
   planId = input.required<number>();
+  planSlug = input.required<string>();
   activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord'>('overview');
-  selectedEnjeuId = input<number | null>(null);
+  selectedEnjeuSlug = input<string | null>(null);
 
   enjeux = signal<Enjeu[]>([]);
   fcr = signal<Enjeu[]>([]);
@@ -46,26 +47,26 @@ export class PlanSidebarComponent implements OnInit {
   }
 
   navigateToOverview(): void {
-    this.router.navigate(['/plans', this.planId()]);
+    this.router.navigate(['/plans', this.planSlug()]);
   }
 
   navigateToEnjeux(): void {
-    this.router.navigate(['/plans', this.planId(), 'enjeux']);
+    this.router.navigate(['/plans', this.planSlug(), 'enjeux']);
   }
 
   selectEnjeu(item: Enjeu): void {
-    this.router.navigate(['/plans', this.planId(), 'enjeux', item.id_enjeu]);
+    this.router.navigate(['/plans', this.planSlug(), 'enjeux', item.slug]);
   }
 
   navigateToBilan(): void {
-    this.router.navigate(['/plans', this.planId(), 'bilan']);
+    this.router.navigate(['/plans', this.planSlug(), 'bilan']);
   }
 
   navigateToSuiviActions(): void {
-    this.router.navigate(['/plans', this.planId(), 'suivi-actions']);
+    this.router.navigate(['/plans', this.planSlug(), 'suivi-actions']);
   }
 
   navigateToTableauDeBord(): void {
-    this.router.navigate(['/plans', this.planId(), 'tableau-de-bord']);
+    this.router.navigate(['/plans', this.planSlug(), 'tableau-de-bord']);
   }
 }
