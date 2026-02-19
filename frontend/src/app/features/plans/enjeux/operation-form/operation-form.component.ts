@@ -5,7 +5,7 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -47,6 +47,7 @@ import { PlanSite } from '../../../../core/models/admin.model';
   styleUrl: './operation-form.component.scss'
 })
 export class OperationFormComponent implements OnInit {
+  private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -438,6 +439,7 @@ export class OperationFormComponent implements OnInit {
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.scrollToError();
       return;
     }
 
@@ -559,6 +561,7 @@ export class OperationFormComponent implements OnInit {
           this.errorMessage.set(
             error.message || this.translate.instant('enjeux.messages.updateError')
           );
+          this.scrollToError();
         }
       });
     } else {
@@ -578,9 +581,22 @@ export class OperationFormComponent implements OnInit {
           this.errorMessage.set(
             error.message || this.translate.instant('enjeux.messages.createError')
           );
+          this.scrollToError();
         }
       });
     }
+  }
+
+  private scrollToError(): void {
+    setTimeout(() => {
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   goBack(): void {

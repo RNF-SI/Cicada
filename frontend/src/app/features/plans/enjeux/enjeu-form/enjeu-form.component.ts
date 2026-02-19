@@ -2,7 +2,7 @@
  * Composant formulaire pour créer ou modifier un Enjeu.
  * Champs spécifiques aux Enjeux : priorité, catégorie écologique, type (habitat/espèce/processus).
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -44,6 +44,7 @@ import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload } from '../../../../core/
   styleUrl: './enjeu-form.component.scss'
 })
 export class EnjeuFormComponent implements OnInit {
+  private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -182,6 +183,7 @@ export class EnjeuFormComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.scrollToError();
       return;
     }
 
@@ -204,6 +206,7 @@ export class EnjeuFormComponent implements OnInit {
     if (!planId) {
       this.errorMessage.set('ID du plan manquant');
       this.isLoading.set(false);
+      this.scrollToError();
       return;
     }
 
@@ -236,6 +239,7 @@ export class EnjeuFormComponent implements OnInit {
         this.errorMessage.set(
           error.message || this.translate.instant('enjeux.messages.createError')
         );
+        this.scrollToError();
       }
     });
   }
@@ -245,6 +249,7 @@ export class EnjeuFormComponent implements OnInit {
     if (!enjeuId) {
       this.errorMessage.set('ID de l\'enjeu manquant');
       this.isLoading.set(false);
+      this.scrollToError();
       return;
     }
 
@@ -275,7 +280,20 @@ export class EnjeuFormComponent implements OnInit {
         this.errorMessage.set(
           error.message || this.translate.instant('enjeux.messages.updateError')
         );
+        this.scrollToError();
       }
+    });
+  }
+
+  private scrollToError(): void {
+    setTimeout(() => {
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

@@ -102,6 +102,7 @@ export class PlanCreateComponent implements OnInit {
   @ViewChild('relecteursInput') relecteursInput!: ElementRef<HTMLInputElement>;
   @ViewChild('organismeInput') organismeInput!: ElementRef<HTMLInputElement>;
 
+  private readonly elRef = inject(ElementRef);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
@@ -490,14 +491,34 @@ export class PlanCreateComponent implements OnInit {
 
   // ==================== ORGANISME REDACTEUR ====================
 
-  /** Sélectionne un organisme existant */
+  /** Sélectionne un organisme existant ou texte libre */
   selectOrganisme(event: MatAutocompleteSelectedEvent): void {
-    const org = event.option.value as AdminOrganisme;
-    this.selectedOrganisme.set({
-      type: 'organisme',
-      organismeId: org.id_organisme,
-      displayName: org.nom_organisme
-    });
+    const value = event.option.value;
+
+    // Free text option
+    if (value?.freeText) {
+      const text = (value.freeText as string).trim();
+      if (text) {
+        this.selectedOrganisme.set({
+          type: 'text',
+          displayName: text
+        });
+      }
+      this.organismeCtrl.setValue('');
+      if (this.organismeInput) {
+        this.organismeInput.nativeElement.value = '';
+      }
+      return;
+    }
+
+    const org = value as AdminOrganisme;
+    if (org) {
+      this.selectedOrganisme.set({
+        type: 'organisme',
+        organismeId: org.id_organisme,
+        displayName: org.nom_organisme
+      });
+    }
 
     this.organismeCtrl.setValue('');
     if (this.organismeInput) {
@@ -530,8 +551,10 @@ export class PlanCreateComponent implements OnInit {
   }
 
   /** Affiche le nom de l'organisme pour l'autocomplete */
-  displayOrganismeFn(org: AdminOrganisme): string {
-    return org ? org.nom_organisme : '';
+  displayOrganismeFn(org: any): string {
+    if (!org) return '';
+    if (org.freeText) return org.freeText;
+    return org.nom_organisme || '';
   }
 
   // ==================== SOUMISSION ====================
@@ -539,12 +562,14 @@ export class PlanCreateComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.scrollToError();
       return;
     }
 
     // Validation des sites obligatoires
     if (this.selectedSiteIds().length === 0) {
       this.errorMessage.set(this.translate.instant('modals.planForm.validation.sitesRequired'));
+      this.scrollToError();
       return;
     }
 
@@ -611,12 +636,25 @@ export class PlanCreateComponent implements OnInit {
     this.adminService.createPlan(payload).subscribe({
       next: (plan) => {
         this.isLoading.set(false);
-        this.router.navigate(['/plans', plan.id_pg]);
+        this.router.navigate(['/plans', plan.slug]);
       },
       error: (error: Error) => {
         this.isLoading.set(false);
         this.errorMessage.set(error.message);
+        this.scrollToError();
       }
+    });
+  }
+
+  private scrollToError(): void {
+    setTimeout(() => {
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

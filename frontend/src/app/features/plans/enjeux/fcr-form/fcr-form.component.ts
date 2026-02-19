@@ -2,7 +2,7 @@
  * Composant formulaire pour créer ou modifier un FCR (Facteur Clé de Réussite).
  * Champs spécifiques aux FCR : catégorie FCR (Connaissance, Ancrage territorial, etc.).
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -49,6 +49,7 @@ interface FcrCategorieOption {
   styleUrl: './fcr-form.component.scss'
 })
 export class FcrFormComponent implements OnInit {
+  private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -204,6 +205,7 @@ export class FcrFormComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.scrollToError();
       return;
     }
 
@@ -226,6 +228,7 @@ export class FcrFormComponent implements OnInit {
     if (!planId) {
       this.errorMessage.set('ID du plan manquant');
       this.isLoading.set(false);
+      this.scrollToError();
       return;
     }
 
@@ -253,6 +256,7 @@ export class FcrFormComponent implements OnInit {
         this.errorMessage.set(
           error.message || this.translate.instant('enjeux.messages.createError')
         );
+        this.scrollToError();
       }
     });
   }
@@ -262,6 +266,7 @@ export class FcrFormComponent implements OnInit {
     if (!fcrId) {
       this.errorMessage.set('ID du FCR manquant');
       this.isLoading.set(false);
+      this.scrollToError();
       return;
     }
 
@@ -287,7 +292,20 @@ export class FcrFormComponent implements OnInit {
         this.errorMessage.set(
           error.message || this.translate.instant('enjeux.messages.updateError')
         );
+        this.scrollToError();
       }
+    });
+  }
+
+  private scrollToError(): void {
+    setTimeout(() => {
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 
