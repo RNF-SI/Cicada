@@ -8,6 +8,7 @@ from apps.plans.models import PlanGestion
 from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat,
     CorResponsabiliteEnjeu
@@ -1698,6 +1699,216 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'NE: {ne2.libelle[:50]}')
 
         # =====================================================================
+        # Objectifs Opérationnels (OO) et Résultats Attendus (RA)
+        # =====================================================================
+        oos_created = []
+        ras_created = []
+
+        # Camargue - Habitats humides : OO liés aux facteurs d'influence
+        if enjeu_hab_humides:
+            facteur_urbain = next((f for f in facteurs_created if 'urbanisation' in f.libelle.lower() or 'urbain' in f.libelle.lower()), None)
+            facteur_hydro = next((f for f in facteurs_created if 'hydrologique' in f.libelle.lower() or 'hydraulique' in f.libelle.lower()), None)
+
+            oo, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_hab_humides,
+                libelle='Réduire la pression urbaine sur les zones humides',
+                defaults={
+                    'description': 'Mettre en place des mesures de protection et de gestion '
+                                   'pour limiter l\'impact de l\'urbanisation sur les habitats humides.',
+                    'id_facteur_influence': facteur_urbain,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo.libelle[:50]}')
+
+            ra, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo,
+                libelle='Zéro nouvelle emprise urbaine dans le périmètre de protection',
+                defaults={
+                    'description': 'Aucune nouvelle construction ou emprise urbaine ne doit être autorisée '
+                                   'dans le périmètre de protection rapprochée de la réserve.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra.libelle[:50]}')
+
+            ra2, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo,
+                libelle='Réduction de 30% des rejets polluants',
+                defaults={
+                    'description': 'Réduire de 30% les rejets polluants d\'origine urbaine '
+                                   'dans les cours d\'eau alimentant la réserve.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra2)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra2.libelle[:50]}')
+
+            oo2, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_hab_humides,
+                libelle='Restaurer le régime hydrologique naturel',
+                defaults={
+                    'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
+                                   'hydrologique compatible avec le maintien des habitats humides.',
+                    'id_facteur_influence': facteur_hydro,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo2)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo2.libelle[:50]}')
+
+            ra3, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo2,
+                libelle='Débit écologique respecté sur 3 ouvrages principaux',
+                defaults={
+                    'description': 'Les 3 ouvrages hydrauliques principaux respectent '
+                                   'le débit écologique minimal 90% du temps.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra3)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra3.libelle[:50]}')
+
+        # Lac de Remoray - Tourbières : OO
+        enjeu_tourbieres = next((e for e in enjeux_created if 'tourbières' in e.libelle.lower()), None)
+        facteur_assechement = next((f for f in facteurs_created if 'assèchement' in f.libelle.lower()), None)
+        if enjeu_tourbieres:
+            oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_tourbieres,
+                libelle='Maintenir le niveau piézométrique des tourbières',
+                defaults={
+                    'description': 'Surveiller et maintenir le niveau piézométrique '
+                                   'compatible avec le fonctionnement des tourbières.',
+                    'id_facteur_influence': facteur_assechement,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_tourb)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo_tourb.libelle[:50]}')
+
+            ra_piezo, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_tourb,
+                libelle='Niveau piézométrique stable à ±10 cm sur 5 ans',
+                defaults={
+                    'description': 'Le niveau piézométrique des tourbières reste stable '
+                                   'avec une variation maximale de ±10 cm sur 5 années consécutives.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_piezo)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_piezo.libelle[:50]}')
+
+            ra_drains, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_tourb,
+                libelle='80% des drains historiques neutralisés',
+                defaults={
+                    'description': 'Bouchage ou mise hors service d\'au moins 80% des fossés '
+                                   'de drainage historiques identifiés sur les 8 tourbières.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_drains)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_drains.libelle[:50]}')
+
+            # OO 2 : Restauration végétation turficole
+            oo_veg, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_tourbieres,
+                libelle='Restaurer les communautés végétales turficoles',
+                defaults={
+                    'description': 'Favoriser la recolonisation par les sphaignes et espèces '
+                                   'caractéristiques des tourbières actives (droséras, linaigrettes).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_veg)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo_veg.libelle[:50]}')
+
+            ra_sphaignes, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_veg,
+                libelle='Recouvrement des sphaignes > 30% sur 5 tourbières',
+                defaults={
+                    'description': 'Augmenter le recouvrement des sphaignes à plus de 30% '
+                                   'sur au moins 5 des 8 tourbières inventoriées.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_sphaignes)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_sphaignes.libelle[:50]}')
+
+        # Lac de Remoray - Qualité des eaux : OO
+        enjeu_qualite = next((e for e in enjeux_created if 'qualité des eaux' in e.libelle), None)
+        facteur_agricole = next((f for f in facteurs_created if 'agricoles du bassin' in f.libelle.lower()), None)
+        if enjeu_qualite:
+            oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_qualite,
+                libelle='Réduire les apports en nutriments d\'origine agricole',
+                defaults={
+                    'description': 'Réduire de 30% les flux de phosphore et d\'azote '
+                                   'entrant dans le lac depuis le bassin versant agricole.',
+                    'id_facteur_influence': facteur_agricole,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_qualite)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo_qualite.libelle[:50]}')
+
+            ra_phosphore, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_qualite,
+                libelle='Flux de phosphore < 80 kg P/an d\'ici 2028',
+                defaults={
+                    'description': 'Réduction du flux annuel de phosphore entrant dans le lac '
+                                   'en dessous de 80 kg P/an (contre 125 kg actuellement).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_phosphore)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_phosphore.libelle[:50]}')
+
+            ra_conventions, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_qualite,
+                libelle='100% des exploitations riveraines sous convention',
+                defaults={
+                    'description': '12 exploitations agricoles du bassin versant signent '
+                                   'une convention de bonnes pratiques (limitation intrants, bandes enherbées).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_conventions)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_conventions.libelle[:50]}')
+
+        # Lac de Remoray - EEE : OO
+        enjeu_eee = next((e for e in enjeux_created if 'exotiques envahissantes' in e.libelle.lower()), None)
+        if enjeu_eee:
+            oo_eee, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=enjeu_eee,
+                libelle='Contenir l\'expansion de la Renouée du Japon',
+                defaults={
+                    'description': 'Empêcher la progression des 3 stations connues de Renouée '
+                                   'du Japon et réduire leur surface de 50% d\'ici 2030.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_eee)
+            self.log_item('créé' if created else 'mis à jour', f'OO: {oo_eee.libelle[:50]}')
+
+            ra_renouee, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_eee,
+                libelle='Surface des stations de Renouée réduite de 50%',
+                defaults={
+                    'description': 'La surface cumulée des 3 stations de Renouée du Japon '
+                                   'passe de 450 m² à moins de 225 m² d\'ici 2030.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_renouee)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_renouee.libelle[:50]}')
+
+        self.log_summary(len(oos_created), 'objectifs opérationnels')
+        self.log_summary(len(ras_created), 'résultats attendus')
+
+        # =====================================================================
         # Indicateurs, Métriques et Mesures
         # =====================================================================
         indicateurs_created = []
@@ -2473,6 +2684,286 @@ class EnjeuxSeeder(BaseSeeder):
             mesures_created.append(m)
 
         # =====================================================================
+        # Indicateurs de pression liés aux Résultats Attendus (chaîne OO)
+        # =====================================================================
+
+        # --- Remoray OO Tourbières - RA "Niveau piézométrique stable" ---
+        ra_piezo_obj = next((r for r in ras_created if 'piézométrique stable' in r.libelle), None)
+        if ra_piezo_obj and type_ind_pression:
+            ind_pression_piezo, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_piezo_obj,
+                nom_indicateur='Variation du niveau piézométrique saisonnier',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': True,
+                    'description': 'Suivi de la variation saisonnière du niveau piézométrique '
+                                   'comme indicateur de la pression d\'assèchement sur les tourbières.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_piezo)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_piezo.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_piezo,
+                nom_metrique='Amplitude piézométrique estivale',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': 'cm',
+                    'ponderation': 1.0,
+                    'etat_reference': 'Référence : amplitude < 10 cm en tourbière fonctionnelle',
+                    'score_1_inf': 40, 'score_1_sup': 100,
+                    'score_1_label': 'Assèchement sévère',
+                    'score_2_inf': 25, 'score_2_sup': 40,
+                    'score_2_label': 'Assèchement marqué',
+                    'score_3_inf': 15, 'score_3_sup': 25,
+                    'score_3_label': 'Fluctuation modérée',
+                    'score_4_inf': 10, 'score_4_sup': 15,
+                    'score_4_label': 'Fluctuation acceptable',
+                    'score_5_inf': 0, 'score_5_sup': 10,
+                    'score_5_label': 'Stable',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 9, 30),
+                defaults={'valeur': '22', 'commentaire': 'Amplitude mai-sept 2023 - été sec', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- Remoray OO Tourbières - RA "80% drains neutralisés" ---
+        ra_drains_obj = next((r for r in ras_created if 'drains' in r.libelle.lower()), None)
+        if ra_drains_obj and type_ind_pression:
+            ind_pression_drains, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_drains_obj,
+                nom_indicateur='État de fonctionnement des drains historiques',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': False,
+                    'description': 'Suivi du nombre et du débit des fossés de drainage '
+                                   'encore actifs sur les 8 tourbières inventoriées.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_drains)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_drains.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_drains,
+                nom_metrique='Pourcentage de drains encore actifs',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': '%',
+                    'etat_reference': 'Référence : 14 drains identifiés en 2020, objectif < 20% actifs',
+                    'score_1_inf': 80, 'score_1_sup': 100,
+                    'score_1_label': 'Quasi tous actifs',
+                    'score_2_inf': 50, 'score_2_sup': 80,
+                    'score_2_label': 'Majorité active',
+                    'score_3_inf': 30, 'score_3_sup': 50,
+                    'score_3_label': 'Partiellement neutralisés',
+                    'score_4_inf': 20, 'score_4_sup': 30,
+                    'score_4_label': 'Bien avancé',
+                    'score_5_inf': 0, 'score_5_sup': 20,
+                    'score_5_label': 'Objectif atteint',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 11, 15),
+                defaults={'valeur': '65', 'commentaire': 'Diagnostic 2023 - 9 drains sur 14 encore actifs', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- Remoray OO Tourbières - RA "Recouvrement sphaignes > 30%" ---
+        ra_sphaignes_obj = next((r for r in ras_created if 'sphaignes' in r.libelle.lower()), None)
+        if ra_sphaignes_obj and type_ind_pression:
+            ind_pression_colonisation, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_sphaignes_obj,
+                nom_indicateur='Progression de la colonisation ligneuse',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': False,
+                    'description': 'Suivi de l\'envahissement des tourbières par les ligneux '
+                                   '(bouleaux, saules) en lien avec l\'assèchement.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_colonisation)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_colonisation.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_colonisation,
+                nom_metrique='Taux de recouvrement ligneux sur les tourbières',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': '%',
+                    'score_1_inf': 40, 'score_1_sup': 100,
+                    'score_1_label': 'Boisement avancé',
+                    'score_2_inf': 25, 'score_2_sup': 40,
+                    'score_2_label': 'Colonisation forte',
+                    'score_3_inf': 15, 'score_3_sup': 25,
+                    'score_3_label': 'Colonisation modérée',
+                    'score_4_inf': 5, 'score_4_sup': 15,
+                    'score_4_label': 'Colonisation faible',
+                    'score_5_inf': 0, 'score_5_sup': 5,
+                    'score_5_label': 'Milieu ouvert',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 8, 15),
+                defaults={'valeur': '22', 'commentaire': 'Photo-interprétation été 2023 - progression bouleaux', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- Remoray OO Qualité eaux - RA "Flux phosphore < 80 kg/an" ---
+        ra_phosphore_obj = next((r for r in ras_created if 'phosphore' in r.libelle.lower() and '80 kg' in r.libelle), None)
+        if ra_phosphore_obj and type_ind_pression:
+            ind_pression_phosphore, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_phosphore_obj,
+                nom_indicateur='Charge en phosphore des affluents du lac',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': True,
+                    'description': 'Mesure de la charge en phosphore total transportée '
+                                   'par les 4 affluents principaux du lac de Remoray.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_phosphore)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_phosphore.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_phosphore,
+                nom_metrique='Flux annuel de phosphore total des affluents',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': 'kg P/an',
+                    'ponderation': 1.0,
+                    'etat_reference': 'Objectif OO : < 80 kg P/an d\'ici 2028',
+                    'score_1_inf': 150, 'score_1_sup': 500,
+                    'score_1_label': 'Charge très élevée',
+                    'score_2_inf': 100, 'score_2_sup': 150,
+                    'score_2_label': 'Charge élevée',
+                    'score_3_inf': 80, 'score_3_sup': 100,
+                    'score_3_label': 'Charge modérée',
+                    'score_4_inf': 50, 'score_4_sup': 80,
+                    'score_4_label': 'Charge faible',
+                    'score_5_inf': 0, 'score_5_sup': 50,
+                    'score_5_label': 'Charge très faible',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 12, 31),
+                defaults={'valeur': '118', 'commentaire': 'Bilan 2023 - 4 affluents cumulés, prélèvements mensuels', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- Remoray OO Qualité eaux - RA "100% exploitations sous convention" ---
+        ra_conventions_obj = next((r for r in ras_created if 'exploitations' in r.libelle.lower() and 'convention' in r.libelle.lower()), None)
+        if ra_conventions_obj and type_ind_pression:
+            ind_pression_conventions, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_conventions_obj,
+                nom_indicateur='Taux d\'adhésion des exploitants aux conventions',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': False,
+                    'description': 'Suivi du nombre d\'exploitations agricoles ayant signé '
+                                   'une convention de bonnes pratiques sur le bassin versant.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_conventions)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_conventions.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_conventions,
+                nom_metrique='Nombre d\'exploitations sous convention',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': 'exploitations',
+                    'etat_reference': 'Objectif : 12 exploitations (100% du bassin versant)',
+                    'score_1_inf': 0, 'score_1_sup': 3,
+                    'score_1_label': 'Très insuffisant',
+                    'score_2_inf': 3, 'score_2_sup': 6,
+                    'score_2_label': 'Insuffisant',
+                    'score_3_inf': 6, 'score_3_sup': 9,
+                    'score_3_label': 'En progrès',
+                    'score_4_inf': 9, 'score_4_sup': 12,
+                    'score_4_label': 'Presque complet',
+                    'score_5_inf': 12, 'score_5_sup': 15,
+                    'score_5_label': 'Objectif atteint',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 12, 31),
+                defaults={'valeur': '5', 'commentaire': 'Bilan 2023 - 5 conventions signées sur 12 exploitations', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- Remoray OO EEE - RA "Surface Renouée réduite de 50%" ---
+        ra_renouee_obj = next((r for r in ras_created if 'renouée' in r.libelle.lower() and 'réduite' in r.libelle.lower()), None)
+        if ra_renouee_obj and type_ind_pression:
+            ind_pression_renouee, created = Indicateur.objects.update_or_create(
+                id_resultat_attendu=ra_renouee_obj,
+                nom_indicateur='Dynamique de recolonisation de la Renouée post-arrachage',
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': False,
+                    'description': 'Suivi de la vitesse de repousse de la Renouée du Japon '
+                                   'après les campagnes d\'arrachage annuelles.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            indicateurs_created.append(ind_pression_renouee)
+            self.log_item('créé' if created else 'mis à jour',
+                          f'Indicateur pression OO: {ind_pression_renouee.nom_indicateur[:50]}')
+
+            met, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_pression_renouee,
+                nom_metrique='Taux de repousse post-arrachage à 3 mois',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': '%',
+                    'score_1_inf': 80, 'score_1_sup': 100,
+                    'score_1_label': 'Repousse totale',
+                    'score_2_inf': 50, 'score_2_sup': 80,
+                    'score_2_label': 'Repousse forte',
+                    'score_3_inf': 30, 'score_3_sup': 50,
+                    'score_3_label': 'Repousse modérée',
+                    'score_4_inf': 10, 'score_4_sup': 30,
+                    'score_4_label': 'Repousse faible',
+                    'score_5_inf': 0, 'score_5_sup': 10,
+                    'score_5_label': 'Quasi nul',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2023, 12, 1),
+                defaults={'valeur': '35', 'commentaire': '3 mois post-arrachage sept. 2023 - repousse modérée', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # =====================================================================
         # Opérations (Actions)
         # =====================================================================
         operations_created = []
@@ -2718,6 +3209,131 @@ class EnjeuxSeeder(BaseSeeder):
             CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_nutriments)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+        # --- Opérations liées aux indicateurs de pression OO (Remoray) ---
+
+        # OO Tourbières : bouchage des drains → lié à ind_pression_drains
+        ind_pression_drains_ref = next((i for i in indicateurs_created if 'drains historiques' in i.nom_indicateur), None)
+        if ind_pression_drains_ref and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Bouchage et neutralisation des drains historiques',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU01',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Travaux de bouchage des fossés de drainage du XIXe siècle '
+                                   'sur les tourbières du Crossat et de Frasne. '
+                                   'Objectif : neutraliser 80% des 14 drains identifiés.',
+                    'annee_min': 2024,
+                    'annee_max': 2028,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_drains_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
+
+        # OO Tourbières : suivi piézométrique → lié à ind_pression_piezo
+        ind_pression_piezo_ref = next((i for i in indicateurs_created if 'piézométrique saisonnier' in i.nom_indicateur), None)
+        if ind_pression_piezo_ref and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Suivi piézométrique mensuel des tourbières',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU02',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Relevé mensuel des 15 piézomètres installés sur les '
+                                   '8 tourbières. Analyse des tendances inter-annuelles.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_piezo_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
+
+        # OO Tourbières : débroussaillage ligneux → lié à ind_pression_colonisation
+        ind_pression_col_ref = next((i for i in indicateurs_created if 'colonisation ligneuse' in i.nom_indicateur), None)
+        if ind_pression_col_ref and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Débroussaillage sélectif des bouleaux sur tourbières',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-TU03',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Coupes sélectives de bouleaux et saules colonisant '
+                                   'les zones de sphaignes. Export des rémanents hors tourbière.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
+
+        # OO Qualité eaux : suivi affluents → lié à ind_pression_phosphore
+        ind_pression_phosphore_ref = next((i for i in indicateurs_created if 'phosphore des affluents' in i.nom_indicateur), None)
+        if ind_pression_phosphore_ref and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Suivi mensuel de la charge en phosphore des affluents',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-QE01',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Prélèvements mensuels sur les 4 affluents principaux '
+                                   'du lac pour mesurer les flux de phosphore total.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_phosphore_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
+
+        # OO Qualité eaux : conventions agricoles → lié à ind_pression_conventions
+        ind_pression_conv_ref = next((i for i in indicateurs_created if 'adhésion des exploitants' in i.nom_indicateur), None)
+        if ind_pression_conv_ref and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Animation des conventions agricoles du bassin versant',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-QE02',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Démarchage, accompagnement et suivi des 12 exploitations '
+                                   'du bassin versant pour la signature de conventions '
+                                   'de bonnes pratiques (bandes enherbées, limitation intrants).',
+                    'annee_min': 2024,
+                    'annee_max': 2028,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_conv_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
+
+        # OO EEE : arrachage Renouée (OO) → lié à ind_pression_renouee
+        ind_pression_ren_ref = next((i for i in indicateurs_created if 'recolonisation de la Renouée' in i.nom_indicateur), None)
+        if ind_pression_ren_ref and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Campagnes d\'arrachage intensif de la Renouée (OO)',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-EE01',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Trois campagnes annuelles d\'arrachage mécanique '
+                                   'ciblant la réduction de 50% des surfaces colonisées. '
+                                   'Suivi post-intervention à 3 mois.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_ren_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
         # ============================================
         # Enrichir les opérations avec données détaillées
@@ -3005,6 +3621,8 @@ class EnjeuxSeeder(BaseSeeder):
         self.log_summary(len(etats_created), 'états actuels')
         self.log_summary(len(olts_created), 'objectifs à long terme')
         self.log_summary(len(nes_created), "niveaux d'exigence")
+        self.log_summary(len(oos_created), 'objectifs opérationnels')
+        self.log_summary(len(ras_created), 'résultats attendus')
         self.log_summary(len(indicateurs_created), 'indicateurs')
         self.log_summary(len(metriques_created), 'métriques')
         self.log_summary(len(mesures_created), 'mesures')
@@ -3040,6 +3658,8 @@ class EnjeuxSeeder(BaseSeeder):
         count += CorIndicateurHabitat.objects.all().delete()[0]
         count += CorIndicateurGeologie.objects.all().delete()[0]
         count += Indicateur.objects.all().delete()[0]
+        count += ResultatAttendu.objects.all().delete()[0]
+        count += ObjectifOperationnel.objects.all().delete()[0]
         count += NiveauExigence.objects.all().delete()[0]
         count += ObjectifLongTerme.objects.all().delete()[0]
         count += EtatActuel.objects.all().delete()[0]
@@ -3108,17 +3728,32 @@ class EnjeuxSeeder(BaseSeeder):
             '  - Aiguilles Rouges: 3 (stations, érosion 50%, démographie tétras)',
             '  - Vercors: 2 (couples gypaète, reproduction)',
             '  - Remoray: 1 (phosphore < 20 µg/L, piézométrie tourbières)',
-            '\nIndicateurs (5):',
+            '\nObjectifs opérationnels (6):',
+            '  - Camargue/Hab. humides: 2 (gestion hydraulique, régulation urbanisation)',
+            '  - Remoray/Tourbières: 2 (piézométrie, restauration végétation)',
+            '  - Remoray/Qualité eaux: 1 (réduction nutriments agricoles)',
+            '  - Remoray/EEE: 1 (contenir Renouée du Japon)',
+            '\nRésultats attendus (9):',
+            '  - Camargue OO1: 2 (restauration vannes, suivi piézométrique)',
+            '  - Camargue OO2: 1 (cartographie pression urbaine)',
+            '  - Remoray OO Tourbières 1: 2 (piézométrie stable, drains neutralisés)',
+            '  - Remoray OO Tourbières 2: 1 (recouvrement sphaignes)',
+            '  - Remoray OO Qualité: 2 (phosphore < 80 kg/an, conventions agricoles)',
+            '  - Remoray OO EEE: 1 (surface Renouée réduite 50%)',
+            '\nIndicateurs (5 NE + 6 pression OO):',
             '  - Camargue: 3 (surface habitats [état], reproduction flamant [état], pression débit [pression])',
             '  - Aiguilles Rouges: 2 (stations arctico-alpines [état], quiétude tétras [réponse])',
-            '\nMétriques (6):',
-            '  - % surface bon état, végétation halophile, ratio jeunes/couples',
-            '  - Jours sous débit min, stations actives, respect zones quiétude',
-            '\nMesures (8):',
-            '  - 2 mesures par métrique (campagnes 2022-2024)',
-            '\nOpérations (14):',
+            '  - Remoray OO: 6 indicateurs de pression (piézo, drains, colonisation, phosphore, conventions, Renouée)',
+            '\nMétriques (6 NE + 6 pression OO):',
+            '  - NE: % surface bon état, végétation halophile, ratio jeunes/couples, jours sous débit min, etc.',
+            '  - OO: amplitude piézo, % drains actifs, recouvrement ligneux, flux phosphore, exploitations, repousse',
+            '\nMesures (8 NE + 6 pression OO):',
+            '  - NE: 2 mesures par métrique (campagnes 2022-2024)',
+            '  - OO: 1 mesure par métrique pression (2023)',
+            '\nOpérations (20):',
             '  - Camargue: 4 (restauration hydraulique, suivi carto, régulation fréquentation, quotas prélèvement)',
             '  - Aiguilles Rouges: 3 (inventaire placettes, mise en défens, sensibilisation)',
-            '  - Remoray: 7 (prélèvements eau, diagnostic agricole, conventions fauche, arrachage renouée, étude hydro, ...)',
+            '  - Remoray NE: 7 (prélèvements eau, diagnostic agricole, conventions fauche, arrachage renouée, étude hydro, ...)',
+            '  - Remoray OO: 6 (bouchage drains, suivi piézo, débroussaillage, suivi phosphore, conventions agricoles, arrachage Renouée)',
             '  - Dont 1 opération multi-indicateurs (phosphore + nutriments)',
         ]
