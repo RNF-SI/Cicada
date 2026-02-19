@@ -29,7 +29,8 @@ import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
   EtatActuel, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
-  MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee
+  MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee,
+  ObjectifOperationnel, ResultatAttendu
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
@@ -145,6 +146,42 @@ export class EnjeuxListComponent implements OnInit {
   editIndicateurMetriques: MetriqueFormData[] = [];
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   isSavingIndicateur = signal(false);
+
+  // OO (Objectifs Opérationnels) state
+  expandedOoIds = signal<Set<number>>(new Set());
+  addingOo = signal(false);
+  editingOoId = signal<number | null>(null);
+  newOoLibelle = '';
+  newOoDescription = '';
+  newOoFacteurId: number | null = null;
+  editOoLibelle = '';
+  editOoDescription = '';
+  editOoFacteurId: number | null = null;
+
+  // Résultat Attendu state
+  addingRaForOo = signal<number | null>(null);
+  editingRaId = signal<number | null>(null);
+  newRaLibelle = '';
+  newRaDescription = '';
+  editRaLibelle = '';
+  editRaDescription = '';
+
+  // Indicateurs pression (for OO tab)
+  addingIndicateurForRa = signal<number | null>(null);
+  editingOoIndicateurId = signal<number | null>(null);
+  newOoIndicateurNom = '';
+  newOoIndicateurType: number | null = null;
+  newOoIndicateurStandardise = false;
+  newOoIndicateurDescription = '';
+  editOoIndicateurNom = '';
+  editOoIndicateurType: number | null = null;
+  editOoIndicateurStandardise = false;
+  editOoIndicateurDescription = '';
+  ooIndicateurFormMetriques: MetriqueFormData[] = [];
+  editOoIndicateurMetriques: MetriqueFormData[] = [];
+  isSavingOoIndicateur = signal(false);
+  expandedOoIndicateurIds = signal<Set<number>>(new Set());
+  expandedOoOperationIds = signal<Set<number>>(new Set());
 
   // Enjeux et FCR séparés
   enjeux = computed(() => {
@@ -350,6 +387,15 @@ export class EnjeuxListComponent implements OnInit {
 
   totalOltCount = computed(() => {
     return this.selectedOlts().length;
+  });
+
+  // Computed pour les OOs de l'enjeu sélectionné
+  selectedOos = computed(() => {
+    return this.selectedEnjeu()?.objectifs_operationnels || [];
+  });
+
+  totalOoCount = computed(() => {
+    return this.selectedOos().length;
   });
 
   // Event handlers pour les accordéons
@@ -1491,5 +1537,522 @@ export class EnjeuxListComponent implements OnInit {
     if (op.priorite_label.includes('2')) return '2';
     if (op.priorite_label.includes('3')) return '3';
     return '';
+  }
+
+  // ============================================
+  // Objectifs Opérationnels (OO)
+  // ============================================
+
+  toggleOo(id: number): void {
+    this.expandedOoIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) {
+        newIds.delete(id);
+      } else {
+        newIds.add(id);
+      }
+      return newIds;
+    });
+  }
+
+  isOoExpanded(id: number): boolean {
+    return this.expandedOoIds().has(id);
+  }
+
+  startAddOo(): void {
+    this.addingOo.set(true);
+    this.newOoLibelle = '';
+    this.newOoDescription = '';
+    this.newOoFacteurId = null;
+  }
+
+  cancelAddOo(): void {
+    this.addingOo.set(false);
+    this.newOoLibelle = '';
+    this.newOoDescription = '';
+    this.newOoFacteurId = null;
+  }
+
+  saveOo(): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu || !this.newOoLibelle.trim()) return;
+
+    this.enjeuService.createObjectifOperationnel({
+      id_enjeu: enjeu.id_enjeu,
+      libelle: this.newOoLibelle.trim(),
+      description: this.newOoDescription.trim() || undefined,
+      id_facteur_influence: this.newOoFacteurId || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.oo.createSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelAddOo();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
+      }
+    });
+  }
+
+  startEditOo(oo: ObjectifOperationnel): void {
+    this.editingOoId.set(oo.id_oo);
+    this.editOoLibelle = oo.libelle;
+    this.editOoDescription = oo.description || '';
+    this.editOoFacteurId = oo.id_facteur_influence || null;
+  }
+
+  cancelEditOo(): void {
+    this.editingOoId.set(null);
+    this.editOoLibelle = '';
+    this.editOoDescription = '';
+    this.editOoFacteurId = null;
+  }
+
+  saveEditOo(oo: ObjectifOperationnel): void {
+    if (!this.editOoLibelle.trim()) return;
+
+    this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
+      libelle: this.editOoLibelle.trim(),
+      description: this.editOoDescription.trim() || undefined,
+      id_facteur_influence: this.editOoFacteurId || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.oo.updateSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelEditOo();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
+      }
+    });
+  }
+
+  deleteOo(oo: ObjectifOperationnel): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.oo.deleteTitle'),
+        message: this.translate.instant('enjeux.oo.deleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteObjectifOperationnel(oo.id_oo).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.oo.deleteSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          },
+          error: () => {
+            this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
+          }
+        });
+      }
+    });
+  }
+
+  // ============================================
+  // Résultats Attendus
+  // ============================================
+
+  startAddRa(ooId: number): void {
+    this.addingRaForOo.set(ooId);
+    this.newRaLibelle = '';
+    this.newRaDescription = '';
+  }
+
+  cancelAddRa(): void {
+    this.addingRaForOo.set(null);
+    this.newRaLibelle = '';
+    this.newRaDescription = '';
+  }
+
+  saveRa(oo: ObjectifOperationnel): void {
+    if (!this.newRaLibelle.trim()) return;
+
+    this.enjeuService.createResultatAttendu({
+      id_oo: oo.id_oo,
+      libelle: this.newRaLibelle.trim(),
+      description: this.newRaDescription.trim() || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.resultatAttendu.createSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelAddRa();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
+      }
+    });
+  }
+
+  startEditRa(ra: ResultatAttendu): void {
+    this.editingRaId.set(ra.id_ra);
+    this.editRaLibelle = ra.libelle;
+    this.editRaDescription = ra.description || '';
+  }
+
+  cancelEditRa(): void {
+    this.editingRaId.set(null);
+    this.editRaLibelle = '';
+    this.editRaDescription = '';
+  }
+
+  saveEditRa(ra: ResultatAttendu): void {
+    if (!this.editRaLibelle.trim()) return;
+
+    this.enjeuService.updateResultatAttendu(ra.id_ra, {
+      libelle: this.editRaLibelle.trim(),
+      description: this.editRaDescription.trim() || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.resultatAttendu.updateSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelEditRa();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
+      }
+    });
+  }
+
+  deleteRa(ra: ResultatAttendu): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.resultatAttendu.deleteTitle'),
+        message: this.translate.instant('enjeux.resultatAttendu.deleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteResultatAttendu(ra.id_ra).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.resultatAttendu.deleteSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          },
+          error: () => {
+            this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
+          }
+        });
+      }
+    });
+  }
+
+  // ============================================
+  // Indicateurs de pression (OO tab)
+  // ============================================
+
+  toggleOoIndicateur(id: number): void {
+    this.expandedOoIndicateurIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) { newIds.delete(id); } else { newIds.add(id); }
+      return newIds;
+    });
+  }
+
+  isOoIndicateurExpanded(id: number): boolean {
+    return this.expandedOoIndicateurIds().has(id);
+  }
+
+  toggleOoOperation(id: number): void {
+    this.expandedOoOperationIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) { newIds.delete(id); } else { newIds.add(id); }
+      return newIds;
+    });
+  }
+
+  isOoOperationExpanded(id: number): boolean {
+    return this.expandedOoOperationIds().has(id);
+  }
+
+  startAddIndicateurForRa(raId: number): void {
+    this.addingIndicateurForRa.set(raId);
+    this.newOoIndicateurNom = '';
+    this.newOoIndicateurType = null;
+    this.newOoIndicateurStandardise = false;
+    this.newOoIndicateurDescription = '';
+    this.ooIndicateurFormMetriques = [];
+  }
+
+  cancelAddIndicateurForRa(): void {
+    this.addingIndicateurForRa.set(null);
+    this.newOoIndicateurNom = '';
+    this.newOoIndicateurType = null;
+    this.newOoIndicateurStandardise = false;
+    this.newOoIndicateurDescription = '';
+    this.ooIndicateurFormMetriques = [];
+  }
+
+  addOoMetriqueRow(): void {
+    this.ooIndicateurFormMetriques.push({
+      nom_metrique: '',
+      type_metrique: null,
+      unite: '',
+      ponderation: null,
+      etat_reference: '',
+      scores: { 1: { inf: null, sup: null }, 2: { inf: null, sup: null }, 3: { inf: null, sup: null }, 4: { inf: null, sup: null }, 5: { inf: null, sup: null } }
+    });
+  }
+
+  removeOoMetriqueRow(index: number): void {
+    this.ooIndicateurFormMetriques.splice(index, 1);
+  }
+
+  saveIndicateurForRa(ra: ResultatAttendu): void {
+    if (!this.newOoIndicateurNom.trim()) return;
+
+    this.isSavingOoIndicateur.set(true);
+    this.enjeuService.createIndicateur({
+      id_resultat_attendu: ra.id_ra,
+      nom_indicateur: this.newOoIndicateurNom.trim(),
+      description: this.newOoIndicateurDescription.trim() || undefined,
+      type_indicateur: this.newOoIndicateurType || undefined,
+      est_standardise: this.newOoIndicateurStandardise
+    }).subscribe({
+      next: (indicateur) => {
+        // Create metriques if any
+        const metriquesToCreate = this.ooIndicateurFormMetriques.filter(m => m.nom_metrique.trim());
+        if (metriquesToCreate.length > 0) {
+          const metriqueRequests: Observable<any>[] = metriquesToCreate.map(m => {
+            const payload: MetriqueCreatePayload = {
+              id_indicateur: indicateur.id_indicateur,
+              nom_metrique: m.nom_metrique.trim(),
+              type_metrique: m.type_metrique || undefined,
+              unite: m.unite || undefined,
+              ponderation: m.ponderation || undefined,
+              etat_reference: m.etat_reference || undefined,
+            };
+            // Add score thresholds
+            for (let level = 1; level <= 5; level++) {
+              const score = m.scores[level];
+              if (score) {
+                (payload as any)[`score_${level}_inf`] = score.inf;
+                (payload as any)[`score_${level}_sup`] = score.sup;
+              }
+            }
+            return this.enjeuService.createMetrique(payload);
+          });
+
+          forkJoin(metriqueRequests).subscribe({
+            next: () => {
+              this.isSavingOoIndicateur.set(false);
+              this.snackBar.open(
+                this.translate.instant('enjeux.indicateur.createSuccess'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.cancelAddIndicateurForRa();
+              this.loadPlanData();
+            },
+            error: () => {
+              this.isSavingOoIndicateur.set(false);
+              this.loadPlanData();
+            }
+          });
+        } else {
+          this.isSavingOoIndicateur.set(false);
+          this.snackBar.open(
+            this.translate.instant('enjeux.indicateur.createSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.cancelAddIndicateurForRa();
+          this.loadPlanData();
+        }
+      },
+      error: () => {
+        this.isSavingOoIndicateur.set(false);
+        this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
+      }
+    });
+  }
+
+  startEditOoIndicateur(indicateur: Indicateur): void {
+    this.editingOoIndicateurId.set(indicateur.id_indicateur);
+    this.editOoIndicateurNom = indicateur.nom_indicateur;
+    this.editOoIndicateurType = indicateur.type_indicateur || null;
+    this.editOoIndicateurStandardise = indicateur.est_standardise;
+    this.editOoIndicateurDescription = indicateur.description || '';
+    this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m => ({
+      id_metrique: m.id_metrique,
+      nom_metrique: m.nom_metrique,
+      type_metrique: m.type_metrique || null,
+      unite: m.unite || '',
+      ponderation: m.ponderation || null,
+      etat_reference: m.etat_reference || '',
+      scores: {
+        1: { inf: m.score_1_inf ?? null, sup: m.score_1_sup ?? null },
+        2: { inf: m.score_2_inf ?? null, sup: m.score_2_sup ?? null },
+        3: { inf: m.score_3_inf ?? null, sup: m.score_3_sup ?? null },
+        4: { inf: m.score_4_inf ?? null, sup: m.score_4_sup ?? null },
+        5: { inf: m.score_5_inf ?? null, sup: m.score_5_sup ?? null },
+      }
+    }));
+  }
+
+  cancelEditOoIndicateur(): void {
+    this.editingOoIndicateurId.set(null);
+    this.editOoIndicateurNom = '';
+    this.editOoIndicateurType = null;
+    this.editOoIndicateurStandardise = false;
+    this.editOoIndicateurDescription = '';
+    this.editOoIndicateurMetriques = [];
+  }
+
+  addOoMetriqueToEdit(): void {
+    this.editOoIndicateurMetriques = [...this.editOoIndicateurMetriques, this.createEmptyMetrique()];
+  }
+
+  removeOoMetriqueFromEdit(index: number): void {
+    const met = this.editOoIndicateurMetriques[index];
+    if (met.id_metrique) {
+      this.editOoIndicateurMetriques = this.editOoIndicateurMetriques.map((m, i) =>
+        i === index ? { ...m, _deleted: true } : m
+      );
+    } else {
+      this.editOoIndicateurMetriques = this.editOoIndicateurMetriques.filter((_, i) => i !== index);
+    }
+  }
+
+  saveEditOoIndicateur(ind: Indicateur): void {
+    if (!this.editOoIndicateurNom.trim()) return;
+    this.isSavingOoIndicateur.set(true);
+
+    const payload: any = {
+      nom_indicateur: this.editOoIndicateurNom.trim(),
+      est_standardise: this.editOoIndicateurStandardise,
+    };
+    if (this.editOoIndicateurType) payload.type_indicateur = this.editOoIndicateurType;
+    if (this.editOoIndicateurDescription.trim()) payload.description = this.editOoIndicateurDescription.trim();
+
+    this.enjeuService.updateIndicateur(ind.id_indicateur, payload).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        const metriqueOps: Observable<any>[] = [];
+
+        for (const met of this.editOoIndicateurMetriques) {
+          if (met._deleted && met.id_metrique) {
+            metriqueOps.push(this.enjeuService.deleteMetrique(met.id_metrique));
+          } else if (!met._deleted && met.nom_metrique.trim()) {
+            if (met.id_metrique) {
+              metriqueOps.push(this.enjeuService.updateMetrique(met.id_metrique, this.buildMetriquePayload(ind.id_indicateur, met)));
+            } else {
+              metriqueOps.push(this.enjeuService.createMetrique(this.buildMetriquePayload(ind.id_indicateur, met)));
+            }
+          }
+        }
+
+        if (metriqueOps.length === 0) {
+          this.snackBar.open(
+            this.translate.instant('enjeux.indicateurs.updateSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.editingOoIndicateurId.set(null);
+          this.editOoIndicateurMetriques = [];
+          this.isSavingOoIndicateur.set(false);
+          this.enjeuService.refreshCurrentPlanEnjeux();
+          return;
+        }
+
+        forkJoin(metriqueOps).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.indicateurs.updateSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.editingOoIndicateurId.set(null);
+            this.editOoIndicateurMetriques = [];
+            this.isSavingOoIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.metriques.partialError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+            this.editingOoIndicateurId.set(null);
+            this.editOoIndicateurMetriques = [];
+            this.isSavingOoIndicateur.set(false);
+            this.enjeuService.refreshCurrentPlanEnjeux();
+          }
+        });
+      },
+      error: () => {
+        this.isSavingOoIndicateur.set(false);
+        this.snackBar.open(
+          this.translate.instant('enjeux.messages.updateError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  deleteOoIndicateur(indicateur: Indicateur): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.indicateur.deleteTitle'),
+        message: this.translate.instant('enjeux.indicateur.deleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteIndicateur(indicateur.id_indicateur).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.indicateur.deleteSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          },
+          error: () => {
+            this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
+          }
+        });
+      }
+    });
   }
 }

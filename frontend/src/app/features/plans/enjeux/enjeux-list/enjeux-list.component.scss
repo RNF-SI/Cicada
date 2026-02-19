@@ -812,6 +812,29 @@
   gap: $spacing-md;
 }
 
+// ============================================
+// OO CONTENT (Vision opérationnelle)
+// ============================================
+
+.oo-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.oo-facteur-info {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+
+  strong {
+    color: $black;
+    font-style: normal;
+  }
+}
+
 // Note d'usage en haut de l'onglet
 .olt-info-note {
   display: flex;

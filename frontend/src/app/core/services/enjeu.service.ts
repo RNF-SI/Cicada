@@ -24,6 +24,10 @@ import {
   ObjectifLongTermeCreatePayload,
   NiveauExigence,
   NiveauExigenceCreatePayload,
+  ObjectifOperationnel,
+  ObjectifOperationnelCreatePayload,
+  ResultatAttendu,
+  ResultatAttenduCreatePayload,
   Indicateur,
   IndicateurCreatePayload,
   Metrique,
@@ -373,6 +377,38 @@ export class EnjeuService {
   }
 
   // ==========================================================================
+  // Objectifs Opérationnels CRUD
+  // ==========================================================================
+
+  createObjectifOperationnel(payload: ObjectifOperationnelCreatePayload): Observable<ObjectifOperationnel> {
+    return this.http.post<ObjectifOperationnel>(`${this.apiUrl}/objectifs-operationnels/`, payload);
+  }
+
+  updateObjectifOperationnel(id: number, payload: Partial<ObjectifOperationnelCreatePayload>): Observable<ObjectifOperationnel> {
+    return this.http.patch<ObjectifOperationnel>(`${this.apiUrl}/objectifs-operationnels/${id}/`, payload);
+  }
+
+  deleteObjectifOperationnel(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/objectifs-operationnels/${id}/`);
+  }
+
+  // ==========================================================================
+  // Résultats Attendus CRUD
+  // ==========================================================================
+
+  createResultatAttendu(payload: ResultatAttenduCreatePayload): Observable<ResultatAttendu> {
+    return this.http.post<ResultatAttendu>(`${this.apiUrl}/resultats-attendus/`, payload);
+  }
+
+  updateResultatAttendu(id: number, payload: Partial<ResultatAttenduCreatePayload>): Observable<ResultatAttendu> {
+    return this.http.patch<ResultatAttendu>(`${this.apiUrl}/resultats-attendus/${id}/`, payload);
+  }
+
+  deleteResultatAttendu(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/resultats-attendus/${id}/`);
+  }
+
+  // ==========================================================================
   // Indicateurs CRUD
   // ==========================================================================
 
@@ -442,6 +478,10 @@ export class EnjeuService {
 
   getOperationsByIndicateur(indicateurId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-indicateur/${indicateurId}/`);
+  }
+
+  getOperationsByPlan(planId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/operations/by-plan/${planId}/`);
   }
 
   getMetriquesByIndicateur(indicateurId: number): Observable<Metrique[]> {

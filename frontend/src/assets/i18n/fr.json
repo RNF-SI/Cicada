@@ -1890,6 +1890,42 @@
       "updateSuccess": "Niveau d'exigence mis à jour avec succès",
       "deleteSuccess": "Niveau d'exigence supprimé avec succès"
     },
+    "oo": {
+      "label": "OO",
+      "countSuffix": "objectif(s) opérationnel(s) (OO) saisi(s)",
+      "libelleLabel": "Intitulé de l'objectif opérationnel (OO)",
+      "facteurLabel": "Facteur d'influence géré par l'OO",
+      "facteurDescription": "L'objectif opérationnel a pour but de gérer le facteur d'influence",
+      "addButton": "+ Ajouter un objectif opérationnel",
+      "newTitle": "Nouvel objectif opérationnel",
+      "editTitle": "Modifier l'objectif opérationnel",
+      "deleteTitle": "Supprimer l'objectif opérationnel",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet objectif opérationnel ? Ses résultats attendus seront également supprimés.",
+      "createSuccess": "Objectif opérationnel créé avec succès",
+      "updateSuccess": "Objectif opérationnel mis à jour avec succès",
+      "deleteSuccess": "Objectif opérationnel supprimé avec succès",
+      "hint": "Qu'est-ce qu'un objectif opérationnel ?",
+      "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
+      "usageNote": "Un objectif opérationnel est généralement associé à un facteur d'influence identifié sur l'enjeu.",
+      "descriptionLabel": "Détails / commentaires"
+    },
+    "resultatAttendu": {
+      "label": "Résultat attendu",
+      "libelleLabel": "Intitulé du résultat attendu",
+      "addButton": "+ Ajouter un résultat attendu",
+      "newTitle": "Nouveau résultat attendu",
+      "editTitle": "Modifier le résultat attendu",
+      "deleteTitle": "Supprimer le résultat attendu",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce résultat attendu ?",
+      "createSuccess": "Résultat attendu créé avec succès",
+      "updateSuccess": "Résultat attendu mis à jour avec succès",
+      "deleteSuccess": "Résultat attendu supprimé avec succès",
+      "descriptionLabel": "Détails / commentaires"
+    },
+    "indicateurPression": {
+      "label": "Indicateur de pression",
+      "addButton": "+ Ajouter un indicateur de pression"
+    },
     "operations": {
       "empty": "Aucun objectif opérationnel saisi",
       "addButton": "Ajouter un objectif opérationnel",

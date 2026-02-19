@@ -107,6 +107,10 @@ export interface Enjeu {
   objectifs_long_terme?: ObjectifLongTerme[];
   nb_olt?: number;
 
+  // Objectifs Opérationnels (OO)
+  objectifs_operationnels?: ObjectifOperationnel[];
+  nb_oo?: number;
+
   // Audit
   date_ajout: string;
   date_maj: string;
@@ -206,11 +210,44 @@ export interface NiveauExigence {
 }
 
 /**
- * Indicateur d'état rattaché à un niveau d'exigence
+ * Objectif Opérationnel (OO)
+ */
+export interface ObjectifOperationnel {
+  id_oo: number;
+  id_enjeu: number;
+  libelle: string;
+  description?: string;
+  id_facteur_influence?: number;
+  facteur_influence_libelle?: string;
+  resultats_attendus?: ResultatAttendu[];
+  nb_resultats_attendus?: number;
+  date_ajout: string;
+  date_maj: string;
+  createur_nom?: string;
+}
+
+/**
+ * Résultat Attendu
+ */
+export interface ResultatAttendu {
+  id_ra: number;
+  id_oo: number;
+  libelle: string;
+  description?: string;
+  indicateurs?: Indicateur[];
+  nb_indicateurs?: number;
+  date_ajout: string;
+  date_maj: string;
+  createur_nom?: string;
+}
+
+/**
+ * Indicateur d'état rattaché à un niveau d'exigence ou résultat attendu
  */
 export interface Indicateur {
   id_indicateur: number;
-  id_ne: number;
+  id_ne?: number;
+  id_resultat_attendu?: number;
   nom_indicateur: string;
   description?: string;
   type_indicateur?: number;
@@ -435,11 +472,31 @@ export interface MetriqueFormData {
  * Payload for creating an Indicateur
  */
 export interface IndicateurCreatePayload {
-  id_ne: number;
+  id_ne?: number;
+  id_resultat_attendu?: number;
   nom_indicateur: string;
   description?: string;
   type_indicateur?: number;
   est_standardise?: boolean;
+}
+
+/**
+ * Payload for creating an ObjectifOperationnel
+ */
+export interface ObjectifOperationnelCreatePayload {
+  id_enjeu: number;
+  libelle: string;
+  description?: string;
+  id_facteur_influence?: number;
+}
+
+/**
+ * Payload for creating a ResultatAttendu
+ */
+export interface ResultatAttenduCreatePayload {
+  id_oo: number;
+  libelle: string;
+  description?: string;
 }
 
 /**
