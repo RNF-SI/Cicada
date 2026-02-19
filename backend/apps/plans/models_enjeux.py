@@ -546,6 +546,132 @@ class NiveauExigence(models.Model):
         return f"{self.libelle} ({self.id_olt})"
 
 
+class ObjectifOperationnel(models.Model):
+    """
+    Objectif opérationnel (OO) rattaché à un enjeu.
+    Décrit les résultats concrets attendus pendant la durée du plan de gestion.
+    Miroir de ObjectifLongTerme pour la vision opérationnelle.
+    """
+
+    id_oo = models.AutoField(primary_key=True)
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        related_name='objectifs_operationnels',
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu")
+    )
+    libelle = models.CharField(
+        _("Intitulé"),
+        max_length=500,
+        help_text=_("Intitulé de l'objectif opérationnel")
+    )
+    description = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True,
+        help_text=_("Description détaillée de l'objectif opérationnel")
+    )
+    id_facteur_influence = models.ForeignKey(
+        FacteurInfluence,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='objectifs_operationnels',
+        db_column='id_facteur_influence',
+        verbose_name=_("Facteur d'influence"),
+        help_text=_("Facteur d'influence géré par cet objectif opérationnel")
+    )
+
+    # Audit
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_ajout = models.ForeignKey(
+        'users.Role',
+        on_delete=models.PROTECT,
+        related_name='+',
+        db_column='id_utilisateur_ajout',
+        verbose_name=_("Créateur")
+    )
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_objectifs_operationnels"'
+        db_table_comment = "Objectifs opérationnels des enjeux"
+        verbose_name = _("Objectif opérationnel")
+        verbose_name_plural = _("Objectifs opérationnels")
+        ordering = ['libelle']
+
+    def __str__(self):
+        return f"{self.libelle} ({self.id_enjeu})"
+
+
+class ResultatAttendu(models.Model):
+    """
+    Résultat attendu rattaché à un objectif opérationnel.
+    Définit le résultat concret attendu pour atteindre l'OO.
+    Miroir de NiveauExigence pour la vision opérationnelle.
+    """
+
+    id_ra = models.AutoField(primary_key=True)
+    id_oo = models.ForeignKey(
+        ObjectifOperationnel,
+        on_delete=models.CASCADE,
+        related_name='resultats_attendus',
+        db_column='id_oo',
+        verbose_name=_("Objectif opérationnel")
+    )
+    libelle = models.CharField(
+        _("Intitulé"),
+        max_length=500,
+        help_text=_("Intitulé du résultat attendu")
+    )
+    description = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True,
+        help_text=_("Description détaillée du résultat attendu")
+    )
+
+    # Audit
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_ajout = models.ForeignKey(
+        'users.Role',
+        on_delete=models.PROTECT,
+        related_name='+',
+        db_column='id_utilisateur_ajout',
+        verbose_name=_("Créateur")
+    )
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_resultats_attendus"'
+        db_table_comment = "Résultats attendus des objectifs opérationnels"
+        verbose_name = _("Résultat attendu")
+        verbose_name_plural = _("Résultats attendus")
+        ordering = ['libelle']
+
+    def __str__(self):
+        return f"{self.libelle} ({self.id_oo})"
+
+
 class CorResponsabiliteTaxon(models.Model):
     """
     Liaison entre une responsabilité et des taxons (référentiel TaxRef).

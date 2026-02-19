@@ -15,6 +15,8 @@ from .models_enjeux import (
     EtatActuel,
     ObjectifLongTerme,
     NiveauExigence,
+    ObjectifOperationnel,
+    ResultatAttendu,
     CorResponsabiliteTaxon,
     CorResponsabiliteHabitat,
     CorResponsabiliteGeologie,

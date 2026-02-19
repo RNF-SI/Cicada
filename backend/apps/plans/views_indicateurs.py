@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models_indicateurs import Indicateur, Metrique, Mesure
-from .models_enjeux import NiveauExigence
+from .models_enjeux import NiveauExigence, ResultatAttendu
 from apps.users.permissions import IsReferent
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
@@ -35,7 +35,8 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Indicateur.objects.select_related(
-        'id_ne', 'type_indicateur', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_ne', 'id_resultat_attendu', 'type_indicateur',
+        'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
         'metriques', 'metriques__type_metrique', 'metriques__id_utilisateur_ajout',
         'metriques__mesures', 'metriques__mesures__id_utilisateur_ajout',
@@ -66,16 +67,22 @@ class IndicateurViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
             ).distinct()
 
         if user.is_referent():
             return queryset.filter(
                 Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_ne__id_olt__id_enjeu__id_pg__referents=user)
+                Q(id_ne__id_olt__id_enjeu__id_pg__referents=user) |
+                Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+                Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__referents=user)
             ).distinct()
 
-        return queryset.filter(id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+        return queryset.filter(
+            Q(id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
+            Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__statut='valide')
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -95,6 +102,22 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         return Response({
             'ne_id': int(ne_id),
             'ne_libelle': ne.libelle,
+            'indicateurs': IndicateurSerializer(indicateurs, many=True).data,
+            'total': indicateurs.count()
+        })
+
+    @action(detail=False, methods=['get'], url_path=r'by-ra/(?P<ra_id>\d+)')
+    def by_resultat_attendu(self, request, ra_id=None):
+        """
+        Récupérer les indicateurs d'un résultat attendu.
+
+        GET /api/plans/indicateurs/by-ra/{ra_id}/
+        """
+        ra = get_object_or_404(ResultatAttendu, id_ra=ra_id)
+        indicateurs = self.get_queryset().filter(id_resultat_attendu=ra)
+        return Response({
+            'ra_id': int(ra_id),
+            'ra_libelle': ra.libelle,
             'indicateurs': IndicateurSerializer(indicateurs, many=True).data,
             'total': indicateurs.count()
         })

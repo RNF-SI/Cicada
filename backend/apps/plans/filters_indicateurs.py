@@ -10,12 +10,13 @@ class IndicateurFilter(django_filters.FilterSet):
     """Filtres pour les Indicateurs."""
 
     id_ne = django_filters.NumberFilter(field_name='id_ne')
+    id_resultat_attendu = django_filters.NumberFilter(field_name='id_resultat_attendu')
     type_indicateur = django_filters.NumberFilter(field_name='type_indicateur')
     est_standardise = django_filters.BooleanFilter(field_name='est_standardise')
 
     class Meta:
         model = Indicateur
-        fields = ['id_ne', 'type_indicateur', 'est_standardise']
+        fields = ['id_ne', 'id_resultat_attendu', 'type_indicateur', 'est_standardise']
 
 
 class MetriqueFilter(django_filters.FilterSet):

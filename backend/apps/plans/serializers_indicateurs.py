@@ -167,7 +167,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
     class Meta:
         model = Indicateur
         fields = [
-            'id_indicateur', 'id_ne',
+            'id_indicateur', 'id_ne', 'id_resultat_attendu',
             'nom_indicateur', 'description',
             'type_indicateur', 'type_indicateur_label',
             'est_standardise',
@@ -201,7 +201,7 @@ class IndicateurListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Indicateur
         fields = [
-            'id_indicateur', 'id_ne',
+            'id_indicateur', 'id_ne', 'id_resultat_attendu',
             'nom_indicateur', 'description',
             'type_indicateur', 'type_indicateur_label',
             'est_standardise',
@@ -223,8 +223,22 @@ class IndicateurCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Indicateur
         fields = [
-            'id_indicateur', 'id_ne',
+            'id_indicateur', 'id_ne', 'id_resultat_attendu',
             'nom_indicateur', 'description',
             'type_indicateur', 'est_standardise'
         ]
         read_only_fields = ['id_indicateur']
+
+    def validate(self, attrs):
+        id_ne = attrs.get('id_ne', getattr(self.instance, 'id_ne', None) if self.instance else None)
+        id_ra = attrs.get('id_resultat_attendu', getattr(self.instance, 'id_resultat_attendu', None) if self.instance else None)
+
+        if not id_ne and not id_ra:
+            raise serializers.ValidationError(
+                "Un indicateur doit être rattaché à un niveau d'exigence ou un résultat attendu."
+            )
+        if id_ne and id_ra:
+            raise serializers.ValidationError(
+                "Un indicateur ne peut être rattaché qu'à un seul parent."
+            )
+        return attrs

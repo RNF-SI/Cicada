@@ -1,25 +1,39 @@
 """
 Modèles pour les Indicateurs, Métriques et Mesures.
 Hiérarchie : NiveauExigence → Indicateur(s) → Métrique(s) → Mesure(s)
+             ResultatAttendu → Indicateur(s) → Métrique(s) → Mesure(s)
 """
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
 class Indicateur(models.Model):
     """
-    Indicateur d'état rattaché à un niveau d'exigence.
+    Indicateur rattaché à un niveau d'exigence (OLT) ou un résultat attendu (OO).
     Types : état, pression, réponse.
     Peut avoir des liens taxonomiques (taxon, habitat, géologie).
+    Exactement un des deux parents (id_ne ou id_resultat_attendu) doit être défini.
     """
 
     id_indicateur = models.AutoField(primary_key=True)
     id_ne = models.ForeignKey(
         'plans.NiveauExigence',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='indicateurs',
         db_column='id_ne',
         verbose_name=_("Niveau d'exigence")
+    )
+    id_resultat_attendu = models.ForeignKey(
+        'plans.ResultatAttendu',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='indicateurs',
+        db_column='id_resultat_attendu',
+        verbose_name=_("Résultat attendu")
     )
     nom_indicateur = models.CharField(
         _("Nom de l'indicateur"),
@@ -71,13 +85,25 @@ class Indicateur(models.Model):
 
     class Meta:
         db_table = '"general"."t_indicateurs"'
-        db_table_comment = "Indicateurs d'état des niveaux d'exigence"
+        db_table_comment = "Indicateurs des niveaux d'exigence et résultats attendus"
         verbose_name = _("Indicateur")
         verbose_name_plural = _("Indicateurs")
         ordering = ['nom_indicateur']
 
+    def clean(self):
+        """Valider qu'au moins un parent est défini."""
+        if not self.id_ne and not self.id_resultat_attendu:
+            raise ValidationError(
+                _("Un indicateur doit être rattaché à un niveau d'exigence ou un résultat attendu.")
+            )
+        if self.id_ne and self.id_resultat_attendu:
+            raise ValidationError(
+                _("Un indicateur ne peut être rattaché qu'à un seul parent (niveau d'exigence OU résultat attendu).")
+            )
+
     def __str__(self):
-        return f"{self.nom_indicateur} ({self.id_ne})"
+        parent = self.id_ne or self.id_resultat_attendu
+        return f"{self.nom_indicateur} ({parent})"
 
 
 class CorIndicateurTaxon(models.Model):

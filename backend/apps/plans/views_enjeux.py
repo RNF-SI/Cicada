@@ -13,6 +13,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
@@ -25,6 +26,8 @@ from .serializers_enjeux import (
     EtatActuelSerializer, EtatActuelListSerializer, EtatActuelCreateSerializer,
     ObjectifLongTermeSerializer, ObjectifLongTermeListSerializer, ObjectifLongTermeCreateSerializer,
     NiveauExigenceSerializer, NiveauExigenceCreateSerializer,
+    ObjectifOperationnelSerializer, ObjectifOperationnelListSerializer, ObjectifOperationnelCreateSerializer,
+    ResultatAttenduSerializer, ResultatAttenduCreateSerializer,
     ResponsabiliteListSerializer, ResponsabiliteDetailSerializer, ResponsabiliteCreateSerializer,
     CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer
 )
@@ -73,6 +76,15 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
         'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
         'objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
+        'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
+        'objectifs_operationnels__id_facteur_influence',
+        'objectifs_operationnels__resultats_attendus',
+        'objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
+        'objectifs_operationnels__resultats_attendus__indicateurs',
+        'objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
+        'objectifs_operationnels__resultats_attendus__indicateurs__metriques',
+        'objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
+        'objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]
@@ -787,6 +799,158 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
             'olt_libelle': olt.libelle,
             'niveaux_exigence': NiveauExigenceSerializer(niveaux, many=True).data,
             'total': niveaux.count()
+        })
+
+
+class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour les Objectifs Opérationnels.
+
+    Endpoints:
+    - GET /api/plans/objectifs-operationnels/ - Liste
+    - GET /api/plans/objectifs-operationnels/{id}/ - Détail
+    - POST /api/plans/objectifs-operationnels/ - Créer
+    - PATCH /api/plans/objectifs-operationnels/{id}/ - Modifier
+    - DELETE /api/plans/objectifs-operationnels/{id}/ - Supprimer
+    - GET /api/plans/objectifs-operationnels/by-enjeu/{enjeu_id}/ - Par enjeu
+    """
+
+    queryset = ObjectifOperationnel.objects.select_related(
+        'id_enjeu', 'id_facteur_influence',
+        'id_utilisateur_ajout', 'id_utilisateur_maj'
+    ).prefetch_related(
+        'resultats_attendus', 'resultats_attendus__id_utilisateur_ajout',
+        'resultats_attendus__indicateurs',
+        'resultats_attendus__indicateurs__type_indicateur',
+        'resultats_attendus__indicateurs__metriques',
+        'resultats_attendus__indicateurs__metriques__type_metrique',
+        'resultats_attendus__indicateurs__id_utilisateur_ajout',
+    )
+
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['libelle', 'description']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
+    ordering = ['libelle']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ObjectifOperationnelListSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return ObjectifOperationnelCreateSerializer
+        return ObjectifOperationnelSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = self.queryset
+
+        if user.is_super_admin():
+            return queryset
+
+        if user.is_admin_organisme() and user.id_organisme:
+            return queryset.filter(
+                id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+            ).distinct()
+
+        if user.is_referent():
+            return queryset.filter(
+                Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+                Q(id_enjeu__id_pg__referents=user)
+            ).distinct()
+
+        return queryset.filter(id_enjeu__id_pg__statut='valide')
+
+    def perform_create(self, serializer):
+        serializer.save(id_utilisateur_ajout=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path=r'by-enjeu/(?P<enjeu_id>\d+)')
+    def by_enjeu(self, request, enjeu_id=None):
+        """
+        Récupérer les objectifs opérationnels d'un enjeu.
+
+        GET /api/plans/objectifs-operationnels/by-enjeu/{enjeu_id}/
+        """
+        enjeu = get_object_or_404(Enjeu, id_enjeu=enjeu_id)
+        oos = self.get_queryset().filter(id_enjeu=enjeu)
+        return Response({
+            'enjeu_id': int(enjeu_id),
+            'enjeu_libelle': enjeu.libelle,
+            'objectifs_operationnels': ObjectifOperationnelSerializer(oos, many=True).data,
+            'total': oos.count()
+        })
+
+
+class ResultatAttenduViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour les Résultats Attendus.
+
+    Endpoints:
+    - GET /api/plans/resultats-attendus/ - Liste
+    - GET /api/plans/resultats-attendus/{id}/ - Détail
+    - POST /api/plans/resultats-attendus/ - Créer
+    - PATCH /api/plans/resultats-attendus/{id}/ - Modifier
+    - DELETE /api/plans/resultats-attendus/{id}/ - Supprimer
+    - GET /api/plans/resultats-attendus/by-oo/{oo_id}/ - Par OO
+    """
+
+    queryset = ResultatAttendu.objects.select_related(
+        'id_oo', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+    )
+
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['libelle', 'description']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
+    ordering = ['libelle']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ResultatAttenduCreateSerializer
+        return ResultatAttenduSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = self.queryset
+
+        if user.is_super_admin():
+            return queryset
+
+        if user.is_admin_organisme() and user.id_organisme:
+            return queryset.filter(
+                id_oo__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+            ).distinct()
+
+        if user.is_referent():
+            return queryset.filter(
+                Q(id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+                Q(id_oo__id_enjeu__id_pg__referents=user)
+            ).distinct()
+
+        return queryset.filter(id_oo__id_enjeu__id_pg__statut='valide')
+
+    def perform_create(self, serializer):
+        serializer.save(id_utilisateur_ajout=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path=r'by-oo/(?P<oo_id>\d+)')
+    def by_oo(self, request, oo_id=None):
+        """
+        Récupérer les résultats attendus d'un objectif opérationnel.
+
+        GET /api/plans/resultats-attendus/by-oo/{oo_id}/
+        """
+        oo = get_object_or_404(ObjectifOperationnel, id_oo=oo_id)
+        resultats = self.get_queryset().filter(id_oo=oo)
+        return Response({
+            'oo_id': int(oo_id),
+            'oo_libelle': oo.libelle,
+            'resultats_attendus': ResultatAttenduSerializer(resultats, many=True).data,
+            'total': resultats.count()
         })
 
 

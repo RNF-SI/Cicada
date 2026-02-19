@@ -7,6 +7,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
@@ -127,6 +128,108 @@ class NiveauExigenceCreateSerializer(serializers.ModelSerializer):
             'libelle', 'description'
         ]
         read_only_fields = ['id_ne']
+
+
+# =============================================================================
+# Serializers pour les Résultats Attendus (OO)
+# =============================================================================
+
+class ResultatAttenduSerializer(serializers.ModelSerializer):
+    """Serializer pour la lecture d'un Résultat Attendu."""
+    from .serializers_indicateurs import IndicateurSerializer as _IndicateurSerializer
+
+    indicateurs = _IndicateurSerializer(many=True, read_only=True)
+    nb_indicateurs = serializers.SerializerMethodField()
+    createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
+
+    class Meta:
+        model = ResultatAttendu
+        fields = [
+            'id_ra', 'id_oo',
+            'libelle', 'description',
+            'indicateurs', 'nb_indicateurs',
+            'date_ajout', 'date_maj', 'createur_nom'
+        ]
+        read_only_fields = ['id_ra', 'date_ajout', 'date_maj']
+
+    def get_nb_indicateurs(self, obj):
+        return obj.indicateurs.count()
+
+
+class ResultatAttenduCreateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création/modification d'un Résultat Attendu."""
+
+    class Meta:
+        model = ResultatAttendu
+        fields = [
+            'id_ra', 'id_oo',
+            'libelle', 'description'
+        ]
+        read_only_fields = ['id_ra']
+
+
+# =============================================================================
+# Serializers pour les Objectifs Opérationnels
+# =============================================================================
+
+class ObjectifOperationnelSerializer(serializers.ModelSerializer):
+    """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
+    resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
+    nb_resultats_attendus = serializers.SerializerMethodField()
+    facteur_influence_libelle = serializers.CharField(
+        source='id_facteur_influence.libelle', read_only=True
+    )
+    createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
+
+    class Meta:
+        model = ObjectifOperationnel
+        fields = [
+            'id_oo', 'id_enjeu',
+            'libelle', 'description',
+            'id_facteur_influence', 'facteur_influence_libelle',
+            'resultats_attendus', 'nb_resultats_attendus',
+            'date_ajout', 'date_maj', 'createur_nom'
+        ]
+        read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
+
+    def get_nb_resultats_attendus(self, obj):
+        return obj.resultats_attendus.count()
+
+
+class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
+    """Serializer léger pour la liste des Objectifs Opérationnels."""
+    nb_resultats_attendus = serializers.SerializerMethodField()
+    facteur_influence_libelle = serializers.CharField(
+        source='id_facteur_influence.libelle', read_only=True
+    )
+    createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
+
+    class Meta:
+        model = ObjectifOperationnel
+        fields = [
+            'id_oo', 'id_enjeu',
+            'libelle', 'description',
+            'id_facteur_influence', 'facteur_influence_libelle',
+            'nb_resultats_attendus',
+            'date_ajout', 'date_maj', 'createur_nom'
+        ]
+        read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
+
+    def get_nb_resultats_attendus(self, obj):
+        return obj.resultats_attendus.count()
+
+
+class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création/modification d'un Objectif Opérationnel."""
+
+    class Meta:
+        model = ObjectifOperationnel
+        fields = [
+            'id_oo', 'id_enjeu',
+            'libelle', 'description',
+            'id_facteur_influence'
+        ]
+        read_only_fields = ['id_oo']
 
 
 # =============================================================================
@@ -406,6 +509,10 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
     nb_olt = serializers.SerializerMethodField()
 
+    # OO (nested, avec résultats attendus inclus)
+    objectifs_operationnels = ObjectifOperationnelSerializer(many=True, read_only=True)
+    nb_oo = serializers.SerializerMethodField()
+
     # Créateur
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
@@ -427,6 +534,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'facteurs_influence', 'nb_facteurs_influence',
             # OLT (avec état actuel inclus)
             'objectifs_long_terme', 'nb_olt',
+            # OO (avec résultats attendus inclus)
+            'objectifs_operationnels', 'nb_oo',
             # Audit
             'date_ajout', 'date_maj', 'id_utilisateur_ajout', 'createur_nom'
         ]
@@ -437,6 +546,9 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_olt(self, obj):
         return obj.objectifs_long_terme.count()
+
+    def get_nb_oo(self, obj):
+        return obj.objectifs_operationnels.count()
 
 
 class EnjeuCreateSerializer(serializers.ModelSerializer):
