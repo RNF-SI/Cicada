@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -340,6 +340,64 @@ describe('FcrFormComponent', () => {
       component.onSubmit();
       expect(component.errorMessage()).toBe('Update échoué');
     });
+  });
+
+  // =========================================================================
+  // scrollToError
+  // =========================================================================
+
+  describe('scrollToError', () => {
+    let scrollIntoViewMock: jest.Mock;
+
+    beforeEach(() => {
+      setup();
+      scrollIntoViewMock = jest.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+    });
+
+    afterEach(() => {
+      // @ts-ignore
+      delete Element.prototype.scrollIntoView;
+    });
+
+    it('should scroll to first invalid field when form is invalid', fakeAsync(() => {
+      component.form.get('libelle')?.setValue('');
+      component.onSubmit();
+      tick();
+
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }));
+
+    it('should scroll to error-banner on API error', fakeAsync(() => {
+      mockEnjeuService.createFcr.mockReturnValue(throwError(() => ({ message: 'Erreur' })));
+
+      const banner = document.createElement('div');
+      banner.className = 'error-banner';
+      fixture.nativeElement.appendChild(banner);
+
+      component.form.patchValue({ libelle: 'Test FCR', id_categorie_fcr: 201 });
+      component.onSubmit();
+      tick();
+
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+      });
+
+      fixture.nativeElement.removeChild(banner);
+    }));
+
+    it('should not throw when no error elements exist', fakeAsync(() => {
+      fixture.nativeElement.innerHTML = '';
+      component.form.get('libelle')?.setValue('');
+      expect(() => {
+        component.onSubmit();
+        tick();
+      }).not.toThrow();
+    }));
   });
 
   // =========================================================================
