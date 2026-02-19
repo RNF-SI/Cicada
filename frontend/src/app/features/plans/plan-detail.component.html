@@ -314,20 +314,36 @@
 
         <!-- Colonne secondaire - Site, Mindmap, Documents -->
         <div class="side-column">
-          <!-- Site -->
+          <!-- Sites -->
           <div class="section-card compact">
             <app-section-title
-              [title]="'plans.detail.sections.site' | translate"
+              [title]="(plan()?.sites?.length === 1 ? 'plans.detail.sections.site' : 'plans.detail.sections.sites') | translate"
               icon="fi-rr-map-marker"
               ellipseColor="yellow"
               iconColor="primary"
               size="md"
               [showLine]="true">
             </app-section-title>
-            <div class="map-placeholder">
-              <i class="fi fi-rr-map"></i>
-              <span>{{ 'sites.map.loading' | translate }}</span>
-            </div>
+            @if (plan()?.sites && plan()!.sites!.length > 0) {
+              <div class="sites-list">
+                @for (site of plan()!.sites!; track site.id_site) {
+                  <a class="site-card" [routerLink]="['/sites', site.slug]">
+                    <div class="site-info">
+                      <span class="site-name">{{ site.nom_site }}</span>
+                      @if (site.type_site_label) {
+                        <span class="site-type">{{ site.type_site_label }}</span>
+                      }
+                    </div>
+                    <i class="fi fi-rr-angle-right"></i>
+                  </a>
+                }
+              </div>
+            } @else {
+              <div class="empty-state-small">
+                <i class="fi fi-rr-map-marker"></i>
+                <span>{{ 'plans.detail.noSites' | translate }}</span>
+              </div>
+            }
           </div>
 
           <!-- Mindmap -->

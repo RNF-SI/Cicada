@@ -296,6 +296,7 @@ export type PlanStatut = 'draft' | 'valide' | 'archive';
 export interface PlanSite {
   id_site: number;
   nom_site: string;
+  slug?: string;
   type_site_label?: string;
   /** Précision du type de site quand le type est "Autre" */
   type_site_precision?: string | null;

@@ -564,15 +564,65 @@
   line-height: 22px;
 }
 
-// Placeholders
-.map-placeholder {
+// Sites list (in side column)
+.sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.site-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color $transition-fast, transform $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+    transform: translateX(4px);
+  }
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+}
+
+.site-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.site-name {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-type {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.empty-state-small {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 162px;
-  background-color: $gray-lighter;
-  border-radius: $border-radius-sm;
+  padding: $spacing-lg;
   color: $gray;
 
   i {
@@ -584,6 +634,8 @@
     font-size: $font-size-small;
   }
 }
+
+// Placeholders
 
 .mindmap-placeholder {
   display: flex;

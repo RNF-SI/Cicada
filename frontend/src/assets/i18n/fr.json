@@ -1203,9 +1203,11 @@
       "sections": {
         "synthese": "Synthèse",
         "site": "Site",
+        "sites": "Sites",
         "mindmap": "Mindmap",
         "documents": "Documents"
       },
+      "noSites": "Aucun site associé",
       "accordions": {
         "enjeux": "Enjeux et Facteurs clés de réussite",
         "objectifsLT": "Objectifs long terme",

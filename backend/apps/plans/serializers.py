@@ -90,11 +90,12 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     """Serializer simplifié pour les sites dans la liste des plans."""
     id_site = serializers.IntegerField(source='site.id_site')
     nom_site = serializers.CharField(source='site.nom_site')
+    slug = serializers.SlugField(source='site.slug', read_only=True)
     type_site_label = serializers.SerializerMethodField()
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site', 'type_site_label', 'rang']
+        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang']
 
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
