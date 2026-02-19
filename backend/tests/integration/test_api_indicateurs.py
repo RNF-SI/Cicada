@@ -42,12 +42,12 @@ def indicateur_test_data(db):
         id_pg=plan, id_categorie=cat_enjeu, libelle='Enjeu Indicateur Test',
         id_utilisateur_ajout=referent
     )
-    etat = EtatActuelFactory(
-        id_enjeu=enjeu, libelle='État Actuel Indicateur',
+    olt = ObjectifLongTermeFactory(
+        id_enjeu=enjeu, libelle='OLT Indicateur',
         id_utilisateur_ajout=referent
     )
-    olt = ObjectifLongTermeFactory(
-        id_etat=etat, libelle='OLT Indicateur',
+    etat = EtatActuelFactory(
+        id_olt=olt, libelle='État Actuel Indicateur',
         id_utilisateur_ajout=referent
     )
     ne1 = NiveauExigenceFactory(

@@ -115,11 +115,11 @@ class TestEnjeuListEndpoint:
         plan_ids = [e['id_pg'] for e in response.data['results']]
         assert enjeu_test_data['plan'].id_pg in plan_ids
 
-    def test_user_sees_only_valide_plans(self, api_client, enjeu_test_data):
-        """Test regular user sees only enjeux from validated plans."""
+    def test_non_referent_user_denied(self, api_client, enjeu_test_data):
+        """Test non-referent user is denied access to enjeux (IsReferent permission)."""
         api_client.force_authenticate(user=enjeu_test_data['user'])
         response = api_client.get('/api/plans/enjeux/')
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_pagination_works(self, api_client, enjeu_test_data):
         """Test pagination is present in response."""

@@ -8,6 +8,7 @@ from factory.django import DjangoModelFactory
 from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
 )
 from apps.plans.models_indicateurs import (
@@ -178,6 +179,35 @@ class NiveauExigenceFactory(DjangoModelFactory):
 
 
 # =============================================================================
+# Objectif Opérationnel / Résultat Attendu factories
+# =============================================================================
+
+class ObjectifOperationnelFactory(DjangoModelFactory):
+    """Factory for ObjectifOperationnel model."""
+
+    class Meta:
+        model = ObjectifOperationnel
+
+    id_enjeu = factory.SubFactory(EnjeuFactory)
+    libelle = factory.Sequence(lambda n: f'OO Test {n}')
+    description = factory.Faker('sentence', locale='fr_FR')
+    id_facteur_influence = None
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
+class ResultatAttenduFactory(DjangoModelFactory):
+    """Factory for ResultatAttendu model."""
+
+    class Meta:
+        model = ResultatAttendu
+
+    id_oo = factory.SubFactory(ObjectifOperationnelFactory)
+    libelle = factory.Sequence(lambda n: f'Résultat Attendu Test {n}')
+    description = factory.Faker('sentence', locale='fr_FR')
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
+# =============================================================================
 # Correlation table factories
 # =============================================================================
 
@@ -252,17 +282,25 @@ class NomenclatureTypeMetriqueFactory(NomenclatureFactory):
 
 
 class IndicateurFactory(DjangoModelFactory):
-    """Factory for Indicateur model."""
+    """Factory for Indicateur model (linked to NE by default)."""
 
     class Meta:
         model = Indicateur
 
     id_ne = factory.SubFactory(NiveauExigenceFactory)
+    id_resultat_attendu = None
     nom_indicateur = factory.Sequence(lambda n: f'Indicateur Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     type_indicateur = factory.SubFactory(NomenclatureTypeIndicateurFactory)
     est_standardise = False
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
+class IndicateurPressionFactory(IndicateurFactory):
+    """Factory for Indicateur linked to a ResultatAttendu (pression indicator)."""
+
+    id_ne = None
+    id_resultat_attendu = factory.SubFactory(ResultatAttenduFactory)
 
 
 class MetriqueFactory(DjangoModelFactory):
