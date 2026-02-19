@@ -14,7 +14,9 @@ import { AdminService } from '../../../core/services/admin.service';
     <app-header></app-header>
     <div class="suivis-layout">
       @if (planSlug(); as slug) {
-        <app-plan-sidebar [planId]="planId()!" [planSlug]="slug" activePage="bilan"></app-plan-sidebar>
+        @if (planId(); as id) {
+          <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="bilan"></app-plan-sidebar>
+        }
       }
       <main class="plan-main">
         <section class="hero-section">

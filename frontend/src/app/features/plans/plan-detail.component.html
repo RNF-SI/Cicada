@@ -5,11 +5,13 @@
 <div class="plan-detail-layout">
   <!-- Sidebar Menu (composant partagé avec la page enjeux) -->
   @if (planSlug(); as slug) {
-    <app-plan-sidebar
-      [planId]="planId()!"
-      [planSlug]="slug"
-      activePage="overview">
-    </app-plan-sidebar>
+    @if (planId(); as id) {
+      <app-plan-sidebar
+        [planId]="id"
+        [planSlug]="slug"
+        activePage="overview">
+      </app-plan-sidebar>
+    }
   }
 
   <!-- Main Content -->

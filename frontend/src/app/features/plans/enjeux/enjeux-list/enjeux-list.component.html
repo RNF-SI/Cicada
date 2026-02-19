@@ -3,12 +3,14 @@
 <div class="enjeux-layout">
   <!-- Sidebar Menu (composant partagé) -->
   @if (planSlug(); as slug) {
-    <app-plan-sidebar
-      [planId]="planId()!"
-      [planSlug]="slug"
-      activePage="enjeux"
-      [selectedEnjeuSlug]="selectedEnjeuSlug()">
-    </app-plan-sidebar>
+    @if (planId(); as id) {
+      <app-plan-sidebar
+        [planId]="id"
+        [planSlug]="slug"
+        activePage="enjeux"
+        [selectedEnjeuSlug]="selectedEnjeuSlug()">
+      </app-plan-sidebar>
+    }
   }
 
   <!-- Main Content -->
