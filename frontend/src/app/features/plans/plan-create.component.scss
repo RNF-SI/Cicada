@@ -460,6 +460,32 @@
 .chip-icon {
   font-size: $font-size-small;
   margin-right: $spacing-xxs;
+  color: $primary-color;
+}
+
+// Chip row dans les formulaires (redacteurs, relecteurs, organisme)
+.selected-organisme,
+.chips-field {
+  ::ng-deep {
+    .mat-mdc-chip-row {
+      background-color: $gray-lighter !important;
+      color: $black !important;
+
+      .mdc-evolution-chip__text-label,
+      .mat-mdc-chip-action-label {
+        color: $black !important;
+        font-family: $font-family;
+      }
+
+      .mat-mdc-chip-remove {
+        color: $gray-dark !important;
+
+        &:hover {
+          color: $error-color !important;
+        }
+      }
+    }
+  }
 }
 
 // Autocomplete options
@@ -471,6 +497,7 @@
 
 .option-name {
   font-weight: $font-weight-semibold;
+  color: $black;
 }
 
 .option-email {
