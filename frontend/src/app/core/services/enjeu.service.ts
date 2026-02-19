@@ -43,6 +43,7 @@ import {
   TaxonRef,
   HabitatRef
 } from '../models/enjeu.model';
+import { MindmapNode } from '../models/mindmap.model';
 
 @Injectable({
   providedIn: 'root'
@@ -587,5 +588,12 @@ export class EnjeuService {
     if (current) {
       this.getPlanEnjeux(current.plan_id, true).subscribe();
     }
+  }
+
+  /**
+   * Get the mindmap tree data for a plan.
+   */
+  getMindmapData(planId: number): Observable<MindmapNode> {
+    return this.http.get<MindmapNode>(`${this.apiUrl}/plans/${planId}/mindmap/`);
   }
 }

@@ -334,6 +334,16 @@
       margin-bottom: 0;
     }
   }
+
+  &.clickable {
+    cursor: pointer;
+    transition: box-shadow $transition-fast, transform $transition-fast;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 // Section cards - les titres utilisent maintenant app-section-title
@@ -555,8 +565,7 @@
 }
 
 // Placeholders
-.map-placeholder,
-.mindmap-placeholder {
+.map-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -573,6 +582,27 @@
 
   span {
     font-size: $font-size-small;
+  }
+}
+
+.mindmap-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 162px;
+  background-color: rgba($secondary-pale-green, 0.3);
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+
+  i {
+    font-size: $font-size-h2;
+    margin-bottom: $spacing-xs;
+  }
+
+  span {
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
   }
 }
 

@@ -1228,7 +1228,8 @@
         "bilans": "Bilans",
         "bilan": "Bilan",
         "suiviActions": "Suivi des actions",
-        "tableauDeBord": "Tableau de bord"
+        "tableauDeBord": "Tableau de bord",
+        "mindmap": "Mind Map"
       },
       "tabs": {
         "details": "Détails et saisie",
@@ -1289,6 +1290,18 @@
         "noData": "Aucun indicateur n'est encore défini pour ce plan.",
         "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu."
       }
+    },
+    "mindmap": {
+      "title": "Mind Map",
+      "viewMindmap": "Voir la Mind Map",
+      "viewTree": "Arborescence",
+      "viewIcicle": "Tableau",
+      "clickHint": "Cliquez sur un élément pour explorer sa hiérarchie",
+      "expandAll": "Tout déplier",
+      "collapseAll": "Tout replier",
+      "resetZoom": "Recentrer",
+      "loading": "Chargement de la mind map...",
+      "empty": "Aucune donnée à afficher"
     },
     "status": {
       "draft": "Brouillon",

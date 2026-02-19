@@ -104,5 +104,14 @@
         </div>
       }
     </div>
+
+    <!-- Mind Map -->
+    <button
+      class="menu-item"
+      [class.active]="isMindmapActive()"
+      (click)="navigateToMindmap()">
+      <i class="fi fi-rr-mind-share"></i>
+      <span>{{ 'plans.detail.sidebar.mindmap' | translate }}</span>
+    </button>
   </nav>
 </aside>

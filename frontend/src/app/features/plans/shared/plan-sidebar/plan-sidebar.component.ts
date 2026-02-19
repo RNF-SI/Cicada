@@ -18,7 +18,7 @@ export class PlanSidebarComponent implements OnInit {
 
   planId = input.required<number>();
   planSlug = input.required<string>();
-  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord'>('overview');
+  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
 
   enjeux = signal<Enjeu[]>([]);
@@ -30,6 +30,8 @@ export class PlanSidebarComponent implements OnInit {
     const page = this.activePage();
     return page === 'bilan' || page === 'suivi-actions' || page === 'tableau-de-bord';
   });
+
+  isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
   ngOnInit(): void {
     this.enjeuService.getPlanEnjeux(this.planId()).subscribe(response => {
@@ -68,5 +70,9 @@ export class PlanSidebarComponent implements OnInit {
 
   navigateToTableauDeBord(): void {
     this.router.navigate(['/plans', this.planSlug(), 'tableau-de-bord']);
+  }
+
+  navigateToMindmap(): void {
+    this.router.navigate(['/plans', this.planSlug(), 'mindmap']);
   }
 }

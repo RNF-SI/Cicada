@@ -381,6 +381,229 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Utilisateur non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['get'], url_path='mindmap')
+    def mindmap(self, request, pk=None):
+        """
+        Arbre hiérarchique du plan pour la mind map.
+
+        GET /api/plans/plans/{id}/mindmap/
+        """
+        plan = self.get_object()
+
+        from .models_enjeux import (
+            Enjeu, FacteurInfluence, Pression,
+            ObjectifLongTerme, EtatActuel, NiveauExigence,
+            ObjectifOperationnel, ResultatAttendu
+        )
+        from .models_indicateurs import Indicateur, Metrique, Mesure
+        from .models_operations import (
+            Operation, OperationAnnee, FinanceOperation,
+            SuiviInventaire, Protocole
+        )
+
+        def build_tree():
+            root = {
+                'name': plan.nom,
+                'entityType': 'plan',
+                'id': plan.id_pg,
+                'children': []
+            }
+
+            # Fetch enjeux with deep prefetch
+            enjeux = (
+                Enjeu.objects
+                .filter(id_pg=plan)
+                .select_related('id_categorie')
+                .prefetch_related(
+                    'facteurs_influence__pressions',
+                    'objectifs_long_terme__etat_actuel',
+                    'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
+                    'objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
+                )
+                .order_by('rang', 'libelle')
+            )
+
+            # Pre-build operation nodes keyed by indicateur ID
+            # so we can nest them under each indicateur
+            from .models_operations import CorOperationIndicateur
+            ind_to_ops = {}  # indicateur_id -> [op_node, ...]
+            # Collect all indicateur IDs first
+            all_indicateur_ids = set()
+            for enjeu in enjeux:
+                for olt in enjeu.objectifs_long_terme.all():
+                    for ne in olt.niveaux_exigence.all():
+                        for ind in ne.indicateurs.all():
+                            all_indicateur_ids.add(ind.id_indicateur)
+                for oo in enjeu.objectifs_operationnels.all():
+                    for ra in oo.resultats_attendus.all():
+                        for ind in ra.indicateurs.all():
+                            all_indicateur_ids.add(ind.id_indicateur)
+
+            if all_indicateur_ids:
+                cor_links = (
+                    CorOperationIndicateur.objects
+                    .filter(id_indicateur__in=all_indicateur_ids)
+                    .select_related('id_operation')
+                    .values_list('id_indicateur_id', 'id_operation_id')
+                )
+                op_ids_needed = set()
+                ind_op_pairs = []
+                for ind_id, op_id in cor_links:
+                    op_ids_needed.add(op_id)
+                    ind_op_pairs.append((ind_id, op_id))
+
+                if op_ids_needed:
+                    operations_qs = (
+                        Operation.objects
+                        .filter(id_operation__in=op_ids_needed)
+                    )
+                    ops_by_id = {op.id_operation: op for op in operations_qs}
+
+                    for ind_id, op_id in ind_op_pairs:
+                        op = ops_by_id.get(op_id)
+                        if not op:
+                            continue
+                        op_node = {
+                            'name': op.libelle,
+                            'entityType': 'operation',
+                            'id': op.id_operation,
+                        }
+                        ind_to_ops.setdefault(ind_id, []).append(op_node)
+
+            def build_indicateur_node(ind):
+                """Build an indicateur node with metriques, mesures AND operations."""
+                ind_node = {
+                    'name': ind.nom_indicateur,
+                    'entityType': 'indicateur',
+                    'id': ind.id_indicateur,
+                    'children': []
+                }
+                for met in ind.metriques.all():
+                    met_node = {
+                        'name': met.nom_metrique,
+                        'entityType': 'metrique',
+                        'id': met.id_metrique,
+                    }
+                    ind_node['children'].append(met_node)
+                # Append linked operations
+                for op_node in ind_to_ops.get(ind.id_indicateur, []):
+                    ind_node['children'].append(op_node)
+                return ind_node
+
+            for enjeu in enjeux:
+                is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
+                enjeu_node = {
+                    'name': enjeu.intitule_court or enjeu.libelle,
+                    'entityType': 'fcr' if is_fcr else 'enjeu',
+                    'id': enjeu.id_enjeu,
+                    'children': []
+                }
+
+                # Facteurs d'influence + pressions
+                for facteur in enjeu.facteurs_influence.all():
+                    facteur_node = {
+                        'name': facteur.libelle,
+                        'entityType': 'facteur',
+                        'id': facteur.id_facteur_influence,
+                        'children': []
+                    }
+                    for pression in facteur.pressions.all():
+                        facteur_node['children'].append({
+                            'name': pression.libelle,
+                            'entityType': 'pression',
+                            'id': pression.id_pression
+                        })
+                    enjeu_node['children'].append(facteur_node)
+
+                # OLT branch
+                for olt in enjeu.objectifs_long_terme.all():
+                    olt_node = {
+                        'name': olt.libelle,
+                        'entityType': 'olt',
+                        'id': olt.id_olt,
+                        'children': []
+                    }
+
+                    # Etat actuel (1:1)
+                    try:
+                        ea = olt.etat_actuel
+                        olt_node['children'].append({
+                            'name': ea.libelle,
+                            'entityType': 'etat_actuel',
+                            'id': ea.id_etat_actuel
+                        })
+                    except EtatActuel.DoesNotExist:
+                        pass
+
+                    # Niveaux d'exigence -> Indicateurs -> Metriques/Mesures + Operations
+                    for ne in olt.niveaux_exigence.all():
+                        ne_node = {
+                            'name': ne.libelle,
+                            'entityType': 'niveau_exigence',
+                            'id': ne.id_ne,
+                            'children': []
+                        }
+                        for ind in ne.indicateurs.all():
+                            ne_node['children'].append(build_indicateur_node(ind))
+                        olt_node['children'].append(ne_node)
+
+                    enjeu_node['children'].append(olt_node)
+
+                # OO branch
+                for oo in enjeu.objectifs_operationnels.all():
+                    oo_node = {
+                        'name': oo.libelle,
+                        'entityType': 'oo',
+                        'id': oo.id_oo,
+                        'children': []
+                    }
+                    for ra in oo.resultats_attendus.all():
+                        ra_node = {
+                            'name': ra.libelle,
+                            'entityType': 'resultat_attendu',
+                            'id': ra.id_ra,
+                            'children': []
+                        }
+                        for ind in ra.indicateurs.all():
+                            ra_node['children'].append(build_indicateur_node(ind))
+                        oo_node['children'].append(ra_node)
+                    enjeu_node['children'].append(oo_node)
+
+                root['children'].append(enjeu_node)
+
+            # Suivis / Inventaires linked to the plan
+            suivis = (
+                SuiviInventaire.objects
+                .filter(id_pg=plan)
+                .select_related('id_protocole')
+            )
+            if suivis.exists():
+                suivis_group = {
+                    'name': 'Suivis / Inventaires',
+                    'entityType': 'suivi',
+                    'children': []
+                }
+                for s in suivis:
+                    s_node = {
+                        'name': s.intitule or f"Suivi #{s.id_suivi_inventaire}",
+                        'entityType': 'suivi',
+                        'id': s.id_suivi_inventaire,
+                        'children': []
+                    }
+                    if s.id_protocole:
+                        s_node['children'].append({
+                            'name': s.id_protocole.protocole_campanule_nom or s.id_protocole.nom_protocole or f"Protocole #{s.id_protocole.id_protocole}",
+                            'entityType': 'protocole',
+                            'id': s.id_protocole.id_protocole
+                        })
+                    suivis_group['children'].append(s_node)
+                root['children'].append(suivis_group)
+
+            return root
+
+        tree = build_tree()
+        return Response(tree)
+
     @action(detail=False, methods=['get'])
     @method_decorator(cache_page(60 * 15))  # Cache 15 minutes
     def stats(self, request):

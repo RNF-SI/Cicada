@@ -211,6 +211,13 @@ export class PlanDetailComponent implements OnInit {
     }
   }
 
+  navigateToMindmap(): void {
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'mindmap']);
+    }
+  }
+
   goBack(): void {
     this.router.navigate(['/plans']);
   }

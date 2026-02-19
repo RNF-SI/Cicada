@@ -331,18 +331,18 @@
           </div>
 
           <!-- Mindmap -->
-          <div class="section-card compact">
+          <div class="section-card compact clickable" (click)="navigateToMindmap()">
             <app-section-title
               [title]="'plans.detail.sections.mindmap' | translate"
-              icon="custom:mindmap"
+              icon="fi-rr-mind-share"
               ellipseColor="pale-green"
               iconColor="primary"
               size="md"
               [showLine]="true">
             </app-section-title>
             <div class="mindmap-placeholder">
-              <i class="fi fi-rr-chart-tree"></i>
-              <span>{{ 'common.messages.featureComingSoon' | translate }}</span>
+              <i class="fi fi-rr-mind-share"></i>
+              <span>{{ 'plans.mindmap.viewMindmap' | translate }}</span>
             </div>
           </div>
 

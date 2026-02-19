@@ -39,5 +39,10 @@ export const PLANS_ROUTES: Routes = [
     path: ':slug/tableau-de-bord',
     loadComponent: () => import('./suivis/plan-tableau-de-bord.component').then(m => m.PlanTableauDeBordComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: ':slug/mindmap',
+    loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
+    canActivate: [authGuard]
   }
 ];
