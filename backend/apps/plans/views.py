@@ -1,6 +1,7 @@
 """
 Vues API REST pour les Plans de Gestion.
 """
+import json as json_module
 import os
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -134,7 +135,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             serializer = PlanGestionGeoJSONSerializer(plan)
             feature = {
                 'type': 'Feature',
-                'geometry': plan.geometrie.__geo_interface__ if plan.geometrie else None,
+                'geometry': json_module.loads(plan.geometrie.json) if plan.geometrie else None,
                 'properties': serializer.data
             }
             features.append(feature)
@@ -162,10 +163,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         serializer = PlanGestionGeoJSONSerializer(plan)
         feature = {
             'type': 'Feature',
-            'geometry': plan.geometrie.__geo_interface__,
+            'geometry': json_module.loads(plan.geometrie.json),
             'properties': serializer.data
         }
-        
+
         return Response(feature)
     
     @action(detail=True, methods=['post'], 

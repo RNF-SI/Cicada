@@ -47,9 +47,7 @@ class PlanGestionFilter(filters.FilterSet):
     
     # Filtres par relations
     site_id = filters.NumberFilter(field_name='sites__site__id_site')
-    organisme_id = filters.NumberFilter(
-        field_name='sites__site__cor_og_site__id_organisme'
-    )
+    organisme_id = filters.NumberFilter(method='filter_by_organisme_id')
     referent_id = filters.NumberFilter(field_name='referents__id_role')
     
     # Filtres géospatiaux
@@ -117,6 +115,14 @@ class PlanGestionFilter(filters.FilterSet):
             )
         return queryset
     
+    def filter_by_organisme_id(self, queryset, name, value):
+        """Filtrer par organisme gestionnaire via CorOgSite."""
+        from apps.users.models import CorOgSite
+        site_ids = CorOgSite.objects.filter(
+            uuid_og__id_organisme=value
+        ).values_list('id_site_id', flat=True)
+        return queryset.filter(sites__site__id_site__in=site_ids).distinct()
+
     def filter_a_geometrie(self, queryset, name, value):
         """Filtrer selon la présence d'une géométrie."""
         if value is True:
@@ -304,7 +310,11 @@ class PlanGestionQuickFilter:
     @staticmethod
     def par_organisme(organisme_id):
         """Plans d'un organisme."""
-        return {'sites__site__cor_og_site__id_organisme': organisme_id}
+        from apps.users.models import CorOgSite
+        site_ids = CorOgSite.objects.filter(
+            uuid_og__id_organisme=organisme_id
+        ).values_list('id_site_id', flat=True)
+        return {'sites__site__id_site__in': list(site_ids)}
     
     @staticmethod
     def par_referent(referent_id):
