@@ -46,8 +46,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         'id_evaluation', 'id_redacteur_type',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents')
-    
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = PlanGestionFilter
     search_fields = [
@@ -68,7 +68,16 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return PlanGestionDetailSerializer
     
     def get_queryset(self):
-        """Filtrer selon les permissions utilisateur."""
+        """Filtrer selon les permissions utilisateur.
+
+        Logique :
+        - Super admin : tous les plans
+        - Admin organisme : plans des sites de son organisme
+        - Référent / Utilisateur : plans de ses sites assignés
+          + plans dont il est référent/membre + plans de son organisme
+        """
+        from django.db.models import Q
+
         user = self.request.user
         queryset = self.queryset
 
@@ -82,16 +91,23 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        # Référent : voir les plans des sites assignés + plans dont il est référent
-        if user.is_referent():
-            from django.db.models import Q
-            return queryset.filter(
-                Q(sites__site__corrolesite__id_role=user) |
-                Q(referents=user)
-            ).distinct()
+        # Référent / Utilisateur : plans personnels + plans de l'organisme
+        conditions = Q()
 
-        # Utilisateur : voir les plans publics
-        return queryset.filter(statut='valide')
+        # Plans des sites assignés à l'utilisateur
+        conditions |= Q(sites__site__corrolesite__id_role=user)
+
+        # Plans dont il est référent
+        conditions |= Q(referents=user)
+
+        # Plans dont il est membre direct (CorRolePlan)
+        conditions |= Q(membres__id_role=user)
+
+        # Plans de son organisme (pour pouvoir en demander l'accès)
+        if user.id_organisme:
+            conditions |= Q(sites__site__corogsite__uuid_og=user.id_organisme)
+
+        return queryset.filter(conditions).distinct()
     
     def perform_create(self, serializer):
         """Définir l'utilisateur créateur."""

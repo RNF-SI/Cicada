@@ -75,11 +75,10 @@
     @if (showScopeToggle()) {
       <app-view-scope-toggle
         [currentScope]="viewScope()"
-        [showSitesOption]="true"
+        [showSitesOption]="false"
         [showOrganismeOption]="isAdminOrganisme()"
         [showAllOption]="isSuperAdmin()"
         [mineLabel]="'plans.scope.mine' | translate"
-        [sitesLabel]="'plans.scope.sites' | translate"
         [organismeLabel]="'plans.scope.organisme' | translate"
         [allLabel]="'plans.scope.all' | translate"
         (scopeChange)="onScopeChange($event)">
@@ -345,8 +344,8 @@
                           {{ 'plans.requestAccess.retry' | translate }}
                         </button>
                       </div>
-                    } @else {
-                      <!-- Plan sans demande : peut demander l'accès -->
+                    } @else if (plan.hasAccessViaSite) {
+                      <!-- Cas direct : lié à un site du plan -->
                       <button
                         mat-stroked-button
                         color="primary"
@@ -354,6 +353,16 @@
                       >
                         <i class="fi fi-rr-lock"></i>
                         {{ 'plans.requestAccess.button' | translate }}
+                      </button>
+                    } @else {
+                      <!-- Cas combiné : besoin de lien au site + accès au plan -->
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        (click)="openAccessRequestDialog(plan)"
+                      >
+                        <i class="fi fi-rr-link-alt"></i>
+                        {{ 'plans.requestAccess.buttonWithSite' | translate }}
                       </button>
                     }
                   </td>

@@ -28,11 +28,14 @@ import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminPlan, AdminSite } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
-import { AccessRequestDialogComponent, AccessRequestDialogData } from '../../shared/components/access-request-dialog/access-request-dialog.component';
+import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
 interface PlanWithAccess extends AdminPlan {
   accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
   isReferent: boolean;
+  isMember: boolean;
+  hasAccessViaSite: boolean;
+  isOrgPlan: boolean;
   gaugeStatus: GaugeStatus;
 }
 
@@ -85,8 +88,8 @@ export class PlansListComponent implements OnInit {
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
-  // Afficher le toggle pour tous les utilisateurs (au moins 'mine' et 'sites')
-  readonly showScopeToggle = computed(() => true);
+  // Afficher le toggle si admin_og ou super_admin (sinon seul 'mine' disponible)
+  readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
 
   // Tab state pour "Mes plans"
   activeTab = signal<'actifs' | 'inactifs'>('actifs');
@@ -132,17 +135,21 @@ export class PlansListComponent implements OnInit {
   });
 
   // Plans affichés selon le scope sélectionné
+  // Les admin_og et super_admin voient tous les plans de leur scope (pas besoin de lien direct)
   readonly scopedPlans = computed(() => {
     const scope = this.viewScope();
+    const isAdmin = this.isSuperAdmin() || this.isAdminOrganisme();
     switch (scope) {
       case 'mine':
         return this.myDirectPlans();
-      case 'sites':
-        return this.sitePlans();
       case 'organisme':
-        return this.organismePlans();
+        return isAdmin
+          ? this.organismePlans()
+          : this.organismePlans().filter(p => p.accessStatus === 'granted');
       case 'all':
-        return this.allPlans().filter(p => p.accessStatus === 'granted');
+        return isAdmin
+          ? this.allPlans()
+          : this.allPlans().filter(p => p.accessStatus === 'granted');
       default:
         return this.myDirectPlans();
     }
@@ -168,6 +175,7 @@ export class PlansListComponent implements OnInit {
   readonly otherPlans = computed(() => {
     const search = this.searchQuery().toLowerCase();
     return this.allPlans()
+      .filter(p => p.isOrgPlan)
       .filter(p => p.accessStatus === 'none' || p.accessStatus === 'rejected')
       .filter(p => !search || p.nom.toLowerCase().includes(search));
   });
@@ -276,23 +284,24 @@ export class PlansListComponent implements OnInit {
   ): PlanWithAccess[] {
     const currentUser = this.authService.currentUser();
     const isSuperAdmin = this.authService.isSuperAdmin();
+    const isAdminOg = this.authService.isAdminOrganisme();
 
     return plans.map(plan => {
-      // Vérifier s'il y a une demande en cours pour ce plan
+      // Vérifier s'il y a une demande en cours pour ce plan (match par ID)
       const pendingRequest = requests.find(
         r => r.request_type === 'plan_access' &&
              r.status === 'pending' &&
-             r.target_name === plan.nom
+             r.target_plan_id === plan.id_pg
       );
       const rejectedRequest = requests.find(
         r => r.request_type === 'plan_access' &&
              r.status === 'rejected' &&
-             r.target_name === plan.nom
+             r.target_plan_id === plan.id_pg
       );
       const approvedRequest = requests.find(
         r => r.request_type === 'plan_access' &&
              r.status === 'approved' &&
-             r.target_name === plan.nom
+             r.target_plan_id === plan.id_pg
       );
 
       // Vérifier si l'utilisateur est membre direct du plan (via CorRolePlan)
@@ -300,12 +309,19 @@ export class PlansListComponent implements OnInit {
       const isMember = !!userMembership;
       const isReferent = userMembership?.referent || false;
 
+      // Vérifier si référent via plan.referents M2M
+      const isReferentOfPlan = plan.referents?.some(r => r.id_role === currentUser?.id) || false;
+
       // Vérifier si l'utilisateur a accès via un des sites du plan
       const hasAccessViaSite = plan.sites?.some(s => userSiteIds.has(s.id_site)) || false;
 
+      // Vérifier si le plan appartient à l'organisme de l'utilisateur
+      const isOrgPlan = this.isPlanFromUserOrg(plan);
+
+      // accessStatus reflète le lien DIRECT de l'utilisateur au plan
+      // (pas le rôle admin qui donne une visibilité globale)
       let accessStatus: 'granted' | 'pending' | 'rejected' | 'none' = 'none';
-      // Super admin, membre du plan, accès via site, ou demande approuvée = accès accordé
-      if (isSuperAdmin || isMember || hasAccessViaSite || approvedRequest) {
+      if (isMember || isReferentOfPlan || approvedRequest) {
         accessStatus = 'granted';
       } else if (pendingRequest) {
         accessStatus = 'pending';
@@ -320,9 +336,25 @@ export class PlansListComponent implements OnInit {
         ...plan,
         accessStatus,
         isReferent,
+        isMember,
+        hasAccessViaSite,
+        isOrgPlan,
         gaugeStatus
       };
     });
+  }
+
+  /**
+   * Vérifie si un plan appartient à l'organisme de l'utilisateur.
+   */
+  private isPlanFromUserOrg(plan: AdminPlan): boolean {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser?.organisme?.id_organisme) return false;
+    const userOrgId = currentUser.organisme.id_organisme;
+    return plan.sites?.some(planSite => {
+      const fullSite = this.allSites().find(s => s.id_site === planSite.id_site);
+      return fullSite?.organismes?.some(o => o.id_organisme === userOrgId);
+    }) || false;
   }
 
   /**
@@ -355,12 +387,19 @@ export class PlansListComponent implements OnInit {
    * Ouvre le dialog de demande d'accès.
    */
   openAccessRequestDialog(plan: PlanWithAccess): void {
+    // Trouver les sites du plan qui appartiennent à l'organisme de l'utilisateur
+    const orgSitesOfPlan = this.getOrgSitesForPlan(plan);
+    // Parmi ceux-ci, lesquels l'utilisateur n'est PAS déjà lié
+    const sitesNeedingAccess = orgSitesOfPlan.filter(s => !this.userSiteIds().has(s.id_site));
+
     const dialogRef = this.dialog.open(AccessRequestDialogComponent, {
       width: '500px',
       data: {
         type: 'plan',
         targetId: plan.id_pg,
-        targetName: plan.nom
+        targetName: plan.nom,
+        hasAccessViaSite: plan.hasAccessViaSite,
+        sitesNeedingAccess: sitesNeedingAccess
       } as AccessRequestDialogData
     });
 
@@ -369,6 +408,29 @@ export class PlansListComponent implements OnInit {
         this.loadData();
       }
     });
+  }
+
+  /**
+   * Récupère les sites d'un plan qui appartiennent à l'organisme de l'utilisateur.
+   */
+  private getOrgSitesForPlan(plan: PlanWithAccess): SelectableSite[] {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser?.organisme?.id_organisme) return [];
+    const userOrgId = currentUser.organisme.id_organisme;
+
+    return (plan.sites || [])
+      .filter(planSite => {
+        const fullSite = this.allSites().find(s => s.id_site === planSite.id_site);
+        return fullSite?.organismes?.some(o => o.id_organisme === userOrgId);
+      })
+      .map(planSite => {
+        const fullSite = this.allSites().find(s => s.id_site === planSite.id_site);
+        return {
+          id_site: planSite.id_site,
+          slug: fullSite?.slug || '',
+          nom_site: planSite.nom_site
+        };
+      });
   }
 
   /**
@@ -482,7 +544,7 @@ export class PlansListComponent implements OnInit {
     const request = this.myRequests().find(
       r => r.request_type === 'plan_access' &&
            r.status === 'pending' &&
-           r.target_name === plan.nom
+           r.target_plan_id === plan.id_pg
     );
     return request ? new Date(request.created_at) : null;
   }

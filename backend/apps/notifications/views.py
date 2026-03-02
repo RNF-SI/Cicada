@@ -531,8 +531,16 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Verifier que l'utilisateur n'a pas deja acces (n'est pas referent)
+        # Verifier que l'utilisateur n'est pas deja referent
         if plan.referents.filter(id_role=request.user.id_role).exists():
+            return Response(
+                {'error': 'Vous avez deja acces a ce plan de gestion.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'est pas deja membre direct (CorRolePlan)
+        from apps.plans.models import CorRolePlan
+        if CorRolePlan.objects.filter(id_role=request.user, plan_de_gestion=plan).exists():
             return Response(
                 {'error': 'Vous avez deja acces a ce plan de gestion.'},
                 status=status.HTTP_400_BAD_REQUEST

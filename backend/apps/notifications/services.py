@@ -1149,14 +1149,14 @@ class ValidationService:
     @staticmethod
     def approve_plan_access(validation_request, validator, comment=None):
         """
-        Approuve un acces plan et cree la liaison referent.
+        Approuve un acces plan et cree la liaison membre (CorRolePlan).
 
         Args:
             validation_request: ValidationRequest
             validator: Role qui approuve
             comment: Commentaire optionnel
         """
-        from apps.plans.models import PlanGestion
+        from apps.plans.models import PlanGestion, CorRolePlan
 
         if validation_request.request_type != 'plan_access':
             raise ValueError("Cette demande n'est pas un acces plan")
@@ -1164,7 +1164,14 @@ class ValidationService:
         plan = validation_request.target_plan
         requester = validation_request.requester
 
-        # Ajouter comme referent du plan
+        # Creer CorRolePlan (membre du plan)
+        CorRolePlan.objects.get_or_create(
+            id_role=requester,
+            plan_de_gestion=plan,
+            defaults={'referent': False}
+        )
+
+        # Garder plan.referents.add() pour compatibilite (utilise dans get_queryset)
         if not plan.referents.filter(id_role=requester.id_role).exists():
             plan.referents.add(requester)
 

@@ -180,6 +180,7 @@ export interface ValidationRequestListItem {
   requester_name: string;
   target_name?: string;
   target_site_id?: number;
+  target_plan_id?: number;
   justification?: string;
   validator_name?: string;
   validator_comment?: string;

@@ -1185,10 +1185,11 @@
     },
     "requestAccess": {
       "title": "Demander l'accès à un plan",
-      "description": "Recherchez et demandez l'accès aux plans de gestion qui vous intéressent.",
+      "description": "Demandez l'accès aux plans de gestion de votre organisme.",
       "searchPlaceholder": "Rechercher un plan...",
-      "noResults": "Aucun plan trouvé",
+      "noResults": "Aucun plan disponible pour votre organisme",
       "button": "Demander l'accès",
+      "buttonWithSite": "Demander le lien et l'accès",
       "pending": "Demande en attente",
       "rejected": "Refusé",
       "retry": "Redemander"
@@ -1634,8 +1635,11 @@
     "dialog": {
       "titleSite": "Demander l'accès à un site",
       "titlePlan": "Demander l'accès à un plan",
+      "titlePlanWithSite": "Demander le lien au site et l'accès au plan",
       "targetLabel": "Cible",
       "selectSite": "Sélectionner un site",
+      "selectSiteForPlan": "Sélectionner le site à rejoindre",
+      "siteAccessNote": "Vous n'êtes lié à aucun site de ce plan. Une demande de lien au site sera également envoyée.",
       "justificationLabel": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès...",
       "justificationHint": "Cette information sera transmise aux administrateurs",
@@ -1643,6 +1647,7 @@
       "cancel": "Annuler"
     },
     "success": "Votre demande a été envoyée et est en attente de validation",
+    "successBoth": "Vos demandes de lien au site et d'accès au plan ont été envoyées.",
     "error": "Erreur lors de l'envoi de la demande",
     "alreadyPending": "Une demande est déjà en cours pour cet élément"
   },

@@ -15,13 +15,15 @@ class PlansSeeder(BaseSeeder):
     """
     Cree les plans de gestion de test.
 
-    Plans actifs (6):
-    - Plan 2020-2030 Camargue (valide)
-    - Plan 2018-2028 Aiguilles Rouges (valide)
-    - Plan 2022-2032 Grand-Voyeux (draft)
-    - Plan inter-sites Vercors-Ecrins 2021-2031 (valide)
-    - Plan 2019-2029 Marais de Brouage (archive)
-    - Plan 2023-2033 Lac de Remoray (draft)
+    Plans actifs (8):
+    - Plan 2020-2030 Camargue (valide) - admin referent
+    - Plan 2018-2028 Aiguilles Rouges (valide) - admin membre
+    - Plan 2022-2032 Grand-Voyeux (draft) - CEN
+    - Plan inter-sites Vercors-Ecrins 2021-2031 (valide) - CEN
+    - Plan 2019-2029 Marais de Brouage (archive) - DREAL
+    - Plan 2023-2033 Lac de Remoray (draft) - admin referent
+    - Plan 2024-2034 Camargue complementaire (valide) - RNF, sans membres
+    - Plan 2025-2035 Lac de Remoray phase 2 (draft) - RNF, sans membres
 
     Plans archives (2):
     - Plan 2010-2020 Camargue ancien (archive)
@@ -39,7 +41,7 @@ class PlansSeeder(BaseSeeder):
         redac_gest = Nomenclature.objects.filter(mnemonique='OG').first()
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
 
-        return [
+        plans = [
             # Plan Camargue: super_admin referent, referent.camargue referent, admin.rnf membre
             {
                 'nom': 'Plan de gestion 2020-2030 - Reserve de la Camargue',
@@ -227,6 +229,51 @@ class PlansSeeder(BaseSeeder):
             },
         ]
 
+        # Plans supplementaires sur des sites RNF sans membres directs
+        # (utiles pour tester "Demander l'acces")
+        # Plan sur Camargue (sites[0]) : admin est lie au site → test acces direct
+        plans.append({
+            'nom': 'Plan complementaire 2024-2034 - Camargue zones humides',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'surface': 5000,
+            'statut': 'valide',
+            'version': '1.0',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': eval_int,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'RNF - Equipe Camargue',
+            'commentaire': 'Plan complementaire pour les zones humides de Camargue. '
+                           'Sans membres directs, pour tester la demande d\'acces.',
+            'sites': [sites[0]],  # Camargue
+            'membres': []
+        })
+        # Plan sur Lac de Remoray (sites[6]) : admin n'est PAS lie au site → test acces combine
+        plans.append({
+            'nom': 'Plan de gestion 2025-2035 - Lac de Remoray phase 2',
+            'annee_debut': 2025,
+            'annee_fin': 2035,
+            'rang': 1,
+            'surface': 286,
+            'statut': 'draft',
+            'version': '0.1',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': None,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'RNF - Equipe Franche-Comte',
+            'commentaire': 'Plan en preparation pour la phase 2 du Lac de Remoray. '
+                           'Sans membres directs, pour tester la demande d\'acces combinee.',
+            'sites': [sites[6]],  # Lac de Remoray
+            'membres': []
+        })
+
+        return plans
+
     def seed(self) -> List[PlanGestion]:
         """
         Cree les plans de gestion de test.
@@ -309,13 +356,15 @@ class PlansSeeder(BaseSeeder):
             Liste des lignes du resume
         """
         return [
-            '\nPlans de gestion actifs (6):',
-            '  - Plan 2020-2030 Camargue (valide)',
-            '  - Plan 2018-2028 Aiguilles Rouges (valide)',
-            '  - Plan 2022-2032 Grand-Voyeux (draft)',
-            '  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide)',
-            '  - Plan 2019-2029 Marais de Brouage (archive)',
-            '  - Plan 2023-2033 Lac de Remoray (draft)',
+            '\nPlans de gestion actifs (8):',
+            '  - Plan 2020-2030 Camargue (valide) - admin referent',
+            '  - Plan 2018-2028 Aiguilles Rouges (valide) - admin membre',
+            '  - Plan 2022-2032 Grand-Voyeux (draft) - CEN',
+            '  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide) - CEN',
+            '  - Plan 2019-2029 Marais de Brouage (archive) - DREAL',
+            '  - Plan 2023-2033 Lac de Remoray (draft) - admin referent',
+            '  - Plan complementaire 2024-2034 Camargue (valide) - sans membres',
+            '  - Plan 2025-2035 Lac de Remoray phase 2 (draft) - sans membres',
             '\nPlans de gestion archives (2):',
             '  - Plan 2010-2020 Camargue ancien (archive)',
             '  - Plan 2008-2018 Aiguilles Rouges ancien (archive)',

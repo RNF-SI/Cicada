@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { forkJoin } from 'rxjs';
 import { ValidationService } from '../../../core/services/validation.service';
 
 export interface SelectableSite {
@@ -32,6 +33,9 @@ export interface AccessRequestDialogData {
   targetName?: string;
   // Mode 2: Selection parmi une liste (nouveau)
   selectableSites?: SelectableSite[];
+  // Mode plan: accès via site ou combiné
+  hasAccessViaSite?: boolean;       // true = demande directe, false = besoin site
+  sitesNeedingAccess?: SelectableSite[];  // Sites du plan où demander le lien
 }
 
 @Component({
@@ -53,13 +57,15 @@ export interface AccessRequestDialogData {
     <h2 mat-dialog-title>
       @if (data.type === 'site') {
         {{ 'accessRequest.dialog.titleSite' | translate }}
+      } @else if (isCombinedPlanMode) {
+        {{ 'accessRequest.dialog.titlePlanWithSite' | translate }}
       } @else {
         {{ 'accessRequest.dialog.titlePlan' | translate }}
       }
     </h2>
 
     <mat-dialog-content>
-      <!-- Mode selection: liste de sites -->
+      <!-- Mode selection de sites (existant) -->
       @if (isSelectionMode) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'accessRequest.dialog.selectSite' | translate }}</mat-label>
@@ -69,8 +75,28 @@ export interface AccessRequestDialogData {
             }
           </mat-select>
         </mat-form-field>
+      } @else if (isCombinedPlanMode) {
+        <!-- Mode combiné plan : besoin de lien site + accès plan -->
+        <div class="target-info">
+          <span class="target-label">{{ 'accessRequest.dialog.targetLabel' | translate }}</span>
+          <span class="target-name">{{ data.targetName }}</span>
+        </div>
+
+        <div class="site-access-note">
+          <i class="fi fi-rr-info"></i>
+          <span>{{ 'accessRequest.dialog.siteAccessNote' | translate }}</span>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'accessRequest.dialog.selectSiteForPlan' | translate }}</mat-label>
+          <mat-select [(ngModel)]="selectedSiteSlug" required>
+            @for (site of data.sitesNeedingAccess; track site.slug) {
+              <mat-option [value]="site.slug">{{ site.nom_site }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
       } @else {
-        <!-- Mode site unique -->
+        <!-- Mode direct : site unique ou plan direct -->
         <div class="target-info">
           <span class="target-label">{{ 'accessRequest.dialog.targetLabel' | translate }}</span>
           <span class="target-name">{{ data.targetName }}</span>
@@ -142,6 +168,26 @@ export interface AccessRequestDialogData {
       min-width: 400px;
     }
 
+    .site-access-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background-color: #FFF8E1;
+      border-radius: 8px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      color: #343433;
+      line-height: 1.4;
+    }
+
+    .site-access-note i {
+      color: #FA9965;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
     mat-dialog-actions button {
       display: inline-flex;
       align-items: center;
@@ -160,14 +206,24 @@ export class AccessRequestDialogComponent {
   submitting = false;
   selectedSiteSlug: string | null = null;
 
-  /** Verifie si on est en mode selection */
+  /** Verifie si on est en mode selection de sites (existant) */
   get isSelectionMode(): boolean {
     return !!(this.data.selectableSites && this.data.selectableSites.length > 0);
+  }
+
+  /** Verifie si on est en mode combine plan (besoin site + plan) */
+  get isCombinedPlanMode(): boolean {
+    return this.data.type === 'plan' &&
+           this.data.hasAccessViaSite === false &&
+           !!(this.data.sitesNeedingAccess && this.data.sitesNeedingAccess.length > 0);
   }
 
   /** Verifie si le formulaire peut etre soumis */
   get canSubmit(): boolean {
     if (this.isSelectionMode) {
+      return this.selectedSiteSlug !== null;
+    }
+    if (this.isCombinedPlanMode) {
       return this.selectedSiteSlug !== null;
     }
     if (this.data.type === 'site') {
@@ -191,34 +247,56 @@ export class AccessRequestDialogComponent {
 
     const requestData = this.justification ? { justification: this.justification } : undefined;
 
-    const request$ = this.data.type === 'site'
-      ? this.validationService.requestSiteAccess(this.getTargetSlug(), requestData)
-      : this.validationService.requestPlanAccess(this.data.targetId!, requestData);
-
-    request$.subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('accessRequest.success'),
-          this.translate.instant('common.actions.close'),
-          { duration: 5000 }
-        );
-        this.dialogRef.close(true);
-      },
-      error: (error) => {
-        console.error('Erreur demande acces:', error);
-
-        let errorMessage = this.translate.instant('accessRequest.error');
-        if (error.status === 409 || error.error?.detail?.includes('deja')) {
-          errorMessage = this.translate.instant('accessRequest.alreadyPending');
-        }
-
-        this.snackBar.open(
-          errorMessage,
-          this.translate.instant('common.actions.close'),
-          { duration: 5000 }
-        );
-        this.submitting = false;
+    if (this.data.type === 'plan') {
+      if (this.isCombinedPlanMode) {
+        // Cas 2 : Demande site + plan en parallele
+        forkJoin({
+          siteRequest: this.validationService.requestSiteAccess(this.selectedSiteSlug!, requestData),
+          planRequest: this.validationService.requestPlanAccess(this.data.targetId!, requestData)
+        }).subscribe({
+          next: () => this.onSuccess('accessRequest.successBoth'),
+          error: (e) => this.onError(e)
+        });
+      } else {
+        // Cas 1 : Demande directe plan uniquement
+        this.validationService.requestPlanAccess(this.data.targetId!, requestData)
+          .subscribe({
+            next: () => this.onSuccess('accessRequest.success'),
+            error: (e) => this.onError(e)
+          });
       }
-    });
+    } else {
+      // Sites (existant)
+      this.validationService.requestSiteAccess(this.getTargetSlug(), requestData)
+        .subscribe({
+          next: () => this.onSuccess('accessRequest.success'),
+          error: (e) => this.onError(e)
+        });
+    }
+  }
+
+  private onSuccess(messageKey: string): void {
+    this.snackBar.open(
+      this.translate.instant(messageKey),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 }
+    );
+    this.dialogRef.close(true);
+  }
+
+  private onError(error: any): void {
+    console.error('Erreur demande acces:', error);
+
+    let errorMessage = this.translate.instant('accessRequest.error');
+    if (error.status === 409 || error.error?.detail?.includes('deja')) {
+      errorMessage = this.translate.instant('accessRequest.alreadyPending');
+    }
+
+    this.snackBar.open(
+      errorMessage,
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 }
+    );
+    this.submitting = false;
   }
 }
