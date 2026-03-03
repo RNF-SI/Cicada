@@ -40,10 +40,10 @@
     }
   }
 
-  // Mi-parcours
-  &.gauge-mid-progress {
+  // Première moitié (teal)
+  &.gauge-first-half {
     .gauge-bar-fill {
-      background-color: $gauge-mid-progress;
+      background-color: $gauge-first-half;
     }
 
     .gauge-bar::after {
@@ -53,20 +53,20 @@
       top: 0;
       bottom: 0;
       width: 7px;
-      background-color: $gauge-mid-progress;
+      background-color: $gauge-first-half;
       border-radius: 0 $border-radius-sm $border-radius-sm 0;
     }
   }
 
-  // Parcours terminé
-  &.gauge-completed {
+  // Seconde moitié (terra-cotta)
+  &.gauge-second-half {
     .gauge-bar-fill {
       width: 100%;
-      background-color: $gauge-completed;
+      background-color: $gauge-second-half;
     }
   }
 
-  // Parcours dépassé (rouge pointillé)
+  // Parcours dépassé (terra-cotta pointillé)
   &.gauge-exceeded {
     .gauge-bar-fill {
       width: 100%;

@@ -1,7 +1,7 @@
 import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type GaugeStatus = 'not-started' | 'in-progress' | 'completed' | 'exceeded';
+export type GaugeStatus = 'not-started' | 'first-half' | 'second-half' | 'exceeded';
 
 @Component({
   selector: 'app-plan-gauge',
@@ -16,13 +16,9 @@ export class PlanGaugeComponent {
   @Input() endYear: number = 2030;
   @Input() currentYear: number = new Date().getFullYear();
 
-  gaugeClass = computed(() => {
-    return `gauge-${this.status.replace('-', '-')}`;
-  });
-
   fillPercentage = computed(() => {
     if (this.status === 'not-started') return 0;
-    if (this.status === 'completed' || this.status === 'exceeded') return 100;
+    if (this.status === 'exceeded') return 100;
 
     const totalDuration = this.endYear - this.startYear;
     if (totalDuration <= 0) return 0;
@@ -34,5 +30,16 @@ export class PlanGaugeComponent {
 
   pointerPosition = computed(() => {
     return this.fillPercentage();
+  });
+
+  colorTheme = computed(() => {
+    if (this.status === 'second-half' || this.status === 'exceeded') {
+      return 'terra-cotta';
+    }
+    return 'primary';
+  });
+
+  showMidpointMarker = computed(() => {
+    return this.status !== 'not-started';
   });
 }

@@ -30,6 +30,7 @@ import { AdminPlan, AdminSite } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
+
 interface PlanWithAccess extends AdminPlan {
   accessStatus: 'granted' | 'pending' | 'rejected' | 'none';
   isReferent: boolean;
@@ -94,6 +95,9 @@ export class PlansListComponent implements OnInit {
   // Tab state pour "Mes plans"
   activeTab = signal<'actifs' | 'inactifs'>('actifs');
 
+  // Search pour "Mes plans"
+  myPlansSearchQuery = signal('');
+
   // Search pour "Demander l'accès"
   searchQuery = signal('');
 
@@ -155,15 +159,14 @@ export class PlansListComponent implements OnInit {
     }
   });
 
-  // Plans filtrés par onglet actif/inactif
+  // Plans filtrés par onglet actif/inactif + recherche
   readonly myPlans = computed(() => {
     const tab = this.activeTab();
+    const search = this.myPlansSearchQuery().toLowerCase();
     return this.scopedPlans().filter(p => {
-      if (tab === 'actifs') {
-        return p.statut !== 'archive';
-      } else {
-        return p.statut === 'archive';
-      }
+      const tabMatch = tab === 'actifs' ? p.statut !== 'archive' : p.statut === 'archive';
+      const searchMatch = !search || p.nom.toLowerCase().includes(search);
+      return tabMatch && searchMatch;
     });
   });
 
@@ -182,11 +185,23 @@ export class PlansListComponent implements OnInit {
 
   // Pagination pour "Mes plans"
   currentPage = signal(1);
-  totalPages = signal(1);
   itemsPerPage = 10;
-  showPagination = computed(() => this.totalPages() > 1);
 
-  paginationPages = computed(() => {
+  readonly totalPages = computed(() => {
+    return Math.max(1, Math.ceil(this.myPlans().length / this.itemsPerPage));
+  });
+
+  readonly showPagination = computed(() => this.totalPages() > 1);
+
+  // Plans paginés pour l'affichage
+  readonly paginatedPlans = computed(() => {
+    const page = this.currentPage();
+    const start = (page - 1) * this.itemsPerPage;
+    const end = start + this.itemsPerPage;
+    return this.myPlans().slice(start, end);
+  });
+
+  readonly paginationPages = computed(() => {
     const total = this.totalPages();
     const current = this.currentPage();
     const pages: (number | string)[] = [];
@@ -376,9 +391,9 @@ export class PlansListComponent implements OnInit {
     } else {
       const progress = (currentYear - startYear) / (endYear - startYear);
       if (progress < 0.5) {
-        return 'in-progress';
+        return 'first-half';
       } else {
-        return 'completed';
+        return 'second-half';
       }
     }
   }
@@ -447,6 +462,7 @@ export class PlansListComponent implements OnInit {
    */
   setTab(tab: 'actifs' | 'inactifs'): void {
     this.activeTab.set(tab);
+    this.currentPage.set(1);
   }
 
   /**
@@ -493,7 +509,16 @@ export class PlansListComponent implements OnInit {
   }
 
   /**
-   * Recherche de plans.
+   * Recherche dans "Mes plans".
+   */
+  onMyPlansSearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.myPlansSearchQuery.set(input.value);
+    this.currentPage.set(1);
+  }
+
+  /**
+   * Recherche dans "Demander l'accès".
    */
   onSearch(event: Event): void {
     const input = event.target as HTMLInputElement;

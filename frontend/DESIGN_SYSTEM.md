@@ -469,16 +469,16 @@ html { @include mat.all-component-themes($theme); }
   <span>Non demarree</span>
 </div>
 
-<!-- Mi-parcours (50%) -->
-<div class="gauge gauge-mid-progress">
-  <span class="gauge-bar"><span class="gauge-bar-fill" style="width: 50%"></span></span>
+<!-- Premiere moitie (< 50%) -->
+<div class="gauge gauge-first-half">
+  <span class="gauge-bar"><span class="gauge-bar-fill" style="width: 40%"></span></span>
   <span>2026-2036</span>
 </div>
 
-<!-- Parcours termine -->
-<div class="gauge gauge-completed">
-  <span class="gauge-bar"><span class="gauge-bar-fill"></span></span>
-  <span>Termine</span>
+<!-- Seconde moitie (>= 50%) -->
+<div class="gauge gauge-second-half">
+  <span class="gauge-bar"><span class="gauge-bar-fill" style="width: 70%"></span></span>
+  <span>2020-2030</span>
 </div>
 
 <!-- Parcours depasse -->
