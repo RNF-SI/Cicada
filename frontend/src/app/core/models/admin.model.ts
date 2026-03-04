@@ -330,6 +330,22 @@ export interface PlanMembre {
 }
 
 /**
+ * Élément de la chaîne de versions d'un plan de gestion
+ */
+export interface PlanVersionChainItem {
+  id_pg: number;
+  nom: string;
+  slug: string;
+  version: string;
+  statut: PlanStatut;
+  annee_debut?: number;
+  annee_fin?: number;
+  type_document?: string;
+  type_document_mnemonique?: string;
+  is_current: boolean;
+}
+
+/**
  * Plan de gestion - modèle complet depuis l'API
  */
 export interface AdminPlan {
@@ -363,6 +379,13 @@ export interface AdminPlan {
   membres?: PlanMembre[];
   id_utilisateur_ajout?: number;
   id_utilisateur_maj?: number;
+  // Version chain fields
+  plan_parent_id?: number | null;
+  plan_parent_nom?: string | null;
+  plan_parent_slug?: string | null;
+  type_document_display?: string | null;
+  children_count?: number;
+  version_chain?: PlanVersionChainItem[];
 }
 
 /**
@@ -391,6 +414,17 @@ export interface PlanCreatePayload {
   relecteurs?: string;
   commentaire?: string;
   referents_ids?: number[];
+}
+
+/**
+ * Options pour la duplication d'un plan de gestion
+ */
+export interface PlanDuplicateOptions {
+  copy_sites: boolean;
+  copy_referents: boolean;
+  copy_fichiers: boolean;
+  copy_enjeux: boolean;
+  copy_sub_elements: boolean;
 }
 
 /**

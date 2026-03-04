@@ -27,6 +27,14 @@ class NomenclaturesSeeder(BaseSeeder):
         {'id': 1, 'mnemonique': 'Espace naturel', 'label': "Type d'espace naturel"},
         {'id': 2, 'mnemonique': 'Evaluation PG', 'label': "Niveau d'evaluation des plans de gestion"},
         {'id': 3, 'mnemonique': 'Rédacteur type', 'label': "Type de rédacteur d'un plan de gestion"},
+        {'id': 4, 'mnemonique': 'Type document plan', 'label': "Type de document d'un plan de gestion"},
+    ]
+
+    # Types de document plan
+    DOC_TYPES = [
+        {'id': 700, 'mnemonique': 'PLAN_INITIAL', 'label': 'Plan initial'},
+        {'id': 701, 'mnemonique': 'EVAL_MI_PARCOURS', 'label': 'Évaluation mi-parcours'},
+        {'id': 702, 'mnemonique': 'PLAN_REVISE', 'label': 'Plan révisé'},
     ]
 
     # Types de site (alignes sur nomenclatures_inserts.sql)
@@ -117,6 +125,11 @@ class NomenclaturesSeeder(BaseSeeder):
             defaults={'mnemonique': 'Rédacteur type', 'label': "Type de rédacteur d'un plan de gestion"}
         )
 
+        type_doc_plan, _ = TypeNomenclature.objects.get_or_create(
+            id_type=4,
+            defaults={'mnemonique': 'Type document plan', 'label': "Type de document d'un plan de gestion"}
+        )
+
         # Creer les nomenclatures de type de site
         for st in self.SITE_TYPES:
             Nomenclature.objects.update_or_create(
@@ -159,6 +172,20 @@ class NomenclaturesSeeder(BaseSeeder):
                 }
             )
             self.log_item('redac', f"{rt['label']} ({rt['mnemonique']})")
+
+        # Creer les nomenclatures de type de document plan
+        for dt in self.DOC_TYPES:
+            Nomenclature.objects.update_or_create(
+                id_nomenclature=dt['id'],
+                defaults={
+                    'id_type': type_doc_plan,
+                    'cd_nomenclature': None,
+                    'mnemonique': dt['mnemonique'],
+                    'label': dt['label'],
+                    'actif': True
+                }
+            )
+            self.log_item('doc_type', f"{dt['label']} ({dt['mnemonique']})")
 
         # Creer les types et nomenclatures pour suivis/inventaires
         type_suivi, _ = TypeNomenclature.objects.get_or_create(
@@ -231,6 +258,7 @@ class NomenclaturesSeeder(BaseSeeder):
             'type_site': type_site,
             'type_eval': type_eval,
             'type_redac': type_redac,
+            'type_doc_plan': type_doc_plan,
             'type_suivi': type_suivi,
             'type_statut_suivi': type_statut_suivi,
             'type_objectif_suivi': type_objectif_suivi,
@@ -257,10 +285,11 @@ class NomenclaturesSeeder(BaseSeeder):
         """
         return [
             '\nNomenclatures:',
-            '  - 7 types de nomenclature (site, evaluation, redacteur, type_suivi, statut_suivi, objectif_suivi, cible_suivi)',
+            '  - 8 types de nomenclature (site, evaluation, redacteur, doc_plan, type_suivi, statut_suivi, objectif_suivi, cible_suivi)',
             '  - 8 types de site (RNN, RNR, RNC, PPRN, PNR, ENS, APB, Autre)',
             "  - 3 types d'evaluation",
             '  - 3 types de redacteur',
+            '  - 3 types de document plan (Plan initial, Évaluation mi-parcours, Plan révisé)',
             '  - 3 types de suivi (Suivi, Inventaire, Suivi et inventaire)',
             '  - 3 statuts de suivi (En cours, Termine, A venir)',
             '  - 4 objectifs de suivi (Conservation, Connaissance, Evaluation, Surveillance)',

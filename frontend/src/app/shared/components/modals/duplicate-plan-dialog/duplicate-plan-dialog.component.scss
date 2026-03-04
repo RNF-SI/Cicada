@@ -1,0 +1,100 @@
+@import 'variables';
+
+.dialog-subtitle {
+  margin-bottom: $spacing-md;
+  color: $gray-dark;
+}
+
+.plan-info {
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+
+  h4 {
+    margin: 0 0 $spacing-xs;
+    font-size: 0.85rem;
+    color: $gray-dark;
+    font-weight: 600;
+  }
+
+  .plan-info-details {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .plan-name {
+    font-weight: 700;
+    color: $primary-color;
+  }
+
+  .plan-meta {
+    font-size: 0.85rem;
+    color: $gray-dark;
+
+    &::before {
+      content: '·';
+      margin-right: $spacing-xs;
+    }
+  }
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.option-item {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs 0;
+
+  .option-description {
+    margin-left: 36px;
+    font-size: 0.8rem;
+    color: $gray-dark;
+  }
+
+  .option-hint {
+    margin-left: 36px;
+    font-size: 0.75rem;
+    color: $warning-color;
+    font-style: italic;
+  }
+
+  &.option-nested {
+    margin-left: $spacing-md;
+  }
+}
+
+.hints {
+  background-color: lighten($info-color, 40%);
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm $spacing-md;
+
+  .hint-item {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-xs;
+    font-size: 0.8rem;
+    color: $gray-dark;
+
+    i {
+      margin-top: 2px;
+      color: $info-color;
+    }
+
+    & + .hint-item {
+      margin-top: $spacing-xxs;
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: $spacing-sm $spacing-md;
+  gap: $spacing-sm;
+}

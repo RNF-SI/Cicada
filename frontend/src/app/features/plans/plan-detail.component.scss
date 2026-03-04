@@ -275,7 +275,14 @@
   opacity: 0.5;
 }
 
-.btn-generate {
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.btn-generate,
+.btn-duplicate {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
@@ -642,7 +649,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 162px;
+  height: 80px;
   background-color: rgba($secondary-pale-green, 0.3);
   border-radius: $border-radius-sm;
   color: $primary-color;

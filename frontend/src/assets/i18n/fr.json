@@ -1142,10 +1142,10 @@
     },
     "status": {
       "draft": "Brouillon",
-      "valide": "Validé",
+      "valide": "Valide",
       "archive": "Archivé",
-      "en_cours": "En cours",
-      "annule": "Annulé"
+      "inProgress": "En cours de révision",
+      "midterm": "Évaluation mi-parcours"
     },
     "list": {
       "title": "Plans de gestion",
@@ -1197,6 +1197,37 @@
     "allPlans": {
       "title": "Tous les plans de gestion",
       "loginPrompt": "Connectez-vous pour demander l'accès à un plan de gestion."
+    },
+    "lifecycle": {
+      "dialog": {
+        "title": "Modifier le statut du plan",
+        "noActions": "Aucune action disponible pour ce statut."
+      },
+      "actions": {
+        "validate": "Valider le plan",
+        "validateDesc": "Passer le plan en statut validé. Il sera considéré comme le plan officiel en vigueur.",
+        "archive": "Archiver",
+        "archiveHint": "Rend le plan inactif",
+        "archiveDesc": "Archiver ce plan. Il restera consultable mais ne sera plus actif.",
+        "reactivate": "Réactiver",
+        "reactivateHint": "Rend le plan actif",
+        "reactivateDesc": "Réactiver ce plan archivé pour le remettre en brouillon et le modifier.",
+        "createEvaluation": "Lancer une évaluation mi-parcours",
+        "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
+        "toDraft": "Remettre en brouillon",
+        "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau."
+      },
+      "messages": {
+        "statusChanged": "Le statut du plan a été modifié avec succès.",
+        "statusError": "Erreur lors du changement de statut.",
+        "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
+        "evaluationError": "Erreur lors de la création de l'évaluation."
+      },
+      "timeline": {
+        "title": "Cycle de vie",
+        "planInitial": "Plan initial",
+        "current": "actuel"
+      }
     },
     "detail": {
       "title": "Détail du plan",
@@ -1306,12 +1337,50 @@
       "loading": "Chargement de la mind map...",
       "empty": "Aucune donnée à afficher"
     },
-    "status": {
-      "draft": "Brouillon",
-      "valide": "Valide",
-      "archive": "Archivé",
-      "inProgress": "En cours de révision",
-      "midterm": "Évaluation mi-parcours"
+    "duplicate": {
+      "title": "Dupliquer un plan de gestion",
+      "subtitle": "Sélectionnez un plan existant pour en créer une copie",
+      "searchPlaceholder": "Rechercher un plan...",
+      "noResults": "Aucun plan trouvé",
+      "selectPlan": "Sélectionner",
+      "dialog": {
+        "title": "Dupliquer le plan",
+        "subtitle": "Choisissez les éléments à copier",
+        "planInfo": "Plan source",
+        "options": {
+          "sites": "Sites associés",
+          "sitesDescription": "Copie les associations site-plan",
+          "referents": "Référents",
+          "referentsDescription": "Copie les référents du plan",
+          "fichiers": "Fichiers joints",
+          "fichiersDescription": "Copie les documents et fichiers attachés",
+          "enjeux": "Enjeux et FCR",
+          "enjeuxDescription": "Copie les enjeux, FCR et leurs données associées (taxons, habitats, géologie)",
+          "subElements": "Sous-éléments (hiérarchie complète)",
+          "subElementsDescription": "Copie les facteurs d influence, pressions, objectifs, indicateurs et métriques"
+        },
+        "hints": {
+          "excludedData": "Les mesures et opérations ne sont pas copiées.",
+          "newStatus": "Le nouveau plan sera en statut Brouillon (version 0.1).",
+          "subElementsDisabled": "Activez \"Enjeux et FCR\" pour copier les sous-éléments."
+        },
+        "cancel": "Annuler",
+        "confirm": "Dupliquer"
+      },
+      "sections": {
+        "myPlans": "Mes plans de gestion",
+        "orgPlans": "Plans de mon organisme",
+        "allPlans": "Tous les plans de gestion"
+      },
+      "success": "Plan dupliqué avec succès",
+      "error": "Erreur lors de la duplication du plan",
+      "table": {
+        "name": "Nom du plan",
+        "period": "Période",
+        "status": "Statut",
+        "sites": "Sites",
+        "actions": "Actions"
+      }
     }
   },
   "profile": {
@@ -2082,7 +2151,11 @@
       "updateSuccess": "Indicateur mis à jour avec succès",
       "deleteSuccess": "Indicateur supprimé avec succès",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet indicateur ? Ses métriques et mesures seront également supprimées.",
-      "types": { "etat": "État", "pression": "Pression", "reponse": "Réponse" }
+      "types": {
+        "etat": "État",
+        "pression": "Pression",
+        "reponse": "Réponse"
+      }
     },
     "metriques": {
       "label": "Métrique",
@@ -2101,8 +2174,11 @@
       "updateSuccess": "Métrique mise à jour avec succès",
       "deleteSuccess": "Métrique supprimée avec succès",
       "scores": {
-        "tresMauvais": "Très mauvais", "mauvais": "Mauvais",
-        "moyen": "Moyen", "bon": "Bon", "tresBon": "Très bon"
+        "tresMauvais": "Très mauvais",
+        "mauvais": "Mauvais",
+        "moyen": "Moyen",
+        "bon": "Bon",
+        "tresBon": "Très bon"
       }
     },
     "mesures": {

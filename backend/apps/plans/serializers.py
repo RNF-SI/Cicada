@@ -145,6 +145,11 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
     redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
 
+    # Version chain fields
+    plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
+    type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
+    children_count = serializers.IntegerField(source='children.count', read_only=True)
+
     # Include sites and referents details for admin display
     sites = PlanSiteListSerializer(many=True, read_only=True)
     referents = PlanReferentListSerializer(many=True, read_only=True)
@@ -158,6 +163,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_display', 'redacteur_type_display', 'redacteur_nom',
             'redacteurs', 'relecteurs',
+            'plan_parent_id', 'type_document_display', 'children_count',
             'nb_sites', 'nb_fichiers', 'sites', 'referents', 'membres', 'date_ajout', 'date_maj'
         ]
 
@@ -181,6 +187,14 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
     redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
+
+    # Version chain fields
+    plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
+    plan_parent_nom = serializers.CharField(source='plan_parent.nom', read_only=True, allow_null=True)
+    plan_parent_slug = serializers.SlugField(source='plan_parent.slug', read_only=True, allow_null=True)
+    type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
+    children_count = serializers.IntegerField(source='children.count', read_only=True)
+    version_chain = serializers.SerializerMethodField()
 
     # Utilisateurs
     utilisateur_ajout = RoleBasicSerializer(source='id_utilisateur_ajout', read_only=True)
@@ -218,6 +232,10 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             for site in obj.get_sites()
         ]
 
+    def get_version_chain(self, obj):
+        """Retourne la chaîne complète de versions."""
+        return obj.get_version_chain()
+
     class Meta:
         model = PlanGestion
         fields = [
@@ -228,6 +246,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'evaluation_id', 'evaluation_display', 'redacteur_type_id', 'redacteur_type_display',
             'redacteur_nom', 'redacteurs', 'relecteurs',
             'commentaire', 'statut', 'statut_display', 'version',
+            'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
+            'type_document_display', 'children_count', 'version_chain',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
             'sites', 'fichiers', 'referents', 'membres', 'sites_ids', 'referents_ids',
             'utilisateur_ajout', 'utilisateur_maj',
@@ -313,6 +333,16 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             plan.referents.set(referents)
 
         return plan
+
+
+class PlanDuplicateOptionsSerializer(serializers.Serializer):
+    """Serializer pour les options de duplication d'un plan."""
+
+    copy_sites = serializers.BooleanField(default=True)
+    copy_referents = serializers.BooleanField(default=True)
+    copy_fichiers = serializers.BooleanField(default=False)
+    copy_enjeux = serializers.BooleanField(default=True)
+    copy_sub_elements = serializers.BooleanField(default=True)
 
 
 class PlanGestionGeoJSONSerializer(serializers.ModelSerializer):

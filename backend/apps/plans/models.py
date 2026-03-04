@@ -183,6 +183,20 @@ class PlanGestion(models.Model):
         help_text=_("Version du plan (ex: 1.0, 1.1, 2.0...)")
     )
 
+    plan_parent = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='children',
+        verbose_name=_("Plan parent"),
+        help_text=_("Plan dont celui-ci est dérivé")
+    )
+
+    id_type_document = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='plans_type_document',
+        verbose_name=_("Type de document"),
+        help_text=_("Plan initial, évaluation mi-parcours, plan révisé...")
+    )
+
     # Géométrie (optionnelle, peut être calculée depuis les sites)
     geometrie = models.MultiPolygonField(
         _("Géométrie du plan"),
@@ -319,6 +333,59 @@ class PlanGestion(models.Model):
         elif self.annee_fin:
             return f"Jusqu'en {self.annee_fin}"
         return "Période non définie"
+
+    def get_root_plan(self):
+        """Remonte la chaîne de versions jusqu'au plan racine."""
+        plan = self
+        visited = {self.pk}
+        while plan.plan_parent_id:
+            if plan.plan_parent_id in visited:
+                break
+            visited.add(plan.plan_parent_id)
+            plan = plan.plan_parent
+        return plan
+
+    def get_version_chain(self):
+        """
+        Retourne la chaîne complète de versions ordonnée chronologiquement.
+        Remonte au root puis collecte tous les descendants.
+        """
+        root = self.get_root_plan()
+
+        chain = []
+        queue = [root]
+        visited = set()
+        while queue:
+            current = queue.pop(0)
+            if current.pk in visited:
+                continue
+            visited.add(current.pk)
+            chain.append({
+                'id_pg': current.id_pg,
+                'nom': current.nom,
+                'slug': current.slug,
+                'version': current.version,
+                'statut': current.statut,
+                'annee_debut': current.annee_debut,
+                'annee_fin': current.annee_fin,
+                'type_document': current.id_type_document.label if current.id_type_document else None,
+                'type_document_mnemonique': current.id_type_document.mnemonique if current.id_type_document else None,
+                'is_current': current.pk == self.pk,
+            })
+            for child in current.children.all().order_by('date_ajout'):
+                queue.append(child)
+
+        return chain
+
+    def get_next_version(self):
+        """Incrémente la version mineure (1.0 → 1.1, 2.3 → 2.4)."""
+        try:
+            parts = self.version.split('.')
+            major = int(parts[0])
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            return f"{major}.{minor + 1}"
+        except (ValueError, IndexError):
+            return '1.1'
 
 
 class CorSitePg(models.Model):

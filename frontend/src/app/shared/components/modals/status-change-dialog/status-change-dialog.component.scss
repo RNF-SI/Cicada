@@ -1,0 +1,141 @@
+@import 'variables';
+
+.plan-info {
+  margin-bottom: $spacing-lg;
+
+  .plan-name {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+
+  .plan-meta {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .plan-period {
+      color: $gray-dark;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: $border-radius-round;
+    flex-shrink: 0;
+
+    i {
+      font-size: 1.1rem;
+    }
+  }
+
+  .action-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .action-label {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: $black;
+    }
+
+    .action-description {
+      font-size: 0.85rem;
+      color: $gray-dark;
+    }
+  }
+
+  .action-arrow {
+    color: $gray;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  // Color variants
+  &.action-success {
+    .action-icon {
+      background: rgba($success-color, 0.1);
+      color: $success-color;
+    }
+
+    &:hover {
+      border-color: $success-color;
+    }
+  }
+
+  &.action-neutral {
+    .action-icon {
+      background: rgba($gray-dark, 0.1);
+      color: $gray-dark;
+    }
+  }
+
+  &.action-terra-cotta {
+    .action-icon {
+      background: rgba($secondary-terra-cotta, 0.1);
+      color: $secondary-terra-cotta;
+    }
+
+    &:hover {
+      border-color: $secondary-terra-cotta;
+    }
+  }
+
+  &.action-warning {
+    .action-icon {
+      background: rgba($warning-color, 0.1);
+      color: $warning-color;
+    }
+
+    &:hover {
+      border-color: $warning-color;
+    }
+  }
+}
+
+.no-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  color: $gray-dark;
+  font-size: 0.9rem;
+
+  i {
+    font-size: 1.2rem;
+  }
+}

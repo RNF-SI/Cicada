@@ -29,6 +29,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminPlan, AdminSite } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
+import {
+  StatusChangeDialogComponent,
+  StatusChangeDialogData,
+  StatusChangeDialogResult,
+} from '../../shared/components/modals/status-change-dialog/status-change-dialog.component';
 
 
 interface PlanWithAccess extends AdminPlan {
@@ -529,7 +534,65 @@ export class PlansListComponent implements OnInit {
    * Actions sur les plans.
    */
   editStatus(plan: PlanWithAccess): void {
-    console.log('Edit status for plan:', plan.id_pg);
+    const dialogData: StatusChangeDialogData = {
+      planId: plan.id_pg,
+      planName: plan.nom,
+      currentStatus: plan.statut,
+      period: this.formatPeriod(plan),
+      isSuperAdmin: this.isSuperAdmin(),
+    };
+
+    const dialogRef = this.dialog.open(StatusChangeDialogComponent, {
+      width: '500px',
+      maxWidth: '95vw',
+      data: dialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((result: StatusChangeDialogResult) => {
+      if (!result || result.action === 'cancel') return;
+
+      if (result.action === 'change_status' && result.newStatus) {
+        this.adminService.changePlanStatus(plan.id_pg, result.newStatus).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.statusChanged'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadData();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.statusError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          },
+        });
+      } else if (result.action === 'create_evaluation') {
+        this.adminService.createEvaluation(plan.id_pg).subscribe({
+          next: (newPlan) => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.evaluationCreated'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            if (newPlan.slug) {
+              this.router.navigate(['/plans', newPlan.slug]);
+            } else {
+              this.loadData();
+            }
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.evaluationError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          },
+        });
+      }
+    });
   }
 
   viewPlan(plan: PlanWithAccess): void {

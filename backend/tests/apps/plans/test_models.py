@@ -7,6 +7,7 @@ from datetime import datetime
 from django.db import IntegrityError
 
 from apps.plans.models import PlanGestion, CorSitePg, CorPgFichier
+from apps.core.models import Nomenclature, TypeNomenclature
 from tests.factories.users import RoleFactory, SiteFactory, OrganismeFactory
 from tests.factories.plans import (
     PlanGestionFactory, PlanGestionValideFactory, PlanGestionArchiveFactory,
@@ -262,3 +263,145 @@ class TestCorPgFichierModel:
         """Test that date_upload is auto-set."""
         fichier = CorPgFichierFactory()
         assert fichier.date_upload is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestPlanGestionVersionChain:
+    """Tests for PlanGestion version chain methods: get_root_plan, get_version_chain, get_next_version."""
+
+    # ==================== get_root_plan ====================
+
+    def test_get_root_plan_no_parent(self):
+        """Plan without parent returns itself as root."""
+        plan = PlanGestionFactory()
+        assert plan.get_root_plan() == plan
+
+    def test_get_root_plan_single_parent(self):
+        """Child plan returns its parent as root."""
+        root = PlanGestionFactory(nom='Root Plan')
+        child = PlanGestionFactory(nom='Child Plan', plan_parent=root)
+        assert child.get_root_plan() == root
+
+    def test_get_root_plan_deep_chain(self):
+        """Deep chain A→B→C: C.get_root_plan() returns A."""
+        plan_a = PlanGestionFactory(nom='Plan A')
+        plan_b = PlanGestionFactory(nom='Plan B', plan_parent=plan_a)
+        plan_c = PlanGestionFactory(nom='Plan C', plan_parent=plan_b)
+        assert plan_c.get_root_plan() == plan_a
+
+    def test_get_root_plan_handles_circular_ref(self):
+        """Self-referencing plan doesn't cause infinite loop."""
+        plan = PlanGestionFactory()
+        # Force a self-reference at DB level
+        PlanGestion.objects.filter(pk=plan.pk).update(plan_parent=plan)
+        plan.refresh_from_db()
+        # Should terminate without error
+        root = plan.get_root_plan()
+        assert root == plan
+
+    def test_get_root_plan_handles_mutual_circular(self):
+        """Mutual circular reference A↔B terminates without error."""
+        plan_a = PlanGestionFactory(nom='Plan A')
+        plan_b = PlanGestionFactory(nom='Plan B', plan_parent=plan_a)
+        # Force circular reference at DB level
+        PlanGestion.objects.filter(pk=plan_a.pk).update(plan_parent=plan_b)
+        plan_a.refresh_from_db()
+        # Should terminate without error
+        root = plan_a.get_root_plan()
+        assert root is not None
+
+    # ==================== get_version_chain ====================
+
+    def test_version_chain_single_plan(self):
+        """Single plan returns chain of length 1 with is_current=True."""
+        plan = PlanGestionFactory(nom='Solo Plan')
+        chain = plan.get_version_chain()
+        assert len(chain) == 1
+        assert chain[0]['id_pg'] == plan.id_pg
+        assert chain[0]['is_current'] is True
+
+    def test_version_chain_linear_two(self):
+        """root→child chain has 2 items, child is_current when called on child."""
+        root = PlanGestionFactory(nom='Root', version='1.0')
+        child = PlanGestionFactory(nom='Child', version='1.1', plan_parent=root)
+        chain = child.get_version_chain()
+        assert len(chain) == 2
+        # Root is first
+        assert chain[0]['id_pg'] == root.id_pg
+        assert chain[0]['is_current'] is False
+        # Child is second and current
+        assert chain[1]['id_pg'] == child.id_pg
+        assert chain[1]['is_current'] is True
+
+    def test_version_chain_linear_three(self):
+        """A→B→C called on B returns 3 items, B is_current."""
+        plan_a = PlanGestionFactory(nom='A', version='1.0')
+        plan_b = PlanGestionFactory(nom='B', version='1.1', plan_parent=plan_a)
+        plan_c = PlanGestionFactory(nom='C', version='1.2', plan_parent=plan_b)
+        chain = plan_b.get_version_chain()
+        assert len(chain) == 3
+        current_items = [item for item in chain if item['is_current']]
+        assert len(current_items) == 1
+        assert current_items[0]['id_pg'] == plan_b.id_pg
+
+    def test_version_chain_branching(self):
+        """Root with 2 children returns chain of 3 items."""
+        root = PlanGestionFactory(nom='Root')
+        child1 = PlanGestionFactory(nom='Child 1', plan_parent=root)
+        child2 = PlanGestionFactory(nom='Child 2', plan_parent=root)
+        chain = root.get_version_chain()
+        assert len(chain) == 3
+        chain_ids = {item['id_pg'] for item in chain}
+        assert chain_ids == {root.id_pg, child1.id_pg, child2.id_pg}
+
+    def test_version_chain_includes_type_document(self):
+        """Plan with id_type_document has type_document_mnemonique in chain."""
+        ntype = TypeNomenclature.objects.create(
+            mnemonique='TYPE_DOCUMENT_PLAN',
+            label='Type document plan',
+        )
+        nomenclature = Nomenclature.objects.create(
+            id_type=ntype,
+            mnemonique='EVAL_MI_PARCOURS',
+            label='Évaluation mi-parcours',
+            cd_nomenclature='EVAL',
+        )
+        plan = PlanGestionFactory(id_type_document=nomenclature)
+        chain = plan.get_version_chain()
+        assert chain[0]['type_document_mnemonique'] == 'EVAL_MI_PARCOURS'
+        assert chain[0]['type_document'] == 'Évaluation mi-parcours'
+
+    def test_version_chain_null_type_document(self):
+        """Plan without type_document has None in chain."""
+        plan = PlanGestionFactory(id_type_document=None)
+        chain = plan.get_version_chain()
+        assert chain[0]['type_document_mnemonique'] is None
+        assert chain[0]['type_document'] is None
+
+    # ==================== get_next_version ====================
+
+    def test_next_version_standard(self):
+        """'1.0' increments to '1.1'."""
+        plan = PlanGestionFactory(version='1.0')
+        assert plan.get_next_version() == '1.1'
+
+    def test_next_version_higher_minor(self):
+        """'2.3' increments to '2.4'."""
+        plan = PlanGestionFactory(version='2.3')
+        assert plan.get_next_version() == '2.4'
+
+    def test_next_version_no_minor(self):
+        """'3' (no minor) increments to '3.1'."""
+        plan = PlanGestionFactory(version='3')
+        assert plan.get_next_version() == '3.1'
+
+    def test_next_version_malformed(self):
+        """Malformed version 'abc' falls back to '1.1'."""
+        plan = PlanGestionFactory(version='abc')
+        assert plan.get_next_version() == '1.1'
+
+    def test_next_version_empty(self):
+        """Empty version string falls back to '1.1'."""
+        plan = PlanGestionFactory(version='')
+        assert plan.get_next_version() == '1.1'

@@ -16,6 +16,11 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'dupliquer',
+    loadComponent: () => import('./plan-duplicate.component').then(m => m.PlanDuplicateComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug',
     component: PlanDetailComponent,
     canActivate: [authGuard]

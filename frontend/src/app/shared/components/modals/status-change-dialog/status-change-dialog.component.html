@@ -1,0 +1,45 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.dialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <!-- Plan info -->
+  <div class="plan-info">
+    <span class="plan-name">{{ data.planName }}</span>
+    <div class="plan-meta">
+      <mat-chip-set>
+        <mat-chip [ngClass]="statusClass" highlighted>{{ statusLabel }}</mat-chip>
+      </mat-chip-set>
+      @if (data.period) {
+        <span class="plan-period">{{ data.period }}</span>
+      }
+    </div>
+  </div>
+
+  <!-- Actions disponibles -->
+  <div class="actions-list">
+    @for (action of availableActions; track action.action) {
+      <button class="action-card" [ngClass]="action.colorClass" (click)="selectAction(action)">
+        <div class="action-icon">
+          <i class="fi" [ngClass]="action.icon"></i>
+        </div>
+        <div class="action-content">
+          <span class="action-label">{{ action.label }}</span>
+          <span class="action-description">{{ action.description }}</span>
+        </div>
+        <i class="fi fi-rr-angle-right action-arrow"></i>
+      </button>
+    }
+
+    @if (availableActions.length === 0) {
+      <div class="no-actions">
+        <i class="fi fi-rr-info"></i>
+        <span>{{ 'plans.lifecycle.dialog.noActions' | translate }}</span>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+</mat-dialog-actions>

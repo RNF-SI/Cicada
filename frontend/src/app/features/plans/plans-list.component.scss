@@ -418,12 +418,20 @@ h1 {
 .period-content {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: 12px;
 }
 
 .period-dates {
   color: $black;
   font-size: $font-size-base;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 80px;
+}
+
+app-plan-gauge {
+  flex-shrink: 0;
+  padding-bottom: 6px;
 }
 
 .status-content {

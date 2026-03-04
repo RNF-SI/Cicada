@@ -21,8 +21,10 @@ from .models import PlanGestion, CorSitePg, CorPgFichier
 from .serializers import (
     PlanGestionListSerializer, PlanGestionDetailSerializer,
     PlanGestionGeoJSONSerializer, PlanGestionCreateSerializer,
+    PlanDuplicateOptionsSerializer,
     CorSitePgSerializer, CorPgFichierSerializer
 )
+from .services import PlanDuplicationService
 from .filters import PlanGestionFilter, CorPgFichierFilter
 from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
@@ -44,8 +46,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     
     queryset = PlanGestion.objects.all().select_related(
         'id_evaluation', 'id_redacteur_type',
-        'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents')
+        'id_utilisateur_ajout', 'id_utilisateur_maj',
+        'plan_parent', 'id_type_document'
+    ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children')
 
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -75,11 +78,16 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         - Admin organisme : plans des sites de son organisme
         - Référent / Utilisateur : plans de ses sites assignés
           + plans dont il est référent/membre + plans de son organisme
+
+        Query params:
+        - scope=mine : exclut les plans de l'organisme auxquels l'utilisateur
+          n'a pas accès directement (utilisé par la page de duplication)
         """
         from django.db.models import Q
 
         user = self.request.user
         queryset = self.queryset
+        scope = self.request.query_params.get('scope')
 
         # Super admin : voir tous les plans
         if user.is_super_admin():
@@ -104,7 +112,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         conditions |= Q(membres__id_role=user)
 
         # Plans de son organisme (pour pouvoir en demander l'accès)
-        if user.id_organisme:
+        # Exclus si scope=mine (ex: page de duplication)
+        if scope != 'mine' and user.id_organisme:
             conditions |= Q(sites__site__corogsite__uuid_og=user.id_organisme)
 
         return queryset.filter(conditions).distinct()
@@ -620,6 +629,206 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         tree = build_tree()
         return Response(tree)
+
+    @action(detail=True, methods=['post'], url_path='duplicate')
+    def duplicate(self, request, pk=None):
+        """
+        Dupliquer un plan de gestion.
+
+        POST /api/plans/plans/{id}/duplicate/
+        Body: {
+            "copy_sites": true,
+            "copy_referents": true,
+            "copy_fichiers": false,
+            "copy_enjeux": true,
+            "copy_sub_elements": true
+        }
+        """
+        plan = self.get_object()
+        serializer = PlanDuplicateOptionsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        new_plan = PlanDuplicationService.duplicate_plan(
+            source_plan=plan,
+            user=request.user,
+            **serializer.validated_data,
+        )
+
+        result_serializer = PlanGestionDetailSerializer(new_plan)
+        return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='change-status',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def change_status(self, request, pk=None):
+        """
+        Changer le statut d'un plan de gestion.
+
+        POST /api/plans/plans/{id}/change-status/
+        Body: {"new_status": "valide"}
+
+        Transitions autorisées (référent du plan, admin_og+):
+        - draft → valide
+        - valide → draft
+        - valide → archive
+        - archive → draft
+        """
+        plan = self.get_object()
+
+        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+)
+        user = request.user
+        if not user.is_admin_organisme() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour modifier son statut.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        new_status = request.data.get('new_status')
+
+        if not new_status:
+            return Response({'error': 'new_status requis'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        valid_statuses = dict(PlanGestion.STATUT_CHOICES).keys()
+        if new_status not in valid_statuses:
+            return Response({'error': f'Statut invalide. Choix: {", ".join(valid_statuses)}'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier les transitions autorisées
+        current = plan.statut
+        allowed_transitions = {
+            'draft': ['valide'],
+            'valide': ['archive', 'draft'],
+            'archive': ['draft'],
+        }
+
+        if new_status not in allowed_transitions.get(current, []):
+            return Response(
+                {'error': f'Transition {current} → {new_status} non autorisée'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_status = plan.statut
+        plan.statut = new_status
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['statut', 'id_utilisateur_maj', 'date_maj'])
+
+        # Log activity
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='status_change',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Statut changé de {old_status} à {new_status}",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='create-evaluation',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def create_evaluation(self, request, pk=None):
+        """
+        Créer une évaluation mi-parcours à partir d'un plan validé.
+
+        POST /api/plans/plans/{id}/create-evaluation/
+
+        Le plan source doit être au statut 'valide'.
+        Accessible aux référents du plan, admin_og+.
+        Crée un nouveau plan enfant avec:
+        - plan_parent = plan source
+        - id_type_document = EVAL_MI_PARCOURS
+        - statut = draft
+        - version = plan.get_next_version()
+        - Copie des sites et référents
+        """
+        plan = self.get_object()
+
+        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+)
+        user = request.user
+        if not user.is_admin_organisme() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour créer une évaluation.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if plan.statut != 'valide':
+            return Response(
+                {'error': "Seul un plan validé peut donner lieu à une évaluation"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Récupérer la nomenclature EVAL_MI_PARCOURS
+        from apps.core.models import Nomenclature
+        try:
+            eval_type = Nomenclature.objects.get(mnemonique='EVAL_MI_PARCOURS')
+        except Nomenclature.DoesNotExist:
+            return Response(
+                {'error': "Nomenclature EVAL_MI_PARCOURS non trouvée. Lancez seed_testdata."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Créer le nouveau plan
+        new_plan = PlanGestion.objects.create(
+            nom=f"Évaluation mi-parcours - {plan.nom}",
+            plan_parent=plan,
+            id_type_document=eval_type,
+            statut='draft',
+            version=plan.get_next_version(),
+            annee_debut=plan.annee_debut,
+            annee_fin=plan.annee_fin,
+            rang=plan.rang,
+            surface=plan.surface,
+            gestion_partagee=plan.gestion_partagee,
+            ct88=plan.ct88,
+            risque_incendie=plan.risque_incendie,
+            id_evaluation=plan.id_evaluation,
+            id_redacteur_type=plan.id_redacteur_type,
+            redacteur_nom=plan.redacteur_nom,
+            id_utilisateur_ajout=request.user,
+            id_utilisateur_maj=request.user,
+        )
+
+        # Copier les sites
+        for cor_site in plan.sites.all():
+            CorSitePg.objects.create(
+                plan_de_gestion=new_plan,
+                site=cor_site.site,
+                rang=cor_site.rang,
+            )
+
+        # Copier les référents
+        new_plan.referents.set(plan.referents.all())
+
+        # Copier les membres (CorRolePlan)
+        from .models import CorRolePlan
+        for membre in plan.membres.all():
+            CorRolePlan.objects.create(
+                id_role=membre.id_role,
+                plan_de_gestion=new_plan,
+                referent=membre.referent,
+            )
+
+        # Log activity
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='create',
+                entity_type='plan',
+                entity_id=new_plan.id_pg,
+                entity_name=new_plan.nom,
+                description=f"Évaluation mi-parcours créée depuis le plan '{plan.nom}'",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(new_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
     @method_decorator(cache_page(60 * 15))  # Cache 15 minutes

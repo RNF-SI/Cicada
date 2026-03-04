@@ -336,12 +336,12 @@ backend/apps/core/management/commands/
     ├── context.py                # SeederContext (partage de données)
     ├── signals.py                # Gestion centralisée des signaux (28)
     ├── modules_seeder.py         # 4 modules
-    ├── nomenclatures_seeder.py   # Nomenclatures et types
+    ├── nomenclatures_seeder.py   # Nomenclatures et types (dont Type document plan)
     ├── groups_seeder.py          # 4 groupes Django
     ├── organismes_seeder.py      # 5 organismes
     ├── sites_seeder.py           # 7 sites avec géométries PostGIS
     ├── users_seeder.py           # 14 utilisateurs
-    ├── plans_seeder.py           # 8 plans de gestion
+    ├── plans_seeder.py           # 9 plans de gestion + chaînes de versions
     ├── pending_users_seeder.py   # 3 PendingUser
     ├── validation_requests_seeder.py  # 22 demandes de validation
     ├── notifications_seeder.py   # 21+ notifications
@@ -679,6 +679,8 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
 
 5. **general schema** (ODASE compatible): Management plans
    - `t_plan_gestion`: Management plans
+     - `plan_parent_id` FK self → chaîne de versions (plan initial → évaluation → plan révisé)
+     - `id_type_document` FK nomenclature → type de document (PLAN_INITIAL, EVAL_MI_PARCOURS, PLAN_REVISE)
    - `cor_ep_pg`: Many-to-many between plans and sites
    - `t_plan_gestion_referents`: Plan referents relationships
 
@@ -708,6 +710,7 @@ OPTIONS = {
 
 - **User Roles**: Super Admin > Admin Organisme > Utilisateur
 - **Référent** (access level, not a role): User is "referent" if assigned as site referent (`CorRoleSite.referent=True`) or plan referent (`PlanGestion.referents`)
+- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og et super_admin. Permission DRF `IsReferent` + vérification objet dans la vue.
 - **Permission Model**: Role-based with hierarchical access and Django groups
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
@@ -801,9 +804,11 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **8 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
+- **9 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
+  - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
+  - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
-- **Nomenclatures**: Site types, evaluation types, editor types
+- **Nomenclatures**: Site types, evaluation types, editor types, document plan types (PLAN_INITIAL, EVAL_MI_PARCOURS, PLAN_REVISE)
 - **Validation Requests (27)**: Demandes de test avec différents statuts
   - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
   - Demandes `site_access`, `referent_validation`, `module_access`, etc.
@@ -951,6 +956,15 @@ class UsersConfig(AppConfig):
 - 20+ endpoints including GeoJSON, statistics, bulk operations
 - Advanced filtering (25+ filters) and search capabilities
 - Upload/download system for plan files (documents, maps, reports)
+- **Cycle de vie des plans** :
+  - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
+    - Transitions : `draft↔valide`, `valide→archive`, `archive→draft`
+  - `POST /api/plans/plans/{id}/create-evaluation/` - Création d'une évaluation mi-parcours (référent du plan, admin_og+). Plan source doit être `valide` et de type plan (pas évaluation). Copie sites/référents, version incrémentée.
+  - `POST /api/plans/plans/{id}/duplicate/` - Duplication d'un plan avec options sélectives
+  - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature)
+  - Le serializer détail expose `version_chain` pour la timeline frontend
+  - **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+  - **Permissions lifecycle** : référent du plan (`PlanGestion.referents`), admin_og, super_admin. Vérification spécifique au plan dans la vue (pas juste le rôle global).
 - Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
 
 **API REST Notifications & Validations:**
@@ -1076,6 +1090,24 @@ Fichiers frontend:
 - Service: `frontend/src/app/core/services/activity.service.ts`
 - Modèles: `frontend/src/app/core/models/activity.model.ts`
 - Traductions: `frontend/src/assets/i18n/fr.json` (clés `activity.*`)
+
+**Cycle de vie des Plans (`/plans/:slug`):**
+- **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+- **Droits** : Actions de cycle de vie accessibles uniquement aux **référents du plan**, **admin organisme** et **super admin**. Calculé via `canManageLifecycle` computed dans `plan-detail.component.ts` (vérifie `plan.referents`, `authService.isAdminOrganisme()`, `authService.isSuperAdmin()`).
+- **PlanVersionTimelineComponent** : Timeline verticale des versions dans la colonne latérale (section "Cycle de vie")
+  - Nœuds cliquables (cercles avec icône type document), connectés par une ligne verticale
+  - Nœud courant mis en avant : fond coloré, bordure gauche terra-cotta, badge "actuel"
+  - Masqué si `version_chain.length <= 1`
+  - **Actions contextuelles** intégrées sous la timeline (si `canManage`) :
+    - Brouillon → "Valider le plan"
+    - Validé → "Remettre en brouillon" + "Lancer évaluation mi-parcours" (seulement plans, pas évaluations) + "Archiver (rend inactif)"
+    - Archivé → "Réactiver (rend actif)"
+  - Fichiers : `shared/components/plan-version-timeline/`
+- **StatusChangeDialogComponent** : Modale de changement de statut (alternative aux actions timeline, utilisée depuis la liste)
+  - Fichiers : `shared/components/modals/status-change-dialog/`
+- **DuplicatePlanDialogComponent** : Modale de duplication de plan avec options sélectives
+  - Fichiers : `shared/components/modals/duplicate-plan-dialog/`
+- Traductions : `frontend/src/assets/i18n/fr.json` (clés `plans.lifecycle.*`, `plans.duplicate.*`)
 
 ## Internationalisation (i18n)
 

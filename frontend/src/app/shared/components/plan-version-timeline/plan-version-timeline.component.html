@@ -1,0 +1,83 @@
+@if (visible) {
+  <div class="version-timeline">
+    <div class="timeline-track">
+      @for (item of chain; track item.id_pg; let i = $index; let first = $first; let last = $last) {
+        <a class="timeline-node-row"
+           [routerLink]="item.is_current ? null : ['/plans', item.slug]"
+           [class.clickable]="!item.is_current"
+           [class.current]="item.is_current">
+          <div class="timeline-rail"
+               [class.rail-first]="first"
+               [class.rail-last]="last">
+            <div class="rail-dot"
+                 [ngClass]="'dot-' + item.statut"
+                 [class.dot-current]="item.is_current">
+              <i class="fi" [ngClass]="getNodeIcon(item)"></i>
+            </div>
+          </div>
+          <div class="node-info">
+            <div class="node-header">
+              <span class="node-version">v{{ item.version }}</span>
+              @if (item.is_current) {
+                <span class="current-badge">{{ 'plans.lifecycle.timeline.current' | translate }}</span>
+              }
+              <mat-chip-set>
+                <mat-chip [ngClass]="getStatusClass(item)" highlighted>
+                  {{ 'plans.status.' + item.statut | translate }}
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+            <span class="node-type">{{ item.type_document || ('plans.lifecycle.timeline.planInitial' | translate) }}</span>
+          </div>
+        </a>
+      }
+    </div>
+
+    <!-- Actions contextuelles (référent du plan, admin_og, super_admin) -->
+    @if (canManage) {
+      <div class="timeline-actions">
+        <!-- Brouillon → Valider -->
+        @if (currentStatus === 'draft') {
+          <button class="timeline-action-btn action-success" (click)="onValidate()">
+            <i class="fi fi-rr-check"></i>
+            <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
+          </button>
+        }
+
+        <!-- Validé → Remettre en brouillon -->
+        @if (currentStatus === 'valide') {
+          <button class="timeline-action-btn action-warning" (click)="onToDraft()">
+            <i class="fi fi-rr-undo"></i>
+            <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+          </button>
+        }
+
+        <!-- Validé + plan (pas évaluation) → Lancer évaluation -->
+        @if (currentStatus === 'valide' && !isEvaluation) {
+          <button class="timeline-action-btn action-terra-cotta" (click)="onCreateEvaluation()">
+            <i class="fi fi-rr-time-forward"></i>
+            <span>{{ 'plans.lifecycle.actions.createEvaluation' | translate }}</span>
+          </button>
+        }
+
+        <!-- Validé → Archiver (rend inactif) -->
+        @if (currentStatus === 'valide') {
+          <button class="timeline-action-btn action-neutral" (click)="onArchive()">
+            <i class="fi fi-rr-box"></i>
+            <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
+            <span class="action-hint">{{ 'plans.lifecycle.actions.archiveHint' | translate }}</span>
+          </button>
+        }
+
+        <!-- Archivé → Réactiver (rend actif) -->
+        @if (currentStatus === 'archive') {
+          <button class="timeline-action-btn action-success" (click)="onReactivate()">
+            <i class="fi fi-rr-undo"></i>
+            <span>{{ 'plans.lifecycle.actions.reactivate' | translate }}</span>
+            <span class="action-hint">{{ 'plans.lifecycle.actions.reactivateHint' | translate }}</span>
+          </button>
+        }
+      </div>
+    }
+  </div>
+}

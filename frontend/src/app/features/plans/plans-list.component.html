@@ -93,6 +93,22 @@
   } @else {
     <!-- Section 1: Mes plans de gestion -->
       <section class="content-section my-plans-section">
+        <!-- Toolbar: Recherche + Anciennes versions -->
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fi fi-rr-search"></i>
+            <input
+              type="text"
+              [placeholder]="'plans.list.search' | translate"
+              (input)="onMyPlansSearch($event)"
+            />
+          </div>
+          <button class="btn-link">
+            <span>{{ 'plans.list.oldVersions' | translate }}</span>
+            <i class="fi fi-rr-time-past"></i>
+          </button>
+        </div>
+
         @if (myPlans().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-document empty-icon"></i>
@@ -117,7 +133,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (plan of myPlans(); track plan.id_pg; let odd = $odd) {
+                @for (plan of paginatedPlans(); track plan.id_pg; let odd = $odd) {
                   <tr [class.odd]="odd">
                     <td class="col-name">
                       <span class="plan-name">{{ plan.nom }}</span>

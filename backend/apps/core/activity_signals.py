@@ -166,6 +166,10 @@ def log_plan_activity_on_save(sender, instance, created, **kwargs):
     """
     Enregistre l'activite lors de la creation ou modification d'un plan.
     """
+    # Skip if explicitly flagged (e.g. during duplication)
+    if getattr(instance, '_skip_activity_signal', False):
+        return
+
     try:
         actor = getattr(instance, '_current_user', None)
 

@@ -39,6 +39,7 @@ NOMENCLATURE_TYPE_MAPPING = {
     'TYPE_SITE': 'Espace naturel',
     'TYPE_EVALUATION': 'Evaluation PG',
     'TYPE_REDACTEUR': 'Rédacteur type',
+    'TYPE_DOCUMENT_PLAN': 'Type document plan',
 }
 
 

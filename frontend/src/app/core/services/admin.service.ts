@@ -24,7 +24,8 @@ import {
   BulkImportFieldMapping,
   BulkImportValidationResult,
   BulkImportResult,
-  BulkImportJobStatus
+  BulkImportJobStatus,
+  PlanDuplicateOptions
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -398,6 +399,7 @@ export class AdminService {
     statut?: PlanStatut;
     organisme?: number;
     site?: number;
+    scope?: 'mine';
   }): Observable<PaginatedResponse<AdminPlan>> {
     let httpParams = new HttpParams();
     if (params?.search) {
@@ -417,6 +419,9 @@ export class AdminService {
     }
     if (params?.site) {
       httpParams = httpParams.set('site_id', params.site.toString());
+    }
+    if (params?.scope) {
+      httpParams = httpParams.set('scope', params.scope);
     }
 
     return this.http.get<PaginatedResponse<AdminPlan>>(`${this.plansApiUrl}/plans/`, { params: httpParams })
@@ -468,6 +473,33 @@ export class AdminService {
    */
   updatePlanStatus(id: number, statut: PlanStatut): Observable<AdminPlan> {
     return this.http.patch<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`, { statut })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Change plan status via dedicated endpoint with transition validation
+   * POST /api/plans/plans/{id}/change-status/
+   */
+  changePlanStatus(planId: number, newStatus: PlanStatut): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, { new_status: newStatus })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Create a mid-term evaluation from a validated plan
+   * POST /api/plans/plans/{id}/create-evaluation/
+   */
+  createEvaluation(planId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/create-evaluation/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Duplicate a plan with configurable options
+   * POST /api/plans/plans/{id}/duplicate/
+   */
+  duplicatePlan(planId: number, options: PlanDuplicateOptions): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/duplicate/`, options)
       .pipe(catchError(this.handleError));
   }
 

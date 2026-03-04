@@ -134,6 +134,8 @@ export_plans_csv.short_description = "📥 Exporter en CSV"
 
 def dupliquer_plan(modeladmin, request, queryset):
     """Dupliquer les plans sélectionnés."""
+    from .services import PlanDuplicationService
+
     if queryset.count() > 5:
         modeladmin.message_user(
             request,
@@ -144,30 +146,14 @@ def dupliquer_plan(modeladmin, request, queryset):
 
     count = 0
     for plan in queryset:
-        # Sauvegarder les relations
-        sites = list(plan.sites.all())
-        referents = list(plan.referents.all())
-
-        # Dupliquer le plan
-        plan.pk = None
-        plan.id_pg = None
-        plan.nom = f"[COPIE] {plan.nom}"
-        plan.statut = 'draft'
-        plan.version = '0.1'
-        plan.id_utilisateur_ajout = request.user
-        plan.id_utilisateur_maj = request.user
-        plan.geometrie = None
-        plan.save()
-
-        # Restaurer les relations
-        for cor_site in sites:
-            CorSitePg.objects.create(
-                site=cor_site.site,
-                plan_de_gestion=plan,
-                rang=cor_site.rang,
-                commentaire=cor_site.commentaire
-            )
-        plan.referents.set([r for r in referents])
+        PlanDuplicationService.duplicate_plan(
+            source_plan=plan,
+            user=request.user,
+            copy_sites=True,
+            copy_referents=True,
+            copy_fichiers=False,
+            copy_enjeux=False,
+        )
         count += 1
 
     modeladmin.message_user(
@@ -244,7 +230,9 @@ class PlanGestionAdmin(GISModelAdmin):
         'id_redacteur_type',
         'id_utilisateur_ajout',
         'id_utilisateur_maj',
-        'referents'
+        'referents',
+        'plan_parent',
+        'id_type_document'
     ]
     
     filter_horizontal = ['referents']
@@ -262,6 +250,8 @@ class PlanGestionAdmin(GISModelAdmin):
                 'id_cdr',
                 'statut',
                 'version',
+                'plan_parent',
+                'id_type_document',
                 'commentaire'
             )
         }),
