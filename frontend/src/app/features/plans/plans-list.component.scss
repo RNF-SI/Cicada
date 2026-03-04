@@ -511,6 +511,115 @@ app-plan-gauge {
 }
 
 // ============================================
+// VERSION CHAIN (anciennes versions liées)
+// ============================================
+
+// Ligne ancêtre au-dessus du plan courant
+.ancestor-row {
+  background-color: rgba($beige, 0.6);
+
+  td {
+    height: 44px;
+    padding-top: $spacing-xs;
+    padding-bottom: $spacing-xs;
+    border-bottom: none;
+  }
+
+  &.ancestor-first td {
+    padding-top: $spacing-sm;
+  }
+}
+
+// Indentation des ancêtres et du plan enfant
+.ancestor-indent,
+.child-indent {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding-left: 32px;
+}
+
+// Ligne verticale + branche horizontale de l'arbre
+.tree-line {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+
+  // Ligne verticale (vers le bas, relie à la ligne suivante)
+  &::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: -14px;
+    width: 1px;
+    height: 28px;
+    background-color: $gray;
+  }
+
+  // Branche horizontale
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    width: 10px;
+    height: 1px;
+    background-color: $gray;
+  }
+
+  // Premier ancêtre : la ligne verticale commence au milieu
+  &.first::before {
+    top: 8px;
+    height: 20px;
+  }
+
+  // Dernier de la chaîne (le plan courant) : la ligne s'arrête
+  &.last::before {
+    top: -14px;
+    height: 22px;
+  }
+}
+
+// Plan enfant (a des ancêtres au-dessus)
+tr.is-child {
+  background-color: rgba($beige, 0.3);
+
+  td {
+    padding-top: $spacing-xs;
+    padding-bottom: $spacing-sm;
+  }
+}
+
+.ancestor-name {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.ancestor-type {
+  font-size: 11px;
+  color: $gray;
+  padding: 1px 6px;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+}
+
+.ancestor-version {
+  font-size: 11px;
+  color: $gray;
+  font-style: italic;
+}
+
+.ancestor-text {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.btn-link.active {
+  color: $secondary-terra-cotta;
+}
+
+// ============================================
 // PAGINATION
 // ============================================
 

@@ -103,8 +103,12 @@
               (input)="onMyPlansSearch($event)"
             />
           </div>
-          <button class="btn-link">
-            <span>{{ 'plans.list.oldVersions' | translate }}</span>
+          <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
+            @if (showOldVersions()) {
+              <span>{{ 'plans.list.hideOldVersions' | translate }}</span>
+            } @else {
+              <span>{{ 'plans.list.oldVersions' | translate }}</span>
+            }
             <i class="fi fi-rr-time-past"></i>
           </button>
         </div>
@@ -134,19 +138,58 @@
               </thead>
               <tbody>
                 @for (plan of paginatedPlans(); track plan.id_pg; let odd = $odd) {
-                  <tr [class.odd]="odd">
+                  <!-- Lignes ancêtres AU-DESSUS du plan courant -->
+                  @if (linkedPlansById().has(plan.id_pg)) {
+                    @for (ancestor of linkedPlansById().get(plan.id_pg)!; track ancestor.id_pg; let first = $first; let last = $last) {
+                      <tr class="ancestor-row" [class.ancestor-first]="first" [class.ancestor-last]="last">
+                        <td class="col-name">
+                          <div class="ancestor-indent">
+                            <span class="tree-line" [class.first]="first" [class.last]="false"></span>
+                            <span class="ancestor-name">{{ ancestor.nom }}</span>
+                            @if (ancestor.type_document_display) {
+                              <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
+                            }
+                            @if (ancestor.version) {
+                              <span class="ancestor-version">v{{ ancestor.version }}</span>
+                            }
+                          </div>
+                        </td>
+                        <td class="col-period">
+                          <span class="ancestor-text">{{ formatPeriod(ancestor) }}</span>
+                        </td>
+                        <td class="col-status">
+                          <span class="status-tag" [class]="getStatutClass(ancestor.statut)">
+                            {{ getStatutLabel(ancestor.statut) }}
+                          </span>
+                        </td>
+                        <td class="col-actions">
+                          <button class="btn-action" (click)="viewPlan(ancestor)">
+                            <span>{{ 'plans.list.actions.view' | translate }}</span>
+                            <i class="fi fi-rr-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                  <!-- Ligne principale du plan -->
+                  <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)">
                     <td class="col-name">
-                      <span class="plan-name">{{ plan.nom }}</span>
-                      @if (plan.sites && plan.sites.length > 1) {
-                        <span class="plan-separator">-</span>
-                        <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
-                      }
-                      @if (plan.isReferent) {
-                        <mat-chip class="referent-chip">
-                          <i class="fi fi-rr-star chip-icon"></i>
-                          {{ 'plans.myPlans.referent' | translate }}
-                        </mat-chip>
-                      }
+                      <div [class.child-indent]="linkedPlansById().has(plan.id_pg)">
+                        @if (linkedPlansById().has(plan.id_pg)) {
+                          <span class="tree-line last"></span>
+                        }
+                        <span class="plan-name">{{ plan.nom }}</span>
+                        @if (plan.sites && plan.sites.length > 1) {
+                          <span class="plan-separator">-</span>
+                          <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
+                        }
+                        @if (plan.isReferent) {
+                          <mat-chip class="referent-chip">
+                            <i class="fi fi-rr-star chip-icon"></i>
+                            {{ 'plans.myPlans.referent' | translate }}
+                          </mat-chip>
+                        }
+                      </div>
                     </td>
                     <td class="col-period">
                       <div class="period-content">

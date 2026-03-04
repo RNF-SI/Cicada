@@ -1156,6 +1156,7 @@
       "newBlankPlan": "Nouveau plan vierge",
       "duplicatePlan": "Dupliquer un plan existant",
       "oldVersions": "Voir les anciennes versions",
+      "hideOldVersions": "Masquer les anciennes versions",
       "multisites": "multisites",
       "tabs": {
         "active": "Actifs",

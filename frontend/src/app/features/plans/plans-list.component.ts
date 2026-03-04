@@ -103,6 +103,9 @@ export class PlansListComponent implements OnInit {
   // Search pour "Mes plans"
   myPlansSearchQuery = signal('');
 
+  // Toggle anciennes versions
+  readonly showOldVersions = signal(false);
+
   // Search pour "Demander l'accès"
   searchQuery = signal('');
 
@@ -165,13 +168,16 @@ export class PlansListComponent implements OnInit {
   });
 
   // Plans filtrés par onglet actif/inactif + recherche
+  // Les plans remplacés (children_count > 0) ne sont jamais montrés en ligne principale,
+  // ils apparaissent comme lignes contextuelles au-dessus de leur descendant.
   readonly myPlans = computed(() => {
     const tab = this.activeTab();
     const search = this.myPlansSearchQuery().toLowerCase();
     return this.scopedPlans().filter(p => {
       const tabMatch = tab === 'actifs' ? p.statut !== 'archive' : p.statut === 'archive';
       const searchMatch = !search || p.nom.toLowerCase().includes(search);
-      return tabMatch && searchMatch;
+      const isLeaf = !p.children_count || p.children_count === 0;
+      return tabMatch && searchMatch && isLeaf;
     });
   });
 
@@ -204,6 +210,52 @@ export class PlansListComponent implements OnInit {
     const start = (page - 1) * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return this.myPlans().slice(start, end);
+  });
+
+  // Map de tous les plans par ID pour la résolution des ancêtres
+  private readonly plansById = computed(() => {
+    const map = new Map<number, PlanWithAccess>();
+    for (const plan of this.allPlans()) {
+      map.set(plan.id_pg, plan);
+    }
+    return map;
+  });
+
+  // Plans parents liés, affichés AU-DESSUS de chaque feuille.
+  // - Toggle OFF : seul le parent immédiat est montré si la feuille est un brouillon
+  //   (l'utilisateur voit le plan qu'il édite + le plan actuel qu'il remplace)
+  // - Toggle ON : toute la chaîne d'ancêtres (du plus ancien au plus récent)
+  readonly linkedPlansById = computed(() => {
+    const result = new Map<number, PlanWithAccess[]>();
+    const byId = this.plansById();
+    const showAll = this.showOldVersions();
+
+    for (const plan of this.paginatedPlans()) {
+      if (!plan.plan_parent_id) continue;
+
+      // Toggle OFF : montrer le parent seulement pour les brouillons
+      if (!showAll && plan.statut !== 'draft') continue;
+
+      const ancestors: PlanWithAccess[] = [];
+      const visited = new Set<number>([plan.id_pg]);
+      let currentId: number | null | undefined = plan.plan_parent_id;
+
+      while (currentId && !visited.has(currentId)) {
+        visited.add(currentId);
+        const parent = byId.get(currentId);
+        if (!parent) break;
+        ancestors.push(parent);
+        // Toggle OFF : seulement le parent immédiat
+        if (!showAll) break;
+        currentId = parent.plan_parent_id ?? null;
+      }
+
+      if (ancestors.length > 0) {
+        // Inverser : le plus ancien ancêtre en premier (affiché en haut)
+        result.set(plan.id_pg, ancestors.reverse());
+      }
+    }
+    return result;
   });
 
   readonly paginationPages = computed(() => {
@@ -467,6 +519,14 @@ export class PlansListComponent implements OnInit {
    */
   setTab(tab: 'actifs' | 'inactifs'): void {
     this.activeTab.set(tab);
+    this.currentPage.set(1);
+  }
+
+  /**
+   * Toggle affichage des anciennes versions.
+   */
+  toggleOldVersions(): void {
+    this.showOldVersions.update(v => !v);
     this.currentPage.set(1);
   }
 
