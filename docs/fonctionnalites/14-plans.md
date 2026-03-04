@@ -5,14 +5,16 @@ Ce document décrit le fonctionnement du module de gestion des plans de gestion 
 ## Table des matières
 
 1. [Vue d'ensemble](#vue-densemble)
-2. [Liste des plans](#liste-des-plans)
-3. [Création d'un plan](#création-dun-plan)
-4. [Liaison avec les sites](#liaison-avec-les-sites)
-5. [Liaison avec les utilisateurs (membres et référents)](#liaison-avec-les-utilisateurs-membres-et-référents)
-6. [Gestion des sites en attente](#gestion-des-sites-en-attente)
-7. [Réassignation de site](#réassignation-de-site)
-8. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
-9. [API Endpoints](#api-endpoints)
+2. [Cycle de vie](#cycle-de-vie)
+3. [Liste des plans](#liste-des-plans)
+4. [Création d'un plan](#création-dun-plan)
+5. [Liaison avec les sites](#liaison-avec-les-sites)
+6. [Liaison avec les utilisateurs (membres et référents)](#liaison-avec-les-utilisateurs-membres-et-référents)
+7. [Gestion des sites en attente](#gestion-des-sites-en-attente)
+8. [Réassignation de site](#réassignation-de-site)
+9. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
+10. [Duplication d'un plan](#duplication-dun-plan)
+11. [API Endpoints](#api-endpoints)
 
 ---
 
@@ -30,13 +32,121 @@ Un **plan de gestion** est un document stratégique qui définit les objectifs e
 
 ### Statuts d'un plan
 
-| Statut | Description |
-|--------|-------------|
-| `draft` | Brouillon, en cours de rédaction |
-| `valide` | Plan validé et actif |
-| `archive` | Plan archivé (ancienne version) |
-| `en_cours` | En cours de révision |
-| `annule` | Plan annulé |
+| Statut | Label | Description |
+|--------|-------|-------------|
+| `draft` | Brouillon | En cours de rédaction, non publié |
+| `valide` | Actif | Plan validé et actif |
+| `archive` | Inactif | Plan archivé, rendu inactif |
+
+---
+
+## Cycle de vie
+
+Le cycle de vie d'un plan de gestion gère les transitions de statut, la chaîne de versions (plan parent → évaluation → plan révisé) et les actions associées.
+
+### Transitions de statut
+
+```
+          ┌──────────────────┐
+          │     Brouillon    │
+          │     (draft)      │
+          └───────┬──────────┘
+                  │  Valider
+                  ▼
+          ┌──────────────────┐
+   ┌─────▶│      Actif       │◀─────┐
+   │      │     (valide)     │      │
+   │      └───┬──────────┬───┘      │
+   │          │          │          │
+   │  Remettre│          │Archiver  │ Réactiver
+   │  en      │          │          │
+   │  brouillon          ▼          │
+   │      ┌──────────────────┐      │
+   │      │     Inactif      │──────┘
+   │      │    (archive)     │
+   │      └──────────────────┘
+   │                │
+   └────────────────┘
+        Remettre en brouillon
+```
+
+**Transitions autorisées :**
+
+| De | Vers | Action |
+|----|------|--------|
+| `draft` | `valide` | Valider le plan |
+| `valide` | `draft` | Remettre en brouillon |
+| `valide` | `archive` | Archiver (rend le plan inactif) |
+| `archive` | `draft` | Remettre en brouillon |
+
+> **Note** : Archiver un plan le rend **inactif**. Réactiver un plan archivé le remet en **brouillon** (statut `draft`).
+
+### Permissions du cycle de vie
+
+Les actions de cycle de vie (changement de statut, création d'évaluation) sont réservées à :
+
+| Rôle | Accès |
+|------|-------|
+| **Référent du plan** | Peut gérer le cycle de vie des plans dont il est référent |
+| **Admin organisme** | Peut gérer tous les plans de son organisme |
+| **Super admin** | Peut gérer tous les plans |
+
+Un utilisateur simple (non référent) ne peut pas modifier le statut d'un plan.
+
+### Chaîne de versions
+
+Un plan de gestion peut avoir un **plan parent**, formant une chaîne de versions. Chaque plan est associé à un **type de document** (nomenclature) :
+
+| Type | Mnémonique | Description |
+|------|-----------|-------------|
+| Plan initial | `PLAN_INITIAL` | Premier plan de gestion |
+| Évaluation mi-parcours | `EVAL_MI_PARCOURS` | Évaluation intermédiaire |
+| Plan révisé | `PLAN_REVISE` | Plan révisé suite à une évaluation |
+
+**Exemple de chaîne :**
+
+```
+Plan initial (v1.0, validé)
+  └── Évaluation mi-parcours (v1.1, brouillon)
+        └── Plan révisé (v2.0, brouillon)
+```
+
+### Création d'une évaluation mi-parcours
+
+L'action "Lancer une évaluation mi-parcours" est disponible uniquement :
+- Si le plan courant est **validé** (`statut = valide`)
+- Si le plan courant **n'est pas lui-même une évaluation** (`type_document ≠ EVAL_MI_PARCOURS`)
+
+L'action crée un nouveau plan avec :
+- `plan_parent` = plan courant
+- `type_document` = `EVAL_MI_PARCOURS`
+- `statut` = `draft`
+- `version` = version suivante (ex: 1.0 → 1.1)
+- Copie des sites et référents du plan parent
+
+### Timeline de versions (interface)
+
+La page détail d'un plan affiche une **timeline verticale** des versions dans la colonne latérale, visible uniquement si la chaîne contient plus d'un élément.
+
+Chaque noeud affiche :
+- La version (ex: v1.0)
+- Le type de document
+- Un chip de statut (brouillon, actif, inactif)
+- Un badge "actuel" pour la version courante
+
+La version courante est mise en évidence visuellement (fond coloré, bordure latérale).
+
+Les noeuds sont cliquables pour naviguer entre les versions.
+
+**Boutons d'action contextuels** (visibles uniquement pour les référents, admin_og et super_admin) :
+
+| Statut courant | Actions disponibles |
+|----------------|---------------------|
+| Brouillon | Valider le plan |
+| Actif | Remettre en brouillon, Lancer évaluation*, Archiver |
+| Inactif | Réactiver (remettre en brouillon) |
+
+\* Uniquement pour les plans (pas les évaluations)
 
 ---
 
@@ -439,6 +549,30 @@ Le champ `redacteur_nom` suit la même logique hybride :
 
 ---
 
+## Duplication d'un plan
+
+Un plan de gestion peut être dupliqué pour créer une copie avec des options configurables.
+
+### Options de duplication
+
+| Option | Description | Défaut |
+|--------|-------------|--------|
+| Enjeux | Copier les enjeux et facteurs clés de réussite | Oui |
+| Objectifs long terme | Copier les objectifs long terme | Oui |
+| Objectifs opérationnels | Copier les objectifs opérationnels | Oui |
+| Sites | Copier les associations de sites | Oui |
+| Référents | Copier les référents du plan | Oui |
+
+### Workflow
+
+1. L'utilisateur clique sur "Dupliquer" depuis la page détail du plan
+2. Une modale présente les options de duplication avec un résumé du plan source
+3. L'utilisateur sélectionne les éléments à copier et confirme
+4. Le nouveau plan est créé en statut `draft` avec le nom "[Copie] Nom du plan original"
+5. L'utilisateur est redirigé vers le nouveau plan
+
+---
+
 ## API Endpoints
 
 ### Plans de gestion
@@ -451,6 +585,14 @@ Le champ `redacteur_nom` suit la même logique hybride :
 | `PATCH` | `/api/plans/plans/{id}/` | Modifier un plan |
 | `DELETE` | `/api/plans/plans/{id}/` | Supprimer un plan |
 | `GET` | `/api/plans/plans/{id}/geojson/` | Plan au format GeoJSON |
+
+### Cycle de vie
+
+| Méthode | Endpoint | Description | Permission |
+|---------|----------|-------------|------------|
+| `POST` | `/api/plans/plans/{id}/change-status/` | Changer le statut | Référent, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/create-evaluation/` | Créer une évaluation mi-parcours | Référent, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/duplicate/` | Dupliquer un plan | admin_og, super_admin |
 
 ### Gestion des sites
 
@@ -536,11 +678,15 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 | Fichier | Description |
 |---------|-------------|
 | `features/plans/plan-create.component.*` | Formulaire de création |
-| `features/plans/plan-detail.component.*` | Page de détail |
+| `features/plans/plan-detail.component.*` | Page de détail (timeline, actions cycle de vie) |
+| `features/plans/plan-duplicate.component.*` | Formulaire de duplication |
 | `features/plans/plans-list.component.*` | Liste des plans avec scope toggle |
 | `shared/components/view-scope-toggle/` | Composant de sélection du scope |
-| `core/models/admin.model.ts` | Interfaces PlanMembre, AdminPlan |
-| `assets/i18n/fr.json` | Traductions (plans.scope.*) |
+| `shared/components/plan-version-timeline/` | Timeline de versions (cycle de vie) |
+| `shared/components/modals/duplicate-plan-dialog/` | Modale de duplication |
+| `core/models/admin.model.ts` | Interfaces PlanMembre, AdminPlan, PlanVersionChainItem |
+| `core/services/admin.service.ts` | Méthodes changePlanStatus, createEvaluation, duplicatePlan |
+| `assets/i18n/fr.json` | Traductions (plans.scope.*, plans.lifecycle.*) |
 
 ---
 
@@ -553,6 +699,10 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 - Janvier 2026 : Amélioration détermination accès (via sites liés) et gestion demandes rejetées
 - Janvier 2026 : Ajout scope toggle (Mes plans / Mon organisme / Tous) selon le rôle utilisateur
 - Janvier 2026 : Ajout relation membre/référent directe via `CorRolePlan` (comme `CorRoleSite` pour les sites)
+- Mars 2026 : Ajout cycle de vie (statuts brouillon/actif/inactif, transitions, permissions référent/admin)
+- Mars 2026 : Ajout chaîne de versions (plan parent, type document, évaluation mi-parcours)
+- Mars 2026 : Ajout timeline de versions dans la page détail
+- Mars 2026 : Ajout duplication de plan avec options configurables
 
 ---
 

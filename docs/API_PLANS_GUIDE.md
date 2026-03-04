@@ -26,6 +26,14 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | POST | `/api/plans/plans/{id}/assign_referent/` | Assigner un référent |
 | DELETE | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent |
 
+### Cycle de vie
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/plans/plans/{id}/change-status/` | Changer le statut d'un plan |
+| POST | `/api/plans/plans/{id}/create-evaluation/` | Créer une évaluation mi-parcours |
+| POST | `/api/plans/plans/{id}/duplicate/` | Dupliquer un plan |
+
 ### Fichiers de plans
 
 | Méthode | Endpoint | Description |
@@ -471,6 +479,104 @@ La pagination utilise le format standard de Django REST Framework :
 **Paramètres de pagination :**
 - `page` : Numéro de page (défaut: 1)
 - `page_size` : Nombre d'éléments par page (défaut: 20, max: 100)
+
+## 🔄 Cycle de vie
+
+### 11. Changement de statut
+
+**POST /api/plans/plans/{id}/change-status/**
+
+Transitions autorisées : `draft → valide`, `valide → draft`, `valide → archive`, `archive → draft`
+
+**Permission** : Référent du plan, admin_og ou super_admin
+
+```bash
+curl -X POST http://localhost:8000/api/plans/plans/1/change-status/ \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"new_status": "valide"}'
+```
+
+**Réponse :**
+```json
+{
+  "status": "success",
+  "new_status": "valide",
+  "message": "Statut changé avec succès"
+}
+```
+
+**Erreurs possibles :**
+```json
+// 400 - Transition non autorisée
+{"error": "Transition de draft vers archive non autorisée"}
+
+// 403 - Permissions insuffisantes
+{"detail": "Vous n'avez pas la permission de gérer ce plan."}
+```
+
+### 12. Création d'une évaluation mi-parcours
+
+**POST /api/plans/plans/{id}/create-evaluation/**
+
+Crée un nouveau plan enfant de type "Évaluation mi-parcours" en brouillon. Le plan source doit être validé.
+
+**Permission** : Référent du plan, admin_og ou super_admin
+
+```bash
+curl -X POST http://localhost:8000/api/plans/plans/1/create-evaluation/ \
+  -H "Authorization: Bearer {token}"
+```
+
+**Réponse (201) :**
+```json
+{
+  "id_pg": 5,
+  "nom": "Plan de gestion 2020-2030 - Camargue",
+  "slug": "plan-gestion-2020-2030-camargue-eval",
+  "statut": "draft",
+  "version": "1.1",
+  "plan_parent_id": 1,
+  "type_document_display": "Évaluation mi-parcours"
+}
+```
+
+**Erreurs possibles :**
+```json
+// 400 - Plan non validé
+{"error": "Le plan doit être validé pour créer une évaluation"}
+```
+
+### 13. Duplication d'un plan
+
+**POST /api/plans/plans/{id}/duplicate/**
+
+Crée une copie du plan avec les options sélectionnées.
+
+**Permission** : admin_og ou super_admin
+
+```bash
+curl -X POST http://localhost:8000/api/plans/plans/1/duplicate/ \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "include_enjeux": true,
+    "include_olt": true,
+    "include_oo": true,
+    "include_sites": true,
+    "include_referents": true
+  }'
+```
+
+**Réponse (201) :**
+```json
+{
+  "id_pg": 6,
+  "nom": "[Copie] Plan de gestion 2020-2030 - Camargue",
+  "slug": "copie-plan-gestion-2020-2030-camargue",
+  "statut": "draft"
+}
+```
 
 ## 🎯 Bonnes pratiques
 
