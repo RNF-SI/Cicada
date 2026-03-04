@@ -417,12 +417,42 @@ curl -X POST http://localhost:8000/api/plans/bulk_assign_sites/ \
 
 ## 🔐 Permissions
 
-| Rôle | Permissions |
-|------|-------------|
-| **Super Admin** | Accès total à tous les plans |
-| **Admin Organisme** | Plans des sites de son organisme |
-| **Référent** | Plans des sites assignés + plans dont il est référent |
-| **Utilisateur** | Plans publics validés uniquement |
+### Visibilité des plans (GET /api/plans/plans/)
+
+La liste des plans visibles dépend du rôle de l'utilisateur :
+
+| Rôle | Plans visibles |
+|------|----------------|
+| **Super Admin** | Tous les plans |
+| **Admin Organisme** | Plans liés aux sites de son organisme |
+| **Référent / Utilisateur** | Voir détail ci-dessous |
+
+Pour un **référent** ou **utilisateur standard**, un plan est visible dès qu'**au moins une** de ces conditions est remplie :
+
+| Condition | Description | Exemple |
+|-----------|-------------|---------|
+| **Assigné au site** | L'utilisateur a un rôle (`CorRoleSite`) sur un site du plan | Membre ou référent du site Camargue → voit les plans liés à Camargue |
+| **Référent du plan** | L'utilisateur est nommé référent du plan directement (`PlanGestion.referents`) | Nommé référent du plan Remoray → voit ce plan même sans accès au site |
+| **Membre du plan** | L'utilisateur est membre direct du plan (`CorRolePlan`) | Ajouté comme membre du plan → voit ce plan |
+| **Même organisme** | Le plan est lié à un site rattaché à l'organisme de l'utilisateur | Utilisateur RNF → voit les plans des sites RNF (pour pouvoir demander l'accès) |
+
+> **Important** : L'accès au plan et l'accès au site sont **indépendants**. Un utilisateur peut être référent d'un plan sans avoir de rôle sur le site associé. Cela permet de nommer des experts sur un plan sans leur donner accès à la gestion complète du site.
+
+Le paramètre `?scope=mine` exclut la condition "même organisme" pour n'afficher que les plans sur lesquels l'utilisateur a un accès direct (utilisé par la page de duplication).
+
+### Actions sur les plans
+
+| Action | Permission requise |
+|--------|-------------------|
+| **Consulter** (GET) | Visibilité selon les règles ci-dessus |
+| **Créer** (POST) | Admin organisme ou super admin |
+| **Modifier** (PATCH) | Référent du plan, admin organisme ou super admin |
+| **Supprimer** (DELETE) | Super admin uniquement |
+| **Changer le statut** | Référent du plan spécifique, admin organisme ou super admin |
+| **Créer une évaluation** | Référent du plan spécifique, admin organisme ou super admin |
+| **Dupliquer** | Admin organisme ou super admin |
+
+> **Note** : Pour les actions de cycle de vie (changement de statut, création d'évaluation), la permission est vérifiée au niveau du **plan spécifique** (via `plan.referents`), pas au niveau du rôle global. Un utilisateur référent d'un autre plan ne peut pas modifier le statut d'un plan dont il n'est pas référent.
 
 ## ⚠️ Gestion d'erreurs
 
