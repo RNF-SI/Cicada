@@ -19,12 +19,10 @@
     </div>
   </div>
 
-  <!-- Overflow indicator pour "exceeded" -->
+  <!-- Overflow dots pour "exceeded" : petits cercles après la barre -->
   @if (status === 'exceeded') {
     <div class="gauge-overflow">
-      <svg width="7" height="7" viewBox="0 0 7 7" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="3.5,0 7,3.5 3.5,7 0,3.5" class="overflow-fill"/>
-      </svg>
+      <div class="overflow-dash"></div>
       <svg width="3" height="3" viewBox="0 0 3 3" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="1.5" cy="1.5" r="1.5" class="overflow-fill"/>
       </svg>

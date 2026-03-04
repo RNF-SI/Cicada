@@ -5,87 +5,9 @@
 @import 'variables';
 
 // ============================================
-// JAUGES DE PROGRESSION (Kit UI)
+// JAUGES DE PROGRESSION
 // ============================================
-
-.gauge {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  font-size: $font-size-small;
-  color: $black;
-
-  &-bar {
-    display: flex;
-    align-items: center;
-    width: 90px;
-    height: 7px;
-    background-color: $gray-lighter;
-    border-radius: $border-radius-sm;
-    overflow: hidden;
-    position: relative;
-
-    &-fill {
-      height: 100%;
-      border-radius: $border-radius-sm;
-      transition: width $transition-base;
-    }
-  }
-
-  // Non démarrée
-  &.gauge-not-started {
-    .gauge-bar-fill {
-      width: 0;
-      background-color: $gauge-not-started;
-    }
-  }
-
-  // Première moitié (teal)
-  &.gauge-first-half {
-    .gauge-bar-fill {
-      background-color: $gauge-first-half;
-    }
-
-    .gauge-bar::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 7px;
-      background-color: $gauge-first-half;
-      border-radius: 0 $border-radius-sm $border-radius-sm 0;
-    }
-  }
-
-  // Seconde moitié (terra-cotta)
-  &.gauge-second-half {
-    .gauge-bar-fill {
-      width: 100%;
-      background-color: $gauge-second-half;
-    }
-  }
-
-  // Parcours dépassé (terra-cotta pointillé)
-  &.gauge-exceeded {
-    .gauge-bar-fill {
-      width: 100%;
-      background: repeating-linear-gradient(
-        90deg,
-        $gauge-exceeded 0px,
-        $gauge-exceeded 6px,
-        transparent 5px,
-        transparent 9px
-      );
-    }
-
-    &::after {
-      content: '▸';
-      color: $gauge-exceeded;
-      margin-left: $spacing-xxs;
-    }
-  }
-}
+// Géré par PlanGaugeComponent (shared/components/plan-gauge/)
 
 // ============================================
 // INDICATEURS D'ACTIONS (Kit UI)

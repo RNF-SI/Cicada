@@ -5,6 +5,7 @@
   align-items: center;
   width: 117px;
   height: 17px;
+  gap: 0;
 }
 
 .gauge-body {
@@ -126,7 +127,8 @@
 // ============================================
 .gauge-exceeded {
   .gauge-body {
-    flex: 0 0 82%;
+    flex: 0 0 auto;
+    width: 82%;
   }
 
   .gauge-fill {
@@ -134,13 +136,28 @@
   }
 
   .gauge-pointer {
-    left: 100% !important;
+    left: calc(100% + 8px) !important;
   }
 }
 
 .gauge-overflow {
   display: flex;
   align-items: center;
-  gap: 1px;
-  margin-left: 2px;
+  align-self: flex-end;
+  gap: 2px;
+  height: 6px;
+}
+
+.overflow-dash {
+  width: 5px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.theme-terra-cotta .overflow-dash {
+  background-color: $secondary-terra-cotta;
+}
+
+.theme-primary .overflow-dash {
+  background-color: $primary-color;
 }
