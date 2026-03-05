@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
+import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { EnjeuAccordionComponent } from './enjeu-accordion.component';
@@ -108,10 +108,14 @@ describe('EnjeuAccordionComponent', () => {
           loader: { provide: TranslateLoader, useClass: FakeTranslateLoader },
         }),
       ],
-      providers: [
-        { provide: MatDialog, useValue: mockDialog },
-      ],
-    }).compileComponents();
+    })
+    .overrideComponent(EnjeuAccordionComponent, {
+      add: { providers: [{ provide: MatDialog, useValue: mockDialog }] },
+    })
+    .compileComponents();
+
+    const translate = TestBed.inject(TranslateService);
+    translate.use('fr');
 
     fixture = TestBed.createComponent(EnjeuAccordionComponent);
     component = fixture.componentInstance;
@@ -284,7 +288,7 @@ describe('EnjeuAccordionComponent', () => {
       component.onDelete(mockEvent);
 
       expect(mockDialog.open).toHaveBeenCalled();
-      const dialogData = mockDialog.open.mock.calls[0][1]?.data;
+      const dialogData = mockDialog.open.mock.calls[0][1]?.data as any;
       expect(dialogData.title).toBe('Supprimer l\'enjeu');
     });
 
@@ -296,7 +300,7 @@ describe('EnjeuAccordionComponent', () => {
       component.isFcr = true;
       component.onDelete(mockEvent);
 
-      const dialogData = mockDialog.open.mock.calls[0][1]?.data;
+      const dialogData = mockDialog.open.mock.calls[0][1]?.data as any;
       expect(dialogData.title).toBe('Supprimer le FCR');
     });
 
@@ -329,7 +333,7 @@ describe('EnjeuAccordionComponent', () => {
       const mockEvent = { stopPropagation: jest.fn() } as unknown as Event;
       component.onDelete(mockEvent);
 
-      const dialogData = mockDialog.open.mock.calls[0][1]?.data;
+      const dialogData = mockDialog.open.mock.calls[0][1]?.data as any;
       expect(dialogData.confirmColor).toBe('warn');
     });
   });

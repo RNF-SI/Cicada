@@ -131,9 +131,9 @@ describe('PlanCreateComponent', () => {
       })),
       getSites: jest.fn().mockReturnValue(of({
         results: [
-          { id_site: 10, nom_site: 'Camargue', type_site_label: 'RNN' },
-          { id_site: 20, nom_site: 'Vercors', type_site_label: 'PNR' },
-          { id_site: 30, nom_site: 'Scandola', type_site_label: 'RNN' },
+          { id_site: 10, nom_site: 'Camargue', type_site_label: 'RNN', current_user_access: { has_access: true, role_label: 'Référent', access_type: 'referent' } },
+          { id_site: 20, nom_site: 'Vercors', type_site_label: 'PNR', current_user_access: { has_access: true, role_label: 'Membre', access_type: 'membre' } },
+          { id_site: 30, nom_site: 'Scandola', type_site_label: 'RNN', current_user_access: { has_access: true, role_label: 'Membre', access_type: 'membre' } },
         ],
         count: 3,
       })),
@@ -158,6 +158,7 @@ describe('PlanCreateComponent', () => {
       isAuthenticated: isAuthenticatedSignal.asReadonly(),
       currentUser: currentUserSignal.asReadonly(),
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
+      isAdminOrganisme: signal(false).asReadonly(),
       canAccessAdmin: canAccessAdminSignal.asReadonly(),
       isImpersonating: signal(false).asReadonly(),
       impersonationInfo: signal(null).asReadonly(),

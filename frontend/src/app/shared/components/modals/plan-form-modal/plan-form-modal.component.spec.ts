@@ -45,9 +45,9 @@ describe('PlanFormModalComponent', () => {
   ];
 
   const mockSites: AdminSite[] = [
-    { id_site: 1, slug: 'site-1', nom_site: 'Site Alpha', type_site_label: 'RNN' },
-    { id_site: 2, slug: 'site-2', nom_site: 'Site Beta', type_site_label: 'RNR' },
-    { id_site: 3, slug: 'site-3', nom_site: 'Site Gamma', type_site_label: 'PNR' }
+    { id_site: 1, slug: 'site-1', nom_site: 'Site Alpha', type_site_label: 'RNN', current_user_access: { has_access: true, role_label: 'Référent', access_type: 'referent' } },
+    { id_site: 2, slug: 'site-2', nom_site: 'Site Beta', type_site_label: 'RNR', current_user_access: { has_access: true, role_label: 'Membre', access_type: 'membre' } },
+    { id_site: 3, slug: 'site-3', nom_site: 'Site Gamma', type_site_label: 'PNR', current_user_access: { has_access: true, role_label: 'Membre', access_type: 'membre' } }
   ];
 
   const mockUsers: AdminUser[] = [
@@ -104,6 +104,7 @@ describe('PlanFormModalComponent', () => {
 
     const authServiceMock = {
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
+      isAdminOrganisme: signal(false).asReadonly(),
       currentUser: currentUserSignal.asReadonly()
     };
 
@@ -467,11 +468,13 @@ describe('PlanFormModalComponent', () => {
       await setupTestBed(null, false); // Not super admin
     });
 
-    it('should load organisme sites for admin org', fakeAsync(() => {
+    it('should load sites for admin org', fakeAsync(() => {
       fixture.detectChanges();
       tick();
 
-      expect(getOrganismeSitesMock).toHaveBeenCalledWith(1);
+      expect(getSitesMock).toHaveBeenCalledWith(expect.objectContaining({
+        page: 1, page_size: 200
+      }));
     }));
 
     it('should filter users by organisme', fakeAsync(() => {

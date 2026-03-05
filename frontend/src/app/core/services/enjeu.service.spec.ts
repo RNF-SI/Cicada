@@ -11,6 +11,8 @@ import {
   Pression,
   EtatActuel,
   ObjectifLongTerme,
+  ObjectifLongTermeCreatePayload,
+  EtatActuelCreatePayload,
   NiveauExigence
 } from '../models/enjeu.model';
 
@@ -597,11 +599,9 @@ describe('EnjeuService', () => {
 
   const mockEtatActuel: EtatActuel = {
     id_etat_actuel: 1,
-    id_enjeu: 1,
+    id_olt: 1,
     libelle: 'État actuel test',
     description: 'Description état',
-    objectifs_long_terme: [],
-    nb_olt: 0,
     date_ajout: '2024-01-01T00:00:00Z',
     date_maj: '2024-01-01T00:00:00Z',
     createur_nom: 'Admin',
@@ -609,7 +609,7 @@ describe('EnjeuService', () => {
 
   describe('createEtatActuel', () => {
     it('should call POST /api/plans/etats-actuels/', fakeAsync(() => {
-      const payload = { id_enjeu: 1, libelle: 'Nouvel état', description: 'Desc' };
+      const payload: EtatActuelCreatePayload = { id_olt: 1, libelle: 'Nouvel état', description: 'Desc' };
       service.createEtatActuel(payload).subscribe();
       const req = httpMock.expectOne('/api/plans/etats-actuels/');
       expect(req.request.method).toBe('POST');
@@ -619,7 +619,7 @@ describe('EnjeuService', () => {
     }));
 
     it('should return the created etat actuel', fakeAsync(() => {
-      const payload = { id_enjeu: 1, libelle: 'Nouvel état' };
+      const payload: EtatActuelCreatePayload = { id_olt: 1, libelle: 'Nouvel état' };
       let result: EtatActuel | undefined;
       service.createEtatActuel(payload).subscribe(r => result = r);
       const req = httpMock.expectOne('/api/plans/etats-actuels/');
@@ -664,7 +664,7 @@ describe('EnjeuService', () => {
 
   const mockOlt: ObjectifLongTerme = {
     id_olt: 1,
-    id_etat: 1,
+    id_enjeu: 1,
     libelle: 'OLT test',
     description: 'Description OLT',
     niveaux_exigence: [],
@@ -676,7 +676,7 @@ describe('EnjeuService', () => {
 
   describe('createObjectifLongTerme', () => {
     it('should call POST /api/plans/objectifs-long-terme/', fakeAsync(() => {
-      const payload = { id_etat: 1, libelle: 'Nouvel OLT', description: 'Desc' };
+      const payload: ObjectifLongTermeCreatePayload = { id_enjeu: 1, libelle: 'Nouvel OLT', description: 'Desc' };
       service.createObjectifLongTerme(payload).subscribe();
       const req = httpMock.expectOne('/api/plans/objectifs-long-terme/');
       expect(req.request.method).toBe('POST');
@@ -686,7 +686,7 @@ describe('EnjeuService', () => {
     }));
 
     it('should return the created OLT', fakeAsync(() => {
-      const payload = { id_etat: 1, libelle: 'Nouvel OLT' };
+      const payload: ObjectifLongTermeCreatePayload = { id_enjeu: 1, libelle: 'Nouvel OLT' };
       let result: ObjectifLongTerme | undefined;
       service.createObjectifLongTerme(payload).subscribe(r => result = r);
       const req = httpMock.expectOne('/api/plans/objectifs-long-terme/');
