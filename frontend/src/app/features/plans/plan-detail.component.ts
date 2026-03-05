@@ -13,7 +13,7 @@ import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.compone
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EnjeuService } from '../../core/services/enjeu.service';
-import { AdminPlan, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import { AdminPlan, PlanFichier, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
@@ -21,6 +21,10 @@ import {
   DuplicatePlanDialogData,
   DuplicatePlanDialogResult,
 } from '../../shared/components/modals/duplicate-plan-dialog/duplicate-plan-dialog.component';
+import {
+  UploadDocumentModalComponent,
+  UploadDocumentDialogData,
+} from '../../shared/components/modals/upload-document-modal/upload-document-modal.component';
 
 interface SyntheseAccordion {
   id: string;
@@ -383,5 +387,103 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         return acc;
       })
     );
+  }
+
+  // ==================== DOCUMENTS ====================
+
+  openUploadDialog(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const data: UploadDocumentDialogData = { planId: p.id_pg };
+    const dialogRef = this.dialog.open(UploadDocumentModalComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      data,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.snackBar.open(
+          this.translate.instant('plans.detail.documents.uploadSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      }
+    });
+  }
+
+  downloadFichier(fichier: PlanFichier): void {
+    this.adminService.downloadFichierBlob(fichier.id).subscribe({
+      next: (blob) => {
+        // Check if the response is a text error (not a real file)
+        if (blob.type === 'text/plain' && blob.size < 500) {
+          blob.text().then(text => {
+            this.snackBar.open(
+              text || this.translate.instant('plans.detail.documents.downloadError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          });
+          return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const ext = fichier.extension?.toLowerCase().replace('.', '');
+        // Open PDFs and images in a new tab, download others
+        if (ext === 'pdf' || fichier.is_image) {
+          window.open(url, '_blank');
+        } else {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fichier.nom_fichier;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        }
+      },
+      error: (err) => {
+        // With responseType: 'blob', error body is also a blob — extract text
+        if (err.error instanceof Blob) {
+          err.error.text().then((text: string) => {
+            this.snackBar.open(
+              text || this.translate.instant('plans.detail.documents.downloadError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          });
+        } else {
+          this.snackBar.open(
+            this.translate.instant('plans.detail.documents.downloadError'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      },
+    });
+  }
+
+  deleteFichier(fichier: PlanFichier): void {
+    const name = fichier.titre || fichier.nom_fichier;
+    const confirmMsg = this.translate.instant('plans.detail.documents.confirmDelete', { name });
+    if (!confirm(confirmMsg)) return;
+
+    this.adminService.deleteFichier(fichier.id).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.detail.documents.deleteSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.detail.documents.deleteError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
+    });
   }
 }

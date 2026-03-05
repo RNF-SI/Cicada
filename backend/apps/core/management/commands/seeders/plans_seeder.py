@@ -5,7 +5,7 @@ from datetime import date
 from typing import Any, Dict, List
 
 from apps.core.models import Nomenclature
-from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan
+from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan, CorPgFichier
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
@@ -602,6 +602,170 @@ class PlansSeeder(BaseSeeder):
 
             self.log_item('chain', 'Vercors-Ecrins: 3 niveaux (initial → révisé → eval)')
 
+        # =====================================================================
+        # Documents de test (fichiers attachés aux plans)
+        # =====================================================================
+        self.stdout.write('')
+        self.log_header('Documents de test')
+
+        fichiers_data = [
+            # Plan Camargue (index 0) - 3 documents
+            {
+                'plan': plans[0],
+                'nom_fichier': 'PdG_Camargue_2020-2030_Partie1.pdf',
+                'type_fichier': 'document',
+                'titre': 'PdG - Partie 1 : Diagnostic',
+                'description': 'Diagnostic ecologique et socio-economique de la reserve',
+                'auteur': 'RNF - Equipe Camargue',
+                'taille_fichier': 15_234_567,
+                'extension': 'pdf',
+                'date_document': date(2020, 3, 15),
+                'public': True,
+                'ordre_affichage': 1,
+            },
+            {
+                'plan': plans[0],
+                'nom_fichier': 'PdG_Camargue_2020-2030_Partie2.pdf',
+                'type_fichier': 'document',
+                'titre': 'PdG - Partie 2 : Plan d\'action',
+                'description': 'Objectifs et actions de gestion',
+                'auteur': 'RNF - Equipe Camargue',
+                'taille_fichier': 8_456_789,
+                'extension': 'pdf',
+                'date_document': date(2020, 3, 15),
+                'public': True,
+                'ordre_affichage': 2,
+            },
+            {
+                'plan': plans[0],
+                'nom_fichier': 'Carte_habitats_Camargue.jpg',
+                'type_fichier': 'carte',
+                'titre': 'Carte des habitats',
+                'description': 'Cartographie des habitats naturels de la reserve',
+                'auteur': 'SIG Camargue',
+                'taille_fichier': 3_210_456,
+                'extension': 'jpg',
+                'date_document': date(2019, 11, 20),
+                'public': False,
+                'ordre_affichage': 3,
+            },
+            # Plan Aiguilles Rouges (index 1) - 2 documents
+            {
+                'plan': plans[1],
+                'nom_fichier': 'PdG_AiguillesRouges_2018-2028.pdf',
+                'type_fichier': 'document',
+                'titre': 'Plan de gestion integre',
+                'description': 'Document complet du plan de gestion',
+                'auteur': 'Cabinet Natura Consulting',
+                'taille_fichier': 22_345_678,
+                'extension': 'pdf',
+                'date_document': date(2018, 6, 20),
+                'public': True,
+                'ordre_affichage': 1,
+            },
+            {
+                'plan': plans[1],
+                'nom_fichier': 'Annexes_AiguillesRouges.pdf',
+                'type_fichier': 'annexe',
+                'titre': 'Annexes techniques',
+                'description': 'Inventaires faunistiques et floristiques',
+                'auteur': 'Cabinet Natura Consulting',
+                'taille_fichier': 5_678_901,
+                'extension': 'pdf',
+                'date_document': date(2018, 6, 20),
+                'public': False,
+                'ordre_affichage': 2,
+            },
+            # Plan Lacs et zones humides continentales (index 5) - 3 documents
+            {
+                'plan': plans[5],
+                'nom_fichier': 'PdG_Lacs_ZH_2023-2033_diagnostic.pdf',
+                'type_fichier': 'document',
+                'titre': 'Diagnostic ecologique - Lacs et zones humides',
+                'description': 'Diagnostic initial des lacs et tourbieres du secteur Franche-Comte',
+                'auteur': 'RNF - Equipe Franche-Comte',
+                'taille_fichier': 18_765_432,
+                'extension': 'pdf',
+                'date_document': date(2023, 4, 12),
+                'public': True,
+                'ordre_affichage': 1,
+            },
+            {
+                'plan': plans[5],
+                'nom_fichier': 'Carte_tourbieres_Remoray.pdf',
+                'type_fichier': 'carte',
+                'titre': 'Cartographie des tourbieres',
+                'description': 'Localisation et etat de conservation des tourbieres autour du Lac de Remoray',
+                'auteur': 'SIG DREAL BFC',
+                'taille_fichier': 6_543_210,
+                'extension': 'pdf',
+                'date_document': date(2022, 9, 5),
+                'public': False,
+                'ordre_affichage': 2,
+            },
+            {
+                'plan': plans[5],
+                'nom_fichier': 'Inventaire_balbuzard_2024.xlsx',
+                'type_fichier': 'annexe',
+                'titre': 'Inventaire balbuzard pecheur 2024',
+                'description': 'Donnees de suivi du balbuzard pecheur sur le Lac de Remoray',
+                'auteur': 'Sophie Moreau (DREAL BFC)',
+                'taille_fichier': 245_678,
+                'extension': 'xlsx',
+                'date_document': date(2024, 10, 30),
+                'public': False,
+                'ordre_affichage': 3,
+            },
+            # Plan Vercors-Ecrins (index 3) - 2 documents
+            {
+                'plan': plans[3],
+                'nom_fichier': 'Rapport_evaluation_Vercors.pdf',
+                'type_fichier': 'rapport',
+                'titre': 'Rapport d\'evaluation a mi-parcours',
+                'description': 'Bilan des 5 premieres annees de gestion',
+                'auteur': 'DREAL Auvergne-Rhone-Alpes',
+                'taille_fichier': 12_456_789,
+                'extension': 'pdf',
+                'date_document': date(2026, 1, 10),
+                'public': True,
+                'ordre_affichage': 1,
+            },
+            {
+                'plan': plans[3],
+                'nom_fichier': 'Photo_pelouses_alpines.jpg',
+                'type_fichier': 'photo',
+                'titre': 'Pelouses alpines du Vercors',
+                'description': 'Suivi photographique des pelouses alpines',
+                'auteur': 'PNR Vercors',
+                'taille_fichier': 4_567_890,
+                'extension': 'jpg',
+                'date_document': date(2024, 7, 15),
+                'public': False,
+                'ordre_affichage': 2,
+            },
+        ]
+
+        fichiers_count = 0
+        for fdata in fichiers_data:
+            plan_obj = fdata.pop('plan')
+            # Get the first referent of the plan, or admin as fallback
+            referents = plan_obj.referents.all()
+            uploader = referents.first() if referents.exists() else admin
+
+            CorPgFichier.objects.update_or_create(
+                plan_de_gestion=plan_obj,
+                nom_fichier=fdata['nom_fichier'],
+                defaults={
+                    **fdata,
+                    'chemin_fichier': f'/app/media/plans/{plan_obj.id_pg}/{fdata["nom_fichier"]}',
+                    'id_utilisateur_upload': uploader,
+                }
+            )
+            fichiers_count += 1
+            self.log_item('fichier', f'{fdata["nom_fichier"]} → {plan_obj.nom[:40]}...')
+
+        self.log_summary(fichiers_count, 'documents de test')
+
         self.log_summary(len(plans), 'plans de gestion')
         self.context.set('plans', plans)
         return plans
@@ -613,6 +777,7 @@ class PlansSeeder(BaseSeeder):
         Returns:
             Nombre de plans supprimes
         """
+        CorPgFichier.objects.all().delete()
         return PlanGestion.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
@@ -650,4 +815,9 @@ class PlansSeeder(BaseSeeder):
             '    v1.0 Plan initial 2011-2021 (archive)',
             '    v2.0 → Plan révisé 2021-2031 (valide)',
             '    v2.1 → Eval mi-parcours 2026 (draft)',
+            '\nDocuments de test (10):',
+            '  - Camargue: 3 docs (2 PDF publics + 1 carte)',
+            '  - Aiguilles Rouges: 2 docs (1 PdG + 1 annexe)',
+            '  - Lacs et zones humides: 3 docs (1 diagnostic + 1 carte + 1 inventaire)',
+            '  - Vercors-Ecrins: 2 docs (1 rapport + 1 photo)',
         ]

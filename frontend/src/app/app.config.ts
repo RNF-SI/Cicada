@@ -47,5 +47,6 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
     { provide: MAT_DATE_FORMATS, useValue: FR_DATE_FORMATS },
+    { provide: DateAdapter, useClass: NativeDateAdapter },
   ]
 };

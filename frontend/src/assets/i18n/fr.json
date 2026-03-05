@@ -1258,6 +1258,40 @@
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
+      "documents": {
+        "add": "Ajouter un document",
+        "download": "Télécharger",
+        "delete": "Supprimer",
+        "view": "Voir",
+        "empty": "Aucun document",
+        "confirmDelete": "Voulez-vous vraiment supprimer le document \"{{name}}\" ?",
+        "uploadSuccess": "Document uploadé avec succès",
+        "deleteSuccess": "Document supprimé avec succès",
+        "deleteError": "Erreur lors de la suppression du document",
+        "downloadError": "Erreur lors du téléchargement du document",
+        "upload": {
+          "title": "Ajouter un document",
+          "selectFile": "Sélectionner un fichier",
+          "dragDrop": "ou glissez-déposez un fichier ici",
+          "type": "Type de document",
+          "types": {
+            "document": "Document principal",
+            "annexe": "Annexe",
+            "carte": "Carte",
+            "photo": "Photographie",
+            "rapport": "Rapport d'étude",
+            "autre": "Autre"
+          },
+          "titre": "Titre (optionnel)",
+          "description": "Description (optionnel)",
+          "auteur": "Auteur (optionnel)",
+          "dateDocument": "Date du document (optionnel)",
+          "public": "Document public",
+          "publicHint": "Le document sera accessible sans authentification",
+          "uploading": "Upload en cours...",
+          "send": "Envoyer"
+        }
+      },
       "sidebar": {
         "title": "PLAN DE GESTION",
         "overview": "Vue d'ensemble",

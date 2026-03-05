@@ -894,12 +894,15 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filtrer les fichiers selon les permissions sur les plans."""
         user = self.request.user
-        
+
         if user.is_super_admin():
             return self.queryset
-        
+
         # Filtrer selon les plans accessibles à l'utilisateur
-        plan_ids = PlanGestionViewSet().get_queryset().values_list('id_pg', flat=True)
+        plan_viewset = PlanGestionViewSet()
+        plan_viewset.request = self.request
+        plan_viewset.kwargs = {}
+        plan_ids = plan_viewset.get_queryset().values_list('id_pg', flat=True)
         return self.queryset.filter(plan_de_gestion__id_pg__in=plan_ids)
     
     def perform_create(self, serializer):
@@ -919,34 +922,57 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         if not fichier.public:
             plan_viewset = PlanGestionViewSet()
             plan_viewset.request = request
+            plan_viewset.kwargs = {}
             plan_queryset = plan_viewset.get_queryset()
-            
+
             if not plan_queryset.filter(id_pg=fichier.plan_de_gestion.id_pg).exists():
-                return Response({'error': 'Permissions insuffisantes'}, 
+                return Response({'error': 'Permissions insuffisantes'},
                               status=status.HTTP_403_FORBIDDEN)
-        
+
+        # Résoudre le chemin absolu du fichier
+        from django.conf import settings
+        chemin = fichier.chemin_fichier or ''
+        if not os.path.isabs(chemin):
+            chemin = os.path.join(settings.MEDIA_ROOT, chemin)
+
         # Vérifier que le fichier existe
-        if not os.path.exists(fichier.chemin_fichier):
-            return Response({'error': 'Fichier non trouvé sur le serveur'}, 
-                          status=status.HTTP_404_NOT_FOUND)
-        
+        if not chemin or not os.path.exists(chemin):
+            return HttpResponse(
+                b'Fichier non disponible sur le serveur',
+                content_type='text/plain',
+                status=404
+            )
+
+        # Déterminer le content type
+        import mimetypes
+        content_type, _ = mimetypes.guess_type(fichier.nom_fichier)
+        if not content_type:
+            content_type = 'application/octet-stream'
+
         # Servir le fichier
         try:
-            with open(fichier.chemin_fichier, 'rb') as f:
+            with open(chemin, 'rb') as f:
                 file_content = f.read()
-            
-            response = HttpResponse(
-                file_content,
-                content_type='application/octet-stream'
-            )
-            response['Content-Disposition'] = f'attachment; filename="{fichier.nom_fichier}"'
+
+            response = HttpResponse(file_content, content_type=content_type)
+
+            # Inline pour PDF et images, attachment pour le reste
+            ext = (fichier.extension or '').lower().lstrip('.')
+            if ext in ('pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'):
+                disposition = 'inline'
+            else:
+                disposition = 'attachment'
+            response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
             response['Content-Length'] = len(file_content)
-            
+
             return response
-            
+
         except Exception as e:
-            return Response({'error': f'Erreur lors du téléchargement: {str(e)}'}, 
-                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return HttpResponse(
+                f'Erreur lors du téléchargement: {str(e)}'.encode(),
+                content_type='text/plain',
+                status=500
+            )
 
 
 # Vues fonctionnelles pour actions spécifiques

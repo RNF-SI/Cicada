@@ -285,6 +285,36 @@ export interface PaginatedResponseNested<T> {
   results: T[];
 }
 
+// ==================== FICHIERS PLANS ====================
+
+/**
+ * Types de fichiers attachés à un plan de gestion
+ */
+export type FichierType = 'document' | 'annexe' | 'carte' | 'photo' | 'rapport' | 'autre';
+
+/**
+ * Fichier attaché à un plan de gestion
+ */
+export interface PlanFichier {
+  id: number;
+  nom_fichier: string;
+  chemin_fichier: string;
+  url: string | null;
+  type_fichier: FichierType;
+  titre: string | null;
+  description: string | null;
+  auteur: string | null;
+  public: boolean;
+  ordre_affichage: number;
+  taille_fichier: number | null;
+  file_size_human: string | null;
+  extension: string | null;
+  is_image: boolean;
+  is_document: boolean;
+  date_upload: string;
+  date_document: string | null;
+}
+
 // ==================== PLANS DE GESTION ====================
 
 /**
@@ -381,6 +411,9 @@ export interface AdminPlan {
   membres?: PlanMembre[];
   id_utilisateur_ajout?: number;
   id_utilisateur_maj?: number;
+  // Fichiers
+  fichiers?: PlanFichier[];
+  nb_fichiers?: number;
   // Version chain fields
   plan_parent_id?: number | null;
   plan_parent_nom?: string | null;

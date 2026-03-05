@@ -679,10 +679,24 @@
   padding: $spacing-xs;
   border-radius: $border-radius-sm;
 
-  span:not(.doc-icon) {
+  .doc-info {
     flex: 1;
-    font-size: $font-size-small;
-    color: $black;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .doc-name {
+      font-size: $font-size-small;
+      color: $black;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+      font-size: 11px;
+      color: $gray-dark;
+    }
   }
 }
 
@@ -711,6 +725,26 @@
 
   &:hover {
     color: $primary-hover;
+  }
+}
+
+.btn-delete-doc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  background: transparent;
+  border: none;
+  color: $gray;
+  cursor: pointer;
+
+  i {
+    font-size: $font-size-base;
+  }
+
+  &:hover {
+    color: $error-color;
   }
 }
 

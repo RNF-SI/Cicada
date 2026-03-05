@@ -7,6 +7,7 @@ import {
   AdminSite,
   AdminUser,
   AdminPlan,
+  PlanFichier,
   OrganismeCreatePayload,
   SiteCreatePayload,
   PlanCreatePayload,
@@ -750,6 +751,60 @@ export class AdminService {
       `${this.apiUrl}/sites/bulk_import_status/`,
       { params: { job_id: jobId.toString() } }
     ).pipe(catchError(this.handleError));
+  }
+
+  // ==================== FICHIERS PLANS ====================
+
+  /**
+   * Get fichiers for a plan
+   */
+  getPlanFichiers(planId: number): Observable<PaginatedResponse<PlanFichier>> {
+    return this.http.get<PaginatedResponse<PlanFichier>>(`${this.plansApiUrl}/fichiers/`, {
+      params: { plan_id: planId.toString() }
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Upload a fichier for a plan
+   */
+  uploadFichier(planId: number, file: File, metadata: {
+    type_fichier?: string;
+    titre?: string;
+    description?: string;
+    auteur?: string;
+    date_document?: string;
+    public?: boolean;
+  }): Observable<PlanFichier> {
+    const formData = new FormData();
+    formData.append('fichier', file);
+    formData.append('plan_de_gestion', planId.toString());
+    formData.append('nom_fichier', file.name);
+    if (metadata.type_fichier) formData.append('type_fichier', metadata.type_fichier);
+    if (metadata.titre) formData.append('titre', metadata.titre);
+    if (metadata.description) formData.append('description', metadata.description);
+    if (metadata.auteur) formData.append('auteur', metadata.auteur);
+    if (metadata.date_document) formData.append('date_document', metadata.date_document);
+    if (metadata.public !== undefined) formData.append('public', metadata.public.toString());
+
+    return this.http.post<PlanFichier>(`${this.plansApiUrl}/fichiers/`, formData)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Delete a fichier
+   */
+  deleteFichier(fichierId: number): Observable<void> {
+    return this.http.delete<void>(`${this.plansApiUrl}/fichiers/${fichierId}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Download a fichier as blob (needed because JWT auth can't be sent via window.open)
+   */
+  downloadFichierBlob(fichierId: number): Observable<Blob> {
+    return this.http.get(`${this.plansApiUrl}/fichiers/${fichierId}/download/`, {
+      responseType: 'blob'
+    }).pipe(catchError(this.handleError));
   }
 
   // ==================== ERROR HANDLING ====================

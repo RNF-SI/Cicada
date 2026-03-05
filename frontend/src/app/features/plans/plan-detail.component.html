@@ -398,31 +398,40 @@
               [showLine]="true">
             </app-section-title>
             <div class="documents-list">
-              <div class="document-item">
-                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
-                <span>PdG - Partie 1</span>
-                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
-                  <i class="fi fi-rr-download"></i>
+              @for (fichier of plan()?.fichiers || []; track fichier.id) {
+                <div class="document-item">
+                  <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
+                  <div class="doc-info">
+                    <span class="doc-name">{{ fichier.titre || fichier.nom_fichier }}</span>
+                    @if (fichier.file_size_human) {
+                      <span class="doc-meta">{{ fichier.file_size_human }}</span>
+                    }
+                  </div>
+                  <button class="btn-download"
+                          [title]="'plans.detail.documents.download' | translate"
+                          (click)="downloadFichier(fichier)">
+                    <i class="fi fi-rr-download"></i>
+                  </button>
+                  @if (canManageLifecycle()) {
+                    <button class="btn-delete-doc"
+                            [title]="'plans.detail.documents.delete' | translate"
+                            (click)="deleteFichier(fichier)">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <div class="empty-state-small">
+                  <i class="fi fi-rr-folder"></i>
+                  <span>{{ 'plans.detail.documents.empty' | translate }}</span>
+                </div>
+              }
+              @if (canManageLifecycle()) {
+                <button class="btn-add-document" (click)="openUploadDialog()">
+                  <i class="fi fi-rr-plus"></i>
+                  <span>{{ 'plans.detail.documents.add' | translate }}</span>
                 </button>
-              </div>
-              <div class="document-item">
-                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
-                <span>PdG - Partie 2</span>
-                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
-                  <i class="fi fi-rr-download"></i>
-                </button>
-              </div>
-              <div class="document-item">
-                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="doc-icon">
-                <span>PdG - Annexes</span>
-                <button class="btn-download" title="{{ 'common.actions.view' | translate }}">
-                  <i class="fi fi-rr-download"></i>
-                </button>
-              </div>
-              <button class="btn-add-document">
-                <i class="fi fi-rr-plus"></i>
-                <span>{{ 'common.actions.add' | translate }}</span>
-              </button>
+              }
             </div>
           </div>
         </div>

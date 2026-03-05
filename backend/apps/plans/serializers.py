@@ -36,7 +36,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
     class Meta:
         model = CorPgFichier
         fields = [
-            'id', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
+            'id', 'plan_de_gestion', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
             'type_fichier', 'titre', 'description', 'auteur', 'public',
             'ordre_affichage', 'taille_fichier', 'file_size_human', 'extension',
             'is_image', 'is_document', 'date_upload', 'date_document'
@@ -60,13 +60,15 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
     def get_is_image(self, obj):
         """Vérifie si le fichier est une image."""
         if obj.extension:
-            return obj.extension.lower() in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']
+            ext = obj.extension.lower().lstrip('.')
+            return ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
         return False
 
     def get_is_document(self, obj):
         """Vérifie si le fichier est un document."""
         if obj.extension:
-            return obj.extension.lower() in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods']
+            ext = obj.extension.lower().lstrip('.')
+            return ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods']
         return False
     
     def get_url(self, obj):
