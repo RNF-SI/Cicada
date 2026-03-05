@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from .models import (
-    PlanGestion, CorSitePg, CorPgFichier,
+    PlanGestion, CorSitePg, CorRolePlan, CorPgFichier,
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
@@ -167,9 +167,58 @@ class CorSitePgInline(admin.TabularInline):
     """Inline pour la gestion des sites associés à un plan."""
     model = CorSitePg
     extra = 1
-    fields = ['site', 'rang', 'commentaire']
+    fields = ['site', 'rang', 'site_type', 'site_surface', 'commentaire']
+    readonly_fields = ['site_type', 'site_surface']
     autocomplete_fields = ['site']
     ordering = ['rang', 'site__nom_site']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'site', 'site__id_type_site'
+        )
+
+    def site_type(self, obj):
+        if obj.pk and obj.site and obj.site.id_type_site:
+            return obj.site.id_type_site.label
+        return "-"
+    site_type.short_description = "Type de site"
+
+    def site_surface(self, obj):
+        if obj.pk and obj.site and obj.site.surf_off:
+            return f"{obj.site.surf_off:.1f} ha"
+        return "-"
+    site_surface.short_description = "Surface"
+
+
+class CorRolePlanInline(admin.TabularInline):
+    """Inline pour la gestion des membres/référents d'un plan."""
+    model = CorRolePlan
+    extra = 1
+    fields = ['id_role', 'referent', 'user_organisme', 'user_sites', 'commentaire']
+    readonly_fields = ['user_organisme', 'user_sites']
+    autocomplete_fields = ['id_role']
+    ordering = ['-referent', 'id_role__nom_role']
+    verbose_name = "Membre / Référent"
+    verbose_name_plural = "Membres et Référents du plan"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_role', 'id_role__id_organisme'
+        ).prefetch_related('id_role__corrolesite_set__id_site')
+
+    def user_organisme(self, obj):
+        if obj.pk and obj.id_role and obj.id_role.id_organisme:
+            return obj.id_role.id_organisme.nom_organisme
+        return "-"
+    user_organisme.short_description = "Organisme"
+
+    def user_sites(self, obj):
+        if obj.pk and obj.id_role:
+            sites = [cor.id_site.nom_site for cor in obj.id_role.corrolesite_set.all()[:3]]
+            if sites:
+                return ", ".join(sites)
+        return "-"
+    user_sites.short_description = "Sites de l'utilisateur"
 
 
 class CorPgFichierInline(admin.TabularInline):
@@ -193,6 +242,7 @@ class PlanGestionAdmin(GISModelAdmin):
         'statut_display',
         'periode_gestion_display',
         'nb_sites',
+        'nb_referents_display',
         'gestion_partagee',
         'date_maj',
         'id_utilisateur_ajout'
@@ -230,14 +280,11 @@ class PlanGestionAdmin(GISModelAdmin):
         'id_redacteur_type',
         'id_utilisateur_ajout',
         'id_utilisateur_maj',
-        'referents',
         'plan_parent',
         'id_type_document'
     ]
-    
-    filter_horizontal = ['referents']
 
-    inlines = [CorSitePgInline, CorPgFichierInline]
+    inlines = [CorSitePgInline, CorRolePlanInline, CorPgFichierInline]
 
     actions = [valider_plans, archiver_plans, remettre_en_brouillon, dupliquer_plan, export_plans_csv]
 
@@ -271,13 +318,6 @@ class PlanGestionAdmin(GISModelAdmin):
                 'redacteur_nom'
             )
         }),
-        ('Responsabilités', {
-            'fields': (
-                'referents',
-                'id_utilisateur_ajout',
-                'id_utilisateur_maj'
-            )
-        }),
         ('Géographie', {
             'fields': (
                 'geometrie',
@@ -286,13 +326,16 @@ class PlanGestionAdmin(GISModelAdmin):
             ),
             'classes': ['collapse']
         }),
-        ('Métadonnées', {
+        ('Métadonnées et traçabilité', {
             'fields': (
+                'id_utilisateur_ajout',
+                'id_utilisateur_maj',
                 'date_ajout',
                 'date_maj',
                 'last_update'
             ),
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Les membres et référents du plan se gèrent via la section "Membres et Référents" ci-dessous.'
         })
     )
     
@@ -307,10 +350,10 @@ class PlanGestionAdmin(GISModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
             'id_evaluation',
-            'id_redacteur_type', 
+            'id_redacteur_type',
             'id_utilisateur_ajout',
             'id_utilisateur_maj'
-        ).prefetch_related('sites__site', 'referents')
+        ).prefetch_related('sites__site', 'referents', 'membres')
     
     def statut_display(self, obj):
         """Affichage du statut avec couleur et icône."""
@@ -338,6 +381,22 @@ class PlanGestionAdmin(GISModelAdmin):
             return "1 site"
         return "Aucun site"
     nb_sites.short_description = "Sites"
+
+    def nb_referents_display(self, obj):
+        """Nombre de référents et membres du plan."""
+        membres = list(obj.membres.all())
+        refs = sum(1 for m in membres if m.referent)
+        total = len(membres)
+        if total == 0:
+            return mark_safe('<span style="color: red;">Aucun</span>')
+        parts = []
+        if refs:
+            parts.append(f'{refs} réf.')
+        non_refs = total - refs
+        if non_refs:
+            parts.append(f'{non_refs} mbr.')
+        return ", ".join(parts)
+    nb_referents_display.short_description = "Équipe"
     
     def sites_lies(self, obj):
         """Affichage des sites liés."""
@@ -426,6 +485,73 @@ class CorSitePgAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('site', 'plan_de_gestion')
+
+
+@admin.register(CorRolePlan)
+class CorRolePlanAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les liaisons Utilisateur-Plan."""
+
+    list_display = [
+        'user_display',
+        'plan_de_gestion',
+        'referent_display',
+        'user_organisme',
+        'date_association'
+    ]
+
+    list_filter = [
+        'referent',
+        'plan_de_gestion__statut',
+        'id_role__role_level',
+        'id_role__id_organisme',
+        'date_association'
+    ]
+
+    search_fields = [
+        'id_role__email',
+        'id_role__nom_role',
+        'id_role__prenom_role',
+        'plan_de_gestion__nom',
+        'commentaire'
+    ]
+
+    autocomplete_fields = ['id_role', 'plan_de_gestion']
+
+    readonly_fields = ['date_association']
+
+    ordering = ['plan_de_gestion__nom', '-referent', 'id_role__nom_role']
+
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'id_role', 'id_role__id_organisme', 'plan_de_gestion'
+        )
+
+    def user_display(self, obj):
+        """Affiche l'utilisateur avec nom et email."""
+        name = f"{obj.id_role.nom_role or ''} {obj.id_role.prenom_role or ''}".strip()
+        if name:
+            return f"{name} ({obj.id_role.email})"
+        return obj.id_role.email
+    user_display.short_description = "Utilisateur"
+    user_display.admin_order_field = 'id_role__nom_role'
+
+    def referent_display(self, obj):
+        """Affiche le statut référent avec icône."""
+        if obj.referent:
+            return mark_safe('<span style="color: green; font-weight: bold;">✓ Référent</span>')
+        return "Membre"
+    referent_display.short_description = "Rôle"
+    referent_display.admin_order_field = 'referent'
+
+    def user_organisme(self, obj):
+        """Affiche l'organisme de l'utilisateur."""
+        if obj.id_role.id_organisme:
+            return obj.id_role.id_organisme.nom_organisme
+        return "-"
+    user_organisme.short_description = "Organisme"
+    user_organisme.admin_order_field = 'id_role__id_organisme__nom_organisme'
 
 
 @admin.register(CorPgFichier)

@@ -6,7 +6,7 @@ import factory
 from factory.django import DjangoModelFactory
 from datetime import datetime
 
-from apps.plans.models import PlanGestion, CorSitePg, CorPgFichier
+from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan, CorPgFichier
 from tests.factories.users import RoleFactory, SiteFactory
 
 
@@ -66,6 +66,18 @@ class CorSitePgFactory(DjangoModelFactory):
     plan_de_gestion = factory.SubFactory(PlanGestionFactory)
     site = factory.SubFactory(SiteFactory)
     rang = factory.Sequence(lambda n: n)
+    commentaire = ''
+
+
+class CorRolePlanFactory(DjangoModelFactory):
+    """Factory for CorRolePlan (user-plan relationship)."""
+
+    class Meta:
+        model = CorRolePlan
+
+    id_role = factory.SubFactory(RoleFactory)
+    plan_de_gestion = factory.SubFactory(PlanGestionFactory)
+    referent = False
     commentaire = ''
 
 

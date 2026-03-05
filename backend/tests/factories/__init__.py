@@ -15,6 +15,7 @@ from tests.factories.users import (
 from tests.factories.plans import (
     PlanGestionFactory,
     CorSitePgFactory,
+    CorRolePlanFactory,
     CorPgFichierFactory,
 )
 from tests.factories.core import (
@@ -71,6 +72,7 @@ __all__ = [
     # Plans factories
     'PlanGestionFactory',
     'CorSitePgFactory',
+    'CorRolePlanFactory',
     'CorPgFichierFactory',
     # Core factories
     'TypeNomenclatureFactory',
