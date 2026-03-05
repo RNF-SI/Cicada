@@ -438,6 +438,18 @@ Pour un **référent** ou **utilisateur standard**, un plan est visible dès qu'
 
 > **Important** : L'accès au plan et l'accès au site sont **indépendants**. Un utilisateur peut être référent d'un plan sans avoir de rôle sur le site associé. Cela permet de nommer des experts sur un plan sans leur donner accès à la gestion complète du site.
 
+### Accès aux sites d'un plan (`current_user_has_access`)
+
+Chaque site dans la réponse détail/liste d'un plan inclut un champ `current_user_has_access` indiquant si l'utilisateur courant peut accéder à la fiche du site. Les règles sont :
+
+| Rôle | Condition d'accès au site |
+|------|--------------------------|
+| **Super Admin** | Toujours accès |
+| **Admin Organisme** | Assigné directement au site (`CorRoleSite`) **ou** site lié à son organisme (`CorOgSite`) |
+| **Référent / Utilisateur** | Assigné directement au site (`CorRoleSite`) uniquement |
+
+> **Règle clé** : Seuls les **admin organisme** et **super admin** bénéficient de l'accès implicite via l'organisme (`CorOgSite`). Les utilisateurs standard doivent être assignés individuellement au site. Si l'utilisateur n'a pas accès, le frontend affiche un cadenas avec un bouton "Demander l'accès".
+
 Le paramètre `?scope=mine` exclut la condition "même organisme" pour n'afficher que les plans sur lesquels l'utilisateur a un accès direct (utilisé par la page de duplication).
 
 ### Actions sur les plans

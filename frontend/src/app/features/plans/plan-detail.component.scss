@@ -599,6 +599,40 @@
     color: $primary-color;
     flex-shrink: 0;
   }
+
+  &.site-card-locked {
+    cursor: default;
+    opacity: 0.75;
+
+    &:hover {
+      background-color: $gray-lighter;
+      transform: none;
+    }
+
+    i {
+      color: $gray-dark;
+      font-size: 12px;
+    }
+  }
+}
+
+.site-request-access-btn {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    color: darken($primary-color, 10%);
+  }
 }
 
 .site-info {
@@ -613,9 +647,7 @@
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   color: $black;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .site-type {

@@ -94,16 +94,43 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     nom_site = serializers.CharField(source='site.nom_site')
     slug = serializers.SlugField(source='site.slug', read_only=True)
     type_site_label = serializers.SerializerMethodField()
+    current_user_has_access = serializers.SerializerMethodField()
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang']
+        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang', 'current_user_has_access']
 
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.label
         return None
+
+    def get_current_user_has_access(self, obj):
+        """Vérifie si l'utilisateur courant a accès au site (même logique que SiteViewSet.get_queryset)."""
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+
+        user = request.user
+        site = obj.site
+
+        # Super admin a accès à tout
+        if user.is_super_admin():
+            return True
+
+        from apps.users.models import CorRoleSite, CorOgSite
+
+        # Accès direct via assignation personnelle (tous rôles)
+        if CorRoleSite.objects.filter(id_site=site, id_role=user).exists():
+            return True
+
+        # Admin organisme : accès via organisme
+        if user.is_admin_organisme() and user.id_organisme:
+            if CorOgSite.objects.filter(id_site=site, uuid_og=user.id_organisme).exists():
+                return True
+
+        return False
 
 
 class PlanReferentListSerializer(serializers.ModelSerializer):

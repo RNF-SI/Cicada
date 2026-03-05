@@ -334,6 +334,8 @@ export interface PlanSite {
   type_site_precision?: string | null;
   surf_off?: number;
   rang?: number;
+  /** Indique si l'utilisateur courant a accès à ce site */
+  current_user_has_access?: boolean;
 }
 
 /**

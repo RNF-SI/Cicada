@@ -333,15 +333,30 @@
             @if (plan()?.sites && plan()!.sites!.length > 0) {
               <div class="sites-list">
                 @for (site of plan()!.sites!; track site.id_site) {
-                  <a class="site-card" [routerLink]="['/sites', site.slug]">
-                    <div class="site-info">
-                      <span class="site-name">{{ site.nom_site }}</span>
-                      @if (site.type_site_label) {
-                        <span class="site-type">{{ site.type_site_label }}</span>
-                      }
+                  @if (site.current_user_has_access !== false) {
+                    <a class="site-card" [routerLink]="['/sites', site.slug]">
+                      <div class="site-info">
+                        <span class="site-name">{{ site.nom_site }}</span>
+                        @if (site.type_site_label) {
+                          <span class="site-type">{{ site.type_site_label }}</span>
+                        }
+                      </div>
+                      <i class="fi fi-rr-angle-right"></i>
+                    </a>
+                  } @else {
+                    <div class="site-card site-card-locked">
+                      <div class="site-info">
+                        <span class="site-name">{{ site.nom_site }}</span>
+                        @if (site.type_site_label) {
+                          <span class="site-type">{{ site.type_site_label }}</span>
+                        }
+                        <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
+                          {{ 'plans.detail.requestSiteAccess' | translate }}
+                        </button>
+                      </div>
+                      <i class="fi fi-rr-lock"></i>
                     </div>
-                    <i class="fi fi-rr-angle-right"></i>
-                  </a>
+                  }
                 }
               </div>
             } @else {

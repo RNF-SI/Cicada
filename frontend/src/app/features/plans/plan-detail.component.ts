@@ -13,7 +13,7 @@ import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.compone
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EnjeuService } from '../../core/services/enjeu.service';
-import { AdminPlan, PlanFichier, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import { AdminPlan, PlanFichier, PlanSite, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
@@ -25,6 +25,10 @@ import {
   UploadDocumentModalComponent,
   UploadDocumentDialogData,
 } from '../../shared/components/modals/upload-document-modal/upload-document-modal.component';
+import {
+  AccessRequestDialogComponent,
+  AccessRequestDialogData,
+} from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
 interface SyntheseAccordion {
   id: string;
@@ -460,6 +464,17 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
           );
         }
       },
+    });
+  }
+
+  requestSiteAccess(site: PlanSite): void {
+    this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'site',
+        targetSlug: site.slug,
+        targetName: site.nom_site,
+      } as AccessRequestDialogData,
     });
   }
 

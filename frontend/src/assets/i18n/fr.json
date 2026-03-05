@@ -1249,6 +1249,8 @@
         "documents": "Documents"
       },
       "noSites": "Aucun site associé",
+      "siteNoAccess": "Vous n'avez pas accès à ce site",
+      "requestSiteAccess": "Demander l'accès",
       "accordions": {
         "enjeux": "Enjeux et Facteurs clés de réussite",
         "objectifsLT": "Objectifs long terme",
