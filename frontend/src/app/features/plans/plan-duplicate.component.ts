@@ -3,17 +3,18 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminPlan, AdminSite } from '../../core/models/admin.model';
@@ -31,15 +32,16 @@ import {
     RouterModule,
     FormsModule,
     MatButtonModule,
-    MatTableModule,
     MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatFormFieldModule,
     MatInputModule,
     MatDialogModule,
+    MatTooltipModule,
     TranslateModule,
     HeaderComponent,
+    ViewScopeToggleComponent,
   ],
   templateUrl: './plan-duplicate.component.html',
   styleUrl: './plan-duplicate.component.scss',
@@ -58,52 +60,105 @@ export class PlanDuplicateComponent implements OnInit {
   duplicating = signal(false);
   searchQuery = signal('');
 
-  displayedColumns = ['nom', 'periode', 'statut', 'sites', 'actions'];
-
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
-  /** IDs of sites the current user is directly linked to */
-  private userSiteIds = signal<Set<number>>(new Set());
+  // Scope toggle
+  planScope = signal<ViewScope>('mine');
+  readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
+
+  // Toggle anciennes versions
+  readonly showOldVersions = signal(false);
 
   /** IDs of sites belonging to the user's organisme */
   private orgSiteIds = signal<Set<number>>(new Set());
 
-  /** Plans where the user is a direct member or referent */
-  readonly myPlans = computed(() => {
+  /** Map of all plans by id for parent chain lookup */
+  private readonly plansById = computed(() => {
+    const map = new Map<number, AdminPlan>();
+    for (const p of this.allPlans()) {
+      map.set(p.id_pg, p);
+    }
+    return map;
+  });
+
+  /** Plans filtered by scope */
+  private readonly scopedPlans = computed(() => {
+    const scope = this.planScope();
     const user = this.authService.currentUser();
     if (!user) return [];
-    return this.applySearch(
-      this.allPlans().filter(plan =>
+
+    const plans = this.allPlans();
+
+    if (scope === 'mine') {
+      return plans.filter(plan =>
+        plan.membres?.some(m => m.id_role === user.id) ||
+        plan.referents?.some(r => r.id_role === user.id)
+      );
+    }
+
+    if (scope === 'organisme') {
+      return plans.filter(plan =>
         plan.membres?.some(m => m.id_role === user.id) ||
         plan.referents?.some(r => r.id_role === user.id) ||
-        plan.sites?.some(s => this.userSiteIds().has(s.id_site))
-      )
-    );
-  });
-
-  /** Plans from the user's organisme (excluding already in myPlans) */
-  readonly orgPlans = computed(() => {
-    const user = this.authService.currentUser();
-    if (!user) return [];
-    const myPlanIds = new Set(this.myPlans().map(p => p.id_pg));
-    return this.applySearch(
-      this.allPlans().filter(plan =>
-        !myPlanIds.has(plan.id_pg) &&
         plan.sites?.some(s => this.orgSiteIds().has(s.id_site))
-      )
-    );
+      );
+    }
+
+    // scope === 'all'
+    return plans;
   });
 
-  /** All remaining plans (for super admin) */
-  readonly otherPlans = computed(() => {
-    const myPlanIds = new Set(this.myPlans().map(p => p.id_pg));
-    const orgPlanIds = new Set(this.orgPlans().map(p => p.id_pg));
-    return this.applySearch(
-      this.allPlans().filter(plan =>
-        !myPlanIds.has(plan.id_pg) && !orgPlanIds.has(plan.id_pg)
-      )
-    );
+  /** Final filtered list: scope + leaf only (children_count === 0) + search */
+  readonly filteredPlans = computed(() => {
+    const search = this.searchQuery().toLowerCase().trim();
+    return this.scopedPlans().filter(p => {
+      // Only show leaf plans (not replaced by a newer version)
+      const isLeaf = !p.children_count || p.children_count === 0;
+      const searchMatch = !search ||
+        p.nom.toLowerCase().includes(search) ||
+        (p.sites || []).some(s => s.nom_site.toLowerCase().includes(search));
+      return isLeaf && searchMatch;
+    });
+  });
+
+  /**
+   * Linked parent plans displayed ABOVE each child plan.
+   * Same logic as plans-list:
+   * - Toggle OFF: show immediate parent only for drafts
+   * - Toggle ON: show full ancestor chain
+   */
+  readonly linkedPlansById = computed(() => {
+    const result = new Map<number, AdminPlan[]>();
+    const byId = this.plansById();
+    const showAll = this.showOldVersions();
+
+    for (const plan of this.filteredPlans()) {
+      if (!plan.plan_parent_id) continue;
+
+      // Toggle OFF: show parent only for drafts
+      if (!showAll && plan.statut !== 'draft') continue;
+
+      const ancestors: AdminPlan[] = [];
+      const visited = new Set<number>([plan.id_pg]);
+      let currentId: number | null | undefined = plan.plan_parent_id;
+
+      while (currentId && !visited.has(currentId)) {
+        visited.add(currentId);
+        const parent = byId.get(currentId);
+        if (!parent) break;
+        ancestors.push(parent);
+        // Toggle OFF: only immediate parent
+        if (!showAll) break;
+        currentId = parent.plan_parent_id ?? null;
+      }
+
+      if (ancestors.length > 0) {
+        // Reverse: oldest ancestor first (displayed on top)
+        result.set(plan.id_pg, ancestors.reverse());
+      }
+    }
+    return result;
   });
 
   ngOnInit(): void {
@@ -119,7 +174,7 @@ export class PlanDuplicateComponent implements OnInit {
       next: ({ plans, sites }) => {
         this.allPlans.set(plans.results);
         this.allSites.set(sites.results as AdminSite[]);
-        this.computeSiteIds(sites.results as AdminSite[]);
+        this.computeOrgSiteIds(sites.results as AdminSite[]);
         this.loading.set(false);
       },
       error: () => {
@@ -128,36 +183,28 @@ export class PlanDuplicateComponent implements OnInit {
     });
   }
 
-  private computeSiteIds(sites: AdminSite[]): void {
+  private computeOrgSiteIds(sites: AdminSite[]): void {
     const user = this.authService.currentUser();
     if (!user) return;
 
-    const userIds = new Set<number>();
     const orgIds = new Set<number>();
     const userOrgId = user.organisme?.id_organisme;
 
     for (const site of sites) {
-      const siteUsers = (site as any).users as Array<{ id_role: number }> | undefined;
-      if (siteUsers?.some(u => u.id_role === user.id)) {
-        userIds.add(site.id_site);
-      }
       if (userOrgId && site.organismes?.some((o: any) => o.id_organisme === userOrgId)) {
         orgIds.add(site.id_site);
       }
     }
 
-    this.userSiteIds.set(userIds);
     this.orgSiteIds.set(orgIds);
   }
 
-  private applySearch(plans: AdminPlan[]): AdminPlan[] {
-    const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return plans;
-    return plans.filter(
-      p =>
-        p.nom.toLowerCase().includes(query) ||
-        (p.sites || []).some(s => s.nom_site.toLowerCase().includes(query))
-    );
+  onScopeChange(scope: ViewScope): void {
+    this.planScope.set(scope);
+  }
+
+  toggleOldVersions(): void {
+    this.showOldVersions.update(v => !v);
   }
 
   getPeriod(plan: AdminPlan): string {
@@ -184,11 +231,23 @@ export class PlanDuplicateComponent implements OnInit {
     }
   }
 
-  getSitesLabel(plan: AdminPlan): string {
+  /** Tooltip listant tous les sites d'un plan */
+  getSitesTooltip(plan: AdminPlan): string {
     const sites = plan.sites || [];
-    if (sites.length === 0) return '-';
-    if (sites.length === 1) return sites[0].nom_site;
-    return `${sites[0].nom_site} (+${sites.length - 1})`;
+    return sites.map(s => {
+      const access = this.getSiteAccess(s.id_site);
+      return access?.accessLabel ? `${s.nom_site} (${access.accessLabel})` : s.nom_site;
+    }).join('\n');
+  }
+
+  /** Retourne l'info d'accès pour un site donné (depuis allSites qui a current_user_access) */
+  getSiteAccess(siteId: number): { accessType?: string; accessLabel?: string } | null {
+    const site = this.allSites().find(s => s.id_site === siteId);
+    if (!site?.current_user_access) return null;
+    return {
+      accessType: site.current_user_access.access_type,
+      accessLabel: site.current_user_access.role_label,
+    };
   }
 
   onSelectPlan(plan: AdminPlan): void {
