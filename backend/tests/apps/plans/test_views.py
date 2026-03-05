@@ -48,8 +48,8 @@ class TestPlanGestionViewSetList:
         # Super admin sees all 3 plans
         assert response.data['pagination']['count'] >= 3
 
-    def test_list_regular_user_denied(self, api_client):
-        """Test regular users cannot access plans list (requires IsReferent)."""
+    def test_list_regular_user_sees_empty(self, api_client):
+        """Test regular users see an empty list (filtered by get_queryset)."""
         user = RoleFactory()  # Regular utilisateur
         PlanGestionFactory(nom='Draft Plan', statut='draft')
         PlanGestionFactory(nom='Valid Plan', statut='valide')
@@ -57,8 +57,9 @@ class TestPlanGestionViewSetList:
         api_client.force_authenticate(user=user)
         response = api_client.get('/api/plans/plans/')
 
-        # Regular users are denied - ViewSet requires IsReferent permission
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Regular users get 200 but see no plans (filtered out by get_queryset)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['pagination']['count'] == 0
 
     def test_list_referent_sees_assigned_sites_plans(self, api_client):
         """Test referent sees plans for their assigned sites."""
