@@ -145,7 +145,7 @@ export class AdminService {
   /**
    * Get list of sites
    */
-  getSites(params?: { search?: string; page?: number; page_size?: number; type?: string }): Observable<PaginatedResponse<AdminSite>> {
+  getSites(params?: { search?: string; page?: number; page_size?: number; type?: string; organisme?: number }): Observable<PaginatedResponse<AdminSite>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
@@ -158,6 +158,9 @@ export class AdminService {
     }
     if (params?.type) {
       httpParams = httpParams.set('id_type_site', params.type);
+    }
+    if (params?.organisme) {
+      httpParams = httpParams.set('organisme', params.organisme.toString());
     }
 
     return this.http.get<PaginatedResponse<AdminSite>>(`${this.apiUrl}/sites/`, { params: httpParams })

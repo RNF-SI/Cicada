@@ -19,6 +19,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
 import {
   AdminPlan,
   PlanCreatePayload,
@@ -42,6 +43,8 @@ interface SelectableSite {
   nom: string;
   type?: string;
   selected: boolean;
+  accessType?: string;
+  accessLabel?: string;
 }
 
 interface SelectableUser {
@@ -74,7 +77,8 @@ interface SelectableUser {
     MatNativeDateModule,
     MatTooltipModule,
     TranslateModule,
-    RouterModule
+    RouterModule,
+    ViewScopeToggleComponent
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'
@@ -107,15 +111,32 @@ export class PlanFormModalComponent implements OnInit {
   selectedSiteIds = signal<number[]>([]);
   selectedReferentIds = signal<number[]>([]);
 
+  // Site scope toggle
+  siteScope = signal<ViewScope>('mine');
+  readonly showSiteScopeToggle = computed(() => this.authService.isAdminOrganisme() || this.isSuperAdmin());
+
   // Search queries as signals for reactivity
   siteSearchQuery = '';
   userSearchQuery = '';
   private siteSearchSignal = signal('');
   private userSearchSignal = signal('');
 
-  // Filtered lists (computed)
+  /** Types d'accès correspondant à une relation directe (mes sites) */
+  private readonly directAccessTypes = new Set(['referent', 'conservateur', 'membre']);
+
+  // Filtered lists (computed) — scope + recherche
   filteredSites = computed(() => {
-    const sites = this.availableSites();
+    let sites = this.availableSites();
+
+    // Filtre par scope
+    const scope = this.siteScope();
+    if (scope === 'mine') {
+      sites = sites.filter(s => s.accessType && this.directAccessTypes.has(s.accessType));
+    } else if (scope === 'organisme') {
+      sites = sites.filter(s => s.accessType && s.accessType !== 'super_admin');
+    }
+    // scope === 'all' → pas de filtre
+
     const query = this.siteSearchSignal().toLowerCase().trim();
     if (!query) {
       return sites;
@@ -196,9 +217,6 @@ export class PlanFormModalComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
-
     // Load evaluation types
     this.adminService.getEvaluationTypes().subscribe({
       next: (types) => this.evaluationTypes.set(types),
@@ -211,37 +229,25 @@ export class PlanFormModalComponent implements OnInit {
       error: () => this.redacteurTypes.set([])
     });
 
-    // Load sites - if admin_org, only load sites from their organisme
-    if (filterByOrg) {
-      this.adminService.getOrganismeSites(currentOrgId!).subscribe({
-        next: (orgSites) => {
-          const sites = orgSites.map(s => ({
-            id: s.id_site,
-            nom: s.nom_site,
-            type: s.type_site_label || s.type_site,
-            selected: this.selectedSiteIds().includes(s.id_site)
-          }));
-          this.availableSites.set(sites);
-        },
-        error: () => this.availableSites.set([])
-      });
-    } else {
-      this.adminService.getSites({ page: 1, page_size: 100 }).subscribe({
-        next: (response) => {
-          const sites = response.results.map(s => ({
-            id: s.id_site,
-            nom: s.nom_site,
-            type: s.type_site_label,
-            selected: this.selectedSiteIds().includes(s.id_site)
-          }));
-          this.availableSites.set(sites);
-        },
-        error: () => this.availableSites.set([])
-      });
-    }
+    // Load all accessible sites (backend filters by role, client filters by scope)
+    this.adminService.getSites({ page: 1, page_size: 200 }).subscribe({
+      next: (response) => {
+        const sites = response.results.map(s => ({
+          id: s.id_site,
+          nom: s.nom_site,
+          type: s.type_site_label,
+          selected: this.selectedSiteIds().includes(s.id_site),
+          accessType: s.current_user_access?.access_type,
+          accessLabel: s.current_user_access?.role_label
+        }));
+        this.availableSites.set(sites);
+      },
+      error: () => this.availableSites.set([])
+    });
 
-    // Load users (referents potentiels) - if admin_org, only load users from their organisme
-    const userParams = filterByOrg
+    // Load users (referents potentiels) - if not super_admin, filter by organisme
+    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
+    const userParams = (!this.isSuperAdmin() && currentOrgId)
       ? { page: 1, page_size: 100, organisme: currentOrgId }
       : { page: 1, page_size: 100 };
 
@@ -307,8 +313,11 @@ export class PlanFormModalComponent implements OnInit {
   }
 
   filterSites(): void {
-    // Update the signal to trigger computed recomputation
     this.siteSearchSignal.set(this.siteSearchQuery);
+  }
+
+  onSiteScopeChange(scope: ViewScope): void {
+    this.siteScope.set(scope);
   }
 
   // User/Referent selection methods

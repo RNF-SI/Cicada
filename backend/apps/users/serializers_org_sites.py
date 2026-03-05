@@ -177,6 +177,7 @@ class SiteListSerializer(serializers.ModelSerializer):
     plans_count = serializers.SerializerMethodField()
     organismes = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
+    current_user_access = serializers.SerializerMethodField()
 
     # Point de référence en GeoJSON simple
     geom_pt_geojson = serializers.SerializerMethodField()
@@ -187,7 +188,8 @@ class SiteListSerializer(serializers.ModelSerializer):
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
             'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
-            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
+            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users',
+            'current_user_access'
         ]
 
     def get_geom_pt_geojson(self, obj):
@@ -230,6 +232,93 @@ class SiteListSerializer(serializers.ModelSerializer):
             'prenom_role': cor.id_role.prenom_role,
             'referent': cor.referent
         } for cor in cor_users]
+
+    def get_current_user_access(self, obj):
+        """Retourne le type d'accès de l'utilisateur courant au site."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+
+        user = request.user
+
+        is_super = user.is_superuser or user.role_level == 'super_admin'
+
+        # Relation directe utilisateur-site (prioritaire même pour super_admin)
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=user, id_site=obj)
+            is_referent = cor_role_site.referent and cor_role_site.referent_valid
+            if is_referent:
+                return {
+                    'has_access': True,
+                    'access_type': 'referent',
+                    'role_label': 'Référent'
+                }
+            if cor_role_site.conservateur:
+                return {
+                    'has_access': True,
+                    'access_type': 'conservateur',
+                    'role_label': 'Conservateur'
+                }
+            return {
+                'has_access': True,
+                'access_type': 'membre',
+                'role_label': 'Membre'
+            }
+        except CorRoleSite.DoesNotExist:
+            pass
+
+        # Super admin sans relation directe
+        if is_super:
+            # Vérifier si le site appartient à l'organisme du super_admin
+            if user.id_organisme:
+                is_own_org_site = CorOgSite.objects.filter(
+                    id_site=obj,
+                    uuid_og=user.id_organisme
+                ).exists()
+                if is_own_org_site:
+                    return {
+                        'has_access': True,
+                        'access_type': 'admin_og',
+                        'role_label': user.id_organisme.nom_organisme
+                    }
+            # Sinon afficher l'organisme gestionnaire principal
+            principal_org = CorOgSite.objects.filter(
+                id_site=obj, principal=True
+            ).select_related('uuid_og').first()
+            org_label = principal_org.uuid_og.nom_organisme if principal_org else 'Tous les sites'
+            return {
+                'has_access': True,
+                'access_type': 'super_admin',
+                'role_label': org_label
+            }
+
+        # Admin organisme gestionnaire du site
+        if user.role_level == 'admin_og' and user.id_organisme:
+            is_org_gestionnaire = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            if is_org_gestionnaire:
+                return {
+                    'has_access': True,
+                    'access_type': 'admin_og',
+                    'role_label': 'Admin organisme'
+                }
+
+        # Utilisateur via organisme (pas de relation directe)
+        if user.id_organisme:
+            is_org_site = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            if is_org_site:
+                return {
+                    'has_access': True,
+                    'access_type': 'organisme',
+                    'role_label': user.id_organisme.nom_organisme
+                }
+
+        return None
 
 
 class SiteGeoJSONSerializer(serializers.ModelSerializer):

@@ -42,9 +42,11 @@ export interface OrganismeCreatePayload {
  */
 export interface SiteUserAccess {
   has_access: boolean;
-  is_referent: boolean;
-  is_conservateur: boolean;
+  is_referent?: boolean;
+  is_conservateur?: boolean;
   role_label: string;
+  /** Type d'accès pour le styling frontend */
+  access_type?: 'super_admin' | 'referent' | 'conservateur' | 'membre' | 'admin_og' | 'organisme';
 }
 
 /**

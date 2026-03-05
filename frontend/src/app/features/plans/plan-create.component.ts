@@ -32,6 +32,7 @@ import { Observable, map, startWith, debounceTime, distinctUntilChanged } from '
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
   PlanCreatePayload,
@@ -51,6 +52,8 @@ interface SelectableSite {
   type?: string;
   selected: boolean;
   pendingValidation?: boolean;
+  accessType?: string;
+  accessLabel?: string;
 }
 
 /** Représente un rédacteur ou relecteur (utilisateur ou texte libre) */
@@ -92,7 +95,8 @@ interface OrganismeEntry {
     MatDialogModule,
     MatSnackBarModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    ViewScopeToggleComponent
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'
@@ -128,13 +132,31 @@ export class PlanCreateComponent implements OnInit {
   // Selected items
   selectedSiteIds = signal<number[]>([]);
 
+  // Site scope toggle
+  siteScope = signal<ViewScope>('mine');
+  readonly showSiteScopeToggle = computed(() => this.authService.isAdminOrganisme() || this.isSuperAdmin());
+
   // Search query
   siteSearchQuery = '';
   private siteSearchSignal = signal('');
 
-  // Filtered list (computed)
+  /** Types d'accès correspondant à une relation directe (mes sites) */
+  private readonly directAccessTypes = new Set(['referent', 'conservateur', 'membre']);
+
+  // Filtered list (computed) — scope + recherche
   filteredSites = computed(() => {
-    const sites = this.availableSites();
+    let sites = this.availableSites();
+
+    // Filtre par scope
+    const scope = this.siteScope();
+    if (scope === 'mine') {
+      sites = sites.filter(s => s.accessType && this.directAccessTypes.has(s.accessType));
+    } else if (scope === 'organisme') {
+      // Inclut les sites directs + sites de l'organisme (exclut seulement super_admin sans lien)
+      sites = sites.filter(s => s.accessType && s.accessType !== 'super_admin');
+    }
+    // scope === 'all' → pas de filtre
+
     const query = this.siteSearchSignal().toLowerCase().trim();
     if (!query) {
       return sites;
@@ -244,9 +266,6 @@ export class PlanCreateComponent implements OnInit {
   private loadData(): void {
     this.isLoadingData.set(true);
 
-    const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
-
     // Load redacteur types
     this.adminService.getRedacteurTypes().subscribe({
       next: (types) => this.redacteurTypes.set(types),
@@ -265,44 +284,26 @@ export class PlanCreateComponent implements OnInit {
       error: () => this.availableOrganismes.set([])
     });
 
-    // Load sites - if admin_org, only load sites from their organisme
-    if (filterByOrg) {
-      this.adminService.getOrganismeSites(currentOrgId!).subscribe({
-        next: (orgSites) => {
-          const sites = orgSites.map(s => ({
-            id: s.id_site,
-            nom: s.nom_site,
-            type: s.type_site_label || s.type_site,
-            selected: false,
-            pendingValidation: false
-          }));
-          this.availableSites.set(sites);
-          this.isLoadingData.set(false);
-        },
-        error: () => {
-          this.availableSites.set([]);
-          this.isLoadingData.set(false);
-        }
-      });
-    } else {
-      this.adminService.getSites({ page: 1, page_size: 200 }).subscribe({
-        next: (response) => {
-          const sites = response.results.map(s => ({
-            id: s.id_site,
-            nom: s.nom_site,
-            type: s.type_site_label,
-            selected: false,
-            pendingValidation: false
-          }));
-          this.availableSites.set(sites);
-          this.isLoadingData.set(false);
-        },
-        error: () => {
-          this.availableSites.set([]);
-          this.isLoadingData.set(false);
-        }
-      });
-    }
+    // Load all accessible sites (backend filters by role, client filters by scope)
+    this.adminService.getSites({ page: 1, page_size: 200 }).subscribe({
+      next: (response) => {
+        const sites = response.results.map(s => ({
+          id: s.id_site,
+          nom: s.nom_site,
+          type: s.type_site_label,
+          selected: false,
+          pendingValidation: false,
+          accessType: s.current_user_access?.access_type,
+          accessLabel: s.current_user_access?.role_label
+        }));
+        this.availableSites.set(sites);
+        this.isLoadingData.set(false);
+      },
+      error: () => {
+        this.availableSites.set([]);
+        this.isLoadingData.set(false);
+      }
+    });
   }
 
   // ==================== SITES ====================
@@ -339,6 +340,10 @@ export class PlanCreateComponent implements OnInit {
 
   filterSites(): void {
     this.siteSearchSignal.set(this.siteSearchQuery);
+  }
+
+  onSiteScopeChange(scope: ViewScope): void {
+    this.siteScope.set(scope);
   }
 
   /** Ouvre le modal de création de site */

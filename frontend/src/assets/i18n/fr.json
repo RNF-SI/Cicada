@@ -1024,6 +1024,9 @@
         "rangRequired": "Le rang est obligatoire",
         "rangMin": "Le rang doit être au minimum 1"
       },
+      "sitesScopeMine": "Mes sites",
+      "sitesScopeOrg": "Mon organisme",
+      "sitesScopeAll": "Tous les sites",
       "noSiteMatching": "Aucun site correspondant à \"{{query}}\"",
       "noSiteAvailable": "Aucun site disponible",
       "noUserMatching": "Aucun utilisateur correspondant à \"{{query}}\"",
@@ -1176,6 +1179,11 @@
     },
     "myPlans": {
       "empty": "Vous n'avez accès à aucun plan de gestion pour le moment.",
+      "emptyTitle": "Aucun plan de gestion",
+      "emptyHint1": "Vous n'êtes encore associé(e) à aucun plan, ce qui peut arriver si :",
+      "emptyReason1": "Votre compte vient d'être créé et un administrateur n'a pas encore configuré vos accès",
+      "emptyReason2": "Vous n'avez pas encore été désigné(e) comme référent ou membre d'un site ayant un plan",
+      "emptyHint2": "Vous pouvez demander l'accès à un plan existant dans la section ci-dessous, ou contacter un administrateur de votre organisme.",
       "referent": "Référent"
     },
     "pendingPlans": {

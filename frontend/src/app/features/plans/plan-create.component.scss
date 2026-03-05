@@ -291,6 +291,19 @@
   font-weight: $font-weight-bold;
 }
 
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+
+  .field-label {
+    margin-bottom: 0;
+  }
+}
+
 // Search box for sites
 .search-box {
   display: flex;
@@ -389,6 +402,43 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .item-access {
+    display: inline-flex;
+    align-items: center;
+    font-size: $font-size-small;
+    padding: 2px $spacing-xs;
+    border-radius: $border-radius-pill;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    // Default style
+    background-color: $beige;
+    color: $primary-color;
+
+    &.access-referent,
+    &.access-conservateur {
+      background-color: $secondary-yellow;
+      color: $black;
+    }
+
+    &.access-membre {
+      background-color: $secondary-pale-green;
+      color: $black;
+    }
+
+    &.access-admin_og {
+      background-color: $secondary-yellow;
+      color: $primary-color;
+    }
+
+    &.access-organisme,
+    &.access-super_admin {
+      background-color: $beige;
+      color: $primary-color;
+    }
   }
 
   .item-pending {
