@@ -113,19 +113,16 @@ export class PlansListComponent implements OnInit {
   readonly myPlansColumns = ['name', 'period', 'status', 'actions'];
   readonly otherPlansColumns = ['name', 'period', 'organisme', 'actions'];
 
-  // Plans où l'utilisateur est membre direct (via CorRolePlan)
+  // Plans où l'utilisateur est directement impliqué au niveau du PLAN :
+  // - membre du plan (via CorRolePlan)
+  // - référent du plan (via PlanGestion.referents)
+  // Note : ne PAS inclure les plans via les sites assignés, sinon
+  // "Mes plans" et "Mon organisme" sont identiques pour admin_og.
   readonly myDirectPlans = computed(() => {
     const currentUser = this.authService.currentUser();
     return this.allPlans().filter(plan =>
-      plan.membres?.some(m => m.id_role === currentUser?.id)
-    );
-  });
-
-  // Plans des sites auxquels l'utilisateur est lié (membre ou référent du site)
-  readonly sitePlans = computed(() => {
-    const userSiteIds = this.userSiteIds();
-    return this.allPlans().filter(plan =>
-      plan.sites?.some(s => userSiteIds.has(s.id_site))
+      plan.membres?.some(m => m.id_role === currentUser?.id) ||
+      plan.referents?.some(r => r.id_role === currentUser?.id)
     );
   });
 

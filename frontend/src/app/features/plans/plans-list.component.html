@@ -114,9 +114,18 @@
         </div>
 
         @if (myPlans().length === 0) {
-          <div class="empty-state">
+          <div class="empty-state empty-state--detailed">
             <i class="fi fi-rr-document empty-icon"></i>
-            <p>{{ 'plans.myPlans.empty' | translate }}</p>
+            <h3 class="empty-title">{{ 'plans.myPlans.emptyTitle' | translate }}</h3>
+            <p>{{ 'plans.myPlans.emptyHint1' | translate }}</p>
+            <ul class="empty-reasons">
+              <li>{{ 'plans.myPlans.emptyReason1' | translate }}</li>
+              <li>{{ 'plans.myPlans.emptyReason2' | translate }}</li>
+            </ul>
+            <p class="empty-action-hint">
+              <i class="fi fi-rr-arrow-down"></i>
+              {{ 'plans.myPlans.emptyHint2' | translate }}
+            </p>
           </div>
         } @else {
           <!-- Table des plans -->

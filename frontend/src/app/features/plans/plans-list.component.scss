@@ -739,6 +739,52 @@ tr.is-child {
   margin: 0;
 }
 
+.empty-state--detailed {
+  align-items: flex-start;
+  text-align: left;
+  padding: $spacing-xl;
+  gap: $spacing-xs;
+
+  .empty-icon {
+    align-self: center;
+  }
+
+  .empty-title {
+    align-self: center;
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .empty-reasons {
+    margin: $spacing-xs 0;
+    padding-left: $spacing-lg;
+    list-style: disc;
+    color: $gray-dark;
+    font-size: $font-size-base;
+    font-family: $font-family;
+
+    li {
+      margin-bottom: $spacing-xxs;
+    }
+  }
+
+  .empty-action-hint {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+    margin-top: $spacing-sm;
+
+    i {
+      font-size: $font-size-base;
+    }
+  }
+}
+
 // ============================================
 // PENDING PLANS SECTION
 // ============================================
