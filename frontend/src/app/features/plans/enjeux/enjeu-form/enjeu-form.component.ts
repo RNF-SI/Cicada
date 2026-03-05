@@ -107,8 +107,13 @@ export class EnjeuFormComponent implements OnInit {
     this.loadData();
   }
 
+  private planLoaded = false;
+  private nomenclatureLoaded = false;
+
   private loadData(): void {
     this.isLoadingData.set(true);
+    this.planLoaded = false;
+    this.nomenclatureLoaded = false;
 
     // Charger le plan par slug
     const slug = this.planSlug();
@@ -117,24 +122,37 @@ export class EnjeuFormComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.planLoaded = true;
+          this.tryLoadEnjeuIfEdit();
         },
         error: () => {
-          // Non bloquant
+          this.planLoaded = true;
+          this.tryLoadEnjeuIfEdit();
         }
       });
+    } else {
+      this.planLoaded = true;
     }
 
     // Charger l'ID de la nomenclature ENJEU
     this.adminService.getNomenclatureByMnemonique('CATEGORIE_ENJEU', 'ENJEU').subscribe({
       next: (nomenclature) => {
         this.enjeuCategorieId.set(nomenclature.id_nomenclature);
-        this.loadEnjeuIfEdit();
+        this.nomenclatureLoaded = true;
+        this.tryLoadEnjeuIfEdit();
       },
       error: () => {
         // Fallback - on continuera sans, le backend devrait gérer
-        this.loadEnjeuIfEdit();
+        this.nomenclatureLoaded = true;
+        this.tryLoadEnjeuIfEdit();
       }
     });
+  }
+
+  private tryLoadEnjeuIfEdit(): void {
+    if (this.planLoaded && this.nomenclatureLoaded) {
+      this.loadEnjeuIfEdit();
+    }
   }
 
   private loadEnjeuIfEdit(): void {
