@@ -33,6 +33,6 @@ export class AdminDashboardPage {
 
   async getStatValue(label: string): Promise<string> {
     const card = this.getStatCard(label);
-    return card.locator('.stat-value').textContent() ?? '';
+    return (await card.locator('.stat-value').textContent()) ?? '';
   }
 }

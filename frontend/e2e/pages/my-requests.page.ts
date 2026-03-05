@@ -57,15 +57,15 @@ export class MyRequestsPage {
   }
 
   async getPendingCount(): Promise<string> {
-    return this.pendingStatCard.locator('.stat-value').textContent() || '0';
+    return (await this.pendingStatCard.locator('.stat-value').textContent()) || '0';
   }
 
   async getApprovedCount(): Promise<string> {
-    return this.approvedStatCard.locator('.stat-value').textContent() || '0';
+    return (await this.approvedStatCard.locator('.stat-value').textContent()) || '0';
   }
 
   async getRejectedCount(): Promise<string> {
-    return this.rejectedStatCard.locator('.stat-value').textContent() || '0';
+    return (await this.rejectedStatCard.locator('.stat-value').textContent()) || '0';
   }
 
   async getRequestCount(): Promise<number> {
