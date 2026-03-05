@@ -52,6 +52,12 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    def get_permissions(self):
+        """Permissions selon l'action."""
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), IsReferent()]
+        return super().get_permissions()
     filterset_class = PlanGestionFilter
     search_fields = [
         'nom', 'commentaire', 'redacteur_nom', 'id_cdr'

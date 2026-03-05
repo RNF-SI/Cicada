@@ -929,7 +929,7 @@ class TestPlansFichiersDownload:
         response = api_client.get(f'/api/plans/fichiers/{fichier.id}/download/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert response['Content-Disposition'] == 'attachment; filename="test_document.pdf"'
+        assert response['Content-Disposition'] == 'inline; filename="test_document.pdf"'
 
     def test_download_private_fichier_with_permission(self, api_client, tmp_path):
         """Test downloading a private file with proper permission."""
