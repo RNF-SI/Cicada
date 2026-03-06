@@ -17,7 +17,7 @@ from .models_enjeux import (
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
-from .models import PlanGestion
+from .models import PlanGestion, CorRolePlan
 from apps.users.models import Site
 from .serializers_enjeux import (
     EnjeuListSerializer, EnjeuDetailSerializer, EnjeuCreateSerializer,
@@ -102,6 +102,10 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             return EnjeuCreateSerializer
         return EnjeuDetailSerializer
 
+    def _user_plan_ids(self, user):
+        """Retourne les IDs des plans accessibles via CorRolePlan (membre ou référent)."""
+        return CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+
     def get_queryset(self):
         """Filtrer selon les permissions utilisateur."""
         user = self.request.user
@@ -117,15 +121,13 @@ class EnjeuViewSet(viewsets.ModelViewSet):
                 id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        # Référent : voir les enjeux des plans dont il est référent
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_pg__referents=user)
-            ).distinct()
-
-        # Utilisateur : voir les enjeux des plans validés
-        return queryset.filter(id_pg__statut='valide')
+        # Membre ou référent d'un plan (via CorRolePlan) OU lié via site OU plans validés
+        user_plan_ids = self._user_plan_ids(user)
+        return queryset.filter(
+            Q(id_pg__in=user_plan_ids) |
+            Q(id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         """Définir l'utilisateur créateur."""
@@ -153,8 +155,10 @@ class EnjeuViewSet(viewsets.ModelViewSet):
                         {'error': 'Vous n\'avez pas accès à ce plan'},
                         status=status.HTTP_403_FORBIDDEN
                     )
-            elif not plan.referents.filter(id_role=request.user.id_role).exists():
-                if plan.statut != 'valide':
+            elif not CorRolePlan.objects.filter(id_role=request.user, plan_de_gestion=plan).exists():
+                # Ni membre ni référent du plan — vérifier accès site ou plan validé
+                has_site_access = plan.sites.filter(site__corrolesite__id_role=request.user).exists()
+                if not has_site_access and plan.statut != 'valide':
                     return Response(
                         {'error': 'Vous n\'avez pas accès à ce plan'},
                         status=status.HTTP_403_FORBIDDEN
@@ -481,13 +485,12 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
                 id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -552,13 +555,12 @@ class PressionViewSet(viewsets.ModelViewSet):
                 id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_facteur_influence__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_facteur_influence__id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_facteur_influence__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -625,13 +627,12 @@ class EtatActuelViewSet(viewsets.ModelViewSet):
                 id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_olt__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_olt__id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_olt__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -701,13 +702,12 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
                 id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -772,13 +772,12 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
                 id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_olt__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_olt__id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_olt__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -853,13 +852,12 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
                 id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -924,13 +922,12 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
                 id_oo__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_oo__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
-        return queryset.filter(id_oo__id_enjeu__id_pg__statut='valide')
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+        return queryset.filter(
+            Q(id_oo__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_oo__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)

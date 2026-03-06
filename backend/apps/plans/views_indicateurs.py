@@ -12,6 +12,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models_indicateurs import Indicateur, Metrique, Mesure
 from .models_enjeux import NiveauExigence, ResultatAttendu
+from .models import CorRolePlan
 from apps.users.permissions import IsReferent
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
@@ -71,18 +72,15 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_ne__id_olt__id_enjeu__id_pg__referents=user) |
-                Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
+            Q(id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
             Q(id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
             Q(id_resultat_attendu__id_oo__id_enjeu__id_pg__statut='valide')
-        )
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -166,15 +164,12 @@ class MetriqueViewSet(viewsets.ModelViewSet):
                 id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide'
-        )
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -240,15 +235,12 @@ class MesureViewSet(viewsets.ModelViewSet):
                 id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide'
-        )
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)

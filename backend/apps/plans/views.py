@@ -17,7 +17,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import PlanGestion, CorSitePg, CorPgFichier
+from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from .serializers import (
     PlanGestionListSerializer, PlanGestionDetailSerializer,
     PlanGestionGeoJSONSerializer, PlanGestionCreateSerializer,
@@ -34,7 +34,7 @@ from apps.users.permissions import (
 class PlanGestionViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour les Plans de Gestion.
-    
+
     Fonctionnalités:
     - CRUD complet avec permissions
     - Filtres avancés (statut, période, organisme, sites)
@@ -43,7 +43,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     - Gestion de fichiers
     - Assignation de sites et référents
     """
-    
+
+    def _can_manage_plan(self, user, plan):
+        """Vérifie si l'utilisateur peut gérer ce plan (admin_og+ ou référent du plan)."""
+        if user.is_admin_organisme():
+            return True
+        return plan.referents.filter(pk=user.pk).exists()
+
     queryset = PlanGestion.objects.all().select_related(
         'id_evaluation', 'id_redacteur_type',
         'id_utilisateur_ajout', 'id_utilisateur_maj',
@@ -200,16 +206,20 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         return Response(feature)
     
-    @action(detail=True, methods=['post'], 
-            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+    @action(detail=True, methods=['post'],
+            permission_classes=[permissions.IsAuthenticated])
     def assign_site(self, request, pk=None):
         """
         Assigner un site à un plan.
-        
+
         POST /api/plans/{id}/assign_site/
         Body: {"site_id": 123, "rang": 1, "commentaire": "Site principal"}
         """
         plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
         site_id = request.data.get('site_id')
         rang = request.data.get('rang')
         commentaire = request.data.get('commentaire', '')
@@ -221,12 +231,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         try:
             from apps.users.models import Site
             site = Site.objects.get(id_site=site_id)
-            
-            # Vérifier les permissions sur le site
-            if not request.user.can_manage_site(site):
-                return Response({'error': 'Permissions insuffisantes pour ce site'}, 
-                              status=status.HTTP_403_FORBIDDEN)
-            
+
             # Créer ou mettre à jour la relation
             cor_site_pg, created = CorSitePg.objects.update_or_create(
                 plan_de_gestion=plan,
@@ -236,27 +241,31 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'commentaire': commentaire
                 }
             )
-            
+
             serializer = CorSitePgSerializer(cor_site_pg)
-            
+
             return Response({
                 'message': 'Site assigné avec succès' if created else 'Relation mise à jour',
                 'relation': serializer.data
             })
-            
+
         except Site.DoesNotExist:
-            return Response({'error': 'Site non trouvé'}, 
+            return Response({'error': 'Site non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
     
-    @action(detail=True, methods=['delete'], 
-            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+    @action(detail=True, methods=['delete'],
+            permission_classes=[permissions.IsAuthenticated])
     def remove_site(self, request, pk=None):
         """
         Retirer un site d'un plan.
-        
+
         DELETE /api/plans/{id}/remove_site/?site_id=123
         """
         plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
         site_id = request.query_params.get('site_id')
         
         if not site_id:
@@ -268,22 +277,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 plan_de_gestion=plan,
                 site__id_site=site_id
             )
-            
-            # Vérifier les permissions
-            if not request.user.can_manage_site(cor_site_pg.site):
-                return Response({'error': 'Permissions insuffisantes'}, 
-                              status=status.HTTP_403_FORBIDDEN)
-            
+
             cor_site_pg.delete()
-            
+
             return Response({'message': 'Site retiré du plan'})
-            
+
         except CorSitePg.DoesNotExist:
             return Response({'error': 'Relation non trouvée'},
                           status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'],
-            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+            permission_classes=[permissions.IsAuthenticated])
     def replace_site(self, request, pk=None):
         """
         Remplacer un site par un autre dans un plan.
@@ -295,6 +299,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         from apps.users.models import Site
 
         plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
         old_site_id = request.data.get('old_site_id')
         new_site_id = request.data.get('new_site_id')
 
@@ -308,11 +316,6 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         except Site.DoesNotExist:
             return Response({'error': 'Nouveau site non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
-
-        # Vérifier les permissions sur le nouveau site
-        if not request.user.can_manage_site(new_site):
-            return Response({'error': 'Permissions insuffisantes sur le nouveau site'},
-                          status=status.HTTP_403_FORBIDDEN)
 
         # Vérifier que l'ancien site est bien lié au plan
         try:
@@ -350,7 +353,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'],
-            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+            permission_classes=[permissions.IsAuthenticated])
     def assign_referent(self, request, pk=None):
         """
         Assigner un référent à un plan.
@@ -359,23 +362,29 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         Body: {"referent_id": 123}
         """
         plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
         referent_id = request.data.get('referent_id')
-        
+
         if not referent_id:
-            return Response({'error': 'referent_id requis'}, 
+            return Response({'error': 'referent_id requis'},
                           status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             from apps.users.models import Role
             referent = Role.objects.get(id_role=referent_id)
-            
-            # Vérifier que l'utilisateur est au moins référent
-            if not referent.is_referent():
-                return Response({'error': 'L\'utilisateur doit être au moins référent'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-            
+
             plan.referents.add(referent)
-            
+
+            # Sync CorRolePlan
+            CorRolePlan.objects.update_or_create(
+                id_role=referent,
+                plan_de_gestion=plan,
+                defaults={'referent': True}
+            )
+
             return Response({'message': f'Référent {referent} assigné au plan'})
 
         except Role.DoesNotExist:
@@ -383,7 +392,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                           status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['delete'],
-            permission_classes=[permissions.IsAuthenticated, IsAdminOrganisme])
+            permission_classes=[permissions.IsAuthenticated])
     def remove_referent(self, request, pk=None):
         """
         Retirer un référent d'un plan.
@@ -391,6 +400,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         DELETE /api/plans/{id}/remove_referent/?referent_id=123
         """
         plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
         referent_id = request.query_params.get('referent_id')
 
         if not referent_id:
@@ -407,7 +420,97 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
             plan.referents.remove(referent)
 
+            # Sync CorRolePlan: downgrade to member (keep association)
+            CorRolePlan.objects.filter(
+                id_role=referent,
+                plan_de_gestion=plan
+            ).update(referent=False)
+
             return Response({'message': f'Référent {referent} retiré du plan'})
+
+        except Role.DoesNotExist:
+            return Response({'error': 'Utilisateur non trouvé'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'],
+            permission_classes=[permissions.IsAuthenticated])
+    def assign_member(self, request, pk=None):
+        """
+        Ajouter un membre (non-référent) à un plan.
+
+        POST /api/plans/{id}/assign_member/
+        Body: {"user_id": 123}
+        """
+        plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response({'error': 'user_id requis'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from apps.users.models import Role
+            user = Role.objects.get(id_role=user_id)
+
+            cor, created = CorRolePlan.objects.get_or_create(
+                id_role=user,
+                plan_de_gestion=plan,
+                defaults={'referent': False}
+            )
+            if not created and cor.referent:
+                return Response({'error': 'Cet utilisateur est déjà référent de ce plan'},
+                              status=status.HTTP_400_BAD_REQUEST)
+            if not created:
+                return Response({'error': 'Cet utilisateur est déjà membre de ce plan'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({'message': f'Membre {user} ajouté au plan'})
+
+        except Role.DoesNotExist:
+            return Response({'error': 'Utilisateur non trouvé'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['delete'],
+            permission_classes=[permissions.IsAuthenticated])
+    def remove_member(self, request, pk=None):
+        """
+        Retirer un membre d'un plan (supprime l'association complètement).
+
+        DELETE /api/plans/{id}/remove_member/?user_id=123
+        """
+        plan = self.get_object()
+
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                          status=status.HTTP_403_FORBIDDEN)
+        user_id = request.query_params.get('user_id')
+
+        if not user_id:
+            return Response({'error': 'user_id requis'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from apps.users.models import Role
+            user = Role.objects.get(id_role=user_id)
+
+            cor = CorRolePlan.objects.filter(
+                id_role=user,
+                plan_de_gestion=plan
+            ).first()
+
+            if not cor:
+                return Response({'error': 'Cet utilisateur n\'est pas membre de ce plan'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            # Also remove from M2M referents if present
+            plan.referents.remove(user)
+            cor.delete()
+
+            return Response({'message': f'Membre {user} retiré du plan'})
 
         except Role.DoesNotExist:
             return Response({'error': 'Utilisateur non trouvé'},
@@ -676,7 +779,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         - draft → valide
         - valide → draft
         - valide → archive
-        - archive → draft
+        - archive → valide
         """
         plan = self.get_object()
 
@@ -704,7 +807,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         allowed_transitions = {
             'draft': ['valide'],
             'valide': ['archive', 'draft'],
-            'archive': ['draft'],
+            'archive': ['valide'],
         }
 
         if new_status not in allowed_transitions.get(current, []):

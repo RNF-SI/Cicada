@@ -14,7 +14,7 @@ from collections import defaultdict
 
 from .models_operations import Operation, OperationAnnee, FinanceOperation
 from .models_indicateurs import Indicateur
-from .models import PlanGestion
+from .models import PlanGestion, CorRolePlan
 from apps.users.permissions import IsReferent
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -69,14 +69,11 @@ class OperationViewSet(viewsets.ModelViewSet):
                 indicateurs__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
-        if user.is_referent():
-            return queryset.filter(
-                Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-                Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg__referents=user)
-            ).distinct()
-
+        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            indicateurs__id_ne__id_olt__id_enjeu__id_pg__statut='valide'
+            Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(indicateurs__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
