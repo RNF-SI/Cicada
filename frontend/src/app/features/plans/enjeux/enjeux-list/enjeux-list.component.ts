@@ -103,6 +103,12 @@ export class EnjeuxListComponent implements OnInit {
   newFacteurDescription = '';
   newPressionLibelle = '';
   newPressionDescription = '';
+  editingFacteurId = signal<number | null>(null);
+  editFacteurLibelle = '';
+  editFacteurDescription = '';
+  editingPressionId = signal<number | null>(null);
+  editPressionLibelle = '';
+  editPressionDescription = '';
 
   // OLT / Niveaux d'exigence state
   expandedOltIds = signal<Set<number>>(new Set());
@@ -600,6 +606,82 @@ export class EnjeuxListComponent implements OnInit {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
           }
         });
+      }
+    });
+  }
+
+  // ============================================
+  // Facteurs d'influence — édition inline
+  // ============================================
+
+  startEditFacteur(facteur: FacteurInfluence): void {
+    this.editingFacteurId.set(facteur.id_facteur_influence);
+    this.editFacteurLibelle = facteur.libelle;
+    this.editFacteurDescription = facteur.description || '';
+  }
+
+  cancelEditFacteur(): void {
+    this.editingFacteurId.set(null);
+    this.editFacteurLibelle = '';
+    this.editFacteurDescription = '';
+  }
+
+  saveEditFacteur(facteur: FacteurInfluence): void {
+    if (!this.editFacteurLibelle.trim()) return;
+
+    this.enjeuService.updateFacteurInfluence(facteur.id_facteur_influence, {
+      libelle: this.editFacteurLibelle.trim(),
+      description: this.editFacteurDescription.trim() || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.facteurInfluence.updateSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelEditFacteur();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
+      }
+    });
+  }
+
+  // ============================================
+  // Pressions — édition inline
+  // ============================================
+
+  startEditPression(pression: Pression): void {
+    this.editingPressionId.set(pression.id_pression);
+    this.editPressionLibelle = pression.libelle;
+    this.editPressionDescription = pression.description || '';
+  }
+
+  cancelEditPression(): void {
+    this.editingPressionId.set(null);
+    this.editPressionLibelle = '';
+    this.editPressionDescription = '';
+  }
+
+  saveEditPression(pression: Pression): void {
+    if (!this.editPressionLibelle.trim()) return;
+
+    this.enjeuService.updatePression(pression.id_pression, {
+      libelle: this.editPressionLibelle.trim(),
+      description: this.editPressionDescription.trim() || undefined
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.pression.updateSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.cancelEditPression();
+        this.loadPlanData();
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
       }
     });
   }

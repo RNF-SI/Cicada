@@ -245,6 +245,35 @@
               @if (!isSelectedFcr()) {
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
                   <div class="facteur-influence-card" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
+                    <!-- Mode édition facteur -->
+                    @if (editingFacteurId() === facteur.id_facteur_influence) {
+                      <div class="facteur-card-body">
+                        <div class="inline-form">
+                          <div class="inline-form-header">
+                            <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                            <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.editTitle' | translate }}</h4>
+                          </div>
+                          <div class="inline-form-body">
+                            <mat-form-field class="full-width" appearance="outline">
+                              <mat-label>{{ 'enjeux.facteurInfluence.libelleLabel' | translate }}</mat-label>
+                              <input matInput [(ngModel)]="editFacteurLibelle">
+                            </mat-form-field>
+                            <mat-form-field class="full-width" appearance="outline">
+                              <mat-label>{{ 'enjeux.facteurInfluence.descriptionLabel' | translate }}</mat-label>
+                              <textarea matInput [(ngModel)]="editFacteurDescription" rows="2"></textarea>
+                            </mat-form-field>
+                          </div>
+                          <div class="inline-form-actions">
+                            <button mat-flat-button color="primary" (click)="saveEditFacteur(facteur)" [disabled]="!editFacteurLibelle.trim()">
+                              {{ 'common.actions.save' | translate }}
+                            </button>
+                            <button mat-stroked-button (click)="cancelEditFacteur()">
+                              {{ 'common.actions.cancel' | translate }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    } @else {
                     <div class="facteur-card-header" (click)="toggleFacteur(facteur.id_facteur_influence)">
                       <div class="facteur-card-left">
                         <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
@@ -253,6 +282,9 @@
                         </h3>
                       </div>
                       <div class="facteur-card-actions">
+                        <button class="icon-btn-flat" (click)="startEditFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                          <i class="fi fi-rr-pencil"></i>
+                        </button>
                         <button class="icon-btn-flat" (click)="deleteFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                           <i class="fi fi-rr-trash"></i>
                         </button>
@@ -275,6 +307,35 @@
                         <!-- Pressions du facteur -->
                         @for (pression of facteur.pressions || []; track pression.id_pression) {
                           <div class="pression-card" [class.expanded]="isPressionExpanded(pression.id_pression)">
+                            <!-- Mode édition pression -->
+                            @if (editingPressionId() === pression.id_pression) {
+                              <div class="pression-card-body">
+                                <div class="inline-form">
+                                  <div class="inline-form-header">
+                                    <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                                    <h4 class="inline-form-title">{{ 'enjeux.pression.editTitle' | translate }}</h4>
+                                  </div>
+                                  <div class="inline-form-body">
+                                    <mat-form-field class="full-width" appearance="outline">
+                                      <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
+                                      <input matInput [(ngModel)]="editPressionLibelle">
+                                    </mat-form-field>
+                                    <mat-form-field class="full-width" appearance="outline">
+                                      <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
+                                      <textarea matInput [(ngModel)]="editPressionDescription" rows="2"></textarea>
+                                    </mat-form-field>
+                                  </div>
+                                  <div class="inline-form-actions">
+                                    <button mat-flat-button color="primary" (click)="saveEditPression(pression)" [disabled]="!editPressionLibelle.trim()">
+                                      {{ 'common.actions.save' | translate }}
+                                    </button>
+                                    <button mat-stroked-button (click)="cancelEditPression()">
+                                      {{ 'common.actions.cancel' | translate }}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            } @else {
                             <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
                               <div class="pression-card-left">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
@@ -283,6 +344,9 @@
                                 </h4>
                               </div>
                               <div class="pression-card-actions">
+                                <button class="icon-btn-flat" (click)="startEditPression(pression); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                  <i class="fi fi-rr-pencil"></i>
+                                </button>
                                 <button class="icon-btn-flat" (click)="deletePression(pression); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                                   <i class="fi fi-rr-trash"></i>
                                 </button>
@@ -301,6 +365,7 @@
                                   <p class="section-text">{{ pression.description }}</p>
                                 }
                               </div>
+                            }
                             }
                           </div>
                         }
@@ -338,6 +403,7 @@
                         }
                       </div>
                     }
+                    } <!-- end @else (mode lecture facteur) -->
                   </div>
                 }
 

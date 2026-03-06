@@ -274,6 +274,29 @@ export class EnjeuxPage {
   }
 
   /**
+   * Click the edit button on a facteur card (pencil icon).
+   */
+  async clickEditFacteur(index: number) {
+    const facteur = this.facteurCards.nth(index);
+    await facteur.locator('.facteur-card-actions button .fi-rr-pencil').first().locator('..').click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Edit a facteur inline: click edit, fill fields, save.
+   */
+  async editFacteur(index: number, libelle: string, description?: string) {
+    await this.clickEditFacteur(index);
+    const form = this.facteurCards.nth(index).locator('.inline-form, .edit-inline-form').first();
+    await form.locator('input[matInput]').fill(libelle);
+    if (description !== undefined) {
+      await form.locator('textarea[matInput]').fill(description);
+    }
+    await form.locator('button[mat-flat-button]').click();
+    await this.page.waitForTimeout(500);
+  }
+
+  /**
    * Delete a facteur by index (clicks delete then confirms).
    */
   async deleteFacteur(index: number) {
@@ -302,6 +325,31 @@ export class EnjeuxPage {
       await form.locator('textarea[matInput]').fill(description);
     }
     await form.locator('.inline-form-actions button[mat-flat-button]').click();
+    await this.page.waitForTimeout(500);
+  }
+
+  /**
+   * Click the edit button on a pression card (pencil icon).
+   */
+  async clickEditPression(facteurIndex: number, pressionIndex: number) {
+    const facteur = this.facteurCards.nth(facteurIndex);
+    const pression = facteur.locator('.pression-card').nth(pressionIndex);
+    await pression.locator('.pression-card-actions button .fi-rr-pencil').first().locator('..').click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Edit a pression inline: click edit, fill fields, save.
+   */
+  async editPression(facteurIndex: number, pressionIndex: number, libelle: string, description?: string) {
+    await this.clickEditPression(facteurIndex, pressionIndex);
+    const facteur = this.facteurCards.nth(facteurIndex);
+    const form = facteur.locator('.pression-card').nth(pressionIndex).locator('.inline-form, .edit-inline-form').first();
+    await form.locator('input[matInput]').fill(libelle);
+    if (description !== undefined) {
+      await form.locator('textarea[matInput]').fill(description);
+    }
+    await form.locator('button[mat-flat-button]').click();
     await this.page.waitForTimeout(500);
   }
 

@@ -29,12 +29,14 @@ class FakeTranslateLoader implements TranslateLoader {
         },
         facteurInfluence: {
           createSuccess: 'Facteur créé',
+          updateSuccess: 'Facteur mis à jour',
           deleteTitle: 'Supprimer le facteur',
           deleteConfirm: 'Confirmer suppression ?',
           deleteSuccess: 'Facteur supprimé',
         },
         pression: {
           createSuccess: 'Pression créée',
+          updateSuccess: 'Pression mise à jour',
           deleteTitle: 'Supprimer la pression',
           deleteConfirm: 'Confirmer suppression ?',
           deleteSuccess: 'Pression supprimée',
@@ -42,6 +44,7 @@ class FakeTranslateLoader implements TranslateLoader {
         messages: {
           loadError: 'Erreur de chargement',
           createError: 'Erreur de création',
+          updateError: 'Erreur de mise à jour',
           deleteError: 'Erreur de suppression',
         },
       },
@@ -130,8 +133,10 @@ describe('EnjeuxListComponent', () => {
     getPlanEnjeux: jest.Mock;
     deleteEnjeu: jest.Mock;
     createFacteurInfluence: jest.Mock;
+    updateFacteurInfluence: jest.Mock;
     deleteFacteurInfluence: jest.Mock;
     createPression: jest.Mock;
+    updatePression: jest.Mock;
     deletePression: jest.Mock;
   };
   let mockAdminService: { getPlanBySlug: jest.Mock };
@@ -144,8 +149,10 @@ describe('EnjeuxListComponent', () => {
       getPlanEnjeux: jest.fn().mockReturnValue(of(mockPlanEnjeuxResponse)),
       deleteEnjeu: jest.fn().mockReturnValue(of(void 0)),
       createFacteurInfluence: jest.fn().mockReturnValue(of({ id_facteur_influence: 999, id_enjeu: 1, libelle: 'Nouveau', date_ajout: '', date_maj: '' })),
+      updateFacteurInfluence: jest.fn().mockReturnValue(of({ id_facteur_influence: 101, id_enjeu: 1, libelle: 'Modifié', date_ajout: '', date_maj: '' })),
       deleteFacteurInfluence: jest.fn().mockReturnValue(of(void 0)),
       createPression: jest.fn().mockReturnValue(of({ id_pression: 888, id_facteur_influence: 101, libelle: 'Nouvelle', date_ajout: '', date_maj: '' })),
+      updatePression: jest.fn().mockReturnValue(of({ id_pression: 301, id_facteur_influence: 101, libelle: 'Modifiée', date_ajout: '', date_maj: '' })),
       deletePression: jest.fn().mockReturnValue(of(void 0)),
     };
     mockAdminService = {
@@ -544,6 +551,98 @@ describe('EnjeuxListComponent', () => {
       component.deleteFacteur(facteur);
       expect(mockEnjeuService.deleteFacteurInfluence).not.toHaveBeenCalled();
     });
+
+    it('should start editing facteur with pre-filled values', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        description: 'Expansion urbaine',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      expect(component.editingFacteurId()).toBe(101);
+      expect(component.editFacteurLibelle).toBe('Urbanisation');
+      expect(component.editFacteurDescription).toBe('Expansion urbaine');
+    });
+
+    it('should cancel editing facteur and reset fields', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      component.cancelEditFacteur();
+      expect(component.editingFacteurId()).toBeNull();
+      expect(component.editFacteurLibelle).toBe('');
+      expect(component.editFacteurDescription).toBe('');
+    });
+
+    it('should call updateFacteurInfluence on save', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      component.editFacteurLibelle = 'Urbanisation modifiée';
+      component.editFacteurDescription = 'Nouvelle desc';
+      component.saveEditFacteur(facteur);
+
+      expect(mockEnjeuService.updateFacteurInfluence).toHaveBeenCalledWith(101, {
+        libelle: 'Urbanisation modifiée',
+        description: 'Nouvelle desc',
+      });
+    });
+
+    it('should not save edit facteur with empty libelle', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      component.editFacteurLibelle = '   ';
+      component.saveEditFacteur(facteur);
+      expect(mockEnjeuService.updateFacteurInfluence).not.toHaveBeenCalled();
+    });
+
+    it('should reset editing state after successful update', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      component.editFacteurLibelle = 'Modifié';
+      component.saveEditFacteur(facteur);
+      expect(component.editingFacteurId()).toBeNull();
+    });
+
+    it('should set errorMessage on update facteur error', () => {
+      mockEnjeuService.updateFacteurInfluence.mockReturnValue(throwError(() => new Error('Update failed')));
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101,
+        id_enjeu: 1,
+        libelle: 'Urbanisation',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditFacteur(facteur);
+      component.editFacteurLibelle = 'Modifié';
+      component.saveEditFacteur(facteur);
+      expect(component.errorMessage()).toBeTruthy();
+    });
   });
 
   // =========================================================================
@@ -636,6 +735,98 @@ describe('EnjeuxListComponent', () => {
       component.deletePression(pression);
       expect(mockEnjeuService.deletePression).not.toHaveBeenCalled();
     });
+
+    it('should start editing pression with pre-filled values', () => {
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        description: 'Description pression',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      expect(component.editingPressionId()).toBe(301);
+      expect(component.editPressionLibelle).toBe('Pression test');
+      expect(component.editPressionDescription).toBe('Description pression');
+    });
+
+    it('should cancel editing pression and reset fields', () => {
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      component.cancelEditPression();
+      expect(component.editingPressionId()).toBeNull();
+      expect(component.editPressionLibelle).toBe('');
+      expect(component.editPressionDescription).toBe('');
+    });
+
+    it('should call updatePression on save', () => {
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      component.editPressionLibelle = 'Pression modifiée';
+      component.editPressionDescription = 'Nouvelle desc';
+      component.saveEditPression(pression);
+
+      expect(mockEnjeuService.updatePression).toHaveBeenCalledWith(301, {
+        libelle: 'Pression modifiée',
+        description: 'Nouvelle desc',
+      });
+    });
+
+    it('should not save edit pression with empty libelle', () => {
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      component.editPressionLibelle = '   ';
+      component.saveEditPression(pression);
+      expect(mockEnjeuService.updatePression).not.toHaveBeenCalled();
+    });
+
+    it('should reset editing state after successful pression update', () => {
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      component.editPressionLibelle = 'Modifiée';
+      component.saveEditPression(pression);
+      expect(component.editingPressionId()).toBeNull();
+    });
+
+    it('should set errorMessage on update pression error', () => {
+      mockEnjeuService.updatePression.mockReturnValue(throwError(() => new Error('Update failed')));
+      const pression: Pression = {
+        id_pression: 301,
+        id_facteur_influence: 101,
+        libelle: 'Pression test',
+        date_ajout: '',
+        date_maj: '',
+      };
+      component.startEditPression(pression);
+      component.editPressionLibelle = 'Modifiée';
+      component.saveEditPression(pression);
+      expect(component.errorMessage()).toBeTruthy();
+    });
   });
 
   // =========================================================================
@@ -648,8 +839,10 @@ describe('EnjeuxListComponent', () => {
         getPlanEnjeux: jest.fn().mockReturnValue(throwError(() => new Error('Network error'))),
         deleteEnjeu: jest.fn(),
         createFacteurInfluence: jest.fn(),
+        updateFacteurInfluence: jest.fn(),
         deleteFacteurInfluence: jest.fn(),
         createPression: jest.fn(),
+        updatePression: jest.fn(),
         deletePression: jest.fn(),
       };
       mockAdminService = {

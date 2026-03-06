@@ -424,6 +424,58 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
     }
   });
 
+  test('should show inline edit form when clicking edit facteur', async ({ referentPage: page }) => {
+    const planId = await findPlanIdByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, planId);
+    const enjeuxPage = new EnjeuxPage(page);
+    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.waitForData();
+
+    const facteurCount = await enjeuxPage.getFacteurCount();
+    if (facteurCount > 0) {
+      await enjeuxPage.expandFacteur(0);
+      await enjeuxPage.clickEditFacteur(0);
+
+      // Inline edit form should appear with pre-filled values
+      const facteur = enjeuxPage.facteurCards.first();
+      const form = facteur.locator('.inline-form, .edit-inline-form').first();
+      await expect(form).toBeVisible();
+      await expect(form.locator('input[matInput]')).toBeVisible();
+      const inputValue = await form.locator('input[matInput]').inputValue();
+      expect(inputValue.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('should edit a facteur and see the updated title', async ({ referentPage: page }) => {
+    const planId = await findPlanIdByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, planId);
+    const enjeuxPage = new EnjeuxPage(page);
+    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.waitForData();
+
+    // Create a temp facteur to edit (avoid modifying seed data)
+    await enjeuxPage.addFacteur('E2E Facteur à modifier', 'Description initiale');
+    await page.waitForTimeout(1000);
+
+    const facteurCount = await enjeuxPage.getFacteurCount();
+    const lastIndex = facteurCount - 1;
+
+    await enjeuxPage.expandFacteur(lastIndex);
+    await enjeuxPage.editFacteur(lastIndex, 'E2E Facteur modifié', 'Description modifiée');
+    await page.waitForTimeout(1000);
+
+    // Verify the title was updated
+    const titles = await page.locator('.facteur-card-title').allInnerTexts();
+    const hasModified = titles.some(t => t.includes('E2E Facteur modifié'));
+    expect(hasModified).toBe(true);
+
+    // Clean up: delete the temp facteur
+    await enjeuxPage.expandFacteur(lastIndex);
+    await enjeuxPage.deleteFacteur(lastIndex);
+    await enjeuxPage.confirmDelete();
+    await page.waitForTimeout(500);
+  });
+
   test('should delete a facteur after confirmation', async ({ referentPage: page }) => {
     const planId = await findPlanIdByName(page, 'Camargue');
     const enjeuId = await findFirstEnjeuId(page, planId);
@@ -551,6 +603,66 @@ test.describe('Enjeux - CRUD Pressions', () => {
       await expect(form).not.toBeVisible();
       const newCount = await enjeuxPage.getPressionCount(0);
       expect(newCount).toBe(initialCount);
+    }
+  });
+
+  test('should show inline edit form when clicking edit pression', async ({ referentPage: page }) => {
+    const planId = await findPlanIdByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, planId);
+    const enjeuxPage = new EnjeuxPage(page);
+    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.waitForData();
+
+    const facteurCount = await enjeuxPage.getFacteurCount();
+    if (facteurCount > 0) {
+      await enjeuxPage.expandFacteur(0);
+      const pressionCount = await enjeuxPage.getPressionCount(0);
+      if (pressionCount > 0) {
+        await enjeuxPage.clickEditPression(0, 0);
+
+        const facteur = enjeuxPage.facteurCards.first();
+        const pression = facteur.locator('.pression-card').first();
+        const form = pression.locator('.inline-form, .edit-inline-form').first();
+        await expect(form).toBeVisible();
+        const inputValue = await form.locator('input[matInput]').inputValue();
+        expect(inputValue.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test('should edit a pression and see the updated title', async ({ referentPage: page }) => {
+    const planId = await findPlanIdByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, planId);
+    const enjeuxPage = new EnjeuxPage(page);
+    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.waitForData();
+
+    const facteurCount = await enjeuxPage.getFacteurCount();
+    if (facteurCount > 0) {
+      await enjeuxPage.expandFacteur(0);
+
+      // Create a temp pression to edit
+      await enjeuxPage.addPression(0, 'E2E Pression à modifier', 'Description initiale');
+      await page.waitForTimeout(1000);
+
+      const pressionCount = await enjeuxPage.getPressionCount(0);
+      const lastIndex = pressionCount - 1;
+
+      await enjeuxPage.editPression(0, lastIndex, 'E2E Pression modifiée', 'Description modifiée');
+      await page.waitForTimeout(1000);
+
+      // Verify the title was updated
+      const facteur = enjeuxPage.facteurCards.first();
+      const titles = await facteur.locator('.pression-card-title').allInnerTexts();
+      const hasModified = titles.some(t => t.includes('E2E Pression modifiée'));
+      expect(hasModified).toBe(true);
+
+      // Clean up
+      const lastPression = facteur.locator('.pression-card').last();
+      await lastPression.locator('.pression-card-actions button[title]').first().click();
+      await page.waitForTimeout(300);
+      await enjeuxPage.confirmDelete();
+      await page.waitForTimeout(500);
     }
   });
 

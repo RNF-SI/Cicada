@@ -2212,7 +2212,9 @@
       "details": "DÉTAILS",
       "deleteTitle": "Supprimer le facteur d'influence",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce facteur d'influence ? Ses pressions seront également supprimées.",
+      "editTitle": "Modifier le facteur d'influence",
       "createSuccess": "Facteur d'influence créé avec succès",
+      "updateSuccess": "Facteur d'influence mis à jour avec succès",
       "deleteSuccess": "Facteur d'influence supprimé avec succès"
     },
     "pression": {
@@ -2224,7 +2226,9 @@
       "details": "DÉTAILS",
       "deleteTitle": "Supprimer la pression",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette pression ?",
+      "editTitle": "Modifier la pression",
       "createSuccess": "Pression créée avec succès",
+      "updateSuccess": "Pression mise à jour avec succès",
       "deleteSuccess": "Pression supprimée avec succès"
     },
     "indicateurs": {
