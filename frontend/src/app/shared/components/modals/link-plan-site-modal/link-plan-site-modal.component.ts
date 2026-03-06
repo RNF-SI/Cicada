@@ -11,8 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ValidationService } from '../../../../core/services/validation.service';
 import { AdminSite } from '../../../../core/models/admin.model';
 import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
+import { forkJoin } from 'rxjs';
 
 // Interface for site linked to plan
 interface PlanSiteInfo {
@@ -61,11 +63,13 @@ export interface LinkPlanSiteModalData {
 export class LinkPlanSiteModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
+  private readonly validationService = inject(ValidationService);
   private readonly dialogRef = inject(MatDialogRef<LinkPlanSiteModalComponent>);
   private readonly translate = inject(TranslateService);
   readonly data = inject<LinkPlanSiteModalData>(MAT_DIALOG_DATA);
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isAdminOrganisme = this.authService.isAdminOrganisme;
   readonly currentUser = this.authService.currentUser;
 
   isLoading = signal(false);
@@ -109,7 +113,7 @@ export class LinkPlanSiteModalComponent implements OnInit {
     this.isLoadingData.set(true);
 
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const filterByOrg = !this.isSuperAdmin() && currentOrgId;
+    const filterByOrg = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId;
 
     // Load sites - if admin_org, only load sites from their organisme
     if (filterByOrg) {
@@ -260,8 +264,6 @@ export class LinkPlanSiteModalComponent implements OnInit {
     toAdd: SiteAssignment[],
     toDelete: SiteAssignment[]
   ): void {
-    let completed = 0;
-    let hasError = false;
     const totalOperations = toAdd.length + toDelete.length;
 
     if (totalOperations === 0) {
@@ -270,41 +272,40 @@ export class LinkPlanSiteModalComponent implements OnInit {
       return;
     }
 
-    // Add new sites
-    if (toAdd.length > 0) {
-      const siteIds = toAdd.map(a => a.site.id_site);
-      this.adminService.assignSitesToPlan(planId, siteIds).subscribe({
-        next: () => {
-          completed += toAdd.length;
-          if (completed === totalOperations && !hasError) {
-            this.isLoading.set(false);
-            this.dialogRef.close({ success: true, changed: true });
-          }
-        },
-        error: (error: Error) => {
-          hasError = true;
-          this.isLoading.set(false);
-          this.errorMessage.set(this.translate.instant('modals.linkPlanSite.messages.addError', { error: error.message }));
-        }
-      });
-    }
+    // Build all observables
+    const addObservables = toAdd.map(a =>
+      this.validationService.requestPlanSiteLink(planId, a.site.id_site)
+    );
+    const deleteObservables = toDelete.map(a =>
+      this.adminService.removeSiteFromPlan(planId, a.site.id_site)
+    );
 
-    // Delete sites
-    toDelete.forEach(assignment => {
-      this.adminService.removeSiteFromPlan(planId, assignment.site.id_site).subscribe({
-        next: () => {
-          completed++;
-          if (completed === totalOperations && !hasError) {
-            this.isLoading.set(false);
-            this.dialogRef.close({ success: true, changed: true });
-          }
-        },
-        error: (error: Error) => {
-          hasError = true;
-          this.isLoading.set(false);
-          this.errorMessage.set(this.translate.instant('modals.linkPlanSite.messages.removeError', { error: error.message }));
+    const allObservables = [...addObservables, ...deleteObservables];
+
+    forkJoin(allObservables).subscribe({
+      next: (results) => {
+        this.isLoading.set(false);
+
+        // Check add results for direct vs validation
+        const addResults = results.slice(0, addObservables.length);
+        const hasPending = addResults.some((r: any) => r.direct === false);
+        const hasDirect = addResults.some((r: any) => r.direct === true);
+
+        let message = '';
+        if (hasDirect && hasPending) {
+          message = this.translate.instant('plans.detail.siteLinkMixed');
+        } else if (hasPending) {
+          message = this.translate.instant('plans.detail.siteLinkRequested');
+        } else if (hasDirect) {
+          message = this.translate.instant('plans.detail.siteLinkDirect');
         }
-      });
+
+        this.dialogRef.close({ success: true, changed: true, message, hasPending });
+      },
+      error: (error: Error) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(this.translate.instant('modals.linkPlanSite.messages.addError', { error: error.message }));
+      }
     });
   }
 

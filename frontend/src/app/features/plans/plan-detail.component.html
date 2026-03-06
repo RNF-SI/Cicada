@@ -322,27 +322,44 @@
         <div class="side-column">
           <!-- Sites -->
           <div class="section-card compact">
-            <app-section-title
-              [title]="(plan()?.sites?.length === 1 ? 'plans.detail.sections.site' : 'plans.detail.sections.sites') | translate"
-              icon="fi-rr-map-marker"
-              ellipseColor="yellow"
-              iconColor="primary"
-              size="md"
-              [showLine]="true">
-            </app-section-title>
+            <div class="section-header-inline">
+              <app-section-title
+                [title]="(plan()?.sites?.length === 1 ? 'plans.detail.sections.site' : 'plans.detail.sections.sites') | translate"
+                icon="fi-rr-map-marker"
+                ellipseColor="yellow"
+                iconColor="primary"
+                size="md"
+                [showLine]="true">
+              </app-section-title>
+              @if (canManageLifecycle()) {
+                <button class="btn-manage-inline" (click)="managePlanSites()"
+                        [title]="'plans.detail.manageSites' | translate">
+                  <i class="fi fi-rr-pencil"></i>
+                </button>
+              }
+            </div>
             @if (plan()?.sites && plan()!.sites!.length > 0) {
               <div class="sites-list">
                 @for (site of plan()!.sites!; track site.id_site) {
                   @if (site.current_user_has_access !== false) {
-                    <a class="site-card" [routerLink]="['/sites', site.slug]">
-                      <div class="site-info">
-                        <span class="site-name">{{ site.nom_site }}</span>
-                        @if (site.type_site_label) {
-                          <span class="site-type">{{ site.type_site_label }}</span>
-                        }
-                      </div>
-                      <i class="fi fi-rr-angle-right"></i>
-                    </a>
+                    <div class="site-card-row">
+                      <a class="site-card" [routerLink]="['/sites', site.slug]">
+                        <div class="site-info">
+                          <span class="site-name">{{ site.nom_site }}</span>
+                          @if (site.type_site_label) {
+                            <span class="site-type">{{ site.type_site_label }}</span>
+                          }
+                        </div>
+                        <i class="fi fi-rr-angle-right"></i>
+                      </a>
+                      @if (canManageLifecycle()) {
+                        <button class="btn-remove-inline"
+                                [title]="'plans.detail.removeSite' | translate"
+                                (click)="removeSiteFromPlan(site)">
+                          <i class="fi fi-rr-cross-small"></i>
+                        </button>
+                      }
+                    </div>
                   } @else {
                     <div class="site-card site-card-locked">
                       <div class="site-info">
@@ -363,6 +380,65 @@
               <div class="empty-state-small">
                 <i class="fi fi-rr-map-marker"></i>
                 <span>{{ 'plans.detail.noSites' | translate }}</span>
+              </div>
+            }
+
+            <!-- Sites en attente de validation -->
+            @if (pendingSiteRequests().length > 0) {
+              <div class="pending-sites-section">
+                <span class="pending-sites-label">{{ 'plans.detail.pendingSites' | translate }}</span>
+                <div class="pending-sites-list">
+                  @for (req of pendingSiteRequests(); track req.id) {
+                    <div class="site-card site-card-pending">
+                      <div class="site-info">
+                        <span class="site-name">{{ req.target_name }}</span>
+                        <span class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                      </div>
+                      <i class="fi fi-rr-hourglass"></i>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Utilisateurs (Référents & Membres) -->
+          <div class="section-card compact">
+            <div class="section-header-inline">
+              <app-section-title
+                [title]="'plans.detail.sections.users' | translate"
+                icon="fi-rr-users"
+                ellipseColor="salmon"
+                size="md"
+                [showLine]="true">
+              </app-section-title>
+              @if (canManageLifecycle()) {
+                <button class="btn-manage-inline" (click)="managePlanUsers()"
+                        [title]="'plans.detail.manageUsers' | translate">
+                  <i class="fi fi-rr-pencil"></i>
+                </button>
+              }
+            </div>
+            @if (planMembers().length > 0) {
+              <div class="users-list">
+                @for (member of planMembers(); track member.id_role) {
+                  <div class="user-card-small">
+                    <div class="user-avatar-small">
+                      <i class="fi fi-rr-user"></i>
+                    </div>
+                    <div class="user-info-small">
+                      <span class="user-name-small">{{ member.nom_complet || member.email }}</span>
+                      <span class="user-role-chip" [class.role-referent]="member.referent" [class.role-member]="!member.referent">
+                        {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-state-small">
+                <i class="fi fi-rr-users"></i>
+                <span>{{ 'plans.detail.noUsers' | translate }}</span>
               </div>
             }
           </div>

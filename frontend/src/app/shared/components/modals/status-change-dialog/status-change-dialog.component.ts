@@ -88,16 +88,14 @@ export class StatusChangeDialogComponent {
         break;
 
       case 'archive':
-        if (this.data.isSuperAdmin) {
-          actions.push({
-            action: 'change_status',
-            label: this.translate.instant('plans.lifecycle.actions.toDraft'),
-            description: this.translate.instant('plans.lifecycle.actions.toDraftDesc'),
-            icon: 'fi-rr-undo',
-            colorClass: 'action-warning',
-            newStatus: 'draft',
-          });
-        }
+        actions.push({
+          action: 'change_status',
+          label: this.translate.instant('plans.lifecycle.actions.reactivate'),
+          description: this.translate.instant('plans.lifecycle.actions.reactivateHint'),
+          icon: 'fi-rr-undo',
+          colorClass: 'action-success',
+          newStatus: 'valide',
+        });
         break;
     }
 

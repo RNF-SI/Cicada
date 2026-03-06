@@ -447,6 +447,11 @@
   font-size: $font-size-small;
   max-width: 144px;
 
+  &.member-chip {
+    background-color: rgba($secondary-pale-green, 0.15);
+    opacity: 0.85;
+  }
+
   i {
     font-size: 11px;
     color: $primary-color;
@@ -457,6 +462,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+.role-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: $font-weight-bold;
+  flex-shrink: 0;
+
+  &.referent {
+    background-color: $primary-color;
+    color: $white;
   }
 }
 

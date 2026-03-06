@@ -656,6 +656,187 @@
   color: $gray-dark;
 }
 
+// Pending sites
+.pending-sites-section {
+  margin-top: $spacing-sm;
+}
+
+.pending-sites-label {
+  display: block;
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: $spacing-xxs;
+}
+
+.pending-sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.site-card-pending {
+  opacity: 0.7;
+  border: 1px dashed $gray;
+
+  i {
+    color: $warning-color;
+    font-size: 12px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: $border-radius-pill;
+    font-family: $font-family;
+    font-size: 10px;
+    font-weight: $font-weight-semibold;
+
+    &.status-warning {
+      background-color: rgba($warning-color, 0.15);
+      color: $primary-color;
+    }
+  }
+}
+
+// Section header with inline edit button
+.section-header-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.btn-manage-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-top: $spacing-xs;
+  background: none;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-round;
+  color: $primary-color;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+    border-color: $primary-color;
+  }
+}
+
+.site-card-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+
+  .site-card {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.btn-remove-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: $gray;
+  cursor: pointer;
+  border-radius: $border-radius-round;
+  transition: color $transition-fast, background-color $transition-fast;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    color: $error-color;
+    background-color: rgba($error-color, 0.08);
+  }
+}
+
+// Users list in side column
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.user-card-small {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+}
+
+.user-avatar-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $border-radius-round;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+  flex-shrink: 0;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+.user-info-small {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-name-small {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  word-break: break-word;
+}
+
+.user-role-chip {
+  display: inline-block;
+  width: fit-content;
+  padding: 1px 8px;
+  background-color: rgba($secondary-orange-salmon, 0.3);
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: 10px;
+  font-weight: $font-weight-semibold;
+  color: $primary-color;
+
+  &.role-referent {
+    background-color: rgba($secondary-orange-salmon, 0.3);
+  }
+
+  &.role-member {
+    background-color: rgba($secondary-pale-green, 0.4);
+  }
+}
+
 .empty-state-small {
   display: flex;
   flex-direction: column;

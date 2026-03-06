@@ -336,6 +336,8 @@ export interface PlanSite {
   rang?: number;
   /** Indique si l'utilisateur courant a accès à ce site */
   current_user_has_access?: boolean;
+  /** Statut du lien plan-site (active = lié, pending = en attente de validation) */
+  status?: 'active' | 'pending';
 }
 
 /**

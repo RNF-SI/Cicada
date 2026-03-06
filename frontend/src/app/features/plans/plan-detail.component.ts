@@ -13,7 +13,9 @@ import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.compone
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EnjeuService } from '../../core/services/enjeu.service';
-import { AdminPlan, PlanFichier, PlanSite, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import { ValidationService } from '../../core/services/validation.service';
+import { ValidationRequestListItem } from '../../core/models/notification.model';
+import { AdminPlan, PlanFichier, PlanMembre, PlanSite, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
@@ -29,6 +31,14 @@ import {
   AccessRequestDialogComponent,
   AccessRequestDialogData,
 } from '../../shared/components/access-request-dialog/access-request-dialog.component';
+import {
+  LinkPlanSiteModalComponent,
+  LinkPlanSiteModalData,
+} from '../../shared/components/modals/link-plan-site-modal/link-plan-site-modal.component';
+import {
+  LinkPlanReferentModalComponent,
+  LinkPlanReferentModalData,
+} from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
 
 interface SyntheseAccordion {
   id: string;
@@ -71,6 +81,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
+  private readonly validationService = inject(ValidationService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -117,8 +128,29 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     );
   });
 
+  // Unified list of plan members (referents + non-referents) sorted referents first
+  planMembers = computed(() => {
+    const p = this.plan();
+    if (!p?.membres || p.membres.length === 0) {
+      // Fallback to referents if membres not populated
+      return (p?.referents || []).map(r => ({
+        id_role: r.id_role,
+        email: r.email,
+        nom_complet: r.nom_complet,
+        referent: true,
+      } as PlanMembre));
+    }
+    return [...p.membres].sort((a, b) => {
+      if (a.referent === b.referent) return 0;
+      return a.referent ? -1 : 1;
+    });
+  });
+
   // Operations loading state
   operationsLoading = signal(false);
+
+  // Pending site link requests for this plan
+  pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
   // Permissions: référent du plan, admin_og ou super_admin
   canManageLifecycle = computed(() => {
@@ -190,6 +222,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         this.isLoading.set(false);
         this.loadEnjeux(plan.id_pg);
         this.loadOperations(plan.id_pg);
+        this.loadPendingSiteRequests(plan.id_pg);
       },
       error: (error) => {
         this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');
@@ -238,6 +271,25 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.operationsLoading.set(false);
+      }
+    });
+  }
+
+  loadPendingSiteRequests(planId: number): void {
+    this.validationService.getValidationRequests({
+      request_type: 'plan_site_link',
+      status: 'pending'
+    }).subscribe({
+      next: (response) => {
+        // Filter to only show requests for this specific plan
+        const planRequests = response.results.filter(
+          r => r.target_plan_id === planId
+        );
+        this.pendingSiteRequests.set(planRequests);
+      },
+      error: () => {
+        // Silently fail - pending requests are not critical
+        this.pendingSiteRequests.set([]);
       }
     });
   }
@@ -477,6 +529,100 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       } as AccessRequestDialogData,
     });
   }
+
+  // ==================== SITES & USERS MANAGEMENT ====================
+
+  managePlanSites(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const data: LinkPlanSiteModalData = {
+      plan: {
+        id_pg: p.id_pg,
+        nom: p.nom,
+        sites: p.sites,
+      },
+    };
+
+    const dialogRef = this.dialog.open(LinkPlanSiteModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.changed) {
+        const message = result.message || this.translate.instant('plans.detail.sitesUpdated');
+        this.snackBar.open(
+          message,
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      }
+    });
+  }
+
+  removeSiteFromPlan(site: PlanSite): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const confirmMsg = this.translate.instant('plans.detail.confirmRemoveSite', { name: site.nom_site });
+    if (!confirm(confirmMsg)) return;
+
+    this.adminService.removeSiteFromPlan(p.id_pg, site.id_site).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.detail.siteRemoved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('common.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
+    });
+  }
+
+  managePlanUsers(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const data: LinkPlanReferentModalData = {
+      plan: {
+        id_pg: p.id_pg,
+        nom: p.nom,
+        referents: p.referents,
+        membres: p.membres,
+      },
+    };
+
+    const dialogRef = this.dialog.open(LinkPlanReferentModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.changed) {
+        this.snackBar.open(
+          this.translate.instant('plans.detail.usersUpdated'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      }
+    });
+  }
+
+  // ==================== DOCUMENTS ====================
 
   deleteFichier(fichier: PlanFichier): void {
     const name = fichier.titre || fichier.nom_fichier;

@@ -572,6 +572,26 @@ export class AdminService {
   }
 
   /**
+   * Assign a member (non-referent) to a plan
+   * POST /api/plans/plans/{id}/assign_member/
+   */
+  assignMemberToPlan(planId: number, userId: number): Observable<any> {
+    return this.http.post(`${this.plansApiUrl}/plans/${planId}/assign_member/`, {
+      user_id: userId
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove a member from a plan
+   * DELETE /api/plans/plans/{id}/remove_member/?user_id=X
+   */
+  removeMemberFromPlan(planId: number, userId: number): Observable<any> {
+    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/remove_member/`, {
+      params: { user_id: userId.toString() }
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
    * Get evaluation types (nomenclatures)
    */
   getEvaluationTypes(): Observable<EvaluationType[]> {

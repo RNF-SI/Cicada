@@ -75,6 +75,6 @@ export class PlanVersionTimelineComponent {
   }
 
   onReactivate(): void {
-    this.statusChange.emit('draft');
+    this.statusChange.emit('valide');
   }
 }

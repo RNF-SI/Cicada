@@ -228,6 +228,64 @@
   }
 }
 
+.role-badge {
+  padding: 1px 8px;
+  border-radius: $border-radius-pill;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+
+  &.role-referent {
+    background-color: rgba($secondary-orange-salmon, 0.3);
+    color: $primary-color;
+  }
+
+  &.role-member {
+    background-color: rgba($secondary-pale-green, 0.4);
+    color: $primary-color;
+  }
+}
+
+.btn-toggle-role {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  cursor: pointer;
+  border-radius: $border-radius-sm;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1;
+    background: rgba($primary-color, 0.1);
+  }
+
+  i {
+    font-size: $font-size-small;
+  }
+}
+
+.add-as-toggle {
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-small;
+    color: $gray-dark;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      accent-color: $primary-color;
+    }
+  }
+}
+
 // Add referent section
 .add-referent-section {
   background: #e8f4f8;
