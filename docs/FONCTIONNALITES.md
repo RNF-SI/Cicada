@@ -55,6 +55,7 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 | `site_access` | super_admin, admin_og gestionnaire, référent |
 | `plan_access` | super_admin, admin_og, référent du plan |
 | `referent_validation` | super_admin, admin_og gestionnaire |
+| `plan_site_link` | Référents site/plan ou admin_og (selon demandeur) |
 | `site_org_link` | super_admin, admin_og des deux organismes |
 
 ### Tâches Celery planifiées
@@ -78,3 +79,4 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 - Janvier 2026 : Ajout notification `organisme_changed` (changement d'organisme par admin)
 - Janvier 2026 : Ajout validation `site_org_unlink` (demande de retrait d'organisme d'un site)
 - Janvier 2026 : Ajout import en masse de sites (GeoJSON/CSV, validation, doublons, async Celery)
+- Mars 2026 : Ajout validation plan-site link, permissions élargies référents plan, notifications

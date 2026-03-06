@@ -969,7 +969,7 @@ class UsersConfig(AppConfig):
 
 **API REST Notifications & Validations:**
 - Validation requests API at `/api/validations/`
-- Request types: `user_registration`, `site_access`, `plan_access`, `referent_validation`
+- Request types: `user_registration`, `site_access`, `plan_access`, `referent_validation`, `plan_site_link`
 - Status workflow: `pending` → `approved` / `rejected` / `cancelled` / `expired`
 - Endpoints:
   - `GET /api/validations/` - List validation requests (filtered by user role)
@@ -977,9 +977,18 @@ class UsersConfig(AppConfig):
   - `GET /api/validations/my-requests/` - Current user's own requests
   - `POST /api/validations/{id}/approve/` - Approve a request
   - `POST /api/validations/{id}/reject/` - Reject a request
+  - `POST /api/validations/request_plan_site_link/` - Demande de lien plan-site (body: `{plan_id, site_id}`)
   - `GET /api/notifications/` - User notifications
   - `POST /api/notifications/{id}/read/` - Mark notification as read
   - `POST /api/notifications/read-all/` - Mark all as read
+
+**Validation plan-site link** (`plan_site_link`) :
+- **Droits** : référent du plan, membre du plan, référent/membre du site, admin_og+
+- **Lien direct** (sans validation) : super_admin, admin_og+référent site, référent plan+référent site
+- **Validation requise** : dans tous les autres cas
+  - Si le demandeur est **référent du plan** → validateurs = référents du site + admin_og du site
+  - Sinon (membre du plan, référent/membre du site) → validateurs = référents du plan
+- **Approbation** : crée `CorSitePg` + notifie le demandeur + notifie les référents du plan
 
 **Types de notifications disponibles:**
 | Type | Description | Déclencheur |
@@ -1005,6 +1014,11 @@ class UsersConfig(AppConfig):
 - `notify_user_removed_from_site`: Notifie lors du retrait d'un site
 - `notify_user_deactivation`: Notifie lors de la désactivation
 - `notify_user_organisme_changed`: Notifie lors du changement d'organisme
+- `notify_plan_referents_new_member`: Notifie les référents d'un plan lors de l'ajout d'un membre/référent
+
+**Notifications liées aux validations plan-site** :
+- Lors de l'approbation d'un lien plan-site (`approve_plan_site_link`), les référents du plan sont notifiés que le site a été lié
+- Lors d'un lien direct plan-site (sans validation), les référents du plan sont également notifiés
 
 **API REST Activity (Historique d'activité):**
 - Unified activity timeline API at `/api/activity/`

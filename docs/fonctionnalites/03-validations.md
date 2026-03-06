@@ -148,6 +148,7 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_unlink` | Retrait site-organisme | Demande pour retirer un organisme d'un site |
 | `invite_org_to_site` | Invitation organisme | ⚠️ **Obsolète** - Les invitations d'organisme sont désormais directes (sans validation). Type conservé pour l'historique. |
 | `invite_user_to_site` | Invitation utilisateur | ⚠️ **Obsolète** - Les invitations d'utilisateur sont désormais directes (sans validation). Type conservé pour l'historique. |
+| `plan_site_link` | Lien plan-site | Demande pour lier un site à un plan de gestion |
 | `admin_promotion` | Promotion admin_og | Demande de promotion d'un utilisateur en admin_og |
 | `admin_demotion` | Rétrogradation admin_og | Demande de rétrogradation d'un admin_og en utilisateur |
 
@@ -165,12 +166,14 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_unlink` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ |
 | `invite_org_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ | ⚠️ Action directe, plus de validation |
 | `invite_user_to_site` | ❌ | ❌ | ✅ ² | ✅ ² | ✅ | ⚠️ Action directe, plus de validation |
+| `plan_site_link` | ❌ | ✅ ⁴ | ✅ ⁴ | ✅ | ✅ |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 | `admin_demotion` | ❌ | ❌ | ❌ | ✅ ³ | ✅ |
 
 ¹ L'utilisateur doit déjà avoir accès au site (être lié via `CorRoleSite`)
 ² L'utilisateur doit être référent du site concerné ou pouvoir gérer le site
 ³ Admin_og peut demander pour les utilisateurs de son organisme uniquement
+⁴ L'utilisateur doit être référent ou membre du plan, ou lié au site (référent ou membre)
 
 #### Qui peut valider quelle demande ?
 
@@ -186,6 +189,7 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 | `site_org_unlink` | ❌ | ❌ | ✅ ⁵ | ✅ | ⁵ Admin de l'organisme à retirer |
 | `invite_org_to_site` | — | — | — | — | ⚠️ Plus de validation : action directe par le référent |
 | `invite_user_to_site` | — | — | — | — | ⚠️ Plus de validation : action directe par le référent |
+| `plan_site_link` | ✅ ⁶ | ✅ ⁷ | ✅ | ✅ | ⁶ Si demandeur=réf. plan (accord du site requis), ⁷ Si demandeur=membre (accord du plan requis) |
 | `admin_promotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
 | `admin_demotion` | ❌ | ❌ | ❌ | ✅ | Super admin exclusivement |
 
@@ -195,11 +199,12 @@ Ce tableau détaille **tous les types de demandes de validation**, qui peut les 
 |-----------------|-------------|-----------|
 | `user_registration` | Compte `Role` créé depuis `PendingUser`, email de bienvenue | Email de rejet, `PendingUser` conservé (historique) |
 | `site_access` | `CorRoleSite` créé (avec `referent=True` si demandé) | Notification avec motif du refus |
-| `plan_access` | Utilisateur ajouté à `plan.referents` | Notification avec motif du refus |
+| `plan_access` | `CorRolePlan` créé (référent si `request_as_referent`, sinon membre) | Notification avec motif du refus |
 | `module_access` | Accès accordé (vérifié via `ValidationRequest.approved`) | Notification de refus |
 | `referent_validation` | `CorRoleSite.referent = True` et `referent_valid = True` | Notification avec motif du refus |
 | `site_creation` | Site créé + `CorOgSite` avec l'organisme du demandeur | Notification avec motif du refus |
 | `site_org_link` | `CorOgSite` créé (non principal) | Notification avec motif du refus |
+| `plan_site_link` | `CorSitePg` créé, référents du plan notifiés | Notification avec motif du refus |
 | `site_org_unlink` | `CorOgSite` supprimé, organisme retiré du site | Notification avec motif du refus, lien conservé |
 | `invite_org_to_site` | ⚠️ **Obsolète** - L'action est désormais directe (pas de validation) | — |
 | `invite_user_to_site` | ⚠️ **Obsolète** - L'action est désormais directe (pas de validation) | — |
@@ -228,6 +233,16 @@ Pour la plupart des demandes, le système notifie les validateurs dans un ordre 
 **Création de site / Lien site-organisme** :
 1. Admins de l'organisme du demandeur
 2. Super admins (fallback)
+
+**Lien plan-site (`plan_site_link`)** :
+- Si le demandeur est **référent du plan** (accord du site requis) :
+  1. Référents valides du site ciblé
+  2. Admins des organismes gestionnaires du site
+- Sinon (membre du plan, référent/membre du site) → accord du plan requis :
+  1. Référents du plan
+- Fallback : super admins
+
+> **Note** : Si le demandeur est à la fois référent du plan ET du site, ou super_admin, ou admin_og+réf. site, le lien est créé **directement** sans validation.
 
 **Retrait site-organisme (`site_org_unlink`)** :
 1. Admins de l'organisme à retirer (c'est lui qui décide de quitter)

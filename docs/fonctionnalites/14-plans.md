@@ -6,15 +6,19 @@ Ce document décrit le fonctionnement du module de gestion des plans de gestion 
 
 1. [Vue d'ensemble](#vue-densemble)
 2. [Cycle de vie](#cycle-de-vie)
-3. [Liste des plans](#liste-des-plans)
-4. [Création d'un plan](#création-dun-plan)
-5. [Liaison avec les sites](#liaison-avec-les-sites)
-6. [Liaison avec les utilisateurs (membres et référents)](#liaison-avec-les-utilisateurs-membres-et-référents)
-7. [Gestion des sites en attente](#gestion-des-sites-en-attente)
-8. [Réassignation de site](#réassignation-de-site)
-9. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
-10. [Duplication d'un plan](#duplication-dun-plan)
-11. [API Endpoints](#api-endpoints)
+3. [Permissions](#permissions)
+4. [Liste des plans](#liste-des-plans)
+5. [Création d'un plan](#création-dun-plan)
+6. [Liaison avec les sites](#liaison-avec-les-sites)
+7. [Validation plan-site link](#validation-plan-site-link)
+8. [Liaison avec les utilisateurs (membres et référents)](#liaison-avec-les-utilisateurs-membres-et-référents)
+9. [Notifications liées aux plans](#notifications-liées-aux-plans)
+10. [Gestion des sites en attente](#gestion-des-sites-en-attente)
+11. [Réassignation de site](#réassignation-de-site)
+12. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
+13. [Duplication d'un plan](#duplication-dun-plan)
+14. [Gestion depuis la page site](#gestion-depuis-la-page-site)
+15. [API Endpoints](#api-endpoints)
 
 ---
 
@@ -65,9 +69,6 @@ Le cycle de vie d'un plan de gestion gère les transitions de statut, la chaîne
    │      │     Inactif      │──────┘
    │      │    (archive)     │
    │      └──────────────────┘
-   │                │
-   └────────────────┘
-        Remettre en brouillon
 ```
 
 **Transitions autorisées :**
@@ -77,9 +78,9 @@ Le cycle de vie d'un plan de gestion gère les transitions de statut, la chaîne
 | `draft` | `valide` | Valider le plan |
 | `valide` | `draft` | Remettre en brouillon |
 | `valide` | `archive` | Archiver (rend le plan inactif) |
-| `archive` | `draft` | Remettre en brouillon |
+| `archive` | `valide` | Réactiver (rend le plan actif) |
 
-> **Note** : Archiver un plan le rend **inactif**. Réactiver un plan archivé le remet en **brouillon** (statut `draft`).
+> **Note** : Archiver un plan le rend **inactif**. Réactiver un plan archivé le remet directement en **actif** (statut `valide`).
 
 ### Permissions du cycle de vie
 
@@ -144,9 +145,57 @@ Les noeuds sont cliquables pour naviguer entre les versions.
 |----------------|---------------------|
 | Brouillon | Valider le plan |
 | Actif | Remettre en brouillon, Lancer évaluation*, Archiver |
-| Inactif | Réactiver (remettre en brouillon) |
+| Inactif | Réactiver (rend actif) |
 
 \* Uniquement pour les plans (pas les évaluations)
+
+---
+
+## Permissions
+
+### Méthode `_can_manage_plan(user, plan)`
+
+La gestion d'un plan (sites, utilisateurs, cycle de vie) utilise une vérification objet :
+
+```python
+def _can_manage_plan(user, plan):
+    """Autorisé si admin_og+ OU référent du plan spécifique."""
+    if user.is_admin_organisme():
+        return True
+    return plan.referents.filter(pk=user.pk).exists()
+```
+
+### Matrice des permissions
+
+| Action | Super admin | Admin organisme | Référent du plan | Membre du plan | Utilisateur |
+|--------|:-----------:|:---------------:|:----------------:|:--------------:|:-----------:|
+| **Consulter** (GET) | ✅ | ✅ (son org) | ✅ | ✅ | ✅ (plans validés) |
+| **Créer** (POST) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Modifier** (PATCH) | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Supprimer** (DELETE) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Changer le statut** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Créer une évaluation** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Dupliquer** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Ajouter/retirer un site** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Ajouter/retirer un membre** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Ajouter/retirer un référent** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Demander un lien plan-site** | ✅ | ✅ | ✅ | ✅ (via validation) | ❌ |
+
+> **Important** : La permission est vérifiée au niveau du **plan spécifique**. Un référent d'un plan A ne peut pas gérer un plan B.
+
+### Visibilité des enjeux, indicateurs et opérations
+
+Les enjeux, indicateurs et opérations d'un plan sont visibles par :
+
+| Rôle | Accès |
+|------|-------|
+| Super admin | Tous |
+| Admin organisme | Plans de son organisme |
+| Membre ou référent du plan (via `CorRolePlan`) | Plans auxquels il est lié |
+| Utilisateur lié à un site du plan (via `CorRoleSite`) | Plans liés à ses sites |
+| Tout utilisateur | Plans validés uniquement |
+
+> **Note** : Les membres (non-référents) du plan ont accès en lecture aux enjeux, indicateurs et opérations. Cela permet la collaboration sans donner des droits de gestion.
 
 ---
 
@@ -314,9 +363,113 @@ PlanGestion (1) ←→ (N) CorSitePg (N) ←→ (1) Site
 
 | Action | Endpoint | Permission |
 |--------|----------|------------|
-| Ajouter un site | `POST /api/plans/{id}/assign_site/` | admin_og |
-| Retirer un site | `DELETE /api/plans/{id}/remove_site/` | admin_og |
-| Remplacer un site | `POST /api/plans/{id}/replace_site/` | admin_og |
+| Ajouter un site (direct) | `POST /api/plans/{id}/assign_site/` | Référent du plan, admin_og, super_admin |
+| Retirer un site | `DELETE /api/plans/{id}/remove_site/` | Référent du plan, admin_og, super_admin |
+| Remplacer un site | `POST /api/plans/{id}/replace_site/` | Référent du plan, admin_og, super_admin |
+| Demander un lien plan-site | `POST /api/validations/request_plan_site_link/` | Référent/membre du plan, référent/membre du site, admin_og+ |
+
+> **Note** : L'ajout direct via `assign_site` ne passe pas par le workflow de validation. Pour le workflow avec validation, voir la section [Validation plan-site link](#validation-plan-site-link).
+
+### Interface sur la page plan
+
+La section "Sites" de la page plan affiche :
+- La liste des sites liés avec bouton "Retirer" (si `canManageLifecycle`)
+- Un bouton "Gérer les sites" ouvrant la modale `LinkPlanSiteModalComponent`
+- Une section **"Sites en attente de validation"** montrant les demandes `plan_site_link` en pending (bordure pointillée, badge "En attente", icône sablier)
+
+---
+
+## Validation plan-site link
+
+### Principe
+
+La liaison d'un site à un plan peut nécessiter une **validation** selon les droits du demandeur. Ce workflow permet à un référent du plan de proposer l'ajout d'un site qu'il ne gère pas, à un membre du plan de proposer un lien qui sera validé par les référents, ou à un utilisateur lié au site de proposer un lien avec un plan.
+
+### Endpoint
+
+`POST /api/validations/request_plan_site_link/`
+
+**Body :**
+```json
+{
+  "plan_id": 123,
+  "site_id": 456,
+  "justification": "Ce site est pertinent pour le plan car..."
+}
+```
+
+### Qui peut utiliser cet endpoint ?
+
+| Rôle | Autorisé |
+|------|----------|
+| Super admin | ✅ |
+| Admin organisme | ✅ |
+| Référent du plan | ✅ |
+| Membre du plan (via `CorRolePlan`) | ✅ |
+| Référent du site | ✅ |
+| Membre du site (via `CorRoleSite`) | ✅ |
+| Autre | ❌ (403) |
+
+### Lien direct vs validation
+
+Selon les droits du demandeur, le lien peut être créé **directement** (sans validation) ou soumis à **validation** :
+
+| Demandeur | Résultat | Réponse `direct` |
+|-----------|----------|:-----------------:|
+| Super admin | Lien direct | `true` |
+| Admin organisme + référent du site | Lien direct | `true` |
+| Référent du plan + référent du site | Lien direct | `true` |
+| Référent du plan (pas référent du site) | **Validation requise** | `false` |
+| Membre du plan | **Validation requise** | `false` |
+| Référent/membre du site (pas lié au plan) | **Validation requise** | `false` |
+
+### Choix des validateurs
+
+Les validateurs dépendent du rôle du demandeur :
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  SI le demandeur est RÉFÉRENT du plan :                     │
+│  → Le plan est d'accord, il faut l'accord du SITE          │
+│  → Validateurs : référents du site + admin_og du site       │
+│                                                             │
+│  SINON (membre du plan, référent/membre du site) :           │
+│  → Il faut l'accord du PLAN                                 │
+│  → Validateurs : référents du plan                          │
+│                                                             │
+│  (Fallback : super_admin si aucun validateur trouvé)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Approbation
+
+Quand un validateur approuve la demande (`POST /api/validations/{id}/approve/`) :
+
+1. Le lien `CorSitePg` est créé
+2. Le demandeur est notifié (validation approuvée)
+3. Les autres validateurs sont notifiés (demande traitée)
+4. Les **référents du plan** sont notifiés que le site a été lié
+
+### Vérifications préalables
+
+L'endpoint vérifie avant de créer la demande :
+- Le site n'est pas déjà lié au plan (`CorSitePg` existant)
+- Il n'y a pas déjà une demande en attente pour ce couple plan-site
+- Le demandeur a un lien avec le plan ou le site
+
+### Affichage sur la page plan
+
+Les demandes en attente sont affichées dans une section dédiée sous la liste des sites :
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Sites en attente de validation                             │
+│  ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐                                  │
+│  │ ⏳ Nom du site         │ Badge "En attente"               │
+│  └─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘                                  │
+│  (bordure pointillée, opacité réduite)                      │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -387,6 +540,34 @@ Un utilisateur peut accéder à un plan de deux façons :
 │                 └─ referent: true/false                     │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Notifications liées aux plans
+
+### Notifications automatiques
+
+| Événement | Destinataires | Type | Signal/Méthode |
+|-----------|---------------|------|----------------|
+| Membre ajouté au plan | Référents du plan (sauf le nouveau membre) | `info` | Signal `post_save` sur `CorRolePlan` |
+| Référent ajouté au plan | L'utilisateur ajouté comme référent | `user_associated_plan` | Signal `m2m_changed` sur `PlanGestion.referents` |
+| Site lié au plan (direct) | Référents du plan (sauf l'utilisateur courant) | `info` | Dans `request_plan_site_link` |
+| Site lié au plan (validation approuvée) | Référents du plan (sauf validateur et demandeur) | `info` | Dans `approve_plan_site_link` |
+| Demande plan-site link créée | Validateurs (référents site ou plan selon le cas) | `validation_request` | Signal `post_save` sur `ValidationRequest` |
+| Demande plan-site approuvée | Demandeur | `validation_approved` | Dans `approve_plan_site_link` |
+| Plan à réassigner (site rejeté) | Admin_og, référents des plans concernés, super_admin | `plan_needs_reassignment` | `notify_plans_need_reassignment()` |
+
+### Signal `notify_plan_referents_new_member`
+
+Déclenché automatiquement lors de la création d'un `CorRolePlan` (ajout d'un membre ou référent au plan).
+
+**Comportement :**
+- Notifie chaque référent du plan (sauf le nouvel utilisateur lui-même)
+- Message : "{nom} a été ajouté comme {membre/référent} du plan de gestion {nom_plan}"
+- Priorité : `low`
+- Lien vers la page du plan
+
+**Fichier** : `apps/notifications/signals.py`
 
 ---
 
@@ -497,7 +678,7 @@ Action URL : /plans/{plan_id}
 }
 ```
 
-**Permissions** : `admin_og` ou `super_admin`
+**Permissions** : Référent du plan, `admin_og` ou `super_admin`
 
 ---
 
@@ -573,6 +754,30 @@ Un plan de gestion peut être dupliqué pour créer une copie avec des options c
 
 ---
 
+## Gestion depuis la page site
+
+### Bouton "Lier un plan"
+
+Sur la page de détail d'un site (`/sites/:slug`), les référents du site et admin_og+ peuvent lier un plan existant au site.
+
+**Condition d'affichage** : `canLinkPlan` — référent du site (`current_user_is_referent`) ou admin_og+.
+
+**Workflow :**
+
+1. L'utilisateur clique sur "Lier un plan" dans la section "Plans de gestion"
+2. La modale `LinkPlanToSiteDialogComponent` s'ouvre
+3. Les plans disponibles sont chargés via `adminService.getPlans({ scope: 'mine' })` (plans où l'utilisateur est membre ou référent)
+4. L'utilisateur sélectionne un plan via l'autocomplete
+5. L'appel passe par `validationService.requestPlanSiteLink(planId, siteId)`
+6. Selon les droits, le lien est créé directement ou une demande de validation est soumise
+7. Un message contextuel est affiché (lien direct vs demande en attente)
+
+### Bouton "Demander l'accès à un plan"
+
+Pour les utilisateurs qui ne sont pas référents du site, un bouton "Demander l'accès à un plan" est disponible. Il ouvre le dialog `AccessRequestDialogComponent` avec `type: 'plan'`.
+
+---
+
 ## API Endpoints
 
 ### Plans de gestion
@@ -596,22 +801,28 @@ Un plan de gestion peut être dupliqué pour créer une copie avec des options c
 
 ### Gestion des sites
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `POST` | `/api/plans/plans/{id}/assign_site/` | Ajouter un site |
-| `DELETE` | `/api/plans/plans/{id}/remove_site/` | Retirer un site |
-| `POST` | `/api/plans/plans/{id}/replace_site/` | Remplacer un site |
+| Méthode | Endpoint | Description | Permission |
+|---------|----------|-------------|------------|
+| `POST` | `/api/plans/plans/{id}/assign_site/` | Ajouter un site (direct) | Référent du plan, admin_og, super_admin |
+| `DELETE` | `/api/plans/plans/{id}/remove_site/` | Retirer un site | Référent du plan, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/replace_site/` | Remplacer un site | Référent du plan, admin_og, super_admin |
+
+### Validation plan-site
+
+| Méthode | Endpoint | Description | Permission |
+|---------|----------|-------------|------------|
+| `POST` | `/api/validations/request_plan_site_link/` | Demander un lien plan-site | Référent/membre du plan, référent/membre du site, admin_og+ |
 
 ### Gestion des membres et référents
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `POST` | `/api/plans/plans/{id}/assign_referent/` | Ajouter un référent |
-| `DELETE` | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent |
-| `POST` | `/api/plans/plans/{id}/assign_member/` | Ajouter un membre |
-| `DELETE` | `/api/plans/plans/{id}/remove_member/` | Retirer un membre |
+| Méthode | Endpoint | Description | Permission |
+|---------|----------|-------------|------------|
+| `POST` | `/api/plans/plans/{id}/assign_referent/` | Ajouter un référent | Référent du plan, admin_og, super_admin |
+| `DELETE` | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent | Référent du plan, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/assign_member/` | Ajouter un membre | Référent du plan, admin_og, super_admin |
+| `DELETE` | `/api/plans/plans/{id}/remove_member/` | Retirer un membre | Référent du plan, admin_og, super_admin |
 
-**Note** : Les membres et référents sont gérés via la table `CorRolePlan`. Un référent est un membre avec `referent=true`.
+**Note** : Les membres et référents sont gérés via la table `CorRolePlan`. Un référent est un membre avec `referent=true`. Retirer un référent le passe en simple membre (l'association est conservée).
 
 #### Format de réponse (champ `membres`)
 
@@ -668,9 +879,14 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 | Fichier | Description |
 |---------|-------------|
 | `apps/plans/models.py` | Modèles PlanGestion, CorSitePg, CorRolePlan, CorPgFichier |
-| `apps/plans/views.py` | ViewSet avec actions personnalisées |
+| `apps/plans/views.py` | ViewSet avec actions personnalisées, `_can_manage_plan()` |
+| `apps/plans/views_enjeux.py` | ViewSet enjeux (accès élargi aux membres via `CorRolePlan`) |
+| `apps/plans/views_indicateurs.py` | ViewSet indicateurs (idem) |
+| `apps/plans/views_operations.py` | ViewSet opérations (idem) |
 | `apps/plans/serializers.py` | Serializers (CorRolePlanSerializer, etc.) |
-| `apps/notifications/services.py` | `notify_plans_need_reassignment()` |
+| `apps/notifications/services.py` | Validation plan-site, notifications, réassignation |
+| `apps/notifications/signals.py` | Signal `notify_plan_referents_new_member` |
+| `apps/notifications/views.py` | Endpoint `request_plan_site_link` |
 | `apps/core/management/commands/seeders/plans_seeder.py` | Données de test |
 
 ### Frontend
@@ -678,15 +894,20 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 | Fichier | Description |
 |---------|-------------|
 | `features/plans/plan-create.component.*` | Formulaire de création |
-| `features/plans/plan-detail.component.*` | Page de détail (timeline, actions cycle de vie) |
+| `features/plans/plan-detail.component.*` | Page de détail (sites, utilisateurs, timeline, pending) |
 | `features/plans/plan-duplicate.component.*` | Formulaire de duplication |
 | `features/plans/plans-list.component.*` | Liste des plans avec scope toggle |
+| `features/sites/site-detail.component.*` | Boutons lier plan / demander accès |
 | `shared/components/view-scope-toggle/` | Composant de sélection du scope |
 | `shared/components/plan-version-timeline/` | Timeline de versions (cycle de vie) |
 | `shared/components/modals/duplicate-plan-dialog/` | Modale de duplication |
+| `shared/components/modals/link-plan-site-modal/` | Modale gestion sites du plan |
+| `shared/components/modals/link-plan-referent-modal/` | Modale gestion utilisateurs du plan |
+| `shared/components/modals/link-plan-to-site-dialog/` | Dialog lier plan depuis page site |
 | `core/models/admin.model.ts` | Interfaces PlanMembre, AdminPlan, PlanVersionChainItem |
-| `core/services/admin.service.ts` | Méthodes changePlanStatus, createEvaluation, duplicatePlan |
-| `assets/i18n/fr.json` | Traductions (plans.scope.*, plans.lifecycle.*) |
+| `core/services/admin.service.ts` | Méthodes gestion plan (status, sites, membres) |
+| `core/services/validation.service.ts` | `requestPlanSiteLink()` |
+| `assets/i18n/fr.json` | Traductions (plans.scope.*, plans.lifecycle.*, modals.*) |
 
 ---
 
@@ -703,6 +924,13 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 - Mars 2026 : Ajout chaîne de versions (plan parent, type document, évaluation mi-parcours)
 - Mars 2026 : Ajout timeline de versions dans la page détail
 - Mars 2026 : Ajout duplication de plan avec options configurables
+- Mars 2026 : Permissions élargies aux référents du plan (assign_site, assign_referent, etc.)
+- Mars 2026 : Ajout endpoints assign_member / remove_member
+- Mars 2026 : Workflow validation plan-site link (lien direct vs validation selon droits)
+- Mars 2026 : Notifications aux référents (nouveau membre, site lié)
+- Mars 2026 : Gestion depuis la page site (lier un plan, demander accès)
+- Mars 2026 : Transition archive → valide (au lieu de archive → draft)
+- Mars 2026 : Visibilité enjeux/indicateurs/opérations élargie aux membres du plan
 
 ---
 

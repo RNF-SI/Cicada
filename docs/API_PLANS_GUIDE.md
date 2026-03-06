@@ -23,8 +23,11 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | GET | `/api/plans/plans/stats/` | Statistiques des plans |
 | POST | `/api/plans/plans/{id}/assign_site/` | Assigner un site à un plan |
 | DELETE | `/api/plans/plans/{id}/remove_site/` | Retirer un site d'un plan |
+| POST | `/api/plans/plans/{id}/replace_site/` | Remplacer un site dans un plan |
 | POST | `/api/plans/plans/{id}/assign_referent/` | Assigner un référent |
 | DELETE | `/api/plans/plans/{id}/remove_referent/` | Retirer un référent |
+| POST | `/api/plans/plans/{id}/assign_member/` | Ajouter un membre |
+| DELETE | `/api/plans/plans/{id}/remove_member/` | Retirer un membre |
 
 ### Cycle de vie
 
@@ -375,7 +378,45 @@ curl -X POST http://localhost:8000/api/plans/plans/1/assign_site/ \
   }'
 ```
 
-### 9. Gestion des fichiers
+### 9. Gestion des membres et référents
+
+**Ajouter un membre :**
+
+```bash
+curl -X POST http://localhost:8000/api/plans/plans/1/assign_member/ \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 5}'
+```
+
+**Retirer un membre :**
+
+```bash
+curl -X DELETE "http://localhost:8000/api/plans/plans/1/remove_member/?user_id=5" \
+  -H "Authorization: Bearer {token}"
+```
+
+**Ajouter un référent :**
+
+```bash
+curl -X POST http://localhost:8000/api/plans/plans/1/assign_referent/ \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"referent_id": 3}'
+```
+
+**Retirer un référent :**
+
+```bash
+curl -X DELETE "http://localhost:8000/api/plans/plans/1/remove_referent/?referent_id=3" \
+  -H "Authorization: Bearer {token}"
+```
+
+> **Note** : Retirer un référent le passe en simple membre (l'association `CorRolePlan` est conservée avec `referent=false`). Retirer un membre supprime complètement l'association.
+
+**Permission** : Référent du plan, admin_og ou super_admin
+
+### 11. Gestion des fichiers
 
 **Upload d'un fichier :**
 
@@ -400,7 +441,7 @@ curl -X GET http://localhost:8000/api/plans/fichiers/1/download/ \
   --output document.pdf
 ```
 
-### 10. Actions en masse
+### 12. Actions en masse
 
 **Assignation multiple :**
 
@@ -463,8 +504,38 @@ Le paramètre `?scope=mine` exclut la condition "même organisme" pour n'affiche
 | **Changer le statut** | Référent du plan spécifique, admin organisme ou super admin |
 | **Créer une évaluation** | Référent du plan spécifique, admin organisme ou super admin |
 | **Dupliquer** | Admin organisme ou super admin |
+| **Ajouter/retirer un site** | Référent du plan, admin organisme ou super admin |
+| **Ajouter/retirer un membre** | Référent du plan, admin organisme ou super admin |
+| **Ajouter/retirer un référent** | Référent du plan, admin organisme ou super admin |
+| **Demander un lien plan-site** | Référent/membre du plan, référent du site, admin organisme+ |
 
-> **Note** : Pour les actions de cycle de vie (changement de statut, création d'évaluation), la permission est vérifiée au niveau du **plan spécifique** (via `plan.referents`), pas au niveau du rôle global. Un utilisateur référent d'un autre plan ne peut pas modifier le statut d'un plan dont il n'est pas référent.
+> **Note** : La permission est vérifiée au niveau du **plan spécifique** via `_can_manage_plan(user, plan)` qui vérifie `plan.referents.filter(pk=user.pk)` ou `user.is_admin_organisme()`. Un utilisateur référent d'un autre plan ne peut pas gérer un plan dont il n'est pas référent.
+
+### Validation plan-site link
+
+L'endpoint `POST /api/validations/request_plan_site_link/` permet de demander la liaison d'un site à un plan. Selon les droits du demandeur, le lien est créé directement ou soumis à validation :
+
+| Demandeur | Résultat |
+|-----------|----------|
+| Super admin | Lien direct |
+| Admin organisme + référent du site | Lien direct |
+| Référent du plan + référent du site | Lien direct |
+| Référent du plan (pas référent du site) | Validation par les référents/admin du site |
+| Membre du plan | Validation par les référents du plan |
+| Référent/membre du site (pas lié au plan) | Validation par les référents du plan |
+
+```bash
+curl -X POST http://localhost:8000/api/validations/request_plan_site_link/ \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"plan_id": 1, "site_id": 2}'
+
+# Réponse (lien direct)
+{"message": "Site lie au plan avec succes.", "direct": true}
+
+# Réponse (validation requise)
+{"id": 42, "message": "Votre demande de lien plan-site a ete soumise...", "direct": false}
+```
 
 ## ⚠️ Gestion d'erreurs
 
@@ -524,11 +595,11 @@ La pagination utilise le format standard de Django REST Framework :
 
 ## 🔄 Cycle de vie
 
-### 11. Changement de statut
+### 13. Changement de statut
 
 **POST /api/plans/plans/{id}/change-status/**
 
-Transitions autorisées : `draft → valide`, `valide → draft`, `valide → archive`, `archive → draft`
+Transitions autorisées : `draft → valide`, `valide → draft`, `valide → archive`, `archive → valide`
 
 **Permission** : Référent du plan, admin_og ou super_admin
 
@@ -557,7 +628,7 @@ curl -X POST http://localhost:8000/api/plans/plans/1/change-status/ \
 {"detail": "Vous n'avez pas la permission de gérer ce plan."}
 ```
 
-### 12. Création d'une évaluation mi-parcours
+### 14. Création d'une évaluation mi-parcours
 
 **POST /api/plans/plans/{id}/create-evaluation/**
 
@@ -589,7 +660,7 @@ curl -X POST http://localhost:8000/api/plans/plans/1/create-evaluation/ \
 {"error": "Le plan doit être validé pour créer une évaluation"}
 ```
 
-### 13. Duplication d'un plan
+### 15. Duplication d'un plan
 
 **POST /api/plans/plans/{id}/duplicate/**
 
