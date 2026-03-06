@@ -309,6 +309,7 @@
         "periode": "Période",
         "sites": "Sites",
         "referents": "Référents",
+        "users": "Utilisateurs",
         "lastUpdate": "Dernière MAJ",
         "actions": "Actions"
       },
@@ -335,6 +336,7 @@
         "noPlans": "Aucun plan de gestion trouvé"
       },
       "others": "+{{count}} autres",
+      "referent": "Référent",
       "messages": {
         "loading": "Chargement des plans de gestion...",
         "sitesUpdated": "Sites du plan mis à jour",
@@ -459,7 +461,8 @@
         "plan_access": "Accès plan",
         "module_access": "Accès module",
         "referent_validation": "Validation référent",
-        "site_org_link": "Lien site-organisme"
+        "site_org_link": "Lien site-organisme",
+        "plan_site_link": "Lien plan-site"
       },
       "actions": {
         "approve": "Approuver",
@@ -740,28 +743,43 @@
       }
     },
     "linkPlanReferent": {
-      "title": "Gérer les référents du plan",
+      "title": "Gérer les utilisateurs du plan",
       "sections": {
         "currentReferents": "Référents du plan",
-        "addReferent": "Ajouter un référent"
+        "currentUsers": "Utilisateurs du plan",
+        "addReferent": "Ajouter un référent",
+        "addUser": "Ajouter un utilisateur"
       },
       "noReferent": "Aucun référent assigné à ce plan",
+      "noUsers": "Aucun utilisateur assigné à ce plan",
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "infoText": "Les référents peuvent modifier et valider le plan de gestion. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
+      "addAsReferent": "Ajouter en tant que référent",
+      "infoText": "Les <strong>référents</strong> peuvent modifier et valider le plan. Les <strong>membres</strong> ont accès en lecture seule aux données du plan. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
       "badges": {
         "new": "Nouveau",
         "deleted": "Supprimé"
       },
       "actions": {
         "removeReferent": "Retirer ce référent",
-        "restore": "Restaurer"
+        "removeUser": "Retirer cet utilisateur",
+        "restore": "Restaurer",
+        "promoteToReferent": "Promouvoir en référent",
+        "demoteToMember": "Rétrograder en membre"
       },
       "messages": {
         "referentAdded": "Référent \"{{name}}\" ajouté à la liste",
-        "addError": "Erreur lors de l'ajout des référents: {{error}}",
+        "userAdded": "Utilisateur \"{{name}}\" ajouté à la liste",
+        "addError": "Erreur lors de l'ajout: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
       }
+    },
+    "linkPlanToSite": {
+      "title": "Lier un plan de gestion",
+      "search": "Rechercher un plan...",
+      "noResults": "Aucun plan disponible",
+      "success": "Plan lié au site avec succès",
+      "error": "Erreur lors de la liaison du plan"
     },
     "linkSiteOrganisme": {
       "titleManageSites": "Gérer les sites de l'organisme",
@@ -1246,9 +1264,26 @@
         "site": "Site",
         "sites": "Sites",
         "mindmap": "Mindmap",
-        "documents": "Documents"
+        "documents": "Documents",
+        "users": "Utilisateurs"
       },
       "noSites": "Aucun site associé",
+      "noUsers": "Aucun utilisateur associé",
+      "referent": "Référent",
+      "member": "Membre",
+      "manageSites": "Gérer les sites",
+      "manageUsers": "Gérer les utilisateurs",
+      "addSite": "Ajouter un site",
+      "removeSite": "Retirer",
+      "confirmRemoveSite": "Retirer le site {{name}} de ce plan ?",
+      "siteRemoved": "Site retiré du plan",
+      "siteAdded": "Site ajouté au plan",
+      "sitesUpdated": "Sites du plan mis à jour",
+      "usersUpdated": "Utilisateurs du plan mis à jour",
+      "pendingSites": "Sites en attente de validation",
+      "siteLinkRequested": "Demande de liaison envoyée",
+      "siteLinkDirect": "Site lié avec succès",
+      "siteLinkMixed": "Sites liés et demandes de liaison envoyées",
       "siteNoAccess": "Vous n'avez pas accès à ce site",
       "requestSiteAccess": "Demander l'accès",
       "accordions": {
@@ -1675,6 +1710,10 @@
       "organismes": "Organismes gestionnaires",
       "noGeometry": "Géométrie non disponible",
       "noPlans": "Aucun plan de gestion associé",
+      "linkPlan": "Lier un plan",
+      "pendingPlans": "En attente de validation",
+      "requestPlanAccess": "Demander l'accès à un plan",
+      "planLinked": "Plan lié au site avec succès",
       "noDocuments": "Aucun document",
       "inactive": "Site inactif",
       "menu": {
@@ -1758,7 +1797,12 @@
       "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès...",
       "justificationHint": "Cette information sera transmise aux administrateurs",
       "submit": "Envoyer la demande",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "roleLabel": "Type d'accès demandé",
+      "roleMember": "Membre",
+      "roleMemberDesc": "Accès en lecture seule aux données du plan",
+      "roleReferent": "Référent",
+      "roleReferentDesc": "Accès complet : modification, validation, gestion des utilisateurs"
     },
     "success": "Votre demande a été envoyée et est en attente de validation",
     "successBoth": "Vos demandes de lien au site et d'accès au plan ont été envoyées.",

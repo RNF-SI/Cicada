@@ -22,12 +22,21 @@ import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AdminSite, GeoJSONFeature, AdminPlan } from '../../core/models/admin.model';
+import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { SiteFormModalComponent, SiteFormModalData } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { ManageSiteUsersModalComponent, ManageSiteUsersModalData } from '../../shared/components/modals/manage-site-users-modal/manage-site-users-modal.component';
 import { InviteModalComponent, InviteModalData } from '../../shared/components/modals/invite-modal/invite-modal.component';
 import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
+import {
+  LinkPlanToSiteDialogComponent,
+  LinkPlanToSiteDialogData,
+} from '../../shared/components/modals/link-plan-to-site-dialog/link-plan-to-site-dialog.component';
+import {
+  AccessRequestDialogComponent,
+  AccessRequestDialogData,
+} from '../../shared/components/access-request-dialog/access-request-dialog.component';
 
 // Interface pour les utilisateurs assignes au site (depuis SiteDetailSerializer)
 interface SiteUserAssignment {
@@ -90,6 +99,7 @@ export class SiteDetailComponent implements OnInit {
   readonly loading = signal(false);
   readonly requestingReferent = signal(false);
   readonly hasPendingReferentRequest = signal(false);
+  readonly pendingPlanRequests = signal<ValidationRequestListItem[]>([]);
 
   // Menu sidebar (visuel uniquement)
   readonly menuItems: MenuItem[] = [
@@ -183,6 +193,9 @@ export class SiteDetailComponent implements OnInit {
                r.status === 'pending'
         );
         this.hasPendingReferentRequest.set(pendingReferent);
+
+        // Charger les demandes plan-site en attente pour ce site
+        this.loadPendingPlanRequests(site.id_site);
 
         this.loading.set(false);
       },
@@ -423,6 +436,96 @@ export class SiteDetailComponent implements OnInit {
     if (ua.conservateur) return 'role-conservateur';
     if (ua.referent && ua.referent_valid) return 'role-referent';
     return 'role-user';
+  }
+
+  // ===================
+  // Plans management
+  // ===================
+
+  /**
+   * Signal: true si l'utilisateur peut lier un plan au site (referent du site ou admin_og+).
+   */
+  readonly canLinkPlan = computed(() => {
+    if (this.authService.isSuperAdmin() || this.authService.isAdminOrganisme()) {
+      return true;
+    }
+    return this.isReferent();
+  });
+
+  /**
+   * Charge les demandes plan-site en attente pour ce site.
+   */
+  loadPendingPlanRequests(siteId: number): void {
+    this.validationService.getValidationRequests({
+      request_type: 'plan_site_link',
+      status: 'pending'
+    }).subscribe({
+      next: (response) => {
+        const siteRequests = response.results.filter(
+          r => r.target_site_id === siteId
+        );
+        this.pendingPlanRequests.set(siteRequests);
+      },
+      error: () => {
+        this.pendingPlanRequests.set([]);
+      }
+    });
+  }
+
+  /**
+   * Ouvre le dialog pour lier un plan existant au site.
+   */
+  linkPlanToSite(): void {
+    const s = this.site();
+    if (!s) return;
+
+    const pendingPlanIds = this.pendingPlanRequests().map(r => r.target_plan_id).filter(Boolean) as number[];
+    const existingPlanIds = [...this.associatedPlans().map(p => p.id_pg), ...pendingPlanIds];
+
+    const dialogRef = this.dialog.open(LinkPlanToSiteDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        siteId: s.id_site,
+        siteName: s.nom_site,
+        existingPlanIds,
+      } as LinkPlanToSiteDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.success) {
+        this.loadSiteData(s.slug);
+        let message: string;
+        if (result.direct === false) {
+          message = this.translate.instant('plans.detail.siteLinkRequested');
+        } else {
+          message = result.message || this.translate.instant('sites.detail.planLinked');
+        }
+        this.snackBar.open(
+          message,
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  /**
+   * Ouvre le dialog de demande d'acces a un plan.
+   */
+  requestPlanAccess(): void {
+    const s = this.site();
+    if (!s) return;
+
+    this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetSlug: s.slug,
+        targetName: s.nom_site,
+      } as AccessRequestDialogData,
+    });
   }
 
   // ===================

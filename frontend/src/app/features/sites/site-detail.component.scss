@@ -108,6 +108,7 @@ h1 { @include sites-h1; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 2px solid $primary-color; .section-title { margin: 0; padding-bottom: 0; border-bottom: none; } }
 .section-actions { display: flex; gap: $spacing-sm; }
 .btn-manage { @include sites-btn-primary-sm; }
+.btn-manage--secondary { @include sites-btn-secondary-sm; }
 .btn-invite { @include sites-btn-secondary-sm; }
 .subsection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-md; }
 .empty-text { color: $gray-dark; font-size: $font-size-small; font-style: italic; }
@@ -138,6 +139,23 @@ h1 { @include sites-h1; }
 .status-success { @include sites-status-success; }
 .status-warning { @include sites-status-warning; }
 .status-neutre { @include sites-status-neutre; }
+
+// Pending plans
+.pending-plans-section { margin-top: $spacing-sm; }
+.pending-plans-label {
+  display: block; font-family: $font-family; font-size: 11px; font-weight: $font-weight-bold;
+  color: $gray-dark; text-transform: uppercase; letter-spacing: 1px; margin-bottom: $spacing-xxs;
+}
+.pending-plans-list { display: flex; flex-direction: column; gap: $spacing-xs; }
+.plan-card-pending {
+  opacity: 0.7; border: 1px dashed $gray; background-color: transparent; cursor: default;
+  &:hover { background-color: transparent; transform: none; }
+  i { color: $warning-color; font-size: 12px; }
+  .status-badge {
+    display: inline-block; padding: 2px 8px; border-radius: $border-radius-pill;
+    font-size: 10px; font-weight: $font-weight-bold; background-color: rgba($warning-color, 0.15); color: $warning-color;
+  }
+}
 
 // Map toolbar for shapefile import
 .map-toolbar { position: absolute; top: $spacing-md; right: $spacing-md; z-index: 1000; display: flex; flex-direction: column; gap: $spacing-xs; }

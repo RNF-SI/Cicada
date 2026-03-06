@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>{{ 'modals.linkPlanToSite.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <div class="modal-form">
+    <!-- Site info -->
+    <div class="site-info">
+      <div class="site-icon">
+        <i class="fi fi-rr-marker"></i>
+      </div>
+      <span class="site-name">{{ data.siteName }}</span>
+    </div>
+
+    @if (isLoadingData()) {
+      <div class="loading-container">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else {
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="fi fi-rr-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <div class="search-section">
+        <mat-form-field appearance="outline" class="plan-search-field">
+          <mat-label>{{ 'modals.linkPlanToSite.search' | translate }}</mat-label>
+          <input matInput
+                 [formControl]="planControl"
+                 [matAutocomplete]="planAuto"
+                 [placeholder]="'modals.linkPlanToSite.search' | translate">
+          <mat-autocomplete #planAuto="matAutocomplete"
+                            [displayWith]="displayPlan"
+                            (optionSelected)="selectPlan($event.option.value)">
+            @for (plan of filteredPlans(); track plan.id_pg) {
+              <mat-option [value]="plan">
+                <div class="autocomplete-option">
+                  <span class="option-name">{{ plan.nom }}</span>
+                  @if (plan.annee_debut && plan.annee_fin) {
+                    <span class="option-period">{{ plan.annee_debut }} - {{ plan.annee_fin }}</span>
+                  }
+                </div>
+              </mat-option>
+            } @empty {
+              <mat-option disabled>{{ 'modals.linkPlanToSite.noResults' | translate }}</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  @if (isLoading()) {
+    <mat-spinner diameter="20"></mat-spinner>
+  }
+</mat-dialog-actions>

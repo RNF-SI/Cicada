@@ -103,6 +103,28 @@ export interface AccessRequestDialogData {
         </div>
       }
 
+      @if (data.type === 'plan') {
+        <div class="role-choice">
+          <label class="role-label">{{ 'accessRequest.dialog.roleLabel' | translate }}</label>
+          <div class="role-options">
+            <label class="role-option" [class.selected]="!requestAsReferent">
+              <input type="radio" name="role" [value]="false" [(ngModel)]="requestAsReferent">
+              <div class="role-option-content">
+                <span class="role-option-title">{{ 'accessRequest.dialog.roleMember' | translate }}</span>
+                <span class="role-option-desc">{{ 'accessRequest.dialog.roleMemberDesc' | translate }}</span>
+              </div>
+            </label>
+            <label class="role-option" [class.selected]="requestAsReferent">
+              <input type="radio" name="role" [value]="true" [(ngModel)]="requestAsReferent">
+              <div class="role-option-content">
+                <span class="role-option-title">{{ 'accessRequest.dialog.roleReferent' | translate }}</span>
+                <span class="role-option-desc">{{ 'accessRequest.dialog.roleReferentDesc' | translate }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      }
+
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>{{ 'accessRequest.dialog.justificationLabel' | translate }}</mat-label>
         <textarea
@@ -193,6 +215,69 @@ export interface AccessRequestDialogData {
       align-items: center;
       gap: 8px;
     }
+
+    .role-choice {
+      margin-bottom: 16px;
+    }
+
+    .role-label {
+      display: block;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #343433;
+      margin-bottom: 8px;
+    }
+
+    .role-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .role-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      border: 1px solid #E0E0E0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .role-option:hover {
+      border-color: #025359;
+    }
+
+    .role-option.selected {
+      border-color: #025359;
+      background-color: #F0F7F7;
+    }
+
+    .role-option input[type="radio"] {
+      margin-top: 2px;
+      accent-color: #025359;
+    }
+
+    .role-option-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .role-option-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #343433;
+    }
+
+    .role-option-desc {
+      font-family: 'Nunito', sans-serif;
+      font-size: 12px;
+      color: #746F6E;
+    }
   `]
 })
 export class AccessRequestDialogComponent {
@@ -205,6 +290,7 @@ export class AccessRequestDialogComponent {
   justification = '';
   submitting = false;
   selectedSiteSlug: string | null = null;
+  requestAsReferent = false;
 
   /** Verifie si on est en mode selection de sites (existant) */
   get isSelectionMode(): boolean {
@@ -248,18 +334,22 @@ export class AccessRequestDialogComponent {
     const requestData = this.justification ? { justification: this.justification } : undefined;
 
     if (this.data.type === 'plan') {
+      const planRequestData = {
+        ...(requestData || {}),
+        request_as_referent: this.requestAsReferent,
+      };
       if (this.isCombinedPlanMode) {
         // Cas 2 : Demande site + plan en parallele
         forkJoin({
           siteRequest: this.validationService.requestSiteAccess(this.selectedSiteSlug!, requestData),
-          planRequest: this.validationService.requestPlanAccess(this.data.targetId!, requestData)
+          planRequest: this.validationService.requestPlanAccess(this.data.targetId!, planRequestData)
         }).subscribe({
           next: () => this.onSuccess('accessRequest.successBoth'),
           error: (e) => this.onError(e)
         });
       } else {
         // Cas 1 : Demande directe plan uniquement
-        this.validationService.requestPlanAccess(this.data.targetId!, requestData)
+        this.validationService.requestPlanAccess(this.data.targetId!, planRequestData)
           .subscribe({
             next: () => this.onSuccess('accessRequest.success'),
             error: (e) => this.onError(e)
