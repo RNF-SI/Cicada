@@ -211,7 +211,8 @@ describe('SiteDetailComponent', () => {
 
     const validationServiceMock = {
       getMyRequests: getMyRequestsMock,
-      requestReferent: requestReferentMock
+      requestReferent: requestReferentMock,
+      getValidationRequests: jest.fn().mockReturnValue(of({ count: 0, results: [] }))
     };
 
     const isAdminOrganismeSignal = signal(false);

@@ -91,9 +91,8 @@ export class FcrFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
-    // Récupérer le slug du plan depuis l'URL parent
-    const parentParams = this.route.parent?.parent?.snapshot.paramMap;
-    const slug = parentParams?.get('slug');
+    // Récupérer le slug du plan en remontant l'arbre des routes
+    const slug = this.findRouteParam('slug');
 
     if (slug) {
       this.planSlug.set(slug);
@@ -320,6 +319,16 @@ export class FcrFormComponent implements OnInit {
     } else {
       this.router.navigate(['/plans']);
     }
+  }
+
+  private findRouteParam(name: string): string | null {
+    let route: ActivatedRoute | null = this.route;
+    while (route) {
+      const value = route.snapshot?.paramMap?.get(name);
+      if (value) return value;
+      route = route.parent;
+    }
+    return null;
   }
 
   // Helpers pour le template

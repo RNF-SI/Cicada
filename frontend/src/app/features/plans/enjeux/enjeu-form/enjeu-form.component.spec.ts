@@ -60,7 +60,7 @@ const existingEnjeu: Enjeu = {
   slug: 'enjeu-existant',
 };
 
-function buildActivatedRoute(params: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): any {
+function buildActivatedRoute(params: Record<string, string> = {}, parentParams: Record<string, string> = { slug: 'plan-test' }): any {
   return {
     snapshot: {
       paramMap: {
@@ -68,13 +68,12 @@ function buildActivatedRoute(params: Record<string, string> = {}, parentParentPa
       },
     },
     parent: {
-      parent: {
-        snapshot: {
-          paramMap: {
-            get: (key: string) => parentParentParams[key] || null,
-          },
+      snapshot: {
+        paramMap: {
+          get: (key: string) => parentParams[key] || null,
         },
       },
+      parent: null,
     },
   };
 }
