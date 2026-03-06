@@ -68,18 +68,22 @@ const mockNomenclatures = [
 ];
 
 function buildActivatedRoute(params: Record<string, string> = {}, parentParams: Record<string, string> = { slug: 'plan-test' }): any {
-  return {
-    snapshot: {
-      paramMap: {
-        get: (key: string) => params[key] || null,
-      },
+  const parentSnapshot = {
+    paramMap: {
+      get: (key: string) => parentParams[key] || null,
     },
+  };
+  const currentSnapshot = {
+    paramMap: {
+      get: (key: string) => params[key] || null,
+    },
+    pathFromRoot: [] as any[],
+  };
+  currentSnapshot.pathFromRoot = [parentSnapshot, currentSnapshot];
+  return {
+    snapshot: currentSnapshot,
     parent: {
-      snapshot: {
-        paramMap: {
-          get: (key: string) => parentParams[key] || null,
-        },
-      },
+      snapshot: parentSnapshot,
       parent: null,
     },
   };

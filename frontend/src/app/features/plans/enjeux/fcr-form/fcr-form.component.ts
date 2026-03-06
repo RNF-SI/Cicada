@@ -322,11 +322,9 @@ export class FcrFormComponent implements OnInit {
   }
 
   private findRouteParam(name: string): string | null {
-    let route: ActivatedRoute | null = this.route;
-    while (route) {
-      const value = route.snapshot?.paramMap?.get(name);
+    for (const segment of this.route.snapshot.pathFromRoot) {
+      const value = segment.paramMap.get(name);
       if (value) return value;
-      route = route.parent;
     }
     return null;
   }
