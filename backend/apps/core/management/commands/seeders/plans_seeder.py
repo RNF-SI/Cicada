@@ -38,7 +38,7 @@ class PlansSeeder(BaseSeeder):
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
 
         plans = [
-            # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf membre
+            # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres
             {
                 'nom': 'Plan de gestion 2020-2030 - Zones humides mediterraneennes',
                 'annee_debut': 2020,
@@ -66,6 +66,7 @@ class PlansSeeder(BaseSeeder):
                     (users[0], True),   # super_admin - referent
                     (users[3], True),   # referent.camargue - referent
                     (users[1], False),  # admin.rnf - membre simple
+                    (users[5], False),  # user.rnf - membre simple
                 ]
             },
             # Plan Aiguilles Rouges: admin.rnf referent, super_admin membre
@@ -95,7 +96,7 @@ class PlansSeeder(BaseSeeder):
                     (users[0], False),  # super_admin - membre simple
                 ]
             },
-            # Plan Grand-Voyeux: admin.cen referent
+            # Plan Grand-Voyeux: admin.cen referent, user.cen membre
             {
                 'nom': 'Plan de gestion 2022-2032 - Grand-Voyeux',
                 'annee_debut': 2022,
@@ -112,9 +113,10 @@ class PlansSeeder(BaseSeeder):
                 'sites': [sites[2]],
                 'membres': [
                     (users[2], True),   # admin.cen - referent
+                    (users[6], False),  # user.cen - membre
                 ]
             },
-            # Plan Vercors-Ecrins: referent.vercors et admin.cen referents
+            # Plan Vercors-Ecrins: referent.vercors et admin.cen referents, user.cen membre
             {
                 'nom': 'Plan de gestion inter-sites Vercors-Ecrins 2021-2031',
                 'annee_debut': 2021,
@@ -132,6 +134,7 @@ class PlansSeeder(BaseSeeder):
                 'membres': [
                     (users[4], True),   # referent.vercors - referent
                     (users[2], True),   # admin.cen - referent
+                    (users[6], False),  # user.cen - membre
                 ]
             },
             # Plan Brouage: archive sans membres
@@ -176,6 +179,9 @@ class PlansSeeder(BaseSeeder):
                 'membres': [
                     (users[0], True),   # super_admin - referent
                     (users[1], False),  # admin.rnf - membre simple
+                    (users[5], False),  # user.rnf - membre simple
+                    (users[3], False),  # referent.camargue - membre simple
+                    (users[6], False),  # user.cen - membre simple
                 ]
             },
             # Plans archives
@@ -269,6 +275,19 @@ class PlansSeeder(BaseSeeder):
         })
 
         return plans
+
+    def _set_plan_membres(self, plan: PlanGestion, membres: list) -> None:
+        """Synchronise les membres CorRolePlan et le M2M referents pour un plan."""
+        referents_list = []
+        for user, is_referent in membres:
+            CorRolePlan.objects.update_or_create(
+                id_role=user,
+                plan_de_gestion=plan,
+                defaults={'referent': is_referent}
+            )
+            if is_referent:
+                referents_list.append(user)
+        plan.referents.set(referents_list)
 
     def seed(self) -> List[PlanGestion]:
         """
@@ -449,7 +468,15 @@ class PlansSeeder(BaseSeeder):
             )
             for s in [sites[0], sites[4]]:
                 CorSitePg.objects.get_or_create(site=s, plan_de_gestion=camargue_eval2, defaults={'rang': 1})
-            camargue_eval2.referents.set(plans[0].referents.all())
+            # Hériter les membres du plan parent + ajouter des membres supplémentaires
+            self._set_plan_membres(camargue_eval2, [
+                (users[0], True),   # super_admin - referent
+                (users[3], True),   # referent.camargue - referent
+                (users[1], False),  # admin.rnf - membre
+                (users[5], False),  # user.rnf - membre
+                (users[7], False),  # test@example.com - membre
+                (users[4], False),  # referent.vercors - membre
+            ])
             plans.append(camargue_eval2)
 
             self.log_item('chain', 'Camargue: 5 niveaux (initial → eval → révisé → actuel → eval)')
@@ -499,7 +526,11 @@ class PlansSeeder(BaseSeeder):
             )
             for cor_site in plans[1].sites.all():
                 CorSitePg.objects.get_or_create(site=cor_site.site, plan_de_gestion=ar_eval, defaults={'rang': cor_site.rang})
-            ar_eval.referents.set(plans[1].referents.all())
+            # Hériter les membres du plan parent
+            self._set_plan_membres(ar_eval, [
+                (users[1], True),   # admin.rnf - referent
+                (users[0], False),  # super_admin - membre
+            ])
             plans.append(ar_eval)
 
             # Plan révisé suite à l'évaluation (en cours de rédaction)
@@ -528,7 +559,12 @@ class PlansSeeder(BaseSeeder):
             )
             for cor_site in plans[1].sites.all():
                 CorSitePg.objects.get_or_create(site=cor_site.site, plan_de_gestion=ar_revise, defaults={'rang': cor_site.rang})
-            ar_revise.referents.set(plans[1].referents.all())
+            # Hériter les membres du plan parent + ajouter user.rnf comme membre
+            self._set_plan_membres(ar_revise, [
+                (users[1], True),   # admin.rnf - referent
+                (users[0], False),  # super_admin - membre
+                (users[5], False),  # user.rnf - membre
+            ])
             plans.append(ar_revise)
 
             self.log_item('chain', 'Aiguilles Rouges: 4 niveaux (initial → révisé → eval → révisé)')
@@ -597,7 +633,12 @@ class PlansSeeder(BaseSeeder):
             )
             for cor_site in plans[3].sites.all():
                 CorSitePg.objects.get_or_create(site=cor_site.site, plan_de_gestion=vercors_eval, defaults={'rang': cor_site.rang})
-            vercors_eval.referents.set(plans[3].referents.all())
+            # Hériter les membres du plan parent + ajouter user.cen comme membre
+            self._set_plan_membres(vercors_eval, [
+                (users[4], True),   # referent.vercors - referent
+                (users[2], True),   # admin.cen - referent
+                (users[6], False),  # user.cen - membre
+            ])
             plans.append(vercors_eval)
 
             self.log_item('chain', 'Vercors-Ecrins: 3 niveaux (initial → révisé → eval)')

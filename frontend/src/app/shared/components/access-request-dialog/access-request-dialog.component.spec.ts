@@ -170,11 +170,11 @@ describe('AccessRequestDialogComponent', () => {
       expect(component.canSubmit).toBe(true);
     });
 
-    it('should call requestPlanAccess on submit', fakeAsync(() => {
+    it('should call requestPlanAccess on submit with request_as_referent', fakeAsync(() => {
       component.submit();
       tick();
 
-      expect(requestPlanAccessMock).toHaveBeenCalledWith(42, undefined);
+      expect(requestPlanAccessMock).toHaveBeenCalledWith(42, { request_as_referent: false });
     }));
 
     it('should not call requestSiteAccess', fakeAsync(() => {

@@ -274,10 +274,10 @@ describe('PlanVersionTimelineComponent', () => {
       expect(spy).toHaveBeenCalledWith('draft');
     });
 
-    it('should emit "draft" on onReactivate', () => {
+    it('should emit "valide" on onReactivate', () => {
       const spy = jest.spyOn(component.statusChange, 'emit');
       component.onReactivate();
-      expect(spy).toHaveBeenCalledWith('draft');
+      expect(spy).toHaveBeenCalledWith('valide');
     });
 
     it('should emit createEvaluation on onCreateEvaluation', () => {

@@ -725,8 +725,8 @@ class TestPlansReferentAssignment:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'referent_id' in str(response.data)
 
-    def test_assign_referent_non_referent_user(self, api_client):
-        """Test cannot assign user who is not a referent."""
+    def test_assign_referent_any_user(self, api_client):
+        """Test can assign any user as referent to a plan."""
         admin = SuperAdminFactory()
         plan = PlanGestionFactory()
         regular_user = RoleFactory()
@@ -736,8 +736,8 @@ class TestPlansReferentAssignment:
             'referent_id': regular_user.id_role
         })
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert regular_user not in plan.referents.all()
+        assert response.status_code == status.HTTP_200_OK
+        assert regular_user in plan.referents.all()
 
     def test_assign_referent_nonexistent_user(self, api_client):
         """Test assign referent with non-existent user."""
@@ -808,13 +808,19 @@ class TestPlansReferentAssignment:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_assign_referent_requires_admin_permission(self, api_client):
-        """Test only admin or admin_og can assign referents."""
+    def test_assign_referent_requires_admin_or_plan_referent(self, api_client):
+        """Test only admin_og+ or plan referent can assign referents."""
         regular_user = RoleFactory()
-        plan = PlanGestionFactory()
-        referent = ReferentFactory()
         site = SiteFactory()
-        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+        plan = PlanGestionFactory()
+        # Link site to plan so user can see it
+        CorSitePgFactory(plan_de_gestion=plan, site=site)
+        # Give user access to the site (member, not referent)
+        CorRoleSiteFactory(id_role=regular_user, id_site=site, referent=False)
+
+        referent = ReferentFactory()
+        referent_site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=referent_site, referent=True, referent_valid=True)
 
         api_client.force_authenticate(user=regular_user)
         response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_referent/', {
@@ -822,6 +828,146 @@ class TestPlansReferentAssignment:
         })
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# =============================================================================
+# MEMBER ASSIGNMENT TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansMemberAssignment:
+    """Tests for plan member (non-referent) assignment."""
+
+    def test_assign_member(self, api_client):
+        """Test admin can add a member to a plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_member/', {
+            'user_id': user.id_role
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        from apps.plans.models import CorRolePlan
+        cor = CorRolePlan.objects.get(id_role=user, plan_de_gestion=plan)
+        assert cor.referent is False
+
+    def test_assign_member_already_referent(self, api_client):
+        """Test cannot add as member someone who is already referent."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+        plan.referents.add(user)
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_member/', {
+            'user_id': user.id_role
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_assign_member_already_member(self, api_client):
+        """Test cannot add someone who is already a member."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=False)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_member/', {
+            'user_id': user.id_role
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_remove_member(self, api_client):
+        """Test admin can remove a member from a plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=False)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_member/?user_id={user.id_role}'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not CorRolePlan.objects.filter(id_role=user, plan_de_gestion=plan).exists()
+
+    def test_remove_member_also_removes_referent(self, api_client):
+        """Test removing a member who is a referent also removes from M2M."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+        plan.referents.add(user)
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_member/?user_id={user.id_role}'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not CorRolePlan.objects.filter(id_role=user, plan_de_gestion=plan).exists()
+        assert user not in plan.referents.all()
+
+    def test_remove_member_not_found(self, api_client):
+        """Test removing non-existent member fails."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_member/?user_id={user.id_role}'
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_assign_member_requires_permission(self, api_client):
+        """Test only admin_og+ or plan referent can assign members."""
+        regular_user = RoleFactory()
+        site = SiteFactory()
+        plan = PlanGestionFactory()
+        CorSitePgFactory(plan_de_gestion=plan, site=site)
+        CorRoleSiteFactory(id_role=regular_user, id_site=site, referent=False)
+
+        target_user = RoleFactory()
+
+        api_client.force_authenticate(user=regular_user)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_member/', {
+            'user_id': target_user.id_role
+        })
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_referent_downgrade_on_remove_referent(self, api_client):
+        """Test removing referent downgrades to member in CorRolePlan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory()
+        user = RoleFactory()
+        plan.referents.add(user)
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(
+            f'/api/plans/plans/{plan.id_pg}/remove_referent/?referent_id={user.id_role}'
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        cor = CorRolePlan.objects.get(id_role=user, plan_de_gestion=plan)
+        assert cor.referent is False
+        assert user not in plan.referents.all()
 
 
 # =============================================================================
