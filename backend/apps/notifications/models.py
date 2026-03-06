@@ -178,6 +178,7 @@ class ValidationRequest(models.Model):
         ('site_org_unlink', _('Retrait site-organisme')),
         ('invite_org_to_site', _('Invitation organisme vers site')),
         ('invite_user_to_site', _('Invitation utilisateur vers site')),
+        ('plan_site_link', _('Lien plan-site')),
     ]
 
     STATUS_CHOICES = [

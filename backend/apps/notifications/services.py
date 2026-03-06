@@ -151,6 +151,11 @@ class NotificationService:
             target_user_name = str(validation_request.target_user) if validation_request.target_user else "un utilisateur"
             return f"{requester_name} invite {target_user_name} a rejoindre le site {site_name}."
 
+        elif validation_request.request_type == 'plan_site_link':
+            plan_name = validation_request.target_plan.nom if validation_request.target_plan else "un plan"
+            site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
+            return f"{requester_name} demande a lier le site {site_name} au plan de gestion {plan_name}."
+
         return f"Nouvelle demande de {requester_name}."
 
     @staticmethod
@@ -689,6 +694,10 @@ class ValidationService:
             # Validateurs: admin_og de l'organisme de l'utilisateur invite
             validators = ValidationService._get_invite_user_validators(validation_request)
 
+        elif validation_request.request_type == 'plan_site_link':
+            # Validateurs: referents du site + admin_og des organismes du site
+            validators = ValidationService._get_plan_site_link_validators(validation_request)
+
         # Fallback: si aucun validateur trouve, super_admin
         if not validators:
             validators = set(Role.objects.filter(
@@ -819,6 +828,52 @@ class ValidationService:
                 role_level='super_admin',
                 active=True
             ))
+
+        return validators
+
+    @staticmethod
+    def _get_plan_site_link_validators(validation_request):
+        """
+        Validateurs pour un lien plan-site.
+
+        Deux cas:
+        - Si le demandeur est referent du plan: valide par les referents du site
+          + admin_og des organismes du site (le plan est ok, il faut l'accord du site)
+        - Si le demandeur est simple membre du plan: valide par les referents du plan
+          + super_admin (il faut l'accord du plan)
+        """
+        validators = set()
+        plan = validation_request.target_plan
+        site = validation_request.target_site
+        requester = validation_request.requester
+
+        # Verifier si le demandeur est referent du plan
+        is_plan_referent = plan and plan.referents.filter(pk=requester.pk).exists() if requester else False
+
+        if is_plan_referent:
+            # Referent du plan → besoin de l'accord du site
+            if site:
+                referent_roles = CorRoleSite.objects.filter(
+                    id_site=site,
+                    referent=True,
+                    referent_valid=True
+                ).values_list('id_role', flat=True)
+                validators.update(Role.objects.filter(
+                    id_role__in=referent_roles,
+                    active=True
+                ))
+
+                for cor_og in CorOgSite.objects.filter(id_site=site):
+                    admin_ogs = Role.objects.filter(
+                        id_organisme=cor_og.uuid_og,
+                        role_level='admin_og',
+                        active=True
+                    )
+                    validators.update(admin_ogs)
+        else:
+            # Simple membre du plan → besoin de l'accord du plan
+            if plan:
+                validators.update(plan.referents.filter(active=True))
 
         return validators
 
@@ -1163,16 +1218,20 @@ class ValidationService:
 
         plan = validation_request.target_plan
         requester = validation_request.requester
+        is_referent = validation_request.request_as_referent
 
-        # Creer CorRolePlan (membre du plan)
-        CorRolePlan.objects.get_or_create(
+        # Creer CorRolePlan (membre ou referent selon la demande)
+        cor, created = CorRolePlan.objects.get_or_create(
             id_role=requester,
             plan_de_gestion=plan,
-            defaults={'referent': False}
+            defaults={'referent': is_referent}
         )
+        if not created and is_referent and not cor.referent:
+            cor.referent = True
+            cor.save(update_fields=['referent'])
 
-        # Garder plan.referents.add() pour compatibilite (utilise dans get_queryset)
-        if not plan.referents.filter(id_role=requester.id_role).exists():
+        # Garder plan.referents M2M pour compatibilite (utilise dans get_queryset)
+        if is_referent:
             plan.referents.add(requester)
 
         # Approuver la demande
@@ -1183,6 +1242,60 @@ class ValidationService:
 
         # Notifier les autres validateurs
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+    @staticmethod
+    def approve_plan_site_link(validation_request, validator, comment=None):
+        """
+        Approuve un lien plan-site et cree la liaison CorSitePg.
+
+        Args:
+            validation_request: ValidationRequest
+            validator: Role qui approuve
+            comment: Commentaire optionnel
+        """
+        from apps.plans.models import CorSitePg
+
+        if validation_request.request_type != 'plan_site_link':
+            raise ValueError("Cette demande n'est pas un lien plan-site")
+
+        plan = validation_request.target_plan
+        site = validation_request.target_site
+
+        if not plan or not site:
+            raise ValueError("Plan ou site manquant dans la demande")
+
+        # Creer le lien plan-site
+        CorSitePg.objects.get_or_create(
+            site=site,
+            plan_de_gestion=plan,
+            defaults={'rang': 0}
+        )
+
+        # Approuver la demande
+        validation_request.approve(validator, comment)
+
+        # Notifier le demandeur
+        NotificationService.notify_validation_result(validation_request, approved=True)
+
+        # Notifier les autres validateurs
+        NotificationService.notify_other_validators(validation_request, validator, approved=True)
+
+        # Notifier les referents du plan que le site a ete lie
+        requester = validation_request.requester
+        for referent in plan.referents.filter(active=True):
+            # Ne pas notifier le validateur (il sait deja) ni le demandeur (notifie ci-dessus)
+            if referent.pk == validator.pk or (requester and referent.pk == requester.pk):
+                continue
+            NotificationService.create_notification(
+                recipient=referent,
+                notification_type='info',
+                title=f"Site lié au plan {plan.nom}",
+                message=f"Le site {site.nom_site} a été lié au plan de gestion {plan.nom}.",
+                priority='medium',
+                related_plan=plan,
+                related_site=site,
+                action_url=f"/plans/{plan.slug or plan.id_pg}",
+            )
 
     @staticmethod
     def approve_site_org_link(validation_request, validator, comment=None):

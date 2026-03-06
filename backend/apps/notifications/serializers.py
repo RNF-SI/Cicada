@@ -197,7 +197,9 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
     requester_name = serializers.SerializerMethodField()
     target_name = serializers.SerializerMethodField()
     target_site_id = serializers.IntegerField(source='target_site.id_site', read_only=True, allow_null=True)
+    target_site_name = serializers.CharField(source='target_site.nom_site', read_only=True, allow_null=True)
     target_plan_id = serializers.IntegerField(source='target_plan.id_pg', read_only=True, allow_null=True)
+    target_plan_name = serializers.CharField(source='target_plan.nom', read_only=True, allow_null=True)
     validator_name = serializers.SerializerMethodField()
     validator_comment = serializers.CharField(source='validation_comment', read_only=True)
     request_type_display = serializers.CharField(
@@ -223,7 +225,9 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'requester_name',
             'target_name',
             'target_site_id',
+            'target_site_name',
             'target_plan_id',
+            'target_plan_name',
             'justification',
             'validator_name',
             'validator_comment',
