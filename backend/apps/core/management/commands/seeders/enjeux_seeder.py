@@ -50,7 +50,7 @@ class EnjeuxSeeder(BaseSeeder):
     """
 
     name = 'enjeux'
-    dependencies = ['plans', 'nomenclatures']
+    dependencies = ['plans']
 
     def _get_nomenclature(self, type_mnemonique: str, mnemonique: str) -> Nomenclature:
         """Récupère une nomenclature par type et mnémonique."""

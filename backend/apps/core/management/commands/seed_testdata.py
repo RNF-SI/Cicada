@@ -14,7 +14,6 @@ Donnees creees:
     - 14 Utilisateurs (7 actifs + 3 inactifs + 2 en attente + 2 RGPD)
     - 8 Plans de gestion (6 actifs + 2 archives)
     - Groupes Django avec permissions
-    - Nomenclatures (types de site, evaluation, redacteur)
     - 3 Utilisateurs en attente d'inscription (PendingUser)
     - 22+ Demandes de validation (differents types et statuts)
     - 21+ Notifications (differents types)

@@ -311,8 +311,9 @@ docker compose exec web python manage.py seed_testdata --reset  # Remove test da
 docker compose exec web python manage.py seed_testdata --dry-run # Preview changes
 docker compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
-# Import/Update nomenclatures (reference data)
-docker compose exec web python import_nomenclatures.py
+# Import/Update nomenclatures (reference data - lancé automatiquement au démarrage)
+docker compose exec web python manage.py import_nomenclatures          # Import (skip si déjà fait)
+docker compose exec web python manage.py import_nomenclatures --force  # Force la réimportation
 
 # Test nomenclatures import
 docker compose exec web python test_nomenclatures.py
@@ -358,7 +359,6 @@ backend/apps/core/management/commands/
     ├── context.py                # SeederContext (partage de données)
     ├── signals.py                # Gestion centralisée des signaux (28)
     ├── modules_seeder.py         # 4 modules
-    ├── nomenclatures_seeder.py   # Nomenclatures et types (dont Type document plan)
     ├── groups_seeder.py          # 4 groupes Django
     ├── organismes_seeder.py      # 5 organismes
     ├── sites_seeder.py           # 7 sites avec géométries PostGIS
@@ -382,12 +382,13 @@ backend/apps/core/management/commands/
 
 **Graphe de dépendances :**
 ```
-modules, nomenclatures, groups, organismes (indépendants)
+modules, groups, organismes (indépendants)
+    │  (Note: les nomenclatures sont importées séparément via `python manage.py import_nomenclatures`)
     │
-    ├── sites (deps: organismes, nomenclatures)
+    ├── sites (deps: organismes)
     ├── users (deps: organismes, sites, groups)
     ├── pending_users (deps: organismes)
-    ├── plans (deps: users, sites, nomenclatures)
+    ├── plans (deps: users, sites)
     ├── validation_requests (deps: users, sites, plans, organismes)
     ├── notifications (deps: users, sites, plans, organismes, validation_requests)
     ├── error_logs (deps: users)
@@ -830,7 +831,7 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
   - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
-- **Nomenclatures**: Site types, evaluation types, editor types, document plan types (PLAN_INITIAL, EVAL_MI_PARCOURS, PLAN_REVISE)
+- **Nomenclatures**: Importées automatiquement au démarrage via `import_nomenclatures` (types de sites, évaluations, rédacteurs, documents plan, suivis, enjeux, etc.)
 - **Validation Requests (27)**: Demandes de test avec différents statuts
   - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
   - Demandes `site_access`, `referent_validation`, `module_access`, etc.

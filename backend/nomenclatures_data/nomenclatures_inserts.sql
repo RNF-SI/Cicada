@@ -298,3 +298,44 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (814, 53, 'EU', 'EUROPE', 'Europe', 'Financement européen', 'CICADA', 'Validé', '5', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (815, 53, 'PR', 'PRIVE', 'Privé', 'Financement privé', 'CICADA', 'Validé', '6', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (816, 53, 'TO', 'TOTAL', 'Total', 'Total des financements', 'CICADA', 'Validé', '7', NOW(), NOW(), true);
+
+-- ============================================
+-- TYPE D'ESPACE NATUREL COMPLÉMENTAIRE
+-- ============================================
+-- AUTRE (id_type=1)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (604, 1, NULL, 'AUTRE', 'Autre', 'Autre type d''espace naturel', 'CICADA', 'Validé', NULL, NOW(), NOW(), true);
+
+-- ============================================
+-- TYPE DE DOCUMENT DE PLAN DE GESTION
+-- ============================================
+-- TYPE_DOCUMENT_PLAN (id_type=55)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (820, 55, 'PI', 'PLAN_INITIAL', 'Plan initial', 'Premier plan de gestion du site', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (821, 55, 'EM', 'EVAL_MI_PARCOURS', 'Évaluation mi-parcours', 'Évaluation à mi-parcours du plan de gestion', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (822, 55, 'PR', 'PLAN_REVISE', 'Plan révisé', 'Plan de gestion révisé', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+
+-- ============================================
+-- NOMENCLATURES POUR SUIVIS/INVENTAIRES
+-- ============================================
+
+-- TYPE_SUIVI (id_type=56)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (830, 56, 'SU', 'SUIVI', 'Suivi', 'Suivi régulier', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (831, 56, 'IN', 'INVENTAIRE', 'Inventaire', 'Inventaire ponctuel', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (832, 56, 'SI', 'SUIVI_INVENTAIRE', 'Suivi et inventaire', 'Combinaison suivi et inventaire', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+
+-- STATUT_SUIVI (id_type=57)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (833, 57, 'EC', 'EN_COURS', 'En cours', 'Suivi en cours de réalisation', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (834, 57, 'TE', 'TERMINE', 'Terminé', 'Suivi terminé', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (835, 57, 'AV', 'A_VENIR', 'À venir', 'Suivi à venir', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+
+-- OBJECTIF_SUIVI (id_type=58)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (836, 58, 'CO', 'CONSERVATION', 'Conservation', 'Objectif de conservation', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (837, 58, 'CN', 'CONNAISSANCE', 'Connaissance', 'Objectif de connaissance', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (838, 58, 'EV', 'EVALUATION', 'Évaluation', 'Objectif d''évaluation', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (839, 58, 'SU', 'SURVEILLANCE', 'Surveillance', 'Objectif de surveillance', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+
+-- CIBLE_SUIVI (id_type=59)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (840, 59, 'FL', 'FLORE', 'Flore', 'Cible floristique', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (841, 59, 'FA', 'FAUNE', 'Faune', 'Cible faunistique', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (842, 59, 'HA', 'HABITAT', 'Habitat', 'Cible habitat naturel', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (843, 59, 'PR', 'PROCESSUS', 'Processus écologiques', 'Cible processus écologiques', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (844, 59, 'PA', 'PAYSAGE', 'Paysage', 'Cible paysagère', 'CICADA', 'Validé', '5', NOW(), NOW(), true);

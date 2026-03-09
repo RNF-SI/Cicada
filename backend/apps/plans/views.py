@@ -877,7 +877,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             eval_type = Nomenclature.objects.get(mnemonique='EVAL_MI_PARCOURS')
         except Nomenclature.DoesNotExist:
             return Response(
-                {'error': "Nomenclature EVAL_MI_PARCOURS non trouvée. Lancez seed_testdata."},
+                {'error': "Nomenclature EVAL_MI_PARCOURS non trouvée. Lancez 'python manage.py import_nomenclatures --force'."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

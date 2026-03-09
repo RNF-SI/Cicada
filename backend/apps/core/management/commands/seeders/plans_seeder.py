@@ -27,7 +27,7 @@ class PlansSeeder(BaseSeeder):
     """
 
     name = 'plans'
-    dependencies = ['users', 'sites', 'nomenclatures']
+    dependencies = ['users', 'sites']
 
     def _get_plans_data(self, users: List[Role], sites: List[Site]) -> List[Dict]:
         """Retourne les donnees des plans de gestion."""
