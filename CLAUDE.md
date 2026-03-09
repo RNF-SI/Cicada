@@ -276,15 +276,21 @@ docker compose exec web python manage.py seed_testdata
 - Celery worker + beat (tâches asynchrones)
 - Mailpit (capture des emails en dev)
 
-**⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine (ex: PostgreSQL sur le port 5432), modifiez le port externe dans `.env` :
+**⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine, modifiez le port externe correspondant dans `.env` :
 ```bash
-# Exemple : PostgreSQL local déjà sur 5432
+# Serveur web (Apache, Nginx) déjà sur le port 80
+FRONTEND_PORT=8080
+
+# Port 8000 déjà utilisé
+DJANGO_PORT=8001
+
+# PostgreSQL local déjà sur 5432
 POSTGRES_EXTERNAL_PORT=5433
 
-# Exemple : Redis local déjà sur 6379
+# Redis local déjà sur 6379
 REDIS_EXTERNAL_PORT=6380
 ```
-Ces variables ne changent que le port exposé sur la machine hôte. Les conteneurs Docker communiquent entre eux sur les ports internes par défaut (5432, 6379).
+Ces variables ne changent que le port exposé sur la machine hôte. Les conteneurs Docker communiquent entre eux sur les ports internes par défaut.
 
 ### Development
 
