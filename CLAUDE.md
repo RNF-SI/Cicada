@@ -258,17 +258,33 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 ### Project Setup (Current Implementation)
 
 ```bash
-# Docker setup (recommended)
+# 1. Copier le fichier d'environnement (optionnel, des valeurs par défaut existent)
+cp .env.example .env
+
+# 2. Lancer tous les services
 docker compose up -d
 
-# The setup includes:
-# - PostgreSQL with PostGIS
-# - Redis for caching
-# - Django backend with migrations applied
-# - Nomenclatures import (reference data)
-# - Static files collection
-# Note: Test data is NOT created automatically (use seed_testdata command)
+# 3. (Optionnel) Créer les données de test
+docker compose exec web python manage.py seed_testdata
 ```
+
+**Ce qui est lancé automatiquement :**
+- PostgreSQL avec PostGIS + création des schémas
+- Redis (cache + broker Celery)
+- Django : migrations, import nomenclatures, création superuser, collectstatic, runserver
+- Frontend Angular : npm install + serveur de développement
+- Celery worker + beat (tâches asynchrones)
+- Mailpit (capture des emails en dev)
+
+**⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine (ex: PostgreSQL sur le port 5432), modifiez le port externe dans `.env` :
+```bash
+# Exemple : PostgreSQL local déjà sur 5432
+POSTGRES_EXTERNAL_PORT=5433
+
+# Exemple : Redis local déjà sur 6379
+REDIS_EXTERNAL_PORT=6380
+```
+Ces variables ne changent que le port exposé sur la machine hôte. Les conteneurs Docker communiquent entre eux sur les ports internes par défaut (5432, 6379).
 
 ### Development
 
