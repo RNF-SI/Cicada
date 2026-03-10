@@ -11,18 +11,61 @@ Guide pratique pour le développement sur CICADA.
 ### Docker
 
 ```bash
-# Démarrer
+# Démarrer les services
 docker compose up -d
 
-# Arrêter
+# Arrêter les services
 docker compose down
 
-# Reconstruire après modification des dépendances
+# Reconstruire et démarrer
+docker compose up -d --build
+
+# Reconstruire un service spécifique
 docker compose build web
 
 # Logs en temps réel
 docker compose logs -f web
 ```
+
+### `docker compose up -d` vs `docker compose up -d --build`
+
+| | `up -d` | `up -d --build` |
+|---|---|---|
+| **Image Docker** | Réutilise l'image existante | Reconstruit l'image depuis le Dockerfile |
+| **Vitesse** | Rapide (quelques secondes) | Plus lent (~1-2 min pour le build) |
+
+**Quand utiliser `--build` ?**
+
+Utiliser `--build` (ou `docker compose build web` avant) quand vous modifiez :
+- Le **Dockerfile** (`backend/Dockerfile`)
+- Les **dépendances Python** (`requirements.txt`)
+- Le **script d'entrypoint** (`backend/docker/entrypoint.sh`) — il est copié dans l'image au build
+
+**Quand `up -d` suffit ?**
+
+Pour tout le reste — le code Python applicatif (models, views, commandes, etc.) est monté dans le container via le volume `./backend:/app`. Les modifications sont prises en compte immédiatement (le serveur Django en mode dev redémarre automatiquement).
+
+> **Astuce** : En cas de doute, `docker compose up -d --build` est toujours sûr, mais plus lent.
+
+### Premier démarrage et imports de données
+
+Au premier lancement, la commande de démarrage du container `web` exécute dans l'ordre :
+1. `migrate` — applique les migrations Django
+2. `import_nomenclatures` — charge les nomenclatures de référence
+3. `import_habref` — télécharge et importe HabRef (~30k habitats) depuis geonature.fr
+4. `import_taxref` — télécharge et importe TaxRef (~700k taxons) depuis geonature.fr
+5. `create_superuser.py` — crée le superuser de développement
+6. `collectstatic` — collecte les fichiers statiques
+7. `runserver` — démarre le serveur Django
+
+Les étapes 3 et 4 téléchargent des fichiers (~100 Mo chacun) et peuvent prendre **5-8 minutes** au premier lancement. Les imports suivants sont ignorés si les données sont déjà en base (sauf avec `--force`).
+
+Pour accélérer en dev/tests, ajoutez dans `.env` :
+```bash
+TAXREF_IMPORT_OPTS=--lite    # ~8k taxons au lieu de ~700k
+```
+
+Voir [NOMENCLATURES.md](NOMENCLATURES.md) pour le détail des référentiels.
 
 ### Backend Django
 

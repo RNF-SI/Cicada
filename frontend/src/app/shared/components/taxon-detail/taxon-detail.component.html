@@ -1,0 +1,125 @@
+@if (isLoading()) {
+  <div class="taxon-loading">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+}
+
+@if (error()) {
+  <div class="taxon-error">{{ error() }}</div>
+}
+
+@if (taxon(); as t) {
+  <mat-card class="taxon-detail-card">
+    <mat-card-header>
+      <mat-card-title>
+        <span class="nom-latin" [innerHTML]="t.nom_complet_html || t.nom_complet"></span>
+      </mat-card-title>
+      @if (t.nom_vern) {
+        <mat-card-subtitle>{{ t.nom_vern }}</mat-card-subtitle>
+      }
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Informations principales -->
+      <div class="taxon-info-grid">
+        <div class="info-item">
+          <span class="info-label">cd_nom</span>
+          <span class="info-value">{{ t.cd_nom }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">cd_ref</span>
+          <span class="info-value">{{ t.cd_ref }}</span>
+        </div>
+        @if (t.id_rang) {
+          <div class="info-item">
+            <span class="info-label">{{ 'taxonomy.rank' | translate }}</span>
+            <span class="info-value">{{ t.id_rang }}</span>
+          </div>
+        }
+        @if (t.id_statut) {
+          <div class="info-item">
+            <span class="info-label">{{ 'taxonomy.status' | translate }}</span>
+            <span class="info-value">{{ t.id_statut }}</span>
+          </div>
+        }
+        @if (t.lb_auteur) {
+          <div class="info-item">
+            <span class="info-label">{{ 'taxonomy.author' | translate }}</span>
+            <span class="info-value">{{ t.lb_auteur }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Hiérarchie taxonomique -->
+      @if (hierarchy.length > 0) {
+        <div class="taxon-hierarchy">
+          <h4>{{ 'taxonomy.hierarchy' | translate }}</h4>
+          <div class="hierarchy-chain">
+            @for (item of hierarchy; track item.label; let last = $last) {
+              <mat-chip-set>
+                <mat-chip>
+                  <span class="hierarchy-label">{{ item.label }}</span>
+                  <span class="hierarchy-value">{{ item.value }}</span>
+                </mat-chip>
+              </mat-chip-set>
+              @if (!last) {
+                <span class="hierarchy-arrow">&rarr;</span>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Groupes INPN -->
+      @if (t.group1_inpn || t.group2_inpn || t.group3_inpn) {
+        <div class="taxon-groups">
+          <h4>{{ 'taxonomy.groups' | translate }}</h4>
+          <div class="groups-list">
+            @if (t.group1_inpn) {
+              <span class="group-chip">{{ t.group1_inpn }}</span>
+            }
+            @if (t.group2_inpn) {
+              <span class="group-chip">{{ t.group2_inpn }}</span>
+            }
+            @if (t.group3_inpn) {
+              <span class="group-chip">{{ t.group3_inpn }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Noms -->
+      <div class="taxon-names">
+        <h4>{{ 'taxonomy.names' | translate }}</h4>
+        @if (t.nom_valide) {
+          <div class="name-item">
+            <span class="name-label">{{ 'taxonomy.validName' | translate }}</span>
+            <span class="name-value italic">{{ t.nom_valide }}</span>
+          </div>
+        }
+        @if (t.nom_vern) {
+          <div class="name-item">
+            <span class="name-label">{{ 'taxonomy.vernacularName' | translate }}</span>
+            <span class="name-value">{{ t.nom_vern }}</span>
+          </div>
+        }
+        @if (t.nom_vern_eng) {
+          <div class="name-item">
+            <span class="name-label">{{ 'taxonomy.vernacularNameEn' | translate }}</span>
+            <span class="name-value">{{ t.nom_vern_eng }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Lien INPN -->
+      @if (t.url) {
+        <div class="taxon-link">
+          <a [href]="t.url" target="_blank" rel="noopener noreferrer" class="link-default">
+            {{ 'taxonomy.viewOnInpn' | translate }}
+            <i class="fi fi-rr-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+}

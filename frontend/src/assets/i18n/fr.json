@@ -2402,5 +2402,19 @@
       "loadFailed": "Erreur lors du chargement des données",
       "saveFailed": "Erreur lors de l'enregistrement"
     }
+  },
+  "taxonomy": {
+    "rank": "Rang",
+    "status": "Statut",
+    "author": "Auteur",
+    "hierarchy": "Hiérarchie taxonomique",
+    "groups": "Groupes INPN",
+    "names": "Noms",
+    "validName": "Nom valide",
+    "vernacularName": "Nom vernaculaire",
+    "vernacularNameEn": "Nom vernaculaire (EN)",
+    "viewOnInpn": "Voir sur l'INPN",
+    "searchTaxon": "Rechercher un taxon",
+    "searchHabitat": "Rechercher un habitat"
   }
 }

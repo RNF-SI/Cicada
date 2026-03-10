@@ -269,12 +269,14 @@ docker compose exec web python manage.py seed_testdata
 ```
 
 **Ce qui est lancé automatiquement :**
-- PostgreSQL avec PostGIS + création des schémas
+- PostgreSQL avec PostGIS + création des schémas (dont `taxonomie` et `ref_habitats`)
 - Redis (cache + broker Celery)
-- Django : migrations, import nomenclatures, création superuser, collectstatic, runserver
+- Django : migrations, import nomenclatures, **import HabRef**, **import TaxRef**, création superuser, collectstatic, runserver
 - Frontend Angular : npm install + serveur de développement
 - Celery worker + beat (tâches asynchrones)
 - Mailpit (capture des emails en dev)
+
+**Pour accélérer le démarrage en dev/tests**, ajouter `TAXREF_IMPORT_OPTS=--lite` dans `.env` (~8k taxons au lieu de ~700k). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md).
 
 **⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine, modifiez le port externe correspondant dans `.env` :
 ```bash
@@ -314,6 +316,14 @@ docker compose exec web python manage.py seed_testdata --only=users,plans  # Sel
 # Import/Update nomenclatures (reference data - lancé automatiquement au démarrage)
 docker compose exec web python manage.py import_nomenclatures          # Import (skip si déjà fait)
 docker compose exec web python manage.py import_nomenclatures --force  # Force la réimportation
+
+# Import référentiels INPN (voir docs/NOMENCLATURES.md pour le détail)
+docker compose exec web python manage.py import_habref                 # HabRef (auto au démarrage)
+docker compose exec web python manage.py import_taxref                 # TaxRef v18 complet (~700k taxons)
+docker compose exec web python manage.py import_taxref --lite          # TaxRef allégé (~8k taxons, pour dev/tests)
+docker compose exec web python manage.py import_taxref --version 17    # Version spécifique
+docker compose exec web python manage.py import_taxref --force         # Forcer le rechargement
+docker compose exec web python manage.py refresh_taxref_views          # Rafraîchir vues matérialisées
 
 # Test nomenclatures import
 docker compose exec web python test_nomenclatures.py
@@ -674,9 +684,11 @@ The backend follows a modular architecture with distinct Django apps:
 - **users**: User management, organizations (bib_organismes), role-based permissions system
 - **plans**: Management plans CRUD, multi-site support, file attachments *(API REST complète)*
 - **notifications**: Validation requests system, email notifications, Celery async tasks
+- **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
+- **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
-  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management
+  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef)
 
 ### Database Schema Design
 
@@ -719,11 +731,26 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
    - `t_validation_requests`: Validation workflow
    - `t_pending_users`: Registration requests
 
+9. **taxonomie schema** (GeoNature compatible): Taxonomic reference (TaxRef)
+   - `taxref`: Main taxonomy table (~700k taxa, PK: cd_nom)
+   - `bib_taxref_rangs`: Taxonomic ranks
+   - `bib_taxref_habitats`: Habitat types
+   - `bib_taxref_statuts`: Taxonomic statuses
+   - `t_meta_taxref`: Referential versioning
+   - `vm_taxref_list_forautocomplete`: Materialized view with trigram index
+
+10. **ref_habitats schema** (GeoNature compatible): Habitat reference (HabRef)
+    - `habref`: Main habitat table (PK: cd_hab)
+    - `typoref`: Habitat typologies (EUNIS, Corine Biotope, etc.)
+    - `habref_corresp_hab`: Cross-typology correspondences
+    - `habref_corresp_taxon`: Habitat-taxon correspondences
+    - `autocomplete_habitat`: Denormalized table with trigram index
+
 **Database Configuration**:
 ```python
 # search_path configured in settings/base.py
 OPTIONS = {
-    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,public'
+    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,public'
 }
 ```
 

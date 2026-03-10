@@ -1,0 +1,142 @@
+@import 'variables';
+
+.taxon-loading {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-lg;
+}
+
+.taxon-error {
+  color: $error-color;
+  padding: $spacing-md;
+  text-align: center;
+}
+
+.taxon-detail-card {
+  .nom-latin {
+    font-style: italic;
+  }
+
+  mat-card-content {
+    padding-top: $spacing-md;
+  }
+}
+
+.taxon-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+
+  .info-label {
+    font-size: 0.8em;
+    color: $gray-dark;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .info-value {
+    color: $black;
+    font-weight: 600;
+  }
+}
+
+.taxon-hierarchy {
+  margin-bottom: $spacing-lg;
+
+  h4 {
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.hierarchy-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.hierarchy-label {
+  font-size: 0.75em;
+  color: $gray-dark;
+  margin-right: 4px;
+}
+
+.hierarchy-value {
+  font-weight: 600;
+}
+
+.hierarchy-arrow {
+  color: $gray;
+  margin: 0 $spacing-xs;
+}
+
+.taxon-groups {
+  margin-bottom: $spacing-lg;
+
+  h4 {
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.groups-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.group-chip {
+  background-color: $secondary-pale-green;
+  color: $primary-color;
+  padding: 4px 12px;
+  border-radius: $border-radius-pill;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.taxon-names {
+  margin-bottom: $spacing-lg;
+
+  h4 {
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.name-item {
+  display: flex;
+  gap: $spacing-sm;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $gray-lighter;
+
+  .name-label {
+    color: $gray-dark;
+    min-width: 140px;
+    font-size: 0.9em;
+  }
+
+  .name-value {
+    color: $black;
+
+    &.italic {
+      font-style: italic;
+    }
+  }
+}
+
+.taxon-link {
+  margin-top: $spacing-md;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+}
