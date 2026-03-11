@@ -626,7 +626,7 @@
 .facteur-influence-card {
   background-color: $white;
   border-left: 3px solid $secondary-terra-cotta;
-  border-radius: 0 $border-radius-lg $border-radius-lg 0;
+  border-radius: 0 20px 0 20px;
   overflow: hidden;
   transition: box-shadow $transition-fast;
 
@@ -657,20 +657,19 @@
 }
 
 .facteur-bullet {
-  width: 11px;
-  height: 11px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
 }
 
 .facteur-card-title {
   margin: 0;
-  font-size: $font-size-base;
+  font-size: 24px;
   font-weight: $font-weight-bold;
-  color: $primary-color;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: $secondary-terra-cotta;
+  line-height: 36px;
 }
 
 .facteur-card-actions {
@@ -690,11 +689,10 @@
 // ============================================
 
 .pression-card {
-  background-color: rgba($secondary-terra-cotta, 0.04);
-  border-left: 2px solid rgba($secondary-terra-cotta, 0.4);
-  border-radius: 0 $border-radius-md $border-radius-md 0;
+  background-color: $white;
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: 0 20px 0 20px;
   margin-top: $spacing-sm;
-  margin-left: $spacing-lg;
   overflow: hidden;
 }
 
@@ -702,12 +700,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-md $spacing-lg;
   cursor: pointer;
   transition: background-color $transition-fast;
 
   &:hover {
-    background-color: rgba($secondary-terra-cotta, 0.03);
+    background-color: rgba($secondary-orange-salmon, 0.03);
   }
 }
 
@@ -720,20 +718,19 @@
 }
 
 .pression-bullet {
-  width: 9px;
-  height: 9px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
 }
 
 .pression-card-title {
   margin: 0;
-  font-size: $font-size-small;
+  font-size: 20px;
   font-weight: $font-weight-bold;
-  color: $primary-color;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: $black;
+  line-height: 30px;
 }
 
 .pression-card-actions {
@@ -744,8 +741,8 @@
 }
 
 .pression-card-body {
-  padding: $spacing-sm $spacing-md $spacing-md;
-  border-top: 1px solid $gray-light;
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid rgba($secondary-orange-salmon, 0.3);
 }
 
 // ============================================
@@ -790,34 +787,31 @@
   margin-top: $spacing-sm;
 }
 
-// Add buttons
-.add-facteur-btn {
-  margin-top: $spacing-sm;
-
-  i {
-    margin-right: $spacing-xxs;
-  }
-}
-
-.add-pression-btn {
+// Unified add item button (Figma: stroked pill with + icon)
+.add-item-btn {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xxs;
+  align-self: flex-start;
+  gap: $spacing-xs;
   margin-top: $spacing-md;
-  padding: $spacing-xs $spacing-md;
+  padding: $spacing-xs $spacing-lg;
   background: none;
-  border: 1px dashed rgba($secondary-terra-cotta, 0.4);
+  border: 1px solid $primary-color;
   border-radius: $border-radius-pill;
-  color: $secondary-terra-cotta;
+  color: $primary-color;
   font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-medium;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
   cursor: pointer;
   transition: all $transition-fast;
+  white-space: nowrap;
+
+  i {
+    font-size: 20px;
+  }
 
   &:hover {
-    background-color: rgba($secondary-terra-cotta, 0.06);
-    border-color: $secondary-terra-cotta;
+    background-color: rgba($primary-color, 0.06);
   }
 }
 
@@ -1052,7 +1046,12 @@
 // ============================================
 
 .ne-card {
+  background-color: $white;
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: 0 20px 0 20px;
+  padding: $spacing-lg;
   margin-bottom: $spacing-lg;
+  overflow: hidden;
 }
 
 .ne-card-header {
@@ -1072,10 +1071,11 @@
 }
 
 .ne-ellipse {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
 }
 
 .ne-card-title {
@@ -1096,7 +1096,7 @@
 .ne-description {
   color: $gray-dark;
   font-size: $font-size-base;
-  margin: 0 0 $spacing-md $spacing-lg;
+  margin: 0 0 $spacing-md 0;
   line-height: $line-height-base;
 }
 
@@ -1110,70 +1110,7 @@
 // ============================================
 
 // Add état actuel button (always visible at bottom)
-.add-etat-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-md;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-pill;
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($primary-color, 0.06);
-  }
-}
-
-// Add OLT button (inside état actuel card)
-.add-olt-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-md;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-pill;
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($primary-color, 0.06);
-  }
-}
-
-// Add NE button (inside OLT expanded)
-.add-ne-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-md;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-pill;
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($primary-color, 0.06);
-  }
-}
+// Legacy aliases → use .add-item-btn instead
 
 // ============================================
 // TAB EMPTY STATE (OLT / Opérations)
@@ -1238,7 +1175,7 @@
 // Indicateur d'état block (orange-salmon bordered box)
 .indicateur-block {
   border: 1px solid $secondary-orange-salmon;
-  border-radius: 0 $border-radius-xl $border-radius-xl 0;
+  border-radius: 0 20px 0 20px;
   padding: $spacing-lg;
   margin-bottom: $spacing-md;
 }
@@ -1261,15 +1198,17 @@
 }
 
 .indicateur-ellipse {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
 }
 
 .indicateur-nom {
   font-weight: $font-weight-bold;
-  font-size: $font-size-base;
+  font-size: 20px;
+  line-height: 30px;
   color: $black;
 }
 
@@ -1416,26 +1355,7 @@
 }
 
 // Add indicateur button (inside NE)
-.add-indicateur-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-md;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-pill;
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($primary-color, 0.06);
-  }
-}
+// .add-indicateur-btn → replaced by .add-item-btn
 
 // ============================================
 // UNIFIED INDICATEUR FORM (with inline métriques)
@@ -1636,49 +1556,7 @@
 }
 
 // Add metrique link button (inside unified form)
-.add-metrique-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-xs;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px dashed rgba($secondary-orange-salmon, 0.5);
-  border-radius: $border-radius-pill;
-  color: $secondary-terra-cotta;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($secondary-orange-salmon, 0.08);
-    border-color: $secondary-terra-cotta;
-  }
-}
-
-// Add link button (inside indicateur, for métriques)
-.add-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  margin-top: $spacing-xs;
-  padding: $spacing-xs $spacing-lg;
-  background: none;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-pill;
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    background-color: rgba($primary-color, 0.06);
-  }
-}
+// .add-metrique-link-btn, .add-link-btn → replaced by .add-item-btn
 
 // ============================================
 // OPERATIONS (ACTIONS)
@@ -1727,9 +1605,11 @@
 }
 
 .operation-ellipse {
-  width: 28px;
-  height: 28px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
 }
 
 .operation-libelle {

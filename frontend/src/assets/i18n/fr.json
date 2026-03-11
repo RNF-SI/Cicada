@@ -2102,7 +2102,7 @@
       "label": "État actuel",
       "newTitle": "Nouvel état actuel",
       "editTitle": "Modifier l'état actuel",
-      "addButton": "+ Ajouter un état actuel",
+      "addButton": "Ajouter un état actuel",
       "libelleLabel": "Description de l'état actuel",
       "descriptionLabel": "Détails / commentaires",
       "deleteTitle": "Supprimer l'état actuel",
@@ -2113,7 +2113,7 @@
     },
     "olt": {
       "empty": "Aucun objectif à long terme (OLT) saisi",
-      "addButton": "+ Ajouter un objectif à long terme",
+      "addButton": "Ajouter un objectif à long terme",
       "hint": "Qu'est-ce qu'un objectif à long terme ?",
       "description": "Un objectif à long terme (OLT) traduit l'état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion.",
       "usageNote": "En général, un enjeu est associé à un seul état actuel et un seul objectif à long terme (OLT). Il est toutefois possible d'en ajouter plusieurs si nécessaire.",
@@ -2132,7 +2132,7 @@
     "niveauExigence": {
       "label": "Niveau d'exigence",
       "newTitle": "Nouveau niveau d'exigence",
-      "addButton": "+ Ajouter un niveau d'exigence",
+      "addButton": "Ajouter un niveau d'exigence",
       "libelleLabel": "Intitulé du niveau d'exigence",
       "descriptionLabel": "Détails / commentaires",
       "deleteTitle": "Supprimer le niveau d'exigence",
@@ -2147,7 +2147,7 @@
       "libelleLabel": "Intitulé de l'objectif opérationnel (OO)",
       "facteurLabel": "Facteur d'influence géré par l'OO",
       "facteurDescription": "L'objectif opérationnel a pour but de gérer le facteur d'influence",
-      "addButton": "+ Ajouter un objectif opérationnel",
+      "addButton": "Ajouter un objectif opérationnel",
       "newTitle": "Nouvel objectif opérationnel",
       "editTitle": "Modifier l'objectif opérationnel",
       "deleteTitle": "Supprimer l'objectif opérationnel",
@@ -2163,7 +2163,7 @@
     "resultatAttendu": {
       "label": "Résultat attendu",
       "libelleLabel": "Intitulé du résultat attendu",
-      "addButton": "+ Ajouter un résultat attendu",
+      "addButton": "Ajouter un résultat attendu",
       "newTitle": "Nouveau résultat attendu",
       "editTitle": "Modifier le résultat attendu",
       "deleteTitle": "Supprimer le résultat attendu",
@@ -2175,7 +2175,7 @@
     },
     "indicateurPression": {
       "label": "Indicateur de pression",
-      "addButton": "+ Ajouter un indicateur de pression"
+      "addButton": "Ajouter un indicateur de pression"
     },
     "operations": {
       "empty": "Aucun objectif opérationnel saisi",
@@ -2277,7 +2277,7 @@
     "facteurInfluence": {
       "label": "Facteur d'influence",
       "newTitle": "Nouveau facteur d'influence",
-      "addButton": "+ Ajouter un facteur d'influence",
+      "addButton": "Ajouter un facteur d'influence",
       "viewButton": "Voir les facteurs",
       "countSuffix": "facteur(s) d'influence",
       "libelleLabel": "Intitulé du facteur d'influence",
@@ -2293,7 +2293,7 @@
     "pression": {
       "label": "Pression",
       "newTitle": "Nouvelle pression à gérer",
-      "addButton": "+ Ajouter une pression",
+      "addButton": "Ajouter une pression",
       "libelleLabel": "Intitulé de la pression à gérer",
       "descriptionLabel": "Détails / commentaires",
       "details": "DÉTAILS",

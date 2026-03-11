@@ -315,7 +315,7 @@
                       <div class="facteur-card-body">
                         <div class="inline-form">
                           <div class="inline-form-header">
-                            <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                            <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                             <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.editTitle' | translate }}</h4>
                           </div>
                           <div class="inline-form-body">
@@ -341,7 +341,7 @@
                     } @else {
                     <div class="facteur-card-header" (click)="toggleFacteur(facteur.id_facteur_influence)">
                       <div class="facteur-card-left">
-                        <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                        <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                         <h3 class="facteur-card-title">
                           {{ 'enjeux.facteurInfluence.label' | translate }} : {{ facteur.libelle }}
                         </h3>
@@ -377,7 +377,7 @@
                               <div class="pression-card-body">
                                 <div class="inline-form">
                                   <div class="inline-form-header">
-                                    <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                                    <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
                                     <h4 class="inline-form-title">{{ 'enjeux.pression.editTitle' | translate }}</h4>
                                   </div>
                                   <div class="inline-form-body">
@@ -403,7 +403,7 @@
                             } @else {
                             <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
                               <div class="pression-card-left">
-                                <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                                <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
                                 <h4 class="pression-card-title">
                                   {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
                                 </h4>
@@ -439,7 +439,7 @@
                         @if (addingPressionForFacteur() === facteur.id_facteur_influence) {
                           <div class="inline-form">
                             <div class="inline-form-header">
-                              <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="pression-bullet">
+                              <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
                               <h4 class="inline-form-title">{{ 'enjeux.pression.newTitle' | translate }}</h4>
                             </div>
                             <div class="inline-form-body">
@@ -462,7 +462,8 @@
                             </div>
                           </div>
                         } @else {
-                          <button class="add-pression-btn" (click)="startAddPression(facteur.id_facteur_influence)">
+                          <button class="add-item-btn" (click)="startAddPression(facteur.id_facteur_influence)">
+                            <i class="fi fi-rr-plus-small"></i>
                             {{ 'enjeux.pression.addButton' | translate }}
                           </button>
                         }
@@ -476,7 +477,7 @@
                 @if (addingFacteurInfluence()) {
                   <div class="inline-form">
                     <div class="inline-form-header">
-                      <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="facteur-bullet">
+                      <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                       <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.newTitle' | translate }}</h4>
                     </div>
                     <div class="inline-form-body">
@@ -499,8 +500,8 @@
                     </div>
                   </div>
                 } @else {
-                  <button mat-stroked-button class="add-facteur-btn" (click)="startAddFacteur()">
-                    <i class="fi fi-rr-plus"></i>
+                  <button class="add-item-btn" (click)="startAddFacteur()">
+                    <i class="fi fi-rr-plus-small"></i>
                     {{ 'enjeux.facteurInfluence.addButton' | translate }}
                   </button>
                 }
@@ -658,8 +659,9 @@
                             </div>
                           </div>
                         } @else {
-                          <button class="add-etat-btn" (click)="startAddEtat(olt.id_olt)">
-                            + {{ 'enjeux.etatActuel.addButton' | translate }}
+                          <button class="add-item-btn" (click)="startAddEtat(olt.id_olt)">
+                            <i class="fi fi-rr-plus-small"></i>
+                            {{ 'enjeux.etatActuel.addButton' | translate }}
                           </button>
                         }
                       }
@@ -807,8 +809,8 @@
                                         }
                                       }
 
-                                      <button class="add-metrique-link-btn" (click)="addMetriqueToEdit()">
-                                        + {{ 'enjeux.metriques.addButton' | translate }}
+                                      <button class="add-item-btn" (click)="addMetriqueToEdit()">
+                                        <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                       </button>
                                     </div>
 
@@ -1089,8 +1091,8 @@
                                 }
 
                                 <!-- Bouton ajout opération (navigue vers page dédiée) -->
-                                <button class="add-link-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
-                                  + {{ 'enjeux.operations.addAction' | translate }}
+                                <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
+                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
                                 </button>
                               </div>
                             }
@@ -1190,8 +1192,8 @@
                                   }
 
                                   <!-- Add metrique link -->
-                                  <button class="add-metrique-link-btn" (click)="addMetriqueToForm()">
-                                    + {{ 'enjeux.metriques.addButton' | translate }}
+                                  <button class="add-item-btn" (click)="addMetriqueToForm()">
+                                    <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                   </button>
                                 </div>
 
@@ -1208,8 +1210,8 @@
                                 </div>
                               </div>
                             } @else {
-                              <button class="add-indicateur-btn" (click)="startAddIndicateur(ne.id_ne)">
-                                + {{ 'enjeux.indicateurs.addButton' | translate }}
+                              <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
+                                <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
                               </button>
                             }
                           </div>
@@ -1242,7 +1244,8 @@
                           </div>
                         </div>
                       } @else {
-                        <button class="add-ne-btn" (click)="startAddNe(olt.id_olt)">
+                        <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
+                          <i class="fi fi-rr-plus-small"></i>
                           {{ 'enjeux.niveauExigence.addButton' | translate }}
                         </button>
                       }
@@ -1280,8 +1283,8 @@
 
               <!-- Bouton ajouter un OLT (toujours visible) -->
               @if (!addingOlt()) {
-                <button mat-stroked-button class="add-olt-btn" (click)="startAddOlt()">
-                  <i class="fi fi-rr-plus"></i>
+                <button class="add-item-btn" (click)="startAddOlt()">
+                  <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.olt.addButton' | translate }}
                 </button>
               }
@@ -1530,8 +1533,8 @@
                                         }
                                       }
 
-                                      <button class="add-metrique-link-btn" (click)="addOoMetriqueToEdit()">
-                                        + {{ 'enjeux.metriques.addButton' | translate }}
+                                      <button class="add-item-btn" (click)="addOoMetriqueToEdit()">
+                                        <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                       </button>
                                     </div>
 
@@ -1798,8 +1801,8 @@
                                 }
 
                                 <!-- Bouton ajout opération -->
-                                <button class="add-link-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
-                                  + {{ 'enjeux.operations.addAction' | translate }}
+                                <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
+                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
                                 </button>
                               </div>
                             }
@@ -1891,8 +1894,8 @@
                                     </div>
                                   }
 
-                                  <button class="add-metrique-link-btn" (click)="addOoMetriqueRow()">
-                                    + {{ 'enjeux.metriques.addButton' | translate }}
+                                  <button class="add-item-btn" (click)="addOoMetriqueRow()">
+                                    <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                   </button>
                                 </div>
 
@@ -1908,8 +1911,8 @@
                                 </div>
                               </div>
                             } @else {
-                              <button class="add-indicateur-btn" (click)="startAddIndicateurForRa(ra.id_ra)">
-                                + {{ 'enjeux.indicateurPression.addButton' | translate }}
+                              <button class="add-item-btn" (click)="startAddIndicateurForRa(ra.id_ra)">
+                                <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurPression.addButton' | translate }}
                               </button>
                             }
                           </div>
@@ -1942,7 +1945,8 @@
                           </div>
                         </div>
                       } @else {
-                        <button class="add-ne-btn" (click)="startAddRa(oo.id_oo)">
+                        <button class="add-item-btn" (click)="startAddRa(oo.id_oo)">
+                          <i class="fi fi-rr-plus-small"></i>
                           {{ 'enjeux.resultatAttendu.addButton' | translate }}
                         </button>
                       }
@@ -1989,8 +1993,8 @@
 
               <!-- Bouton ajouter un OO (toujours visible) -->
               @if (!addingOo()) {
-                <button mat-stroked-button class="add-olt-btn" (click)="startAddOo()">
-                  <i class="fi fi-rr-plus"></i>
+                <button class="add-item-btn" (click)="startAddOo()">
+                  <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
                 </button>
               }
@@ -2018,7 +2022,7 @@
             <div class="empty-state">
               <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
               <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
-                <i class="fi fi-rr-plus"></i>
+                <i class="fi fi-rr-plus-small"></i>
                 {{ 'enjeux.addButton' | translate }}
               </button>
               <mat-menu #addMenuEmpty="matMenu">
@@ -2051,7 +2055,7 @@
               <div class="list-top-bar">
                 <p class="count-text">{{ totalCount() }} {{ 'enjeux.countSuffix' | translate }}</p>
                 <button mat-stroked-button [matMenuTriggerFor]="addMenu">
-                  <i class="fi fi-rr-plus"></i>
+                  <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.addButton' | translate }}
                 </button>
                 <mat-menu #addMenu="matMenu">

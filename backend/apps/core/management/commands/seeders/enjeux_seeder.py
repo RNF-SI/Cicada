@@ -3505,6 +3505,356 @@ class EnjeuxSeeder(BaseSeeder):
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
+        # =====================================================================
+        # Opérations Balbuzard (Remoray)
+        # =====================================================================
+        ind_balbuzard_freq = next((i for i in indicateurs_created if 'Fréquentation du lac par le Balbuzard' in i.nom_indicateur), None)
+        ind_balbuzard_qual = next((i for i in indicateurs_created if 'Qualité d\'accueil du site pour le Balbuzard' in i.nom_indicateur), None)
+
+        if ind_balbuzard_freq and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Suivi visuel des haltes migratoires du Balbuzard',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-BA01',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Campagnes d\'observation bi-quotidiennes (aube et crépuscule) '
+                                   'durant les périodes de migration prénuptiale (mars-mai) et '
+                                   'postnuptiale (août-octobre). Comptage des individus, durée '
+                                   'de halte, comportement alimentaire.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 2,
+                    'frequence_unite': 'jour',
+                    'operateurs': 'Conservateur, Garde-technicien',
+                    'partenaires': 'LPO Franche-Comté, Groupe Balbuzard France',
+                    'financeurs': 'DREAL Bourgogne-Franche-Comté, Agence de l\'Eau Rhône-Méditerranée',
+                    'programmation_mensuelle_defaut': {
+                        "3": True, "4": True, "5": True,
+                        "8": True, "9": True, "10": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_freq)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
+
+        if ind_balbuzard_qual and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Aménagement de perchoirs et zones de quiétude lacustres',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-BA02',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Installation de 3 perchoirs artificiels sur les berges '
+                                   'sud et est du lac. Mise en place de bouées de délimitation '
+                                   'd\'une zone de quiétude de 2 ha interdite à la navigation '
+                                   'pendant les périodes de migration.',
+                    'annee_min': 2024,
+                    'annee_max': 2026,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Équipe technique de la réserve',
+                    'partenaires': 'ONF, Commune de Remoray-Boujeons',
+                    'financeurs': 'Région Bourgogne-Franche-Comté, FEDER',
+                    'programmation_mensuelle_defaut': {"2": True, "3": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
+
+        if ind_balbuzard_qual and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Sensibilisation des usagers du lac (pêcheurs, kayakistes)',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-BA03',
+                    'id_referentiel_operations': 'CC',
+                    'description': 'Programme de sensibilisation ciblant les pêcheurs et '
+                                   'pratiquants de sports nautiques. Panneaux d\'information, '
+                                   'plaquettes distribuées aux loueurs de barques, animations '
+                                   'scolaires et grand public autour du Balbuzard.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 4,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Animateur nature, Service civique',
+                    'partenaires': 'Office de Tourisme, AAPPMA du Haut-Doubs',
+                    'financeurs': 'Département du Doubs',
+                    'programmation_mensuelle_defaut': {
+                        "4": True, "5": True, "6": True,
+                        "7": True, "8": True, "9": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
+
+        if ind_balbuzard_freq and ind_balbuzard_qual and prio_op_3:
+            op, created = Operation.objects.update_or_create(
+                libelle='Étude de faisabilité nidification assistée du Balbuzard',
+                defaults={
+                    'id_priorite': prio_op_3,
+                    'code_operation': 'REM-BA04',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Étude de faisabilité pour l\'installation d\'une plateforme '
+                                   'de nidification artificielle. Analyse des sites potentiels, '
+                                   'retour d\'expérience des programmes écossais et français '
+                                   '(Sologne, Moselle). Consultation experts internationaux.',
+                    'annee_min': 2025,
+                    'annee_max': 2027,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Bureau d\'études spécialisé rapaces',
+                    'partenaires': 'Groupe Balbuzard France, MNHN, Université de Franche-Comté',
+                    'financeurs': 'OFB, Fondation pour la Nature et l\'Homme',
+                    'programmation_mensuelle_defaut': {
+                        "1": True, "2": True, "3": True, "4": True,
+                        "5": True, "6": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_freq)
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
+
+        # =====================================================================
+        # Opérations supplémentaires Tourbières (Remoray)
+        # =====================================================================
+        if ind_pression_col_ref and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Cartographie annuelle des sphaignes et végétation tourbeuse',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-TU04',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Cartographie par drone et relevés phytosociologiques '
+                                   'de la végétation des tourbières. Suivi de la dynamique '
+                                   'des sphaignes et de la recolonisation post-travaux.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Conservateur botanique, Pilote drone',
+                    'partenaires': 'CBNFC-ORI, Université de Franche-Comté',
+                    'financeurs': 'Agence de l\'Eau Rhône-Méditerranée',
+                    'programmation_mensuelle_defaut': {"6": True, "7": True, "8": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
+
+        if ind_pression_drains_ref and prio_op_3:
+            op, created = Operation.objects.update_or_create(
+                libelle='Pose de passerelles caillebotis sur sentier tourbière',
+                defaults={
+                    'id_priorite': prio_op_3,
+                    'code_operation': 'REM-TU05',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Installation de 450 m de caillebotis bois sur le sentier '
+                                   'de découverte des tourbières pour limiter le piétinement '
+                                   'et le tassement du sol tourbeux. Matériaux locaux certifiés.',
+                    'annee_min': 2025,
+                    'annee_max': 2026,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Chantier nature bénévole, Entreprise paysagère',
+                    'partenaires': 'ONF, Lycée agricole de Levier',
+                    'financeurs': 'Leader GAL Haut-Doubs, Département du Doubs',
+                    'programmation_mensuelle_defaut': {"9": True, "10": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_drains_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
+
+        if ind_pression_piezo_ref and ind_pression_col_ref and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Animation pédagogique « La tourbière vivante »',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU06',
+                    'id_referentiel_operations': 'CC',
+                    'description': 'Programme pédagogique à destination des scolaires (cycle 3 '
+                                   'et collège) et du grand public. Sorties guidées sur la '
+                                   'tourbière de Frasne, ateliers microscope (sphaignes, '
+                                   'droséras), expositions itinérantes.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 12,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Animateur nature CPIE',
+                    'partenaires': 'CPIE du Haut-Doubs, Éducation Nationale',
+                    'financeurs': 'Région Bourgogne-Franche-Comté, DREAL',
+                    'programmation_mensuelle_defaut': {
+                        "4": True, "5": True, "6": True,
+                        "9": True, "10": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_piezo_ref)
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
+
+        # =====================================================================
+        # Opérations liées aux indicateurs NE Tourbières (sans opérations)
+        # Indicateurs: "Niveau piézométrique des tourbières" et
+        #              "État de la végétation turficole"
+        # =====================================================================
+        ind_ne_piezo = next((i for i in indicateurs_created if i.nom_indicateur == 'Niveau piézométrique des tourbières'), None)
+        ind_ne_veg = next((i for i in indicateurs_created if i.nom_indicateur == 'État de la végétation turficole'), None)
+
+        if ind_ne_piezo and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Maintenance et étalonnage du réseau piézométrique',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU07',
+                    'id_referentiel_operations': 'GE',
+                    'description': 'Vérification annuelle et étalonnage des 15 sondes '
+                                   'piézométriques automatiques. Remplacement des sondes '
+                                   'défaillantes, nettoyage des tubes, relevé des données '
+                                   'enregistrées et téléchargement vers la base ADES.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 2,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Garde-technicien de la réserve, Technicien BRGM',
+                    'partenaires': 'BRGM, Université de Franche-Comté (Chrono-Environnement)',
+                    'financeurs': 'OFB, Agence de l\'Eau Rhône-Méditerranée',
+                    'programmation_mensuelle_defaut': {"4": True, "10": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
+
+        if ind_ne_piezo and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Analyse inter-annuelle des chroniques piézométriques',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-TU08',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Traitement statistique des données piézométriques '
+                                   'cumulées depuis 2012. Modélisation des tendances, '
+                                   'corrélation avec les données climatiques (ETP, '
+                                   'précipitations), détection des seuils critiques.',
+                    'annee_min': 2025,
+                    'annee_max': 2028,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Hydrogéologue (bureau d\'études ANTEA Group)',
+                    'partenaires': 'BRGM, Météo-France, Université de Franche-Comté',
+                    'financeurs': 'Agence de l\'Eau, DREAL Bourgogne-Franche-Comté',
+                    'programmation_mensuelle_defaut': {
+                        "1": True, "2": True, "3": True, "11": True, "12": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
+
+        if ind_ne_veg and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Relevés phytosociologiques des communautés turficoles',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU09',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Relevés phytosociologiques annuels sur 20 quadrats '
+                                   'permanents (2×2 m) répartis sur les 8 tourbières. '
+                                   'Évaluation du recouvrement des sphaignes, présence '
+                                   'des espèces caractéristiques (Drosera, Menyanthes, '
+                                   'Scheuchzeria), détection des espèces invasives.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Conservateur botanique de la réserve, Stagiaire M2',
+                    'partenaires': 'CBNFC-ORI (Conservatoire botanique national), '
+                                   'Université de Franche-Comté',
+                    'financeurs': 'OFB, Région Bourgogne-Franche-Comté',
+                    'programmation_mensuelle_defaut': {"6": True, "7": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
+
+        if ind_ne_veg and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Suivi photographique par drone des tourbières',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-TU10',
+                    'id_referentiel_operations': 'SE',
+                    'description': 'Survols drone bi-annuels (début et fin de saison de '
+                                   'végétation) pour cartographie haute résolution de la '
+                                   'couverture végétale. Comparaison diachronique des '
+                                   'mosaïques sphaignes/ligneux/eau libre. Ortho-mosaïques '
+                                   'et indices NDVI pour détecter le stress hydrique.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 2,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Pilote drone certifié (prestataire), Écologue SIG',
+                    'partenaires': 'CBNFC-ORI, IGN',
+                    'financeurs': 'Agence de l\'Eau Rhône-Méditerranée, Life Tourbières Jura',
+                    'programmation_mensuelle_defaut': {"5": True, "9": True},
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
+
+        if ind_ne_piezo and ind_ne_veg and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Évaluation globale de l\'état de conservation des tourbières',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TU11',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Synthèse triennale croisant les données piézométriques, '
+                                   'phytosociologiques et de télédétection pour produire '
+                                   'un diagnostic global de l\'état de conservation de '
+                                   'chacune des 8 tourbières. Rapport transmis au CSRPN '
+                                   'et à la DREAL pour actualiser la cotation Natura 2000.',
+                    'annee_min': 2025,
+                    'annee_max': 2031,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Conservateur, Bureau d\'études écologie (Biotope)',
+                    'partenaires': 'CBNFC-ORI, CSRPN Bourgogne-Franche-Comté, DREAL',
+                    'financeurs': 'DREAL BFC, OFB, Région Bourgogne-Franche-Comté',
+                    'programmation_mensuelle_defaut': {
+                        "10": True, "11": True, "12": True
+                    },
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
+            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
+
         # ============================================
         # Enrichir les opérations avec données détaillées
         # (programmation annuelle, finances, suivi, fréquence, etc.)
@@ -3515,41 +3865,215 @@ class EnjeuxSeeder(BaseSeeder):
         type_action_cs = self._get_nomenclature('TYPE_ACTION', 'CONNAISSANCE_SCIENTIFIQUE')
         type_action_ge = self._get_nomenclature('TYPE_ACTION', 'GESTION_ENTRETIEN')
         type_action_cc = self._get_nomenclature('TYPE_ACTION', 'COMMUNICATION')
+        type_action_tu = self._get_nomenclature('TYPE_ACTION', 'TRAVAUX_UNIQUE')
+        type_action_pi = self._get_nomenclature('TYPE_ACTION', 'POLICE_INSPECTION')
+        type_action_pa = self._get_nomenclature('TYPE_ACTION', 'PEDAGOGIE_ANIMATION')
         operateur_agent = self._get_nomenclature('OPERATEUR_TYPE', 'AGENT_RESERVE')
         operateur_presta = self._get_nomenclature('OPERATEUR_TYPE', 'PRESTATAIRE')
+        operateur_benevole = self._get_nomenclature('OPERATEUR_TYPE', 'BENEVOLE')
+        operateur_stagiaire = self._get_nomenclature('OPERATEUR_TYPE', 'STAGIAIRE')
         cat_finance_region = self._get_nomenclature('CATEGORIE_FINANCE', 'REGION')
         cat_finance_dept = self._get_nomenclature('CATEGORIE_FINANCE', 'DEPARTEMENT')
         cat_finance_etat = self._get_nomenclature('CATEGORIE_FINANCE', 'ETAT')
         cat_finance_europe = self._get_nomenclature('CATEGORIE_FINANCE', 'EUROPE')
+        cat_finance_commune = self._get_nomenclature('CATEGORIE_FINANCE', 'COMMUNE')
 
         annees_created = 0
         finances_created = 0
         suivis_created = 0
 
-        for op in operations_created:
+        # Detailed per-operation enrichment data
+        # Keys: operateurs, partenaires, financeurs, freq_nombre, freq_unite, mens_defaut
+        op_enrichment = {
+            'Restauration hydraulique du marais sud': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Équipe technique de la réserve, Entreprise de génie écologique',
+                'partenaires': 'Tour du Valat, Parc naturel régional de Camargue',
+                'financeurs': 'Agence de l\'Eau RMC, FEDER, Région Sud',
+                'mens': {"2": True, "3": True, "4": True, "9": True, "10": True, "11": True},
+            },
+            'Suivi cartographique des habitats humides': {
+                'freq_nombre': 2, 'freq_unite': 'an',
+                'operateurs': 'Chargé de mission SIG, Écologue terrain',
+                'partenaires': 'CEFE-CNRS, IRD Montpellier',
+                'financeurs': 'DREAL Occitanie, Fondation Tour du Valat',
+                'mens': {"4": True, "5": True, "6": True, "9": True, "10": True},
+            },
+            'Régulation de la fréquentation autour des colonies': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Garde du littoral, Brigade nature',
+                'partenaires': 'OFB, Gendarmerie maritime',
+                'financeurs': 'Conservatoire du Littoral',
+                'mens': {"3": True, "4": True, "5": True, "6": True, "7": True},
+            },
+            'Négociation de quotas de prélèvement avec les irrigants': {
+                'freq_nombre': 4, 'freq_unite': 'an',
+                'operateurs': 'Chargé de mission concertation',
+                'partenaires': 'Chambre d\'agriculture, Syndicat d\'irrigation',
+                'financeurs': 'Agence de l\'Eau RMC, Département des Bouches-du-Rhône',
+                'mens': {"1": True, "3": True, "6": True, "9": True, "11": True},
+            },
+            'Inventaire annuel des placettes permanentes': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Botaniste de la réserve, Stagiaire Master 2',
+                'partenaires': 'CBNMC, Université Savoie Mont-Blanc',
+                'financeurs': 'DREAL Auvergne-Rhône-Alpes',
+                'mens': {"6": True, "7": True, "8": True},
+            },
+            'Mise en défens hivernale des zones de quiétude': {
+                'freq_nombre': 2, 'freq_unite': 'an',
+                'operateurs': 'Garde-moniteur, Agent technique',
+                'partenaires': 'ONCFS, Domaines skiables, Fédération de chasse 74',
+                'financeurs': 'OFB, Département de Haute-Savoie',
+                'mens': {"10": True, "11": True, "3": True, "4": True},
+            },
+            'Sensibilisation des pratiquants de sports d\'hiver': {
+                'freq_nombre': 6, 'freq_unite': 'an',
+                'operateurs': 'Animateur nature, Guide de montagne',
+                'partenaires': 'CAF Chamonix, ESF, Office de Tourisme de la Vallée',
+                'financeurs': 'Région Auvergne-Rhône-Alpes, Fondation Petzl',
+                'mens': {"12": True, "1": True, "2": True, "3": True},
+            },
+            'Prélèvements mensuels qualité eau lac': {
+                'freq_nombre': 12, 'freq_unite': 'an',
+                'operateurs': 'Hydrobiologiste de la réserve',
+                'partenaires': 'Laboratoire départemental d\'analyses, Université de Franche-Comté',
+                'financeurs': 'Agence de l\'Eau Rhône-Méditerranée, Département du Doubs',
+                'mens': {"1": True, "2": True, "3": True, "4": True, "5": True, "6": True,
+                         "7": True, "8": True, "9": True, "10": True, "11": True, "12": True},
+            },
+            'Diagnostic des pratiques agricoles du bassin versant': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Chargé de mission agriculture, Agronome conseil',
+                'partenaires': 'Chambre d\'agriculture du Doubs, INRAE',
+                'financeurs': 'DREAL Bourgogne-Franche-Comté, PAC (MAEC)',
+                'mens': {"2": True, "3": True, "4": True, "10": True, "11": True},
+            },
+            'Renouvellement des conventions de fauche tardive': {
+                'freq_nombre': 2, 'freq_unite': 'an',
+                'operateurs': 'Conservateur, Chargé de mission pastoralisme',
+                'partenaires': 'Chambre d\'agriculture, SAFER Franche-Comté',
+                'financeurs': 'Agence de l\'Eau, Département du Doubs, PAC (MAEC)',
+                'mens': {"1": True, "2": True, "3": True, "11": True, "12": True},
+            },
+            'Campagnes d\'arrachage de la Renouée du Japon': {
+                'freq_nombre': 3, 'freq_unite': 'an',
+                'operateurs': 'Équipe technique réserve, Chantier d\'insertion',
+                'partenaires': 'CPIE du Haut-Doubs, FREDON Franche-Comté',
+                'financeurs': 'Agence de l\'Eau Rhône-Méditerranée, Région BFC',
+                'mens': {"5": True, "6": True, "7": True, "8": True, "9": True},
+            },
+            'Étude globale du fonctionnement hydrologique du bassin': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Bureau d\'études hydrogéologie (ANTEA Group)',
+                'partenaires': 'Université de Franche-Comté, BRGM',
+                'financeurs': 'Agence de l\'Eau, DREAL, OFB',
+                'mens': {"1": True, "2": True, "3": True, "4": True, "5": True, "6": True,
+                         "7": True, "8": True, "9": True, "10": True, "11": True, "12": True},
+            },
+            'Bouchage et neutralisation des drains historiques': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Entreprise de génie écologique, Équipe technique réserve',
+                'partenaires': 'ONF, Syndicat mixte des milieux aquatiques du Haut-Doubs',
+                'financeurs': 'Agence de l\'Eau, Région BFC, Life Tourbières Jura',
+                'mens': {"8": True, "9": True, "10": True},
+            },
+            'Suivi piézométrique mensuel des tourbières': {
+                'freq_nombre': 12, 'freq_unite': 'an',
+                'operateurs': 'Garde-technicien de la réserve',
+                'partenaires': 'BRGM, Université de Franche-Comté (labo Chrono-Environnement)',
+                'financeurs': 'OFB, Agence de l\'Eau Rhône-Méditerranée',
+                'mens': {"1": True, "2": True, "3": True, "4": True, "5": True, "6": True,
+                         "7": True, "8": True, "9": True, "10": True, "11": True, "12": True},
+            },
+            'Débroussaillage sélectif des bouleaux sur tourbières': {
+                'freq_nombre': 1, 'freq_unite': 'an',
+                'operateurs': 'Bûcheron-élagueur, Équipe technique réserve',
+                'partenaires': 'ONF, Chantier nature CEN Franche-Comté',
+                'financeurs': 'Département du Doubs, Région BFC',
+                'mens': {"1": True, "2": True, "10": True, "11": True, "12": True},
+            },
+            'Suivi mensuel de la charge en phosphore des affluents': {
+                'freq_nombre': 12, 'freq_unite': 'an',
+                'operateurs': 'Hydrobiologiste, Technicien de laboratoire',
+                'partenaires': 'Laboratoire départemental d\'analyses du Doubs',
+                'financeurs': 'Agence de l\'Eau, OFB',
+                'mens': {"1": True, "2": True, "3": True, "4": True, "5": True, "6": True,
+                         "7": True, "8": True, "9": True, "10": True, "11": True, "12": True},
+            },
+            'Animation des conventions agricoles du bassin versant': {
+                'freq_nombre': 6, 'freq_unite': 'an',
+                'operateurs': 'Chargé de mission agriculture',
+                'partenaires': 'Chambre d\'agriculture du Doubs, Coopérative laitière',
+                'financeurs': 'DREAL, PAC (MAEC), Agence de l\'Eau',
+                'mens': {"1": True, "3": True, "5": True, "7": True, "9": True, "11": True},
+            },
+            'Campagnes d\'arrachage intensif de la Renouée (OO)': {
+                'freq_nombre': 3, 'freq_unite': 'an',
+                'operateurs': 'Équipe technique réserve, Chantier d\'insertion ADSEA',
+                'partenaires': 'CPIE du Haut-Doubs, CEN Franche-Comté',
+                'financeurs': 'Agence de l\'Eau, Département du Doubs',
+                'mens': {"5": True, "7": True, "9": True},
+            },
+        }
+
+        ref_to_type = {
+            'SE': type_action_se, 'CS': type_action_cs,
+            'GE': type_action_ge, 'CC': type_action_cc,
+            'IP': type_action_pi, 'PR': type_action_pi,
+            'TU': type_action_tu, 'PA': type_action_pa,
+        }
+
+        # Budget/ETP profiles for variety
+        budget_profiles = [
+            {'base': 1500, 'var': 300},   # 0
+            {'base': 800, 'var': 200},    # 1
+            {'base': 3500, 'var': 500},   # 2
+            {'base': 2000, 'var': 400},   # 3
+            {'base': 500, 'var': 100},    # 4
+        ]
+        etp_profiles = [5, 3, 10, 8, 2, 15, 6, 4, 12, 7]
+        operateur_cycle = [operateur_agent, operateur_presta, operateur_benevole, operateur_stagiaire]
+
+        for idx, op in enumerate(operations_created):
             # Set type_action based on id_referentiel_operations
-            ref_to_type = {
-                'SE': type_action_se, 'CS': type_action_cs,
-                'GE': type_action_ge, 'CC': type_action_cc,
-            }
             if op.id_referentiel_operations and op.id_referentiel_operations in ref_to_type:
                 ta = ref_to_type[op.id_referentiel_operations]
                 if ta:
                     op.id_type_action = ta
 
-            # Set frequency and operators for all ops
-            op.frequence_nombre = 1
-            op.frequence_unite = 'an'
-            op.operateurs = 'Agent de la réserve'
+            # Per-operation enrichment or fallback
+            enrich = op_enrichment.get(op.libelle, None)
+            if enrich:
+                op.frequence_nombre = enrich['freq_nombre']
+                op.frequence_unite = enrich['freq_unite']
+                op.operateurs = enrich['operateurs']
+                op.partenaires = enrich['partenaires']
+                op.financeurs = enrich['financeurs']
+                op.programmation_mensuelle_defaut = enrich['mens']
+            else:
+                # Already has freq/operateurs from creation (new Balbuzard/Tourbières ops)
+                if not op.frequence_nombre:
+                    op.frequence_nombre = 1
+                if not op.frequence_unite:
+                    op.frequence_unite = 'an'
+                if not op.operateurs:
+                    op.operateurs = 'Agent de la réserve'
             op.save()
 
-            # Create OperationAnnee entries
+            # Create OperationAnnee entries with varied data
             if op.annee_min and op.annee_max:
-                # Same months for all years (as in the form: monthly template applied to all years)
-                mens = {"3": True, "4": True, "5": True, "6": True}
+                mens = enrich['mens'] if enrich else (
+                    op.programmation_mensuelle_defaut
+                    if op.programmation_mensuelle_defaut
+                    else {"3": True, "4": True, "5": True, "6": True}
+                )
+                bp = budget_profiles[idx % len(budget_profiles)]
                 for year in range(op.annee_min, op.annee_max + 1):
-                    budget = 1200 if year % 3 != 0 else 700
-                    etp = 5 if year % 2 == 0 else 3
+                    year_offset = year - op.annee_min
+                    budget = bp['base'] + (bp['var'] if year_offset % 2 == 0 else -bp['var'])
+                    etp = etp_profiles[(idx + year_offset) % len(etp_profiles)]
+                    op_type = operateur_cycle[(idx + year_offset) % len(operateur_cycle)]
 
                     oa, _ = OperationAnnee.objects.update_or_create(
                         id_operation=op, annee=year,
@@ -3557,51 +4081,216 @@ class EnjeuxSeeder(BaseSeeder):
                             'periodicite': True,
                             'budget': budget,
                             'etp': etp,
-                            'id_operateur': operateur_agent if year % 2 == 0 else operateur_presta,
+                            'id_operateur': op_type,
                             'periodicite_mensuelle': mens,
                         }
                     )
                     annees_created += 1
 
-        # Create SuiviInventaire + Protocole + finances for the first 3 operations (for variety)
+        # Create SuiviInventaire + Protocole for selected operations
         protocoles_created = 0
-        for i, op in enumerate(operations_created[:3]):
-            # Create Protocole for first 2 operations
+        suivi_configs = [
+            {
+                'op_match': 'Restauration hydraulique du marais sud',
+                'intitule': 'Suivi entomologique des carabiques',
+                'objectif_principal': 'Suivre les populations de carabiques comme bio-indicateurs '
+                                     'de la qualité du sol et de l\'humidité du marais',
+                'cibles_principales': 'Faune',
+                'taxon_taxref': 'Coléoptères, Carabidae',
+                'annee_lancement_suivi': 1998,
+                'outil_bancarisation': 'SERENA',
+                'outil_saisie': 'Formulaire terrain papier + saisie bureau',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': True,
+                    'nom': 'Protocole STOC',
+                    'description': 'Suivi Temporel des Oiseaux Communs - adaptation carabiques',
+                    'objectif': 'Évaluer les tendances des populations indicatrices',
+                    'periode': 'Avril - Juin',
+                    'respect': True,
+                },
+            },
+            {
+                'op_match': 'Suivi cartographique des habitats humides',
+                'intitule': 'Suivi démographique du flamant rose',
+                'objectif_principal': 'Évaluer le succès de reproduction et la dynamique '
+                                     'démographique de la colonie camarguaise',
+                'cibles_principales': 'Faune',
+                'taxon_taxref': 'Phoenicopterus roseus',
+                'annee_lancement_suivi': 2010,
+                'outil_bancarisation': 'GeoNature',
+                'outil_saisie': 'Application mobile GeoNature',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom': 'Protocole CMR Flamant',
+                    'description': 'Capture-Marquage-Recapture pour suivi démographique',
+                    'objectif': 'Estimer les effectifs et la dynamique des populations',
+                    'periode': 'Mai - Septembre',
+                    'respect': None,
+                },
+            },
+            {
+                'op_match': 'Régulation de la fréquentation autour des colonies',
+                'intitule': 'Cartographie évolutive des habitats',
+                'objectif_principal': 'Cartographier l\'évolution spatiale des habitats '
+                                     'et détecter les changements d\'occupation du sol',
+                'cibles_principales': 'Habitats',
+                'taxon_taxref': '',
+                'annee_lancement_suivi': None,
+                'outil_bancarisation': '',
+                'outil_saisie': '',
+                'transmission_donnee': None,
+                'protocole': None,
+            },
+            {
+                'op_match': 'Suivi visuel des haltes migratoires du Balbuzard',
+                'intitule': 'Suivi migration Balbuzard pêcheur - Lac de Remoray',
+                'objectif_principal': 'Documenter la phénologie migratoire, les effectifs '
+                                     'et la durée de halte du Balbuzard pêcheur',
+                'cibles_principales': 'Faune',
+                'taxon_taxref': 'Pandion haliaetus',
+                'annee_lancement_suivi': 2018,
+                'outil_bancarisation': 'Faune-France (VisioNature)',
+                'outil_saisie': 'NaturaList (application mobile)',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': True,
+                    'nom': 'Protocole STOC-EPS adapté rapaces migrateurs',
+                    'description': 'Points d\'observation fixes avec créneaux horaires '
+                                   'standardisés (2h après le lever du soleil, 2h avant le coucher)',
+                    'objectif': 'Standardiser le suivi de la halte migratoire pour permettre '
+                                'des comparaisons inter-annuelles fiables',
+                    'periode': 'Mars - Mai et Août - Octobre',
+                    'respect': True,
+                },
+            },
+            {
+                'op_match': 'Suivi piézométrique mensuel des tourbières',
+                'intitule': 'Réseau piézométrique des tourbières du Haut-Doubs',
+                'objectif_principal': 'Suivre la dynamique de la nappe dans les tourbières '
+                                     'pour évaluer l\'efficacité des travaux de restauration',
+                'cibles_principales': 'Habitat',
+                'taxon_taxref': '',
+                'annee_lancement_suivi': 2012,
+                'outil_bancarisation': 'Base ADES (accès aux données sur les eaux souterraines)',
+                'outil_saisie': 'Sondes automatiques + relevé manuel mensuel',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom': 'Protocole piézométrique tourbières RNR',
+                    'description': 'Mesure mensuelle des niveaux d\'eau par sondes '
+                                   'piézométriques automatiques (enregistrement horaire) '
+                                   'complétée par un relevé manuel de contrôle',
+                    'objectif': 'Caractériser l\'hydropériode et détecter les anomalies '
+                                'de fonctionnement hydrologique des tourbières',
+                    'periode': 'Toute l\'année (mensuel)',
+                    'respect': True,
+                },
+            },
+            {
+                'op_match': 'Débroussaillage sélectif des bouleaux sur tourbières',
+                'intitule': 'Suivi post-intervention débroussaillage tourbières',
+                'objectif_principal': 'Évaluer l\'efficacité des coupes de ligneux '
+                                     'sur la recolonisation par les sphaignes',
+                'cibles_principales': 'Habitat',
+                'taxon_taxref': '',
+                'annee_lancement_suivi': 2020,
+                'outil_bancarisation': 'Tableur Excel + SIG QGIS',
+                'outil_saisie': 'Relevé terrain quadrats permanents',
+                'transmission_donnee': False,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom': 'Protocole suivi végétation post-gestion',
+                    'description': 'Relevés phytosociologiques sur quadrats permanents '
+                                   '(2m x 2m) avant et après intervention, avec '
+                                   'photographie verticale standardisée',
+                    'objectif': 'Mesurer la vitesse de recolonisation par les bryophytes '
+                                'et la régression des ligneux après coupe',
+                    'periode': 'Juin - Août',
+                    'respect': True,
+                },
+            },
+            {
+                'op_match': 'Relevés phytosociologiques des communautés turficoles',
+                'intitule': 'Suivi phytosociologique des tourbières du bassin de Remoray',
+                'objectif_principal': 'Documenter la composition floristique et l\'état de '
+                                     'conservation des communautés végétales turficoles',
+                'cibles_principales': 'Flore',
+                'taxon_taxref': 'Sphagnum spp., Drosera rotundifolia, Menyanthes trifoliata',
+                'annee_lancement_suivi': 2015,
+                'outil_bancarisation': 'CBNFC-ORI (base Flora)',
+                'outil_saisie': 'Carnet de terrain + tablette QGIS',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': True,
+                    'nom': 'Protocole relevés phytosociologiques tourbières',
+                    'description': 'Relevés Braun-Blanquet sur quadrats permanents '
+                                   '(2×2 m), avec coefficients d\'abondance-dominance '
+                                   'et photographie verticale calibrée',
+                    'objectif': 'Évaluer l\'état de conservation des habitats tourbeux '
+                                'par le suivi des espèces indicatrices',
+                    'periode': 'Juin - Juillet',
+                    'respect': True,
+                },
+            },
+            {
+                'op_match': 'Suivi photographique par drone des tourbières',
+                'intitule': 'Télédétection par drone des tourbières du Haut-Doubs',
+                'objectif_principal': 'Cartographier finement l\'occupation du sol '
+                                     'des tourbières et détecter les changements',
+                'cibles_principales': 'Habitat',
+                'taxon_taxref': '',
+                'annee_lancement_suivi': 2022,
+                'outil_bancarisation': 'SIG QGIS + serveur PostGIS réserve',
+                'outil_saisie': 'DJI Phantom 4 RTK + Pix4D',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom': 'Protocole survol drone tourbières',
+                    'description': 'Survols planifiés à 50 m d\'altitude avec '
+                                   'recouvrement 80%, traitement photogrammétrique '
+                                   'et classification supervisée de l\'occupation du sol',
+                    'objectif': 'Produire des ortho-mosaïques et des indices NDVI '
+                                'pour le suivi diachronique de la végétation',
+                    'periode': 'Mai et Septembre',
+                    'respect': True,
+                },
+            },
+        ]
+
+        for config in suivi_configs:
+            op = next((o for o in operations_created if o.libelle == config['op_match']), None)
+            if not op:
+                continue
+
             protocole = None
-            if i < 2:
+            if config.get('protocole'):
+                pc = config['protocole']
                 protocole = Protocole.objects.create(
-                    protocole_dans_campanule=i == 0,
-                    protocole_campanule_nom='Protocole STOC' if i == 0 else 'Protocole CMR',
-                    respect_protocole=True if i == 0 else None,
+                    protocole_dans_campanule=pc['dans_campanule'],
+                    protocole_campanule_nom=pc['nom'],
+                    respect_protocole=pc['respect'],
                     justification_non_respect='',
                     differences_protocole='',
-                    description_protocole='Suivi Temporel des Oiseaux Communs' if i == 0
-                        else 'Capture-Marquage-Recapture pour suivi démographique',
-                    objectif_protocole='Évaluer les tendances des populations d\'oiseaux communs' if i == 0
-                        else 'Estimer les effectifs et la dynamique des populations',
-                    periode_echantillonnage='Avril - Juin' if i == 0 else 'Mai - Septembre',
+                    description_protocole=pc['description'],
+                    objectif_protocole=pc['objectif'],
+                    periode_echantillonnage=pc['periode'],
                     id_utilisateur_ajout=admin,
                 )
                 protocoles_created += 1
                 self.log_item('créé', f'Protocole: {protocole.protocole_campanule_nom}')
 
-            suivi_intitules = [
-                'Suivi entomologique des carabiques',
-                'Suivi démographique du flamant rose',
-                'Cartographie évolutive des habitats',
-            ]
             suivi = SuiviInventaire.objects.create(
-                intitule=suivi_intitules[i],
-                objectif_principal='Suivre les populations à enjeu' if i == 0
-                    else 'Évaluer l\'état de conservation' if i == 1
-                    else 'Cartographier l\'évolution spatiale',
-                cibles_principales='Flore' if i == 0 else 'Faune' if i == 1 else 'Habitats',
-                taxon_taxref='Coléoptères, Carabidae' if i == 0 else 'Phoenicopterus roseus' if i == 1 else '',
-                annee_lancement_suivi=1998 if i == 0 else 2010 if i == 1 else None,
+                intitule=config['intitule'],
+                objectif_principal=config['objectif_principal'],
+                cibles_principales=config['cibles_principales'],
+                taxon_taxref=config.get('taxon_taxref', ''),
+                annee_lancement_suivi=config.get('annee_lancement_suivi'),
                 id_protocole=protocole,
-                outil_bancarisation='SERENA' if i == 0 else 'GeoNature' if i == 1 else '',
-                outil_saisie='Formulaire terrain' if i <= 1 else '',
-                transmission_donnee=True if i == 0 else None,
+                outil_bancarisation=config.get('outil_bancarisation', ''),
+                outil_saisie=config.get('outil_saisie', ''),
+                transmission_donnee=config.get('transmission_donnee'),
                 id_utilisateur_ajout=admin,
             )
             op.est_suivi_existant = False
@@ -3610,29 +4299,145 @@ class EnjeuxSeeder(BaseSeeder):
             suivis_created += 1
             self.log_item('créé', f'SuiviInventaire pour: {op.libelle[:50]}')
 
-            # Finances for enriched ops
-            finances_data = [
+        # Finances per operation (varied sources)
+        finance_configs = {
+            'Restauration hydraulique du marais sud': [
+                ('Agence de l\'Eau RMC', cat_finance_etat),
+                ('Région Sud PACA', cat_finance_region),
+                ('FEDER Méditerranée', cat_finance_europe),
+            ],
+            'Suivi cartographique des habitats humides': [
+                ('DREAL Occitanie', cat_finance_etat),
+                ('Fondation Tour du Valat', cat_finance_dept),
+            ],
+            'Régulation de la fréquentation autour des colonies': [
+                ('Conservatoire du Littoral', cat_finance_etat),
+            ],
+            'Négociation de quotas de prélèvement avec les irrigants': [
+                ('Agence de l\'Eau RMC', cat_finance_etat),
+                ('Département des Bouches-du-Rhône', cat_finance_dept),
+            ],
+            'Inventaire annuel des placettes permanentes': [
+                ('DREAL Auvergne-Rhône-Alpes', cat_finance_etat),
                 ('Région Auvergne-Rhône-Alpes', cat_finance_region),
-                ('DREAL', cat_finance_etat),
-            ]
-            if i == 0:
-                finances_data.append(('Agence de l\'Eau', cat_finance_dept))
-            for lib, cat in finances_data:
-                FinanceOperation.objects.update_or_create(
-                    id_operation=op, libelle=lib,
-                    defaults={'id_categorie': cat}
-                )
-                finances_created += 1
+            ],
+            'Mise en défens hivernale des zones de quiétude': [
+                ('OFB', cat_finance_etat),
+                ('Département de Haute-Savoie', cat_finance_dept),
+            ],
+            'Sensibilisation des pratiquants de sports d\'hiver': [
+                ('Région Auvergne-Rhône-Alpes', cat_finance_region),
+                ('Fondation Petzl', cat_finance_dept),
+            ],
+            'Prélèvements mensuels qualité eau lac': [
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+                ('Département du Doubs', cat_finance_dept),
+            ],
+            'Diagnostic des pratiques agricoles du bassin versant': [
+                ('DREAL Bourgogne-Franche-Comté', cat_finance_etat),
+                ('PAC (MAEC)', cat_finance_europe),
+            ],
+            'Renouvellement des conventions de fauche tardive': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('Département du Doubs', cat_finance_dept),
+                ('PAC (MAEC)', cat_finance_europe),
+            ],
+            'Campagnes d\'arrachage de la Renouée du Japon': [
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+            ],
+            'Étude globale du fonctionnement hydrologique du bassin': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('DREAL BFC', cat_finance_etat),
+                ('OFB', cat_finance_etat),
+            ],
+            'Bouchage et neutralisation des drains historiques': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+                ('Life Tourbières Jura', cat_finance_europe),
+            ],
+            'Suivi piézométrique mensuel des tourbières': [
+                ('OFB', cat_finance_etat),
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+            ],
+            'Débroussaillage sélectif des bouleaux sur tourbières': [
+                ('Département du Doubs', cat_finance_dept),
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+            ],
+            'Suivi mensuel de la charge en phosphore des affluents': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('OFB', cat_finance_etat),
+            ],
+            'Animation des conventions agricoles du bassin versant': [
+                ('DREAL BFC', cat_finance_etat),
+                ('PAC (MAEC)', cat_finance_europe),
+                ('Agence de l\'Eau', cat_finance_etat),
+            ],
+            'Campagnes d\'arrachage intensif de la Renouée (OO)': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('Département du Doubs', cat_finance_dept),
+            ],
+            'Suivi visuel des haltes migratoires du Balbuzard': [
+                ('DREAL Bourgogne-Franche-Comté', cat_finance_etat),
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+            ],
+            'Aménagement de perchoirs et zones de quiétude lacustres': [
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+                ('FEDER', cat_finance_europe),
+                ('Commune de Remoray-Boujeons', cat_finance_commune),
+            ],
+            'Sensibilisation des usagers du lac (pêcheurs, kayakistes)': [
+                ('Département du Doubs', cat_finance_dept),
+            ],
+            'Étude de faisabilité nidification assistée du Balbuzard': [
+                ('OFB', cat_finance_etat),
+                ('Fondation pour la Nature et l\'Homme', cat_finance_dept),
+            ],
+            'Cartographie annuelle des sphaignes et végétation tourbeuse': [
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+            ],
+            'Pose de passerelles caillebotis sur sentier tourbière': [
+                ('Leader GAL Haut-Doubs', cat_finance_europe),
+                ('Département du Doubs', cat_finance_dept),
+            ],
+            'Animation pédagogique « La tourbière vivante »': [
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+                ('DREAL BFC', cat_finance_etat),
+            ],
+            'Maintenance et étalonnage du réseau piézométrique': [
+                ('OFB', cat_finance_etat),
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+            ],
+            'Analyse inter-annuelle des chroniques piézométriques': [
+                ('Agence de l\'Eau', cat_finance_etat),
+                ('DREAL Bourgogne-Franche-Comté', cat_finance_etat),
+            ],
+            'Relevés phytosociologiques des communautés turficoles': [
+                ('OFB', cat_finance_etat),
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+            ],
+            'Suivi photographique par drone des tourbières': [
+                ('Agence de l\'Eau Rhône-Méditerranée', cat_finance_etat),
+                ('Life Tourbières Jura', cat_finance_europe),
+            ],
+            'Évaluation globale de l\'état de conservation des tourbières': [
+                ('DREAL BFC', cat_finance_etat),
+                ('OFB', cat_finance_etat),
+                ('Région Bourgogne-Franche-Comté', cat_finance_region),
+            ],
+        }
 
-        # Add finances to remaining operations (without suivi)
-        for op in operations_created[3:]:
-            FinanceOperation.objects.update_or_create(
-                id_operation=op, libelle='DREAL',
-                defaults={'id_categorie': cat_finance_etat}
-            )
-            finances_created += 1
+        for op in operations_created:
+            fdata = finance_configs.get(op.libelle, [('DREAL', cat_finance_etat)])
+            for lib, cat in fdata:
+                if cat:
+                    FinanceOperation.objects.update_or_create(
+                        id_operation=op, libelle=lib,
+                        defaults={'id_categorie': cat}
+                    )
+                    finances_created += 1
 
-        # Link first few operations to sites
+        # Link operations to sites
         site_camargue = sites[0] if len(sites) > 0 else None
         site_aiguilles = sites[1] if len(sites) > 1 else None
         site_remoray = sites[6] if len(sites) > 6 else None
