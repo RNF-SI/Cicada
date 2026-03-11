@@ -1,0 +1,127 @@
+<div class="import-dialog-content">
+  <h2 class="dialog-title">
+    {{ (type === 'taxon' ? 'enjeux.importList.titleTaxon' : type === 'habitat' ? 'enjeux.importList.titleHabitat' : 'enjeux.importList.titleGeology') | translate }}
+  </h2>
+
+  @if (!validationDone() && !isValidating()) {
+    <p class="dialog-instructions">
+      {{ 'enjeux.importList.instructions' | translate }}
+    </p>
+
+    <!-- Encadré d'exemples -->
+    <div class="example-box">
+      <div class="example-title">
+        <i class="fi fi-rr-info"></i>
+        {{ (type === 'taxon' ? 'enjeux.importList.exampleTitleTaxon' : type === 'habitat' ? 'enjeux.importList.exampleTitleHabitat' : 'enjeux.importList.exampleTitleGeology') | translate }}
+      </div>
+      <pre class="example-codes">{{ (type === 'taxon' ? 'enjeux.importList.exampleTaxon' : type === 'habitat' ? 'enjeux.importList.exampleHabitat' : 'enjeux.importList.exampleGeology') | translate }}</pre>
+      <p class="example-help">
+        <i class="fi fi-rr-lightbulb"></i>
+        {{ (type === 'taxon' ? 'enjeux.importList.helpTaxon' : type === 'habitat' ? 'enjeux.importList.helpHabitat' : 'enjeux.importList.helpGeology') | translate }}
+      </p>
+    </div>
+
+    <mat-form-field appearance="outline" class="codes-textarea">
+      <mat-label>{{ (type === 'taxon' ? 'enjeux.importList.codesLabelTaxon' : type === 'habitat' ? 'enjeux.importList.codesLabelHabitat' : 'enjeux.importList.codesLabelGeology') | translate }}</mat-label>
+      <textarea matInput
+                rows="8"
+                [value]="codesInput()"
+                (input)="codesInput.set($any($event.target).value)"
+                [placeholder]="(type === 'taxon' ? 'enjeux.importList.placeholderTaxon' : type === 'habitat' ? 'enjeux.importList.placeholderHabitat' : 'enjeux.importList.placeholderGeology') | translate">
+      </textarea>
+    </mat-form-field>
+
+    <div class="file-upload-section">
+      <span class="file-upload-label">{{ 'enjeux.importList.orUploadFile' | translate }}</span>
+      <button mat-stroked-button type="button" class="file-upload-btn" (click)="fileInput.click()">
+        <i class="fi fi-rr-upload"></i>
+        {{ 'enjeux.importList.chooseFile' | translate }}
+      </button>
+      <input #fileInput type="file" accept=".csv,.txt" (change)="onFileSelected($event)">
+      <span class="file-hint">{{ 'enjeux.importList.fileHint' | translate }}</span>
+    </div>
+  }
+
+  @if (isValidating()) {
+    <div class="loading-container">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  }
+
+  @if (validationDone()) {
+    <div class="results-section">
+      <div class="results-summary">
+        <span class="found-count">
+          <i class="fi fi-rr-check"></i>
+          {{ 'enjeux.importList.foundCount' | translate:{ count: foundItems().length } }}
+        </span>
+        @if (notFoundEntries().length > 0) {
+          <span class="not-found-count">
+            <i class="fi fi-rr-cross-small"></i>
+            {{ 'enjeux.importList.notFoundCount' | translate:{ count: notFoundEntries().length } }}
+          </span>
+        }
+      </div>
+
+      <!-- Éléments trouvés -->
+      @for (item of foundItems(); track item.code) {
+        <div class="result-item">
+          <i class="fi fi-rr-check result-icon valid"></i>
+          <div class="result-content">
+            <div class="result-label">{{ item.label }}</div>
+            @if (item.secondaryLabel) {
+              <div class="result-secondary">{{ item.secondaryLabel }}</div>
+            }
+            <div class="result-meta">
+              <span class="result-code">{{ type === 'taxon' ? 'cd_nom' : type === 'habitat' ? 'cd_hab' : 'id_inpg' }}: {{ item.code }}</span>
+              <span class="result-input">{{ 'enjeux.importList.matchedFrom' | translate }} « {{ item.input }} »</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Éléments non trouvés (avec candidats) -->
+      @for (entry of notFoundEntries(); track entry.input) {
+        <div class="result-item not-found">
+          <i class="fi fi-rr-cross-small result-icon invalid"></i>
+          <div class="result-content">
+            <div class="result-label">« {{ entry.input }} »</div>
+            <div class="result-secondary">{{ 'enjeux.importList.codeNotFound' | translate }}</div>
+            @if (entry.candidates.length > 0) {
+              <div class="candidates">
+                <span class="candidates-label">{{ 'enjeux.importList.didYouMean' | translate }}</span>
+                @for (candidate of entry.candidates; track $index) {
+                  <span class="candidate-item">{{ candidate.label }}@if (candidate.secondary) { ({{ candidate.secondary }})}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="dialog-actions">
+    <button mat-stroked-button type="button" (click)="onCancel()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+    @if (!validationDone()) {
+      <button mat-flat-button color="primary" type="button"
+              [disabled]="!hasInput || isValidating()"
+              (click)="onValidate()">
+        @if (isValidating()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          <i class="fi fi-rr-search"></i>
+          {{ 'enjeux.importList.importButton' | translate }}
+        }
+      </button>
+    } @else {
+      <button mat-flat-button color="primary" type="button"
+              [disabled]="foundItems().length === 0"
+              (click)="onConfirm()">
+        {{ 'enjeux.importList.confirmButton' | translate }} ({{ foundItems().length }})
+      </button>
+    }
+  </div>
+</div>

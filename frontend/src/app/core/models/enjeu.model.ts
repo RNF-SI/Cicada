@@ -76,9 +76,24 @@ export interface Enjeu {
   // Enjeu-specific fields
   rang?: EnjeuPriorite;
   categorie_ecologique?: boolean; // true=Ecological, false=Socio-economic
+  // Ecological checkboxes
   habitat: boolean;
   espece: boolean;
-  processus: boolean;
+  patrimoine_geologique: boolean;
+  geo_ex_situ: boolean;
+  geo_in_situ: boolean;
+  fonctionnalite_ecosysteme: boolean;
+  autre_ecologique: boolean;
+  autre_ecologique_precision?: string;
+  processus: boolean; // legacy
+  // Socio-economic checkboxes
+  valeur_paysagere: boolean;
+  patrimoine_culturel: boolean;
+  developpement_durable: boolean;
+  usages: boolean;
+  valeur_ajoutee: boolean;
+  autre_socioeco: boolean;
+  autre_socioeco_precision?: string;
   etat_enjeu?: string;
 
   // FCR-specific fields
@@ -565,9 +580,24 @@ export interface EnjeuCreatePayload {
   intitule_court?: string;
   rang: EnjeuPriorite;
   categorie_ecologique: boolean;
+  // Ecological checkboxes
   habitat?: boolean;
   espece?: boolean;
+  patrimoine_geologique?: boolean;
+  geo_ex_situ?: boolean;
+  geo_in_situ?: boolean;
+  fonctionnalite_ecosysteme?: boolean;
+  autre_ecologique?: boolean;
+  autre_ecologique_precision?: string;
   processus?: boolean;
+  // Socio-economic checkboxes
+  valeur_paysagere?: boolean;
+  patrimoine_culturel?: boolean;
+  developpement_durable?: boolean;
+  usages?: boolean;
+  valeur_ajoutee?: boolean;
+  autre_socioeco?: boolean;
+  autre_socioeco_precision?: string;
   etat_enjeu?: string;
   description?: string;
   id_importance?: number;
@@ -605,9 +635,24 @@ export interface EnjeuUpdatePayload {
   description?: string;
   rang?: EnjeuPriorite;
   categorie_ecologique?: boolean;
+  // Ecological checkboxes
   habitat?: boolean;
   espece?: boolean;
+  patrimoine_geologique?: boolean;
+  geo_ex_situ?: boolean;
+  geo_in_situ?: boolean;
+  fonctionnalite_ecosysteme?: boolean;
+  autre_ecologique?: boolean;
+  autre_ecologique_precision?: string;
   processus?: boolean;
+  // Socio-economic checkboxes
+  valeur_paysagere?: boolean;
+  patrimoine_culturel?: boolean;
+  developpement_durable?: boolean;
+  usages?: boolean;
+  valeur_ajoutee?: boolean;
+  autre_socioeco?: boolean;
+  autre_socioeco_precision?: string;
   etat_enjeu?: string;
   id_categorie_fcr?: number;
   id_importance?: number;

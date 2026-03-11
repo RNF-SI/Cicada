@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/', include('apps.core.urls')),
     path('api/taxref/', include('apps.taxonomy.urls')),
     path('api/habref/', include('apps.habitats.urls')),
+    path('api/inpg/', include('apps.geology.urls')),
 ]
 
 # Serve media files in development

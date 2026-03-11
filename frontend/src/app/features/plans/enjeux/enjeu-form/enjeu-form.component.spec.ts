@@ -52,7 +52,18 @@ const existingEnjeu: Enjeu = {
   categorie_ecologique: false,
   habitat: true,
   espece: false,
-  processus: true,
+  patrimoine_geologique: false,
+  geo_ex_situ: false,
+  geo_in_situ: false,
+  fonctionnalite_ecosysteme: false,
+  autre_ecologique: false,
+  processus: false,
+  valeur_paysagere: true,
+  patrimoine_culturel: false,
+  developpement_durable: false,
+  usages: false,
+  valeur_ajoutee: false,
+  autre_socioeco: false,
   etat_enjeu: 'bon',
   description: 'Description existante',
   date_ajout: '2024-01-01T00:00:00Z',
@@ -159,9 +170,21 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('intitule_court')?.value).toBe('');
       expect(component.form.get('rang')?.value).toBe(1);
       expect(component.form.get('categorie_ecologique')?.value).toBe(true);
+      // Ecological checkboxes
       expect(component.form.get('habitat')?.value).toBe(false);
       expect(component.form.get('espece')?.value).toBe(false);
-      expect(component.form.get('processus')?.value).toBe(false);
+      expect(component.form.get('patrimoine_geologique')?.value).toBe(false);
+      expect(component.form.get('geo_ex_situ')?.value).toBe(false);
+      expect(component.form.get('geo_in_situ')?.value).toBe(false);
+      expect(component.form.get('fonctionnalite_ecosysteme')?.value).toBe(false);
+      expect(component.form.get('autre_ecologique')?.value).toBe(false);
+      // Socio-economic checkboxes
+      expect(component.form.get('valeur_paysagere')?.value).toBe(false);
+      expect(component.form.get('patrimoine_culturel')?.value).toBe(false);
+      expect(component.form.get('developpement_durable')?.value).toBe(false);
+      expect(component.form.get('usages')?.value).toBe(false);
+      expect(component.form.get('valeur_ajoutee')?.value).toBe(false);
+      expect(component.form.get('autre_socioeco')?.value).toBe(false);
     });
 
     it('should detect create mode when no enjeuSlug param', () => {
@@ -256,7 +279,7 @@ describe('EnjeuFormComponent', () => {
       expect(mockEnjeuService.createEnjeu).toHaveBeenCalled();
     });
 
-    it('should build correct payload with all form fields', () => {
+    it('should build correct payload with ecological fields', () => {
       component.form.patchValue({
         libelle: 'Mon enjeu',
         intitule_court: 'ME',
@@ -264,7 +287,11 @@ describe('EnjeuFormComponent', () => {
         categorie_ecologique: true,
         habitat: true,
         espece: false,
-        processus: true,
+        patrimoine_geologique: true,
+        geo_ex_situ: true,
+        geo_in_situ: false,
+        fonctionnalite_ecosysteme: false,
+        autre_ecologique: false,
         etat_enjeu: 'bon',
         description: 'Description'
       });
@@ -276,7 +303,29 @@ describe('EnjeuFormComponent', () => {
       expect(payload.rang).toBe(2);
       expect(payload.categorie_ecologique).toBe(true);
       expect(payload.habitat).toBe(true);
-      expect(payload.processus).toBe(true);
+      expect(payload.patrimoine_geologique).toBe(true);
+      expect(payload.geo_ex_situ).toBe(true);
+      expect(payload.geo_in_situ).toBe(false);
+    });
+
+    it('should build correct payload with socio-economic fields', () => {
+      component.form.patchValue({
+        libelle: 'Enjeu socio',
+        rang: 1,
+        categorie_ecologique: false,
+        valeur_paysagere: true,
+        patrimoine_culturel: false,
+        developpement_durable: true,
+        usages: false,
+        valeur_ajoutee: false,
+        autre_socioeco: false,
+      });
+      component.onSubmit();
+      const payload = mockEnjeuService.createEnjeu.mock.calls[0][0];
+      expect(payload.categorie_ecologique).toBe(false);
+      expect(payload.valeur_paysagere).toBe(true);
+      expect(payload.developpement_durable).toBe(true);
+      expect(payload.usages).toBe(false);
     });
 
     it('should show snackbar on success', () => {
@@ -312,6 +361,7 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('rang')?.value).toBe(2);
       expect(component.form.get('categorie_ecologique')?.value).toBe(false);
       expect(component.form.get('habitat')?.value).toBe(true);
+      expect(component.form.get('valeur_paysagere')?.value).toBe(true);
     });
 
     it('should call updateEnjeu on submit in edit mode', () => {
@@ -390,6 +440,77 @@ describe('EnjeuFormComponent', () => {
         tick();
       }).not.toThrow();
     }));
+  });
+
+  // =========================================================================
+  // Conditional checkboxes behavior
+  // =========================================================================
+
+  describe('conditional checkboxes', () => {
+    beforeEach(() => setup());
+
+    it('should reset socio-economic fields when switching to ecologique', () => {
+      // Set some socio-eco values
+      component.form.patchValue({
+        categorie_ecologique: false,
+        valeur_paysagere: true,
+        patrimoine_culturel: true,
+      });
+      // Switch to ecologique
+      component.form.get('categorie_ecologique')?.setValue(true);
+
+      expect(component.form.get('valeur_paysagere')?.value).toBe(false);
+      expect(component.form.get('patrimoine_culturel')?.value).toBe(false);
+      expect(component.form.get('developpement_durable')?.value).toBe(false);
+      expect(component.form.get('usages')?.value).toBe(false);
+      expect(component.form.get('valeur_ajoutee')?.value).toBe(false);
+      expect(component.form.get('autre_socioeco')?.value).toBe(false);
+    });
+
+    it('should reset ecological fields when switching to socio-economique', () => {
+      // Set some ecological values
+      component.form.patchValue({
+        habitat: true,
+        espece: true,
+        patrimoine_geologique: true,
+        geo_ex_situ: true,
+      });
+      // Switch to socio-économique
+      component.form.get('categorie_ecologique')?.setValue(false);
+
+      expect(component.form.get('habitat')?.value).toBe(false);
+      expect(component.form.get('espece')?.value).toBe(false);
+      expect(component.form.get('patrimoine_geologique')?.value).toBe(false);
+      expect(component.form.get('geo_ex_situ')?.value).toBe(false);
+      expect(component.form.get('geo_in_situ')?.value).toBe(false);
+      expect(component.form.get('fonctionnalite_ecosysteme')?.value).toBe(false);
+      expect(component.form.get('autre_ecologique')?.value).toBe(false);
+    });
+
+    it('should reset geo sub-fields when patrimoine_geologique is unchecked', () => {
+      component.form.patchValue({
+        patrimoine_geologique: true,
+        geo_ex_situ: true,
+        geo_in_situ: true,
+      });
+      // Uncheck patrimoine_geologique
+      component.form.get('patrimoine_geologique')?.setValue(false);
+
+      expect(component.form.get('geo_ex_situ')?.value).toBe(false);
+      expect(component.form.get('geo_in_situ')?.value).toBe(false);
+    });
+
+    it('should keep geo sub-fields when patrimoine_geologique stays checked', () => {
+      component.form.patchValue({
+        patrimoine_geologique: true,
+        geo_ex_situ: true,
+        geo_in_situ: false,
+      });
+      // Patch other field, patrimoine_geologique stays true
+      component.form.patchValue({ habitat: true });
+
+      expect(component.form.get('geo_ex_situ')?.value).toBe(true);
+    });
   });
 
   // =========================================================================

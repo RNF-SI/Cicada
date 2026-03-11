@@ -76,10 +76,20 @@ class EnjeuFilter(django_filters.FilterSet):
         return queryset.exclude(id_categorie__mnemonique='FCR')
 
     def filter_has_type(self, queryset, name, value):
-        """Filtrer les enjeux qui ont au moins un type (habitat, espèce ou processus)."""
+        """Filtrer les enjeux qui ont au moins un type coché."""
         if value:
-            return queryset.filter(Q(habitat=True) | Q(espece=True) | Q(processus=True))
-        return queryset.filter(habitat=False, espece=False, processus=False)
+            return queryset.filter(
+                Q(habitat=True) | Q(espece=True) | Q(processus=True) |
+                Q(patrimoine_geologique=True) | Q(fonctionnalite_ecosysteme=True) | Q(autre_ecologique=True) |
+                Q(valeur_paysagere=True) | Q(patrimoine_culturel=True) | Q(developpement_durable=True) |
+                Q(usages=True) | Q(valeur_ajoutee=True) | Q(autre_socioeco=True)
+            )
+        return queryset.filter(
+            habitat=False, espece=False, processus=False,
+            patrimoine_geologique=False, fonctionnalite_ecosysteme=False, autre_ecologique=False,
+            valeur_paysagere=False, patrimoine_culturel=False, developpement_durable=False,
+            usages=False, valeur_ajoutee=False, autre_socioeco=False
+        )
 
     def filter_has_taxons(self, queryset, name, value):
         """Filtrer les enjeux qui ont des taxons associés."""

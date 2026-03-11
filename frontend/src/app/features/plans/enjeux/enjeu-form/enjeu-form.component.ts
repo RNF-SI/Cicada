@@ -18,9 +18,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
+import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload } from '../../../../core/models/enjeu.model';
+import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 
 @Component({
   selector: 'app-enjeu-form',
@@ -38,7 +39,8 @@ import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload } from '../../../../core/
     MatTooltipModule,
     MatSnackBarModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    ReferenceItemListComponent
   ],
   templateUrl: './enjeu-form.component.html',
   styleUrl: './enjeu-form.component.scss'
@@ -69,6 +71,11 @@ export class EnjeuFormComponent implements OnInit {
   // ID de la nomenclature "ENJEU" (à récupérer dynamiquement)
   enjeuCategorieId = signal<number | null>(null);
 
+  // Listes de taxons, habitats et géologies liés à l'enjeu
+  taxonItems: TaxonRef[] = [];
+  habitatItems: HabitatRef[] = [];
+  geologieItems: GeologieRef[] = [];
+
   ngOnInit(): void {
     this.initForm();
     this.loadRouteParams();
@@ -80,11 +87,92 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: ['', [Validators.maxLength(50)]],
       rang: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
       categorie_ecologique: [true, Validators.required],
+      // Checkboxes écologiques
       habitat: [false],
       espece: [false],
-      processus: [false],
+      patrimoine_geologique: [false],
+      geo_ex_situ: [false],
+      geo_in_situ: [false],
+      fonctionnalite_ecosysteme: [false],
+      autre_ecologique: [false],
+      autre_ecologique_precision: [''],
+      // Checkboxes socio-économiques
+      valeur_paysagere: [false],
+      patrimoine_culturel: [false],
+      developpement_durable: [false],
+      usages: [false],
+      valeur_ajoutee: [false],
+      autre_socioeco: [false],
+      autre_socioeco_precision: [''],
       etat_enjeu: [''],
       description: ['']
+    });
+
+    // Réinitialiser les sous-champs géologiques quand patrimoine_geologique est décoché
+    this.form.get('patrimoine_geologique')?.valueChanges.subscribe(isGeo => {
+      if (!isGeo) {
+        this.form.patchValue({
+          geo_ex_situ: false,
+          geo_in_situ: false
+        }, { emitEvent: false });
+      }
+    });
+
+    // Réinitialiser les listes quand les checkboxes sont décochées
+    this.form.get('habitat')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.habitatItems = [];
+      }
+    });
+    this.form.get('espece')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.taxonItems = [];
+      }
+    });
+    this.form.get('patrimoine_geologique')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.geologieItems = [];
+      }
+    });
+
+    // Réinitialiser les checkboxes de l'autre catégorie lors du changement
+    this.form.get('categorie_ecologique')?.valueChanges.subscribe(isEcologique => {
+      if (isEcologique) {
+        // Réinitialiser les checkboxes socio-économiques
+        this.form.patchValue({
+          valeur_paysagere: false,
+          patrimoine_culturel: false,
+          developpement_durable: false,
+          usages: false,
+          valeur_ajoutee: false,
+          autre_socioeco: false,
+          autre_socioeco_precision: ''
+        }, { emitEvent: false });
+      } else {
+        // Réinitialiser les checkboxes écologiques
+        this.form.patchValue({
+          habitat: false,
+          espece: false,
+          patrimoine_geologique: false,
+          geo_ex_situ: false,
+          geo_in_situ: false,
+          fonctionnalite_ecosysteme: false,
+          autre_ecologique: false,
+          autre_ecologique_precision: ''
+        }, { emitEvent: false });
+      }
+    });
+
+    // Réinitialiser les précisions quand "autre" est décoché
+    this.form.get('autre_ecologique')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.form.patchValue({ autre_ecologique_precision: '' }, { emitEvent: false });
+      }
+    });
+    this.form.get('autre_socioeco')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.form.patchValue({ autre_socioeco_precision: '' }, { emitEvent: false });
+      }
     });
   }
 
@@ -189,12 +277,43 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: enjeu.intitule_court || '',
       rang: enjeu.rang || 1,
       categorie_ecologique: enjeu.categorie_ecologique ?? true,
+      // Écologique
       habitat: enjeu.habitat || false,
       espece: enjeu.espece || false,
-      processus: enjeu.processus || false,
+      patrimoine_geologique: enjeu.patrimoine_geologique || false,
+      geo_ex_situ: enjeu.geo_ex_situ || false,
+      geo_in_situ: enjeu.geo_in_situ || false,
+      fonctionnalite_ecosysteme: enjeu.fonctionnalite_ecosysteme || false,
+      autre_ecologique: enjeu.autre_ecologique || false,
+      autre_ecologique_precision: enjeu.autre_ecologique_precision || '',
+      // Socio-économique
+      valeur_paysagere: enjeu.valeur_paysagere || false,
+      patrimoine_culturel: enjeu.patrimoine_culturel || false,
+      developpement_durable: enjeu.developpement_durable || false,
+      usages: enjeu.usages || false,
+      valeur_ajoutee: enjeu.valeur_ajoutee || false,
+      autre_socioeco: enjeu.autre_socioeco || false,
+      autre_socioeco_precision: enjeu.autre_socioeco_precision || '',
       etat_enjeu: enjeu.etat_enjeu || '',
       description: enjeu.description || ''
-    });
+    }, { emitEvent: false });
+
+    // Charger les listes de taxons, habitats et géologies
+    this.taxonItems = enjeu.taxons ? [...enjeu.taxons] : [];
+    this.habitatItems = enjeu.habitats ? [...enjeu.habitats] : [];
+    this.geologieItems = enjeu.geologies ? [...enjeu.geologies] : [];
+  }
+
+  onTaxonsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.taxonItems = items as TaxonRef[];
+  }
+
+  onHabitatsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.habitatItems = items as HabitatRef[];
+  }
+
+  onGeologiesChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.geologieItems = items as GeologieRef[];
   }
 
   onSubmit(): void {
@@ -229,16 +348,34 @@ export class EnjeuFormComponent implements OnInit {
 
     const payload: EnjeuCreatePayload = {
       id_pg: planId,
-      id_categorie: categorieId || 0, // Le backend devrait trouver l'ID si 0
+      id_categorie: categorieId || 0,
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
+      // Écologique
       habitat: formValue.habitat,
       espece: formValue.espece,
-      processus: formValue.processus,
+      patrimoine_geologique: formValue.patrimoine_geologique,
+      geo_ex_situ: formValue.geo_ex_situ,
+      geo_in_situ: formValue.geo_in_situ,
+      fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
+      autre_ecologique: formValue.autre_ecologique,
+      autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
+      // Socio-économique
+      valeur_paysagere: formValue.valeur_paysagere,
+      patrimoine_culturel: formValue.patrimoine_culturel,
+      developpement_durable: formValue.developpement_durable,
+      usages: formValue.usages,
+      valeur_ajoutee: formValue.valeur_ajoutee,
+      autre_socioeco: formValue.autre_socioeco,
+      autre_socioeco_precision: formValue.autre_socioeco_precision || undefined,
       etat_enjeu: formValue.etat_enjeu || undefined,
-      description: formValue.description || undefined
+      description: formValue.description || undefined,
+      // Listes de taxons, habitats et géologies
+      taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
+      habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
+      geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
     };
 
     this.enjeuService.createEnjeu(payload).subscribe({
@@ -275,11 +412,29 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: formValue.intitule_court || undefined,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
+      // Écologique
       habitat: formValue.habitat,
       espece: formValue.espece,
-      processus: formValue.processus,
+      patrimoine_geologique: formValue.patrimoine_geologique,
+      geo_ex_situ: formValue.geo_ex_situ,
+      geo_in_situ: formValue.geo_in_situ,
+      fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
+      autre_ecologique: formValue.autre_ecologique,
+      autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
+      // Socio-économique
+      valeur_paysagere: formValue.valeur_paysagere,
+      patrimoine_culturel: formValue.patrimoine_culturel,
+      developpement_durable: formValue.developpement_durable,
+      usages: formValue.usages,
+      valeur_ajoutee: formValue.valeur_ajoutee,
+      autre_socioeco: formValue.autre_socioeco,
+      autre_socioeco_precision: formValue.autre_socioeco_precision || undefined,
       etat_enjeu: formValue.etat_enjeu || undefined,
-      description: formValue.description || undefined
+      description: formValue.description || undefined,
+      // Listes de taxons, habitats et géologies
+      taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
+      habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
+      geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
     };
 
     this.enjeuService.updateEnjeu(enjeuId, payload).subscribe({

@@ -9,8 +9,8 @@ from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     EtatActuel, ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
-    CorEnjeuTaxon, CorEnjeuHabitat,
-    CorResponsabiliteTaxon, CorResponsabiliteHabitat,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
 from apps.plans.models_indicateurs import (
@@ -30,11 +30,11 @@ class EnjeuxSeeder(BaseSeeder):
     """
     Crée les enjeux, FCR et responsabilités de test.
 
-    Enjeux (16 au total):
+    Enjeux (19 au total):
     - 5 enjeux pour Plan Camargue (priorités 1, 2, 3)
-    - 4 enjeux pour Plan Aiguilles Rouges (priorités 1, 2, 3)
-    - 2 enjeux pour Plan Vercors-Ecrins
-    - 5 enjeux pour Plan Lac de Remoray (priorités 1, 2, 3)
+    - 5 enjeux pour Plan Aiguilles Rouges (priorités 1, 2, 3) dont 1 géologique
+    - 3 enjeux pour Plan Vercors-Ecrins dont 1 géologique
+    - 6 enjeux pour Plan Lac de Remoray (priorités 1, 2, 3) dont 1 géologique
 
     FCR (8 au total):
     - 2 FCR pour Plan Camargue
@@ -42,10 +42,10 @@ class EnjeuxSeeder(BaseSeeder):
     - 2 FCR pour Plan Vercors-Ecrins
     - 2 FCR pour Plan Lac de Remoray
 
-    Responsabilités (10 au total):
+    Responsabilités (12 au total):
     - 3 pour Camargue
-    - 3 pour Aiguilles Rouges
-    - 2 pour Vercors
+    - 4 pour Aiguilles Rouges (dont 1 géologique)
+    - 3 pour Vercors (dont 1 géologique)
     - 2 pour Lac de Remoray
     """
 
@@ -372,6 +372,42 @@ class EnjeuxSeeder(BaseSeeder):
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 
+            # Enjeu 5 - Priorité 2 - Patrimoine géologique glaciaire
+            enjeu, created = Enjeu.objects.update_or_create(
+                id_pg=plan_aiguilles,
+                libelle='Patrimoine géologique glaciaire et métamorphique',
+                defaults={
+                    'id_categorie': cat_enjeu,
+                    'intitule_court': 'Géol. glaciaire',
+                    'rang': 2,
+                    'id_importance': priorite_2,
+                    'categorie_ecologique': True,
+                    'habitat': False,
+                    'espece': False,
+                    'patrimoine_geologique': True,
+                    'geo_in_situ': True,
+                    'etat_enjeu': 'Le massif des Aiguilles Rouges présente un patrimoine géologique '
+                                  'remarquable : gneiss précambriens, éclogites paléozoïques et '
+                                  'modelés glaciaires quaternaires. Recul glaciaire accéléré.',
+                    'description': 'Documenter et protéger les affleurements géologiques remarquables. '
+                                   'Suivre l\'évolution des formes glaciaires dans le contexte '
+                                   'du changement climatique.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            # Granite carbonifère du Mont-Blanc au Plan de l'Aiguille (INPG ARA0058)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='61',
+                defaults={'nom': 'Granite carbonifère du Mont-Blanc au Plan de l\'Aiguille'}
+            )
+            # Eclogites paléozoïques du lac Cornu (INPG RHA0323)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='2590',
+                defaults={'nom': 'Eclogites paléozoïques du lac Cornu (Aiguilles Rouges)'}
+            )
+            enjeux_created.append(enjeu)
+            self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
+
         # ==================== ENJEUX - VERCORS-ECRINS (2) ====================
 
         if plan_vercors:
@@ -420,6 +456,42 @@ class EnjeuxSeeder(BaseSeeder):
             CorEnjeuTaxon.objects.get_or_create(
                 id_enjeu=enjeu, cd_nom=2852,
                 defaults={'nom_complet': 'Aquila chrysaetos', 'nom_vern': 'Aigle royal'}
+            )
+            enjeux_created.append(enjeu)
+            self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
+
+            # Enjeu 3 - Priorité 2 - Patrimoine géologique - Karst
+            enjeu, created = Enjeu.objects.update_or_create(
+                id_pg=plan_vercors,
+                libelle='Patrimoine géologique karstique du Vercors',
+                defaults={
+                    'id_categorie': cat_enjeu,
+                    'intitule_court': 'Géol. karstique',
+                    'rang': 2,
+                    'id_importance': priorite_2,
+                    'categorie_ecologique': True,
+                    'habitat': False,
+                    'espece': False,
+                    'patrimoine_geologique': True,
+                    'geo_in_situ': True,
+                    'etat_enjeu': 'Le karst du Vercors constitue un patrimoine géomorphologique '
+                                  'exceptionnel avec des lapiaz, grottes et réseaux souterrains. '
+                                  'Certains sites sont menacés par la surfréquentation.',
+                    'description': 'Protéger et valoriser le patrimoine karstique du massif : '
+                                   'escarpements urgoniens, grottes, résurgences et lapiaz. '
+                                   'Réguler l\'accès aux sites sensibles.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            # Escarpements urgoniens du Cirque d'Archiane (INPG RHA0097)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='2249',
+                defaults={'nom': 'Escarpements urgoniens du Cirque d\'Archiane'}
+            )
+            # Faille-pli miocène de Sassenage (INPG RHA0141)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='3927',
+                defaults={'nom': 'Faille-pli miocène de Sassenage (Vercors)'}
             )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
@@ -566,6 +638,46 @@ class EnjeuxSeeder(BaseSeeder):
             CorEnjeuTaxon.objects.get_or_create(
                 id_enjeu=enjeu, cd_nom=117835,
                 defaults={'nom_complet': 'Reynoutria japonica', 'nom_vern': 'Renouée du Japon'}
+            )
+            enjeux_created.append(enjeu)
+            self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
+
+            # Enjeu 6 - Priorité 3 - Patrimoine géologique - Moraines
+            enjeu, created = Enjeu.objects.update_or_create(
+                id_pg=plan_remoray,
+                libelle='Patrimoine géomorphologique glaciaire et jurassien',
+                defaults={
+                    'id_categorie': cat_enjeu,
+                    'intitule_court': 'Géol. moraines',
+                    'rang': 3,
+                    'id_importance': priorite_3,
+                    'categorie_ecologique': True,
+                    'habitat': False,
+                    'espece': False,
+                    'patrimoine_geologique': True,
+                    'geo_in_situ': True,
+                    'etat_enjeu': 'Les moraines würmiennes et le modelé glaciaire du bassin de Remoray '
+                                  'témoignent de l\'histoire glaciaire du Jura. Sites bien conservés '
+                                  'mais peu documentés et non valorisés.',
+                    'description': 'Inventorier et protéger les formes géomorphologiques glaciaires '
+                                   'du bassin : moraines, reculées, pertes et résurgences karstiques.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            # Moraine de Joux à la Cluse-et-Mijoux (INPG FCO0021)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='2129',
+                defaults={'nom': 'Moraine de Joux à la Cluse-et-Mijoux'}
+            )
+            # Reculée, lac et moraine de Chalain (INPG FCO0061)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='2185',
+                defaults={'nom': 'Reculée, lac et moraine de Chalain'}
+            )
+            # Pertes du Doubs à Arçon (INPG FCO0018)
+            CorEnjeuGeologie.objects.get_or_create(
+                id_enjeu=enjeu, id_inpg='2125',
+                defaults={'nom': 'Pertes du Doubs à Arçon'}
             )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
@@ -859,6 +971,64 @@ class EnjeuxSeeder(BaseSeeder):
             )
             responsabilites_created.append(resp)
             self.log_item('créé' if created else 'mis à jour', f'Responsabilité: Vercors - Habitat')
+
+        if site_vercors and resp_geologique and niveau_regional:
+            resp, created = Responsabilite.objects.update_or_create(
+                id_site=site_vercors,
+                id_type_responsabilite=resp_geologique,
+                id_niveau_responsabilite=niveau_regional,
+                defaults={
+                    'description': 'Patrimoine karstique d\'intérêt régional : escarpements urgoniens, '
+                                   'grottes et réseaux souterrains. Le Vercors est l\'un des principaux '
+                                   'massifs karstiques des Alpes françaises.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            enjeu_karst = next((e for e in enjeux_created if 'karstique' in e.libelle), None)
+            if enjeu_karst:
+                CorResponsabiliteEnjeu.objects.get_or_create(
+                    id_responsabilite=resp,
+                    id_enjeu=enjeu_karst
+                )
+            CorResponsabiliteGeologie.objects.get_or_create(
+                id_responsabilite=resp, id_inpg='2249',
+                defaults={'nom': 'Escarpements urgoniens du Cirque d\'Archiane'}
+            )
+            CorResponsabiliteGeologie.objects.get_or_create(
+                id_responsabilite=resp, id_inpg='3927',
+                defaults={'nom': 'Faille-pli miocène de Sassenage (Vercors)'}
+            )
+            responsabilites_created.append(resp)
+            self.log_item('créé' if created else 'mis à jour', f'Responsabilité: Vercors - Géologie rég.')
+
+        if site_aiguilles and resp_geologique and niveau_local:
+            resp, created = Responsabilite.objects.update_or_create(
+                id_site=site_aiguilles,
+                id_type_responsabilite=resp_geologique,
+                id_niveau_responsabilite=niveau_local,
+                defaults={
+                    'description': 'Affleurements géologiques remarquables : gneiss précambriens, '
+                                   'éclogites paléozoïques et granite du Mont-Blanc. Témoins de '
+                                   'l\'histoire géologique alpine accessibles sur le massif.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            enjeu_glaciaire = next((e for e in enjeux_created if 'glaciaire' in e.libelle), None)
+            if enjeu_glaciaire:
+                CorResponsabiliteEnjeu.objects.get_or_create(
+                    id_responsabilite=resp,
+                    id_enjeu=enjeu_glaciaire
+                )
+            CorResponsabiliteGeologie.objects.get_or_create(
+                id_responsabilite=resp, id_inpg='61',
+                defaults={'nom': 'Granite carbonifère du Mont-Blanc au Plan de l\'Aiguille'}
+            )
+            CorResponsabiliteGeologie.objects.get_or_create(
+                id_responsabilite=resp, id_inpg='2590',
+                defaults={'nom': 'Eclogites paléozoïques du lac Cornu (Aiguilles Rouges)'}
+            )
+            responsabilites_created.append(resp)
+            self.log_item('créé' if created else 'mis à jour', f'Responsabilité: Aiguilles Rouges - Géologie loc.')
 
         # ==================== RESPONSABILITÉS - LAC DE REMORAY (2) ====================
 
@@ -3668,8 +3838,10 @@ class EnjeuxSeeder(BaseSeeder):
         count += CorResponsabiliteEnjeu.objects.all().delete()[0]
         count += CorResponsabiliteTaxon.objects.all().delete()[0]
         count += CorResponsabiliteHabitat.objects.all().delete()[0]
+        count += CorResponsabiliteGeologie.objects.all().delete()[0]
         count += CorEnjeuTaxon.objects.all().delete()[0]
         count += CorEnjeuHabitat.objects.all().delete()[0]
+        count += CorEnjeuGeologie.objects.all().delete()[0]
         count += Responsabilite.objects.all().delete()[0]
         count += Enjeu.objects.all().delete()[0]
         return count
@@ -3682,20 +3854,20 @@ class EnjeuxSeeder(BaseSeeder):
             Liste des lignes du résumé
         """
         return [
-            '\nEnjeux (16):',
+            '\nEnjeux (19):',
             '  - Camargue: 5 enjeux (hab. humides, flamant rose, activités trad., hydraulique, cistude)',
-            '  - Aiguilles Rouges: 4 enjeux (pelouses alpines, zones humides, tétras-lyre, fréquentation)',
-            '  - Vercors-Ecrins: 2 enjeux (corridors, grands rapaces)',
-            '  - Lac de Remoray: 5 enjeux (qualité eaux, tourbières, balbuzard, prairies, EEE)',
+            '  - Aiguilles Rouges: 5 enjeux (pelouses alpines, zones humides, tétras-lyre, fréquentation, géol. glaciaire)',
+            '  - Vercors-Ecrins: 3 enjeux (corridors, grands rapaces, géol. karstique)',
+            '  - Lac de Remoray: 6 enjeux (qualité eaux, tourbières, balbuzard, prairies, EEE, géol. moraines)',
             '\nFCR (8):',
             '  - Camargue: 2 FCR (connaissance, partenariats)',
             '  - Aiguilles Rouges: 2 FCR (moyens, climat)',
             '  - Vercors-Ecrins: 2 FCR (coordination, sensibilisation)',
             '  - Lac de Remoray: 2 FCR (suivi hydro., intégration territoriale)',
-            '\nResponsabilités (10):',
+            '\nResponsabilités (12):',
             '  - Camargue: 3 (faune nationale, habitat régional, faune internationale)',
-            '  - Aiguilles Rouges: 3 (flore régionale, faune locale, faune régionale)',
-            '  - Vercors: 2 (rapaces national, habitat régional)',
+            '  - Aiguilles Rouges: 4 (flore régionale, faune locale, faune régionale, géologie locale)',
+            '  - Vercors: 3 (rapaces national, habitat régional, géologie régionale)',
             '  - Lac de Remoray: 2 (faune régionale, habitat national)',
             "\nFacteurs d'influence (10):",
             "  - Camargue/Hab. humides: 2 (régime hydrologique, urbanisation)",
@@ -3713,6 +3885,7 @@ class EnjeuxSeeder(BaseSeeder):
             "  - Drainage historique",
             '\nLiens taxons: 9 (flamant, cistude, tétras, gypaète, aigle, balbuzard, droséra, renouée)',
             'Liens habitats: 13 (lagunes, prés-salés, sansouires, pelouses, tourbières, prairies, lacs)',
+            'Liens géologie: 7 (granite Mont-Blanc, éclogites lac Cornu, escarpements Archiane, faille Sassenage, moraine Joux, reculée Chalain, pertes Doubs)',
             '\nÉtats actuels (10):',
             '  - Camargue: 3 (hab. humides, flamant, cistude)',
             '  - Aiguilles Rouges: 3 (pelouses/flore, pelouses/érosion, tétras-lyre)',

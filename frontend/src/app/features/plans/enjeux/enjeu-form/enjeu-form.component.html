@@ -85,21 +85,129 @@
             </mat-radio-group>
           </div>
 
-          <!-- Type d'enjeu (checkboxes) -->
-          <div class="form-group">
-            <label class="form-label">{{ 'enjeux.accordion.enjeuLieA' | translate }}</label>
-            <div class="checkbox-group">
-              <mat-checkbox formControlName="habitat" color="primary">
-                {{ 'enjeux.accordion.habitats' | translate }}
-              </mat-checkbox>
-              <mat-checkbox formControlName="espece" color="primary">
-                {{ 'enjeux.accordion.especes' | translate }}
-              </mat-checkbox>
-              <mat-checkbox formControlName="processus" color="primary">
-                {{ 'enjeux.accordion.processus' | translate }}
-              </mat-checkbox>
+          <!-- Type d'enjeu - Checkboxes conditionnelles selon la catégorie -->
+          @if (form.get('categorie_ecologique')?.value === true) {
+            <!-- Checkboxes écologiques -->
+            <div class="form-group">
+              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieAEcologique' | translate }}</label>
+              <div class="checkbox-group">
+                <mat-checkbox formControlName="habitat" color="primary">
+                  {{ 'enjeux.enjeuForm.habitat' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="espece" color="primary">
+                  {{ 'enjeux.enjeuForm.espece' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="patrimoine_geologique" color="primary">
+                  {{ 'enjeux.enjeuForm.patrimoineGeologique' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="fonctionnalite_ecosysteme" color="primary">
+                  {{ 'enjeux.enjeuForm.fonctionnaliteEcosysteme' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="autre_ecologique" color="primary">
+                  {{ 'enjeux.enjeuForm.autreEcologique' | translate }}
+                </mat-checkbox>
+              </div>
             </div>
-          </div>
+
+            <!-- Sous-question habitats (si coché) -->
+            @if (form.get('habitat')?.value) {
+              <div class="form-group sub-question">
+                <label class="form-label">{{ 'enjeux.enjeuForm.habitatsConcernes' | translate }}</label>
+                <app-reference-item-list
+                  type="habitat"
+                  [items]="habitatItems"
+                  (itemsChange)="onHabitatsChange($event)">
+                </app-reference-item-list>
+              </div>
+            }
+
+            <!-- Sous-question espèces (si coché) -->
+            @if (form.get('espece')?.value) {
+              <div class="form-group sub-question">
+                <label class="form-label">{{ 'enjeux.enjeuForm.especesConcernees' | translate }}</label>
+                <app-reference-item-list
+                  type="taxon"
+                  [items]="taxonItems"
+                  (itemsChange)="onTaxonsChange($event)">
+                </app-reference-item-list>
+              </div>
+            }
+
+            <!-- Sous-questions patrimoine géologique (si coché) -->
+            @if (form.get('patrimoine_geologique')?.value) {
+              <div class="form-group sub-question">
+                <label class="form-label">{{ 'enjeux.enjeuForm.typePatrimoineGeo' | translate }}</label>
+                <div class="checkbox-group">
+                  <mat-checkbox formControlName="geo_ex_situ" color="primary">
+                    {{ 'enjeux.enjeuForm.geoExSitu' | translate }}
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="geo_in_situ" color="primary">
+                    {{ 'enjeux.enjeuForm.geoInSitu' | translate }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <div class="form-group sub-question">
+                <label class="form-label">{{ 'enjeux.enjeuForm.patrimoineGeoConcerne' | translate }}</label>
+                <app-reference-item-list
+                  type="geology"
+                  [items]="geologieItems"
+                  (itemsChange)="onGeologiesChange($event)">
+                </app-reference-item-list>
+              </div>
+            }
+
+            <!-- Précision "Autre écologique" (si coché) -->
+            @if (form.get('autre_ecologique')?.value) {
+              <div class="form-group sub-question">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'enjeux.enjeuForm.autreEcologiquePrecision' | translate }}</mat-label>
+                  <input matInput
+                         formControlName="autre_ecologique_precision"
+                         maxlength="255"
+                         [placeholder]="'enjeux.enjeuForm.autreEcologiquePrecisionPlaceholder' | translate">
+                </mat-form-field>
+              </div>
+            }
+          } @else {
+            <!-- Checkboxes socio-économiques -->
+            <div class="form-group">
+              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieASocioEco' | translate }}</label>
+              <div class="checkbox-group">
+                <mat-checkbox formControlName="valeur_paysagere" color="primary">
+                  {{ 'enjeux.enjeuForm.valeurPaysagere' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="patrimoine_culturel" color="primary">
+                  {{ 'enjeux.enjeuForm.patrimoineCulturel' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="developpement_durable" color="primary">
+                  {{ 'enjeux.enjeuForm.developpementDurable' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="usages" color="primary">
+                  {{ 'enjeux.enjeuForm.usages' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="valeur_ajoutee" color="primary">
+                  {{ 'enjeux.enjeuForm.valeurAjoutee' | translate }}
+                </mat-checkbox>
+                <mat-checkbox formControlName="autre_socioeco" color="primary">
+                  {{ 'enjeux.enjeuForm.autreSocioEco' | translate }}
+                </mat-checkbox>
+              </div>
+            </div>
+
+            <!-- Précision "Autre socio-économique" (si coché) -->
+            @if (form.get('autre_socioeco')?.value) {
+              <div class="form-group sub-question">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'enjeux.enjeuForm.autreSocioEcoPrecision' | translate }}</mat-label>
+                  <input matInput
+                         formControlName="autre_socioeco_precision"
+                         maxlength="255"
+                         [placeholder]="'enjeux.enjeuForm.autreSocioEcoPrecisionPlaceholder' | translate">
+                </mat-form-field>
+              </div>
+            }
+          }
         </div>
 
         <!-- Section Détails (accordéon) -->

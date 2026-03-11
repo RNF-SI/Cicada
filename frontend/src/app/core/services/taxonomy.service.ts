@@ -62,6 +62,27 @@ export interface TaxrefListItem {
   famille: string;
 }
 
+export interface BulkValidationFoundItem {
+  input: string;
+  cd_nom: number;
+  nom_complet: string;
+  nom_valide: string;
+  nom_vern: string | null;
+  regne: string;
+  group2_inpn: string;
+  id_rang: string;
+}
+
+export interface BulkValidationNotFoundItem {
+  input: string;
+  candidates: { cd_nom: number; nom_valide: string; nom_vern: string | null }[];
+}
+
+export interface BulkValidationResult {
+  found: BulkValidationFoundItem[];
+  not_found: BulkValidationNotFoundItem[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -159,6 +180,17 @@ export class TaxonomyService {
     return this.http.get<TaxrefListItem[]>(
       `${this.apiUrl}/search/${field}/${encodeURIComponent(term)}/`,
       { params: new HttpParams().set('limit', limit.toString()) }
+    );
+  }
+
+  /**
+   * Valide une liste d'entrées (codes cd_nom, noms scientifiques
+   * ou noms vernaculaires) contre TaxRef.
+   * Auto-détection : numérique → cd_nom, texte → nom.
+   */
+  validateBulk(items: string[]): Observable<BulkValidationResult> {
+    return this.http.post<BulkValidationResult>(
+      `${this.apiUrl}/validate-bulk/`, { items }
     );
   }
 }

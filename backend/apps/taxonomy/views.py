@@ -159,3 +159,111 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by('cd_nom')[:limit]
 
         return Response(TaxrefListSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=['post'], url_path='validate-bulk')
+    def validate_bulk(self, request):
+        """
+        Valide une liste d'entrées (codes cd_nom, noms scientifiques
+        ou noms vernaculaires) contre le référentiel TaxRef.
+
+        Auto-détection du format :
+        - Entrée numérique → recherche par cd_nom (exact)
+        - Entrée texte → recherche par nom scientifique puis nom vernaculaire
+
+        POST body: {"items": ["212", "Lynx lynx", "Loutre d'Europe", ...]}
+        Returns: {
+            "found": [{"input": "...", "cd_nom": ..., "nom_complet": ..., ...}],
+            "not_found": [{"input": "...", "candidates": [...]}],
+        }
+        """
+        items = request.data.get('items', [])
+        if not items:
+            return Response({'found': [], 'not_found': []})
+
+        found = []
+        not_found = []
+        already_found_cd_noms = set()
+
+        # Regrouper numériques et textes
+        numeric_items = []
+        text_items = []
+        for item in items:
+            raw = str(item).strip()
+            if not raw:
+                continue
+            try:
+                numeric_items.append((raw, int(raw)))
+            except (ValueError, TypeError):
+                text_items.append(raw)
+
+        # 1) Recherche par cd_nom (batch)
+        if numeric_items:
+            codes = [code for _, code in numeric_items]
+            qs = Taxref.objects.filter(cd_nom__in=codes).values(
+                'cd_nom', 'nom_complet', 'nom_valide', 'nom_vern',
+                'regne', 'group2_inpn', 'id_rang',
+            )
+            found_map = {item['cd_nom']: item for item in qs}
+            for raw, code in numeric_items:
+                if code in found_map and code not in already_found_cd_noms:
+                    entry = dict(found_map[code])
+                    entry['input'] = raw
+                    found.append(entry)
+                    already_found_cd_noms.add(code)
+                elif code not in found_map:
+                    not_found.append({'input': raw, 'candidates': []})
+
+        # 2) Recherche par nom (texte) : nom scientifique puis nom vernaculaire
+        for raw in text_items:
+            # Recherche exacte d'abord (insensible à la casse)
+            match = Taxref.objects.filter(
+                Q(lb_nom__iexact=raw)
+                | Q(nom_complet__iexact=raw)
+                | Q(nom_valide__iexact=raw)
+                | Q(nom_vern__iexact=raw)
+            ).values(
+                'cd_nom', 'nom_complet', 'nom_valide', 'nom_vern',
+                'regne', 'group2_inpn', 'id_rang',
+            ).first()
+
+            if not match:
+                # Recherche floue (ILIKE) – prend le meilleur résultat
+                match = Taxref.objects.filter(
+                    Q(lb_nom__icontains=raw)
+                    | Q(nom_complet__icontains=raw)
+                    | Q(nom_valide__icontains=raw)
+                    | Q(nom_vern__icontains=raw)
+                ).values(
+                    'cd_nom', 'nom_complet', 'nom_valide', 'nom_vern',
+                    'regne', 'group2_inpn', 'id_rang',
+                ).first()
+
+            if match and match['cd_nom'] not in already_found_cd_noms:
+                entry = dict(match)
+                entry['input'] = raw
+                found.append(entry)
+                already_found_cd_noms.add(match['cd_nom'])
+            elif not match:
+                # Proposer des candidats proches (trigrammes)
+                candidates = []
+                try:
+                    from django.db import connection
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT cd_nom, nom_valide, nom_vern
+                            FROM taxonomie.vm_taxref_list_forautocomplete
+                            WHERE unaccent(search_name) ILIKE unaccent(%s)
+                            ORDER BY similarity(unaccent(search_name), unaccent(%s)) DESC
+                            LIMIT 3
+                        """, [f'%{raw}%', raw])
+                        for row in cursor.fetchall():
+                            candidates.append({
+                                'cd_nom': row[0],
+                                'nom_valide': row[1],
+                                'nom_vern': row[2],
+                            })
+                except Exception:
+                    pass
+                not_found.append({'input': raw, 'candidates': candidates})
+
+        return Response({'found': found, 'not_found': not_found})

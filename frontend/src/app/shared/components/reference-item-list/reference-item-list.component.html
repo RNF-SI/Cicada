@@ -1,0 +1,56 @@
+<div class="reference-item-list">
+  <!-- Header with count and import button -->
+  <div class="list-header">
+    <span class="item-count">
+      {{ (type === 'taxon' ? 'enjeux.referenceList.taxonCount' : type === 'habitat' ? 'enjeux.referenceList.habitatCount' : 'enjeux.referenceList.geologyCount') | translate:{ count: items.length } }}
+    </span>
+    <button mat-stroked-button type="button" class="import-btn" (click)="openImportDialog()">
+      <i class="fi fi-rr-upload"></i>
+      {{ 'enjeux.referenceList.importList' | translate }}
+    </button>
+  </div>
+
+  <!-- Chip list of current items -->
+  @if (items.length > 0) {
+    <div class="chips-container">
+      @for (item of items; track $index) {
+        <div class="item-chip">
+          <div class="chip-content">
+            <span class="chip-label">{{ getItemLabel(item) }}</span>
+            @if (getItemSecondary(item)) {
+              <span class="chip-secondary">{{ getItemSecondary(item) }}</span>
+            }
+          </div>
+          <button type="button" class="chip-remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
+            <i class="fi fi-rr-cross-small"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Autocomplete search -->
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxon' : type === 'habitat' ? 'enjeux.referenceList.searchHabitat' : 'enjeux.referenceList.searchGeology') | translate }}</mat-label>
+    <input matInput
+           [formControl]="searchControl"
+           [matAutocomplete]="auto"
+           [placeholder]="(type === 'taxon' ? 'enjeux.referenceList.searchTaxonPlaceholder' : type === 'habitat' ? 'enjeux.referenceList.searchHabitatPlaceholder' : 'enjeux.referenceList.searchGeologyPlaceholder') | translate">
+    <mat-hint>{{ 'enjeux.referenceList.searchHint' | translate }}</mat-hint>
+    <mat-autocomplete #auto="matAutocomplete"
+                      [displayWith]="displayFn"
+                      (optionSelected)="onAutocompleteSelected($event)">
+      @for (result of autocompleteResults(); track $index) {
+        <mat-option [value]="result">
+          <div class="autocomplete-option">
+            <span class="option-label">{{ getResultLabel(result) }}</span>
+            <span class="option-secondary">{{ getResultSecondary(result) }}</span>
+          </div>
+        </mat-option>
+      }
+    </mat-autocomplete>
+    @if (isSearching()) {
+      <mat-spinner matSuffix diameter="18"></mat-spinner>
+    }
+  </mat-form-field>
+</div>

@@ -54,6 +54,26 @@ export interface CorrespondanceHabitat {
   type_rel: string;
 }
 
+export interface HabitatBulkFoundItem {
+  input: string;
+  cd_hab: number;
+  lb_hab_fr: string | null;
+  lb_hab_fr_complet: string | null;
+  cd_typo: number | null;
+  lb_code: string | null;
+  niveau: number | null;
+}
+
+export interface HabitatBulkNotFoundItem {
+  input: string;
+  candidates: { cd_hab: number; lb_hab_fr: string | null; lb_code: string | null }[];
+}
+
+export interface HabitatBulkValidationResult {
+  found: HabitatBulkFoundItem[];
+  not_found: HabitatBulkNotFoundItem[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -121,6 +141,17 @@ export class HabitatService {
   getCorrespondances(cdHab: number): Observable<CorrespondanceHabitat[]> {
     return this.http.get<CorrespondanceHabitat[]>(
       `${this.apiUrl}/correspondance/${cdHab}/`
+    );
+  }
+
+  /**
+   * Valide une liste d'entrées (codes cd_hab, codes nomenclature lb_code,
+   * ou noms français) contre HabRef.
+   * Auto-détection : numérique → cd_hab, code type "G1.6" → lb_code, texte → nom.
+   */
+  validateBulk(items: string[]): Observable<HabitatBulkValidationResult> {
+    return this.http.post<HabitatBulkValidationResult>(
+      `${this.apiUrl}/validate-bulk/`, { items }
     );
   }
 }

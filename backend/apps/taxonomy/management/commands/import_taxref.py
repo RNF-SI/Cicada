@@ -420,7 +420,16 @@ class Command(BaseCommand):
         output = io.StringIO()
         group_counts = defaultdict(int)
 
-        with open(csv_file, 'r', encoding='latin-1') as f:
+        # Détecter l'encodage : essayer UTF-8 d'abord, sinon latin-1
+        file_encoding = 'utf-8'
+        try:
+            with open(csv_file, 'r', encoding='utf-8') as test_f:
+                test_f.read(4096)
+        except UnicodeDecodeError:
+            file_encoding = 'latin-1'
+        self.stdout.write(f'  Encodage détecté : {file_encoding}')
+
+        with open(csv_file, 'r', encoding=file_encoding) as f:
             reader = csv.DictReader(f, delimiter='\t')
             writer = csv.writer(output, delimiter='\t')
             writer.writerow(TAXREF_DB_COLUMNS)

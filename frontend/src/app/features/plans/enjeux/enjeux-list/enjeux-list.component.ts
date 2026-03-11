@@ -93,6 +93,9 @@ export class EnjeuxListComponent implements OnInit {
   // Expand/collapse state pour la vue détail
   enjeuDetailExpanded = signal(true);
   expandedFcrIds = signal<Set<number>>(new Set());
+  showDetailTaxonList = signal(false);
+  showDetailHabitatList = signal(false);
+  showDetailGeologyList = signal(false);
 
   // Facteurs d'influence / Pressions state
   expandedFacteurIds = signal<Set<number>>(new Set());
@@ -242,15 +245,35 @@ export class EnjeuxListComponent implements OnInit {
     const enjeu = this.selectedEnjeu();
     if (!enjeu) return [];
     const labels: string[] = [];
-    if (enjeu.habitat) labels.push(this.translate.instant('enjeux.accordion.habitats'));
-    if (enjeu.espece) labels.push(this.translate.instant('enjeux.accordion.especes'));
-    if (enjeu.processus) labels.push(this.translate.instant('enjeux.accordion.processus'));
+    // Écologique
+    if (enjeu.habitat) labels.push(this.translate.instant('enjeux.enjeuForm.habitat'));
+    if (enjeu.espece) labels.push(this.translate.instant('enjeux.enjeuForm.espece'));
+    if (enjeu.patrimoine_geologique) labels.push(this.translate.instant('enjeux.enjeuForm.patrimoineGeologique'));
+    if (enjeu.fonctionnalite_ecosysteme) labels.push(this.translate.instant('enjeux.enjeuForm.fonctionnaliteEcosysteme'));
+    if (enjeu.autre_ecologique) labels.push(this.translate.instant('enjeux.enjeuForm.autreEcologique'));
+    // Socio-économique
+    if (enjeu.valeur_paysagere) labels.push(this.translate.instant('enjeux.enjeuForm.valeurPaysagere'));
+    if (enjeu.patrimoine_culturel) labels.push(this.translate.instant('enjeux.enjeuForm.patrimoineCulturel'));
+    if (enjeu.developpement_durable) labels.push(this.translate.instant('enjeux.enjeuForm.developpementDurable'));
+    if (enjeu.usages) labels.push(this.translate.instant('enjeux.enjeuForm.usages'));
+    if (enjeu.valeur_ajoutee) labels.push(this.translate.instant('enjeux.enjeuForm.valeurAjoutee'));
+    if (enjeu.autre_socioeco) labels.push(this.translate.instant('enjeux.enjeuForm.autreSocioEco'));
     return labels;
   });
 
   selectedHasTaxons = computed(() => {
     const enjeu = this.selectedEnjeu();
     return (enjeu?.taxons?.length || 0) > 0 || (enjeu?.nb_taxons || 0) > 0;
+  });
+
+  selectedHasHabitats = computed(() => {
+    const enjeu = this.selectedEnjeu();
+    return (enjeu?.habitats?.length || 0) > 0 || (enjeu?.nb_habitats || 0) > 0;
+  });
+
+  selectedHasGeologies = computed(() => {
+    const enjeu = this.selectedEnjeu();
+    return (enjeu?.geologies?.length || 0) > 0 || (enjeu?.nb_geologies || 0) > 0;
   });
 
   selectedFcrCategoryLabel = computed(() => {
@@ -290,6 +313,10 @@ export class EnjeuxListComponent implements OnInit {
         this.selectedEnjeuSlug.set(enjeuSlug);
         this.enjeuDetailExpanded.set(true);
         this.activeTab.set('detail');
+        // Reset list toggle state on enjeu change
+        this.showDetailTaxonList.set(false);
+        this.showDetailHabitatList.set(false);
+        this.showDetailGeologyList.set(false);
       } else {
         this.selectedEnjeuSlug.set(null);
       }

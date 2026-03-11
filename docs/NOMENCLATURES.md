@@ -1,6 +1,6 @@
 # Référentiels et Nomenclatures
 
-Ce document explique l'intégration et la gestion des données de référence dans Cicada : nomenclatures métier, référentiel taxonomique (TaxRef) et référentiel des habitats (HabRef).
+Ce document explique l'intégration et la gestion des données de référence dans Cicada : nomenclatures métier, référentiel taxonomique (TaxRef), référentiel des habitats (HabRef) et inventaire géologique (INPG).
 
 > **Inspiré de GeoNature** : L'architecture suit les conventions de GeoNature (noms de schemas, structure des tables, sources de données) pour assurer la compatibilité et faciliter les échanges de données.
 
@@ -13,6 +13,13 @@ Ce document explique l'intégration et la gestion des données de référence da
 | **Nomenclatures** | `ref_nomenclatures` | Fichiers SQL internes | ~500 entrées | Automatique au démarrage |
 | **HabRef** (habitats) | `ref_habitats` | INPN via geonature.fr | ~35 000 habitats | Automatique au démarrage |
 | **TaxRef** (taxonomie) | `taxonomie` | INPN via geonature.fr | ~700 000 taxons | Automatique au démarrage |
+| **INPG** (géologie) | `ref_inpg` | Projet socle (base INPG de l'INPN) | ~3 956 sites | Automatique au démarrage |
+
+### Provenance des données
+
+- **TaxRef** : Référentiel taxonomique national publié par le MNHN/INPN. Contient l'ensemble des noms scientifiques de la faune, la flore et la fonge de France. Téléchargé depuis `geonature.fr/data/inpn/taxonomie/`. Mis à jour environ 1 fois par an.
+- **HabRef** : Référentiel des habitats naturels publié par le MNHN/INPN. Contient les habitats des principales typologies françaises et européennes (EUNIS, Corine Biotope, Natura 2000, etc.). Téléchargé depuis `geonature.fr/data/inpn/habitats/`. Mises à jour très rares.
+- **INPG** : Inventaire National du Patrimoine Géologique, géré par le BRGM pour le compte du MNHN. Contient les sites géologiques d'intérêt patrimonial de France. Les données sont extraites du « projet socle » (base INPG de l'INPN), filtrées pour ne conserver que les sites à diffusion publique (`niveau_de_diffusion = 'Public'`). Stockées dans un fichier SQL interne au projet (`backend/inpg_data/inpg_inserts.sql`). **⚠️ L'intégration INPG est susceptible d'évoluer** : le mode de récupération des données pourrait changer à terme (API, téléchargement automatique, etc.).
 
 ### Mode lite pour les tests
 
@@ -47,12 +54,13 @@ docker compose exec web python manage.py seed_testdata
 
 **Ce qui se passe automatiquement au démarrage :**
 
-1. `python manage.py migrate` — Crée les schemas et tables (dont `taxonomie` et `ref_habitats`)
+1. `python manage.py migrate` — Crée les schemas et tables (dont `taxonomie`, `ref_habitats` et `ref_inpg`)
 2. `python manage.py import_nomenclatures` — Charge les nomenclatures métier
 3. `python manage.py import_habref` — Charge le référentiel HabRef (~35k habitats)
 4. `python manage.py import_taxref` — Charge le référentiel TaxRef (~700k taxons)
-5. `python create_superuser.py` — Crée le superutilisateur
-6. `python manage.py collectstatic` — Fichiers statiques
+5. `python manage.py import_inpg` — Charge l'INPG (~3 956 sites géologiques)
+6. `python create_superuser.py` — Crée le superutilisateur
+7. `python manage.py collectstatic` — Fichiers statiques
 
 **Pour accélérer le démarrage en développement**, ajouter dans `.env` :
 ```bash
@@ -286,11 +294,94 @@ eunis = Habref.objects.filter(cd_typo=7)  # EUNIS
 
 ---
 
+## Inventaire géologique (INPG)
+
+### Présentation
+
+L'INPG (Inventaire National du Patrimoine Géologique) recense les sites géologiques d'intérêt patrimonial de France. Il est géré par le BRGM pour le compte du MNHN.
+
+- **Source** : Projet socle (base INPG de l'INPN)
+- **Schema** : `ref_inpg`
+- **Filtre** : Seuls les sites à diffusion publique sont inclus
+- **Données** : Fichier SQL interne (`backend/inpg_data/inpg_inserts.sql`, ~34 Mo)
+
+> **⚠️ Évolution prévue** : Le mode de récupération des données INPG pourrait évoluer à terme (API directe, téléchargement automatique depuis l'INPN, etc.). L'architecture actuelle (fichier SQL embarqué) est une solution temporaire.
+
+### Table
+
+| Table | Description | Taille |
+|---|---|---|
+| `ref_inpg.inpg` | Sites géologiques (id_inpg = PK) | ~3 956 lignes |
+
+La table contient 88 colonnes dont : `id_inpg`, `id_metier`, `lb_site` (nom), `geom` (MultiPolygon SRID 4326), `region`, `departements`, `communes`, `interet_geol_principal`, `typologie_1/2/3`, notes d'évaluation, dates de validation, etc.
+
+### Commandes
+
+```bash
+# Import INPG (automatique au démarrage Docker)
+docker compose exec web python manage.py import_inpg
+
+# Forcer le rechargement
+docker compose exec web python manage.py import_inpg --force
+```
+
+### API REST
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/inpg/` | Liste paginée des sites INPG |
+| `GET /api/inpg/<id_inpg>/` | Détail d'un site |
+| `GET /api/inpg/autocomplete/?search=<terme>&limit=20` | Autocomplete trigramme (min 2 caractères) |
+| `POST /api/inpg/validate-bulk/` | Validation en masse (id_inpg, id_metier ou nom de site) |
+
+### Utilisation dans le code
+
+```python
+from apps.geology.models import Inpg
+
+# Chercher un site par id_inpg
+site = Inpg.objects.get(id_inpg=42)
+
+# Recherche par nom
+sites = Inpg.objects.filter(lb_site__icontains='grotte')
+```
+
+### Mise à jour des données
+
+Pour mettre à jour les données INPG :
+1. Exporter la table `inpg` depuis la base du projet socle (DBeaver ou autre outil), en filtrant sur `niveau_de_diffusion = 'Public'`
+2. Remplacer le fichier `backend/inpg_data/inpg_inserts.sql`
+3. Relancer l'import : `docker compose exec web python manage.py import_inpg --force`
+
+---
+
+## Autocomplete des référentiels
+
+Tous les autocompletes (TaxRef, HabRef, INPG) fonctionnent sur le même principe :
+
+1. **Minimum 2 caractères** saisis pour déclencher la recherche
+2. **Recherche trigramme** (`pg_trgm`) avec `unaccent()` pour l'insensibilité aux accents
+3. **Tri par pertinence** via `similarity()` (les résultats les plus proches en premier)
+4. **Limite** configurable (défaut : 20 résultats, max : 100)
+5. **Cache côté client** pour éviter les requêtes redondantes
+
+| Référentiel | Champs recherchés | Endpoint |
+|---|---|---|
+| TaxRef | Nom scientifique + nom vernaculaire (via vue matérialisée) | `/api/taxref/autocomplete/` |
+| HabRef | Nom français + code nomenclature (via table dénormalisée) | `/api/habref/autocomplete/` |
+| INPG | Nom du site (`lb_site`) + code métier (`id_metier`) | `/api/inpg/autocomplete/` |
+
+### Import en masse
+
+Chaque référentiel dispose aussi d'un endpoint `validate-bulk` (POST) qui permet de valider une liste d'entrées (codes ou noms) en une seule requête. L'auto-détection du format (numérique = code, texte = nom) permet de mélanger les formats. Les entrées non trouvées sont accompagnées de suggestions (candidats les plus proches par trigramme).
+
+---
+
 ## Architecture technique
 
 ### Schemas PostgreSQL
 
-Cicada utilise 10 schemas PostgreSQL :
+Cicada utilise 11 schemas PostgreSQL :
 
 | Schema | Source | Description |
 |---|---|---|
@@ -304,13 +395,14 @@ Cicada utilise 10 schemas PostgreSQL :
 | `ccd_notifications` | Cicada | Notifications et validations |
 | `taxonomie` | GeoNature | Référentiel taxonomique TaxRef |
 | `ref_habitats` | GeoNature | Référentiel des habitats HabRef |
+| `ref_inpg` | Cicada | Inventaire géologique INPG |
 
 ### Extensions PostgreSQL requises
 
 | Extension | Usage |
 |---|---|
 | `postgis` | Données géospatiales |
-| `pg_trgm` | Index trigramme pour l'autocomplete (TaxRef, HabRef) |
+| `pg_trgm` | Index trigramme pour l'autocomplete (TaxRef, HabRef, INPG) |
 | `unaccent` | Recherche insensible aux accents |
 | `uuid-ossp` | Génération d'UUID |
 

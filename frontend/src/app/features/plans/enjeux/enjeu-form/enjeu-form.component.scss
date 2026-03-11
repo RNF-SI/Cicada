@@ -120,6 +120,13 @@ $form-side-margin: $spacing-xxl;
   gap: $spacing-lg;
 }
 
+// Sub-question (indented, shown conditionally)
+.sub-question {
+  margin-left: $spacing-xl;
+  padding-left: $spacing-md;
+  border-left: 2px solid $gray-light;
+}
+
 // Details Panel
 .details-panel {
   margin-bottom: $spacing-lg;

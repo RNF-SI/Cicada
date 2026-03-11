@@ -39,6 +39,9 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
   @Output() navigateToDetail = new EventEmitter<Enjeu>();
 
   expanded = signal(false);
+  showTaxonList = signal(false);
+  showHabitatList = signal(false);
+  showGeologyList = signal(false);
 
   private readonly el = inject(ElementRef);
   private readonly dialog = inject(MatDialog);
@@ -108,14 +111,40 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
 
   get typeLabels(): string[] {
     const labels: string[] = [];
+    // Écologique
     if (this.enjeu.habitat) {
-      labels.push(this.translate.instant('enjeux.accordion.habitats'));
+      labels.push(this.translate.instant('enjeux.enjeuForm.habitat'));
     }
     if (this.enjeu.espece) {
-      labels.push(this.translate.instant('enjeux.accordion.especes'));
+      labels.push(this.translate.instant('enjeux.enjeuForm.espece'));
     }
-    if (this.enjeu.processus) {
-      labels.push(this.translate.instant('enjeux.accordion.processus'));
+    if (this.enjeu.patrimoine_geologique) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.patrimoineGeologique'));
+    }
+    if (this.enjeu.fonctionnalite_ecosysteme) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.fonctionnaliteEcosysteme'));
+    }
+    if (this.enjeu.autre_ecologique) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.autreEcologique'));
+    }
+    // Socio-économique
+    if (this.enjeu.valeur_paysagere) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.valeurPaysagere'));
+    }
+    if (this.enjeu.patrimoine_culturel) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.patrimoineCulturel'));
+    }
+    if (this.enjeu.developpement_durable) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.developpementDurable'));
+    }
+    if (this.enjeu.usages) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.usages'));
+    }
+    if (this.enjeu.valeur_ajoutee) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.valeurAjoutee'));
+    }
+    if (this.enjeu.autre_socioeco) {
+      labels.push(this.translate.instant('enjeux.enjeuForm.autreSocioEco'));
     }
     return labels;
   }
@@ -132,6 +161,10 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
     return (this.enjeu.habitats?.length || 0) > 0 || (this.enjeu.nb_habitats || 0) > 0;
   }
 
+  get hasGeologies(): boolean {
+    return (this.enjeu.geologies?.length || 0) > 0 || (this.enjeu.nb_geologies || 0) > 0;
+  }
+
   get taxonCount(): number {
     return this.enjeu.taxons?.length || this.enjeu.nb_taxons || 0;
   }
@@ -140,8 +173,27 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
     return this.enjeu.habitats?.length || this.enjeu.nb_habitats || 0;
   }
 
+  get geologyCount(): number {
+    return this.enjeu.geologies?.length || this.enjeu.nb_geologies || 0;
+  }
+
   get facteurCount(): number {
     return this.enjeu.facteurs_influence?.length || this.enjeu.nb_facteurs_influence || 0;
+  }
+
+  toggleTaxonList(event: Event): void {
+    event.stopPropagation();
+    this.showTaxonList.update(v => !v);
+  }
+
+  toggleHabitatList(event: Event): void {
+    event.stopPropagation();
+    this.showHabitatList.update(v => !v);
+  }
+
+  toggleGeologyList(event: Event): void {
+    event.stopPropagation();
+    this.showGeologyList.update(v => !v);
   }
 
   onNavigateToDetail(event: Event): void {

@@ -461,7 +461,9 @@ class EnjeuListSerializer(serializers.ModelSerializer):
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'habitat', 'espece', 'processus',
+            'rang', 'categorie_ecologique',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             # Champs FCR
             'id_categorie_fcr', 'categorie_fcr_label',
             # Optionnels
@@ -523,7 +525,10 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court', 'description',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'habitat', 'espece', 'processus', 'etat_enjeu',
+            'rang', 'categorie_ecologique',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
+            'etat_enjeu',
             # Champs FCR
             'id_categorie_fcr', 'categorie_fcr_label',
             # Optionnels
@@ -600,7 +605,10 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             'id_enjeu', 'id_pg', 'slug', 'id_categorie',
             'libelle', 'intitule_court', 'description',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'habitat', 'espece', 'processus', 'etat_enjeu',
+            'rang', 'categorie_ecologique',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
+            'etat_enjeu',
             # Champs FCR
             'id_categorie_fcr',
             # Optionnels
@@ -640,6 +648,14 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         habitats_data = validated_data.pop('habitats_data', [])
         geologies_data = validated_data.pop('geologies_data', [])
 
+        # Si les IDs ne sont pas fournis, les extraire depuis les données
+        if not taxon_ids and taxons_data:
+            taxon_ids = [t['cd_nom'] for t in taxons_data]
+        if not habitat_ids and habitats_data:
+            habitat_ids = [h['cd_hab'] for h in habitats_data]
+        if not geologie_ids and geologies_data:
+            geologie_ids = [g['id_inpg'] for g in geologies_data]
+
         # Créer l'enjeu
         enjeu = Enjeu.objects.create(**validated_data)
 
@@ -659,6 +675,14 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         taxons_data = validated_data.pop('taxons_data', None)
         habitats_data = validated_data.pop('habitats_data', None)
         geologies_data = validated_data.pop('geologies_data', None)
+
+        # Si les IDs ne sont pas fournis, les extraire depuis les données
+        if taxon_ids is None and taxons_data is not None:
+            taxon_ids = [t['cd_nom'] for t in taxons_data]
+        if habitat_ids is None and habitats_data is not None:
+            habitat_ids = [h['cd_hab'] for h in habitats_data]
+        if geologie_ids is None and geologies_data is not None:
+            geologie_ids = [g['id_inpg'] for g in geologies_data]
 
         # Mettre à jour les champs de l'enjeu
         for attr, value in validated_data.items():
@@ -868,6 +892,14 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         habitats_data = validated_data.pop('habitats_data', [])
         geologies_data = validated_data.pop('geologies_data', [])
 
+        # Si les IDs ne sont pas fournis, les extraire depuis les données
+        if not taxon_ids and taxons_data:
+            taxon_ids = [t['cd_nom'] for t in taxons_data]
+        if not habitat_ids and habitats_data:
+            habitat_ids = [h['cd_hab'] for h in habitats_data]
+        if not geologie_ids and geologies_data:
+            geologie_ids = [g['id_inpg'] for g in geologies_data]
+
         # Créer la responsabilité
         responsabilite = Responsabilite.objects.create(**validated_data)
 
@@ -888,6 +920,14 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         taxons_data = validated_data.pop('taxons_data', None)
         habitats_data = validated_data.pop('habitats_data', None)
         geologies_data = validated_data.pop('geologies_data', None)
+
+        # Si les IDs ne sont pas fournis, les extraire depuis les données
+        if taxon_ids is None and taxons_data is not None:
+            taxon_ids = [t['cd_nom'] for t in taxons_data]
+        if habitat_ids is None and habitats_data is not None:
+            habitat_ids = [h['cd_hab'] for h in habitats_data]
+        if geologie_ids is None and geologies_data is not None:
+            geologie_ids = [g['id_inpg'] for g in geologies_data]
 
         # Mettre à jour les champs
         for attr, value in validated_data.items():

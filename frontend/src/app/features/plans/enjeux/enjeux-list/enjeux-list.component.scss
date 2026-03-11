@@ -570,6 +570,25 @@
   }
 }
 
+// Reference lists (taxons, habitats, geologies)
+.reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  padding: $spacing-xs 0 $spacing-sm $spacing-lg;
+}
+
+.reference-chip {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  font-size: 13px;
+  color: $primary-color;
+  background-color: rgba($primary-color, 0.06);
+  border-radius: $border-radius-pill;
+  border: 1px solid rgba($primary-color, 0.15);
+  line-height: 20px;
+}
+
 // Section blocks (état de l'enjeu, détails/commentaires)
 .section-block {
   margin-top: $spacing-lg;

@@ -149,7 +149,7 @@ class Enjeu(models.Model):
         null=True,
         help_text=_("True=Écologique, False=Socio-économique")
     )
-    # Type d'enjeu (checkboxes) - Seulement pour Enjeux
+    # Type d'enjeu écologique (checkboxes) - Seulement pour Enjeux écologiques
     habitat = models.BooleanField(
         _("Habitat"),
         default=False,
@@ -160,10 +160,83 @@ class Enjeu(models.Model):
         default=False,
         help_text=_("Enjeu lié à une/des espèces")
     )
+    patrimoine_geologique = models.BooleanField(
+        _("Patrimoine géologique"),
+        default=False,
+        help_text=_("Enjeu lié au patrimoine géologique")
+    )
+    fonctionnalite_ecosysteme = models.BooleanField(
+        _("Fonctionnalité des écosystèmes"),
+        default=False,
+        help_text=_("Enjeu lié à une/des fonctionnalités des écosystèmes")
+    )
+    autre_ecologique = models.BooleanField(
+        _("Autre (écologique)"),
+        default=False,
+        help_text=_("Enjeu écologique de type autre")
+    )
+    autre_ecologique_precision = models.CharField(
+        _("Précision autre (écologique)"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Précision sur le type 'Autre' écologique")
+    )
+    # Sous-champs patrimoine géologique (affichés quand patrimoine_geologique=True)
+    geo_ex_situ = models.BooleanField(
+        _("Patrimoine géologique ex-situ"),
+        default=False,
+        help_text=_("Patrimoine géologique de type ex-situ (collections, musées)")
+    )
+    geo_in_situ = models.BooleanField(
+        _("Patrimoine géologique in-situ"),
+        default=False,
+        help_text=_("Patrimoine géologique de type in-situ (sites géologiques)")
+    )
+    # Champ legacy conservé pour compatibilité (remplacé par fonctionnalite_ecosysteme)
     processus = models.BooleanField(
         _("Processus"),
         default=False,
-        help_text=_("Enjeu lié à un processus écologique")
+        help_text=_("Enjeu lié à un processus écologique (legacy)")
+    )
+
+    # Type d'enjeu socio-économique (checkboxes) - Seulement pour Enjeux socio-économiques
+    valeur_paysagere = models.BooleanField(
+        _("Valeur paysagère"),
+        default=False,
+        help_text=_("Enjeu lié à la valeur paysagère")
+    )
+    patrimoine_culturel = models.BooleanField(
+        _("Patrimoine culturel"),
+        default=False,
+        help_text=_("Enjeu lié au maintien du patrimoine culturel")
+    )
+    developpement_durable = models.BooleanField(
+        _("Développement durable des ressources"),
+        default=False,
+        help_text=_("Enjeu lié au développement durable des ressources")
+    )
+    usages = models.BooleanField(
+        _("Usages"),
+        default=False,
+        help_text=_("Enjeu lié aux usages")
+    )
+    valeur_ajoutee = models.BooleanField(
+        _("Valeur ajoutée"),
+        default=False,
+        help_text=_("Enjeu lié à une/des valeurs ajoutées sociale, économique, scientifique ou éducative")
+    )
+    autre_socioeco = models.BooleanField(
+        _("Autre (socio-économique)"),
+        default=False,
+        help_text=_("Enjeu socio-économique de type autre")
+    )
+    autre_socioeco_precision = models.CharField(
+        _("Précision autre (socio-économique)"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Précision sur le type 'Autre' socio-économique")
     )
     # État de l'enjeu - Seulement pour Enjeux
     etat_enjeu = models.TextField(

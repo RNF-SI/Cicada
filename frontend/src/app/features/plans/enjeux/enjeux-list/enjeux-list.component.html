@@ -206,10 +206,75 @@
                         <span class="prop-label">{{ 'enjeux.accordion.enjeuLieA' | translate }} :</span>
                         <span class="prop-value">{{ selectedTypeLabels().length > 0 ? selectedTypeLabels().join(', ') : '-' }}</span>
                       </div>
+                      @if (enjeu.patrimoine_geologique && (enjeu.geo_in_situ || enjeu.geo_ex_situ)) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.typePatrimoineGeo' | translate }} :</span>
+                          <span class="prop-value">
+                            @if (enjeu.geo_in_situ && enjeu.geo_ex_situ) {
+                              {{ 'enjeux.enjeuForm.geoInSitu' | translate }}, {{ 'enjeux.enjeuForm.geoExSitu' | translate }}
+                            } @else if (enjeu.geo_in_situ) {
+                              {{ 'enjeux.enjeuForm.geoInSitu' | translate }}
+                            } @else {
+                              {{ 'enjeux.enjeuForm.geoExSitu' | translate }}
+                            }
+                          </span>
+                        </div>
+                      }
                       @if (selectedHasTaxons()) {
                         <div class="property-line">
-                          <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} :</span>
-                          <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+                          <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} ({{ enjeu.taxons?.length || enjeu.nb_taxons || 0 }}) :</span>
+                          <span class="prop-value prop-link" (click)="showDetailTaxonList.set(!showDetailTaxonList())">
+                            {{ (showDetailTaxonList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+                          </span>
+                        </div>
+                        @if (showDetailTaxonList() && enjeu.taxons?.length) {
+                          <div class="reference-list">
+                            @for (taxon of enjeu.taxons; track taxon.cd_nom) {
+                              <span class="reference-chip">{{ taxon.nom_complet }}@if (taxon.nom_vern) { ({{ taxon.nom_vern }})}</span>
+                            }
+                          </div>
+                        }
+                      }
+                      @if (selectedHasHabitats()) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.listeHabitats' | translate }} ({{ enjeu.habitats?.length || enjeu.nb_habitats || 0 }}) :</span>
+                          <span class="prop-value prop-link" (click)="showDetailHabitatList.set(!showDetailHabitatList())">
+                            {{ (showDetailHabitatList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+                          </span>
+                        </div>
+                        @if (showDetailHabitatList() && enjeu.habitats?.length) {
+                          <div class="reference-list">
+                            @for (habitat of enjeu.habitats; track habitat.cd_hab) {
+                              <span class="reference-chip">{{ habitat.cd_hab }} - {{ habitat.lb_hab_fr }}</span>
+                            }
+                          </div>
+                        }
+                      }
+                      @if (selectedHasGeologies()) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.listeGeologies' | translate }} ({{ enjeu.geologies?.length || enjeu.nb_geologies || 0 }}) :</span>
+                          <span class="prop-value prop-link" (click)="showDetailGeologyList.set(!showDetailGeologyList())">
+                            {{ (showDetailGeologyList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+                          </span>
+                        </div>
+                        @if (showDetailGeologyList() && enjeu.geologies?.length) {
+                          <div class="reference-list">
+                            @for (geo of enjeu.geologies; track geo.id_inpg) {
+                              <span class="reference-chip">{{ geo.nom || geo.id_inpg }}</span>
+                            }
+                          </div>
+                        }
+                      }
+                      @if (enjeu.autre_ecologique && enjeu.autre_ecologique_precision) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.precisionAutreEco' | translate }} :</span>
+                          <span class="prop-value">{{ enjeu.autre_ecologique_precision }}</span>
+                        </div>
+                      }
+                      @if (enjeu.autre_socioeco && enjeu.autre_socioeco_precision) {
+                        <div class="property-line">
+                          <span class="prop-label">{{ 'enjeux.accordion.precisionAutreSocio' | translate }} :</span>
+                          <span class="prop-value">{{ enjeu.autre_socioeco_precision }}</span>
                         </div>
                       }
                     } @else {

@@ -25,6 +25,17 @@ class FakeTranslateLoader implements TranslateLoader {
         enjeuForm: {
           ecologique: 'Écologique',
           socioEconomique: 'Socio-économique',
+          habitat: 'Un/des habitat(s)',
+          espece: 'Une/des espèce(s)',
+          patrimoineGeologique: 'Du patrimoine géologique',
+          fonctionnaliteEcosysteme: 'Fonctionnalité écosystème',
+          autreEcologique: 'Autre',
+          valeurPaysagere: 'Valeur paysagère',
+          patrimoineCulturel: 'Patrimoine culturel',
+          developpementDurable: 'Développement durable',
+          usages: 'Usages',
+          valeurAjoutee: 'Valeur ajoutée',
+          autreSocioEco: 'Autre socio-éco',
         },
         accordion: {
           habitats: 'Habitats',
@@ -124,6 +135,17 @@ const mockEnjeu1: Enjeu = {
   habitat: true,
   espece: true,
   processus: false,
+  patrimoine_geologique: false,
+  geo_ex_situ: false,
+  geo_in_situ: false,
+  fonctionnalite_ecosysteme: false,
+  autre_ecologique: false,
+  valeur_paysagere: false,
+  patrimoine_culturel: false,
+  developpement_durable: false,
+  usages: false,
+  valeur_ajoutee: false,
+  autre_socioeco: false,
   nb_facteurs_influence: 2,
   facteurs_influence: [
     { id_facteur_influence: 101, id_enjeu: 1, libelle: 'Urbanisation', date_ajout: '', date_maj: '', pressions: [] },
@@ -173,6 +195,17 @@ const mockEnjeu2: Enjeu = {
   habitat: false,
   espece: true,
   processus: true,
+  patrimoine_geologique: false,
+  geo_ex_situ: false,
+  geo_in_situ: false,
+  fonctionnalite_ecosysteme: false,
+  autre_ecologique: false,
+  valeur_paysagere: false,
+  patrimoine_culturel: false,
+  developpement_durable: false,
+  usages: false,
+  valeur_ajoutee: false,
+  autre_socioeco: false,
   date_ajout: '2024-02-01T00:00:00Z',
   date_maj: '2024-02-15T00:00:00Z',
 };
@@ -188,6 +221,17 @@ const mockFcr: Enjeu = {
   habitat: false,
   espece: false,
   processus: false,
+  patrimoine_geologique: false,
+  geo_ex_situ: false,
+  geo_in_situ: false,
+  fonctionnalite_ecosysteme: false,
+  autre_ecologique: false,
+  valeur_paysagere: false,
+  patrimoine_culturel: false,
+  developpement_durable: false,
+  usages: false,
+  valeur_ajoutee: false,
+  autre_socioeco: false,
   date_ajout: '2024-01-01T00:00:00Z',
   date_maj: '2024-01-01T00:00:00Z',
 };
@@ -467,8 +511,8 @@ describe('EnjeuxListComponent', () => {
     it('should compute selectedTypeLabels', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       const labels = component.selectedTypeLabels();
-      expect(labels).toContain('Habitats');
-      expect(labels).toContain('Espèces');
+      expect(labels).toContain('Un/des habitat(s)');
+      expect(labels).toContain('Une/des espèce(s)');
       expect(labels).not.toContain('Processus');
     });
 

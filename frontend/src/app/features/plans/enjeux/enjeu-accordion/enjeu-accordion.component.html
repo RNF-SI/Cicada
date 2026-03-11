@@ -77,19 +77,78 @@
             <span class="prop-value">{{ categoryLabel || '-' }}</span>
           </div>
           <div class="property-line">
-            <span class="prop-label">{{ 'enjeux.accordion.enjeuLieA' | translate }} :</span>
+            <span class="prop-label">{{ (enjeu.categorie_ecologique !== false ? 'enjeux.enjeuForm.enjeuLieAEcologique' : 'enjeux.enjeuForm.enjeuLieASocioEco') | translate }}</span>
             <span class="prop-value">{{ typeLabels.length > 0 ? typeLabels.join(', ') : '-' }}</span>
           </div>
+          @if (enjeu.patrimoine_geologique && (enjeu.geo_in_situ || enjeu.geo_ex_situ)) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.typePatrimoineGeo' | translate }} :</span>
+              <span class="prop-value">
+                @if (enjeu.geo_in_situ && enjeu.geo_ex_situ) {
+                  {{ 'enjeux.enjeuForm.geoInSitu' | translate }}, {{ 'enjeux.enjeuForm.geoExSitu' | translate }}
+                } @else if (enjeu.geo_in_situ) {
+                  {{ 'enjeux.enjeuForm.geoInSitu' | translate }}
+                } @else {
+                  {{ 'enjeux.enjeuForm.geoExSitu' | translate }}
+                }
+              </span>
+            </div>
+          }
           @if (hasTaxons) {
             <div class="property-line">
-              <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} :</span>
-              <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+              <span class="prop-label">{{ 'enjeux.accordion.listeEspeces' | translate }} ({{ taxonCount }}) :</span>
+              <span class="prop-value prop-link" (click)="toggleTaxonList($event)">
+                {{ (showTaxonList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+              </span>
             </div>
+            @if (showTaxonList() && enjeu.taxons?.length) {
+              <div class="reference-list">
+                @for (taxon of enjeu.taxons; track taxon.cd_nom) {
+                  <span class="reference-chip">{{ taxon.nom_complet }}@if (taxon.nom_vern) { ({{ taxon.nom_vern }})}</span>
+                }
+              </div>
+            }
           }
           @if (hasHabitats) {
             <div class="property-line">
-              <span class="prop-label">{{ 'enjeux.accordion.listeHabitats' | translate }} :</span>
-              <span class="prop-value prop-link">{{ 'enjeux.accordion.voirListe' | translate }}</span>
+              <span class="prop-label">{{ 'enjeux.accordion.listeHabitats' | translate }} ({{ habitatCount }}) :</span>
+              <span class="prop-value prop-link" (click)="toggleHabitatList($event)">
+                {{ (showHabitatList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+              </span>
+            </div>
+            @if (showHabitatList() && enjeu.habitats?.length) {
+              <div class="reference-list">
+                @for (habitat of enjeu.habitats; track habitat.cd_hab) {
+                  <span class="reference-chip">{{ habitat.cd_hab }} - {{ habitat.lb_hab_fr }}</span>
+                }
+              </div>
+            }
+          }
+          @if (hasGeologies) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.listeGeologies' | translate }} ({{ geologyCount }}) :</span>
+              <span class="prop-value prop-link" (click)="toggleGeologyList($event)">
+                {{ (showGeologyList() ? 'enjeux.accordion.masquerListe' : 'enjeux.accordion.voirListe') | translate }}
+              </span>
+            </div>
+            @if (showGeologyList() && enjeu.geologies?.length) {
+              <div class="reference-list">
+                @for (geo of enjeu.geologies; track geo.id_inpg) {
+                  <span class="reference-chip">{{ geo.nom || geo.id_inpg }}</span>
+                }
+              </div>
+            }
+          }
+          @if (enjeu.autre_ecologique && enjeu.autre_ecologique_precision) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.precisionAutreEco' | translate }} :</span>
+              <span class="prop-value">{{ enjeu.autre_ecologique_precision }}</span>
+            </div>
+          }
+          @if (enjeu.autre_socioeco && enjeu.autre_socioeco_precision) {
+            <div class="property-line">
+              <span class="prop-label">{{ 'enjeux.accordion.precisionAutreSocio' | translate }} :</span>
+              <span class="prop-value">{{ enjeu.autre_socioeco_precision }}</span>
             </div>
           }
         } @else {

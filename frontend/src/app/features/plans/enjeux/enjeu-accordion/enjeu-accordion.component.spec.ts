@@ -15,7 +15,23 @@ class FakeTranslateLoader implements TranslateLoader {
     return of({
       enjeux: {
         types: { enjeu: 'Enjeu', fcr: 'FCR' },
-        enjeuForm: { ecologique: 'Écologique', socioEconomique: 'Socio-économique' },
+        enjeuForm: {
+          ecologique: 'Écologique',
+          socioEconomique: 'Socio-économique',
+          enjeuLieAEcologique: 'L\'enjeu est lié à :',
+          enjeuLieASocioEco: 'L\'enjeu est lié :',
+          habitat: 'Un/des habitat(s)',
+          espece: 'Une/des espèce(s)',
+          patrimoineGeologique: 'Du patrimoine géologique',
+          fonctionnaliteEcosysteme: 'Une/des fonctionnalité(s) des écosystèmes',
+          autreEcologique: 'Autre',
+          valeurPaysagere: 'à la valeur paysagère',
+          patrimoineCulturel: 'au maintien du patrimoine culturel',
+          developpementDurable: 'au développement durable des ressources',
+          usages: 'aux usages',
+          valeurAjoutee: 'à une/des valeurs ajoutées sociale, économique, scientifique ou éducative',
+          autreSocioEco: 'Autre (socio-éco)',
+        },
         fcrForm: { categorie: 'Catégorie' },
         accordion: {
           priorite: 'Priorité',
@@ -71,7 +87,18 @@ describe('EnjeuAccordionComponent', () => {
     categorie_ecologique: true,
     habitat: true,
     espece: true,
+    patrimoine_geologique: false,
+    geo_ex_situ: false,
+    geo_in_situ: false,
+    fonctionnalite_ecosysteme: false,
+    autre_ecologique: false,
     processus: false,
+    valeur_paysagere: false,
+    patrimoine_culturel: false,
+    developpement_durable: false,
+    usages: false,
+    valeur_ajoutee: false,
+    autre_socioeco: false,
     nb_facteurs_influence: 3,
     nb_taxons: 5,
     nb_habitats: 2,
@@ -89,7 +116,18 @@ describe('EnjeuAccordionComponent', () => {
     libelle: 'Connaissance scientifique',
     habitat: false,
     espece: false,
+    patrimoine_geologique: false,
+    geo_ex_situ: false,
+    geo_in_situ: false,
+    fonctionnalite_ecosysteme: false,
+    autre_ecologique: false,
     processus: false,
+    valeur_paysagere: false,
+    patrimoine_culturel: false,
+    developpement_durable: false,
+    usages: false,
+    valeur_ajoutee: false,
+    autre_socioeco: false,
     categorie_fcr_label: 'Connaissance',
     date_ajout: '2024-01-01T00:00:00Z',
     date_maj: '2024-01-01T00:00:00Z',
@@ -205,17 +243,34 @@ describe('EnjeuAccordionComponent', () => {
       expect(component.categoryLabel).toBe('');
     });
 
-    it('should return typeLabels combination', () => {
-      component.enjeu = { ...baseEnjeu, habitat: true, espece: true, processus: false };
+    it('should return typeLabels for ecological checkboxes', () => {
+      component.enjeu = { ...baseEnjeu, habitat: true, espece: true, patrimoine_geologique: false };
       const labels = component.typeLabels;
-      expect(labels).toContain('Habitats');
-      expect(labels).toContain('Espèces');
-      expect(labels).not.toContain('Processus');
+      expect(labels).toContain('Un/des habitat(s)');
+      expect(labels).toContain('Une/des espèce(s)');
+      expect(labels).not.toContain('Du patrimoine géologique');
     });
 
-    it('should return all three typeLabels when all true', () => {
-      component.enjeu = { ...baseEnjeu, habitat: true, espece: true, processus: true };
-      expect(component.typeLabels.length).toBe(3);
+    it('should return typeLabels for all ecological types', () => {
+      component.enjeu = {
+        ...baseEnjeu,
+        habitat: true, espece: true, patrimoine_geologique: true,
+        fonctionnalite_ecosysteme: true, autre_ecologique: true,
+      };
+      expect(component.typeLabels.length).toBe(5);
+    });
+
+    it('should return typeLabels for socio-economic checkboxes', () => {
+      component.enjeu = {
+        ...baseEnjeu,
+        categorie_ecologique: false,
+        habitat: false, espece: false,
+        valeur_paysagere: true, patrimoine_culturel: true, usages: false,
+      };
+      const labels = component.typeLabels;
+      expect(labels).toContain('à la valeur paysagère');
+      expect(labels).toContain('au maintien du patrimoine culturel');
+      expect(labels).not.toContain('aux usages');
     });
 
     it('should return fcrCategoryLabel', () => {

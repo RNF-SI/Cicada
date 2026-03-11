@@ -91,3 +91,98 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(
             HabrefCorrespHabSerializer(corresps, many=True).data
         )
+
+    @action(detail=False, methods=['post'], url_path='validate-bulk')
+    def validate_bulk(self, request):
+        """
+        Valide une liste d'entrées (codes cd_hab, codes nomenclature lb_code,
+        ou noms français) contre le référentiel HabRef.
+
+        Auto-détection du format :
+        - Entrée numérique → recherche par cd_hab (exact)
+        - Entrée texte type code (ex: "G1.6", "E1.2") → recherche par lb_code
+        - Entrée texte libre → recherche par nom français (lb_hab_fr)
+
+        POST body: {"items": ["16265", "G1.6", "Hêtraies acidiphiles", ...]}
+        Returns: {
+            "found": [{"input": "...", "cd_hab": ..., "lb_hab_fr": ..., ...}],
+            "not_found": [{"input": "...", "candidates": [...]}],
+        }
+        """
+        items = request.data.get('items', [])
+        if not items:
+            return Response({'found': [], 'not_found': []})
+
+        found = []
+        not_found = []
+        already_found_cd_habs = set()
+
+        result_fields = (
+            'cd_hab', 'lb_hab_fr', 'lb_hab_fr_complet',
+            'cd_typo', 'lb_code', 'niveau',
+        )
+
+        for item in items:
+            raw = str(item).strip()
+            if not raw:
+                continue
+
+            match = None
+
+            # 1) Numérique → cd_hab
+            try:
+                code_int = int(raw)
+                match = Habref.objects.filter(cd_hab=code_int).values(
+                    *result_fields
+                ).first()
+            except (ValueError, TypeError):
+                pass
+
+            # 2) Recherche par lb_code (codes EUNIS, Corine Biotope, etc.)
+            if not match:
+                match = Habref.objects.filter(
+                    lb_code__iexact=raw
+                ).values(*result_fields).first()
+
+            # 3) Recherche par nom français (exact puis partiel)
+            if not match:
+                match = Habref.objects.filter(
+                    Q(lb_hab_fr__iexact=raw)
+                    | Q(lb_hab_fr_complet__iexact=raw)
+                ).values(*result_fields).first()
+
+            if not match:
+                match = Habref.objects.filter(
+                    Q(lb_hab_fr__icontains=raw)
+                    | Q(lb_hab_fr_complet__icontains=raw)
+                ).values(*result_fields).first()
+
+            if match and match['cd_hab'] not in already_found_cd_habs:
+                entry = dict(match)
+                entry['input'] = raw
+                found.append(entry)
+                already_found_cd_habs.add(match['cd_hab'])
+            elif not match:
+                # Proposer des candidats proches (trigrammes)
+                candidates = []
+                try:
+                    from django.db import connection
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT cd_hab, lb_hab_fr, lb_code
+                            FROM ref_habitats.autocomplete_habitat
+                            WHERE unaccent(search_name) ILIKE unaccent(%s)
+                            ORDER BY similarity(unaccent(search_name), unaccent(%s)) DESC
+                            LIMIT 3
+                        """, [f'%{raw}%', raw])
+                        for row in cursor.fetchall():
+                            candidates.append({
+                                'cd_hab': row[0],
+                                'lb_hab_fr': row[1],
+                                'lb_code': row[2],
+                            })
+                except Exception:
+                    pass
+                not_found.append({'input': raw, 'candidates': candidates})
+
+        return Response({'found': found, 'not_found': not_found})
