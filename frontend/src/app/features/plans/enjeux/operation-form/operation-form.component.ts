@@ -107,6 +107,8 @@ export class OperationFormComponent implements OnInit {
   // Objectif/Cible nomenclatures
   objectifSuiviOptions = signal<NomenclatureOption[]>([]);
   cibleSuiviOptions = signal<NomenclatureOption[]>([]);
+  bancarisationOptions = signal<NomenclatureOption[]>([]);
+  outilSaisieOptions = signal<NomenclatureOption[]>([]);
 
   // Grouped objectifs for mat-optgroup display
   objectifGroups = computed<NomenclatureGroup[]>(() => {
@@ -344,6 +346,16 @@ export class OperationFormComponent implements OnInit {
     this.adminService.getNomenclaturesByType('CIBLE_SUIVI').subscribe({
       next: (options) => this.cibleSuiviOptions.set(options),
       error: () => this.cibleSuiviOptions.set([])
+    });
+
+    this.adminService.getNomenclaturesByType('BANCARISATION_STOCKAGE').subscribe({
+      next: (options) => this.bancarisationOptions.set(options),
+      error: () => this.bancarisationOptions.set([])
+    });
+
+    this.adminService.getNomenclaturesByType('OUTIL_SAISIE').subscribe({
+      next: (options) => this.outilSaisieOptions.set(options),
+      error: () => this.outilSaisieOptions.set([])
     });
 
     this.loadOperationIfEdit();

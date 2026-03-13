@@ -314,8 +314,9 @@ docker compose exec web python manage.py seed_testdata --dry-run # Preview chang
 docker compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
 # Import/Update nomenclatures (reference data - lancé automatiquement au démarrage)
-docker compose exec web python manage.py import_nomenclatures          # Import (skip si déjà fait)
-docker compose exec web python manage.py import_nomenclatures --force  # Force la réimportation
+docker compose exec web python manage.py import_nomenclatures                 # Import (skip si déjà fait)
+docker compose exec web python manage.py import_nomenclatures --force         # Upsert (ajouter + mettre à jour)
+docker compose exec web python manage.py import_nomenclatures --force --prune # Upsert + supprimer les obsolètes
 
 # Import référentiels INPN (voir docs/NOMENCLATURES.md pour le détail)
 docker compose exec web python manage.py import_habref                 # HabRef (auto au démarrage)

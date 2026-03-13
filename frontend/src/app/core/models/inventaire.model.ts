@@ -10,7 +10,7 @@ import { Protocole } from './enjeu.model';
 export interface SuiviInventaireList {
   id_suivi_inventaire: number;
   intitule: string;
-  annee_lancement_suivi?: number;
+  date_lancement_suivi?: string;
   annee_fin_suivi?: number;
   id_statut?: number;
   statut_label?: string;
@@ -31,10 +31,11 @@ export interface SuiviInventaireDetail {
   id_suivi_inventaire: number;
   // Standalone fields
   intitule: string;
-  prix_indicatif?: number;
   id_type_suivi?: number;
   type_label?: string;
   integre_plan_gestion?: boolean;
+  suit_indicateur?: boolean;
+  type_indicateur?: string;
   id_pg?: number;
   plan_nom?: string;
   cible_secondaire?: string;
@@ -45,18 +46,21 @@ export interface SuiviInventaireDetail {
   annee_fin_suivi?: number;
   frequence_nombre?: number;
   frequence_unite?: string;
+  frequence_unite_precision?: string;
   commentaires?: string;
   // Original fields
   objectif_principal?: string;
   objectif_secondaire?: string;
   cibles_principales?: string;
   taxon_taxref?: string;
-  annee_lancement_suivi?: number;
+  date_lancement_suivi?: string;
   // Protocole (nested)
   protocole?: Protocole;
   // Bancarisation
   outil_bancarisation?: string;
+  bancarisation_label?: string;
   outil_saisie?: string;
+  outil_saisie_label?: string;
   transmission_donnee?: boolean;
   // Computed
   nb_operations: number;
@@ -71,9 +75,10 @@ export interface SuiviInventaireDetail {
  */
 export interface SuiviInventaireCreatePayload {
   intitule: string;
-  prix_indicatif?: number;
   id_type_suivi?: number;
   integre_plan_gestion?: boolean;
+  suit_indicateur?: boolean;
+  type_indicateur?: string;
   id_pg?: number;
   cible_secondaire?: string;
   habitat_ref?: string;
@@ -82,13 +87,14 @@ export interface SuiviInventaireCreatePayload {
   annee_fin_suivi?: number;
   frequence_nombre?: number;
   frequence_unite?: string;
+  frequence_unite_precision?: string;
   commentaires?: string;
   // Original fields
   objectif_principal?: string;
   objectif_secondaire?: string;
   cibles_principales?: string;
   taxon_taxref?: string;
-  annee_lancement_suivi?: number;
+  date_lancement_suivi?: string;
   // Protocole (nested writable)
   protocole?: Omit<Protocole, 'id_protocole' | 'date_ajout' | 'date_maj'>;
   // Bancarisation

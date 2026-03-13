@@ -227,3 +227,83 @@ class TestImportNomenclaturesCommand:
         type_action = TypeNomenclature.objects.get(mnemonique='TYPE_ACTION')
         actions = Nomenclature.objects.filter(id_type=type_action)
         assert actions.count() == 10
+
+    def test_import_bancarisation_nomenclatures(self):
+        """L'import crée les nomenclatures de bancarisation et outil de saisie."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+
+        assert TypeNomenclature.objects.filter(mnemonique='BANCARISATION_STOCKAGE').exists()
+        assert TypeNomenclature.objects.filter(mnemonique='OUTIL_SAISIE').exists()
+
+        type_banc = TypeNomenclature.objects.get(mnemonique='BANCARISATION_STOCKAGE')
+        banc_noms = Nomenclature.objects.filter(id_type=type_banc)
+        mnemoniques = set(banc_noms.values_list('mnemonique', flat=True))
+        assert len(mnemoniques) == 5
+        assert 'PAS_STOCKAGE' in mnemoniques
+        assert 'FORMAT_UNIQUE' in mnemoniques
+        assert 'BDD_INTERNE' in mnemoniques
+        assert 'CENTRALISEE_REFERENT' in mnemoniques
+        assert 'CENTRALISEE_NATIONALE' in mnemoniques
+
+        type_saisie = TypeNomenclature.objects.get(mnemonique='OUTIL_SAISIE')
+        saisie_noms = Nomenclature.objects.filter(id_type=type_saisie)
+        mnemoniques = set(saisie_noms.values_list('mnemonique', flat=True))
+        assert len(mnemoniques) == 3
+        assert 'AUCUN' in mnemoniques
+        assert 'NON_ADAPTE' in mnemoniques
+        assert 'ADAPTE' in mnemoniques
+
+    def test_upsert_updates_labels(self):
+        """--force met à jour les labels existants via upsert."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+
+        # Modifier un label manuellement
+        nom = Nomenclature.objects.get(mnemonique='RNN')
+        original_label = nom.label
+        nom.label = 'MODIFIED_LABEL'
+        nom.save()
+        assert Nomenclature.objects.get(mnemonique='RNN').label == 'MODIFIED_LABEL'
+
+        # Re-run avec --force : doit restaurer le label original
+        self._call_command('--force')
+        assert Nomenclature.objects.get(mnemonique='RNN').label == original_label
+
+    def test_upsert_preserves_data(self):
+        """--force ne supprime pas les entrées existantes."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+        count_after_first = Nomenclature.objects.count()
+
+        # Ajouter une entrée custom
+        type_test = TypeNomenclature.objects.first()
+        Nomenclature.objects.create(
+            id_type=type_test,
+            mnemonique='CUSTOM_ENTRY',
+            label='Custom test entry'
+        )
+        assert Nomenclature.objects.count() == count_after_first + 1
+
+        # Re-run --force (sans --prune): l'entrée custom doit rester
+        self._call_command('--force')
+        assert Nomenclature.objects.filter(mnemonique='CUSTOM_ENTRY').exists()
+
+    def test_prune_removes_obsolete(self):
+        """--force --prune supprime les entrées absentes des fichiers SQL."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+
+        # Ajouter une entrée custom
+        type_test = TypeNomenclature.objects.first()
+        Nomenclature.objects.create(
+            id_type=type_test,
+            mnemonique='OBSOLETE_ENTRY',
+            label='Should be pruned'
+        )
+        assert Nomenclature.objects.filter(mnemonique='OBSOLETE_ENTRY').exists()
+
+        # Run avec --prune : l'entrée custom doit être supprimée
+        output = self._call_command('--force', '--prune')
+        assert not Nomenclature.objects.filter(mnemonique='OBSOLETE_ENTRY').exists()
+        assert 'Supprimé' in output

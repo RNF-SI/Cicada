@@ -425,6 +425,9 @@
                 <mat-label>{{ 'enjeux.operations.outilBancarisation' | translate }}</mat-label>
                 <mat-select formControlName="outil_bancarisation">
                   <mat-option [value]="null">—</mat-option>
+                  @for (opt of bancarisationOptions(); track opt.mnemonique) {
+                    <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
 
@@ -433,6 +436,9 @@
                 <mat-label>{{ 'enjeux.operations.outilSaisie' | translate }}</mat-label>
                 <mat-select formControlName="outil_saisie">
                   <mat-option [value]="null">—</mat-option>
+                  @for (opt of outilSaisieOptions(); track opt.mnemonique) {
+                    <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
 

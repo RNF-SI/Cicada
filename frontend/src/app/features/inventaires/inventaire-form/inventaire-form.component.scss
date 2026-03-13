@@ -73,6 +73,14 @@ $form-side-margin: $page-gutter;
 }
 
 // ============================================
+// INFO BLOCK (standalone notice)
+// ============================================
+
+.info-block {
+  margin: 0 0 $spacing-lg 0;
+}
+
+// ============================================
 // FORM CARDS
 // ============================================
 
@@ -384,6 +392,11 @@ $form-side-margin: $page-gutter;
   ::ng-deep .mat-mdc-form-field-subscript-wrapper {
     display: none;
   }
+}
+
+.frequence-precision-field {
+  margin-top: $spacing-sm;
+  width: 100%;
 }
 
 // ============================================

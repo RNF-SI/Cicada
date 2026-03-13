@@ -53,6 +53,7 @@ class ProtocoleSerializer(serializers.ModelSerializer):
             'nom_protocole', 'mode_validation',
             'respect_protocole', 'justification_non_respect', 'differences_protocole',
             'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+            'periode_suivi', 'documentation_disponible', 'url_documentation',
             'date_ajout', 'date_maj',
         ]
         read_only_fields = ['id_protocole', 'date_ajout', 'date_maj']
@@ -61,6 +62,8 @@ class ProtocoleSerializer(serializers.ModelSerializer):
 class SuiviInventaireSerializer(serializers.ModelSerializer):
     """Serializer pour un suivi/inventaire (lecture)."""
     protocole = ProtocoleSerializer(source='id_protocole', read_only=True)
+    bancarisation_label = serializers.SerializerMethodField()
+    outil_saisie_label = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
@@ -70,15 +73,33 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
             # Détails
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
-            'annee_lancement_suivi',
+            'date_lancement_suivi',
             # Protocole (nested)
             'protocole',
             # Bancarisation
-            'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+            'outil_bancarisation', 'bancarisation_label',
+            'outil_saisie', 'outil_saisie_label',
+            'transmission_donnee',
             # Audit
             'date_ajout', 'date_maj',
         ]
         read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
+
+    def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
+        if not mnemonique:
+            return None
+        from apps.core.models import Nomenclature
+        nom = Nomenclature.objects.filter(
+            mnemonique=mnemonique,
+            id_type__mnemonique=type_mnemonique
+        ).first()
+        return nom.label if nom else mnemonique
+
+    def get_bancarisation_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
+
+    def get_outil_saisie_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
 
 
 class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
@@ -93,7 +114,7 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
             # Détails
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
-            'annee_lancement_suivi',
+            'date_lancement_suivi',
             # Protocole (nested writable)
             'protocole',
             # Bancarisation

@@ -14,9 +14,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
-import { of } from 'rxjs';
 
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../shared/components/reference-item-list/reference-item-list.component';
@@ -59,6 +60,8 @@ interface NomenclatureGroup {
     MatSnackBarModule,
     MatDialogModule,
     MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent
@@ -91,6 +94,11 @@ export class InventaireFormComponent implements OnInit {
   statutSuiviOptions = signal<NomenclatureOption[]>([]);
   objectifSuiviOptions = signal<NomenclatureOption[]>([]);
   cibleSuiviOptions = signal<NomenclatureOption[]>([]);
+  typeIndicateurOptions = signal<NomenclatureOption[]>([]);
+  periodeSuiviOptions = signal<NomenclatureOption[]>([]);
+  frequenceEmboitementOptions = signal<NomenclatureOption[]>([]);
+  bancarisationOptions = signal<NomenclatureOption[]>([]);
+  outilSaisieOptions = signal<NomenclatureOption[]>([]);
 
   // Grouped objectifs for mat-optgroup display
   objectifGroups = computed<NomenclatureGroup[]>(() => {
@@ -108,43 +116,33 @@ export class InventaireFormComponent implements OnInit {
     details: true
   };
 
-  // Frequency units
-  frequenceUnites: { value: string; label: string }[] = [];
-
   // CAMPanule autocomplete
   campanuleSearchCtrl = new FormControl('');
   campanuleResults = signal<CampanuleAutocomplete[]>([]);
   selectedCampanule = signal<CampanuleAutocomplete | null>(null);
 
   ngOnInit(): void {
-    this.initFrequenceLabels();
     this.initForm();
     this.loadNomenclatures();
     this.initCampanuleAutocomplete();
     this.loadRouteParams();
   }
 
-  private initFrequenceLabels(): void {
-    this.frequenceUnites = [
-      { value: 'jour', label: this.translate.instant('inventaires.form.uniteJour') },
-      { value: 'semaine', label: this.translate.instant('inventaires.form.uniteSemaine') },
-      { value: 'mois', label: this.translate.instant('inventaires.form.uniteMois') },
-      { value: 'an', label: this.translate.instant('inventaires.form.uniteAn') },
-    ];
-  }
-
   private initForm(): void {
     this.form = this.fb.group({
       // Main card
       intitule: ['', [Validators.required, Validators.maxLength(500)]],
-      prix_indicatif: [null],
       id_type_suivi: [null],
       integre_plan_gestion: [null],
+      suit_indicateur: [null],
+      type_indicateur: [''],
       objectif_principal: [''],
       objectif_secondaire: [''],
       cibles_principales: [null],
       cible_secondaire: [''],
-      annee_lancement_suivi: [null],
+      date_lancement_suivi: [null],
+      id_statut: [null],
+      annee_fin_suivi: [null],
       // Protocole section
       protocole_dans_campanule: [null],
       protocole_campanule_nom: [''],
@@ -158,15 +156,17 @@ export class InventaireFormComponent implements OnInit {
       justification_non_respect: [''],
       differences_protocole: [''],
       mode_validation: [''],
+      periode_suivi: [''],
+      documentation_disponible: [null],
+      url_documentation: [''],
+      frequence_nombre: [null],
+      frequence_unite: [''],
+      frequence_unite_precision: [''],
       // Bancarisation section
       outil_bancarisation: [''],
       outil_saisie: [''],
       transmission_donnee: [null],
       // Details section
-      id_statut: [null],
-      annee_fin_suivi: [null],
-      frequence_nombre: [null],
-      frequence_unite: [null],
       commentaires: [''],
     });
   }
@@ -195,6 +195,21 @@ export class InventaireFormComponent implements OnInit {
     });
     this.adminService.getNomenclaturesByType('CIBLE_SUIVI').subscribe({
       next: (data) => this.cibleSuiviOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('TYPE_INDICATEUR').subscribe({
+      next: (data) => this.typeIndicateurOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('PERIODE_SUIVI').subscribe({
+      next: (data) => this.periodeSuiviOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('FREQUENCE_EMBOITEMENT').subscribe({
+      next: (data) => this.frequenceEmboitementOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('BANCARISATION_STOCKAGE').subscribe({
+      next: (data) => this.bancarisationOptions.set(data),
+    });
+    this.adminService.getNomenclaturesByType('OUTIL_SAISIE').subscribe({
+      next: (data) => this.outilSaisieOptions.set(data),
     });
   }
 
@@ -229,6 +244,24 @@ export class InventaireFormComponent implements OnInit {
     return cible === 'HABITATS_VEGETATIONS';
   }
 
+  /** Show suit_indicateur when integre_plan_gestion == true */
+  get showSuitIndicateur(): boolean {
+    return this.form.get('integre_plan_gestion')?.value === true;
+  }
+
+  /** Show type_indicateur when suit_indicateur == true */
+  get showTypeIndicateur(): boolean {
+    return this.showSuitIndicateur && this.form.get('suit_indicateur')?.value === true;
+  }
+
+  /** Get display label for selected objectif: "Groupe - Label" */
+  getObjectifDisplayLabel(mnemonique: string): string {
+    if (!mnemonique) return '';
+    const opt = this.objectifSuiviOptions().find(o => o.mnemonique === mnemonique);
+    if (!opt) return mnemonique;
+    return opt.definition ? `${opt.definition} - ${opt.label}` : opt.label;
+  }
+
   /** Check if objectif principal is set (to show objectif secondaire) */
   get hasObjectifPrincipal(): boolean {
     return !!this.form.get('objectif_principal')?.value;
@@ -237,6 +270,16 @@ export class InventaireFormComponent implements OnInit {
   /** Check if cible principale is set (to show cible secondaire) */
   get hasCiblePrincipale(): boolean {
     return !!this.form.get('cibles_principales')?.value;
+  }
+
+  /** Show documentation URL when documentation_disponible == true */
+  get showDocumentationUrl(): boolean {
+    return this.form.get('documentation_disponible')?.value === true;
+  }
+
+  /** Show frequency precision field when frequence_unite == 'AUTRE' */
+  get showFrequencePrecision(): boolean {
+    return this.form.get('frequence_unite')?.value === 'AUTRE';
   }
 
   private loadRouteParams(): void {
@@ -285,23 +328,26 @@ export class InventaireFormComponent implements OnInit {
 
     this.form.patchValue({
       intitule: suivi.intitule || '',
-      prix_indicatif: suivi.prix_indicatif,
       id_type_suivi: suivi.id_type_suivi,
       integre_plan_gestion: suivi.integre_plan_gestion,
+      suit_indicateur: suivi.suit_indicateur ?? null,
+      type_indicateur: suivi.type_indicateur || '',
       objectif_principal: suivi.objectif_principal || '',
       objectif_secondaire: suivi.objectif_secondaire || '',
       cibles_principales: suivi.cibles_principales || '',
       cible_secondaire: suivi.cible_secondaire || '',
-      annee_lancement_suivi: suivi.annee_lancement_suivi,
+      date_lancement_suivi: suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi) : null,
+      id_statut: suivi.id_statut,
+      annee_fin_suivi: suivi.annee_fin_suivi,
+      // Frequency
+      frequence_nombre: suivi.frequence_nombre,
+      frequence_unite: suivi.frequence_unite || '',
+      frequence_unite_precision: suivi.frequence_unite_precision || '',
       // Bancarisation
       outil_bancarisation: suivi.outil_bancarisation || '',
       outil_saisie: suivi.outil_saisie || '',
       transmission_donnee: suivi.transmission_donnee,
       // Details
-      id_statut: suivi.id_statut,
-      annee_fin_suivi: suivi.annee_fin_suivi,
-      frequence_nombre: suivi.frequence_nombre,
-      frequence_unite: suivi.frequence_unite,
       commentaires: suivi.commentaires || '',
     });
 
@@ -321,6 +367,9 @@ export class InventaireFormComponent implements OnInit {
         justification_non_respect: p.justification_non_respect || '',
         differences_protocole: p.differences_protocole || '',
         mode_validation: p.mode_validation || '',
+        periode_suivi: p.periode_suivi || '',
+        documentation_disponible: p.documentation_disponible ?? null,
+        url_documentation: p.url_documentation || '',
       });
 
       // Restore autocomplete display if Campanule was selected
@@ -435,6 +484,16 @@ export class InventaireFormComponent implements OnInit {
     return !!this.form.get('cd_protocole_campanule')?.value;
   }
 
+  /** Format date to ISO string (YYYY-MM-DD) for backend */
+  private formatDate(date: Date | string | null): string | undefined {
+    if (!date) return undefined;
+    if (typeof date === 'string') return date;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   cancel(): void {
     if (this.isEditMode() && this.suiviId()) {
       this.router.navigate(['/inventaires', this.suiviId()]);
@@ -459,9 +518,12 @@ export class InventaireFormComponent implements OnInit {
     };
 
     // Main fields
-    if (fv.prix_indicatif != null) payload.prix_indicatif = fv.prix_indicatif;
     if (fv.id_type_suivi) payload.id_type_suivi = fv.id_type_suivi;
     if (fv.integre_plan_gestion != null) payload.integre_plan_gestion = fv.integre_plan_gestion;
+    if (fv.integre_plan_gestion === true && fv.suit_indicateur != null) payload.suit_indicateur = fv.suit_indicateur;
+    if (fv.integre_plan_gestion === true && fv.suit_indicateur === true && fv.type_indicateur?.trim()) {
+      payload.type_indicateur = fv.type_indicateur.trim();
+    }
     if (fv.objectif_principal?.trim()) payload.objectif_principal = fv.objectif_principal.trim();
     if (fv.objectif_secondaire?.trim()) payload.objectif_secondaire = fv.objectif_secondaire.trim();
     if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
@@ -473,7 +535,17 @@ export class InventaireFormComponent implements OnInit {
     if (this.habitatItems.length > 0) {
       payload.habitat_ref = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
     }
-    if (fv.annee_lancement_suivi != null) payload.annee_lancement_suivi = fv.annee_lancement_suivi;
+    const dateLancement = this.formatDate(fv.date_lancement_suivi);
+    if (dateLancement) payload.date_lancement_suivi = dateLancement;
+    if (fv.id_statut) payload.id_statut = fv.id_statut;
+    if (fv.annee_fin_suivi != null) payload.annee_fin_suivi = fv.annee_fin_suivi;
+
+    // Frequency (on SuiviInventaire, displayed in protocole section)
+    if (fv.frequence_nombre != null) payload.frequence_nombre = fv.frequence_nombre;
+    if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
+    if (fv.frequence_unite === 'AUTRE' && fv.frequence_unite_precision?.trim()) {
+      payload.frequence_unite_precision = fv.frequence_unite_precision.trim();
+    }
 
     // Bancarisation
     if (fv.outil_bancarisation?.trim()) payload.outil_bancarisation = fv.outil_bancarisation.trim();
@@ -481,10 +553,6 @@ export class InventaireFormComponent implements OnInit {
     if (fv.transmission_donnee != null) payload.transmission_donnee = fv.transmission_donnee;
 
     // Details
-    if (fv.id_statut) payload.id_statut = fv.id_statut;
-    if (fv.annee_fin_suivi != null) payload.annee_fin_suivi = fv.annee_fin_suivi;
-    if (fv.frequence_nombre != null) payload.frequence_nombre = fv.frequence_nombre;
-    if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
     if (fv.commentaires?.trim()) payload.commentaires = fv.commentaires.trim();
 
     // Build nested protocole
@@ -501,6 +569,11 @@ export class InventaireFormComponent implements OnInit {
     if (fv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = fv.justification_non_respect.trim();
     if (fv.differences_protocole?.trim()) protocoleData['differences_protocole'] = fv.differences_protocole.trim();
     if (fv.mode_validation?.trim()) protocoleData['mode_validation'] = fv.mode_validation.trim();
+    if (fv.periode_suivi) protocoleData['periode_suivi'] = fv.periode_suivi;
+    if (fv.documentation_disponible != null) protocoleData['documentation_disponible'] = fv.documentation_disponible;
+    if (fv.documentation_disponible === true && fv.url_documentation?.trim()) {
+      protocoleData['url_documentation'] = fv.url_documentation.trim();
+    }
 
     if (Object.keys(protocoleData).length > 0) {
       payload.protocole = protocoleData;
@@ -529,7 +602,7 @@ export class InventaireFormComponent implements OnInit {
           this.router.navigate(['/inventaires']);
         }
       },
-      error: (err) => {
+      error: () => {
         this.isLoading.set(false);
         this.errorMessage.set(
           this.translate.instant('inventaires.errors.saveFailed')

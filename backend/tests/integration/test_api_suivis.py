@@ -38,7 +38,7 @@ def suivi_test_data(db):
     suivi1 = SuiviInventaireFactory(
         intitule='Suivi floristique prairie humide',
         actif=True,
-        annee_lancement_suivi=2020,
+        date_lancement_suivi='2020-01-01',
         annee_fin_suivi=None,
         objectif_principal='OBJ_ETAT_CONSERVATION',
         cibles_principales='ESPECES',
@@ -48,7 +48,7 @@ def suivi_test_data(db):
     suivi2 = SuiviInventaireFactory(
         intitule='Inventaire avifaune nicheuse',
         actif=True,
-        annee_lancement_suivi=2018,
+        date_lancement_suivi='2018-01-01',
         annee_fin_suivi=2023,
         objectif_principal='OBJ_ACQUISITION_CONNAISSANCES',
         cibles_principales='ESPECES',
@@ -58,7 +58,7 @@ def suivi_test_data(db):
     suivi3 = SuiviInventaireFactory(
         intitule='Suivi inactif ancien',
         actif=False,
-        annee_lancement_suivi=2010,
+        date_lancement_suivi='2010-01-01',
         annee_fin_suivi=2015,
         id_utilisateur_ajout=referent,
     )
@@ -141,7 +141,7 @@ class TestSuivisListEndpoint:
             assert 'intitule' in item
             assert 'actif' in item
             assert 'nb_operations' in item
-            assert 'annee_lancement_suivi' in item
+            assert 'date_lancement_suivi' in item
 
 
 # =============================================================================
@@ -167,7 +167,7 @@ class TestSuivisCreateEndpoint:
             'intitule': 'Nouveau suivi SA',
             'objectif_principal': 'OBJ_RISQUES_ECOLOGIQUES',
             'cibles_principales': 'HABITATS_VEGETATIONS',
-            'annee_lancement_suivi': 2025,
+            'date_lancement_suivi': '2025-01-01',
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         assert SuiviInventaire.objects.filter(intitule='Nouveau suivi SA').exists()
@@ -329,7 +329,7 @@ class TestSuivisDetailEndpoint:
             'cible_secondaire': 'HABITATS_VEGETATIONS',
             'taxon_taxref': 'Aves, Chiroptera',
             'habitat_ref': 'Prairie humide',
-            'annee_lancement_suivi': 2024,
+            'date_lancement_suivi': '2024-01-01',
             'annee_fin_suivi': 2030,
             'frequence_nombre': 2,
             'frequence_unite': 'mois',
@@ -365,7 +365,7 @@ class TestSuivisDetailEndpoint:
         assert data['cible_secondaire'] == 'HABITATS_VEGETATIONS'
         assert data['taxon_taxref'] == 'Aves, Chiroptera'
         assert data['habitat_ref'] == 'Prairie humide'
-        assert data['annee_lancement_suivi'] == 2024
+        assert data['date_lancement_suivi'] == '2024-01-01'
         assert data['annee_fin_suivi'] == 2030
         assert data['frequence_nombre'] == 2
         assert data['frequence_unite'] == 'mois'

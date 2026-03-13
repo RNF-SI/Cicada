@@ -337,6 +337,9 @@ export interface Protocole {
   objectif_protocole?: string;
   periode_echantillonnage?: string;
   mode_validation?: string;
+  periode_suivi?: string;
+  documentation_disponible?: boolean;
+  url_documentation?: string;
   // Audit
   date_ajout?: string;
   date_maj?: string;
@@ -361,7 +364,9 @@ export interface SuiviInventaire {
   protocole?: Protocole;
   // Bancarisation
   outil_bancarisation?: string;
+  bancarisation_label?: string;
   outil_saisie?: string;
+  outil_saisie_label?: string;
   transmission_donnee?: boolean;
   // Audit
   date_ajout?: string;

@@ -31,6 +31,15 @@
           </div>
         }
 
+        <!-- Info block: standalone usage -->
+        <div class="info-block">
+          <div class="info-block-icon"></div>
+          <div class="info-block-content">
+            <p class="info-block-content-title">{{ 'inventaires.form.infoStandalone.title' | translate }}</p>
+            <p class="info-block-content-text">{{ 'inventaires.form.infoStandalone.description' | translate }}</p>
+          </div>
+        </div>
+
         <!-- ═══════════════════════════════════════ -->
         <!-- MAIN CARD (flush under hero)            -->
         <!-- ═══════════════════════════════════════ -->
@@ -52,17 +61,9 @@
               }
             </mat-form-field>
 
-            <!-- Prix indicatif -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.prixIndicatif' | translate }}</mat-label>
-              <input matInput type="number" formControlName="prix_indicatif"
-                [placeholder]="'inventaires.form.prixPlaceholder' | translate">
-              <span matSuffix>€/an</span>
-            </mat-form-field>
-
             <!-- Type de suivi -->
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.typeSuivi' | translate }}</mat-label>
+              <mat-label>{{ 'inventaires.form.typeSuivi' | translate }} <span class="required-star">*</span></mat-label>
               <mat-select formControlName="id_type_suivi">
                 <mat-option [value]="null">—</mat-option>
                 @for (opt of typeSuiviOptions(); track opt.id_nomenclature) {
@@ -73,17 +74,44 @@
 
             <!-- Intégré dans le plan de gestion -->
             <div class="radio-field-row">
-              <span class="radio-field-label">{{ 'inventaires.form.integrePG' | translate }}</span>
+              <span class="radio-field-label">{{ 'inventaires.form.integrePG' | translate }} <span class="required-star">*</span></span>
               <mat-radio-group formControlName="integre_plan_gestion" class="radio-inline">
                 <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                 <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
               </mat-radio-group>
             </div>
 
+            <!-- Suit un indicateur (conditional: only if integre_plan_gestion == true) -->
+            @if (showSuitIndicateur) {
+              <div class="radio-field-row">
+                <span class="radio-field-label">{{ 'inventaires.form.suitIndicateur' | translate }} <span class="required-star">*</span></span>
+                <mat-radio-group formControlName="suit_indicateur" class="radio-inline">
+                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                </mat-radio-group>
+              </div>
+            }
+
+            <!-- Type d'indicateur (conditional: only if suit_indicateur == true) -->
+            @if (showTypeIndicateur) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'inventaires.form.typeIndicateur' | translate }} <span class="required-star">*</span></mat-label>
+                <mat-select formControlName="type_indicateur">
+                  <mat-option value="">—</mat-option>
+                  @for (opt of typeIndicateurOptions(); track opt.id_nomenclature) {
+                    <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
             <!-- Objectif principal (grouped select) -->
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.objectifPrincipal' | translate }}</mat-label>
+              <mat-label>{{ 'inventaires.form.objectifPrincipal' | translate }} <span class="required-star">*</span></mat-label>
               <mat-select formControlName="objectif_principal">
+                <mat-select-trigger>
+                  {{ getObjectifDisplayLabel(form.get('objectif_principal')?.value) }}
+                </mat-select-trigger>
                 <mat-option [value]="''">—</mat-option>
                 @for (group of objectifGroups(); track group.groupLabel) {
                   @if (group.groupLabel) {
@@ -107,6 +135,9 @@
               <mat-form-field appearance="outline">
                 <mat-label>{{ 'inventaires.form.objectifSecondaire' | translate }}</mat-label>
                 <mat-select formControlName="objectif_secondaire">
+                  <mat-select-trigger>
+                    {{ getObjectifDisplayLabel(form.get('objectif_secondaire')?.value) }}
+                  </mat-select-trigger>
                   <mat-option [value]="''">—</mat-option>
                   @for (group of objectifGroups(); track group.groupLabel) {
                     @if (group.groupLabel) {
@@ -127,7 +158,7 @@
 
             <!-- Cible principale -->
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.ciblesPrincipales' | translate }}</mat-label>
+              <mat-label>{{ 'inventaires.form.ciblesPrincipales' | translate }} <span class="required-star">*</span></mat-label>
               <mat-select formControlName="cibles_principales">
                 <mat-option [value]="null">—</mat-option>
                 @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
@@ -174,16 +205,36 @@
               </mat-form-field>
             }
 
-            <!-- Année de lancement -->
+            <!-- Date de lancement du suivi (date picker) -->
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.anneeLancement' | translate }}</mat-label>
-              <input matInput type="number" formControlName="annee_lancement_suivi">
+              <mat-label>{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></mat-label>
+              <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
+                [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
+              <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
+              <mat-datepicker #dateLancementPicker></mat-datepicker>
+            </mat-form-field>
+
+            <!-- Statut -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.statut' | translate }}</mat-label>
+              <mat-select formControlName="id_statut">
+                <mat-option [value]="null">—</mat-option>
+                @for (opt of statutSuiviOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Année de fin -->
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'inventaires.form.anneeFin' | translate }}</mat-label>
+              <input matInput type="number" formControlName="annee_fin_suivi">
             </mat-form-field>
           </div>
         </div>
 
         <!-- ═══════════════════════════════════════ -->
-        <!-- SECTION: Détails du protocole           -->
+        <!-- SECTION: Protocole                      -->
         <!-- ═══════════════════════════════════════ -->
         <div class="form-card">
           <div class="section-header" (click)="toggleSection('protocole')">
@@ -256,6 +307,75 @@
                     </mat-label>
                     <input matInput formControlName="nom_protocole">
                   </mat-form-field>
+                }
+
+                <!-- Fréquence de mise en oeuvre (both modes) -->
+                @if (isCampanule || isNotCampanule) {
+                  <div class="frequence-row">
+                    <label class="field-label">
+                      {{ 'inventaires.form.frequence' | translate }}
+                      <span class="required-star">*</span>
+                    </label>
+                    <div class="frequence-controls">
+                      <div class="frequence-number">
+                        <button type="button" class="freq-btn" (click)="incrementFrequence(-1)">−</button>
+                        <input type="number" formControlName="frequence_nombre" class="freq-input">
+                        <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
+                      </div>
+                      <span class="frequence-separator">{{ 'inventaires.form.frequenceFoisPar' | translate }}</span>
+                      <mat-form-field appearance="outline" class="frequence-unite-field">
+                        <mat-select formControlName="frequence_unite">
+                          <mat-option value="">—</mat-option>
+                          @for (opt of frequenceEmboitementOptions(); track opt.id_nomenclature) {
+                            <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <!-- Precision for "Autre" -->
+                    @if (showFrequencePrecision) {
+                      <mat-form-field appearance="outline" class="frequence-precision-field">
+                        <mat-label>{{ 'inventaires.form.frequencePrecision' | translate }}</mat-label>
+                        <input matInput formControlName="frequence_unite_precision"
+                          [placeholder]="'inventaires.form.frequencePrecisionPlaceholder' | translate">
+                      </mat-form-field>
+                    }
+                  </div>
+                }
+
+                <!-- ═══ NON-CAMPANULE only fields ═══ -->
+                @if (isNotCampanule) {
+                  <!-- Période de suivi -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'inventaires.form.periodeSuivi' | translate }} <span class="required-star">*</span></mat-label>
+                    <mat-select formControlName="periode_suivi">
+                      <mat-option value="">—</mat-option>
+                      @for (opt of periodeSuiviOptions(); track opt.id_nomenclature) {
+                        <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <!-- Documentation disponible ? -->
+                  <div class="radio-field-row">
+                    <span class="radio-field-label">
+                      {{ 'inventaires.form.documentationDisponible' | translate }}
+                      <span class="required-star">*</span>
+                    </span>
+                    <mat-radio-group formControlName="documentation_disponible" class="radio-inline">
+                      <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                      <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <!-- URL de la documentation (conditional) -->
+                  @if (showDocumentationUrl) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'inventaires.form.urlDocumentation' | translate }}</mat-label>
+                      <input matInput formControlName="url_documentation"
+                        [placeholder]="'inventaires.form.urlDocumentationPlaceholder' | translate">
+                    </mat-form-field>
+                  }
 
                   <!-- Nombre d'ETP par cycle de collecte -->
                   <mat-form-field appearance="outline">
@@ -266,55 +386,54 @@
                     <input matInput type="number" formControlName="nb_etp_cycle">
                     <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
                   </mat-form-field>
-                }
 
-                <!-- Description du protocole (readonly si Campanule) -->
-                @if (isCampanule && hasCampanuleSelected) {
-                  <div class="readonly-field">
-                    <label class="readonly-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</label>
-                    <div class="readonly-value readonly-value-multiline">
-                      {{ form.get('description_protocole')?.value || '—' }}
-                    </div>
-                  </div>
-                } @else if (isNotCampanule) {
+                  <!-- Descriptif du protocole -->
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'inventaires.form.descriptionProtocole' | translate }}</mat-label>
                     <textarea matInput formControlName="description_protocole" rows="3"></textarea>
                   </mat-form-field>
                 }
 
-                <!-- Objectif du protocole (readonly si Campanule) -->
+                <!-- ═══ CAMPANULE readonly fields ═══ -->
                 @if (isCampanule && hasCampanuleSelected) {
+                  <!-- Description du protocole (readonly) -->
+                  <div class="readonly-field">
+                    <label class="readonly-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</label>
+                    <div class="readonly-value readonly-value-multiline">
+                      {{ form.get('description_protocole')?.value || '—' }}
+                    </div>
+                  </div>
+
+                  <!-- Objectif du protocole (readonly) -->
                   <div class="readonly-field">
                     <label class="readonly-label">{{ 'inventaires.form.objectifProtocole' | translate }}</label>
                     <div class="readonly-value">
                       {{ form.get('objectif_protocole')?.value || '—' }}
                     </div>
                   </div>
-                } @else if (isNotCampanule) {
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.objectifProtocole' | translate }}</mat-label>
-                    <textarea matInput formControlName="objectif_protocole" rows="2"></textarea>
-                  </mat-form-field>
-                }
 
-                <!-- Période d'échantillonnage (readonly si Campanule) -->
-                @if (isCampanule && hasCampanuleSelected) {
+                  <!-- Période d'échantillonnage (readonly) -->
                   <div class="readonly-field">
                     <label class="readonly-label">{{ 'inventaires.form.periodeEchantillonnage' | translate }}</label>
                     <div class="readonly-value">
                       {{ form.get('periode_echantillonnage')?.value || '—' }}
                     </div>
                   </div>
-                } @else if (isNotCampanule) {
+                }
+
+                <!-- ═══ NON-CAMPANULE: Objectif du protocole + Période d'échantillonnage ═══ -->
+                @if (isNotCampanule) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'inventaires.form.objectifProtocole' | translate }}</mat-label>
+                    <textarea matInput formControlName="objectif_protocole" rows="2"></textarea>
+                  </mat-form-field>
+
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'inventaires.form.periodeEchantillonnage' | translate }}</mat-label>
                     <input matInput formControlName="periode_echantillonnage">
                   </mat-form-field>
-                }
 
-                <!-- Mode et champ de validation (visible only for non-Campanule) -->
-                @if (isNotCampanule) {
+                  <!-- Mode et champ de validation -->
                   <mat-form-field appearance="outline">
                     <mat-label>{{ 'inventaires.form.modeValidation' | translate }}</mat-label>
                     <input matInput formControlName="mode_validation">
@@ -353,30 +472,13 @@
                   </mat-form-field>
                 }
 
-                <!-- Fréquence de mise en oeuvre -->
-                @if (isCampanule || isNotCampanule) {
-                  <div class="frequence-row">
-                    <label class="field-label">
-                      {{ 'inventaires.form.frequence' | translate }}
-                      <span class="required-star">*</span>
-                    </label>
-                    <div class="frequence-controls">
-                      <div class="frequence-number">
-                        <button type="button" class="freq-btn" (click)="incrementFrequence(-1)">−</button>
-                        <input type="number" formControlName="frequence_nombre" class="freq-input">
-                        <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
-                      </div>
-                      <span class="frequence-separator">{{ 'inventaires.form.frequenceFoisPar' | translate }}</span>
-                      <mat-form-field appearance="outline" class="frequence-unite-field">
-                        <mat-select formControlName="frequence_unite">
-                          <mat-option [value]="null">—</mat-option>
-                          @for (u of frequenceUnites; track u.value) {
-                            <mat-option [value]="u.value">{{ u.label }}</mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
-                    </div>
-                  </div>
+                <!-- Nombre d'ETP (campanule mode) -->
+                @if (isCampanule) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'inventaires.form.nbEtpCycle' | translate }}</mat-label>
+                    <input matInput type="number" formControlName="nb_etp_cycle">
+                    <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
+                  </mat-form-field>
                 }
               </div>
             </div>
@@ -402,12 +504,22 @@
               <div class="form-grid">
                 <mat-form-field appearance="outline">
                   <mat-label>{{ 'inventaires.form.outilBancarisation' | translate }}</mat-label>
-                  <input matInput formControlName="outil_bancarisation">
+                  <mat-select formControlName="outil_bancarisation">
+                    <mat-option [value]="''">—</mat-option>
+                    @for (opt of bancarisationOptions(); track opt.mnemonique) {
+                      <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
                   <mat-label>{{ 'inventaires.form.outilSaisie' | translate }}</mat-label>
-                  <input matInput formControlName="outil_saisie">
+                  <mat-select formControlName="outil_saisie">
+                    <mat-option [value]="''">—</mat-option>
+                    @for (opt of outilSaisieOptions(); track opt.mnemonique) {
+                      <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
                 </mat-form-field>
 
                 <div class="radio-field-row">
@@ -439,23 +551,6 @@
           @if (sectionsOpen['details']) {
             <div class="section-content">
               <div class="form-grid">
-                <!-- Statut -->
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'inventaires.form.statut' | translate }}</mat-label>
-                  <mat-select formControlName="id_statut">
-                    <mat-option [value]="null">—</mat-option>
-                    @for (opt of statutSuiviOptions(); track opt.id_nomenclature) {
-                      <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <!-- Année de fin -->
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'inventaires.form.anneeFin' | translate }}</mat-label>
-                  <input matInput type="number" formControlName="annee_fin_suivi">
-                </mat-form-field>
-
                 <!-- Commentaires -->
                 <mat-form-field appearance="outline">
                   <mat-label>{{ 'inventaires.form.commentaires' | translate }}</mat-label>

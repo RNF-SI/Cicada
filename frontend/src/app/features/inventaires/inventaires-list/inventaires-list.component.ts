@@ -165,7 +165,7 @@ export class InventairesListComponent implements OnInit {
    * Examples: "2026-", "2015-2020", "-"
    */
   formatPeriode(suivi: SuiviInventaireList): string {
-    const debut = suivi.annee_lancement_suivi;
+    const debut = suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi).getFullYear() : null;
     const fin = suivi.annee_fin_suivi;
     if (debut && fin) return `${debut}-${fin}`;
     if (debut) return `${debut}-`;

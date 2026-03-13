@@ -46,7 +46,7 @@ export class InventaireDetailComponent implements OnInit {
   periode = computed(() => {
     const s = this.suivi();
     if (!s) return '';
-    const debut = s.annee_lancement_suivi;
+    const debut = s.date_lancement_suivi ? new Date(s.date_lancement_suivi).getFullYear() : null;
     const fin = s.annee_fin_suivi;
     if (debut && fin) return `${debut} – ${fin}`;
     if (debut) return `${debut} –`;

@@ -97,6 +97,28 @@ class Protocole(models.Model):
         help_text=_("Période d'échantillonnage du protocole")
     )
 
+    # Champs ajoutés (Figma v2)
+    periode_suivi = models.CharField(
+        _("Période de suivi"),
+        max_length=50,
+        blank=True,
+        default='',
+        help_text=_("Mois de suivi (mnémonique nomenclature PERIODE_SUIVI)")
+    )
+    documentation_disponible = models.BooleanField(
+        _("Documentation disponible"),
+        null=True,
+        blank=True,
+        help_text=_("Une documentation décrivant le protocole est-elle disponible ?")
+    )
+    url_documentation = models.CharField(
+        _("URL de la documentation"),
+        max_length=500,
+        blank=True,
+        default='',
+        help_text=_("URL de la documentation du protocole")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -179,6 +201,19 @@ class SuiviInventaire(models.Model):
         verbose_name=_("Plan de gestion lié"),
         help_text=_("Plan de gestion associé (optionnel)")
     )
+    suit_indicateur = models.BooleanField(
+        _("Suit un indicateur"),
+        null=True,
+        blank=True,
+        help_text=_("Le suivi/inventaire permet-il de suivre un indicateur ?")
+    )
+    type_indicateur = models.CharField(
+        _("Type d'indicateur"),
+        max_length=50,
+        blank=True,
+        default='',
+        help_text=_("Type d'indicateur (mnémonique nomenclature TYPE_INDICATEUR : ETAT, PRESSION, REPONSE)")
+    )
     cible_secondaire = models.CharField(
         _("Cible secondaire"),
         max_length=255,
@@ -228,6 +263,13 @@ class SuiviInventaire(models.Model):
         null=True,
         help_text=_("Unité de fréquence (jour, semaine, mois, an)")
     )
+    frequence_unite_precision = models.CharField(
+        _("Précision fréquence (autre)"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Précision si fréquence 'Autre'")
+    )
     commentaires = models.TextField(
         _("Commentaires"),
         blank=True,
@@ -264,11 +306,11 @@ class SuiviInventaire(models.Model):
         default='',
         help_text=_("Référence taxon dans Taxref")
     )
-    annee_lancement_suivi = models.IntegerField(
-        _("Année de lancement du suivi"),
+    date_lancement_suivi = models.DateField(
+        _("Date de lancement du suivi"),
         null=True,
         blank=True,
-        help_text=_("Année de lancement du suivi (si antérieur)")
+        help_text=_("Date de lancement du suivi")
     )
 
     # Protocole (FK vers table dédiée)

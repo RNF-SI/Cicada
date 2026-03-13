@@ -377,7 +377,7 @@ class SuiviInventaireFactory(DjangoModelFactory):
     objectif_principal = 'OBJ_ETAT_CONSERVATION'
     cibles_principales = 'ESPECES'
     taxon_taxref = ''
-    annee_lancement_suivi = None
+    date_lancement_suivi = None
     id_protocole = None
     outil_bancarisation = ''
     outil_saisie = ''

@@ -23,7 +23,7 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
         fields = [
             'id_suivi_inventaire',
             'intitule',
-            'annee_lancement_suivi', 'annee_fin_suivi',
+            'date_lancement_suivi', 'annee_fin_suivi',
             'id_statut', 'statut_label',
             'id_type_suivi', 'type_label',
             'actif',
@@ -49,6 +49,8 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
     nb_operations = serializers.SerializerMethodField()
     plan_nom = serializers.CharField(source='id_pg.nom', read_only=True, default=None)
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
+    bancarisation_label = serializers.SerializerMethodField()
+    outil_saisie_label = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
@@ -58,21 +60,24 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
             'intitule', 'prix_indicatif',
             'id_type_suivi', 'type_label',
             'integre_plan_gestion',
+            'suit_indicateur', 'type_indicateur',
             'id_pg', 'plan_nom',
             'cible_secondaire', 'habitat_ref',
             'id_statut', 'statut_label',
             'actif',
             'annee_fin_suivi',
-            'frequence_nombre', 'frequence_unite',
+            'frequence_nombre', 'frequence_unite', 'frequence_unite_precision',
             'commentaires',
             # Original fields
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
-            'annee_lancement_suivi',
+            'date_lancement_suivi',
             # Protocole (nested)
             'protocole',
             # Bancarisation
-            'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+            'outil_bancarisation', 'bancarisation_label',
+            'outil_saisie', 'outil_saisie_label',
+            'transmission_donnee',
             # Computed
             'nb_operations',
             # Audit
@@ -82,6 +87,23 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_operations(self, obj):
         return obj.operations.count()
+
+    def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
+        """Resolve a nomenclature label from its mnemonique."""
+        if not mnemonique:
+            return None
+        from apps.core.models import Nomenclature
+        nom = Nomenclature.objects.filter(
+            mnemonique=mnemonique,
+            id_type__mnemonique=type_mnemonique
+        ).first()
+        return nom.label if nom else mnemonique
+
+    def get_bancarisation_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
+
+    def get_outil_saisie_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
 
 
 # =============================================================================
@@ -100,17 +122,18 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
             'intitule', 'prix_indicatif',
             'id_type_suivi',
             'integre_plan_gestion',
+            'suit_indicateur', 'type_indicateur',
             'id_pg',
             'cible_secondaire', 'habitat_ref',
             'id_statut',
             'actif',
             'annee_fin_suivi',
-            'frequence_nombre', 'frequence_unite',
+            'frequence_nombre', 'frequence_unite', 'frequence_unite_precision',
             'commentaires',
             # Original fields
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
-            'annee_lancement_suivi',
+            'date_lancement_suivi',
             # Protocole (nested writable)
             'protocole',
             # Bancarisation

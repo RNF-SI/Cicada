@@ -102,19 +102,27 @@
             <span class="field-value">{{ suivi()?.type_label || '—' }}</span>
           </div>
 
-          <!-- Prix indicatif -->
-          @if (suivi()?.prix_indicatif != null) {
-            <div class="field">
-              <span class="field-label">{{ 'inventaires.form.prixIndicatif' | translate }}</span>
-              <span class="field-value">{{ suivi()?.prix_indicatif }} €/an</span>
-            </div>
-          }
-
           <!-- Intégré dans le plan de gestion -->
           <div class="field">
             <span class="field-label">{{ 'inventaires.form.integrePG' | translate }}</span>
             <span class="field-value">{{ formatBoolean(suivi()?.integre_plan_gestion) }}</span>
           </div>
+
+          <!-- Suit un indicateur (only when integre_plan_gestion == true) -->
+          @if (suivi()?.integre_plan_gestion === true) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.suitIndicateur' | translate }}</span>
+              <span class="field-value">{{ formatBoolean(suivi()?.suit_indicateur) }}</span>
+            </div>
+          }
+
+          <!-- Type d'indicateur (only when suit_indicateur == true) -->
+          @if (suivi()?.integre_plan_gestion === true && suivi()?.suit_indicateur === true && suivi()?.type_indicateur) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.typeIndicateur' | translate }}</span>
+              <span class="field-value">{{ suivi()?.type_indicateur }}</span>
+            </div>
+          }
 
           <!-- Plan de gestion lié -->
           @if (suivi()?.plan_nom) {
@@ -168,11 +176,25 @@
             </div>
           }
 
-          <!-- Année de lancement -->
+          <!-- Date de lancement -->
           <div class="field">
-            <span class="field-label">{{ 'inventaires.form.anneeLancement' | translate }}</span>
-            <span class="field-value">{{ suivi()?.annee_lancement_suivi || '—' }}</span>
+            <span class="field-label">{{ 'inventaires.form.dateLancement' | translate }}</span>
+            <span class="field-value">{{ suivi()?.date_lancement_suivi ? (suivi()?.date_lancement_suivi | date:'dd/MM/yyyy') : '—' }}</span>
           </div>
+
+          <!-- Statut -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.statut' | translate }}</span>
+            <span class="field-value">{{ suivi()?.statut_label || '—' }}</span>
+          </div>
+
+          <!-- Année de fin -->
+          @if (suivi()?.annee_fin_suivi) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.anneeFin' | translate }}</span>
+              <span class="field-value">{{ suivi()?.annee_fin_suivi }}</span>
+            </div>
+          }
         </div>
       </div>
 
@@ -305,14 +327,14 @@
               @if (suivi()?.outil_bancarisation) {
                 <div class="field">
                   <span class="field-label">{{ 'inventaires.form.outilBancarisation' | translate }}</span>
-                  <span class="field-value">{{ suivi()?.outil_bancarisation }}</span>
+                  <span class="field-value">{{ suivi()?.bancarisation_label || suivi()?.outil_bancarisation }}</span>
                 </div>
               }
 
               @if (suivi()?.outil_saisie) {
                 <div class="field">
                   <span class="field-label">{{ 'inventaires.form.outilSaisie' | translate }}</span>
-                  <span class="field-value">{{ suivi()?.outil_saisie }}</span>
+                  <span class="field-value">{{ suivi()?.outil_saisie_label || suivi()?.outil_saisie }}</span>
                 </div>
               }
 
@@ -338,16 +360,6 @@
 
         <div class="section-content">
           <div class="detail-grid">
-            <div class="field">
-              <span class="field-label">{{ 'inventaires.form.statut' | translate }}</span>
-              <span class="field-value">{{ suivi()?.statut_label || '—' }}</span>
-            </div>
-
-            <div class="field">
-              <span class="field-label">{{ 'inventaires.form.anneeFin' | translate }}</span>
-              <span class="field-value">{{ suivi()?.annee_fin_suivi || '—' }}</span>
-            </div>
-
             @if (suivi()?.commentaires) {
               <div class="field field-full">
                 <span class="field-label">{{ 'inventaires.form.commentaires' | translate }}</span>

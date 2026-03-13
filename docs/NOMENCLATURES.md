@@ -105,14 +105,43 @@ Cela charge uniquement ~8 000 taxons représentatifs au lieu de ~700 000.
 ### Commandes
 
 ```bash
-# Import (idempotent — skip si déjà fait)
+# Import initial (idempotent — skip si déjà fait)
 docker compose exec web python manage.py import_nomenclatures
 
-# Forcer la réimportation
+# Upsert : ajouter les nouvelles + mettre à jour les labels/définitions modifiés
 docker compose exec web python manage.py import_nomenclatures --force
+
+# Upsert + nettoyage : idem + supprime les entrées absentes des fichiers SQL
+docker compose exec web python manage.py import_nomenclatures --force --prune
 
 # Vérification
 docker compose exec web python test_nomenclatures.py
+```
+
+### Mode upsert intelligent (`--force`)
+
+La commande utilise `INSERT ... ON CONFLICT DO UPDATE` pour :
+- **Ajouter** les nouvelles nomenclatures (nouveaux types ou valeurs)
+- **Mettre à jour** les labels, définitions ou hiérarchies modifiés
+- **Conserver** les données existantes liées par FK (suivis, opérations, etc.)
+
+C'est la méthode recommandée après toute modification des fichiers SQL.
+
+### Nettoyage des obsolètes (`--prune`)
+
+Le flag `--prune` (implique `--force`) supprime en plus les entrées qui ne sont plus présentes dans les fichiers SQL. Si une nomenclature est référencée par des données existantes (FK), elle est conservée avec un avertissement.
+
+**Workflow typique après modification des nomenclatures :**
+```bash
+# 1. Modifier les fichiers SQL
+#    backend/nomenclatures_data/types_inserts.sql
+#    backend/nomenclatures_data/nomenclatures_inserts.sql
+
+# 2. Appliquer les changements (ajouter + mettre à jour)
+docker compose exec web python manage.py import_nomenclatures --force
+
+# 3. (Optionnel) Supprimer les entrées obsolètes
+docker compose exec web python manage.py import_nomenclatures --force --prune
 ```
 
 ### Utilisation dans le code
@@ -567,8 +596,16 @@ docker compose exec db psql -U cicada_user -d cicada -c "\di taxonomie.*trgm*"
 docker compose exec web python manage.py refresh_taxref_views
 ```
 
-### Nomenclatures manquantes
+### Nomenclatures manquantes ou labels incorrects
 ```bash
+# Met à jour les labels/définitions et ajoute les nouvelles entrées
 docker compose exec web python manage.py import_nomenclatures --force
 docker compose exec web python test_nomenclatures.py
+```
+
+### Nomenclatures obsolètes à supprimer
+```bash
+# Supprime les entrées qui ne sont plus dans les fichiers SQL
+# (les entrées référencées par des données existantes sont conservées)
+docker compose exec web python manage.py import_nomenclatures --force --prune
 ```
