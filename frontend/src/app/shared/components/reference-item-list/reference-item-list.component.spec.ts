@@ -1,0 +1,424 @@
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
+import { of } from 'rxjs';
+import { ReferenceItemListComponent } from './reference-item-list.component';
+import { TaxonomyService } from '../../../core/services/taxonomy.service';
+import { HabitatService } from '../../../core/services/habitat.service';
+import { GeologyService } from '../../../core/services/geology.service';
+import { TaxonRef, HabitatRef } from '../../../core/models/enjeu.model';
+
+class FakeTranslateLoader implements TranslateLoader {
+  getTranslation() {
+    return of({
+      'enjeux.referenceList.taxonCount': '{{count}} taxon(s)',
+      'enjeux.referenceList.habitatCount': '{{count}} habitat(s)',
+      'enjeux.referenceList.geologyCount': '{{count}} site(s)',
+      'enjeux.referenceList.importList': 'Importer',
+      'enjeux.referenceList.searchTaxon': 'Rechercher un taxon',
+      'enjeux.referenceList.searchHabitat': 'Rechercher un habitat',
+      'enjeux.referenceList.searchGeology': 'Rechercher un site',
+      'enjeux.referenceList.searchTaxonPlaceholder': 'Nom...',
+      'enjeux.referenceList.searchHabitatPlaceholder': 'Nom...',
+      'enjeux.referenceList.searchGeologyPlaceholder': 'Nom...',
+      'enjeux.referenceList.searchHint': 'Min 2 caractères',
+      'common.actions.delete': 'Supprimer'
+    });
+  }
+}
+
+describe('ReferenceItemListComponent', () => {
+  let component: ReferenceItemListComponent;
+  let fixture: ComponentFixture<ReferenceItemListComponent>;
+  let taxonomyService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
+  let habitatService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
+  let geologyService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
+  let dialog: { open: jest.Mock };
+
+  beforeEach(async () => {
+    taxonomyService = {
+      autocomplete: jest.fn().mockReturnValue(of([])),
+      validateBulk: jest.fn().mockReturnValue(of({ found: [], not_found: [] })),
+    };
+    habitatService = {
+      autocomplete: jest.fn().mockReturnValue(of([])),
+      validateBulk: jest.fn().mockReturnValue(of({ found: [], not_found: [] })),
+    };
+    geologyService = {
+      autocomplete: jest.fn().mockReturnValue(of([])),
+      validateBulk: jest.fn().mockReturnValue(of({ found: [], not_found: [] })),
+    };
+    dialog = {
+      open: jest.fn().mockReturnValue({ afterClosed: () => of(null) }),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [
+        ReferenceItemListComponent,
+        NoopAnimationsModule,
+        TranslateModule.forRoot({
+          loader: { provide: TranslateLoader, useClass: FakeTranslateLoader },
+          defaultLanguage: 'fr'
+        })
+      ],
+      providers: [
+        { provide: TaxonomyService, useValue: taxonomyService },
+        { provide: HabitatService, useValue: habitatService },
+        { provide: GeologyService, useValue: geologyService },
+        { provide: MatDialog, useValue: dialog },
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ReferenceItemListComponent);
+    component = fixture.componentInstance;
+  });
+
+  // ==========================================
+  // Initialization
+  // ==========================================
+  describe('initialization', () => {
+    it('should create', () => {
+      fixture.detectChanges();
+      expect(component).toBeTruthy();
+    });
+
+    it('should default to taxon type', () => {
+      fixture.detectChanges();
+      expect(component.type).toBe('taxon');
+    });
+
+    it('should start with empty items', () => {
+      fixture.detectChanges();
+      expect(component.items).toEqual([]);
+    });
+
+    it('should start with empty autocomplete results', () => {
+      fixture.detectChanges();
+      expect(component.autocompleteResults()).toEqual([]);
+    });
+  });
+
+  // ==========================================
+  // Autocomplete search
+  // ==========================================
+  describe('autocomplete search', () => {
+    it('should search taxons when type is taxon', fakeAsync(() => {
+      component.type = 'taxon';
+      fixture.detectChanges();
+
+      taxonomyService.autocomplete!.mockReturnValue(of([
+        { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: 'Lynx boréal', regne: 'Animalia' }
+      ]));
+
+      component.searchControl.setValue('Lynx');
+      tick(300); // debounce
+
+      expect(taxonomyService.autocomplete).toHaveBeenCalledWith('Lynx', { limit: 10 });
+      expect(component.autocompleteResults().length).toBe(1);
+    }));
+
+    it('should search habitats when type is habitat', fakeAsync(() => {
+      component.type = 'habitat';
+      fixture.detectChanges();
+
+      habitatService.autocomplete!.mockReturnValue(of([
+        { cd_hab: 16265, lb_hab_fr: 'Hêtraies acidiphiles', search_name: 'Hêtraies' }
+      ]));
+
+      component.searchControl.setValue('Hêt');
+      tick(300);
+
+      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 10 });
+    }));
+
+    it('should not search with less than 2 characters', fakeAsync(() => {
+      component.type = 'taxon';
+      fixture.detectChanges();
+
+      component.searchControl.setValue('L');
+      tick(300);
+
+      expect(taxonomyService.autocomplete).not.toHaveBeenCalled();
+      expect(component.autocompleteResults()).toEqual([]);
+    }));
+  });
+
+  // ==========================================
+  // Autocomplete selection
+  // ==========================================
+  describe('onAutocompleteSelected', () => {
+    it('should add a taxon when selected', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const emitSpy = jest.spyOn(component.itemsChange, 'emit');
+      const event = {
+        option: {
+          value: { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: 'Lynx boréal', regne: 'Animalia' }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect(component.items.length).toBe(1);
+      expect((component.items[0] as TaxonRef).cd_nom).toBe(60345);
+      expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should not add duplicate taxon', () => {
+      component.type = 'taxon';
+      component.items = [{ cd_nom: 60345, nom_complet: 'Lynx lynx' }];
+      fixture.detectChanges();
+
+      const event = {
+        option: {
+          value: { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: '', regne: 'Animalia' }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect(component.items.length).toBe(1);
+    });
+
+    it('should add a habitat when selected', () => {
+      component.type = 'habitat';
+      component.items = [];
+      fixture.detectChanges();
+
+      const emitSpy = jest.spyOn(component.itemsChange, 'emit');
+      const event = {
+        option: {
+          value: { cd_hab: 16265, lb_hab_fr: 'Hêtraies acidiphiles', search_name: 'Hêtraies' }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect(component.items.length).toBe(1);
+      expect((component.items[0] as HabitatRef).cd_hab).toBe('16265');
+      expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should clear search after selection', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const event = {
+        option: {
+          value: { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: '', regne: 'Animalia' }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect(component.searchControl.value).toBe('');
+      expect(component.autocompleteResults()).toEqual([]);
+    });
+
+    it('should ignore null selection', () => {
+      component.type = 'taxon';
+      fixture.detectChanges();
+
+      const event = { option: { value: null } } as MatAutocompleteSelectedEvent;
+      component.onAutocompleteSelected(event);
+
+      expect(component.items.length).toBe(0);
+    });
+  });
+
+  // ==========================================
+  // Remove item
+  // ==========================================
+  describe('removeItem', () => {
+    it('should remove item at given index', () => {
+      component.type = 'taxon';
+      component.items = [
+        { cd_nom: 1, nom_complet: 'Species A' },
+        { cd_nom: 2, nom_complet: 'Species B' },
+        { cd_nom: 3, nom_complet: 'Species C' },
+      ];
+      fixture.detectChanges();
+
+      const emitSpy = jest.spyOn(component.itemsChange, 'emit');
+      component.removeItem(1);
+
+      expect(component.items.length).toBe(2);
+      expect((component.items[0] as TaxonRef).cd_nom).toBe(1);
+      expect((component.items[1] as TaxonRef).cd_nom).toBe(3);
+      expect(emitSpy).toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================
+  // Import dialog
+  // ==========================================
+  describe('openImportDialog', () => {
+    it('should open dialog with correct width for taxon', () => {
+      component.type = 'taxon';
+      component.items = [{ cd_nom: 60345, nom_complet: 'Lynx' }];
+      fixture.detectChanges();
+
+      component.openImportDialog();
+
+      expect(dialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          width: '1300px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          data: { type: 'taxon', existingCodes: [60345] },
+        })
+      );
+    });
+
+    it('should open dialog with habitat codes', () => {
+      component.type = 'habitat';
+      component.items = [{ cd_hab: '16265', lb_hab_fr: 'Hêtraies' }];
+      fixture.detectChanges();
+
+      component.openImportDialog();
+
+      expect(dialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: { type: 'habitat', existingCodes: ['16265'] },
+        })
+      );
+    });
+
+    it('should add imported items on dialog close', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const importedItems = [
+        { code: 60345, label: 'Lynx lynx', secondaryLabel: 'Lynx', input: '60345', valid: true },
+        { code: 2852, label: 'Bufo bufo', input: '2852', valid: true },
+      ];
+
+      dialog.open!.mockReturnValue({
+        afterClosed: () => of({ items: importedItems })
+      } as any);
+
+      const emitSpy = jest.spyOn(component.itemsChange, 'emit');
+      component.openImportDialog();
+
+      expect(component.items.length).toBe(2);
+      expect((component.items[0] as TaxonRef).cd_nom).toBe(60345);
+      expect((component.items[1] as TaxonRef).cd_nom).toBe(2852);
+      expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should not add duplicates from import', () => {
+      component.type = 'taxon';
+      component.items = [{ cd_nom: 60345, nom_complet: 'Lynx lynx' }];
+      fixture.detectChanges();
+
+      const importedItems = [
+        { code: 60345, label: 'Lynx lynx', input: '60345', valid: true },
+        { code: 2852, label: 'Bufo bufo', input: '2852', valid: true },
+      ];
+
+      dialog.open!.mockReturnValue({
+        afterClosed: () => of({ items: importedItems })
+      } as any);
+
+      component.openImportDialog();
+
+      // Only 2852 should be added, 60345 already exists
+      expect(component.items.length).toBe(2);
+    });
+
+    it('should not modify items if dialog cancelled', () => {
+      component.type = 'taxon';
+      component.items = [{ cd_nom: 60345, nom_complet: 'Lynx' }];
+      fixture.detectChanges();
+
+      dialog.open!.mockReturnValue({
+        afterClosed: () => of(null)
+      } as any);
+
+      component.openImportDialog();
+
+      expect(component.items.length).toBe(1);
+    });
+  });
+
+  // ==========================================
+  // Display helpers
+  // ==========================================
+  describe('getItemLabel', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('should return nom_complet for taxon', () => {
+      component.type = 'taxon';
+      expect(component.getItemLabel({ cd_nom: 60345, nom_complet: 'Lynx lynx' })).toBe('Lynx lynx');
+    });
+
+    it('should return fallback for taxon without name', () => {
+      component.type = 'taxon';
+      expect(component.getItemLabel({ cd_nom: 60345 })).toBe('cd_nom: 60345');
+    });
+
+    it('should return lb_hab_fr for habitat', () => {
+      component.type = 'habitat';
+      expect(component.getItemLabel({ cd_hab: '16265', lb_hab_fr: 'Hêtraies' })).toBe('Hêtraies');
+    });
+  });
+
+  describe('getItemSecondary', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('should return nom_vern for taxon', () => {
+      component.type = 'taxon';
+      expect(component.getItemSecondary({ cd_nom: 60345, nom_vern: 'Lynx boréal' })).toBe('Lynx boréal');
+    });
+
+    it('should return empty string for taxon without nom_vern', () => {
+      component.type = 'taxon';
+      expect(component.getItemSecondary({ cd_nom: 60345 })).toBe('');
+    });
+
+    it('should return cd_hab for habitat', () => {
+      component.type = 'habitat';
+      expect(component.getItemSecondary({ cd_hab: '16265', lb_hab_fr: 'Hêtraies' })).toBe('cd_hab: 16265');
+    });
+  });
+
+  describe('displayFn', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('should return empty string for null', () => {
+      expect(component.displayFn(null as any)).toBe('');
+    });
+
+    it('should return string as-is', () => {
+      expect(component.displayFn('test')).toBe('test');
+    });
+
+    it('should return nom_valide for taxon result', () => {
+      expect(component.displayFn({ cd_nom: 1, nom_valide: 'Lynx lynx', lb_nom: 'L. lynx' } as any)).toBe('Lynx lynx');
+    });
+
+    it('should return lb_hab_fr for habitat result', () => {
+      expect(component.displayFn({ cd_hab: 1, lb_hab_fr: 'Hêtraies', search_name: '' } as any)).toBe('Hêtraies');
+    });
+  });
+
+  // ==========================================
+  // Cleanup
+  // ==========================================
+  describe('ngOnDestroy', () => {
+    it('should complete destroy$ subject', () => {
+      fixture.detectChanges();
+      const completeSpy = jest.spyOn(component['destroy$'], 'complete');
+      component.ngOnDestroy();
+      expect(completeSpy).toHaveBeenCalled();
+    });
+  });
+});

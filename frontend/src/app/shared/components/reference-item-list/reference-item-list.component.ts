@@ -146,8 +146,9 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
         : (this.items as GeologieRef[]).map(g => g.id_inpg);
 
     const dialogRef = this.dialog.open(ImportListDialogComponent, {
-      width: '600px',
+      width: '1300px',
       maxWidth: '95vw',
+      maxHeight: '90vh',
       data: { type: this.type, existingCodes } as ImportListDialogData,
     });
 

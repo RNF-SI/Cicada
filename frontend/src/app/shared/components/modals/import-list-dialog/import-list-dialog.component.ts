@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,6 +33,11 @@ export interface NotFoundEntry {
   candidates: { label: string; secondary?: string }[];
 }
 
+export interface RejectedEntry {
+  input: string;
+  reason: string;
+}
+
 @Component({
   selector: 'app-import-list-dialog',
   standalone: true,
@@ -62,6 +67,10 @@ export class ImportListDialogComponent {
   readonly validationDone = signal(false);
   readonly foundItems = signal<ImportedItem[]>([]);
   readonly notFoundEntries = signal<NotFoundEntry[]>([]);
+  readonly rejectedEntries = signal<RejectedEntry[]>([]);
+
+  /** Whether only numeric codes are accepted (taxon=cd_nom, habitat=cd_hab) */
+  readonly codesOnly = computed(() => this.type === 'taxon' || this.type === 'habitat');
 
   get hasInput(): boolean {
     return this.codesInput().trim().length > 0;
@@ -86,36 +95,61 @@ export class ImportListDialogComponent {
 
   onValidate(): void {
     const lines = this.codesInput()
-      .split(/[\n\r]+/)
+      .split(/[\n\r,;]+/)
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
     if (lines.length === 0) return;
 
     // Filtrer les doublons avec les éléments déjà présents
     const existingSet = new Set(this.data.existingCodes.map((c) => String(c)));
-    const newItems = lines.filter((l) => {
-      // Pour les codes numériques, comparer directement
-      try {
-        if (!isNaN(Number(l)) && existingSet.has(l)) return false;
-      } catch { /* ignore */ }
-      return true;
-    });
-    if (newItems.length === 0) return;
+    const deduped = lines.filter((l) => !existingSet.has(l));
+    if (deduped.length === 0) return;
+
+    // For taxon/habitat: only accept numeric codes (cd_nom / cd_hab)
+    const rejected: RejectedEntry[] = [];
+    let validItems: string[];
+
+    if (this.codesOnly()) {
+      validItems = [];
+      const codeLabel = this.type === 'taxon' ? 'cd_nom' : 'cd_hab';
+      for (const item of deduped) {
+        if (/^\d+$/.test(item)) {
+          validItems.push(item);
+        } else {
+          rejected.push({
+            input: item,
+            reason: `Seuls les codes numériques (${codeLabel}) sont acceptés`,
+          });
+        }
+      }
+    } else {
+      validItems = deduped;
+    }
+
+    this.rejectedEntries.set(rejected);
+
+    if (validItems.length === 0) {
+      // All rejected — show results immediately without API call
+      this.foundItems.set([]);
+      this.notFoundEntries.set([]);
+      this.validationDone.set(true);
+      return;
+    }
 
     this.isValidating.set(true);
 
     if (this.type === 'taxon') {
-      this.taxonomyService.validateBulk(newItems).subscribe({
+      this.taxonomyService.validateBulk(validItems).subscribe({
         next: (result) => this.handleTaxonResult(result.found, result.not_found),
         error: () => this.isValidating.set(false),
       });
     } else if (this.type === 'habitat') {
-      this.habitatService.validateBulk(newItems).subscribe({
+      this.habitatService.validateBulk(validItems).subscribe({
         next: (result) => this.handleHabitatResult(result.found, result.not_found),
         error: () => this.isValidating.set(false),
       });
     } else {
-      this.geologyService.validateBulk(newItems).subscribe({
+      this.geologyService.validateBulk(validItems).subscribe({
         next: (result) => this.handleGeologyResult(result.found, result.not_found),
         error: () => this.isValidating.set(false),
       });

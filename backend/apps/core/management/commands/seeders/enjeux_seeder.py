@@ -4089,6 +4089,12 @@ class EnjeuxSeeder(BaseSeeder):
 
         # Create SuiviInventaire + Protocole for selected operations
         protocoles_created = 0
+
+        # Get statut nomenclatures for operation-linked suivis
+        _statut_en_cours = self._get_nomenclature('STATUT_SUIVI', 'EN_COURS')
+        _statut_termine = self._get_nomenclature('STATUT_SUIVI', 'TERMINE')
+        _statut_a_venir = self._get_nomenclature('STATUT_SUIVI', 'A_VENIR')
+
         suivi_configs = [
             {
                 'op_match': 'Restauration hydraulique du marais sud',
@@ -4098,6 +4104,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Faune',
                 'taxon_taxref': 'Coléoptères, Carabidae',
                 'annee_lancement_suivi': 1998,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'SERENA',
                 'outil_saisie': 'Formulaire terrain papier + saisie bureau',
                 'transmission_donnee': True,
@@ -4118,6 +4125,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Faune',
                 'taxon_taxref': 'Phoenicopterus roseus',
                 'annee_lancement_suivi': 2010,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'GeoNature',
                 'outil_saisie': 'Application mobile GeoNature',
                 'transmission_donnee': True,
@@ -4138,6 +4146,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Habitats',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': None,
+                'id_statut': _statut_a_venir,
                 'outil_bancarisation': '',
                 'outil_saisie': '',
                 'transmission_donnee': None,
@@ -4151,6 +4160,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Faune',
                 'taxon_taxref': 'Pandion haliaetus',
                 'annee_lancement_suivi': 2018,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'Faune-France (VisioNature)',
                 'outil_saisie': 'NaturaList (application mobile)',
                 'transmission_donnee': True,
@@ -4173,6 +4183,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Habitat',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2012,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'Base ADES (accès aux données sur les eaux souterraines)',
                 'outil_saisie': 'Sondes automatiques + relevé manuel mensuel',
                 'transmission_donnee': True,
@@ -4196,6 +4207,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Habitat',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2020,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'Tableur Excel + SIG QGIS',
                 'outil_saisie': 'Relevé terrain quadrats permanents',
                 'transmission_donnee': False,
@@ -4219,6 +4231,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Flore',
                 'taxon_taxref': 'Sphagnum spp., Drosera rotundifolia, Menyanthes trifoliata',
                 'annee_lancement_suivi': 2015,
+                'id_statut': _statut_termine,
                 'outil_bancarisation': 'CBNFC-ORI (base Flora)',
                 'outil_saisie': 'Carnet de terrain + tablette QGIS',
                 'transmission_donnee': True,
@@ -4242,6 +4255,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'Habitat',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2022,
+                'id_statut': _statut_en_cours,
                 'outil_bancarisation': 'SIG QGIS + serveur PostGIS réserve',
                 'outil_saisie': 'DJI Phantom 4 RTK + Pix4D',
                 'transmission_donnee': True,
@@ -4287,6 +4301,7 @@ class EnjeuxSeeder(BaseSeeder):
                 cibles_principales=config['cibles_principales'],
                 taxon_taxref=config.get('taxon_taxref', ''),
                 annee_lancement_suivi=config.get('annee_lancement_suivi'),
+                id_statut=config.get('id_statut'),
                 id_protocole=protocole,
                 outil_bancarisation=config.get('outil_bancarisation', ''),
                 outil_saisie=config.get('outil_saisie', ''),

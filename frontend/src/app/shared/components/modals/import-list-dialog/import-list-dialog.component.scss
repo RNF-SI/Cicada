@@ -67,6 +67,26 @@
   }
 }
 
+// Codes-only notice
+.codes-only-notice {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+  background-color: rgba($secondary-yellow, 0.2);
+  border: 1px solid rgba($secondary-yellow, 0.5);
+  border-radius: $border-radius-sm;
+  color: $black;
+  font-size: $font-size-small;
+  font-weight: $font-weight-medium;
+
+  i {
+    font-size: 14px;
+    color: $warning-color;
+  }
+}
+
 .codes-textarea {
   width: 100%;
 
@@ -126,6 +146,11 @@
 
 .not-found-count {
   color: $error-color;
+  font-weight: $font-weight-bold;
+}
+
+.rejected-count {
+  color: $warning-color;
   font-weight: $font-weight-bold;
 }
 
@@ -189,6 +214,14 @@
 
   &.not-found {
     background-color: rgba($error-color, 0.03);
+  }
+
+  &.rejected {
+    background-color: rgba($warning-color, 0.05);
+  }
+
+  .rejected-icon {
+    color: $warning-color;
   }
 
   .candidates {

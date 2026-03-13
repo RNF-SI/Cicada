@@ -21,6 +21,13 @@
       </p>
     </div>
 
+    @if (codesOnly()) {
+      <p class="codes-only-notice">
+        <i class="fi fi-rr-exclamation"></i>
+        {{ (type === 'taxon' ? 'enjeux.importList.codesOnlyTaxon' : 'enjeux.importList.codesOnlyHabitat') | translate }}
+      </p>
+    }
+
     <mat-form-field appearance="outline" class="codes-textarea">
       <mat-label>{{ (type === 'taxon' ? 'enjeux.importList.codesLabelTaxon' : type === 'habitat' ? 'enjeux.importList.codesLabelHabitat' : 'enjeux.importList.codesLabelGeology') | translate }}</mat-label>
       <textarea matInput
@@ -61,6 +68,12 @@
             {{ 'enjeux.importList.notFoundCount' | translate:{ count: notFoundEntries().length } }}
           </span>
         }
+        @if (rejectedEntries().length > 0) {
+          <span class="rejected-count">
+            <i class="fi fi-rr-ban"></i>
+            {{ 'enjeux.importList.rejectedCount' | translate:{ count: rejectedEntries().length } }}
+          </span>
+        }
       </div>
 
       <!-- Éléments trouvés -->
@@ -95,6 +108,17 @@
                 }
               </div>
             }
+          </div>
+        </div>
+      }
+
+      <!-- Éléments rejetés (format invalide) -->
+      @for (entry of rejectedEntries(); track entry.input) {
+        <div class="result-item rejected">
+          <i class="fi fi-rr-ban result-icon rejected-icon"></i>
+          <div class="result-content">
+            <div class="result-label">« {{ entry.input }} »</div>
+            <div class="result-secondary">{{ entry.reason }}</div>
           </div>
         </div>
       }
