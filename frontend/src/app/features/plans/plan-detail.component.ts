@@ -19,10 +19,9 @@ import { AdminPlan, PlanFichier, PlanMembre, PlanSite, PlanStatut, PlanVersionCh
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
-  DuplicatePlanDialogComponent,
-  DuplicatePlanDialogData,
-  DuplicatePlanDialogResult,
-} from '../../shared/components/modals/duplicate-plan-dialog/duplicate-plan-dialog.component';
+  PlanFormModalComponent,
+  PlanFormModalData,
+} from '../../shared/components/modals/plan-form-modal/plan-form-modal.component';
 import {
   UploadDocumentModalComponent,
   UploadDocumentDialogData,
@@ -96,10 +95,25 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Plan data from API
   plan = signal<AdminPlan | null>(null);
 
-  // Version chain for timeline
+  // Version chain for timeline — always return at least the current plan
   versionChain = computed(() => {
     const p = this.plan();
-    return (p?.version_chain || []) as PlanVersionChainItem[];
+    const chain = (p?.version_chain || []) as PlanVersionChainItem[];
+    if (chain.length > 0) return chain;
+    // Fallback: build a single-item chain from the current plan
+    if (p) {
+      return [{
+        id_pg: p.id_pg,
+        nom: p.nom,
+        slug: p.slug || '',
+        version: p.version || '1.0',
+        statut: p.statut,
+        type_document: p.type_document_display || null,
+        type_document_mnemonique: undefined,
+        is_current: true,
+      } as PlanVersionChainItem];
+    }
+    return [];
   });
 
   // Enjeux/FCR data for synthèse and sidebar
@@ -199,6 +213,49 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       const slug = params.get('slug');
       if (slug && slug !== this.planSlug()) {
         this.planSlug.set(slug);
+        this.loadPlan();
+      }
+    });
+
+    // Handle ?edit=metadata query param (opens edit modal after duplication)
+    this.route.queryParamMap.subscribe(queryParams => {
+      if (queryParams.get('edit') === 'metadata') {
+        // Remove query param from URL
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true,
+        });
+        // Open edit modal once plan is loaded
+        this.openEditModalWhenReady();
+      }
+    });
+  }
+
+  private openEditModalWhenReady(): void {
+    // Wait for plan to be loaded before opening the modal
+    const interval = setInterval(() => {
+      const p = this.plan();
+      if (p && !this.isLoading()) {
+        clearInterval(interval);
+        this.openEditModal(p);
+      }
+    }, 200);
+    // Safety timeout
+    setTimeout(() => clearInterval(interval), 10000);
+  }
+
+  private openEditModal(plan: AdminPlan): void {
+    const data: PlanFormModalData = { plan };
+    const dialogRef = this.dialog.open(PlanFormModalComponent, {
+      width: '1300px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.success) {
         this.loadPlan();
       }
     });
@@ -322,52 +379,44 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  duplicatePlan(): void {
-    const p = this.plan();
-    if (!p) return;
+  // ==================== LIFECYCLE ACTIONS ====================
 
-    const data: DuplicatePlanDialogData = {
-      planId: p.id_pg,
-      planName: p.nom,
-      planPeriod: p.annee_debut && p.annee_fin ? `${p.annee_debut} - ${p.annee_fin}` : '',
-      planStatus: this.translate.instant(`plans.status.${p.statut}`),
-      nbSites: (p.sites || []).length,
-    };
-
-    const dialogRef = this.dialog.open(DuplicatePlanDialogComponent, {
-      width: '600px',
-      maxWidth: '95vw',
-      data,
-    });
-
-    dialogRef.afterClosed().subscribe((result: DuplicatePlanDialogResult) => {
-      if (result?.confirmed && result.options) {
-        this.adminService.duplicatePlan(p.id_pg, result.options).subscribe({
-          next: (newPlan) => {
-            this.snackBar.open(
-              this.translate.instant('plans.duplicate.success'),
-              this.translate.instant('common.actions.close'),
-              { duration: 3000 }
-            );
-            if (newPlan.slug) {
-              this.router.navigate(['/plans', newPlan.slug]);
-            } else {
-              this.router.navigate(['/plans']);
-            }
-          },
-          error: () => {
-            this.snackBar.open(
-              this.translate.instant('plans.duplicate.error'),
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          },
-        });
-      }
-    });
+  confirmValidation(): void {
+    const msg = this.translate.instant('plans.lifecycle.warnings.validateTitle') + '\n\n' +
+      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning1') + '\n' +
+      'ℹ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning2') + '\n' +
+      'ℹ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning3');
+    if (confirm(msg)) {
+      this.changeStatus('valide');
+    }
   }
 
-  onTimelineStatusChange(newStatus: PlanStatut): void {
+  confirmArchive(): void {
+    const msg = this.translate.instant('plans.lifecycle.warnings.archiveTitle') + '\n\n' +
+      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.archiveWarning');
+    if (confirm(msg)) {
+      this.changeStatus('archive');
+    }
+  }
+
+  confirmToDraft(): void {
+    const msg = this.translate.instant('plans.lifecycle.warnings.toDraftTitle') + '\n\n' +
+      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.toDraftWarning') + '\n\n' +
+      this.translate.instant('plans.lifecycle.warnings.toDraftConfirm') + ' ?';
+    if (confirm(msg)) {
+      this.changeStatus('draft');
+    }
+  }
+
+  confirmReactivate(): void {
+    const msg = this.translate.instant('plans.lifecycle.warnings.reactivateTitle') + '\n\n' +
+      this.translate.instant('plans.lifecycle.warnings.reactivateWarning');
+    if (confirm(msg)) {
+      this.changeStatus('valide');
+    }
+  }
+
+  private changeStatus(newStatus: PlanStatut): void {
     const p = this.plan();
     if (!p) return;
 
@@ -383,31 +432,6 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       error: () => {
         this.snackBar.open(
           this.translate.instant('plans.lifecycle.messages.statusError'),
-          this.translate.instant('common.actions.close'),
-          { duration: 5000 }
-        );
-      },
-    });
-  }
-
-  onTimelineCreateEvaluation(): void {
-    const p = this.plan();
-    if (!p) return;
-
-    this.adminService.createEvaluation(p.id_pg).subscribe({
-      next: (newPlan) => {
-        this.snackBar.open(
-          this.translate.instant('plans.lifecycle.messages.evaluationCreated'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        if (newPlan.slug) {
-          this.router.navigate(['/plans', newPlan.slug]);
-        }
-      },
-      error: () => {
-        this.snackBar.open(
-          this.translate.instant('plans.lifecycle.messages.evaluationError'),
           this.translate.instant('common.actions.close'),
           { duration: 5000 }
         );

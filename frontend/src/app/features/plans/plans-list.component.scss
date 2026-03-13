@@ -508,6 +508,17 @@ app-plan-gauge {
   &:hover {
     text-decoration: underline;
   }
+
+  &.btn-disabled,
+  &:disabled {
+    color: $gray;
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
 }
 
 // ============================================

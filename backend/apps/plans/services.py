@@ -77,15 +77,16 @@ class PlanDuplicationService:
             source_plan.nom, PlanGestion
         )
 
-        # 2. Copy plan
+        # 2. Copy plan (linked as new version via plan_parent)
         source_id = source_plan.id_pg
         new_plan = PlanGestion(
             nom=new_name,
             slug='',  # Will be auto-generated in save()
+            plan_parent=source_plan,
             id_cdr=source_plan.id_cdr,
             rang=source_plan.rang,
             statut='draft',
-            version='0.1',
+            version=source_plan.get_next_version(),
             annee_debut=source_plan.annee_debut,
             annee_fin=source_plan.annee_fin,
             surface=source_plan.surface,
@@ -176,16 +177,16 @@ class PlanDuplicationService:
     def _generate_unique_name(original_name, model_class):
         """
         Generate a unique name for the duplicated plan.
-        Pattern: [COPIE] name, [COPIE 2] name, [COPIE 3] name...
+        Pattern: [En cours d'élaboration] name, [En cours d'élaboration 2] name...
         Truncates original name if needed to stay under 255 chars.
         """
-        prefix = "[COPIE]"
+        prefix = "[En cours d'élaboration]"
         max_length = 255
 
-        # Strip existing [COPIE] / [COPIE N] prefix if present
+        # Strip existing prefix if present (both old [COPIE] and new format)
         clean_name = original_name
         import re
-        match = re.match(r'^\[COPIE(?:\s+\d+)?\]\s*', clean_name)
+        match = re.match(r'^\[(COPIE|En cours d\'élaboration)(?:\s+\d+)?\]\s*', clean_name)
         if match:
             clean_name = clean_name[match.end():]
 
@@ -201,7 +202,7 @@ class PlanDuplicationService:
         # Try incrementing
         counter = 2
         while True:
-            prefix_n = f"[COPIE {counter}]"
+            prefix_n = f"[En cours d'élaboration {counter}]"
             max_name_len = max_length - len(prefix_n) - 1
             truncated = clean_name[:max_name_len] if len(clean_name) > max_name_len else clean_name
             candidate = f"{prefix_n} {truncated}"

@@ -1174,8 +1174,8 @@
       "search": "Rechercher un plan...",
       "empty": "Aucun plan de gestion",
       "createPlan": "Créer un plan de gestion",
-      "newBlankPlan": "Nouveau plan vierge",
-      "duplicatePlan": "Dupliquer un plan existant",
+      "newBlankPlan": "À partir d'une base vierge",
+      "duplicatePlan": "Sur la base d'un PG existant",
       "oldVersions": "Voir les anciennes versions",
       "hideOldVersions": "Masquer les anciennes versions",
       "multisites": "multisites",
@@ -1191,6 +1191,7 @@
       },
       "actions": {
         "follow": "Suivre",
+        "followDisabledTooltip": "Le suivi n'est disponible que pour les plans validés",
         "view": "Voir",
         "editStatus": "Modifier le statut"
       }
@@ -1243,6 +1244,19 @@
         "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
         "toDraft": "Remettre en brouillon",
         "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau."
+      },
+      "warnings": {
+        "validateTitle": "Valider le plan de gestion",
+        "validateWarning1": "Une fois validé, le plan ne sera modifiable que sous la forme d'une nouvelle version.",
+        "validateWarning2": "Le suivi des plans de gestion n'est disponible qu'aux plans validés.",
+        "validateWarning3": "La validation CSRPN sera gérée dans une future version.",
+        "archiveTitle": "Archiver le plan de gestion",
+        "archiveWarning": "Ce plan ne sera plus actif. Il restera consultable mais le suivi ne sera plus accessible.",
+        "toDraftTitle": "Remettre en brouillon",
+        "toDraftWarning": "Attention : remettre ce plan en brouillon annulera sa validation. Le suivi ne sera plus accessible.",
+        "toDraftConfirm": "Je confirme vouloir remettre en brouillon",
+        "reactivateTitle": "Réactiver le plan",
+        "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
@@ -1418,13 +1432,13 @@
       "empty": "Aucune donnée à afficher"
     },
     "duplicate": {
-      "title": "Dupliquer un plan de gestion",
-      "subtitle": "Sélectionnez un plan existant pour en créer une copie",
+      "title": "Créer à partir d'un plan existant",
+      "subtitle": "Sélectionnez un plan de gestion sur lequel vous souhaitez vous baser pour créer le nouveau",
       "searchPlaceholder": "Rechercher un plan...",
       "noResults": "Aucun plan trouvé",
       "selectPlan": "Sélectionner",
       "dialog": {
-        "title": "Dupliquer le plan",
+        "title": "Créer sur la base de ce plan",
         "subtitle": "Choisissez les éléments à copier",
         "planInfo": "Plan source",
         "options": {
@@ -1441,19 +1455,19 @@
         },
         "hints": {
           "excludedData": "Les mesures et opérations ne sont pas copiées.",
-          "newStatus": "Le nouveau plan sera en statut Brouillon (version 0.1).",
+          "newStatus": "Le nouveau plan sera en statut Brouillon.",
           "subElementsDisabled": "Activez \"Enjeux et FCR\" pour copier les sous-éléments."
         },
         "cancel": "Annuler",
-        "confirm": "Dupliquer"
+        "confirm": "Appliquer"
       },
       "sections": {
         "myPlans": "Mes plans de gestion",
         "orgPlans": "Plans de mon organisme",
         "allPlans": "Tous les plans de gestion"
       },
-      "success": "Plan dupliqué avec succès",
-      "error": "Erreur lors de la duplication du plan",
+      "success": "Nouveau plan créé avec succès",
+      "error": "Erreur lors de la création du plan",
       "table": {
         "name": "Nom du plan",
         "period": "Période",

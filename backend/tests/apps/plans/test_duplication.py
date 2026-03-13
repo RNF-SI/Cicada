@@ -90,7 +90,7 @@ class TestDuplicatePlanBasic:
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert new_plan.nom == '[COPIE] Plan Original'
+        assert new_plan.nom == '[En cours d\'élaboration] Plan Original'
 
     def test_duplicate_statut_is_draft(self, source_plan, user):
         new_plan = PlanDuplicationService.duplicate_plan(
@@ -100,13 +100,21 @@ class TestDuplicatePlanBasic:
         )
         assert new_plan.statut == 'draft'
 
-    def test_duplicate_version_is_0_1(self, source_plan, user):
+    def test_duplicate_version_is_next(self, source_plan, user):
         new_plan = PlanDuplicationService.duplicate_plan(
             source_plan=source_plan, user=user,
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert new_plan.version == '0.1'
+        assert new_plan.version == '2.1'
+
+    def test_duplicate_plan_parent_set(self, source_plan, user):
+        new_plan = PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False,
+            copy_fichiers=False, copy_enjeux=False,
+        )
+        assert new_plan.plan_parent == source_plan
 
     def test_duplicate_preserves_years(self, source_plan, user):
         new_plan = PlanDuplicationService.duplicate_plan(
@@ -152,7 +160,7 @@ class TestDuplicatePlanBasic:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestUniqueName:
-    """Tests for unique name generation with [COPIE] prefix."""
+    """Tests for unique name generation with [En cours d'élaboration] prefix."""
 
     def test_first_copy_uses_copie_prefix(self, source_plan, user):
         new_plan = PlanDuplicationService.duplicate_plan(
@@ -160,7 +168,7 @@ class TestUniqueName:
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert new_plan.nom == '[COPIE] Plan Original'
+        assert new_plan.nom == '[En cours d\'élaboration] Plan Original'
 
     def test_second_copy_increments(self, source_plan, user):
         # Create first copy
@@ -175,24 +183,24 @@ class TestUniqueName:
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert new_plan.nom == '[COPIE 2] Plan Original'
+        assert new_plan.nom == '[En cours d\'élaboration 2] Plan Original'
 
     def test_copy_of_copy_strips_prefix(self, source_plan, user):
-        """Duplicating a plan that already has [COPIE] prefix strips it."""
+        """Duplicating a plan that already has [En cours d'élaboration] prefix strips it."""
         first_copy = PlanDuplicationService.duplicate_plan(
             source_plan=source_plan, user=user,
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert first_copy.nom == '[COPIE] Plan Original'
+        assert first_copy.nom == '[En cours d\'élaboration] Plan Original'
 
         second_copy = PlanDuplicationService.duplicate_plan(
             source_plan=first_copy, user=user,
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        # Should strip existing [COPIE] and re-add it, resulting in increment
-        assert second_copy.nom == '[COPIE 2] Plan Original'
+        # Should strip existing [En cours d'élaboration] and re-add it, resulting in increment
+        assert second_copy.nom == '[En cours d\'élaboration 2] Plan Original'
 
     def test_long_name_truncated(self, user):
         # Use max-length name (255 chars) - DB won't accept longer
@@ -204,7 +212,7 @@ class TestUniqueName:
             copy_fichiers=False, copy_enjeux=False,
         )
         assert len(new_plan.nom) <= 255
-        assert new_plan.nom.startswith('[COPIE] ')
+        assert new_plan.nom.startswith('[En cours d\'élaboration] ')
 
 
 # =============================================================================
@@ -706,7 +714,7 @@ class TestPlanWithoutContent:
         )
 
         assert new_plan.id_pg is not None
-        assert new_plan.nom == '[COPIE] Plan vide'
+        assert new_plan.nom == '[En cours d\'élaboration] Plan vide'
         assert Enjeu.objects.filter(id_pg=new_plan).count() == 0
         assert CorSitePg.objects.filter(plan_de_gestion=new_plan).count() == 0
 
@@ -830,9 +838,10 @@ class TestFullHierarchyDuplication:
         )
 
         # Verify plan metadata
-        assert new_plan.nom == '[COPIE] Plan Complet'
+        assert new_plan.nom == '[En cours d\'élaboration] Plan Complet'
         assert new_plan.statut == 'draft'
-        assert new_plan.version == '0.1'
+        assert new_plan.version == '1.1'
+        assert new_plan.plan_parent == source
 
         # Verify sites copied
         assert CorSitePg.objects.filter(plan_de_gestion=new_plan).count() == 1
@@ -907,7 +916,7 @@ class TestDuplicateAPIEndpoint:
             format='json',
         )
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data['nom'] == '[COPIE] Plan Original'
+        assert response.data['nom'] == '[En cours d\'élaboration] Plan Original'
         assert response.data['statut'] == 'draft'
 
     def test_duplicate_nonexistent_plan(self, api_client):
@@ -986,6 +995,24 @@ class TestDuplicateAPIEndpoint:
             format='json',
         )
         assert response.status_code == status.HTTP_201_CREATED
+
+    def test_duplicate_non_valide_plan_rejected(self, api_client):
+        """Only plans with statut='valide' can be duplicated via API."""
+        admin = SuperAdminFactory()
+        draft_plan = PlanGestionFactory(
+            nom='Plan Brouillon',
+            statut='draft',
+            id_utilisateur_ajout=admin,
+        )
+
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.post(
+            f'/api/plans/plans/{draft_plan.id_pg}/duplicate/',
+            data={},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 # =============================================================================

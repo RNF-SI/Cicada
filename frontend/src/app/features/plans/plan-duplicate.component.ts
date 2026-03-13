@@ -109,16 +109,18 @@ export class PlanDuplicateComponent implements OnInit {
     return plans;
   });
 
-  /** Final filtered list: scope + leaf only (children_count === 0) + search */
+  /** Final filtered list: scope + validated only + leaf only (children_count === 0) + search */
   readonly filteredPlans = computed(() => {
     const search = this.searchQuery().toLowerCase().trim();
     return this.scopedPlans().filter(p => {
+      // Only validated plans can serve as a base
+      const isValide = p.statut === 'valide';
       // Only show leaf plans (not replaced by a newer version)
       const isLeaf = !p.children_count || p.children_count === 0;
       const searchMatch = !search ||
         p.nom.toLowerCase().includes(search) ||
         (p.sites || []).some(s => s.nom_site.toLowerCase().includes(search));
-      return isLeaf && searchMatch;
+      return isValide && isLeaf && searchMatch;
     });
   });
 
@@ -279,7 +281,9 @@ export class PlanDuplicateComponent implements OnInit {
                 { duration: 3000 }
               );
               if (newPlan.slug) {
-                this.router.navigate(['/plans', newPlan.slug]);
+                this.router.navigate(['/plans', newPlan.slug], {
+                  queryParams: { edit: 'metadata' },
+                });
               } else {
                 this.router.navigate(['/plans']);
               }

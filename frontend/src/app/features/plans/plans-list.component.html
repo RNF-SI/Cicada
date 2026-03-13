@@ -224,7 +224,11 @@
                     </td>
                     <td class="col-actions">
                       <div class="actions-content">
-                        <button class="btn-action" (click)="followPlan(plan)">
+                        <button class="btn-action"
+                                (click)="followPlan(plan)"
+                                [disabled]="plan.statut !== 'valide'"
+                                [matTooltip]="plan.statut !== 'valide' ? ('plans.list.actions.followDisabledTooltip' | translate) : ''"
+                                [class.btn-disabled]="plan.statut !== 'valide'">
                           <span>{{ 'plans.list.actions.follow' | translate }}</span>
                           <i class="fi fi-rr-stats"></i>
                         </button>

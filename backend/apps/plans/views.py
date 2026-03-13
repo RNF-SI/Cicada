@@ -754,6 +754,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         }
         """
         plan = self.get_object()
+
+        # Seuls les plans validés peuvent servir de base
+        if plan.statut != 'valide':
+            return Response(
+                {'error': 'Seuls les plans validés peuvent servir de base pour créer un nouveau plan.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = PlanDuplicateOptionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

@@ -281,8 +281,7 @@
   gap: $spacing-sm;
 }
 
-.btn-generate,
-.btn-duplicate {
+.btn-generate {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
@@ -302,6 +301,42 @@
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.btn-lifecycle {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  border: none;
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &-success {
+    background-color: $success-color;
+    color: $white;
+  }
+
+  &-warning {
+    background-color: $secondary-yellow;
+    color: $black;
+  }
+
+  &-neutral {
+    background-color: $white;
+    color: $primary-color;
   }
 }
 

@@ -17,6 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -63,6 +64,7 @@ interface PlanWithAccess extends AdminPlan {
     MatInputModule,
     MatIconModule,
     MatDialogModule,
+    MatTooltipModule,
     TranslateModule,
     HeaderComponent,
     PlanGaugeComponent,
@@ -657,7 +659,9 @@ export class PlansListComponent implements OnInit {
   }
 
   followPlan(plan: PlanWithAccess): void {
-    console.log('Follow plan:', plan.id_pg);
+    if (plan.statut === 'valide') {
+      this.router.navigate(['/plans', plan.slug, 'tableau-de-bord']);
+    }
   }
 
   /**

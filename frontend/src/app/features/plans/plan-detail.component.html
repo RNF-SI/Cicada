@@ -100,10 +100,33 @@
               </div>
 
               <div class="plan-actions">
-                <button class="btn-duplicate" (click)="duplicatePlan()">
-                  <i class="fi fi-rr-copy"></i>
-                  <span>{{ 'plans.duplicate.dialog.confirm' | translate }}</span>
-                </button>
+                @if (canManageLifecycle()) {
+                  <!-- Draft → Valider -->
+                  @if (p.statut === 'draft') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
+                    </button>
+                  }
+                  <!-- Validé → Remettre en brouillon + Archiver -->
+                  @if (p.statut === 'valide') {
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
+                      <i class="fi fi-rr-box"></i>
+                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
+                    </button>
+                  }
+                  <!-- Archivé → Réactiver -->
+                  @if (p.statut === 'archive') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmReactivate()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.reactivate' | translate }}</span>
+                    </button>
+                  }
+                }
                 <button class="btn-generate">
                   <i class="fi fi-rr-download"></i>
                   <span>{{ 'plans.detail.generate' | translate }}</span>
@@ -459,25 +482,20 @@
             </div>
           </div>
 
-          <!-- Historique des versions -->
-          @if (versionChain().length > 1) {
-            <div class="section-card compact">
-              <app-section-title
-                [title]="'plans.lifecycle.timeline.title' | translate"
-                icon="fi-rr-time-past"
-                ellipseColor="primary"
-                size="md"
-                [showLine]="true">
-              </app-section-title>
-              <app-plan-version-timeline
-                [chain]="versionChain()"
-                [currentStatus]="plan()?.statut || 'draft'"
-                [canManage]="canManageLifecycle()"
-                (statusChange)="onTimelineStatusChange($event)"
-                (createEvaluation)="onTimelineCreateEvaluation()">
-              </app-plan-version-timeline>
-            </div>
-          }
+          <!-- Historique des versions / Cycle de vie -->
+          <div class="section-card compact">
+            <app-section-title
+              [title]="'plans.lifecycle.timeline.title' | translate"
+              icon="fi-rr-time-past"
+              ellipseColor="primary"
+              size="md"
+              [showLine]="true">
+            </app-section-title>
+            <app-plan-version-timeline
+              [chain]="versionChain()"
+              [currentStatus]="plan()?.statut || 'draft'">
+            </app-plan-version-timeline>
+          </div>
 
           <!-- Documents -->
           <div class="section-card compact">
