@@ -270,8 +270,6 @@ export interface Indicateur {
   est_standardise: boolean;
   metriques?: Metrique[];
   nb_metriques?: number;
-  operations?: Operation[];
-  nb_operations?: number;
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
@@ -300,6 +298,8 @@ export interface Metrique {
   score_5_inf?: number; score_5_sup?: number; score_5_label?: string;
   mesures?: Mesure[];
   nb_mesures?: number;
+  operations?: Operation[];
+  nb_operations?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;

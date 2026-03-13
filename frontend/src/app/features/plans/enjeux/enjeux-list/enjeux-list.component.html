@@ -827,57 +827,51 @@
                                                 <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
                                               </div>
 
-                                              <!-- Métriques en tableau -->
+                                              <!-- Métriques avec opérations imbriquées -->
                                               @if (ind.metriques && ind.metriques.length > 0) {
-                                                <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }}s :</p>
-                                                <div class="metriques-table-wrapper">
-                                                  <table class="metriques-table">
-                                                    <thead>
-                                                      <tr>
-                                                        <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
-                                                        <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
-                                                        <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
-                                                        <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
-                                                        <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
-                                                        <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
-                                                        <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
-                                                        <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
-                                                        <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
-                                                        <th class="actions-col"></th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                      @for (met of ind.metriques; track met.id_metrique) {
-                                                        <tr>
-                                                          <td>{{ met.nom_metrique }}</td>
-                                                          <td>{{ met.unite || '-' }}</td>
-                                                          <td>{{ met.ponderation || '-' }}</td>
-                                                          <td>{{ met.etat_reference || '-' }}</td>
-                                                          <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
-                                                          <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
-                                                          <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
-                                                          <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
-                                                          <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
-                                                          <td class="actions-col">
-                                                            <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
-                                                              <i class="fi fi-rr-trash"></i>
-                                                            </button>
-                                                          </td>
-                                                        </tr>
-                                                      }
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                              }
+                                                @for (met of ind.metriques; track met.id_metrique) {
+                                                  <div class="metrique-block">
+                                                    <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
+                                                    <div class="metriques-table-wrapper">
+                                                      <table class="metriques-table">
+                                                        <thead>
+                                                          <tr>
+                                                            <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
+                                                            <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
+                                                            <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
+                                                            <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
+                                                            <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
+                                                            <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
+                                                            <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
+                                                            <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
+                                                            <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
+                                                            <th class="actions-col"></th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          <tr>
+                                                            <td>{{ met.nom_metrique }}</td>
+                                                            <td>{{ met.unite || '-' }}</td>
+                                                            <td>{{ met.ponderation || '-' }}</td>
+                                                            <td>{{ met.etat_reference || '-' }}</td>
+                                                            <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
+                                                            <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
+                                                            <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
+                                                            <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
+                                                            <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                            <td class="actions-col">
+                                                              <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                                <i class="fi fi-rr-trash"></i>
+                                                              </button>
+                                                            </td>
+                                                          </tr>
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
 
-                                              <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
-                                            </div>
-                                          }
-                                        }
-
-                                        <!-- Opérations (Actions) de l'indicateur -->
-                                        @if (ind.operations && ind.operations.length > 0) {
-                                          @for (op of ind.operations; track op.id_operation) {
+                                                    <!-- Opérations (Actions) de cette métrique -->
+                                                    @if (met.operations && met.operations.length > 0) {
+                                                      @for (op of met.operations; track op.id_operation) {
                                             <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)">
                                               <!-- En-tête de l'action (cliquable pour expand/collapse) -->
                                               <div class="operation-header" (click)="toggleOperation(op.id_operation)">
@@ -1059,10 +1053,18 @@
                                           }
                                         }
 
-                                        <!-- Bouton ajout opération (navigue vers page dédiée) -->
-                                        <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
-                                          <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
-                                        </button>
+                                                    <!-- Bouton ajout opération pour cette métrique -->
+                                                    <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur, met.id_metrique)">
+                                                      <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
+                                                    </button>
+                                                  </div>
+                                                }
+                                              }
+
+                                              <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                            </div>
+                                          }
+                                        }
                                       </div>
                                     }
 
@@ -1586,55 +1588,51 @@
                                         <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
                                       </div>
 
-                                      <!-- Métriques en tableau -->
+                                      <!-- Métriques avec opérations imbriquées -->
                                       @if (ind.metriques && ind.metriques.length > 0) {
-                                        <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }}s :</p>
-                                        <div class="metriques-table-wrapper">
-                                          <table class="metriques-table">
-                                            <thead>
-                                              <tr>
-                                                <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
-                                                <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
-                                                <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
-                                                <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
-                                                <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
-                                                <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
-                                                <th class="actions-col"></th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              @for (met of ind.metriques; track met.id_metrique) {
-                                                <tr>
-                                                  <td>{{ met.nom_metrique }}</td>
-                                                  <td>{{ met.unite || '-' }}</td>
-                                                  <td>{{ met.ponderation || '-' }}</td>
-                                                  <td>{{ met.etat_reference || '-' }}</td>
-                                                  <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
-                                                  <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
-                                                  <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
-                                                  <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
-                                                  <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
-                                                  <td class="actions-col">
-                                                    <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
-                                                      <i class="fi fi-rr-trash"></i>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              }
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      }
-                                    </div>
-                                  }
-                                }
+                                        @for (met of ind.metriques; track met.id_metrique) {
+                                          <div class="metrique-block">
+                                            <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
+                                            <div class="metriques-table-wrapper">
+                                              <table class="metriques-table">
+                                                <thead>
+                                                  <tr>
+                                                    <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
+                                                    <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
+                                                    <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
+                                                    <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
+                                                    <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
+                                                    <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
+                                                    <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
+                                                    <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
+                                                    <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
+                                                    <th class="actions-col"></th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  <tr>
+                                                    <td>{{ met.nom_metrique }}</td>
+                                                    <td>{{ met.unite || '-' }}</td>
+                                                    <td>{{ met.ponderation || '-' }}</td>
+                                                    <td>{{ met.etat_reference || '-' }}</td>
+                                                    <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
+                                                    <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
+                                                    <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
+                                                    <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
+                                                    <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                    <td class="actions-col">
+                                                      <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                        <i class="fi fi-rr-trash"></i>
+                                                      </button>
+                                                    </td>
+                                                  </tr>
+                                                </tbody>
+                                              </table>
+                                            </div>
 
-                                <!-- Opérations (Actions) de l'indicateur de pression -->
-                                @if (ind.operations && ind.operations.length > 0) {
-                                  @for (op of ind.operations; track op.id_operation) {
+                                            <!-- Opérations (Actions) de cette métrique -->
+                                            @if (met.operations && met.operations.length > 0) {
+                                              @for (op of met.operations; track op.id_operation) {
                                     <div class="operation-card" [class.expanded]="isOoOperationExpanded(op.id_operation)">
                                       <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                         <div class="operation-header-left">
@@ -1804,10 +1802,18 @@
                                   }
                                 }
 
-                                <!-- Bouton ajout opération -->
-                                <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
-                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
-                                </button>
+                                    <!-- Bouton ajout opération pour cette métrique -->
+                                    <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur, met.id_metrique)">
+                                      <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
+                                    </button>
+                                          </div>
+                                        }
+                                      }
+
+                                      <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                    </div>
+                                  }
+                                }
                               </div>
                             }
 

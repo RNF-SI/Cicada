@@ -172,25 +172,44 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   private extractOperations(enjeu: Enjeu, result: FlatOperation[], seenIds: Set<number>): void {
+    // Branch 1: État actuel → OLT → NE → Indicateur → Métrique → Opération
     const etats = enjeu.etats_actuels || [];
     for (const ea of etats) {
       const olts = ea.objectifs_long_terme || [];
       for (const olt of olts) {
         const nes = olt.niveaux_exigence || [];
         for (const ne of nes) {
-          const indicateurs = ne.indicateurs || [];
-          for (const ind of indicateurs) {
-            const operations = ind.operations || [];
-            for (const op of operations) {
-              if (!seenIds.has(op.id_operation)) {
-                seenIds.add(op.id_operation);
-                result.push({
-                  operation: op,
-                  enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
-                  enjeuId: enjeu.id_enjeu
-                });
-              }
-            }
+          this.extractOpsFromIndicateurs(ne.indicateurs || [], enjeu, result, seenIds);
+        }
+      }
+    }
+
+    // Branch 2: Facteur d'influence → OO → RA → Indicateur → Métrique → Opération
+    const facteurs = enjeu.facteurs_influence || [];
+    for (const fi of facteurs) {
+      const oos = fi.objectifs_operationnels || [];
+      for (const oo of oos) {
+        const ras = oo.resultats_attendus || [];
+        for (const ra of ras) {
+          this.extractOpsFromIndicateurs(ra.indicateurs || [], enjeu, result, seenIds);
+        }
+      }
+    }
+  }
+
+  private extractOpsFromIndicateurs(indicateurs: Indicateur[], enjeu: Enjeu, result: FlatOperation[], seenIds: Set<number>): void {
+    for (const ind of indicateurs) {
+      const metriques = ind.metriques || [];
+      for (const met of metriques) {
+        const operations = met.operations || [];
+        for (const op of operations) {
+          if (!seenIds.has(op.id_operation)) {
+            seenIds.add(op.id_operation);
+            result.push({
+              operation: op,
+              enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
+              enjeuId: enjeu.id_enjeu
+            });
           }
         }
       }

@@ -1719,13 +1719,13 @@ export class EnjeuxListComponent implements OnInit {
   // Operations (Actions) - Navigation vers page dédiée
   // ============================================
 
-  navigateToOperationForm(indicateurId?: number): void {
+  navigateToOperationForm(indicateurId?: number, metriqueId?: number): void {
     const slug = this.planSlug();
     if (!slug) return;
-    const extras: any = {};
-    if (indicateurId) {
-      extras.queryParams = { indicateurId };
-    }
+    const queryParams: any = {};
+    if (indicateurId) queryParams.indicateurId = indicateurId;
+    if (metriqueId) queryParams.metriqueId = metriqueId;
+    const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
 

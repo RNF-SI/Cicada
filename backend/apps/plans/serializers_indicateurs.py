@@ -75,9 +75,11 @@ class MesureCreateSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class MetriqueSerializer(serializers.ModelSerializer):
-    """Serializer détaillé pour une Métrique avec mesures imbriquées."""
+    """Serializer détaillé pour une Métrique avec mesures et opérations imbriquées."""
     mesures = MesureSerializer(many=True, read_only=True)
     nb_mesures = serializers.SerializerMethodField()
+    operations = serializers.SerializerMethodField()
+    nb_operations = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_metrique_label = serializers.CharField(source='type_metrique.label', read_only=True)
 
@@ -96,6 +98,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'score_5_inf', 'score_5_sup', 'score_5_label',
             # Relations
             'mesures', 'nb_mesures',
+            'operations', 'nb_operations',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -103,6 +106,13 @@ class MetriqueSerializer(serializers.ModelSerializer):
 
     def get_nb_mesures(self, obj):
         return obj.mesures.count()
+
+    def get_operations(self, obj):
+        from .serializers_operations import OperationSerializer
+        return OperationSerializer(obj.operations.all(), many=True).data
+
+    def get_nb_operations(self, obj):
+        return obj.operations.count()
 
 
 class MetriqueListSerializer(serializers.ModelSerializer):
@@ -151,7 +161,8 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class IndicateurSerializer(serializers.ModelSerializer):
-    """Serializer détaillé pour un Indicateur avec métriques, opérations et corrélations imbriquées."""
+    """Serializer détaillé pour un Indicateur avec métriques et corrélations imbriquées.
+    Les opérations sont désormais imbriquées sous chaque métrique (Métrique → Opérations)."""
     metriques = MetriqueSerializer(many=True, read_only=True)
     taxons = CorIndicateurTaxonSerializer(many=True, read_only=True)
     habitats = CorIndicateurHabitatSerializer(many=True, read_only=True)
@@ -159,10 +170,6 @@ class IndicateurSerializer(serializers.ModelSerializer):
     nb_metriques = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
-
-    # Operations accessed via metriques → operations (FK)
-    operations = serializers.SerializerMethodField()
-    nb_operations = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
@@ -173,7 +180,6 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'est_standardise',
             # Relations
             'metriques', 'nb_metriques',
-            'operations', 'nb_operations',
             'taxons', 'habitats', 'geologies',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
@@ -182,16 +188,6 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return obj.metriques.count()
-
-    def get_operations(self, obj):
-        from .serializers_operations import OperationSerializer
-        from .models_operations import Operation
-        ops = Operation.objects.filter(id_metrique__id_indicateur=obj).distinct()
-        return OperationSerializer(ops, many=True).data
-
-    def get_nb_operations(self, obj):
-        from .models_operations import Operation
-        return Operation.objects.filter(id_metrique__id_indicateur=obj).count()
 
 
 class IndicateurListSerializer(serializers.ModelSerializer):
