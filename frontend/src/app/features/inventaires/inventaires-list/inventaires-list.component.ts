@@ -7,7 +7,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+// MatPaginator removed — using custom pagination matching plans-list style
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -25,7 +25,6 @@ import { SuiviInventaireList } from '../../../core/models/inventaire.model';
     RouterLink,
     MatButtonModule,
     MatMenuModule,
-    MatPaginatorModule,
     MatProgressSpinnerModule,
     TranslateModule,
     HeaderComponent
@@ -46,9 +45,31 @@ export class InventairesListComponent implements OnInit {
   totalCount = signal(0);
 
   // Pagination
-  readonly pageSize = 20;
+  readonly pageSize = 10;
   currentPage = signal(1);
-  totalPages = computed(() => Math.ceil(this.totalCount() / this.pageSize));
+  totalPages = computed(() => Math.ceil(this.totalCount() / this.pageSize) || 1);
+
+  readonly paginationPages = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: (number | string)[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+        pages.push(i);
+      }
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+    }
+
+    return pages;
+  });
 
   // Filters
   searchQuery = signal('');
@@ -78,6 +99,7 @@ export class InventairesListComponent implements OnInit {
       search: this.searchQuery() || undefined,
       id_statut: this.statutFilter(),
       page: this.currentPage(),
+      page_size: this.pageSize,
     }).subscribe({
       next: (response) => {
         this.suivis.set(response.results);
@@ -105,9 +127,25 @@ export class InventairesListComponent implements OnInit {
     this.loadData();
   }
 
-  onPageChange(event: PageEvent): void {
-    this.currentPage.set(event.pageIndex + 1);
-    this.loadData();
+  goToPage(page: number | string): void {
+    if (typeof page === 'number' && page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+      this.loadData();
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
+      this.loadData();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
+      this.loadData();
+    }
   }
 
   navigateToCreate(): void {

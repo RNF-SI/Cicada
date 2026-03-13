@@ -43,6 +43,7 @@ export class InventaireService {
       if (filters.annee_max) params = params.set('annee_max', filters.annee_max.toString());
       if (filters.search) params = params.set('search', filters.search);
       if (filters.page) params = params.set('page', filters.page.toString());
+      if (filters.page_size) params = params.set('page_size', filters.page_size.toString());
     }
 
     return params;

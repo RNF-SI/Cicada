@@ -107,6 +107,7 @@ export interface InventaireFilters {
   annee_max?: number;
   search?: string;
   page?: number;
+  page_size?: number;
 }
 
 /**

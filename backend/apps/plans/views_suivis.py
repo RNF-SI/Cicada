@@ -9,6 +9,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models_operations import SuiviInventaire
 from apps.users.permissions import IsReferent
+from apps.users.pagination import UsersPagination
 from .serializers_suivis import (
     SuiviInventaireListSerializer,
     SuiviInventaireDetailSerializer,
@@ -35,6 +36,7 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
     ).prefetch_related('operations')
 
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = UsersPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = SuiviInventaireFilter
     search_fields = ['intitule', 'commentaires']

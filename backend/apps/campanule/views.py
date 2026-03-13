@@ -69,9 +69,10 @@ class CampanuleViewSet(viewsets.ReadOnlyModelViewSet):
                        lb_protocole_court, lb_protocole_complet,
                        cible, categorie_prot, prot_auteur
                 FROM ref_campanule.autocomplete_protocole
-                WHERE unaccent(search_name) ILIKE unaccent(%s)
+                WHERE (unaccent(lb_protocole_court) ILIKE unaccent(%s)
+                       OR unaccent(lb_protocole_complet) ILIKE unaccent(%s))
             """
-            params = [f'%{search}%']
+            params = [f'%{search}%', f'%{search}%']
 
             cible = request.query_params.get('cible')
             if cible:
@@ -79,7 +80,7 @@ class CampanuleViewSet(viewsets.ReadOnlyModelViewSet):
                 params.append(f'%{cible}%')
 
             sql += """
-                ORDER BY similarity(unaccent(search_name), unaccent(%s)) DESC
+                ORDER BY similarity(unaccent(lb_protocole_court), unaccent(%s)) DESC
                 LIMIT %s
             """
             params.extend([search, limit])

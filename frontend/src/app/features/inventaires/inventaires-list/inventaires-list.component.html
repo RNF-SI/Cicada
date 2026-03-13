@@ -166,14 +166,33 @@
 
         <!-- Pagination -->
         @if (totalPages() > 1) {
-          <div class="pagination-container">
-            <mat-paginator
-              [length]="totalCount()"
-              [pageSize]="pageSize"
-              [pageIndex]="currentPage() - 1"
-              (page)="onPageChange($event)"
-              showFirstLastButtons>
-            </mat-paginator>
+          <div class="pagination">
+            <button
+              class="pagination-btn nav"
+              [disabled]="currentPage() === 1"
+              (click)="previousPage()">
+              <i class="fi fi-rr-arrow-small-left"></i>
+            </button>
+
+            @for (page of paginationPages(); track $index) {
+              @if (page === '...') {
+                <span class="pagination-ellipsis">...</span>
+              } @else {
+                <button
+                  class="pagination-btn"
+                  [class.active]="page === currentPage()"
+                  (click)="goToPage(page)">
+                  {{ page }}
+                </button>
+              }
+            }
+
+            <button
+              class="pagination-btn nav"
+              [disabled]="currentPage() === totalPages()"
+              (click)="nextPage()">
+              <i class="fi fi-rr-arrow-small-right"></i>
+            </button>
           </div>
         }
       }
