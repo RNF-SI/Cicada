@@ -1020,7 +1020,7 @@ class UsersConfig(AppConfig):
 - Upload/download system for plan files (documents, maps, reports)
 - **Cycle de vie des plans** :
   - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
-    - Transitions : `draft↔valide`, `valide→archive`, `archive→draft`
+    - Transitions : `draft↔valide`, `valide→archive`, `archive→valide`
   - `POST /api/plans/plans/{id}/create-evaluation/` - Création d'une évaluation mi-parcours (référent du plan, admin_og+). Plan source doit être `valide` et de type plan (pas évaluation). Copie sites/référents, version incrémentée.
   - `POST /api/plans/plans/{id}/duplicate/` - Duplication d'un plan avec options sélectives
   - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature)

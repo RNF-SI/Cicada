@@ -533,18 +533,18 @@ class TestPlanGestionChangeStatus:
         plan.refresh_from_db()
         assert plan.statut == 'archive'
 
-    def test_archive_to_draft(self, api_client):
-        """Transition archive → draft succeeds."""
+    def test_archive_to_valide(self, api_client):
+        """Transition archive → valide succeeds (réactivation)."""
         admin = SuperAdminFactory()
         plan = PlanGestionArchiveFactory()
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'draft'},
+            {'new_status': 'valide'},
         )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
-        assert plan.statut == 'draft'
+        assert plan.statut == 'valide'
 
     # ---------- Forbidden transitions ----------
 
@@ -559,14 +559,14 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_archive_to_valide_forbidden(self, api_client):
-        """Transition archive → valide is not allowed."""
+    def test_archive_to_draft_forbidden(self, api_client):
+        """Transition archive → draft is not allowed."""
         admin = SuperAdminFactory()
         plan = PlanGestionArchiveFactory()
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'valide'},
+            {'new_status': 'draft'},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
