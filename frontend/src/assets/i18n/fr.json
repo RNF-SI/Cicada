@@ -2214,7 +2214,7 @@
       "respectProtocole": "Respectez-vous strictement le protocole ?",
       "justificationNonRespect": "Pourquoi ne respectez-vous pas le protocole ?",
       "differencesProtocole": "Quelque(s) différence(s) avec le protocole ?",
-      "anneeLancement": "Année de lancement du suivi (si antérieur)",
+      "dateLancement": "Date de lancement du suivi",
       "outilBancarisation": "Comment la donnée est-elle stockée ou bancarisée ?",
       "outilSaisie": "Existence d'un outil de saisie",
       "transmissionDonnee": "Transmission de la donnée à l'organisme porteur ?",

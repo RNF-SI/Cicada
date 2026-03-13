@@ -359,7 +359,7 @@ export interface SuiviInventaire {
   cible_secondaire?: string;
   taxon_taxref?: string;
   habitat_ref?: string;
-  annee_lancement_suivi?: number;
+  date_lancement_suivi?: string;
   // Protocole (nested)
   protocole?: Protocole;
   // Bancarisation

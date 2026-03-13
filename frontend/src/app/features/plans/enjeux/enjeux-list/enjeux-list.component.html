@@ -971,10 +971,10 @@
                                                   <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
                                                 </div>
                                               }
-                                              @if (op.suivi_inventaire.annee_lancement_suivi) {
+                                              @if (op.suivi_inventaire.date_lancement_suivi) {
                                                 <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.anneeLancement' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.annee_lancement_suivi }}</span>
+                                                  <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
+                                                  <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
                                                 </div>
                                               }
                                               @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
@@ -1689,10 +1689,10 @@
                                                   <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
                                                 </div>
                                               }
-                                              @if (op.suivi_inventaire.annee_lancement_suivi) {
+                                              @if (op.suivi_inventaire.date_lancement_suivi) {
                                                 <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.anneeLancement' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.annee_lancement_suivi }}</span>
+                                                  <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
+                                                  <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
                                                 </div>
                                               }
                                               @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {

@@ -209,10 +209,13 @@
                 </mat-form-field>
               }
 
-              <!-- Année de lancement du suivi (si antérieur) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.anneeLancement' | translate }}</mat-label>
-                <input matInput type="number" formControlName="annee_lancement_suivi">
+              <!-- Date de lancement du suivi (date picker) -->
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></mat-label>
+                <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
+                  [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
+                <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
+                <mat-datepicker #dateLancementPicker></mat-datepicker>
               </mat-form-field>
             </div>
           }

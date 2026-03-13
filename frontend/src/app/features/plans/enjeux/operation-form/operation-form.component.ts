@@ -16,6 +16,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
@@ -61,6 +62,7 @@ interface NomenclatureGroup {
     MatCheckboxModule,
     MatRadioModule,
     MatProgressSpinnerModule,
+    MatDatepickerModule,
     MatSnackBarModule,
     MatAutocompleteModule,
     MatDialogModule,
@@ -196,7 +198,7 @@ export class OperationFormComponent implements OnInit {
       objectif_secondaire: [''],
       cibles_principales: [null],
       cible_secondaire: [''],
-      annee_lancement_suivi: [null],
+      date_lancement_suivi: [null],
       protocole_dans_campanule: [null],
       protocole_campanule_nom: [''],
       cd_protocole_campanule: [null],
@@ -461,7 +463,7 @@ export class OperationFormComponent implements OnInit {
         objectif_secondaire: suivi.objectif_secondaire || '',
         cibles_principales: suivi.cibles_principales || null,
         cible_secondaire: suivi.cible_secondaire || '',
-        annee_lancement_suivi: suivi.annee_lancement_suivi || null,
+        date_lancement_suivi: suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi) : null,
         outil_bancarisation: suivi.outil_bancarisation || null,
         outil_saisie: suivi.outil_saisie || null,
         transmission_donnee: suivi.transmission_donnee ?? null,
@@ -581,7 +583,8 @@ export class OperationFormComponent implements OnInit {
       if (this.habitatItems.length > 0) {
         suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
       }
-      if (rawFv.annee_lancement_suivi != null) suiviData['annee_lancement_suivi'] = rawFv.annee_lancement_suivi;
+      const dateLancement = this.formatDate(rawFv.date_lancement_suivi);
+      if (dateLancement) suiviData['date_lancement_suivi'] = dateLancement;
       if (rawFv.outil_bancarisation) suiviData['outil_bancarisation'] = rawFv.outil_bancarisation;
       if (rawFv.outil_saisie) suiviData['outil_saisie'] = rawFv.outil_saisie;
       if (rawFv.transmission_donnee != null) suiviData['transmission_donnee'] = rawFv.transmission_donnee;
@@ -876,11 +879,20 @@ export class OperationFormComponent implements OnInit {
     this.habitatItems = items as HabitatRef[];
   }
 
+  private formatDate(date: Date | string | null): string | undefined {
+    if (!date) return undefined;
+    if (typeof date === 'string') return date;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   private setSuiviFieldsEnabled(enabled: boolean): void {
     const fields = [
       'objectif_principal', 'objectif_secondaire',
       'cibles_principales', 'cible_secondaire',
-      'annee_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
+      'date_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
       'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
       'respect_protocole', 'justification_non_respect', 'differences_protocole',
       'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
