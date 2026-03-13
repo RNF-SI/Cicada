@@ -66,6 +66,7 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
         model = SuiviInventaire
         fields = [
             'id_suivi_inventaire',
+            'intitule', 'actif',
             # Détails
             'objectif_principal', 'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',
@@ -87,6 +88,7 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
         model = SuiviInventaire
         fields = [
             'id_suivi_inventaire',
+            'intitule', 'actif',
             # Détails
             'objectif_principal', 'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',

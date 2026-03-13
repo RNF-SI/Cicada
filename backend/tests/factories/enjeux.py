@@ -354,6 +354,9 @@ class ProtocoleFactory(DjangoModelFactory):
 
     protocole_dans_campanule = None
     protocole_campanule_nom = ''
+    cd_protocole_campanule = None
+    nb_etp_cycle = None
+    nom_protocole = ''
     respect_protocole = None
     justification_non_respect = ''
     differences_protocole = ''

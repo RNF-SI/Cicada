@@ -191,6 +191,64 @@ class TestSuivisCreateEndpoint:
         assert suivi.id_protocole is not None
         assert suivi.id_protocole.protocole_campanule_nom == 'Proto Test'
 
+    def test_create_campanule_protocole(self, api_client, suivi_test_data):
+        """Test creating suivi with Campanule protocol (cd_protocole_campanule)."""
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.post('/api/inventaires/suivis/', {
+            'intitule': 'Suivi Campanule',
+            'objectif_principal': 'conservation',
+            'cibles_principales': 'faune',
+            'protocole': {
+                'protocole_dans_campanule': True,
+                'protocole_campanule_nom': 'STOC-EPS',
+                'cd_protocole_campanule': 42,
+                'description_protocole': 'Description auto-remplie depuis Campanule',
+                'objectif_protocole': 'Objectif auto-rempli',
+                'periode_echantillonnage': 'Avril - Juin',
+                'respect_protocole': True,
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        suivi = SuiviInventaire.objects.get(intitule='Suivi Campanule')
+        proto = suivi.id_protocole
+        assert proto is not None
+        assert proto.protocole_dans_campanule is True
+        assert proto.cd_protocole_campanule == 42
+        assert proto.protocole_campanule_nom == 'STOC-EPS'
+        assert proto.nom_protocole == ''
+        assert proto.nb_etp_cycle is None
+
+    def test_create_non_campanule_protocole(self, api_client, suivi_test_data):
+        """Test creating suivi with custom protocol (nom_protocole + nb_etp_cycle)."""
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.post('/api/inventaires/suivis/', {
+            'intitule': 'Suivi Custom',
+            'objectif_principal': 'surveillance',
+            'cibles_principales': 'habitat',
+            'protocole': {
+                'protocole_dans_campanule': False,
+                'nom_protocole': 'Mon protocole maison',
+                'nb_etp_cycle': 2.5,
+                'description_protocole': 'Description libre',
+                'objectif_protocole': 'Objectif libre',
+                'periode_echantillonnage': 'Toute année',
+                'respect_protocole': False,
+                'justification_non_respect': 'Adaptations locales',
+                'differences_protocole': 'Quadrats plus grands',
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        suivi = SuiviInventaire.objects.get(intitule='Suivi Custom')
+        proto = suivi.id_protocole
+        assert proto is not None
+        assert proto.protocole_dans_campanule is False
+        assert proto.cd_protocole_campanule is None
+        assert proto.nom_protocole == 'Mon protocole maison'
+        assert float(proto.nb_etp_cycle) == 2.5
+        assert proto.respect_protocole is False
+        assert proto.justification_non_respect == 'Adaptations locales'
+        assert proto.differences_protocole == 'Quadrats plus grands'
+
     def test_create_with_minimal_fields(self, api_client, suivi_test_data):
         """Test create with only intitule."""
         api_client.force_authenticate(user=suivi_test_data['super_admin'])

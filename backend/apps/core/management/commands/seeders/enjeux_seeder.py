@@ -4111,6 +4111,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'protocole': {
                     'dans_campanule': True,
                     'nom': 'Protocole STOC',
+                    'cd_protocole_campanule': 1,
                     'description': 'Suivi Temporel des Oiseaux Communs - adaptation carabiques',
                     'objectif': 'Évaluer les tendances des populations indicatrices',
                     'periode': 'Avril - Juin',
@@ -4131,7 +4132,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'transmission_donnee': True,
                 'protocole': {
                     'dans_campanule': False,
-                    'nom': 'Protocole CMR Flamant',
+                    'nom_protocole': 'Protocole CMR Flamant',
+                    'nb_etp_cycle': 3.5,
                     'description': 'Capture-Marquage-Recapture pour suivi démographique',
                     'objectif': 'Estimer les effectifs et la dynamique des populations',
                     'periode': 'Mai - Septembre',
@@ -4167,6 +4169,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'protocole': {
                     'dans_campanule': True,
                     'nom': 'Protocole STOC-EPS adapté rapaces migrateurs',
+                    'cd_protocole_campanule': 2,
                     'description': 'Points d\'observation fixes avec créneaux horaires '
                                    'standardisés (2h après le lever du soleil, 2h avant le coucher)',
                     'objectif': 'Standardiser le suivi de la halte migratoire pour permettre '
@@ -4189,7 +4192,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'transmission_donnee': True,
                 'protocole': {
                     'dans_campanule': False,
-                    'nom': 'Protocole piézométrique tourbières RNR',
+                    'nom_protocole': 'Protocole piézométrique tourbières RNR',
+                    'nb_etp_cycle': 0.5,
                     'description': 'Mesure mensuelle des niveaux d\'eau par sondes '
                                    'piézométriques automatiques (enregistrement horaire) '
                                    'complétée par un relevé manuel de contrôle',
@@ -4213,7 +4217,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'transmission_donnee': False,
                 'protocole': {
                     'dans_campanule': False,
-                    'nom': 'Protocole suivi végétation post-gestion',
+                    'nom_protocole': 'Protocole suivi végétation post-gestion',
+                    'nb_etp_cycle': 1.0,
                     'description': 'Relevés phytosociologiques sur quadrats permanents '
                                    '(2m x 2m) avant et après intervention, avec '
                                    'photographie verticale standardisée',
@@ -4238,6 +4243,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'protocole': {
                     'dans_campanule': True,
                     'nom': 'Protocole relevés phytosociologiques tourbières',
+                    'cd_protocole_campanule': 3,
                     'description': 'Relevés Braun-Blanquet sur quadrats permanents '
                                    '(2×2 m), avec coefficients d\'abondance-dominance '
                                    'et photographie verticale calibrée',
@@ -4261,7 +4267,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'transmission_donnee': True,
                 'protocole': {
                     'dans_campanule': False,
-                    'nom': 'Protocole survol drone tourbières',
+                    'nom_protocole': 'Protocole survol drone tourbières',
+                    'nb_etp_cycle': 2.0,
                     'description': 'Survols planifiés à 50 m d\'altitude avec '
                                    'recouvrement 80%, traitement photogrammétrique '
                                    'et classification supervisée de l\'occupation du sol',
@@ -4283,7 +4290,10 @@ class EnjeuxSeeder(BaseSeeder):
                 pc = config['protocole']
                 protocole = Protocole.objects.create(
                     protocole_dans_campanule=pc['dans_campanule'],
-                    protocole_campanule_nom=pc['nom'],
+                    protocole_campanule_nom=pc.get('nom', ''),
+                    cd_protocole_campanule=pc.get('cd_protocole_campanule'),
+                    nom_protocole=pc.get('nom_protocole', ''),
+                    nb_etp_cycle=pc.get('nb_etp_cycle'),
                     respect_protocole=pc['respect'],
                     justification_non_respect='',
                     differences_protocole='',

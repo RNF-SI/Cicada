@@ -407,6 +407,157 @@ class TestOperationDetailEndpoint:
         assert response.data['suivi_inventaire']['protocole'] is not None
         assert response.data['suivi_inventaire']['protocole']['protocole_campanule_nom'] == 'Proto Detail Test'
 
+    def test_detail_campanule_protocole_roundtrip(self, api_client, operation_test_data):
+        """Test create + GET detail with Campanule protocol returns all fields for edit form."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+
+        # Create operation with Campanule protocol
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Op Campanule Roundtrip',
+            'est_suivi_existant': False,
+            'suivi_inventaire': {
+                'intitule': 'Suivi STOC',
+                'objectif_principal': 'conservation',
+                'cibles_principales': 'faune',
+                'taxon_taxref': 'Aves',
+                'protocole': {
+                    'protocole_dans_campanule': True,
+                    'protocole_campanule_nom': 'STOC-EPS',
+                    'cd_protocole_campanule': 42,
+                    'description_protocole': 'Description auto-remplie depuis Campanule',
+                    'objectif_protocole': 'Objectif auto-rempli',
+                    'periode_echantillonnage': 'Avril - Juin',
+                    'respect_protocole': True,
+                },
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        op_id = response.data['id_operation']
+
+        # GET detail — simulates opening the edit form
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        suivi = response.data['suivi_inventaire']
+        assert suivi is not None
+        assert suivi['intitule'] == 'Suivi STOC'
+        assert suivi['objectif_principal'] == 'conservation'
+        assert suivi['cibles_principales'] == 'faune'
+        assert suivi['taxon_taxref'] == 'Aves'
+
+        proto = suivi['protocole']
+        assert proto is not None
+        assert proto['protocole_dans_campanule'] is True
+        assert proto['protocole_campanule_nom'] == 'STOC-EPS'
+        assert proto['cd_protocole_campanule'] == 42
+        assert proto['description_protocole'] == 'Description auto-remplie depuis Campanule'
+        assert proto['objectif_protocole'] == 'Objectif auto-rempli'
+        assert proto['periode_echantillonnage'] == 'Avril - Juin'
+        assert proto['respect_protocole'] is True
+        # Non-Campanule fields should be empty/null
+        assert proto['nom_protocole'] == ''
+        assert proto['nb_etp_cycle'] is None
+
+    def test_detail_non_campanule_protocole_roundtrip(self, api_client, operation_test_data):
+        """Test create + GET detail with custom protocol returns all fields for edit form."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+
+        # Create operation with custom (non-Campanule) protocol
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Op Custom Roundtrip',
+            'est_suivi_existant': False,
+            'suivi_inventaire': {
+                'intitule': 'Suivi piézo',
+                'objectif_principal': 'surveillance',
+                'cibles_principales': 'habitat',
+                'protocole': {
+                    'protocole_dans_campanule': False,
+                    'nom_protocole': 'Protocole piézométrique maison',
+                    'nb_etp_cycle': '1.50',
+                    'description_protocole': 'Description libre',
+                    'objectif_protocole': 'Objectif libre',
+                    'periode_echantillonnage': 'Toute année',
+                    'respect_protocole': False,
+                    'justification_non_respect': 'Adaptations locales nécessaires',
+                    'differences_protocole': 'Fréquence mensuelle au lieu de bimensuelle',
+                },
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        op_id = response.data['id_operation']
+
+        # GET detail — simulates opening the edit form
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        suivi = response.data['suivi_inventaire']
+        assert suivi is not None
+
+        proto = suivi['protocole']
+        assert proto is not None
+        assert proto['protocole_dans_campanule'] is False
+        assert proto['nom_protocole'] == 'Protocole piézométrique maison'
+        assert float(proto['nb_etp_cycle']) == 1.5
+        assert proto['description_protocole'] == 'Description libre'
+        assert proto['objectif_protocole'] == 'Objectif libre'
+        assert proto['periode_echantillonnage'] == 'Toute année'
+        assert proto['respect_protocole'] is False
+        assert proto['justification_non_respect'] == 'Adaptations locales nécessaires'
+        assert proto['differences_protocole'] == 'Fréquence mensuelle au lieu de bimensuelle'
+        # Campanule fields should be empty/null
+        assert proto['cd_protocole_campanule'] is None
+        assert proto['protocole_campanule_nom'] == ''
+
+    def test_update_protocole_campanule_to_custom(self, api_client, operation_test_data):
+        """Test PATCH: switch protocol from Campanule to custom and verify roundtrip."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+
+        # Create with Campanule
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Op Switch Protocol',
+            'est_suivi_existant': False,
+            'suivi_inventaire': {
+                'intitule': 'Suivi switch',
+                'objectif_principal': 'conservation',
+                'cibles_principales': 'faune',
+                'protocole': {
+                    'protocole_dans_campanule': True,
+                    'protocole_campanule_nom': 'EPOC',
+                    'cd_protocole_campanule': 99,
+                    'respect_protocole': True,
+                },
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        op_id = response.data['id_operation']
+
+        # PATCH: switch to custom protocol
+        response = api_client.patch(f'/api/plans/operations/{op_id}/', {
+            'suivi_inventaire': {
+                'protocole': {
+                    'protocole_dans_campanule': False,
+                    'protocole_campanule_nom': '',
+                    'cd_protocole_campanule': None,
+                    'nom_protocole': 'Mon nouveau protocole',
+                    'nb_etp_cycle': '2.00',
+                    'description_protocole': 'Nouvelle description',
+                    'respect_protocole': False,
+                    'justification_non_respect': 'Changement de méthode',
+                },
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+
+        # GET detail to verify
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        proto = response.data['suivi_inventaire']['protocole']
+        assert proto['protocole_dans_campanule'] is False
+        assert proto['cd_protocole_campanule'] is None
+        assert proto['nom_protocole'] == 'Mon nouveau protocole'
+        assert float(proto['nb_etp_cycle']) == 2.0
+        assert proto['respect_protocole'] is False
+        assert proto['justification_non_respect'] == 'Changement de méthode'
+
     def test_nonexistent_id_returns_404(self, api_client, operation_test_data):
         """Test nonexistent ID returns 404."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
