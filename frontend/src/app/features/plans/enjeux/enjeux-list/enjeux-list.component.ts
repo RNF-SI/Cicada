@@ -359,6 +359,30 @@ export class EnjeuxListComponent implements OnInit {
     });
   }
 
+  // ============================================
+  // Optimistic local update helpers
+  // ============================================
+
+  private patchPlanEnjeuxData(mapper: (data: PlanEnjeuxResponse) => PlanEnjeuxResponse): void {
+    const current = this.planEnjeuxData();
+    if (!current) return;
+    const updated = mapper(current);
+    this.planEnjeuxData.set(updated);
+    this.enjeuService.updatePlanEnjeuxCache(updated);
+  }
+
+  private mapEnjeuInResponse(
+    data: PlanEnjeuxResponse,
+    enjeuId: number,
+    transform: (enjeu: Enjeu) => Enjeu
+  ): PlanEnjeuxResponse {
+    return {
+      ...data,
+      enjeux: data.enjeux.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
+      fcr: data.fcr.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
+    };
+  }
+
   // Navigation
   navigateToNewEnjeu(): void {
     const slug = this.planSlug();
@@ -655,10 +679,12 @@ export class EnjeuxListComponent implements OnInit {
 
   saveEditFacteur(facteur: FacteurInfluence): void {
     if (!this.editFacteurLibelle.trim()) return;
+    const newLibelle = this.editFacteurLibelle.trim();
+    const newDescription = this.editFacteurDescription.trim() || undefined;
 
     this.enjeuService.updateFacteurInfluence(facteur.id_facteur_influence, {
-      libelle: this.editFacteurLibelle.trim(),
-      description: this.editFacteurDescription.trim() || undefined
+      libelle: newLibelle,
+      description: newDescription
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -667,7 +693,17 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditFacteur();
-        this.loadPlanData();
+        const enjeu = this.selectedEnjeu();
+        if (enjeu) {
+          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+            ...e,
+            facteurs_influence: (e.facteurs_influence || []).map(f =>
+              f.id_facteur_influence === facteur.id_facteur_influence
+                ? { ...f, libelle: newLibelle, description: newDescription }
+                : f
+            ),
+          })));
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -693,10 +729,12 @@ export class EnjeuxListComponent implements OnInit {
 
   saveEditPression(pression: Pression): void {
     if (!this.editPressionLibelle.trim()) return;
+    const newLibelle = this.editPressionLibelle.trim();
+    const newDescription = this.editPressionDescription.trim() || undefined;
 
     this.enjeuService.updatePression(pression.id_pression, {
-      libelle: this.editPressionLibelle.trim(),
-      description: this.editPressionDescription.trim() || undefined
+      libelle: newLibelle,
+      description: newDescription
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -705,7 +743,20 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditPression();
-        this.loadPlanData();
+        const enjeu = this.selectedEnjeu();
+        if (enjeu) {
+          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+            ...e,
+            facteurs_influence: (e.facteurs_influence || []).map(f => ({
+              ...f,
+              pressions: (f.pressions || []).map(p =>
+                p.id_pression === pression.id_pression
+                  ? { ...p, libelle: newLibelle, description: newDescription }
+                  : p
+              ),
+            })),
+          })));
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -797,10 +848,12 @@ export class EnjeuxListComponent implements OnInit {
 
   saveEditEtat(etat: EtatActuel): void {
     if (!this.editEtatLibelle.trim()) return;
+    const newLibelle = this.editEtatLibelle.trim();
+    const newDescription = this.editEtatDescription.trim() || undefined;
 
     this.enjeuService.updateEtatActuel(etat.id_etat_actuel, {
-      libelle: this.editEtatLibelle.trim(),
-      description: this.editEtatDescription.trim() || undefined
+      libelle: newLibelle,
+      description: newDescription
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -809,7 +862,17 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditEtat();
-        this.loadPlanData();
+        const enjeu = this.selectedEnjeu();
+        if (enjeu) {
+          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+            ...e,
+            objectifs_long_terme: (e.objectifs_long_terme || []).map(olt =>
+              olt.etat_actuel?.id_etat_actuel === etat.id_etat_actuel
+                ? { ...olt, etat_actuel: { ...olt.etat_actuel, libelle: newLibelle, description: newDescription } }
+                : olt
+            ),
+          })));
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -874,14 +937,28 @@ export class EnjeuxListComponent implements OnInit {
       libelle: this.newOltLibelle.trim(),
       description: this.newOltDescription.trim() || undefined
     }).subscribe({
-      next: () => {
+      next: (newOlt) => {
         this.snackBar.open(
           this.translate.instant('enjeux.olt.createSuccess'),
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
         this.cancelAddOlt();
-        this.loadPlanData();
+        const createdOlt: ObjectifLongTerme = {
+          id_olt: newOlt.id_olt,
+          id_enjeu: enjeu.id_enjeu,
+          libelle: newOlt.libelle,
+          description: newOlt.description,
+          etat_actuel: undefined,
+          niveaux_exigence: [],
+          date_ajout: newOlt.date_ajout || new Date().toISOString(),
+          date_maj: newOlt.date_maj || new Date().toISOString(),
+        };
+        this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+          ...e,
+          objectifs_long_terme: [...(e.objectifs_long_terme || []), createdOlt],
+          nb_olt: (e.nb_olt || 0) + 1,
+        })));
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -903,10 +980,12 @@ export class EnjeuxListComponent implements OnInit {
 
   saveEditOlt(olt: ObjectifLongTerme): void {
     if (!this.editOltLibelle.trim()) return;
+    const newLibelle = this.editOltLibelle.trim();
+    const newDescription = this.editOltDescription.trim() || undefined;
 
     this.enjeuService.updateObjectifLongTerme(olt.id_olt, {
-      libelle: this.editOltLibelle.trim(),
-      description: this.editOltDescription.trim() || undefined
+      libelle: newLibelle,
+      description: newDescription
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -915,7 +994,17 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditOlt();
-        this.loadPlanData();
+        const enjeu = this.selectedEnjeu();
+        if (enjeu) {
+          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+            ...e,
+            objectifs_long_terme: (e.objectifs_long_terme || []).map(o =>
+              o.id_olt === olt.id_olt
+                ? { ...o, libelle: newLibelle, description: newDescription }
+                : o
+            ),
+          })));
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -944,7 +1033,14 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            const enjeu = this.selectedEnjeu();
+            if (enjeu) {
+              this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+                ...e,
+                objectifs_long_terme: (e.objectifs_long_terme || []).filter(o => o.id_olt !== olt.id_olt),
+                nb_olt: Math.max((e.nb_olt || 1) - 1, 0),
+              })));
+            }
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));

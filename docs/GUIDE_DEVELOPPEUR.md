@@ -288,6 +288,32 @@ class MonModel(models.Model):
 
 ---
 
+## Optimisations de performance frontend
+
+### Mises à jour optimistes locales (enjeux-list)
+
+**Problème** : Chaque édition inline dans `enjeux-list` (état actuel, facteur, pression, OLT) déclenchait `loadPlanData()` qui effectue 2 appels API lourds :
+1. `GET /api/plans/plans/by-slug/{slug}/` — plan complet avec toutes les relations
+2. `GET /api/plans/enjeux/by-plan/{planId}/` — tous les enjeux + FCR + arbre complet
+
+Pour une modification de 2 champs (libelle + description), c'est excessif.
+
+**Solution** : Après un PATCH/POST/DELETE réussi, les données du signal `planEnjeuxData` sont mises à jour localement + le cache de `EnjeuService` est synchronisé. Zéro appel API supplémentaire.
+
+**Fichiers concernés** :
+- `core/services/enjeu.service.ts` — méthode `updatePlanEnjeuxCache()` pour exposer la mutation du cache
+- `features/plans/enjeux/enjeux-list/enjeux-list.component.ts` — helpers `patchPlanEnjeuxData()` et `mapEnjeuInResponse()`, utilisés dans 6 méthodes :
+  - `saveEditFacteur` — patch facteur libelle/description
+  - `saveEditPression` — patch pression (imbriquée dans facteur)
+  - `saveEditEtat` — patch état actuel sur l'OLT correspondant
+  - `saveEditOlt` — patch OLT libelle/description
+  - `saveOlt` (création) — insère le nouvel OLT dans l'arbre + incrémente `nb_olt`
+  - `deleteOlt` — retire l'OLT de l'arbre + décrémente `nb_olt`
+
+**Ce qui continue à appeler `loadPlanData()`** : Création/suppression de facteurs, pressions, états actuels (changements structurels), et toutes les opérations sur enjeux, NE, indicateurs, opérations.
+
+---
+
 ## Documentation associée
 
 | Document | Description |

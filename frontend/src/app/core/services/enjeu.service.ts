@@ -580,6 +580,10 @@ export class EnjeuService {
     this.currentPlanEnjeuxSignal.set(null);
   }
 
+  updatePlanEnjeuxCache(data: PlanEnjeuxResponse): void {
+    this.currentPlanEnjeuxSignal.set(data);
+  }
+
   /**
    * Refresh the current plan enjeux data.
    */
