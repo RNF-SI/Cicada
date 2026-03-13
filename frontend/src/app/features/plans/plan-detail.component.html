@@ -240,27 +240,31 @@
                                         <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
                                       }
                                     </div>
-                                    <!-- OLT sous l'enjeu -->
-                                    @if (enjeu.objectifs_long_terme && enjeu.objectifs_long_terme.length > 0) {
-                                      <div class="synthese-sub-list">
-                                        @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
-                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
-                                            <span class="synthese-sub-tag olt">{{ 'enjeux.olt.label' | translate }}</span>
-                                            <span class="synthese-sub-label">{{ olt.libelle }}</span>
-                                          </div>
-                                        }
-                                      </div>
+                                    <!-- OLT sous l'enjeu (via états actuels) -->
+                                    @for (ea of enjeu.etats_actuels || []; track ea.id_etat_actuel) {
+                                      @if (ea.objectifs_long_terme && ea.objectifs_long_terme.length > 0) {
+                                        <div class="synthese-sub-list">
+                                          @for (olt of ea.objectifs_long_terme; track olt.id_olt) {
+                                            <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
+                                              <span class="synthese-sub-tag olt">{{ 'enjeux.olt.label' | translate }}</span>
+                                              <span class="synthese-sub-label">{{ olt.libelle }}</span>
+                                            </div>
+                                          }
+                                        </div>
+                                      }
                                     }
-                                    <!-- OO sous l'enjeu -->
-                                    @if (enjeu.objectifs_operationnels && enjeu.objectifs_operationnels.length > 0) {
-                                      <div class="synthese-sub-list">
-                                        @for (oo of enjeu.objectifs_operationnels; track oo.id_oo) {
-                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
-                                            <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
-                                            <span class="synthese-sub-label">{{ oo.libelle }}</span>
-                                          </div>
-                                        }
-                                      </div>
+                                    <!-- OO sous l'enjeu (via facteurs d'influence) -->
+                                    @for (fi of enjeu.facteurs_influence || []; track fi.id_facteur_influence) {
+                                      @if (fi.objectifs_operationnels && fi.objectifs_operationnels.length > 0) {
+                                        <div class="synthese-sub-list">
+                                          @for (oo of fi.objectifs_operationnels; track oo.id_oo) {
+                                            <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
+                                              <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
+                                              <span class="synthese-sub-label">{{ oo.libelle }}</span>
+                                            </div>
+                                          }
+                                        </div>
+                                      }
                                     }
                                   </div>
                                 }

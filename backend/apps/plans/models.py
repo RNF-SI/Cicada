@@ -38,9 +38,7 @@ from .models_operations import (
     Protocole,
     SuiviInventaire,
     Operation,
-    CorOperationIndicateur,
     CorOperationSite,
-    CorOperationMetrique,
     OperationAnnee,
     FinanceOperation,
 )

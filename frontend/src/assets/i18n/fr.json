@@ -2175,7 +2175,9 @@
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
       "usageNote": "Un objectif opérationnel est généralement associé à un facteur d'influence identifié sur l'enjeu.",
-      "descriptionLabel": "Détails / commentaires"
+      "descriptionLabel": "Détails / commentaires",
+      "noFacteurTitle": "Aucun facteur d'influence",
+      "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
     },
     "resultatAttendu": {
       "label": "Résultat attendu",

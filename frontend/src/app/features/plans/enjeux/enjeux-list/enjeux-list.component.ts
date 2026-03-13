@@ -113,11 +113,11 @@ export class EnjeuxListComponent implements OnInit {
   editPressionLibelle = '';
   editPressionDescription = '';
 
-  // OLT / Niveaux d'exigence state
-  expandedOltIds = signal<Set<number>>(new Set());
+  // EtatActuel / OLT / Niveaux d'exigence state
   expandedEtatIds = signal<Set<number>>(new Set());
-  addingEtatForOlt = signal<number | null>(null);
-  addingOlt = signal(false);
+  expandedOltIds = signal<Set<number>>(new Set());
+  addingEtat = signal(false);
+  addingOltForEtat = signal<number | null>(null);
   addingNeForOlt = signal<number | null>(null);
   editingEtatId = signal<number | null>(null);
   editingOltId = signal<number | null>(null);
@@ -441,18 +441,20 @@ export class EnjeuxListComponent implements OnInit {
     return this.selectedEnjeu()?.facteurs_influence || [];
   });
 
-  // Computed pour les OLTs de l'enjeu sélectionné
-  selectedOlts = computed(() => {
-    return this.selectedEnjeu()?.objectifs_long_terme || [];
+  // Computed pour les États Actuels de l'enjeu sélectionné
+  selectedEtats = computed(() => {
+    return this.selectedEnjeu()?.etats_actuels || [];
   });
 
-  totalOltCount = computed(() => {
-    return this.selectedOlts().length;
+  totalEtatCount = computed(() => {
+    return this.selectedEtats().length;
   });
 
-  // Computed pour les OOs de l'enjeu sélectionné
+  // Computed pour les OOs de l'enjeu sélectionné (via facteurs d'influence)
   selectedOos = computed(() => {
-    return this.selectedEnjeu()?.objectifs_operationnels || [];
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu) return [];
+    return (enjeu.facteurs_influence || []).flatMap(fi => fi.objectifs_operationnels || []);
   });
 
   totalOoCount = computed(() => {
@@ -768,34 +770,49 @@ export class EnjeuxListComponent implements OnInit {
   // États Actuels
   // ============================================
 
-  startAddEtat(oltId: number): void {
-    this.addingEtatForOlt.set(oltId);
+  startAddEtat(): void {
+    this.addingEtat.set(true);
     this.newEtatLibelle = '';
     this.newEtatDescription = '';
   }
 
   cancelAddEtat(): void {
-    this.addingEtatForOlt.set(null);
+    this.addingEtat.set(false);
     this.newEtatLibelle = '';
     this.newEtatDescription = '';
   }
 
-  saveEtatActuel(olt: ObjectifLongTerme): void {
-    if (!this.newEtatLibelle.trim()) return;
+  saveEtatActuel(): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu || !this.newEtatLibelle.trim()) return;
 
     this.enjeuService.createEtatActuel({
-      id_olt: olt.id_olt,
+      id_enjeu: enjeu.id_enjeu,
       libelle: this.newEtatLibelle.trim(),
       description: this.newEtatDescription.trim() || undefined
     }).subscribe({
-      next: () => {
+      next: (newEtat) => {
         this.snackBar.open(
           this.translate.instant('enjeux.etatActuel.createSuccess'),
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
         this.cancelAddEtat();
-        this.loadPlanData();
+        const createdEtat: EtatActuel = {
+          id_etat_actuel: newEtat.id_etat_actuel,
+          id_enjeu: enjeu.id_enjeu,
+          libelle: newEtat.libelle,
+          description: newEtat.description,
+          objectifs_long_terme: [],
+          nb_olt: 0,
+          date_ajout: newEtat.date_ajout || new Date().toISOString(),
+          date_maj: newEtat.date_maj || new Date().toISOString(),
+        };
+        this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+          ...e,
+          etats_actuels: [...(e.etats_actuels || []), createdEtat],
+          nb_etats_actuels: (e.nb_etats_actuels || 0) + 1,
+        })));
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -824,7 +841,14 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            const enjeu = this.selectedEnjeu();
+            if (enjeu) {
+              this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+                ...e,
+                etats_actuels: (e.etats_actuels || []).filter(ea => ea.id_etat_actuel !== etat.id_etat_actuel),
+                nb_etats_actuels: Math.max((e.nb_etats_actuels || 1) - 1, 0),
+              })));
+            }
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -866,10 +890,10 @@ export class EnjeuxListComponent implements OnInit {
         if (enjeu) {
           this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
             ...e,
-            objectifs_long_terme: (e.objectifs_long_terme || []).map(olt =>
-              olt.etat_actuel?.id_etat_actuel === etat.id_etat_actuel
-                ? { ...olt, etat_actuel: { ...olt.etat_actuel, libelle: newLibelle, description: newDescription } }
-                : olt
+            etats_actuels: (e.etats_actuels || []).map(ea =>
+              ea.id_etat_actuel === etat.id_etat_actuel
+                ? { ...ea, libelle: newLibelle, description: newDescription }
+                : ea
             ),
           })));
         }
@@ -916,24 +940,23 @@ export class EnjeuxListComponent implements OnInit {
     return this.expandedEtatIds().has(id);
   }
 
-  startAddOlt(): void {
-    this.addingOlt.set(true);
+  startAddOlt(etatId: number): void {
+    this.addingOltForEtat.set(etatId);
     this.newOltLibelle = '';
     this.newOltDescription = '';
   }
 
   cancelAddOlt(): void {
-    this.addingOlt.set(false);
+    this.addingOltForEtat.set(null);
     this.newOltLibelle = '';
     this.newOltDescription = '';
   }
 
-  saveOlt(): void {
-    const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOltLibelle.trim()) return;
+  saveOlt(etat: EtatActuel): void {
+    if (!this.newOltLibelle.trim()) return;
 
     this.enjeuService.createObjectifLongTerme({
-      id_enjeu: enjeu.id_enjeu,
+      id_etat_actuel: etat.id_etat_actuel,
       libelle: this.newOltLibelle.trim(),
       description: this.newOltDescription.trim() || undefined
     }).subscribe({
@@ -946,19 +969,24 @@ export class EnjeuxListComponent implements OnInit {
         this.cancelAddOlt();
         const createdOlt: ObjectifLongTerme = {
           id_olt: newOlt.id_olt,
-          id_enjeu: enjeu.id_enjeu,
+          id_etat_actuel: etat.id_etat_actuel,
           libelle: newOlt.libelle,
           description: newOlt.description,
-          etat_actuel: undefined,
           niveaux_exigence: [],
           date_ajout: newOlt.date_ajout || new Date().toISOString(),
           date_maj: newOlt.date_maj || new Date().toISOString(),
         };
-        this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-          ...e,
-          objectifs_long_terme: [...(e.objectifs_long_terme || []), createdOlt],
-          nb_olt: (e.nb_olt || 0) + 1,
-        })));
+        const enjeu = this.selectedEnjeu();
+        if (enjeu) {
+          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+            ...e,
+            etats_actuels: (e.etats_actuels || []).map(ea =>
+              ea.id_etat_actuel === etat.id_etat_actuel
+                ? { ...ea, objectifs_long_terme: [...(ea.objectifs_long_terme || []), createdOlt], nb_olt: (ea.nb_olt || 0) + 1 }
+                : ea
+            ),
+          })));
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -998,11 +1026,14 @@ export class EnjeuxListComponent implements OnInit {
         if (enjeu) {
           this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
             ...e,
-            objectifs_long_terme: (e.objectifs_long_terme || []).map(o =>
-              o.id_olt === olt.id_olt
-                ? { ...o, libelle: newLibelle, description: newDescription }
-                : o
-            ),
+            etats_actuels: (e.etats_actuels || []).map(ea => ({
+              ...ea,
+              objectifs_long_terme: (ea.objectifs_long_terme || []).map(o =>
+                o.id_olt === olt.id_olt
+                  ? { ...o, libelle: newLibelle, description: newDescription }
+                  : o
+              ),
+            })),
           })));
         }
       },
@@ -1037,8 +1068,11 @@ export class EnjeuxListComponent implements OnInit {
             if (enjeu) {
               this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
                 ...e,
-                objectifs_long_terme: (e.objectifs_long_terme || []).filter(o => o.id_olt !== olt.id_olt),
-                nb_olt: Math.max((e.nb_olt || 1) - 1, 0),
+                etats_actuels: (e.etats_actuels || []).map(ea => ({
+                  ...ea,
+                  objectifs_long_terme: (ea.objectifs_long_terme || []).filter(o => o.id_olt !== olt.id_olt),
+                  nb_olt: ea.objectifs_long_terme?.some(o => o.id_olt === olt.id_olt) ? Math.max((ea.nb_olt || 1) - 1, 0) : ea.nb_olt,
+                })),
               })));
             }
           },
@@ -1784,13 +1818,12 @@ export class EnjeuxListComponent implements OnInit {
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim()) return;
+    if (!enjeu || !this.newOoLibelle.trim() || !this.newOoFacteurId) return;
 
     this.enjeuService.createObjectifOperationnel({
-      id_enjeu: enjeu.id_enjeu,
+      id_facteur_influence: this.newOoFacteurId,
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
-      id_facteur_influence: this.newOoFacteurId || undefined
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -1811,7 +1844,7 @@ export class EnjeuxListComponent implements OnInit {
     this.editingOoId.set(oo.id_oo);
     this.editOoLibelle = oo.libelle;
     this.editOoDescription = oo.description || '';
-    this.editOoFacteurId = oo.id_facteur_influence || null;
+    this.editOoFacteurId = oo.id_facteur_influence;
   }
 
   cancelEditOo(): void {
@@ -1822,12 +1855,12 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim()) return;
+    if (!this.editOoLibelle.trim() || !this.editOoFacteurId) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
+      id_facteur_influence: this.editOoFacteurId,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
-      id_facteur_influence: this.editOoFacteurId || undefined
     }).subscribe({
       next: () => {
         this.snackBar.open(

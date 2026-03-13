@@ -160,7 +160,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
 
-    # Operations (lazy import to avoid circular imports)
+    # Operations accessed via metriques → operations (FK)
     operations = serializers.SerializerMethodField()
     nb_operations = serializers.SerializerMethodField()
 
@@ -185,10 +185,13 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_operations(self, obj):
         from .serializers_operations import OperationSerializer
-        return OperationSerializer(obj.operations.all(), many=True).data
+        from .models_operations import Operation
+        ops = Operation.objects.filter(id_metrique__id_indicateur=obj).distinct()
+        return OperationSerializer(ops, many=True).data
 
     def get_nb_operations(self, obj):
-        return obj.operations.count()
+        from .models_operations import Operation
+        return Operation.objects.filter(id_metrique__id_indicateur=obj).count()
 
 
 class IndicateurListSerializer(serializers.ModelSerializer):
@@ -214,7 +217,8 @@ class IndicateurListSerializer(serializers.ModelSerializer):
         return obj.metriques.count()
 
     def get_nb_operations(self, obj):
-        return obj.operations.count()
+        from .models_operations import Operation
+        return Operation.objects.filter(id_metrique__id_indicateur=obj).count()
 
 
 class IndicateurCreateSerializer(serializers.ModelSerializer):

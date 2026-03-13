@@ -148,36 +148,19 @@ const mockEnjeu1: Enjeu = {
   autre_socioeco: false,
   nb_facteurs_influence: 2,
   facteurs_influence: [
-    { id_facteur_influence: 101, id_enjeu: 1, libelle: 'Urbanisation', date_ajout: '', date_maj: '', pressions: [] },
-    { id_facteur_influence: 102, id_enjeu: 1, libelle: 'Agriculture', date_ajout: '', date_maj: '' },
-  ],
-  objectifs_long_terme: [
     {
-      id_olt: 501, id_enjeu: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
-      etat_actuel: { id_etat_actuel: 601, id_olt: 501, libelle: 'État actuel test', date_ajout: '', date_maj: '' },
-      niveaux_exigence: [
+      id_facteur_influence: 101, id_enjeu: 1, libelle: 'Urbanisation', date_ajout: '', date_maj: '', pressions: [],
+      objectifs_operationnels: [
         {
-          id_ne: 701, id_olt: 501, libelle: 'NE Test', date_ajout: '', date_maj: '',
-          indicateurs: [
-            {
-              id_indicateur: 801, id_ne: 701, nom_indicateur: 'Indicateur test',
-              est_standardise: false, date_ajout: '', date_maj: '',
-              metriques: [
-                { id_metrique: 901, id_indicateur: 801, nom_metrique: 'Métrique test', date_ajout: '', date_maj: '' }
-              ]
-            }
+          id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
+          resultats_attendus: [
+            { id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '' }
           ]
         }
-      ]
-    }
-  ],
-  objectifs_operationnels: [
-    {
-      id_oo: 1001, id_enjeu: 1, libelle: 'OO Test', date_ajout: '', date_maj: '',
-      resultats_attendus: [
-        { id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '' }
-      ]
-    }
+      ],
+      nb_oo: 1,
+    },
+    { id_facteur_influence: 102, id_enjeu: 1, libelle: 'Agriculture', date_ajout: '', date_maj: '' },
   ],
   date_ajout: '2024-01-01T00:00:00Z',
   date_maj: '2024-01-15T00:00:00Z',
@@ -323,8 +306,8 @@ describe('EnjeuxListComponent', () => {
       updateMetrique: jest.fn().mockReturnValue(of({ id_metrique: 901, id_indicateur: 801, nom_metrique: 'Met modifiée', date_ajout: '', date_maj: '' })),
       deleteMetrique: jest.fn().mockReturnValue(of(void 0)),
       // OO
-      createObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1002, id_enjeu: 1, libelle: 'Nouvel OO', date_ajout: '', date_maj: '' })),
-      updateObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1001, id_enjeu: 1, libelle: 'OO modifié', date_ajout: '', date_maj: '' })),
+      createObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1002, id_facteur_influence: 101, libelle: 'Nouvel OO', date_ajout: '', date_maj: '' })),
+      updateObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1001, id_facteur_influence: 101, libelle: 'OO modifié', date_ajout: '', date_maj: '' })),
       deleteObjectifOperationnel: jest.fn().mockReturnValue(of(void 0)),
       // RA
       createResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1102, id_oo: 1001, libelle: 'Nouveau RA', date_ajout: '', date_maj: '' })),
@@ -1512,7 +1495,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_enjeu: 1, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
 
     it('should toggle OO expanded state', () => {
@@ -1541,10 +1524,11 @@ describe('EnjeuxListComponent', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = 'Nouvel OO';
       component.newOoDescription = 'Desc OO';
+      component.newOoFacteurId = 101;
       component.saveOo();
 
       expect(mockEnjeuService.createObjectifOperationnel).toHaveBeenCalledWith(expect.objectContaining({
-        id_enjeu: 1,
+        id_facteur_influence: 101,
         libelle: 'Nouvel OO',
         description: 'Desc OO',
       }));
@@ -1553,6 +1537,15 @@ describe('EnjeuxListComponent', () => {
     it('should not save OO with empty libelle', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = '   ';
+      component.newOoFacteurId = 101;
+      component.saveOo();
+      expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
+    });
+
+    it('should not save OO without facteur_influence', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.newOoLibelle = 'Nouvel OO';
+      component.newOoFacteurId = null;
       component.saveOo();
       expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1575,6 +1568,7 @@ describe('EnjeuxListComponent', () => {
       component.editOoLibelle = 'OO modifié';
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
+        id_facteur_influence: 101,
         libelle: 'OO modifié',
       }));
     });
@@ -1582,6 +1576,14 @@ describe('EnjeuxListComponent', () => {
     it('should not save edit OO with empty libelle', () => {
       component.startEditOo(mockOo);
       component.editOoLibelle = '   ';
+      component.saveEditOo(mockOo);
+      expect(mockEnjeuService.updateObjectifOperationnel).not.toHaveBeenCalled();
+    });
+
+    it('should not save edit OO without facteur_influence', () => {
+      component.startEditOo(mockOo);
+      component.editOoLibelle = 'OO modifié';
+      component.editOoFacteurId = null;
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1624,7 +1626,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_enjeu: 1, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
     const mockRa: ResultatAttendu = {
       id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '',

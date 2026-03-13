@@ -191,7 +191,7 @@ export class OperationFormComponent implements OnInit {
       // Main card
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       id_type_action: [null],
-      metrique_ids: [[]],
+      id_metrique: [null],
       id_priorite: [null],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
@@ -226,7 +226,6 @@ export class OperationFormComponent implements OnInit {
       id_referentiel_operations: [''],
       annee_min: [null],
       annee_max: [null],
-      indicateur_ids: [[]]
     });
   }
 
@@ -289,16 +288,18 @@ export class OperationFormComponent implements OnInit {
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               for (const enjeu of allEnjeux) {
-                for (const olt of enjeu.objectifs_long_terme || []) {
-                  for (const ne of olt.niveaux_exigence || []) {
-                    for (const ind of ne.indicateurs || []) {
-                      indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
-                      for (const met of ind.metriques || []) {
-                        metriques.push({
-                          id_metrique: met.id_metrique,
-                          nom_metrique: met.nom_metrique,
-                          indicateur_nom: ind.nom_indicateur
-                        });
+                for (const ea of enjeu.etats_actuels || []) {
+                  for (const olt of ea.objectifs_long_terme || []) {
+                    for (const ne of olt.niveaux_exigence || []) {
+                      for (const ind of ne.indicateurs || []) {
+                        indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
+                        for (const met of ind.metriques || []) {
+                          metriques.push({
+                            id_metrique: met.id_metrique,
+                            nom_metrique: met.nom_metrique,
+                            indicateur_nom: ind.nom_indicateur
+                          });
+                        }
                       }
                     }
                   }
@@ -396,7 +397,8 @@ export class OperationFormComponent implements OnInit {
     if (!opId) {
       const prelinkedId = this.prelinkedIndicateurId();
       if (prelinkedId) {
-        this.form.patchValue({ indicateur_ids: [prelinkedId] });
+        // prelinkedId is now expected to be a metrique ID
+        this.form.patchValue({ id_metrique: prelinkedId });
       }
       this.isLoadingData.set(false);
       return;
@@ -436,8 +438,7 @@ export class OperationFormComponent implements OnInit {
       operateurs: op.operateurs || '',
       partenaires: op.partenaires || '',
       financeurs: op.financeurs || '',
-      indicateur_ids: op.indicateur_ids || [],
-      metrique_ids: op.metrique_ids || []
+      id_metrique: op.id_metrique || null
     });
 
     // Populate suivi fields from nested suivi_inventaire
@@ -618,8 +619,7 @@ export class OperationFormComponent implements OnInit {
     if (fv.operateurs?.trim()) payload.operateurs = fv.operateurs.trim();
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
-    if (fv.indicateur_ids?.length) payload.indicateur_ids = fv.indicateur_ids;
-    if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
+    if (fv.id_metrique != null) payload.id_metrique = fv.id_metrique;
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)

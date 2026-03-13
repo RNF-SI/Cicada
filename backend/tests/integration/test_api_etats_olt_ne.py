@@ -39,22 +39,22 @@ def olt_test_data(db):
         id_pg=plan, id_categorie=cat_enjeu, libelle='Enjeu OLT Test',
         id_utilisateur_ajout=referent
     )
-    olt1 = ObjectifLongTermeFactory(
-        id_enjeu=enjeu, libelle='OLT Conservation',
-        description='Maintenir les habitats humides',
-        id_utilisateur_ajout=referent
-    )
-    olt2 = ObjectifLongTermeFactory(
-        id_enjeu=enjeu, libelle='OLT Restauration',
-        id_utilisateur_ajout=referent
-    )
     etat1 = EtatActuelFactory(
-        id_olt=olt1, libelle='État Actuel Principal',
+        id_enjeu=enjeu, libelle='État Actuel Principal',
         description='Description de l\'état actuel',
         id_utilisateur_ajout=referent
     )
     etat2 = EtatActuelFactory(
-        id_olt=olt2, libelle='État Actuel Secondaire',
+        id_enjeu=enjeu, libelle='État Actuel Secondaire',
+        id_utilisateur_ajout=referent
+    )
+    olt1 = ObjectifLongTermeFactory(
+        id_etat_actuel=etat1, libelle='OLT Conservation',
+        description='Maintenir les habitats humides',
+        id_utilisateur_ajout=referent
+    )
+    olt2 = ObjectifLongTermeFactory(
+        id_etat_actuel=etat2, libelle='OLT Restauration',
         id_utilisateur_ajout=referent
     )
     ne1 = NiveauExigenceFactory(
@@ -122,14 +122,8 @@ class TestEtatActuelCreate:
     def test_referent_creates(self, api_client, olt_test_data):
         """Test referent can create an etat actuel."""
         api_client.force_authenticate(user=olt_test_data['referent'])
-        # Create a new OLT to attach the etat to (1:1 constraint)
-        new_olt = ObjectifLongTermeFactory(
-            id_enjeu=olt_test_data['enjeu'],
-            libelle='OLT for new etat',
-            id_utilisateur_ajout=olt_test_data['referent']
-        )
         response = api_client.post('/api/plans/etats-actuels/', {
-            'id_olt': new_olt.id_olt,
+            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
             'libelle': 'Nouvel État Actuel',
             'description': 'Description test',
         })
@@ -140,7 +134,7 @@ class TestEtatActuelCreate:
         """Test non-referent cannot create."""
         api_client.force_authenticate(user=olt_test_data['user'])
         response = api_client.post('/api/plans/etats-actuels/', {
-            'id_olt': olt_test_data['olt1'].id_olt,
+            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
             'libelle': 'Should Fail',
         })
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -148,13 +142,8 @@ class TestEtatActuelCreate:
     def test_create_minimal_fields(self, api_client, olt_test_data):
         """Test create with minimal fields (libelle only)."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        new_olt = ObjectifLongTermeFactory(
-            id_enjeu=olt_test_data['enjeu'],
-            libelle='OLT for minimal etat',
-            id_utilisateur_ajout=olt_test_data['super_admin']
-        )
         response = api_client.post('/api/plans/etats-actuels/', {
-            'id_olt': new_olt.id_olt,
+            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
             'libelle': 'État Minimal',
         })
         assert response.status_code == status.HTTP_201_CREATED
@@ -162,13 +151,8 @@ class TestEtatActuelCreate:
     def test_create_with_description(self, api_client, olt_test_data):
         """Test create with optional description."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        new_olt = ObjectifLongTermeFactory(
-            id_enjeu=olt_test_data['enjeu'],
-            libelle='OLT for desc etat',
-            id_utilisateur_ajout=olt_test_data['super_admin']
-        )
         response = api_client.post('/api/plans/etats-actuels/', {
-            'id_olt': new_olt.id_olt,
+            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
             'libelle': 'État Avec Description',
             'description': 'Description détaillée de l\'état actuel',
         })
@@ -179,13 +163,8 @@ class TestEtatActuelCreate:
     def test_audit_fields_set(self, api_client, olt_test_data):
         """Test audit fields are set on create."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        new_olt = ObjectifLongTermeFactory(
-            id_enjeu=olt_test_data['enjeu'],
-            libelle='OLT for audit etat',
-            id_utilisateur_ajout=olt_test_data['super_admin']
-        )
         response = api_client.post('/api/plans/etats-actuels/', {
-            'id_olt': new_olt.id_olt,
+            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
             'libelle': 'État Audit',
         })
         assert response.status_code == status.HTTP_201_CREATED
@@ -206,13 +185,13 @@ class TestEtatActuelDetail:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['libelle'] == 'État Actuel Principal'
 
-    def test_detail_includes_olt_ref(self, api_client, olt_test_data):
-        """Test detail includes id_olt reference."""
+    def test_detail_includes_enjeu_ref(self, api_client, olt_test_data):
+        """Test detail includes id_enjeu reference."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         etat_id = olt_test_data['etat1'].id_etat_actuel
         response = api_client.get(f'/api/plans/etats-actuels/{etat_id}/')
-        assert 'id_olt' in response.data
-        assert response.data['id_olt'] == olt_test_data['olt1'].id_olt
+        assert 'id_enjeu' in response.data
+        assert response.data['id_enjeu'] == olt_test_data['enjeu'].id_enjeu
 
     def test_nonexistent_returns_404(self, api_client, olt_test_data):
         """Test nonexistent etat actuel returns 404."""
@@ -280,14 +259,14 @@ class TestEtatActuelDelete:
         response = api_client.delete(f'/api/plans/etats-actuels/{etat_id}/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_olt_parent_intact(self, api_client, olt_test_data):
-        """Test deleting etat actuel does not delete parent OLT."""
+    def test_cascade_deletes_child_olts(self, api_client, olt_test_data):
+        """Test deleting etat actuel cascades to its child OLTs."""
         olt_id = olt_test_data['olt2'].id_olt
         etat_id = olt_test_data['etat2'].id_etat_actuel
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         response = api_client.delete(f'/api/plans/etats-actuels/{etat_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert ObjectifLongTerme.objects.filter(id_olt=olt_id).exists()
+        assert not ObjectifLongTerme.objects.filter(id_olt=olt_id).exists()
 
 
 # =============================================================================
@@ -296,37 +275,37 @@ class TestEtatActuelDelete:
 
 @pytest.mark.django_db
 @pytest.mark.integration
-class TestEtatActuelByOltEndpoint:
-    """Tests for GET /api/plans/etats-actuels/by-olt/{olt_id}/"""
+class TestEtatActuelByEnjeuEndpoint:
+    """Tests for GET /api/plans/etats-actuels/by-enjeu/{enjeu_id}/"""
 
     def test_unauthenticated_returns_401(self, api_client, olt_test_data):
         """Test unauthenticated access returns 401."""
-        olt_id = olt_test_data['olt1'].id_olt
-        response = api_client.get(f'/api/plans/etats-actuels/by-olt/{olt_id}/')
+        enjeu_id = olt_test_data['enjeu'].id_enjeu
+        response = api_client.get(f'/api/plans/etats-actuels/by-enjeu/{enjeu_id}/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_referent_gets_by_olt(self, api_client, olt_test_data):
-        """Test referent can get etat actuel by OLT."""
+    def test_referent_gets_by_enjeu(self, api_client, olt_test_data):
+        """Test referent can get etats actuels by enjeu."""
         api_client.force_authenticate(user=olt_test_data['referent'])
-        olt_id = olt_test_data['olt1'].id_olt
-        response = api_client.get(f'/api/plans/etats-actuels/by-olt/{olt_id}/')
+        enjeu_id = olt_test_data['enjeu'].id_enjeu
+        response = api_client.get(f'/api/plans/etats-actuels/by-enjeu/{enjeu_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['olt_id'] == olt_id
+        assert response.data['enjeu_id'] == enjeu_id
 
     def test_response_structure(self, api_client, olt_test_data):
         """Test response has correct structure."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        olt_id = olt_test_data['olt1'].id_olt
-        response = api_client.get(f'/api/plans/etats-actuels/by-olt/{olt_id}/')
-        assert 'olt_id' in response.data
-        assert 'olt_libelle' in response.data
+        enjeu_id = olt_test_data['enjeu'].id_enjeu
+        response = api_client.get(f'/api/plans/etats-actuels/by-enjeu/{enjeu_id}/')
+        assert 'enjeu_id' in response.data
+        assert 'enjeu_libelle' in response.data
         assert 'etats_actuels' in response.data
         assert 'total' in response.data
 
-    def test_nonexistent_olt_returns_404(self, api_client, olt_test_data):
-        """Test nonexistent OLT returns 404."""
+    def test_nonexistent_enjeu_returns_404(self, api_client, olt_test_data):
+        """Test nonexistent enjeu returns 404."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        response = api_client.get('/api/plans/etats-actuels/by-olt/99999/')
+        response = api_client.get('/api/plans/etats-actuels/by-enjeu/99999/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -367,7 +346,7 @@ class TestObjectifLongTermeCreate:
         """Test referent can create an OLT."""
         api_client.force_authenticate(user=olt_test_data['referent'])
         response = api_client.post('/api/plans/objectifs-long-terme/', {
-            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
+            'id_etat_actuel': olt_test_data['etat1'].id_etat_actuel,
             'libelle': 'Nouvel OLT',
             'description': 'Description test OLT',
         })
@@ -378,7 +357,7 @@ class TestObjectifLongTermeCreate:
         """Test non-referent cannot create."""
         api_client.force_authenticate(user=olt_test_data['user'])
         response = api_client.post('/api/plans/objectifs-long-terme/', {
-            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
+            'id_etat_actuel': olt_test_data['etat1'].id_etat_actuel,
             'libelle': 'Should Fail',
         })
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -387,7 +366,7 @@ class TestObjectifLongTermeCreate:
         """Test create with minimal fields."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         response = api_client.post('/api/plans/objectifs-long-terme/', {
-            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
+            'id_etat_actuel': olt_test_data['etat1'].id_etat_actuel,
             'libelle': 'OLT Minimal',
         })
         assert response.status_code == status.HTTP_201_CREATED
@@ -396,7 +375,7 @@ class TestObjectifLongTermeCreate:
         """Test create with optional description."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         response = api_client.post('/api/plans/objectifs-long-terme/', {
-            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
+            'id_etat_actuel': olt_test_data['etat1'].id_etat_actuel,
             'libelle': 'OLT Avec Description',
             'description': 'Description détaillée de l\'OLT',
         })
@@ -408,7 +387,7 @@ class TestObjectifLongTermeCreate:
         """Test audit fields are set on create."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         response = api_client.post('/api/plans/objectifs-long-terme/', {
-            'id_enjeu': olt_test_data['enjeu'].id_enjeu,
+            'id_etat_actuel': olt_test_data['etat1'].id_etat_actuel,
             'libelle': 'OLT Audit',
         })
         assert response.status_code == status.HTTP_201_CREATED
@@ -525,14 +504,14 @@ class TestObjectifLongTermeDelete:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not NiveauExigence.objects.filter(id_olt_id=olt_id).exists()
 
-    def test_cascade_deletes_etat_actuel(self, api_client, olt_test_data):
-        """Test deleting OLT cascades to its etat actuel (1:1)."""
+    def test_etat_actuel_parent_intact(self, api_client, olt_test_data):
+        """Test deleting OLT does NOT cascade to parent EtatActuel."""
         etat_id = olt_test_data['etat2'].id_etat_actuel
         olt_id = olt_test_data['olt2'].id_olt
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         response = api_client.delete(f'/api/plans/objectifs-long-terme/{olt_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not EtatActuel.objects.filter(id_etat_actuel=etat_id).exists()
+        assert EtatActuel.objects.filter(id_etat_actuel=etat_id).exists()
 
     def test_other_etat_intact(self, api_client, olt_test_data):
         """Test deleting OLT does not affect etat actuel from another OLT."""
@@ -550,52 +529,52 @@ class TestObjectifLongTermeDelete:
 
 @pytest.mark.django_db
 @pytest.mark.integration
-class TestOltByEnjeuEndpoint:
-    """Tests for GET /api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/"""
+class TestOltByEtatActuelEndpoint:
+    """Tests for GET /api/plans/objectifs-long-terme/by-etat-actuel/{etat_actuel_id}/"""
 
     def test_unauthenticated_returns_401(self, api_client, olt_test_data):
         """Test unauthenticated access returns 401."""
-        enjeu_id = olt_test_data['enjeu'].id_enjeu
-        response = api_client.get(f'/api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/')
+        etat_id = olt_test_data['etat1'].id_etat_actuel
+        response = api_client.get(f'/api/plans/objectifs-long-terme/by-etat-actuel/{etat_id}/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_referent_gets_by_enjeu(self, api_client, olt_test_data):
-        """Test referent can get OLTs by enjeu."""
+    def test_referent_gets_by_etat_actuel(self, api_client, olt_test_data):
+        """Test referent can get OLTs by etat actuel."""
         api_client.force_authenticate(user=olt_test_data['referent'])
-        enjeu_id = olt_test_data['enjeu'].id_enjeu
-        response = api_client.get(f'/api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/')
+        etat_id = olt_test_data['etat1'].id_etat_actuel
+        response = api_client.get(f'/api/plans/objectifs-long-terme/by-etat-actuel/{etat_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['enjeu_id'] == enjeu_id
+        assert response.data['etat_actuel_id'] == etat_id
 
     def test_response_structure(self, api_client, olt_test_data):
         """Test response has correct structure."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        enjeu_id = olt_test_data['enjeu'].id_enjeu
-        response = api_client.get(f'/api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/')
-        assert 'enjeu_id' in response.data
-        assert 'enjeu_libelle' in response.data
+        etat_id = olt_test_data['etat1'].id_etat_actuel
+        response = api_client.get(f'/api/plans/objectifs-long-terme/by-etat-actuel/{etat_id}/')
+        assert 'etat_actuel_id' in response.data
+        assert 'etat_actuel_libelle' in response.data
         assert 'objectifs_long_terme' in response.data
         assert 'total' in response.data
 
     def test_correct_count(self, api_client, olt_test_data):
-        """Test enjeu returns correct OLT count."""
+        """Test etat actuel returns correct OLT count."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        enjeu_id = olt_test_data['enjeu'].id_enjeu
-        response = api_client.get(f'/api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/')
+        etat_id = olt_test_data['etat1'].id_etat_actuel
+        response = api_client.get(f'/api/plans/objectifs-long-terme/by-etat-actuel/{etat_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['total'] == 2
+        assert response.data['total'] == 1
 
-    def test_nonexistent_enjeu_returns_404(self, api_client, olt_test_data):
-        """Test nonexistent enjeu returns 404."""
+    def test_nonexistent_etat_actuel_returns_404(self, api_client, olt_test_data):
+        """Test nonexistent etat actuel returns 404."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        response = api_client.get('/api/plans/objectifs-long-terme/by-enjeu/99999/')
+        response = api_client.get('/api/plans/objectifs-long-terme/by-etat-actuel/99999/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_includes_createur_nom(self, api_client, olt_test_data):
         """Test OLTs include createur_nom."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
-        enjeu_id = olt_test_data['enjeu'].id_enjeu
-        response = api_client.get(f'/api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/')
+        etat_id = olt_test_data['etat1'].id_etat_actuel
+        response = api_client.get(f'/api/plans/objectifs-long-terme/by-etat-actuel/{etat_id}/')
         for olt in response.data['objectifs_long_terme']:
             assert 'createur_nom' in olt
 
@@ -854,18 +833,29 @@ class TestNeByOltEndpoint:
 
 @pytest.mark.django_db
 @pytest.mark.integration
-class TestEnjeuDetailIncludesOltHierarchy:
-    """Test that enjeu detail includes full OLT hierarchy."""
+class TestEnjeuDetailIncludesEtatActuelHierarchy:
+    """Test that enjeu detail includes full EtatActuel -> OLT hierarchy."""
 
-    def test_enjeu_detail_includes_olts(self, api_client, olt_test_data):
-        """Test enjeu detail serializer includes objectifs_long_terme with nested etat_actuel and NEs."""
+    def test_enjeu_detail_includes_etats_actuels(self, api_client, olt_test_data):
+        """Test enjeu detail serializer includes etats_actuels with nested objectifs_long_terme and NEs."""
         api_client.force_authenticate(user=olt_test_data['super_admin'])
         enjeu_id = olt_test_data['enjeu'].id_enjeu
         response = api_client.get(f'/api/plans/enjeux/{enjeu_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert 'objectifs_long_terme' in response.data
-        olts = response.data['objectifs_long_terme']
-        assert len(olts) >= 2
+        assert 'etats_actuels' in response.data
+        etats = response.data['etats_actuels']
+        assert len(etats) >= 2
+
+        # Find État Actuel Principal
+        etat_principal = next(
+            (e for e in etats if e['libelle'] == 'État Actuel Principal'), None
+        )
+        assert etat_principal is not None
+
+        # Verify OLTs nested under etat actuel
+        assert 'objectifs_long_terme' in etat_principal
+        olts = etat_principal['objectifs_long_terme']
+        assert len(olts) >= 1
 
         # Find OLT Conservation
         olt_conservation = next(
@@ -873,11 +863,6 @@ class TestEnjeuDetailIncludesOltHierarchy:
         )
         assert olt_conservation is not None
 
-        # Verify etat_actuel nested (1:1)
-        assert 'etat_actuel' in olt_conservation
-        assert olt_conservation['etat_actuel'] is not None
-        assert olt_conservation['etat_actuel']['libelle'] == 'État Actuel Principal'
-
-        # Verify NEs nested
+        # Verify NEs nested under OLT
         assert 'niveaux_exigence' in olt_conservation
         assert len(olt_conservation['niveaux_exigence']) >= 2

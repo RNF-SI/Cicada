@@ -4,12 +4,11 @@ Tests d'intégration pour l'API REST Opérations (Actions).
 import pytest
 from rest_framework import status
 
-from apps.plans.models_operations import Operation, Protocole, SuiviInventaire, CorOperationIndicateur
+from apps.plans.models_operations import Operation, Protocole, SuiviInventaire
 from tests.factories.enjeux import (
-    EnjeuFactory, NomenclatureEnjeuFactory,
+    EnjeuFactory, EtatActuelFactory, NomenclatureEnjeuFactory,
     ObjectifLongTermeFactory, NiveauExigenceFactory,
-    IndicateurFactory, ProtocoleFactory, SuiviInventaireFactory, OperationFactory,
-    CorOperationIndicateurFactory,
+    IndicateurFactory, MetriqueFactory, ProtocoleFactory, SuiviInventaireFactory, OperationFactory,
     NomenclaturePrioriteOperationFactory,
 )
 from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
@@ -53,8 +52,12 @@ def operation_test_data(db):
         rang=1, categorie_ecologique=True,
         id_utilisateur_ajout=referent
     )
+    etat = EtatActuelFactory(
+        id_enjeu=enjeu, libelle='État Actuel Test Op',
+        id_utilisateur_ajout=referent
+    )
     olt = ObjectifLongTermeFactory(
-        id_enjeu=enjeu, libelle='OLT Test Op',
+        id_etat_actuel=etat, libelle='OLT Test Op',
         id_utilisateur_ajout=referent
     )
     ne = NiveauExigenceFactory(
@@ -70,26 +73,35 @@ def operation_test_data(db):
         id_utilisateur_ajout=referent
     )
 
-    # Operations
+    # Create metriques for the indicateurs
+    metrique1 = MetriqueFactory(
+        id_indicateur=indicateur1, nom_metrique='Métrique Test Op 1',
+        id_utilisateur_ajout=referent
+    )
+    metrique2 = MetriqueFactory(
+        id_indicateur=indicateur2, nom_metrique='Métrique Test Op 2',
+        id_utilisateur_ajout=referent
+    )
+
+    # Operations linked via id_metrique FK
     op1 = OperationFactory(
         libelle='Restauration des berges',
         id_priorite=priorite_1,
         code_operation='OP-001',
         description='Restauration écologique des berges du cours d\'eau',
         annee_min=2024, annee_max=2028,
+        id_metrique=metrique1,
         id_utilisateur_ajout=referent
     )
-    CorOperationIndicateurFactory(id_operation=op1, id_indicateur=indicateur1)
 
     op2 = OperationFactory(
         libelle='Suivi floristique annuel',
         id_priorite=priorite_2,
         code_operation='OP-002',
         annee_min=2024, annee_max=2030,
+        id_metrique=metrique1,
         id_utilisateur_ajout=referent
     )
-    CorOperationIndicateurFactory(id_operation=op2, id_indicateur=indicateur1)
-    CorOperationIndicateurFactory(id_operation=op2, id_indicateur=indicateur2)
 
     return {
         'organisme': organisme,
@@ -102,6 +114,8 @@ def operation_test_data(db):
         'enjeu': enjeu,
         'indicateur1': indicateur1,
         'indicateur2': indicateur2,
+        'metrique1': metrique1,
+        'metrique2': metrique2,
         'op1': op1,
         'op2': op2,
         'priorite_1': priorite_1,
@@ -150,13 +164,14 @@ class TestOperationListEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert 'results' in response.data
 
-    def test_list_includes_nb_indicateurs(self, api_client, operation_test_data):
-        """Test list response includes nb_indicateurs."""
+    def test_list_includes_metrique_info(self, api_client, operation_test_data):
+        """Test list response includes id_metrique and metrique_nom."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.get('/api/plans/operations/')
         assert response.status_code == status.HTTP_200_OK
         for item in response.data['results']:
-            assert 'nb_indicateurs' in item
+            assert 'id_metrique' in item
+            assert 'metrique_nom' in item
 
     def test_list_includes_priorite_label(self, api_client, operation_test_data):
         """Test list response includes priorite_label."""
@@ -193,7 +208,7 @@ class TestOperationCreateEndpoint:
         """Test unauthenticated create returns 401."""
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération',
-            'indicateur_ids': [operation_test_data['indicateur1'].id_indicateur],
+            'id_metrique': operation_test_data['metrique1'].id_metrique,
         }, format='json')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -202,7 +217,7 @@ class TestOperationCreateEndpoint:
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération SA',
-            'indicateur_ids': [operation_test_data['indicateur1'].id_indicateur],
+            'id_metrique': operation_test_data['metrique1'].id_metrique,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         assert Operation.objects.filter(libelle='Nouvelle opération SA').exists()
@@ -212,7 +227,7 @@ class TestOperationCreateEndpoint:
         api_client.force_authenticate(user=operation_test_data['referent'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération Ref',
-            'indicateur_ids': [operation_test_data['indicateur1'].id_indicateur],
+            'id_metrique': operation_test_data['metrique1'].id_metrique,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -227,17 +242,14 @@ class TestOperationCreateEndpoint:
             'description': 'Description complète de l\'opération',
             'annee_min': 2025,
             'annee_max': 2030,
-            'indicateur_ids': [
-                operation_test_data['indicateur1'].id_indicateur,
-                operation_test_data['indicateur2'].id_indicateur,
-            ],
+            'id_metrique': operation_test_data['metrique1'].id_metrique,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Complète')
         assert op.code_operation == 'OP-COMP'
         assert op.annee_min == 2025
         assert op.annee_max == 2030
-        assert op.indicateurs.count() == 2
+        assert op.id_metrique == operation_test_data['metrique1']
 
     def test_create_with_minimal_fields(self, api_client, operation_test_data):
         """Test create with only required field (libelle)."""
@@ -247,7 +259,7 @@ class TestOperationCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Minimale')
-        assert op.indicateurs.count() == 0
+        assert op.id_metrique is None
 
     def test_create_missing_libelle_returns_400(self, api_client, operation_test_data):
         """Test create without required libelle returns 400."""
@@ -257,27 +269,24 @@ class TestOperationCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_with_m2m_indicateurs(self, api_client, operation_test_data):
-        """Test M2M indicateur_ids are properly linked."""
+    def test_create_with_metrique(self, api_client, operation_test_data):
+        """Test id_metrique FK is properly set."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
-        ind1_id = operation_test_data['indicateur1'].id_indicateur
-        ind2_id = operation_test_data['indicateur2'].id_indicateur
+        met_id = operation_test_data['metrique1'].id_metrique
         response = api_client.post('/api/plans/operations/', {
-            'libelle': 'Opération Multi-Indicateurs',
-            'indicateur_ids': [ind1_id, ind2_id],
+            'libelle': 'Opération avec Métrique',
+            'id_metrique': met_id,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
-        op = Operation.objects.get(libelle='Opération Multi-Indicateurs')
-        ind_ids = list(op.indicateurs.values_list('id_indicateur', flat=True))
-        assert ind1_id in ind_ids
-        assert ind2_id in ind_ids
+        op = Operation.objects.get(libelle='Opération avec Métrique')
+        assert op.id_metrique_id == met_id
 
     def test_audit_field_set_on_create(self, api_client, operation_test_data):
         """Test id_utilisateur_ajout is set on create."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Opération Audit',
-            'indicateur_ids': [operation_test_data['indicateur1'].id_indicateur],
+            'id_metrique': operation_test_data['metrique1'].id_metrique,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Audit')
@@ -344,21 +353,16 @@ class TestOperationDetailEndpoint:
         response = api_client.get(f'/api/plans/operations/{op_id}/')
         assert response.status_code == status.HTTP_200_OK
 
-    def test_detail_includes_indicateur_ids(self, api_client, operation_test_data):
-        """Test detail includes indicateur_ids."""
-        api_client.force_authenticate(user=operation_test_data['super_admin'])
-        op_id = operation_test_data['op2'].id_operation
-        response = api_client.get(f'/api/plans/operations/{op_id}/')
-        assert response.status_code == status.HTTP_200_OK
-        assert 'indicateur_ids' in response.data
-        assert len(response.data['indicateur_ids']) == 2
-
-    def test_detail_includes_nb_indicateurs(self, api_client, operation_test_data):
-        """Test detail includes nb_indicateurs."""
+    def test_detail_includes_metrique_info(self, api_client, operation_test_data):
+        """Test detail includes id_metrique, metrique_nom, indicateur_id, indicateur_nom."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         op_id = operation_test_data['op1'].id_operation
         response = api_client.get(f'/api/plans/operations/{op_id}/')
-        assert response.data['nb_indicateurs'] == 1
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['id_metrique'] == operation_test_data['metrique1'].id_metrique
+        assert response.data['metrique_nom'] == operation_test_data['metrique1'].nom_metrique
+        assert response.data['indicateur_id'] == operation_test_data['indicateur1'].id_indicateur
+        assert response.data['indicateur_nom'] == operation_test_data['indicateur1'].nom_indicateur
 
     def test_detail_includes_priorite_label(self, api_client, operation_test_data):
         """Test detail includes priorite_label."""
@@ -605,22 +609,20 @@ class TestOperationUpdateEndpoint:
         operation_test_data['op1'].refresh_from_db()
         assert operation_test_data['op1'].id_priorite == operation_test_data['priorite_2']
 
-    def test_update_indicateur_ids_replaces(self, api_client, operation_test_data):
-        """Test updating indicateur_ids replaces existing M2M relations."""
+    def test_update_metrique_replaces(self, api_client, operation_test_data):
+        """Test updating id_metrique replaces existing FK."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         op_id = operation_test_data['op1'].id_operation
-        ind2_id = operation_test_data['indicateur2'].id_indicateur
+        met2_id = operation_test_data['metrique2'].id_metrique
 
-        # op1 currently linked to indicateur1 only
+        # op1 currently linked to metrique1
         response = api_client.patch(f'/api/plans/operations/{op_id}/', {
-            'indicateur_ids': [ind2_id]
+            'id_metrique': met2_id
         }, format='json')
         assert response.status_code == status.HTTP_200_OK
 
         operation_test_data['op1'].refresh_from_db()
-        linked_ids = list(operation_test_data['op1'].indicateurs.values_list('id_indicateur', flat=True))
-        assert ind2_id in linked_ids
-        assert operation_test_data['indicateur1'].id_indicateur not in linked_ids
+        assert operation_test_data['op1'].id_metrique_id == met2_id
 
     def test_update_annee_range(self, api_client, operation_test_data):
         """Test updating year range."""
@@ -679,15 +681,18 @@ class TestOperationDeleteEndpoint:
         response = api_client.delete(f'/api/plans/operations/{op_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    def test_cascade_cor_deleted(self, api_client, operation_test_data):
-        """Test deleting operation cascades to cor_operation_indicateur."""
+    def test_delete_does_not_cascade_to_metrique(self, api_client, operation_test_data):
+        """Test deleting operation does not cascade to metrique (SET_NULL)."""
         op_id = operation_test_data['op2'].id_operation
-        assert CorOperationIndicateur.objects.filter(id_operation_id=op_id).count() == 2
+        met_id = operation_test_data['op2'].id_metrique_id
 
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.delete(f'/api/plans/operations/{op_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not CorOperationIndicateur.objects.filter(id_operation_id=op_id).exists()
+        assert not Operation.objects.filter(id_operation=op_id).exists()
+        # Metrique should still exist
+        from apps.plans.models_indicateurs import Metrique
+        assert Metrique.objects.filter(id_metrique=met_id).exists()
 
     def test_nonexistent_id_returns_404(self, api_client, operation_test_data):
         """Test deleting nonexistent ID returns 404."""
@@ -763,12 +768,11 @@ class TestOperationFilters:
     def test_filter_by_id_indicateur(self, api_client, operation_test_data):
         """Test filter by indicateur ID."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
-        ind2_id = operation_test_data['indicateur2'].id_indicateur
-        response = api_client.get(f'/api/plans/operations/?id_indicateur={ind2_id}')
+        ind1_id = operation_test_data['indicateur1'].id_indicateur
+        response = api_client.get(f'/api/plans/operations/?id_indicateur={ind1_id}')
         assert response.status_code == status.HTTP_200_OK
-        # Only op2 is linked to indicateur2
-        assert len(response.data['results']) == 1
-        assert response.data['results'][0]['libelle'] == 'Suivi floristique annuel'
+        # Both op1 and op2 are linked to metrique1 which belongs to indicateur1
+        assert len(response.data['results']) == 2
 
     def test_filter_by_id_priorite(self, api_client, operation_test_data):
         """Test filter by priority."""

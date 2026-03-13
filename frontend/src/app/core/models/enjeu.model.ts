@@ -115,17 +115,13 @@ export interface Enjeu {
   nb_habitats?: number;
   nb_geologies?: number;
 
-  // Facteurs d'influence
+  // Facteurs d'influence (avec OO imbriqués)
   facteurs_influence?: FacteurInfluence[];
   nb_facteurs_influence?: number;
 
-  // Objectifs à Long Terme (OLT)
-  objectifs_long_terme?: ObjectifLongTerme[];
-  nb_olt?: number;
-
-  // Objectifs Opérationnels (OO)
-  objectifs_operationnels?: ObjectifOperationnel[];
-  nb_oo?: number;
+  // États Actuels (avec OLT imbriqués)
+  etats_actuels?: EtatActuel[];
+  nb_etats_actuels?: number;
 
   // Audit
   date_ajout: string;
@@ -158,6 +154,8 @@ export interface FacteurInfluence {
   description?: string;
   pressions?: Pression[];
   nb_pressions?: number;
+  objectifs_operationnels?: ObjectifOperationnel[];
+  nb_oo?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
@@ -182,29 +180,31 @@ export interface PressionCreatePayload {
 }
 
 /**
- * Objectif à Long Terme (OLT)
+ * État actuel rattaché à un enjeu.
+ * Hiérarchie : Enjeu → EtatActuel → OLT → NiveauExigence.
  */
-export interface ObjectifLongTerme {
-  id_olt: number;
+export interface EtatActuel {
+  id_etat_actuel: number;
   id_enjeu: number;
   libelle: string;
   description?: string;
-  etat_actuel?: EtatActuel;
-  niveaux_exigence?: NiveauExigence[];
-  nb_niveaux_exigence?: number;
+  objectifs_long_terme?: ObjectifLongTerme[];
+  nb_olt?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
 }
 
 /**
- * État actuel d'un OLT (1:1)
+ * Objectif à Long Terme (OLT) rattaché à un état actuel.
  */
-export interface EtatActuel {
-  id_etat_actuel: number;
+export interface ObjectifLongTerme {
   id_olt: number;
+  id_etat_actuel: number;
   libelle: string;
   description?: string;
+  niveaux_exigence?: NiveauExigence[];
+  nb_niveaux_exigence?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
@@ -230,10 +230,9 @@ export interface NiveauExigence {
  */
 export interface ObjectifOperationnel {
   id_oo: number;
-  id_enjeu: number;
+  id_facteur_influence: number;
   libelle: string;
   description?: string;
-  id_facteur_influence?: number;
   facteur_influence_libelle?: string;
   resultats_attendus?: ResultatAttendu[];
   nb_resultats_attendus?: number;
@@ -436,12 +435,13 @@ export interface Operation {
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
   geom?: GeoJSONGeometry;
-  indicateur_ids?: number[];
-  nb_indicateurs?: number;
+  // FK to Metrique (indicateur accessed via metrique.id_indicateur)
+  id_metrique?: number;
+  metrique_nom?: string;
+  indicateur_id?: number;
+  indicateur_nom?: string;
   site_ids?: number[];
   nb_sites?: number;
-  metrique_ids?: number[];
-  nb_metriques?: number;
   // Nested relational data
   operation_annees?: OperationAnnee[];
   finances?: FinanceOperation[];
@@ -474,9 +474,8 @@ export interface OperationCreatePayload {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
-  indicateur_ids?: number[];
+  id_metrique?: number;
   site_ids?: number[];
-  metrique_ids?: number[];
   // Nested relational data
   operation_annees?: Omit<OperationAnnee, 'id_operation_annee' | 'operateur_label'>[];
   finances?: Omit<FinanceOperation, 'id_finance_operation' | 'categorie_label'>[];
@@ -512,10 +511,9 @@ export interface IndicateurCreatePayload {
  * Payload for creating an ObjectifOperationnel
  */
 export interface ObjectifOperationnelCreatePayload {
-  id_enjeu: number;
+  id_facteur_influence: number;
   libelle: string;
   description?: string;
-  id_facteur_influence?: number;
 }
 
 /**
@@ -559,7 +557,7 @@ export interface MesureCreatePayload {
  * Payload for creating an EtatActuel
  */
 export interface EtatActuelCreatePayload {
-  id_olt: number;
+  id_enjeu: number;
   libelle: string;
   description?: string;
 }
@@ -568,7 +566,7 @@ export interface EtatActuelCreatePayload {
  * Payload for creating an ObjectifLongTerme
  */
 export interface ObjectifLongTermeCreatePayload {
-  id_enjeu: number;
+  id_etat_actuel: number;
   libelle: string;
   description?: string;
 }

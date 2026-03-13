@@ -21,7 +21,7 @@ class OperationFilter(django_filters.FilterSet):
         fields = ['id_priorite', 'id_type_action']
 
     def filter_by_indicateur(self, queryset, name, value):
-        return queryset.filter(indicateurs__id_indicateur=value).distinct()
+        return queryset.filter(id_metrique__id_indicateur__id_indicateur=value).distinct()
 
     def filter_by_site(self, queryset, name, value):
         return queryset.filter(sites__id_site=value).distinct()

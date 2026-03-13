@@ -313,10 +313,7 @@ class PlanDuplicationService:
             if not copy_sub_elements:
                 continue
 
-            # Build mapping old_facteur_id -> new_facteur_id for OO FK remap
-            facteur_id_map = {}
-
-            # Copy FacteurInfluence -> Pression
+            # Copy FacteurInfluence -> Pression + OO -> ResultatAttendu -> Indicateur
             for old_fi in FacteurInfluence.objects.filter(id_enjeu_id=old_enjeu_id):
                 old_fi_id = old_fi.id_facteur_influence
                 new_fi = FacteurInfluence.objects.create(
@@ -326,7 +323,6 @@ class PlanDuplicationService:
                     id_utilisateur_ajout=user,
                     id_utilisateur_maj=user,
                 )
-                facteur_id_map[old_fi_id] = new_fi
 
                 for old_pression in Pression.objects.filter(id_facteur_influence_id=old_fi_id):
                     Pression.objects.create(
@@ -338,79 +334,69 @@ class PlanDuplicationService:
                         id_utilisateur_maj=user,
                     )
 
-            # Copy OLT -> EtatActuel, NiveauExigence -> Indicateur -> Metrique
-            for old_olt in ObjectifLongTerme.objects.filter(id_enjeu_id=old_enjeu_id):
-                new_olt = ObjectifLongTerme.objects.create(
+                # Copy OO -> ResultatAttendu -> Indicateur -> Metrique (under this facteur)
+                for old_oo in ObjectifOperationnel.objects.filter(id_facteur_influence_id=old_fi_id):
+                    new_oo = ObjectifOperationnel.objects.create(
+                        id_facteur_influence=new_fi,
+                        libelle=old_oo.libelle,
+                        description=old_oo.description,
+                        id_utilisateur_ajout=user,
+                        id_utilisateur_maj=user,
+                    )
+
+                    for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
+                        new_ra = ResultatAttendu.objects.create(
+                            id_oo=new_oo,
+                            libelle=old_ra.libelle,
+                            description=old_ra.description,
+                            id_utilisateur_ajout=user,
+                            id_utilisateur_maj=user,
+                        )
+
+                        for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
+                            new_ind = PlanDuplicationService._copy_indicateur(
+                                old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                            )
+                            PlanDuplicationService._copy_indicateur_relations(
+                                old_ind, new_ind, user
+                            )
+
+            # Copy EtatActuel -> OLT -> NiveauExigence -> Indicateur -> Metrique
+            for old_ea in EtatActuel.objects.filter(id_enjeu_id=old_enjeu_id):
+                new_ea = EtatActuel.objects.create(
                     id_enjeu=new_enjeu,
-                    libelle=old_olt.libelle,
-                    description=old_olt.description,
+                    libelle=old_ea.libelle,
+                    description=old_ea.description,
                     id_utilisateur_ajout=user,
                     id_utilisateur_maj=user,
                 )
 
-                # EtatActuel (1:1)
-                try:
-                    old_ea = old_olt.etat_actuel
-                    EtatActuel.objects.create(
-                        id_olt=new_olt,
-                        libelle=old_ea.libelle,
-                        description=old_ea.description,
-                        id_utilisateur_ajout=user,
-                        id_utilisateur_maj=user,
-                    )
-                except EtatActuel.DoesNotExist:
-                    pass
-
-                # NiveauExigence -> Indicateur -> Metrique
-                for old_ne in NiveauExigence.objects.filter(id_olt=old_olt):
-                    new_ne = NiveauExigence.objects.create(
-                        id_olt=new_olt,
-                        libelle=old_ne.libelle,
-                        description=old_ne.description,
+                for old_olt in ObjectifLongTerme.objects.filter(id_etat_actuel=old_ea):
+                    new_olt = ObjectifLongTerme.objects.create(
+                        id_etat_actuel=new_ea,
+                        libelle=old_olt.libelle,
+                        description=old_olt.description,
                         id_utilisateur_ajout=user,
                         id_utilisateur_maj=user,
                     )
 
-                    for old_ind in Indicateur.objects.filter(id_ne=old_ne):
-                        new_ind = PlanDuplicationService._copy_indicateur(
-                            old_ind, user, id_ne=new_ne, id_resultat_attendu=None
-                        )
-                        PlanDuplicationService._copy_indicateur_relations(
-                            old_ind, new_ind, user
+                    # NiveauExigence -> Indicateur -> Metrique
+                    for old_ne in NiveauExigence.objects.filter(id_olt=old_olt):
+                        new_ne = NiveauExigence.objects.create(
+                            id_olt=new_olt,
+                            libelle=old_ne.libelle,
+                            description=old_ne.description,
+                            id_utilisateur_ajout=user,
+                            id_utilisateur_maj=user,
                         )
 
-            # Copy OO -> ResultatAttendu -> Indicateur -> Metrique
-            for old_oo in ObjectifOperationnel.objects.filter(id_enjeu_id=old_enjeu_id):
-                # Remap facteur_influence FK
-                new_fi_ref = None
-                if old_oo.id_facteur_influence_id:
-                    new_fi_ref = facteur_id_map.get(old_oo.id_facteur_influence_id)
-
-                new_oo = ObjectifOperationnel.objects.create(
-                    id_enjeu=new_enjeu,
-                    libelle=old_oo.libelle,
-                    description=old_oo.description,
-                    id_facteur_influence=new_fi_ref,
-                    id_utilisateur_ajout=user,
-                    id_utilisateur_maj=user,
-                )
-
-                for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
-                    new_ra = ResultatAttendu.objects.create(
-                        id_oo=new_oo,
-                        libelle=old_ra.libelle,
-                        description=old_ra.description,
-                        id_utilisateur_ajout=user,
-                        id_utilisateur_maj=user,
-                    )
-
-                    for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
-                        new_ind = PlanDuplicationService._copy_indicateur(
-                            old_ind, user, id_ne=None, id_resultat_attendu=new_ra
-                        )
-                        PlanDuplicationService._copy_indicateur_relations(
-                            old_ind, new_ind, user
-                        )
+                        for old_ind in Indicateur.objects.filter(id_ne=old_ne):
+                            new_ind = PlanDuplicationService._copy_indicateur(
+                                old_ind, user, id_ne=new_ne, id_resultat_attendu=None
+                            )
+                            PlanDuplicationService._copy_indicateur_relations(
+                                old_ind, new_ind, user
+                            )
 
     @staticmethod
     def _copy_indicateur(old_ind, user, id_ne=None, id_resultat_attendu=None):

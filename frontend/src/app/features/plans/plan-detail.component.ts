@@ -124,21 +124,25 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Aggregated OLT/OO across all enjeux
   allOlts = computed(() => {
     return this.enjeuxData().flatMap(enjeu =>
-      (enjeu.objectifs_long_terme || []).map(olt => ({
-        ...olt,
-        enjeu_libelle: enjeu.libelle,
-        enjeu_id: enjeu.id_enjeu
-      }))
+      (enjeu.etats_actuels || []).flatMap(ea =>
+        (ea.objectifs_long_terme || []).map(olt => ({
+          ...olt,
+          enjeu_libelle: enjeu.libelle,
+          enjeu_id: enjeu.id_enjeu
+        }))
+      )
     );
   });
 
   allOos = computed(() => {
     return this.enjeuxData().flatMap(enjeu =>
-      (enjeu.objectifs_operationnels || []).map(oo => ({
-        ...oo,
-        enjeu_libelle: enjeu.libelle,
-        enjeu_id: enjeu.id_enjeu
-      }))
+      (enjeu.facteurs_influence || []).flatMap(fi =>
+        (fi.objectifs_operationnels || []).map(oo => ({
+          ...oo,
+          enjeu_libelle: enjeu.libelle,
+          enjeu_id: enjeu.id_enjeu
+        }))
+      )
     );
   });
 

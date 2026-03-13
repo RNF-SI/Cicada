@@ -39,7 +39,7 @@ from apps.plans.models_indicateurs import (
     CorIndicateurGeologie, Metrique, Mesure
 )
 from apps.plans.models_operations import (
-    Protocole, SuiviInventaire, Operation, CorOperationIndicateur,
+    Protocole, SuiviInventaire, Operation,
     CorOperationSite, OperationAnnee, FinanceOperation
 )
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
@@ -238,7 +238,6 @@ class Command(BaseCommand):
         count += FinanceOperation.objects.all().delete()[0]
         count += OperationAnnee.objects.all().delete()[0]
         count += CorOperationSite.objects.all().delete()[0]
-        count += CorOperationIndicateur.objects.all().delete()[0]
         count += Operation.objects.all().delete()[0]
         count += SuiviInventaire.objects.all().delete()[0]
         count += Protocole.objects.all().delete()[0]

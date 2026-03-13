@@ -1,6 +1,6 @@
 """
 Modèles pour les Opérations (Actions).
-Hiérarchie : Indicateur(s) ←M2M→ Opération(s)
+Hiérarchie : Métrique → Opération(s) (FK simple, une opération = une métrique)
 """
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
@@ -379,8 +379,8 @@ class SuiviInventaire(models.Model):
 
 class Operation(models.Model):
     """
-    Opération (action) rattachée à un ou plusieurs indicateurs
-    via la table de liaison cor_operation_indicateur.
+    Opération (action) rattachée à une métrique (FK simple).
+    L'indicateur est déduit via metrique.id_indicateur.
     """
 
     id_operation = models.AutoField(primary_key=True)
@@ -528,26 +528,22 @@ class Operation(models.Model):
         help_text=_("Emprise géographique de l'opération")
     )
 
-    # M2M vers Indicateur via table explicite
-    indicateurs = models.ManyToManyField(
-        'plans.Indicateur',
-        through='CorOperationIndicateur',
+    # FK vers Métrique (une opération est liée à une seule métrique)
+    id_metrique = models.ForeignKey(
+        'plans.Metrique',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='operations',
-        blank=True
+        db_column='id_metrique',
+        verbose_name=_("Métrique"),
+        help_text=_("Métrique associée à cette opération")
     )
 
     # M2M vers Site (zones d'application)
     sites = models.ManyToManyField(
         'users.Site',
         through='CorOperationSite',
-        related_name='operations',
-        blank=True
-    )
-
-    # M2M vers Metrique (métriques associées)
-    metriques = models.ManyToManyField(
-        'plans.Metrique',
-        through='CorOperationMetrique',
         related_name='operations',
         blank=True
     )
@@ -583,36 +579,6 @@ class Operation(models.Model):
         return self.libelle
 
 
-class CorOperationIndicateur(models.Model):
-    """
-    Table de liaison entre Opérations et Indicateurs (M2M).
-    """
-
-    id = models.AutoField(primary_key=True)
-    id_operation = models.ForeignKey(
-        Operation,
-        on_delete=models.CASCADE,
-        db_column='id_operation',
-        verbose_name=_("Opération")
-    )
-    id_indicateur = models.ForeignKey(
-        'plans.Indicateur',
-        on_delete=models.CASCADE,
-        db_column='id_indicateur',
-        verbose_name=_("Indicateur")
-    )
-
-    class Meta:
-        db_table = '"general"."cor_operation_indicateur"'
-        db_table_comment = "Liaison opérations - indicateurs"
-        verbose_name = _("Opération - Indicateur")
-        verbose_name_plural = _("Opérations - Indicateurs")
-        unique_together = ['id_operation', 'id_indicateur']
-
-    def __str__(self):
-        return f"Opération {self.id_operation_id} - Indicateur {self.id_indicateur_id}"
-
-
 class CorOperationSite(models.Model):
     """
     Table de liaison entre Opérations et Sites (zones d'application).
@@ -641,36 +607,6 @@ class CorOperationSite(models.Model):
 
     def __str__(self):
         return f"Opération {self.id_operation_id} - Site {self.id_site_id}"
-
-
-class CorOperationMetrique(models.Model):
-    """
-    Table de liaison entre Opérations et Métriques.
-    """
-
-    id = models.AutoField(primary_key=True)
-    id_operation = models.ForeignKey(
-        Operation,
-        on_delete=models.CASCADE,
-        db_column='id_operation',
-        verbose_name=_("Opération")
-    )
-    id_metrique = models.ForeignKey(
-        'plans.Metrique',
-        on_delete=models.CASCADE,
-        db_column='id_metrique',
-        verbose_name=_("Métrique")
-    )
-
-    class Meta:
-        db_table = '"general"."cor_operation_metrique"'
-        db_table_comment = "Liaison opérations - métriques"
-        verbose_name = _("Opération - Métrique")
-        verbose_name_plural = _("Opérations - Métriques")
-        unique_together = ['id_operation', 'id_metrique']
-
-    def __str__(self):
-        return f"Opération {self.id_operation_id} - Métrique {self.id_metrique_id}"
 
 
 class OperationAnnee(models.Model):

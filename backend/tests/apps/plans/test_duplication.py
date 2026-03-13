@@ -455,8 +455,8 @@ class TestCopySubElements:
 
     def test_olt_and_etat_actuel_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle='OLT A', id_utilisateur_ajout=user)
-        EtatActuelFactory(id_olt=olt, libelle='EA A', id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, libelle='EA A', id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, libelle='OLT A', id_utilisateur_ajout=user)
 
         new_plan = PlanDuplicationService.duplicate_plan(
             source_plan=source_plan, user=user,
@@ -465,16 +465,17 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        assert new_ea.libelle == 'EA A'
+
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         assert new_olt.libelle == 'OLT A'
         assert new_olt.id_olt != olt.id_olt
 
-        new_ea = EtatActuel.objects.get(id_olt=new_olt)
-        assert new_ea.libelle == 'EA A'
-
     def test_niveau_exigence_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         NiveauExigenceFactory(id_olt=olt, libelle='NE A', id_utilisateur_ajout=user)
         NiveauExigenceFactory(id_olt=olt, libelle='NE B', id_utilisateur_ajout=user)
 
@@ -485,13 +486,15 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         nes = NiveauExigence.objects.filter(id_olt=new_olt)
         assert nes.count() == 2
 
     def test_indicateur_on_ne_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind = IndicateurFactory(id_ne=ne, nom_indicateur='Ind A', id_utilisateur_ajout=user)
 
@@ -502,7 +505,8 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         inds = Indicateur.objects.filter(id_ne=new_ne)
         assert inds.count() == 1
@@ -511,7 +515,8 @@ class TestCopySubElements:
 
     def test_metrique_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind, nom_metrique='Met A', id_utilisateur_ajout=user)
@@ -523,7 +528,8 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         new_ind = Indicateur.objects.get(id_ne=new_ne)
         mets = Metrique.objects.filter(id_indicateur=new_ind)
@@ -532,7 +538,8 @@ class TestCopySubElements:
 
     def test_indicateur_m2m_taxon_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
         CorIndicateurTaxonFactory(id_indicateur=ind, cd_nom=99999, nom_complet='Taxon Ind')
@@ -544,7 +551,8 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         new_ind = Indicateur.objects.get(id_ne=new_ne)
         taxons = CorIndicateurTaxon.objects.filter(id_indicateur=new_ind)
@@ -560,13 +568,12 @@ class TestCopySubElements:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestOOFacteurRemap:
-    """Tests for ObjectifOperationnel FK remap to new FacteurInfluence."""
+    """Tests for ObjectifOperationnel under FacteurInfluence duplication."""
 
     def test_oo_with_facteur_remapped(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
         ObjectifOperationnelFactory(
-            id_enjeu=enjeu,
             id_facteur_influence=fi,
             libelle='OO linked',
             id_utilisateur_ajout=user,
@@ -580,33 +587,15 @@ class TestOOFacteurRemap:
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
-        new_oo = ObjectifOperationnel.objects.get(id_enjeu=new_enjeu)
+        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
         # The FK must point to the NEW facteur, not the old one
         assert new_oo.id_facteur_influence == new_fi
         assert new_oo.id_facteur_influence_id != fi.id_facteur_influence
 
-    def test_oo_without_facteur(self, source_plan, user):
-        enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        ObjectifOperationnelFactory(
-            id_enjeu=enjeu,
-            id_facteur_influence=None,
-            libelle='OO standalone',
-            id_utilisateur_ajout=user,
-        )
-
-        new_plan = PlanDuplicationService.duplicate_plan(
-            source_plan=source_plan, user=user,
-            copy_sites=False, copy_referents=False,
-            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
-        )
-
-        new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_oo = ObjectifOperationnel.objects.get(id_enjeu=new_enjeu)
-        assert new_oo.id_facteur_influence is None
-
     def test_oo_resultat_attendu_indicateur_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        oo = ObjectifOperationnelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        oo = ObjectifOperationnelFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
         ra = ResultatAttenduFactory(id_oo=oo, libelle='RA A', id_utilisateur_ajout=user)
         ind = IndicateurPressionFactory(id_resultat_attendu=ra, nom_indicateur='Ind OO', id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind, nom_metrique='Met OO', id_utilisateur_ajout=user)
@@ -618,7 +607,8 @@ class TestOOFacteurRemap:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_oo = ObjectifOperationnel.objects.get(id_enjeu=new_enjeu)
+        new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
+        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         assert new_ra.libelle == 'RA A'
 
@@ -641,7 +631,8 @@ class TestExclusions:
 
     def test_mesures_not_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
         met = MetriqueFactory(id_indicateur=ind, id_utilisateur_ajout=user)
@@ -655,7 +646,8 @@ class TestExclusions:
 
         # Metrique should be copied, but Mesure should not
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         new_ind = Indicateur.objects.get(id_ne=new_ne)
         new_met = Metrique.objects.get(id_indicateur=new_ind)
@@ -810,9 +802,9 @@ class TestFullHierarchyDuplication:
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, libelle='FI', id_utilisateur_ajout=user)
         PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
 
-        # OLT + EA + NE + Indicateur (on NE) + Metrique
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
-        EtatActuelFactory(id_olt=olt, id_utilisateur_ajout=user)
+        # EA + OLT + NE + Indicateur (on NE) + Metrique
+        etat = EtatActuelFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind_ne = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind_ne, id_utilisateur_ajout=user)
@@ -820,7 +812,7 @@ class TestFullHierarchyDuplication:
 
         # OO linked to FI + RA + Indicateur (on RA) + Metrique
         oo = ObjectifOperationnelFactory(
-            id_enjeu=enjeu, id_facteur_influence=fi, id_utilisateur_ajout=user
+            id_facteur_influence=fi, id_utilisateur_ajout=user
         )
         ra = ResultatAttenduFactory(id_oo=oo, id_utilisateur_ajout=user)
         ind_ra = IndicateurPressionFactory(id_resultat_attendu=ra, id_utilisateur_ajout=user)
@@ -858,17 +850,16 @@ class TestFullHierarchyDuplication:
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
         assert Pression.objects.filter(id_facteur_influence=new_fi).count() == 1
 
-        # Verify OLT chain
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
-        assert EtatActuel.objects.filter(id_olt=new_olt).exists()
+        # Verify EA -> OLT chain
+        new_ea = EtatActuel.objects.get(id_enjeu=new_enjeu)
+        new_olt = ObjectifLongTerme.objects.get(id_etat_actuel=new_ea)
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         new_ind_ne = Indicateur.objects.get(id_ne=new_ne)
         assert Metrique.objects.filter(id_indicateur=new_ind_ne).count() == 1
         assert CorIndicateurTaxon.objects.filter(id_indicateur=new_ind_ne).count() == 1
 
-        # Verify OO chain with FK remap
-        new_oo = ObjectifOperationnel.objects.get(id_enjeu=new_enjeu)
-        assert new_oo.id_facteur_influence == new_fi
+        # Verify OO chain under facteur
+        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         new_ind_ra = Indicateur.objects.get(id_resultat_attendu=new_ra)
         assert Metrique.objects.filter(id_indicateur=new_ind_ra).count() == 1

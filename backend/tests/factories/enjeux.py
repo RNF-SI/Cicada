@@ -14,7 +14,7 @@ from apps.plans.models_enjeux import (
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, CorIndicateurTaxon,
 )
-from apps.plans.models_operations import Protocole, SuiviInventaire, Operation, CorOperationIndicateur
+from apps.plans.models_operations import Protocole, SuiviInventaire, Operation
 from tests.factories.core import TypeNomenclatureFactory, NomenclatureFactory
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -142,26 +142,26 @@ class PressionFactory(DjangoModelFactory):
 # État Actuel / OLT / Niveau d'Exigence factories
 # =============================================================================
 
+class EtatActuelFactory(DjangoModelFactory):
+    """Factory for EtatActuel model (child of Enjeu, parent of OLT)."""
+
+    class Meta:
+        model = EtatActuel
+
+    id_enjeu = factory.SubFactory(EnjeuFactory)
+    libelle = factory.Sequence(lambda n: f'État Actuel Test {n}')
+    description = factory.Faker('sentence', locale='fr_FR')
+    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+
 class ObjectifLongTermeFactory(DjangoModelFactory):
     """Factory for ObjectifLongTerme model."""
 
     class Meta:
         model = ObjectifLongTerme
 
-    id_enjeu = factory.SubFactory(EnjeuFactory)
+    id_etat_actuel = factory.SubFactory(EtatActuelFactory)
     libelle = factory.Sequence(lambda n: f'OLT Test {n}')
-    description = factory.Faker('sentence', locale='fr_FR')
-    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
-
-
-class EtatActuelFactory(DjangoModelFactory):
-    """Factory for EtatActuel model (1:1 with OLT)."""
-
-    class Meta:
-        model = EtatActuel
-
-    id_olt = factory.SubFactory(ObjectifLongTermeFactory)
-    libelle = factory.Sequence(lambda n: f'État Actuel Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
 
@@ -188,10 +188,9 @@ class ObjectifOperationnelFactory(DjangoModelFactory):
     class Meta:
         model = ObjectifOperationnel
 
-    id_enjeu = factory.SubFactory(EnjeuFactory)
+    id_facteur_influence = factory.SubFactory(FacteurInfluenceFactory)
     libelle = factory.Sequence(lambda n: f'OO Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
-    id_facteur_influence = None
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
 
 
@@ -414,14 +413,5 @@ class OperationFactory(DjangoModelFactory):
     id_referentiel_operations = factory.Sequence(lambda n: f'REF-{n:03d}')
     annee_min = 2024
     annee_max = 2030
+    id_metrique = None
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
-
-
-class CorOperationIndicateurFactory(DjangoModelFactory):
-    """Factory for CorOperationIndicateur (operation-indicateur relationship)."""
-
-    class Meta:
-        model = CorOperationIndicateur
-
-    id_operation = factory.SubFactory(OperationFactory)
-    id_indicateur = factory.SubFactory(IndicateurFactory)

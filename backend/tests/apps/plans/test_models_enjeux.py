@@ -301,28 +301,43 @@ class TestPressionModel:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestEtatActuelModel:
-    """Tests for the EtatActuel model (1:1 with OLT)."""
+    """Tests for the EtatActuel model (child of Enjeu, parent of OLT)."""
 
     def test_create_with_required_fields(self):
         """Test creating an état actuel with required fields."""
         etat = EtatActuelFactory()
         assert etat.id_etat_actuel is not None
         assert etat.libelle is not None
-        assert etat.id_olt is not None
+        assert etat.id_enjeu is not None
 
     def test_str_returns_libelle(self):
-        """Test __str__ returns libelle with OLT info."""
-        olt = ObjectifLongTermeFactory(libelle='Mon OLT')
-        etat = EtatActuelFactory(libelle='État dégradé', id_olt=olt)
+        """Test __str__ returns libelle with enjeu info."""
+        enjeu = EnjeuFactory(libelle='Mon Enjeu')
+        etat = EtatActuelFactory(libelle='État dégradé', id_enjeu=enjeu)
         assert 'État dégradé' in str(etat)
 
-    def test_fk_olt_cascade_delete(self):
-        """Test deleting OLT cascades to état actuel (1:1)."""
-        olt = ObjectifLongTermeFactory()
-        etat = EtatActuelFactory(id_olt=olt)
+    def test_fk_enjeu_cascade_delete(self):
+        """Test deleting Enjeu cascades to état actuel."""
+        enjeu = EnjeuFactory()
+        etat = EtatActuelFactory(id_enjeu=enjeu)
         etat_id = etat.id_etat_actuel
-        olt.delete()
+        enjeu.delete()
         assert not EtatActuel.objects.filter(id_etat_actuel=etat_id).exists()
+
+    def test_reverse_relation_objectifs_long_terme(self):
+        """Test reverse relation 'objectifs_long_terme' works."""
+        etat = EtatActuelFactory()
+        ObjectifLongTermeFactory(id_etat_actuel=etat)
+        ObjectifLongTermeFactory(id_etat_actuel=etat)
+        assert etat.objectifs_long_terme.count() == 2
+
+    def test_cascade_delete_objectifs_long_terme(self):
+        """Test deleting EtatActuel cascades to OLTs."""
+        etat = EtatActuelFactory()
+        ObjectifLongTermeFactory(id_etat_actuel=etat)
+        etat_id = etat.id_etat_actuel
+        etat.delete()
+        assert not ObjectifLongTerme.objects.filter(id_etat_actuel_id=etat_id).exists()
 
     def test_description_optional(self):
         """Test description is optional (null=True, blank=True)."""
@@ -350,20 +365,20 @@ class TestObjectifLongTermeModel:
         olt = ObjectifLongTermeFactory()
         assert olt.id_olt is not None
         assert olt.libelle is not None
-        assert olt.id_enjeu is not None
+        assert olt.id_etat_actuel is not None
 
     def test_str_returns_libelle(self):
-        """Test __str__ returns libelle with enjeu info."""
-        enjeu = EnjeuFactory(libelle='Mon Enjeu')
-        olt = ObjectifLongTermeFactory(libelle='Restaurer les habitats', id_enjeu=enjeu)
+        """Test __str__ returns libelle with etat actuel info."""
+        etat = EtatActuelFactory(libelle='Mon État')
+        olt = ObjectifLongTermeFactory(libelle='Restaurer les habitats', id_etat_actuel=etat)
         assert 'Restaurer les habitats' in str(olt)
 
-    def test_fk_enjeu_cascade_delete(self):
-        """Test FK to Enjeu is CASCADE."""
-        enjeu = EnjeuFactory()
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu)
+    def test_fk_etat_actuel_cascade_delete(self):
+        """Test FK to EtatActuel is CASCADE."""
+        etat = EtatActuelFactory()
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat)
         olt_id = olt.id_olt
-        enjeu.delete()
+        etat.delete()
         assert not ObjectifLongTerme.objects.filter(id_olt=olt_id).exists()
 
     def test_reverse_relation_niveaux_exigence(self):
@@ -381,13 +396,13 @@ class TestObjectifLongTermeModel:
         olt.delete()
         assert not NiveauExigence.objects.filter(id_olt_id=olt_id).exists()
 
-    def test_cascade_delete_etat_actuel(self):
-        """Test deleting OLT cascades to état actuel (1:1)."""
-        olt = ObjectifLongTermeFactory()
-        etat = EtatActuelFactory(id_olt=olt)
+    def test_delete_olt_does_not_cascade_to_etat_actuel(self):
+        """Test deleting OLT does NOT cascade to parent EtatActuel."""
+        etat = EtatActuelFactory()
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat)
         etat_id = etat.id_etat_actuel
         olt.delete()
-        assert not EtatActuel.objects.filter(id_etat_actuel=etat_id).exists()
+        assert EtatActuel.objects.filter(id_etat_actuel=etat_id).exists()
 
     def test_description_optional(self):
         """Test description is optional."""
@@ -401,15 +416,15 @@ class TestObjectifLongTermeModel:
         assert olt.date_maj is not None
 
     def test_full_cascade_from_enjeu(self):
-        """Test deleting enjeu cascades through OLT → EtatActuel and OLT → NE."""
+        """Test deleting enjeu cascades through EtatActuel → OLT and OLT → NE."""
         enjeu = EnjeuFactory()
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu)
-        EtatActuelFactory(id_olt=olt)
+        etat = EtatActuelFactory(id_enjeu=enjeu)
+        olt = ObjectifLongTermeFactory(id_etat_actuel=etat)
         NiveauExigenceFactory(id_olt=olt)
         enjeu_id = enjeu.id_enjeu
         enjeu.delete()
-        assert not ObjectifLongTerme.objects.filter(id_enjeu_id=enjeu_id).exists()
-        assert not EtatActuel.objects.filter(id_olt__id_enjeu_id=enjeu_id).exists()
+        assert not EtatActuel.objects.filter(id_enjeu_id=enjeu_id).exists()
+        assert not ObjectifLongTerme.objects.filter(id_etat_actuel__id_enjeu_id=enjeu_id).exists()
 
 
 # =============================================================================

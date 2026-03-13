@@ -520,733 +520,738 @@
 
               <!-- Barre haut : compteur -->
               <div class="olt-top-bar">
-                <p class="count-text">{{ totalOltCount() }} {{ 'enjeux.olt.countSuffix' | translate }}</p>
+                <p class="count-text">{{ totalEtatCount() }} {{ 'enjeux.etatActuel.countSuffix' | translate }}</p>
               </div>
 
-              <!-- Pour chaque OLT de l'enjeu -->
-              @for (olt of selectedOlts(); track olt.id_olt; let idx = $index) {
-                <!-- Mode édition OLT -->
-                @if (editingOltId() === olt.id_olt) {
+              <!-- Pour chaque État Actuel de l'enjeu -->
+              @for (etat of selectedEtats(); track etat.id_etat_actuel; let etatIdx = $index) {
+                <!-- Mode édition État Actuel -->
+                @if (editingEtatId() === etat.id_etat_actuel) {
                   <div class="inline-form olt-inline-form">
                     <div class="inline-form-header">
-                      <h4 class="inline-form-title">{{ 'enjeux.olt.editTitle' | translate }}</h4>
+                      <h4 class="inline-form-title">{{ 'enjeux.etatActuel.editTitle' | translate }}</h4>
                     </div>
                     <div class="inline-form-body">
                       <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                        <input matInput [(ngModel)]="editOltLibelle">
+                        <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
+                        <input matInput [(ngModel)]="editEtatLibelle">
                       </mat-form-field>
                       <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                        <textarea matInput [(ngModel)]="editOltDescription" rows="2"></textarea>
+                        <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
+                        <textarea matInput [(ngModel)]="editEtatDescription" rows="2"></textarea>
                       </mat-form-field>
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOlt(olt)" [disabled]="!editOltLibelle.trim()">
+                      <button mat-flat-button color="primary" (click)="saveEditEtat(etat)" [disabled]="!editEtatLibelle.trim()">
                         {{ 'common.actions.save' | translate }}
                       </button>
-                      <button mat-stroked-button (click)="cancelEditOlt()">
+                      <button mat-stroked-button (click)="cancelEditEtat()">
                         {{ 'common.actions.cancel' | translate }}
                       </button>
                     </div>
                   </div>
                 } @else {
-                  <!-- Barre OLT (utilise app-section-title réutilisable) -->
-                  <div class="olt-section-header" (click)="toggleOlt(olt.id_olt)">
+                  <!-- Barre État Actuel (utilise app-section-title réutilisable) -->
+                  <div class="olt-section-header" (click)="toggleEtat(etat.id_etat_actuel)">
                     <app-section-title
-                      [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
-                      icon="fi-rr-eye"
-                      ellipseColor="terra-cotta"
+                      [title]="('enjeux.etatActuel.label' | translate) + ' ' + (etatIdx + 1) + ' : ' + etat.libelle"
+                      icon="fi-rr-leaf"
+                      ellipseColor="pale-green"
                       size="md"
                       [showLine]="true">
                       <div sectionActions class="olt-header-actions">
-                        <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                        <button class="icon-btn-flat" (click)="startEditEtat(etat); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                           <i class="fi fi-rr-pencil"></i>
                         </button>
-                        <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                        <button class="icon-btn-flat" (click)="deleteEtatActuel(etat); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                           <i class="fi fi-rr-minus-circle"></i>
                         </button>
-                        <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOltExpanded(olt.id_olt)" [class.fi-rr-angle-small-up]="isOltExpanded(olt.id_olt)"></i>
+                        <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isEtatExpanded(etat.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(etat.id_etat_actuel)"></i>
                       </div>
                     </app-section-title>
                   </div>
 
-                  <!-- Contenu déplié de l'OLT -->
-                  @if (isOltExpanded(olt.id_olt)) {
+                  <!-- Contenu déplié de l'État Actuel -->
+                  @if (isEtatExpanded(etat.id_etat_actuel)) {
                     <div class="olt-expanded-content">
-                      <!-- Description OLT -->
-                      @if (olt.description) {
-                        <p class="olt-description">{{ olt.description }}</p>
+                      <!-- Description État Actuel -->
+                      @if (etat.description) {
+                        <p class="olt-description">{{ etat.description }}</p>
                       }
 
-                      <!-- État actuel (style facteur d'influence, carte avec bordure gauche) -->
-                      @if (olt.etat_actuel) {
-                        <div class="etat-actuel-card" [class.expanded]="isEtatExpanded(olt.etat_actuel.id_etat_actuel)">
-                          <!-- Mode édition état actuel -->
-                          @if (editingEtatId() === olt.etat_actuel.id_etat_actuel) {
-                            <div class="etat-card-body">
-                              <div class="inline-form etat-inline-form">
-                                <div class="inline-form-header">
-                                  <h4 class="inline-form-title">{{ 'enjeux.etatActuel.editTitle' | translate }}</h4>
-                                </div>
-                                <div class="inline-form-body">
-                                  <mat-form-field class="full-width" appearance="outline">
-                                    <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                                    <input matInput [(ngModel)]="editEtatLibelle">
-                                  </mat-form-field>
-                                  <mat-form-field class="full-width" appearance="outline">
-                                    <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                                    <textarea matInput [(ngModel)]="editEtatDescription" rows="2"></textarea>
-                                  </mat-form-field>
-                                </div>
-                                <div class="inline-form-actions">
-                                  <button mat-flat-button color="primary" (click)="saveEditEtat(olt.etat_actuel)" [disabled]="!editEtatLibelle.trim()">
-                                    {{ 'common.actions.save' | translate }}
-                                  </button>
-                                  <button mat-stroked-button (click)="cancelEditEtat()">
-                                    {{ 'common.actions.cancel' | translate }}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          } @else {
-                            <div class="etat-card-header" (click)="toggleEtat(olt.etat_actuel.id_etat_actuel)">
-                              <div class="etat-card-left">
-                                <img src="assets/images/ellipses/ellipse-pale-green.png" alt="" class="etat-ellipse">
-                                <h3 class="etat-card-title">{{ 'enjeux.etatActuel.label' | translate }} : {{ olt.etat_actuel.libelle }}</h3>
-                              </div>
-                              <div class="etat-card-actions">
-                                <button class="icon-btn-flat" (click)="startEditEtat(olt.etat_actuel); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                  <i class="fi fi-rr-pencil"></i>
-                                </button>
-                                <button class="icon-btn-flat" (click)="deleteEtatActuel(olt.etat_actuel); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                  <i class="fi fi-rr-trash"></i>
-                                </button>
-                                <i class="fi" [class.fi-rr-angle-small-down]="!isEtatExpanded(olt.etat_actuel.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(olt.etat_actuel.id_etat_actuel)"></i>
-                              </div>
-                            </div>
-                            @if (isEtatExpanded(olt.etat_actuel.id_etat_actuel)) {
-                              <div class="etat-card-body">
-                                <p>{{ olt.etat_actuel.description }}</p>
-                              </div>
-                            }
-                          }
-                        </div>
-                      } @else {
-                        <!-- Bouton ajouter état actuel -->
-                        @if (addingEtatForOlt() === olt.id_olt) {
-                          <div class="inline-form etat-inline-form">
+                      <!-- OLTs de cet État Actuel -->
+                      @for (olt of etat.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
+                        <!-- Mode édition OLT -->
+                        @if (editingOltId() === olt.id_olt) {
+                          <div class="inline-form olt-inline-form">
                             <div class="inline-form-header">
-                              <h4 class="inline-form-title">{{ 'enjeux.etatActuel.newTitle' | translate }}</h4>
+                              <h4 class="inline-form-title">{{ 'enjeux.olt.editTitle' | translate }}</h4>
                             </div>
                             <div class="inline-form-body">
                               <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="newEtatLibelle">
+                                <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="editOltLibelle">
                               </mat-form-field>
                               <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                                <textarea matInput [(ngModel)]="newEtatDescription" rows="2"></textarea>
+                                <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                                <textarea matInput [(ngModel)]="editOltDescription" rows="2"></textarea>
                               </mat-form-field>
                             </div>
                             <div class="inline-form-actions">
-                              <button mat-flat-button color="primary" (click)="saveEtatActuel(olt)" [disabled]="!newEtatLibelle.trim()">
+                              <button mat-flat-button color="primary" (click)="saveEditOlt(olt)" [disabled]="!editOltLibelle.trim()">
                                 {{ 'common.actions.save' | translate }}
                               </button>
-                              <button mat-stroked-button (click)="cancelAddEtat()">
+                              <button mat-stroked-button (click)="cancelEditOlt()">
                                 {{ 'common.actions.cancel' | translate }}
                               </button>
                             </div>
                           </div>
                         } @else {
-                          <button class="add-item-btn" (click)="startAddEtat(olt.id_olt)">
-                            <i class="fi fi-rr-plus-small"></i>
-                            {{ 'enjeux.etatActuel.addButton' | translate }}
-                          </button>
-                        }
-                      }
-
-                      <!-- Niveaux d'exigence -->
-                      @for (ne of olt.niveaux_exigence || []; track ne.id_ne) {
-                        <!-- Mode édition NE -->
-                        @if (editingNeId() === ne.id_ne) {
-                          <div class="inline-form ne-inline-form">
-                            <div class="inline-form-body">
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="editNeLibelle">
-                              </mat-form-field>
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
-                                <textarea matInput [(ngModel)]="editNeDescription" rows="2"></textarea>
-                              </mat-form-field>
-                            </div>
-                            <div class="inline-form-actions">
-                              <button mat-flat-button color="primary" (click)="saveEditNe(ne)" [disabled]="!editNeLibelle.trim()">
-                                {{ 'common.actions.save' | translate }}
-                              </button>
-                              <button mat-stroked-button (click)="cancelEditNe()">
-                                {{ 'common.actions.cancel' | translate }}
-                              </button>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="ne-card">
-                            <div class="ne-card-header">
-                              <div class="ne-card-left">
-                                <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
-                                <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
-                              </div>
-                              <div class="ne-card-actions">
-                                <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                          <!-- Barre OLT (utilise app-section-title réutilisable) -->
+                          <div class="olt-section-header" (click)="toggleOlt(olt.id_olt)">
+                            <app-section-title
+                              [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
+                              icon="fi-rr-eye"
+                              ellipseColor="terra-cotta"
+                              size="md"
+                              [showLine]="true">
+                              <div sectionActions class="olt-header-actions">
+                                <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                   <i class="fi fi-rr-pencil"></i>
                                 </button>
-                                <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
-                                  <i class="fi fi-rr-trash"></i>
+                                <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                  <i class="fi fi-rr-minus-circle"></i>
                                 </button>
+                                <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOltExpanded(olt.id_olt)" [class.fi-rr-angle-small-up]="isOltExpanded(olt.id_olt)"></i>
                               </div>
-                            </div>
-                            @if (ne.description) {
-                              <p class="ne-description">{{ ne.description }}</p>
-                            }
+                            </app-section-title>
+                          </div>
 
-                            <!-- Indicateurs de ce NE -->
-                            @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
-                              <div class="indicateur-block">
-                                @if (editingIndicateurId() === ind.id_indicateur) {
-                                  <!-- Edit mode (extended with metriques) -->
-                                  <div class="unified-indicateur-form">
-                                    <div class="unified-form-header">
-                                      <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
-                                      <h4 class="unified-form-title">{{ 'enjeux.indicateurs.editTitle' | translate }}</h4>
+                          <!-- Contenu déplié de l'OLT -->
+                          @if (isOltExpanded(olt.id_olt)) {
+                            <div class="olt-expanded-content">
+                              <!-- Description OLT -->
+                              @if (olt.description) {
+                                <p class="olt-description">{{ olt.description }}</p>
+                              }
+
+                              <!-- Niveaux d'exigence -->
+                              @for (ne of olt.niveaux_exigence || []; track ne.id_ne) {
+                                <!-- Mode édition NE -->
+                                @if (editingNeId() === ne.id_ne) {
+                                  <div class="inline-form ne-inline-form">
+                                    <div class="inline-form-body">
+                                      <mat-form-field class="full-width" appearance="outline">
+                                        <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
+                                        <input matInput [(ngModel)]="editNeLibelle">
+                                      </mat-form-field>
+                                      <mat-form-field class="full-width" appearance="outline">
+                                        <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
+                                        <textarea matInput [(ngModel)]="editNeDescription" rows="2"></textarea>
+                                      </mat-form-field>
                                     </div>
-
-                                    <!-- Intitulé indicateur -->
-                                    <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                      <input matInput [(ngModel)]="editIndicateurNom">
-                                    </mat-form-field>
-
-                                    <!-- Indicateur standardisé -->
-                                    <div class="form-radio-row">
-                                      <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
-                                      <mat-radio-group [(ngModel)]="editIndicateurStandardise">
-                                        <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
-                                        <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
-                                      </mat-radio-group>
-                                    </div>
-
-                                    <!-- Description -->
-                                    <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
-                                      <textarea matInput [(ngModel)]="editIndicateurDescription" rows="2"></textarea>
-                                    </mat-form-field>
-
-                                    <!-- Section MÉTRIQUES -->
-                                    <div class="metriques-section">
-                                      <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
-
-                                      @for (met of editIndicateurMetriques; track $index; let i = $index) {
-                                        @if (!met._deleted) {
-                                          <div class="metrique-form-block">
-                                            <div class="metrique-row">
-                                              <mat-form-field appearance="outline" class="flex-grow">
-                                                <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                                <input matInput [(ngModel)]="met.nom_metrique">
-                                              </mat-form-field>
-                                              <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
-                                                <i class="fi fi-rr-trash"></i>
-                                              </button>
-                                            </div>
-
-                                            <div class="metrique-row-2col">
-                                              <mat-form-field appearance="outline">
-                                                <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                                <input matInput [(ngModel)]="met.unite">
-                                              </mat-form-field>
-                                              <mat-form-field appearance="outline">
-                                                <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
-                                                <mat-select [(ngModel)]="met.type_metrique">
-                                                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                    <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                  }
-                                                </mat-select>
-                                              </mat-form-field>
-                                            </div>
-
-                                            <div class="metrique-row-2col">
-                                              <mat-form-field appearance="outline" class="col-narrow">
-                                                <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.ponderation">
-                                              </mat-form-field>
-                                              <mat-form-field appearance="outline" class="col-wide">
-                                                <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                                <input matInput [(ngModel)]="met.etat_reference">
-                                              </mat-form-field>
-                                            </div>
-
-                                            <div class="score-threshold-grid">
-                                              @for (level of scoreLevels; track level) {
-                                                <div class="score-column">
-                                                  <div class="score-column-header score-header-{{level}}">
-                                                    <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                    <span class="score-header-value">= {{level}}</span>
-                                                  </div>
-                                                  <div class="score-column-inputs">
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                    </mat-form-field>
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                    </mat-form-field>
-                                                  </div>
-                                                </div>
-                                              }
-                                            </div>
-                                          </div>
-                                        }
-                                      }
-
-                                      <button class="add-item-btn" (click)="addMetriqueToEdit()">
-                                        <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
-                                      </button>
-                                    </div>
-
-                                    <!-- Actions -->
                                     <div class="inline-form-actions">
-                                      <button mat-flat-button color="primary"
-                                        (click)="saveEditIndicateur(ind)"
-                                        [disabled]="!editIndicateurNom.trim() || isSavingIndicateur()">
+                                      <button mat-flat-button color="primary" (click)="saveEditNe(ne)" [disabled]="!editNeLibelle.trim()">
                                         {{ 'common.actions.save' | translate }}
                                       </button>
-                                      <button mat-stroked-button (click)="cancelEditIndicateur()" [disabled]="isSavingIndicateur()">
+                                      <button mat-stroked-button (click)="cancelEditNe()">
                                         {{ 'common.actions.cancel' | translate }}
                                       </button>
                                     </div>
                                   </div>
                                 } @else {
-                                  <!-- Display mode -->
-                                  <div class="indicateur-subtitle" (click)="toggleIndicateur(ind.id_indicateur)">
-                                    <div class="indicateur-subtitle-left">
-                                      <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
-                                      <span class="indicateur-nom">{{ 'enjeux.indicateurs.label' | translate }} : {{ ind.nom_indicateur }}</span>
-                                      @if (ind.type_indicateur_label) {
-                                        <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
-                                      }
-                                      @if (ind.est_standardise) {
-                                        <span class="indicateur-std-chip">STD</span>
-                                      }
-                                    </div>
-                                    <div class="indicateur-actions">
-                                      <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
-                                        <i class="fi fi-rr-pencil"></i>
-                                      </button>
-                                      <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
-                                        <i class="fi fi-rr-trash"></i>
-                                      </button>
-                                      <i class="fi" [class.fi-rr-angle-down]="!isIndicateurExpanded(ind.id_indicateur)" [class.fi-rr-angle-up]="isIndicateurExpanded(ind.id_indicateur)"></i>
-                                    </div>
-                                  </div>
-
-                                  <!-- Contenu déplié de l'indicateur -->
-                                  @if (isIndicateurExpanded(ind.id_indicateur)) {
-                                    <div class="indicateur-content">
-                                      <div class="indicateur-meta">
-                                        <span class="meta-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
-                                        <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
+                                  <div class="ne-card">
+                                    <div class="ne-card-header">
+                                      <div class="ne-card-left">
+                                        <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
+                                        <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
                                       </div>
-
-                                      <!-- Métriques en tableau -->
-                                      @if (ind.metriques && ind.metriques.length > 0) {
-                                        <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }}s :</p>
-                                        <div class="metriques-table-wrapper">
-                                          <table class="metriques-table">
-                                            <thead>
-                                              <tr>
-                                                <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
-                                                <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
-                                                <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
-                                                <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
-                                                <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
-                                                <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
-                                                <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
-                                                <th class="actions-col"></th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              @for (met of ind.metriques; track met.id_metrique) {
-                                                <tr>
-                                                  <td>{{ met.nom_metrique }}</td>
-                                                  <td>{{ met.unite || '-' }}</td>
-                                                  <td>{{ met.ponderation || '-' }}</td>
-                                                  <td>{{ met.etat_reference || '-' }}</td>
-                                                  <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
-                                                  <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
-                                                  <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
-                                                  <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
-                                                  <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
-                                                  <td class="actions-col">
-                                                    <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
-                                                      <i class="fi fi-rr-trash"></i>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              }
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      }
-
-                                      <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
-                                    </div>
-                                  }
-                                }
-
-                                <!-- Opérations (Actions) de l'indicateur -->
-                                @if (ind.operations && ind.operations.length > 0) {
-                                  @for (op of ind.operations; track op.id_operation) {
-                                    <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)">
-                                      <!-- En-tête de l'action (cliquable pour expand/collapse) -->
-                                      <div class="operation-header" (click)="toggleOperation(op.id_operation)">
-                                        <div class="operation-header-left">
-                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                          <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                        </div>
-                                        <div class="operation-header-right">
-                                          <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                            <i class="fi fi-rr-pencil"></i>
-                                          </button>
-                                          <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                            <i class="fi fi-rr-minus-circle"></i>
-                                          </button>
-                                          <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
-                                        </div>
-                                      </div>
-
-                                      <!-- Contenu déplié de l'action -->
-                                      @if (isOperationExpanded(op.id_operation)) {
-                                        <div class="operation-expanded-content">
-                                          <!-- Type d'action & Priorité -->
-                                          <div class="operation-meta-row">
-                                            @if (op.type_action_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
-                                                {{ op.type_action_label }}
-                                              </span>
-                                            }
-                                            @if (op.priorite_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
-                                                {{ op.priorite_label }}
-                                              </span>
-                                            }
-                                          </div>
-
-                                          <!-- DÉTAILS DE L'INVENTAIRE OU DU SUIVI -->
-                                          @if (op.suivi_inventaire) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              @if (op.suivi_inventaire.objectif_principal) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.cibles_principales) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.taxon_taxref) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.date_lancement_suivi) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          <!-- PROGRAMMATION -->
-                                          @if (getPlanYears().length > 0) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <!-- Table de programmation -->
-                                              <div class="programmation-table-wrapper">
-                                                <table class="programmation-table">
-                                                  <thead>
-                                                    <tr>
-                                                      <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <th class="prog-year-col">{{ year }}</th>
-                                                      }
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    <!-- Périodicité (icônes prévu) -->
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell">
-                                                          @if (isYearPlanned(op, year)) {
-                                                            <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
-                                                          } @else {
-                                                            <span class="prog-dash">-</span>
-                                                          }
-                                                        </td>
-                                                      }
-                                                    </tr>
-                                                    <!-- Budget -->
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                      }
-                                                    </tr>
-                                                    <!-- Travail -->
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                      }
-                                                    </tr>
-                                                  </tbody>
-                                                </table>
-                                              </div>
-
-                                              <!-- Mois programmés (sous le tableau) -->
-                                              @if (hasAnyMonthlyPlanning(op)) {
-                                                <div class="monthly-planning">
-                                                  <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
-                                                  <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          <!-- Fréquence, Opérateur, Financement -->
-                                          @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
-                                            <div class="operation-actors-section">
-                                              @if (op.frequence_nombre && op.frequence_unite) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
-                                                  <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
-                                                </div>
-                                              }
-                                              @if (op.operateurs) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.operateurs }}</span>
-                                                </div>
-                                              }
-                                              @if (op.finances && op.finances.length > 0) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
-                                                  <span class="detail-value">
-                                                    @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
-                                                      {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
-                                                    }
-                                                  </span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          <!-- DÉTAILS / Description -->
-                                          @if (op.description) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <p class="operation-description">{{ op.description }}</p>
-                                            </div>
-                                          }
-                                        </div>
-                                      }
-                                    </div>
-                                  }
-                                }
-
-                                <!-- Bouton ajout opération (navigue vers page dédiée) -->
-                                <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
-                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
-                                </button>
-                              </div>
-                            }
-
-                            <!-- Formulaire unifié ajout indicateur + métriques -->
-                            @if (addingIndicateurForNe() === ne.id_ne) {
-                              <div class="unified-indicateur-form">
-                                <!-- Header -->
-                                <div class="unified-form-header">
-                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
-                                  <h4 class="unified-form-title">{{ 'enjeux.indicateurs.newTitle' | translate }}</h4>
-                                </div>
-                                <p class="form-required-note">{{ 'common.requiredFields' | translate }}</p>
-
-                                <!-- Intitulé indicateur -->
-                                <mat-form-field appearance="outline" class="full-width">
-                                  <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                  <input matInput [(ngModel)]="newIndicateurNom">
-                                </mat-form-field>
-
-                                <!-- Indicateur standardisé -->
-                                <div class="form-radio-row">
-                                  <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
-                                  <mat-radio-group [(ngModel)]="newIndicateurStandardise">
-                                    <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
-                                    <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
-                                  </mat-radio-group>
-                                </div>
-
-                                <!-- Section MÉTRIQUES -->
-                                <div class="metriques-section">
-                                  <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
-
-                                  @for (met of indicateurFormMetriques; track $index; let i = $index) {
-                                    <div class="metrique-form-block">
-                                      <!-- Row 1: Nom + delete -->
-                                      <div class="metrique-row">
-                                        <mat-form-field appearance="outline" class="flex-grow">
-                                          <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                          <input matInput [(ngModel)]="met.nom_metrique">
-                                        </mat-form-field>
-                                        <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromForm(i)" [title]="'common.actions.delete' | translate">
+                                      <div class="ne-card-actions">
+                                        <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                                          <i class="fi fi-rr-pencil"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
                                           <i class="fi fi-rr-trash"></i>
                                         </button>
                                       </div>
+                                    </div>
+                                    @if (ne.description) {
+                                      <p class="ne-description">{{ ne.description }}</p>
+                                    }
 
-                                      <!-- Row 2: Unité + Type -->
-                                      <div class="metrique-row-2col">
-                                        <mat-form-field appearance="outline">
-                                          <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                          <input matInput [(ngModel)]="met.unite">
-                                        </mat-form-field>
-                                        <mat-form-field appearance="outline">
-                                          <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
-                                          <mat-select [(ngModel)]="met.type_metrique">
-                                            @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                              <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                            }
-                                          </mat-select>
-                                        </mat-form-field>
-                                      </div>
-
-                                      <!-- Row 3: Pondération + État de référence -->
-                                      <div class="metrique-row-2col">
-                                        <mat-form-field appearance="outline" class="col-narrow">
-                                          <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                          <input matInput type="number" [(ngModel)]="met.ponderation">
-                                        </mat-form-field>
-                                        <mat-form-field appearance="outline" class="col-wide">
-                                          <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                          <input matInput [(ngModel)]="met.etat_reference">
-                                        </mat-form-field>
-                                      </div>
-
-                                      <!-- Score threshold grid -->
-                                      <div class="score-threshold-grid">
-                                        @for (level of scoreLevels; track level) {
-                                          <div class="score-column">
-                                            <div class="score-column-header score-header-{{level}}">
-                                              <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                              <span class="score-header-value">= {{level}}</span>
+                                    <!-- Indicateurs de ce NE -->
+                                    @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
+                                      <div class="indicateur-block">
+                                        @if (editingIndicateurId() === ind.id_indicateur) {
+                                          <!-- Edit mode (extended with metriques) -->
+                                          <div class="unified-indicateur-form">
+                                            <div class="unified-form-header">
+                                              <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                              <h4 class="unified-form-title">{{ 'enjeux.indicateurs.editTitle' | translate }}</h4>
                                             </div>
-                                            <div class="score-column-inputs">
-                                              <mat-form-field appearance="outline" class="score-input">
-                                                <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                              </mat-form-field>
-                                              <mat-form-field appearance="outline" class="score-input">
-                                                <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                              </mat-form-field>
+
+                                            <!-- Intitulé indicateur -->
+                                            <mat-form-field appearance="outline" class="full-width">
+                                              <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
+                                              <input matInput [(ngModel)]="editIndicateurNom">
+                                            </mat-form-field>
+
+                                            <!-- Indicateur standardisé -->
+                                            <div class="form-radio-row">
+                                              <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                              <mat-radio-group [(ngModel)]="editIndicateurStandardise">
+                                                <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                                                <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                                              </mat-radio-group>
+                                            </div>
+
+                                            <!-- Description -->
+                                            <mat-form-field appearance="outline" class="full-width">
+                                              <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
+                                              <textarea matInput [(ngModel)]="editIndicateurDescription" rows="2"></textarea>
+                                            </mat-form-field>
+
+                                            <!-- Section MÉTRIQUES -->
+                                            <div class="metriques-section">
+                                              <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
+
+                                              @for (met of editIndicateurMetriques; track $index; let i = $index) {
+                                                @if (!met._deleted) {
+                                                  <div class="metrique-form-block">
+                                                    <div class="metrique-row">
+                                                      <mat-form-field appearance="outline" class="flex-grow">
+                                                        <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                                        <input matInput [(ngModel)]="met.nom_metrique">
+                                                      </mat-form-field>
+                                                      <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
+                                                        <i class="fi fi-rr-trash"></i>
+                                                      </button>
+                                                    </div>
+
+                                                    <div class="metrique-row-2col">
+                                                      <mat-form-field appearance="outline">
+                                                        <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                                        <input matInput [(ngModel)]="met.unite">
+                                                      </mat-form-field>
+                                                      <mat-form-field appearance="outline">
+                                                        <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                        <mat-select [(ngModel)]="met.type_metrique">
+                                                          @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                                            <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                                          }
+                                                        </mat-select>
+                                                      </mat-form-field>
+                                                    </div>
+
+                                                    <div class="metrique-row-2col">
+                                                      <mat-form-field appearance="outline" class="col-narrow">
+                                                        <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="met.ponderation">
+                                                      </mat-form-field>
+                                                      <mat-form-field appearance="outline" class="col-wide">
+                                                        <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                                        <input matInput [(ngModel)]="met.etat_reference">
+                                                      </mat-form-field>
+                                                    </div>
+
+                                                    <div class="score-threshold-grid">
+                                                      @for (level of scoreLevels; track level) {
+                                                        <div class="score-column">
+                                                          <div class="score-column-header score-header-{{level}}">
+                                                            <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                                            <span class="score-header-value">= {{level}}</span>
+                                                          </div>
+                                                          <div class="score-column-inputs">
+                                                            <mat-form-field appearance="outline" class="score-input">
+                                                              <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                              <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                            </mat-form-field>
+                                                            <mat-form-field appearance="outline" class="score-input">
+                                                              <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                              <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                            </mat-form-field>
+                                                          </div>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  </div>
+                                                }
+                                              }
+
+                                              <button class="add-item-btn" (click)="addMetriqueToEdit()">
+                                                <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
+                                              </button>
+                                            </div>
+
+                                            <!-- Actions -->
+                                            <div class="inline-form-actions">
+                                              <button mat-flat-button color="primary"
+                                                (click)="saveEditIndicateur(ind)"
+                                                [disabled]="!editIndicateurNom.trim() || isSavingIndicateur()">
+                                                {{ 'common.actions.save' | translate }}
+                                              </button>
+                                              <button mat-stroked-button (click)="cancelEditIndicateur()" [disabled]="isSavingIndicateur()">
+                                                {{ 'common.actions.cancel' | translate }}
+                                              </button>
                                             </div>
                                           </div>
+                                        } @else {
+                                          <!-- Display mode -->
+                                          <div class="indicateur-subtitle" (click)="toggleIndicateur(ind.id_indicateur)">
+                                            <div class="indicateur-subtitle-left">
+                                              <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                              <span class="indicateur-nom">{{ 'enjeux.indicateurs.label' | translate }} : {{ ind.nom_indicateur }}</span>
+                                              @if (ind.type_indicateur_label) {
+                                                <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
+                                              }
+                                              @if (ind.est_standardise) {
+                                                <span class="indicateur-std-chip">STD</span>
+                                              }
+                                            </div>
+                                            <div class="indicateur-actions">
+                                              <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
+                                                <i class="fi fi-rr-pencil"></i>
+                                              </button>
+                                              <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
+                                                <i class="fi fi-rr-trash"></i>
+                                              </button>
+                                              <i class="fi" [class.fi-rr-angle-down]="!isIndicateurExpanded(ind.id_indicateur)" [class.fi-rr-angle-up]="isIndicateurExpanded(ind.id_indicateur)"></i>
+                                            </div>
+                                          </div>
+
+                                          <!-- Contenu déplié de l'indicateur -->
+                                          @if (isIndicateurExpanded(ind.id_indicateur)) {
+                                            <div class="indicateur-content">
+                                              <div class="indicateur-meta">
+                                                <span class="meta-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                                <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
+                                              </div>
+
+                                              <!-- Métriques en tableau -->
+                                              @if (ind.metriques && ind.metriques.length > 0) {
+                                                <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }}s :</p>
+                                                <div class="metriques-table-wrapper">
+                                                  <table class="metriques-table">
+                                                    <thead>
+                                                      <tr>
+                                                        <th>{{ 'enjeux.metriques.nomLabel' | translate }}</th>
+                                                        <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
+                                                        <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
+                                                        <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
+                                                        <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
+                                                        <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
+                                                        <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
+                                                        <th class="score-col score-col-4">{{ getScoreLevelLabel(4) }} =4</th>
+                                                        <th class="score-col score-col-5">{{ getScoreLevelLabel(5) }} =5</th>
+                                                        <th class="actions-col"></th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      @for (met of ind.metriques; track met.id_metrique) {
+                                                        <tr>
+                                                          <td>{{ met.nom_metrique }}</td>
+                                                          <td>{{ met.unite || '-' }}</td>
+                                                          <td>{{ met.ponderation || '-' }}</td>
+                                                          <td>{{ met.etat_reference || '-' }}</td>
+                                                          <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
+                                                          <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
+                                                          <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
+                                                          <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
+                                                          <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                          <td class="actions-col">
+                                                            <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                              <i class="fi fi-rr-trash"></i>
+                                                            </button>
+                                                          </td>
+                                                        </tr>
+                                                      }
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              }
+
+                                              <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                            </div>
+                                          }
                                         }
+
+                                        <!-- Opérations (Actions) de l'indicateur -->
+                                        @if (ind.operations && ind.operations.length > 0) {
+                                          @for (op of ind.operations; track op.id_operation) {
+                                            <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)">
+                                              <!-- En-tête de l'action (cliquable pour expand/collapse) -->
+                                              <div class="operation-header" (click)="toggleOperation(op.id_operation)">
+                                                <div class="operation-header-left">
+                                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                  <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                </div>
+                                                <div class="operation-header-right">
+                                                  <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                                    <i class="fi fi-rr-pencil"></i>
+                                                  </button>
+                                                  <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                                    <i class="fi fi-rr-minus-circle"></i>
+                                                  </button>
+                                                  <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
+                                                </div>
+                                              </div>
+
+                                              <!-- Contenu déplié de l'action -->
+                                              @if (isOperationExpanded(op.id_operation)) {
+                                                <div class="operation-expanded-content">
+                                                  <!-- Type d'action & Priorité -->
+                                                  <div class="operation-meta-row">
+                                                    @if (op.type_action_label) {
+                                                      <span class="operation-meta-item">
+                                                        <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
+                                                        {{ op.type_action_label }}
+                                                      </span>
+                                                    }
+                                                    @if (op.priorite_label) {
+                                                      <span class="operation-meta-item">
+                                                        <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
+                                                        {{ op.priorite_label }}
+                                                      </span>
+                                                    }
+                                                  </div>
+
+                                                  <!-- DÉTAILS DE L'INVENTAIRE OU DU SUIVI -->
+                                                  @if (op.suivi_inventaire) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      @if (op.suivi_inventaire.objectif_principal) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.cibles_principales) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.taxon_taxref) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.date_lancement_suivi) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- PROGRAMMATION -->
+                                                  @if (getPlanYears().length > 0) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      <!-- Table de programmation -->
+                                                      <div class="programmation-table-wrapper">
+                                                        <table class="programmation-table">
+                                                          <thead>
+                                                            <tr>
+                                                              <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <th class="prog-year-col">{{ year }}</th>
+                                                              }
+                                                            </tr>
+                                                          </thead>
+                                                          <tbody>
+                                                            <!-- Périodicité (icônes prévu) -->
+                                                            <tr>
+                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <td class="prog-cell">
+                                                                  @if (isYearPlanned(op, year)) {
+                                                                    <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
+                                                                  } @else {
+                                                                    <span class="prog-dash">-</span>
+                                                                  }
+                                                                </td>
+                                                              }
+                                                            </tr>
+                                                            <!-- Budget -->
+                                                            <tr>
+                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                              }
+                                                            </tr>
+                                                            <!-- Travail -->
+                                                            <tr>
+                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                              }
+                                                            </tr>
+                                                          </tbody>
+                                                        </table>
+                                                      </div>
+
+                                                      <!-- Mois programmés (sous le tableau) -->
+                                                      @if (hasAnyMonthlyPlanning(op)) {
+                                                        <div class="monthly-planning">
+                                                          <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
+                                                          <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- Fréquence, Opérateur, Financement -->
+                                                  @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
+                                                    <div class="operation-actors-section">
+                                                      @if (op.frequence_nombre && op.frequence_unite) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
+                                                          <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.operateurs) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.operateurs }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.finances && op.finances.length > 0) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
+                                                          <span class="detail-value">
+                                                            @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
+                                                              {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
+                                                            }
+                                                          </span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- DÉTAILS / Description -->
+                                                  @if (op.description) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      <p class="operation-description">{{ op.description }}</p>
+                                                    </div>
+                                                  }
+                                                </div>
+                                              }
+                                            </div>
+                                          }
+                                        }
+
+                                        <!-- Bouton ajout opération (navigue vers page dédiée) -->
+                                        <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur)">
+                                          <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
+                                        </button>
                                       </div>
-                                    </div>
-                                  }
+                                    }
 
-                                  <!-- Add metrique link -->
-                                  <button class="add-item-btn" (click)="addMetriqueToForm()">
-                                    <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
-                                  </button>
-                                </div>
+                                    <!-- Formulaire unifié ajout indicateur + métriques -->
+                                    @if (addingIndicateurForNe() === ne.id_ne) {
+                                      <div class="unified-indicateur-form">
+                                        <!-- Header -->
+                                        <div class="unified-form-header">
+                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
+                                          <h4 class="unified-form-title">{{ 'enjeux.indicateurs.newTitle' | translate }}</h4>
+                                        </div>
+                                        <p class="form-required-note">{{ 'common.requiredFields' | translate }}</p>
 
-                                <!-- Actions -->
-                                <div class="inline-form-actions">
-                                  <button mat-flat-button color="primary"
-                                    (click)="saveIndicateur(ne)"
-                                    [disabled]="!newIndicateurNom.trim() || isSavingIndicateur()">
-                                    {{ 'common.actions.save' | translate }}
-                                  </button>
-                                  <button mat-stroked-button (click)="cancelAddIndicateur()" [disabled]="isSavingIndicateur()">
-                                    {{ 'common.actions.cancel' | translate }}
-                                  </button>
+                                        <!-- Intitulé indicateur -->
+                                        <mat-form-field appearance="outline" class="full-width">
+                                          <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
+                                          <input matInput [(ngModel)]="newIndicateurNom">
+                                        </mat-form-field>
+
+                                        <!-- Indicateur standardisé -->
+                                        <div class="form-radio-row">
+                                          <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
+                                          <mat-radio-group [(ngModel)]="newIndicateurStandardise">
+                                            <mat-radio-button [value]="true">{{ 'common.yes' | translate }}</mat-radio-button>
+                                            <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
+                                          </mat-radio-group>
+                                        </div>
+
+                                        <!-- Section MÉTRIQUES -->
+                                        <div class="metriques-section">
+                                          <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
+
+                                          @for (met of indicateurFormMetriques; track $index; let i = $index) {
+                                            <div class="metrique-form-block">
+                                              <!-- Row 1: Nom + delete -->
+                                              <div class="metrique-row">
+                                                <mat-form-field appearance="outline" class="flex-grow">
+                                                  <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                                  <input matInput [(ngModel)]="met.nom_metrique">
+                                                </mat-form-field>
+                                                <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromForm(i)" [title]="'common.actions.delete' | translate">
+                                                  <i class="fi fi-rr-trash"></i>
+                                                </button>
+                                              </div>
+
+                                              <!-- Row 2: Unité + Type -->
+                                              <div class="metrique-row-2col">
+                                                <mat-form-field appearance="outline">
+                                                  <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                                  <input matInput [(ngModel)]="met.unite">
+                                                </mat-form-field>
+                                                <mat-form-field appearance="outline">
+                                                  <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                  <mat-select [(ngModel)]="met.type_metrique">
+                                                    @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                                      <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                                    }
+                                                  </mat-select>
+                                                </mat-form-field>
+                                              </div>
+
+                                              <!-- Row 3: Pondération + État de référence -->
+                                              <div class="metrique-row-2col">
+                                                <mat-form-field appearance="outline" class="col-narrow">
+                                                  <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                                  <input matInput type="number" [(ngModel)]="met.ponderation">
+                                                </mat-form-field>
+                                                <mat-form-field appearance="outline" class="col-wide">
+                                                  <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                                  <input matInput [(ngModel)]="met.etat_reference">
+                                                </mat-form-field>
+                                              </div>
+
+                                              <!-- Score threshold grid -->
+                                              <div class="score-threshold-grid">
+                                                @for (level of scoreLevels; track level) {
+                                                  <div class="score-column">
+                                                    <div class="score-column-header score-header-{{level}}">
+                                                      <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                                      <span class="score-header-value">= {{level}}</span>
+                                                    </div>
+                                                    <div class="score-column-inputs">
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                      </mat-form-field>
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                      </mat-form-field>
+                                                    </div>
+                                                  </div>
+                                                }
+                                              </div>
+                                            </div>
+                                          }
+
+                                          <!-- Add metrique link -->
+                                          <button class="add-item-btn" (click)="addMetriqueToForm()">
+                                            <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
+                                          </button>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="inline-form-actions">
+                                          <button mat-flat-button color="primary"
+                                            (click)="saveIndicateur(ne)"
+                                            [disabled]="!newIndicateurNom.trim() || isSavingIndicateur()">
+                                            {{ 'common.actions.save' | translate }}
+                                          </button>
+                                          <button mat-stroked-button (click)="cancelAddIndicateur()" [disabled]="isSavingIndicateur()">
+                                            {{ 'common.actions.cancel' | translate }}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    } @else {
+                                      <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
+                                        <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
+                                      </button>
+                                    }
+                                  </div>
+                                }
+                              }
+
+                              <!-- Formulaire inline nouveau NE -->
+                              @if (addingNeForOlt() === olt.id_olt) {
+                                <div class="inline-form ne-inline-form">
+                                  <div class="inline-form-header">
+                                    <h4 class="inline-form-title">{{ 'enjeux.niveauExigence.newTitle' | translate }}</h4>
+                                  </div>
+                                  <div class="inline-form-body">
+                                    <mat-form-field class="full-width" appearance="outline">
+                                      <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
+                                      <input matInput [(ngModel)]="newNeLibelle">
+                                    </mat-form-field>
+                                    <mat-form-field class="full-width" appearance="outline">
+                                      <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
+                                      <textarea matInput [(ngModel)]="newNeDescription" rows="2"></textarea>
+                                    </mat-form-field>
+                                  </div>
+                                  <div class="inline-form-actions">
+                                    <button mat-flat-button color="primary" (click)="saveNe(olt)" [disabled]="!newNeLibelle.trim()">
+                                      {{ 'common.actions.save' | translate }}
+                                    </button>
+                                    <button mat-stroked-button (click)="cancelAddNe()">
+                                      {{ 'common.actions.cancel' | translate }}
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            } @else {
-                              <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
-                                <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
-                              </button>
-                            }
-                          </div>
+                              } @else {
+                                <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
+                                  <i class="fi fi-rr-plus-small"></i>
+                                  {{ 'enjeux.niveauExigence.addButton' | translate }}
+                                </button>
+                              }
+                            </div>
+                          }
                         }
                       }
 
-                      <!-- Formulaire inline nouveau NE -->
-                      @if (addingNeForOlt() === olt.id_olt) {
-                        <div class="inline-form ne-inline-form">
+                      <!-- Formulaire inline nouvel OLT (inside État Actuel) -->
+                      @if (addingOltForEtat() === etat.id_etat_actuel) {
+                        <div class="inline-form olt-inline-form">
                           <div class="inline-form-header">
-                            <h4 class="inline-form-title">{{ 'enjeux.niveauExigence.newTitle' | translate }}</h4>
+                            <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
                           </div>
                           <div class="inline-form-body">
                             <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
-                              <input matInput [(ngModel)]="newNeLibelle">
+                              <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                              <input matInput [(ngModel)]="newOltLibelle">
                             </mat-form-field>
                             <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
-                              <textarea matInput [(ngModel)]="newNeDescription" rows="2"></textarea>
+                              <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                              <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
                             </mat-form-field>
                           </div>
                           <div class="inline-form-actions">
-                            <button mat-flat-button color="primary" (click)="saveNe(olt)" [disabled]="!newNeLibelle.trim()">
+                            <button mat-flat-button color="primary" (click)="saveOlt(etat)" [disabled]="!newOltLibelle.trim()">
                               {{ 'common.actions.save' | translate }}
                             </button>
-                            <button mat-stroked-button (click)="cancelAddNe()">
+                            <button mat-stroked-button (click)="cancelAddOlt()">
                               {{ 'common.actions.cancel' | translate }}
                             </button>
                           </div>
                         </div>
                       } @else {
-                        <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
+                        <button class="add-item-btn" (click)="startAddOlt(etat.id_etat_actuel)">
                           <i class="fi fi-rr-plus-small"></i>
-                          {{ 'enjeux.niveauExigence.addButton' | translate }}
+                          {{ 'enjeux.olt.addButton' | translate }}
                         </button>
                       }
                     </div>
@@ -1254,50 +1259,50 @@
                 }
               }
 
-              <!-- Formulaire inline nouvel OLT -->
-              @if (addingOlt()) {
+              <!-- Formulaire inline nouvel État Actuel -->
+              @if (addingEtat()) {
                 <div class="inline-form olt-inline-form">
                   <div class="inline-form-header">
-                    <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
+                    <h4 class="inline-form-title">{{ 'enjeux.etatActuel.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="newOltLibelle">
+                      <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
+                      <input matInput [(ngModel)]="newEtatLibelle">
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                      <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
+                      <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
+                      <textarea matInput [(ngModel)]="newEtatDescription" rows="2"></textarea>
                     </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOlt()" [disabled]="!newOltLibelle.trim()">
+                    <button mat-flat-button color="primary" (click)="saveEtatActuel()" [disabled]="!newEtatLibelle.trim()">
                       {{ 'common.actions.save' | translate }}
                     </button>
-                    <button mat-stroked-button (click)="cancelAddOlt()">
+                    <button mat-stroked-button (click)="cancelAddEtat()">
                       {{ 'common.actions.cancel' | translate }}
                     </button>
                   </div>
                 </div>
               }
 
-              <!-- Bouton ajouter un OLT (toujours visible) -->
-              @if (!addingOlt()) {
-                <button class="add-item-btn" (click)="startAddOlt()">
+              <!-- Bouton ajouter un État Actuel (toujours visible) -->
+              @if (!addingEtat()) {
+                <button class="add-item-btn" (click)="startAddEtat()">
                   <i class="fi fi-rr-plus-small"></i>
-                  {{ 'enjeux.olt.addButton' | translate }}
+                  {{ 'enjeux.etatActuel.addButton' | translate }}
                 </button>
               }
 
-              <!-- Empty state si aucun OLT -->
-              @if (totalOltCount() === 0 && !addingOlt()) {
+              <!-- Empty state si aucun État Actuel -->
+              @if (totalEtatCount() === 0 && !addingEtat()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>
                   </div>
                   <div class="info-content">
-                    <p class="info-title">{{ 'enjeux.olt.hint' | translate }}</p>
-                    <p class="info-description">{{ 'enjeux.olt.description' | translate }}</p>
+                    <p class="info-title">{{ 'enjeux.etatActuel.hint' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.etatActuel.description' | translate }}</p>
                   </div>
                 </div>
               }
@@ -1336,9 +1341,8 @@
                         <textarea matInput [(ngModel)]="editOoDescription" rows="2"></textarea>
                       </mat-form-field>
                       <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }}</mat-label>
-                        <mat-select [(ngModel)]="editOoFacteurId">
-                          <mat-option [value]="null">--</mat-option>
+                        <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }} *</mat-label>
+                        <mat-select [(ngModel)]="editOoFacteurId" required>
                           @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                             <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
                           }
@@ -1346,7 +1350,7 @@
                       </mat-form-field>
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim()">
+                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || !editOoFacteurId">
                         {{ 'common.actions.save' | translate }}
                       </button>
                       <button mat-stroked-button (click)="cancelEditOo()">
@@ -1971,9 +1975,8 @@
                       <textarea matInput [(ngModel)]="newOoDescription" rows="2"></textarea>
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }}</mat-label>
-                      <mat-select [(ngModel)]="newOoFacteurId">
-                        <mat-option [value]="null">--</mat-option>
+                      <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }} *</mat-label>
+                      <mat-select [(ngModel)]="newOoFacteurId" required>
                         @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                           <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
                         }
@@ -1981,7 +1984,7 @@
                     </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim()">
+                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || !newOoFacteurId">
                       {{ 'common.actions.save' | translate }}
                     </button>
                     <button mat-stroked-button (click)="cancelAddOo()">
@@ -1991,16 +1994,29 @@
                 </div>
               }
 
-              <!-- Bouton ajouter un OO (toujours visible) -->
-              @if (!addingOo()) {
+              <!-- Bouton ajouter un OO (visible seulement si au moins un facteur d'influence existe) -->
+              @if (!addingOo() && selectedFacteurs().length > 0) {
                 <button class="add-item-btn" (click)="startAddOo()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
                 </button>
               }
 
-              <!-- Empty state si aucun OO -->
-              @if (totalOoCount() === 0 && !addingOo()) {
+              <!-- Message si aucun facteur d'influence (guard : créer un facteur d'abord) -->
+              @if (selectedFacteurs().length === 0 && totalOoCount() === 0 && !addingOo()) {
+                <div class="info-block info-block-warning">
+                  <div class="info-icon">
+                    <i class="fi fi-rr-exclamation"></i>
+                  </div>
+                  <div class="info-content">
+                    <p class="info-title">{{ 'enjeux.oo.noFacteurTitle' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.oo.noFacteurDescription' | translate }}</p>
+                  </div>
+                </div>
+              }
+
+              <!-- Empty state si aucun OO mais des facteurs existent -->
+              @if (totalOoCount() === 0 && selectedFacteurs().length > 0 && !addingOo()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>

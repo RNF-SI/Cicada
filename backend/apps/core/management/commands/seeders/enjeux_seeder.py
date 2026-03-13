@@ -18,7 +18,7 @@ from apps.plans.models_indicateurs import (
     CorIndicateurGeologie, Metrique, Mesure
 )
 from apps.plans.models_operations import (
-    Protocole, SuiviInventaire, Operation, CorOperationIndicateur,
+    Protocole, SuiviInventaire, Operation,
     CorOperationSite, OperationAnnee, FinanceOperation
 )
 from apps.users.models import Role, Site
@@ -1318,21 +1318,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Camargue - Habitats humides : état actuel + OLT + niveaux d'exigence
         enjeu_hab_humides = next((e for e in enjeux_created if 'habitats humides' in e.libelle.lower()), None)
         if enjeu_hab_humides:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_hab_humides,
-                libelle='Restaurer et maintenir un fonctionnement hydrologique naturel',
-                defaults={
-                    'description': 'Atteindre un régime hydrologique permettant le maintien '
-                                   'des communautés végétales et animales caractéristiques '
-                                   'des zones humides camarguaises.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_hab_humides,
                 libelle='Dégradation progressive des habitats humides',
                 defaults={
                     'description': 'Les habitats humides de Camargue subissent une dégradation '
@@ -1343,6 +1330,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Restaurer et maintenir un fonctionnement hydrologique naturel',
+                defaults={
+                    'description': 'Atteindre un régime hydrologique permettant le maintien '
+                                   'des communautés végétales et animales caractéristiques '
+                                   'des zones humides camarguaises.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1371,21 +1371,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Camargue - Flamant rose : état actuel + OLT
         enjeu_flamant = next((e for e in enjeux_created if 'flamant' in e.libelle.lower()), None)
         if enjeu_flamant:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_flamant,
-                libelle='Maintenir une population nicheuse viable à long terme',
-                defaults={
-                    'description': 'Assurer le maintien d\'une population reproductrice '
-                                   'de flamants roses en Camargue avec un succès de '
-                                   'reproduction régulier.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_flamant,
                 libelle='Population stable mais sensible aux dérangements',
                 defaults={
                     'description': 'La colonie de flamants roses de Camargue est stable '
@@ -1396,6 +1383,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Maintenir une population nicheuse viable à long terme',
+                defaults={
+                    'description': 'Assurer le maintien d\'une population reproductrice '
+                                   'de flamants roses en Camargue avec un succès de '
+                                   'reproduction régulier.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1412,21 +1412,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Camargue - Cistude : état actuel + OLT + NE
         enjeu_cistude = next((e for e in enjeux_created if 'cistude' in e.libelle.lower()), None)
         if enjeu_cistude:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_cistude,
-                libelle='Restaurer la connectivité entre les noyaux de population',
-                defaults={
-                    'description': 'Rétablir des corridors fonctionnels entre les '
-                                   'sous-populations de cistude et maintenir des sites '
-                                   'de ponte favorables.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_cistude,
                 libelle='Population fragmentée avec perte d\'habitats de ponte',
                 defaults={
                     'description': 'Les populations de cistude d\'Europe sont fragmentées. '
@@ -1437,6 +1424,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Restaurer la connectivité entre les noyaux de population',
+                defaults={
+                    'description': 'Rétablir des corridors fonctionnels entre les '
+                                   'sous-populations de cistude et maintenir des sites '
+                                   'de ponte favorables.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1453,22 +1453,9 @@ class EnjeuxSeeder(BaseSeeder):
         # Aiguilles Rouges - Pelouses alpines : 2 états actuels (cas N:N)
         enjeu_pelouses = next((e for e in enjeux_created if 'pelouses alpines' in e.libelle.lower()), None)
         if enjeu_pelouses:
-            # OLT 1 : flore
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_pelouses,
-                libelle='Préserver les stations relictuelles d\'espèces arctico-alpines',
-                defaults={
-                    'description': 'Protéger et suivre les stations d\'espèces '
-                                   'arctico-alpines en limite d\'aire comme témoins '
-                                   'du changement climatique.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
+            # État actuel 1 : flore → OLT 1
             etat_flore, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_pelouses,
                 libelle='Recul des espèces arctico-alpines en limite d\'aire',
                 defaults={
                     'description': 'Les inventaires floristiques montrent un recul '
@@ -1479,6 +1466,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat_flore)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat_flore.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat_flore,
+                libelle='Préserver les stations relictuelles d\'espèces arctico-alpines',
+                defaults={
+                    'description': 'Protéger et suivre les stations d\'espèces '
+                                   'arctico-alpines en limite d\'aire comme témoins '
+                                   'du changement climatique.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1492,22 +1492,9 @@ class EnjeuxSeeder(BaseSeeder):
             nes_created.append(ne)
             self.log_item('créé' if created else 'mis à jour', f'NE: {ne.libelle[:50]}')
 
-            # OLT 2 : érosion
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_pelouses,
-                libelle='Canaliser la fréquentation pour limiter l\'érosion',
-                defaults={
-                    'description': 'Réduire l\'impact du piétinement hors sentier '
-                                   'et restaurer les zones dégradées par une '
-                                   'gestion adaptée de la fréquentation.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
+            # État actuel 2 : érosion → OLT 2
             etat_erosion, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_pelouses,
                 libelle='Érosion des sols par surfréquentation des sentiers',
                 defaults={
                     'description': 'La fréquentation estivale croissante entraîne une '
@@ -1518,6 +1505,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat_erosion)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat_erosion.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat_erosion,
+                libelle='Canaliser la fréquentation pour limiter l\'érosion',
+                defaults={
+                    'description': 'Réduire l\'impact du piétinement hors sentier '
+                                   'et restaurer les zones dégradées par une '
+                                   'gestion adaptée de la fréquentation.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1532,21 +1532,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Aiguilles Rouges - Tétras-lyre : état actuel + OLT + NE
         enjeu_tetras = next((e for e in enjeux_created if 'tétras' in e.libelle.lower()), None)
         if enjeu_tetras:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_tetras,
-                libelle='Stabiliser la population de tétras-lyre',
-                defaults={
-                    'description': 'Maintenir un effectif viable de tétras-lyre '
-                                   'en réduisant les sources de dérangement '
-                                   'en période critique (hivernage, reproduction).',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_tetras,
                 libelle='Population en déclin lié aux dérangements hivernaux',
                 defaults={
                     'description': 'Les comptages au chant montrent une tendance '
@@ -1557,6 +1544,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Stabiliser la population de tétras-lyre',
+                defaults={
+                    'description': 'Maintenir un effectif viable de tétras-lyre '
+                                   'en réduisant les sources de dérangement '
+                                   'en période critique (hivernage, reproduction).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1573,21 +1573,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Vercors - Grands rapaces : état actuel + OLT + NE
         enjeu_rapaces = next((e for e in enjeux_created if 'rapaces' in e.libelle.lower()), None)
         if enjeu_rapaces:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_rapaces,
-                libelle='Consolider les noyaux de population de grands rapaces',
-                defaults={
-                    'description': 'Assurer la pérennité des couples nicheurs et '
-                                   'favoriser l\'installation de nouveaux couples '
-                                   'dans les zones favorables du massif.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_rapaces,
                 libelle='Recolonisation en cours mais noyaux fragiles',
                 defaults={
                     'description': 'Le gypaète barbu et l\'aigle royal recolonisent '
@@ -1598,6 +1585,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Consolider les noyaux de population de grands rapaces',
+                defaults={
+                    'description': 'Assurer la pérennité des couples nicheurs et '
+                                   'favoriser l\'installation de nouveaux couples '
+                                   'dans les zones favorables du massif.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1624,20 +1624,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Qualité des eaux : état actuel + OLT + NE
         enjeu_eaux = next((e for e in enjeux_created if 'qualité' in e.libelle.lower() and 'eaux' in e.libelle.lower()), None)
         if enjeu_eaux:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_eaux,
-                libelle='Atteindre le bon état écologique du lac',
-                defaults={
-                    'description': 'Réduire les apports en nutriments pour atteindre '
-                                   'le bon état écologique au sens de la DCE.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_eaux,
                 libelle='Eutrophisation modérée en augmentation',
                 defaults={
                     'description': 'Le lac de Remoray montre des signes d\'eutrophisation '
@@ -1647,6 +1635,18 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Atteindre le bon état écologique du lac',
+                defaults={
+                    'description': 'Réduire les apports en nutriments pour atteindre '
+                                   'le bon état écologique au sens de la DCE.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1664,21 +1664,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Tourbières : état actuel + OLT + NE
         enjeu_tourbieres = next((e for e in enjeux_created if 'tourbières' in e.libelle.lower()), None)
         if enjeu_tourbieres:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_tourbieres,
-                libelle='Restaurer le fonctionnement hydrologique des tourbières',
-                defaults={
-                    'description': 'Rétablir des niveaux d\'eau favorables au '
-                                   'maintien des communautés turficoles et à '
-                                   'l\'accumulation de tourbe.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_tourbieres,
                 libelle='Assèchement progressif et colonisation ligneuse',
                 defaults={
                     'description': 'Les tourbières subissent un assèchement lié au '
@@ -1689,6 +1676,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Restaurer le fonctionnement hydrologique des tourbières',
+                defaults={
+                    'description': 'Rétablir des niveaux d\'eau favorables au '
+                                   'maintien des communautés turficoles et à '
+                                   'l\'accumulation de tourbe.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1706,21 +1706,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Balbuzard pêcheur : état actuel + OLT + NE
         enjeu_balbuzard = next((e for e in enjeux_created if 'balbuzard' in e.libelle.lower()), None)
         if enjeu_balbuzard:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_balbuzard,
-                libelle='Garantir la quiétude du site en période de migration',
-                defaults={
-                    'description': 'Assurer des conditions d\'accueil optimales '
-                                   'pour les balbuzards en halte migratoire '
-                                   'en limitant les dérangements sur le lac.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_balbuzard,
                 libelle='Site de halte migratoire régulier mais non protégé',
                 defaults={
                     'description': 'Le lac de Remoray constitue un site de halte '
@@ -1732,6 +1719,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Garantir la quiétude du site en période de migration',
+                defaults={
+                    'description': 'Assurer des conditions d\'accueil optimales '
+                                   'pour les balbuzards en halte migratoire '
+                                   'en limitant les dérangements sur le lac.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1762,21 +1762,8 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Prairies de fauche : état actuel + OLT + NE
         enjeu_prairies = next((e for e in enjeux_created if 'prairies de fauche' in e.libelle.lower()), None)
         if enjeu_prairies:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_prairies,
-                libelle='Maintenir les prairies de fauche en gestion extensive',
-                defaults={
-                    'description': 'Conserver les surfaces de prairies de fauche '
-                                   'gérées de manière extensive et restaurer les '
-                                   'parcelles abandonnées ou intensifiées.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_prairies,
                 libelle='Régression des surfaces gérées traditionnellement',
                 defaults={
                     'description': 'Les prairies de fauche de montagne régressent '
@@ -1788,6 +1775,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Maintenir les prairies de fauche en gestion extensive',
+                defaults={
+                    'description': 'Conserver les surfaces de prairies de fauche '
+                                   'gérées de manière extensive et restaurer les '
+                                   'parcelles abandonnées ou intensifiées.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1814,24 +1814,11 @@ class EnjeuxSeeder(BaseSeeder):
             nes_created.append(ne2)
             self.log_item('créé' if created else 'mis à jour', f'NE: {ne2.libelle[:50]}')
 
-        # Remoray - EEE : OLT + état actuel + NE
+        # Remoray - EEE : état actuel + OLT + NE
         enjeu_eee = next((e for e in enjeux_created if e.intitule_court == 'EEE'), None)
         if enjeu_eee:
-            olt, created = ObjectifLongTerme.objects.update_or_create(
-                id_enjeu=enjeu_eee,
-                libelle='Contenir et réduire les populations d\'EEE',
-                defaults={
-                    'description': 'Empêcher l\'extension des espèces exotiques '
-                                   'envahissantes et réduire les surfaces colonisées '
-                                   'par des campagnes d\'arrachage et de piégeage.',
-                    'id_utilisateur_ajout': admin
-                }
-            )
-            olts_created.append(olt)
-            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
-
             etat, created = EtatActuel.objects.update_or_create(
-                id_olt=olt,
+                id_enjeu=enjeu_eee,
                 libelle='Colonisation active par la Renouée du Japon',
                 defaults={
                     'description': 'La Renouée du Japon colonise activement les berges '
@@ -1842,6 +1829,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             etats_created.append(etat)
             self.log_item('créé' if created else 'mis à jour', f'ÉtatActuel: {etat.libelle[:50]}')
+
+            olt, created = ObjectifLongTerme.objects.update_or_create(
+                id_etat_actuel=etat,
+                libelle='Contenir et réduire les populations d\'EEE',
+                defaults={
+                    'description': 'Empêcher l\'extension des espèces exotiques '
+                                   'envahissantes et réduire les surfaces colonisées '
+                                   'par des campagnes d\'arrachage et de piégeage.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            olts_created.append(olt)
+            self.log_item('créé' if created else 'mis à jour', f'OLT: {olt.libelle[:50]}')
 
             ne, created = NiveauExigence.objects.update_or_create(
                 id_olt=olt,
@@ -1880,12 +1880,11 @@ class EnjeuxSeeder(BaseSeeder):
             facteur_hydro = next((f for f in facteurs_created if 'hydrologique' in f.libelle.lower() or 'hydraulique' in f.libelle.lower()), None)
 
             oo, created = ObjectifOperationnel.objects.update_or_create(
-                id_enjeu=enjeu_hab_humides,
+                id_facteur_influence=facteur_urbain,
                 libelle='Réduire la pression urbaine sur les zones humides',
                 defaults={
                     'description': 'Mettre en place des mesures de protection et de gestion '
                                    'pour limiter l\'impact de l\'urbanisation sur les habitats humides.',
-                    'id_facteur_influence': facteur_urbain,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1917,12 +1916,11 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra2.libelle[:50]}')
 
             oo2, created = ObjectifOperationnel.objects.update_or_create(
-                id_enjeu=enjeu_hab_humides,
+                id_facteur_influence=facteur_hydro,
                 libelle='Restaurer le régime hydrologique naturel',
                 defaults={
                     'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
                                    'hydrologique compatible avec le maintien des habitats humides.',
-                    'id_facteur_influence': facteur_hydro,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1946,12 +1944,11 @@ class EnjeuxSeeder(BaseSeeder):
         facteur_assechement = next((f for f in facteurs_created if 'assèchement' in f.libelle.lower()), None)
         if enjeu_tourbieres:
             oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
-                id_enjeu=enjeu_tourbieres,
+                id_facteur_influence=facteur_assechement,
                 libelle='Maintenir le niveau piézométrique des tourbières',
                 defaults={
                     'description': 'Surveiller et maintenir le niveau piézométrique '
                                    'compatible avec le fonctionnement des tourbières.',
-                    'id_facteur_influence': facteur_assechement,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1983,8 +1980,21 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra_drains.libelle[:50]}')
 
             # OO 2 : Restauration végétation turficole
-            oo_veg, created = ObjectifOperationnel.objects.update_or_create(
+            # Créer un facteur d'influence pour la colonisation ligneuse
+            fi_colonisation, _ = FacteurInfluence.objects.update_or_create(
                 id_enjeu=enjeu_tourbieres,
+                libelle='Colonisation ligneuse des tourbières',
+                defaults={
+                    'description': 'La colonisation par les bouleaux et saules, '
+                                   'favorisée par l\'assèchement, dégrade les '
+                                   'communautés végétales turficoles.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            facteurs_created.append(fi_colonisation)
+
+            oo_veg, created = ObjectifOperationnel.objects.update_or_create(
+                id_facteur_influence=fi_colonisation,
                 libelle='Restaurer les communautés végétales turficoles',
                 defaults={
                     'description': 'Favoriser la recolonisation par les sphaignes et espèces '
@@ -2012,12 +2022,11 @@ class EnjeuxSeeder(BaseSeeder):
         facteur_agricole = next((f for f in facteurs_created if 'agricoles du bassin' in f.libelle.lower()), None)
         if enjeu_qualite:
             oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
-                id_enjeu=enjeu_qualite,
+                id_facteur_influence=facteur_agricole,
                 libelle='Réduire les apports en nutriments d\'origine agricole',
                 defaults={
                     'description': 'Réduire de 30% les flux de phosphore et d\'azote '
                                    'entrant dans le lac depuis le bassin versant agricole.',
-                    'id_facteur_influence': facteur_agricole,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -2051,8 +2060,20 @@ class EnjeuxSeeder(BaseSeeder):
         # Lac de Remoray - EEE : OO
         enjeu_eee = next((e for e in enjeux_created if 'exotiques envahissantes' in e.libelle.lower()), None)
         if enjeu_eee:
-            oo_eee, created = ObjectifOperationnel.objects.update_or_create(
+            # Créer un facteur d'influence pour les EEE
+            fi_eee, _ = FacteurInfluence.objects.update_or_create(
                 id_enjeu=enjeu_eee,
+                libelle='Propagation des espèces exotiques envahissantes',
+                defaults={
+                    'description': 'La Renouée du Japon et l\'écrevisse de Californie '
+                                   'se propagent le long du Drugeon et dans le lac.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            facteurs_created.append(fi_eee)
+
+            oo_eee, created = ObjectifOperationnel.objects.update_or_create(
+                id_facteur_influence=fi_eee,
                 libelle='Contenir l\'expansion de la Renouée du Japon',
                 defaults={
                     'description': 'Empêcher la progression des 3 stations connues de Renouée '
@@ -3138,6 +3159,13 @@ class EnjeuxSeeder(BaseSeeder):
         # =====================================================================
         operations_created = []
 
+        def _link_op_to_indicateur(operation, indicateur):
+            """Set operation.id_metrique to the first metrique of the indicateur."""
+            met = Metrique.objects.filter(id_indicateur=indicateur).first()
+            if met and not operation.id_metrique:
+                operation.id_metrique = met
+                operation.save(update_fields=['id_metrique'])
+
         # Récupérer nomenclatures de priorité d'opération
         prio_op_1 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_1')
         prio_op_2 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_2')
@@ -3160,7 +3188,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_surface)
+            _link_op_to_indicateur(op, ind_surface)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3177,7 +3205,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op2, id_indicateur=ind_surface)
+            _link_op_to_indicateur(op2, ind_surface)
             operations_created.append(op2)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
 
@@ -3197,7 +3225,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_flamant)
+            _link_op_to_indicateur(op, ind_flamant)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3217,7 +3245,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_debit)
+            _link_op_to_indicateur(op, ind_debit)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3238,7 +3266,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_stations)
+            _link_op_to_indicateur(op, ind_stations)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3258,7 +3286,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_quietude)
+            _link_op_to_indicateur(op, ind_quietude)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3275,7 +3303,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op2, id_indicateur=ind_quietude)
+            _link_op_to_indicateur(op2, ind_quietude)
             operations_created.append(op2)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
 
@@ -3296,7 +3324,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_phosphore)
+            _link_op_to_indicateur(op, ind_phosphore)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3316,7 +3344,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_nutriments)
+            _link_op_to_indicateur(op, ind_nutriments)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3336,7 +3364,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_prairies)
+            _link_op_to_indicateur(op, ind_prairies)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3356,7 +3384,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_renouee)
+            _link_op_to_indicateur(op, ind_renouee)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3375,8 +3403,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_phosphore)
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_nutriments)
+            _link_op_to_indicateur(op, ind_phosphore)
+            _link_op_to_indicateur(op, ind_nutriments)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
@@ -3399,7 +3427,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_drains_ref)
+            _link_op_to_indicateur(op, ind_pression_drains_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3419,7 +3447,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_piezo_ref)
+            _link_op_to_indicateur(op, ind_pression_piezo_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3439,7 +3467,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            _link_op_to_indicateur(op, ind_pression_col_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3459,7 +3487,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_phosphore_ref)
+            _link_op_to_indicateur(op, ind_pression_phosphore_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3480,7 +3508,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_conv_ref)
+            _link_op_to_indicateur(op, ind_pression_conv_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3501,7 +3529,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_ren_ref)
+            _link_op_to_indicateur(op, ind_pression_ren_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération OO: {op.libelle[:50]}')
 
@@ -3536,7 +3564,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_freq)
+            _link_op_to_indicateur(op, ind_balbuzard_freq)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
 
@@ -3562,7 +3590,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            _link_op_to_indicateur(op, ind_balbuzard_qual)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
 
@@ -3591,7 +3619,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            _link_op_to_indicateur(op, ind_balbuzard_qual)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
 
@@ -3620,8 +3648,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_freq)
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_balbuzard_qual)
+            _link_op_to_indicateur(op, ind_balbuzard_freq)
+            _link_op_to_indicateur(op, ind_balbuzard_qual)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
 
@@ -3649,7 +3677,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            _link_op_to_indicateur(op, ind_pression_col_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
 
@@ -3674,7 +3702,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_drains_ref)
+            _link_op_to_indicateur(op, ind_pression_drains_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
 
@@ -3703,8 +3731,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_piezo_ref)
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_pression_col_ref)
+            _link_op_to_indicateur(op, ind_pression_piezo_ref)
+            _link_op_to_indicateur(op, ind_pression_col_ref)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières: {op.libelle[:50]}')
 
@@ -3738,7 +3766,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
+            _link_op_to_indicateur(op, ind_ne_piezo)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
@@ -3766,7 +3794,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
+            _link_op_to_indicateur(op, ind_ne_piezo)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
@@ -3794,7 +3822,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            _link_op_to_indicateur(op, ind_ne_veg)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
@@ -3821,7 +3849,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            _link_op_to_indicateur(op, ind_ne_veg)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
@@ -3850,8 +3878,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_piezo)
-            CorOperationIndicateur.objects.get_or_create(id_operation=op, id_indicateur=ind_ne_veg)
+            _link_op_to_indicateur(op, ind_ne_piezo)
+            _link_op_to_indicateur(op, ind_ne_veg)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
@@ -4647,7 +4675,6 @@ class EnjeuxSeeder(BaseSeeder):
         count += FinanceOperation.objects.all().delete()[0]
         count += OperationAnnee.objects.all().delete()[0]
         count += CorOperationSite.objects.all().delete()[0]
-        count += CorOperationIndicateur.objects.all().delete()[0]
         count += Operation.objects.all().delete()[0]
         count += SuiviInventaire.objects.all().delete()[0]
         count += Protocole.objects.all().delete()[0]

@@ -172,21 +172,24 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   private extractOperations(enjeu: Enjeu, result: FlatOperation[], seenIds: Set<number>): void {
-    const olts = enjeu.objectifs_long_terme || [];
-    for (const olt of olts) {
-      const nes = olt.niveaux_exigence || [];
-      for (const ne of nes) {
-        const indicateurs = ne.indicateurs || [];
-        for (const ind of indicateurs) {
-          const operations = ind.operations || [];
-          for (const op of operations) {
-            if (!seenIds.has(op.id_operation)) {
-              seenIds.add(op.id_operation);
-              result.push({
-                operation: op,
-                enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
-                enjeuId: enjeu.id_enjeu
-              });
+    const etats = enjeu.etats_actuels || [];
+    for (const ea of etats) {
+      const olts = ea.objectifs_long_terme || [];
+      for (const olt of olts) {
+        const nes = olt.niveaux_exigence || [];
+        for (const ne of nes) {
+          const indicateurs = ne.indicateurs || [];
+          for (const ind of indicateurs) {
+            const operations = ind.operations || [];
+            for (const op of operations) {
+              if (!seenIds.has(op.id_operation)) {
+                seenIds.add(op.id_operation);
+                result.push({
+                  operation: op,
+                  enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
+                  enjeuId: enjeu.id_enjeu
+                });
+              }
             }
           }
         }

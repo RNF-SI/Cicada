@@ -479,17 +479,18 @@ class Pression(models.Model):
 
 class ObjectifLongTerme(models.Model):
     """
-    Objectif à long terme (OLT) rattaché à un enjeu.
-    Traduit l'état souhaité de l'enjeu à l'issue du plan de gestion.
+    Objectif à long terme (OLT) rattaché à un état actuel.
+    Traduit l'état souhaité à atteindre à l'issue du plan de gestion.
+    Hiérarchie : Enjeu → EtatActuel → OLT → NiveauExigence.
     """
 
     id_olt = models.AutoField(primary_key=True)
-    id_enjeu = models.ForeignKey(
-        Enjeu,
+    id_etat_actuel = models.ForeignKey(
+        'EtatActuel',
         on_delete=models.CASCADE,
         related_name='objectifs_long_terme',
-        db_column='id_enjeu',
-        verbose_name=_("Enjeu")
+        db_column='id_etat_actuel',
+        verbose_name=_("État actuel")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -525,28 +526,30 @@ class ObjectifLongTerme(models.Model):
 
     class Meta:
         db_table = '"general"."t_objectifs_long_terme"'
-        db_table_comment = "Objectifs à long terme des enjeux"
+        db_table_comment = "Objectifs à long terme des états actuels"
         verbose_name = _("Objectif à long terme")
         verbose_name_plural = _("Objectifs à long terme")
         ordering = ['libelle']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_enjeu})"
+        return f"{self.libelle} ({self.id_etat_actuel})"
 
 
 class EtatActuel(models.Model):
     """
-    État actuel d'un OLT (relation 1:1).
-    Décrit l'état de conservation actuel associé à un objectif à long terme.
+    État actuel rattaché à un enjeu.
+    Décrit l'état de conservation actuel d'un enjeu.
+    Un enjeu peut avoir un ou plusieurs états actuels.
+    Chaque état actuel peut avoir un ou plusieurs OLT.
     """
 
     id_etat_actuel = models.AutoField(primary_key=True)
-    id_olt = models.OneToOneField(
-        ObjectifLongTerme,
+    id_enjeu = models.ForeignKey(
+        Enjeu,
         on_delete=models.CASCADE,
-        related_name='etat_actuel',
-        db_column='id_olt',
-        verbose_name=_("Objectif à long terme")
+        related_name='etats_actuels',
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -582,13 +585,13 @@ class EtatActuel(models.Model):
 
     class Meta:
         db_table = '"general"."t_etat_actuel"'
-        db_table_comment = "États actuels des objectifs à long terme (1:1)"
+        db_table_comment = "États actuels des enjeux"
         verbose_name = _("État actuel")
         verbose_name_plural = _("États actuels")
         ordering = ['libelle']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_olt})"
+        return f"{self.libelle} ({self.id_enjeu})"
 
 
 class NiveauExigence(models.Model):
@@ -650,18 +653,19 @@ class NiveauExigence(models.Model):
 
 class ObjectifOperationnel(models.Model):
     """
-    Objectif opérationnel (OO) rattaché à un enjeu.
+    Objectif opérationnel (OO) rattaché à un facteur d'influence.
     Décrit les résultats concrets attendus pendant la durée du plan de gestion.
-    Miroir de ObjectifLongTerme pour la vision opérationnelle.
+    Hiérarchie : Enjeu → FacteurInfluence → OO → ResultatAttendu.
     """
 
     id_oo = models.AutoField(primary_key=True)
-    id_enjeu = models.ForeignKey(
-        Enjeu,
+    id_facteur_influence = models.ForeignKey(
+        FacteurInfluence,
         on_delete=models.CASCADE,
         related_name='objectifs_operationnels',
-        db_column='id_enjeu',
-        verbose_name=_("Enjeu")
+        db_column='id_facteur_influence',
+        verbose_name=_("Facteur d'influence"),
+        help_text=_("Facteur d'influence parent de cet objectif opérationnel")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -673,16 +677,6 @@ class ObjectifOperationnel(models.Model):
         blank=True,
         null=True,
         help_text=_("Description détaillée de l'objectif opérationnel")
-    )
-    id_facteur_influence = models.ForeignKey(
-        FacteurInfluence,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='objectifs_operationnels',
-        db_column='id_facteur_influence',
-        verbose_name=_("Facteur d'influence"),
-        help_text=_("Facteur d'influence géré par cet objectif opérationnel")
     )
 
     # Audit
@@ -707,13 +701,13 @@ class ObjectifOperationnel(models.Model):
 
     class Meta:
         db_table = '"general"."t_objectifs_operationnels"'
-        db_table_comment = "Objectifs opérationnels des enjeux"
+        db_table_comment = "Objectifs opérationnels des facteurs d'influence"
         verbose_name = _("Objectif opérationnel")
         verbose_name_plural = _("Objectifs opérationnels")
         ordering = ['libelle']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_enjeu})"
+        return f"{self.libelle} ({self.id_facteur_influence})"
 
 
 class ResultatAttendu(models.Model):

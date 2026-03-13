@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from .models_operations import (
     Protocole, SuiviInventaire,
-    Operation, CorOperationIndicateur, CorOperationSite, CorOperationMetrique,
+    Operation, CorOperationSite,
     OperationAnnee, FinanceOperation
 )
 
@@ -132,12 +132,11 @@ class OperationSerializer(serializers.ModelSerializer):
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
     type_action_label = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
-    indicateur_ids = serializers.SerializerMethodField()
-    nb_indicateurs = serializers.SerializerMethodField()
+    metrique_nom = serializers.CharField(source='id_metrique.nom_metrique', read_only=True, default=None)
+    indicateur_id = serializers.SerializerMethodField()
+    indicateur_nom = serializers.SerializerMethodField()
     site_ids = serializers.SerializerMethodField()
     nb_sites = serializers.SerializerMethodField()
-    metrique_ids = serializers.SerializerMethodField()
-    nb_metriques = serializers.SerializerMethodField()
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
@@ -159,9 +158,9 @@ class OperationSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'geom',
-            'indicateur_ids', 'nb_indicateurs',
+            'id_metrique', 'metrique_nom',
+            'indicateur_id', 'indicateur_nom',
             'site_ids', 'nb_sites',
-            'metrique_ids', 'nb_metriques',
             'operation_annees', 'finances',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -172,23 +171,21 @@ class OperationSerializer(serializers.ModelSerializer):
             return obj.id_type_action.label
         return None
 
-    def get_indicateur_ids(self, obj):
-        return list(obj.indicateurs.values_list('id_indicateur', flat=True))
+    def get_indicateur_id(self, obj):
+        if obj.id_metrique and obj.id_metrique.id_indicateur_id:
+            return obj.id_metrique.id_indicateur_id
+        return None
 
-    def get_nb_indicateurs(self, obj):
-        return obj.indicateurs.count()
+    def get_indicateur_nom(self, obj):
+        if obj.id_metrique and obj.id_metrique.id_indicateur:
+            return obj.id_metrique.id_indicateur.nom_indicateur
+        return None
 
     def get_site_ids(self, obj):
         return list(obj.sites.values_list('id_site', flat=True))
 
     def get_nb_sites(self, obj):
         return obj.sites.count()
-
-    def get_metrique_ids(self, obj):
-        return list(obj.metriques.values_list('id_metrique', flat=True))
-
-    def get_nb_metriques(self, obj):
-        return obj.metriques.count()
 
 
 # =============================================================================
@@ -200,9 +197,10 @@ class OperationListSerializer(serializers.ModelSerializer):
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
     type_action_label = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
-    nb_indicateurs = serializers.SerializerMethodField()
+    metrique_nom = serializers.CharField(source='id_metrique.nom_metrique', read_only=True, default=None)
+    indicateur_id = serializers.SerializerMethodField()
+    indicateur_nom = serializers.SerializerMethodField()
     nb_sites = serializers.SerializerMethodField()
-    nb_metriques = serializers.SerializerMethodField()
     nb_operation_annees = serializers.SerializerMethodField()
     nb_finances = serializers.SerializerMethodField()
 
@@ -222,7 +220,9 @@ class OperationListSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
-            'nb_indicateurs', 'nb_sites', 'nb_metriques',
+            'id_metrique', 'metrique_nom',
+            'indicateur_id', 'indicateur_nom',
+            'nb_sites',
             'nb_operation_annees', 'nb_finances',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -233,14 +233,18 @@ class OperationListSerializer(serializers.ModelSerializer):
             return obj.id_type_action.label
         return None
 
-    def get_nb_indicateurs(self, obj):
-        return obj.indicateurs.count()
+    def get_indicateur_id(self, obj):
+        if obj.id_metrique and obj.id_metrique.id_indicateur_id:
+            return obj.id_metrique.id_indicateur_id
+        return None
+
+    def get_indicateur_nom(self, obj):
+        if obj.id_metrique and obj.id_metrique.id_indicateur:
+            return obj.id_metrique.id_indicateur.nom_indicateur
+        return None
 
     def get_nb_sites(self, obj):
         return obj.sites.count()
-
-    def get_nb_metriques(self, obj):
-        return obj.metriques.count()
 
     def get_nb_operation_annees(self, obj):
         return obj.operation_annees.count()
@@ -255,19 +259,7 @@ class OperationListSerializer(serializers.ModelSerializer):
 
 class OperationCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Opération."""
-    indicateur_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True,
-        required=False,
-        default=[]
-    )
     site_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True,
-        required=False,
-        default=[]
-    )
-    metrique_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
         required=False,
@@ -293,7 +285,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'geom',
-            'indicateur_ids', 'site_ids', 'metrique_ids',
+            'id_metrique', 'site_ids',
             'operation_annees', 'finances'
         ]
         read_only_fields = ['id_operation']
@@ -317,9 +309,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         ])
 
     def create(self, validated_data):
-        indicateur_ids = validated_data.pop('indicateur_ids', [])
         site_ids = validated_data.pop('site_ids', [])
-        metrique_ids = validated_data.pop('metrique_ids', [])
         annees_data = validated_data.pop('operation_annees', [])
         finances_data = validated_data.pop('finances', [])
         suivi_data = validated_data.pop('suivi_inventaire', None)
@@ -346,16 +336,6 @@ class OperationCreateSerializer(serializers.ModelSerializer):
 
         operation = Operation.objects.create(**validated_data)
 
-        # M2M indicateurs
-        if indicateur_ids:
-            from .models_indicateurs import Indicateur
-            indicateurs = Indicateur.objects.filter(id_indicateur__in=indicateur_ids)
-            for ind in indicateurs:
-                CorOperationIndicateur.objects.create(
-                    id_operation=operation,
-                    id_indicateur=ind
-                )
-
         # M2M sites
         if site_ids:
             from apps.users.models import Site
@@ -366,16 +346,6 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                     id_site=site
                 )
 
-        # M2M metriques
-        if metrique_ids:
-            from .models_indicateurs import Metrique
-            metriques = Metrique.objects.filter(id_metrique__in=metrique_ids)
-            for met in metriques:
-                CorOperationMetrique.objects.create(
-                    id_operation=operation,
-                    id_metrique=met
-                )
-
         # Nested: operation_annees and finances
         self._create_operation_annees(operation, annees_data)
         self._create_finances(operation, finances_data)
@@ -383,9 +353,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         return operation
 
     def update(self, instance, validated_data):
-        indicateur_ids = validated_data.pop('indicateur_ids', None)
         site_ids = validated_data.pop('site_ids', None)
-        metrique_ids = validated_data.pop('metrique_ids', None)
         annees_data = validated_data.pop('operation_annees', None)
         finances_data = validated_data.pop('finances', None)
         suivi_data = validated_data.pop('suivi_inventaire', None)
@@ -438,17 +406,6 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # Replace M2M indicateurs
-        if indicateur_ids is not None:
-            CorOperationIndicateur.objects.filter(id_operation=instance).delete()
-            from .models_indicateurs import Indicateur
-            indicateurs = Indicateur.objects.filter(id_indicateur__in=indicateur_ids)
-            for ind in indicateurs:
-                CorOperationIndicateur.objects.create(
-                    id_operation=instance,
-                    id_indicateur=ind
-                )
-
         # Replace M2M sites
         if site_ids is not None:
             CorOperationSite.objects.filter(id_operation=instance).delete()
@@ -458,17 +415,6 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                 CorOperationSite.objects.create(
                     id_operation=instance,
                     id_site=site
-                )
-
-        # Replace M2M metriques
-        if metrique_ids is not None:
-            CorOperationMetrique.objects.filter(id_operation=instance).delete()
-            from .models_indicateurs import Metrique
-            metriques = Metrique.objects.filter(id_metrique__in=metrique_ids)
-            for met in metriques:
-                CorOperationMetrique.objects.create(
-                    id_operation=instance,
-                    id_metrique=met
                 )
 
         # Replace nested operation_annees (delete + recreate)
