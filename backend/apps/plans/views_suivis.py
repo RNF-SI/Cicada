@@ -40,7 +40,7 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = SuiviInventaireFilter
     search_fields = ['intitule', 'commentaires']
-    ordering_fields = ['intitule', 'annee_lancement_suivi', 'date_ajout']
+    ordering_fields = ['intitule', 'date_lancement_suivi', 'date_ajout']
     ordering = ['-date_ajout']
 
     def get_serializer_class(self):
