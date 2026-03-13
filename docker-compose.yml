@@ -94,6 +94,7 @@ services:
              python manage.py import_habref &&
              python manage.py import_taxref ${TAXREF_IMPORT_OPTS:-} &&
              python manage.py import_inpg &&
+             python manage.py import_campanule &&
              python create_superuser.py &&
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"

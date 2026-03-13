@@ -686,9 +686,10 @@ The backend follows a modular architecture with distinct Django apps:
 - **notifications**: Validation requests system, email notifications, Celery async tasks
 - **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
 - **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
+- **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
-  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef)
+  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
 
 ### Database Schema Design
 
@@ -746,11 +747,21 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
     - `habref_corresp_taxon`: Habitat-taxon correspondences
     - `autocomplete_habitat`: Denormalized table with trigram index
 
+11. **ref_campanule schema** (Cicada/INPN): Catalogue des protocoles CAMPanule
+    - `protocoles`: Protocoles de collecte (~224, PK: cd_protocole)
+    - `methodes`: Méthodes de collecte (~15, PK: cd_methode)
+    - `techniques`: Techniques de collecte (~178, PK: cd_technique)
+    - `attributs`: Vocabulaire contrôlé (domaine, objectif, cible, matériel)
+    - `prot_echantillonnage`: Plans d'échantillonnage
+    - `docs_web`: Références bibliographiques
+    - `prot_*_rel`, `meth_*_rel`, `tech_*_rel`: Tables de correspondance N-N
+    - `autocomplete_protocole`: Table dénormalisée avec index trigramme
+
 **Database Configuration**:
 ```python
 # search_path configured in settings/base.py
 OPTIONS = {
-    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,public'
+    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
 }
 ```
 

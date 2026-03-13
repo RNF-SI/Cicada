@@ -49,6 +49,7 @@ class ProtocoleSerializer(serializers.ModelSerializer):
         fields = [
             'id_protocole',
             'protocole_dans_campanule', 'protocole_campanule_nom',
+            'cd_protocole_campanule', 'nb_etp_cycle',
             'nom_protocole', 'mode_validation',
             'respect_protocole', 'justification_non_respect', 'differences_protocole',
             'description_protocole', 'objectif_protocole', 'periode_echantillonnage',

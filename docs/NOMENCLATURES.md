@@ -1,6 +1,6 @@
 # Référentiels et Nomenclatures
 
-Ce document explique l'intégration et la gestion des données de référence dans Cicada : nomenclatures métier, référentiel taxonomique (TaxRef), référentiel des habitats (HabRef) et inventaire géologique (INPG).
+Ce document explique l'intégration et la gestion des données de référence dans Cicada : nomenclatures métier, référentiel taxonomique (TaxRef), référentiel des habitats (HabRef), inventaire géologique (INPG) et catalogue des protocoles (CAMPanule).
 
 > **Inspiré de GeoNature** : L'architecture suit les conventions de GeoNature (noms de schemas, structure des tables, sources de données) pour assurer la compatibilité et faciliter les échanges de données.
 
@@ -14,12 +14,14 @@ Ce document explique l'intégration et la gestion des données de référence da
 | **HabRef** (habitats) | `ref_habitats` | INPN via geonature.fr | ~35 000 habitats | Automatique au démarrage |
 | **TaxRef** (taxonomie) | `taxonomie` | INPN via geonature.fr | ~700 000 taxons | Automatique au démarrage |
 | **INPG** (géologie) | `ref_inpg` | Projet socle (base INPG de l'INPN) | ~3 956 sites | Automatique au démarrage |
+| **CAMPanule** (protocoles) | `ref_campanule` | INPN (PatriNat) | ~4 500 entrées | Automatique au démarrage |
 
 ### Provenance des données
 
 - **TaxRef** : Référentiel taxonomique national publié par le MNHN/INPN. Contient l'ensemble des noms scientifiques de la faune, la flore et la fonge de France. Téléchargé depuis `geonature.fr/data/inpn/taxonomie/`. Mis à jour environ 1 fois par an.
 - **HabRef** : Référentiel des habitats naturels publié par le MNHN/INPN. Contient les habitats des principales typologies françaises et européennes (EUNIS, Corine Biotope, Natura 2000, etc.). Téléchargé depuis `geonature.fr/data/inpn/habitats/`. Mises à jour très rares.
 - **INPG** : Inventaire National du Patrimoine Géologique, géré par le BRGM pour le compte du MNHN. Contient les sites géologiques d'intérêt patrimonial de France. Les données sont extraites du « projet socle » (base INPG de l'INPN), filtrées pour ne conserver que les sites à diffusion publique (`niveau_de_diffusion = 'Public'`). Stockées dans un fichier SQL interne au projet (`backend/inpg_data/inpg_inserts.sql`). **⚠️ L'intégration INPG est susceptible d'évoluer** : le mode de récupération des données pourrait changer à terme (API, téléchargement automatique, etc.).
+- **CAMPanule** : CATalogue des Méthodes et des Protocoles de collecte de données naturalistes, publié par PatriNat (OFB/CNRS/MNHN) via l'INPN. Contient les protocoles standardisés, les méthodes et techniques de collecte utilisés en France. Données publiques embarquées dans le projet en CSV (`backend/apps/campanule/data/`). Version 1, septembre 2022.
 
 ### Mode lite pour les tests
 
@@ -59,8 +61,9 @@ docker compose exec web python manage.py seed_testdata
 3. `python manage.py import_habref` — Charge le référentiel HabRef (~35k habitats)
 4. `python manage.py import_taxref` — Charge le référentiel TaxRef (~700k taxons)
 5. `python manage.py import_inpg` — Charge l'INPG (~3 956 sites géologiques)
-6. `python create_superuser.py` — Crée le superutilisateur
-7. `python manage.py collectstatic` — Fichiers statiques
+6. `python manage.py import_campanule` — Charge CAMPanule (~4 500 entrées protocoles/méthodes/techniques)
+7. `python create_superuser.py` — Crée le superutilisateur
+8. `python manage.py collectstatic` — Fichiers statiques
 
 **Pour accélérer le démarrage en développement**, ajouter dans `.env` :
 ```bash
@@ -355,9 +358,111 @@ Pour mettre à jour les données INPG :
 
 ---
 
+## Catalogue des protocoles (CAMPanule)
+
+### Présentation
+
+CAMPanule (CATalogue des Méthodes et des Protocoles) est le référentiel national des protocoles de collecte de données naturalistes, publié par PatriNat (OFB/CNRS/MNHN) via l'INPN.
+
+- **Version actuelle** : v1 (septembre 2022)
+- **Mise à jour** : Très rare (v1 depuis 2022, pas de v2 annoncée)
+- **Schema** : `ref_campanule`
+- **Source** : CSV embarqués dans le projet (`backend/apps/campanule/data/`)
+- **Source originale** : https://inpn.mnhn.fr/programme/campanule (format Access .accdb)
+
+### Tables
+
+| Table | Description | Taille |
+|---|---|---|
+| `ref_campanule.protocoles` | Protocoles de collecte (cd_protocole = PK) | ~224 |
+| `ref_campanule.methodes` | Méthodes de collecte (cd_methode = PK) | ~15 |
+| `ref_campanule.techniques` | Techniques de collecte (cd_technique = PK) | ~178 |
+| `ref_campanule.attributs` | Vocabulaire contrôlé (domaine, objectif, cible, matériel) | ~145 |
+| `ref_campanule.prot_echantillonnage` | Plans d'échantillonnage par protocole | ~254 |
+| `ref_campanule.docs_web` | Références bibliographiques (liens INPN Docs-Web) | ~252 |
+| `ref_campanule.prot_attributs_rel` | Relation protocole-attribut (N-N) | ~1 536 |
+| `ref_campanule.prot_biblio_rel` | Relation protocole-document (N-N) | ~225 |
+| `ref_campanule.prot_meth_rel` | Relation protocole-méthode (N-N) | ~46 |
+| `ref_campanule.prot_tech_rel` | Relation protocole-technique (N-N) | ~406 |
+| `ref_campanule.meth_attributs_rel` | Relation méthode-attribut (N-N) | ~36 |
+| `ref_campanule.meth_biblio_rel` | Relation méthode-document (N-N) | ~30 |
+| `ref_campanule.tech_attributs_rel` | Relation technique-attribut (N-N) | ~730 |
+| `ref_campanule.tech_biblio_rel` | Relation technique-document (N-N) | ~196 |
+| `ref_campanule.autocomplete_protocole` | Table dénormalisée pour l'autocomplete (protocoles non obsolètes) | ~199 |
+
+### Contenu métier
+
+**Catégories de protocoles** (`categorie_prot`) :
+- *Protocoles standardisés* : reproductibles, documentés, pour des territoires variés
+- *Enquêtes (ponctuelles ou continues)* : science participative, remontées de données
+- *Guides et recommandations* : cadres pour la mise en place de suivis
+
+**Groupes cibles** (`cible`) : Oiseaux, Mammifères, Insectes et araignées, Amphibiens et reptiles, Plantes, Habitats, Multi-groupes, etc.
+
+**Catégories d'attributs** :
+- `DOMAINE` : Continental terrestre, aquatique, littoral, marin
+- `OBJECTIF` : Distribution, dynamique, état de santé, richesse spécifique, etc.
+- `TYPE_CIBLE` : Espèce, communauté, habitat
+- `MATERIEL` : Piège Malaise, détecteur ultrasons, etc. (techniques uniquement)
+- `COLLECTE` : Photographie, spécimen, indice de présence (techniques uniquement)
+- `GPE_GRAND_PUBLIC` : Groupes taxonomiques vulgarisés
+
+### Commandes
+
+```bash
+# Import CAMPanule (automatique au démarrage Docker)
+docker compose exec web python manage.py import_campanule
+
+# Forcer le rechargement
+docker compose exec web python manage.py import_campanule --force
+```
+
+### Utilisation dans le code
+
+```python
+from apps.campanule.models import (
+    CampanuleProtocole, CampanuleTechnique, CampanuleProtTechRel,
+    AutocompleteProtocole
+)
+
+# Chercher un protocole
+stoc = CampanuleProtocole.objects.filter(
+    lb_protocole_court__icontains='STOC'
+).first()
+
+# Techniques utilisées par un protocole
+tech_ids = CampanuleProtTechRel.objects.filter(
+    cd_protocole=stoc.cd_protocole
+).values_list('cd_technique', flat=True)
+techniques = CampanuleTechnique.objects.filter(cd_technique__in=tech_ids)
+
+# Recherche autocomplete (protocoles non obsolètes)
+from django.db import connection
+with connection.cursor() as cursor:
+    cursor.execute("""
+        SELECT cd_protocole, lb_protocole_court, cible, categorie_prot
+        FROM ref_campanule.autocomplete_protocole
+        WHERE search_name ILIKE %s
+        ORDER BY similarity(search_name, %s) DESC
+        LIMIT 20
+    """, ['%oiseaux%', 'oiseaux'])
+```
+
+### Mise à jour des données
+
+En cas de nouvelle version de CAMPanule :
+1. Télécharger le nouveau `.accdb` depuis https://inpn.mnhn.fr/programme/campanule
+2. Exporter les tables en CSV (depuis Access ou via `mdbtools`)
+3. Convertir en UTF-8 : `iconv -f CP1252 -t UTF-8 fichier.csv > fichier_utf8.csv`
+4. Remplacer les CSV dans `backend/apps/campanule/data/`
+5. Si le schéma a changé (nouvelles colonnes/tables), adapter les modèles Django et créer une migration
+6. Relancer : `docker compose exec web python manage.py import_campanule --force`
+
+---
+
 ## Autocomplete des référentiels
 
-Tous les autocompletes (TaxRef, HabRef, INPG) fonctionnent sur le même principe :
+Tous les autocompletes (TaxRef, HabRef, INPG, CAMPanule) fonctionnent sur le même principe :
 
 1. **Minimum 2 caractères** saisis pour déclencher la recherche
 2. **Recherche trigramme** (`pg_trgm`) avec `unaccent()` pour l'insensibilité aux accents
@@ -370,6 +475,7 @@ Tous les autocompletes (TaxRef, HabRef, INPG) fonctionnent sur le même principe
 | TaxRef | Nom scientifique + nom vernaculaire (via vue matérialisée) | `/api/taxref/autocomplete/` |
 | HabRef | Nom français + code nomenclature (via table dénormalisée) | `/api/habref/autocomplete/` |
 | INPG | Nom du site (`lb_site`) + code métier (`id_metier`) | `/api/inpg/autocomplete/` |
+| CAMPanule | Libellé court + complet + auteur + cible (via table dénormalisée) | *(API à venir)* |
 
 ### Import en masse
 
@@ -381,7 +487,7 @@ Chaque référentiel dispose aussi d'un endpoint `validate-bulk` (POST) qui perm
 
 ### Schemas PostgreSQL
 
-Cicada utilise 11 schemas PostgreSQL :
+Cicada utilise 12 schemas PostgreSQL :
 
 | Schema | Source | Description |
 |---|---|---|
@@ -396,13 +502,14 @@ Cicada utilise 11 schemas PostgreSQL :
 | `taxonomie` | GeoNature | Référentiel taxonomique TaxRef |
 | `ref_habitats` | GeoNature | Référentiel des habitats HabRef |
 | `ref_inpg` | Cicada | Inventaire géologique INPG |
+| `ref_campanule` | Cicada/INPN | Catalogue des protocoles CAMPanule |
 
 ### Extensions PostgreSQL requises
 
 | Extension | Usage |
 |---|---|
 | `postgis` | Données géospatiales |
-| `pg_trgm` | Index trigramme pour l'autocomplete (TaxRef, HabRef, INPG) |
+| `pg_trgm` | Index trigramme pour l'autocomplete (TaxRef, HabRef, INPG, CAMPanule) |
 | `unaccent` | Recherche insensible aux accents |
 | `uuid-ossp` | Génération d'UUID |
 

@@ -16,6 +16,7 @@ CREATE SCHEMA IF NOT EXISTS general;
 CREATE SCHEMA IF NOT EXISTS taxonomie;
 CREATE SCHEMA IF NOT EXISTS ref_habitats;
 CREATE SCHEMA IF NOT EXISTS ref_inpg;
+CREATE SCHEMA IF NOT EXISTS ref_campanule;
 
 -- Activation des extensions pour la recherche trigramme
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -28,6 +29,7 @@ GRANT USAGE ON SCHEMA general TO cicada_user;
 GRANT USAGE ON SCHEMA taxonomie TO cicada_user;
 GRANT USAGE ON SCHEMA ref_habitats TO cicada_user;
 GRANT USAGE ON SCHEMA ref_inpg TO cicada_user;
+GRANT USAGE ON SCHEMA ref_campanule TO cicada_user;
 
 GRANT CREATE ON SCHEMA utilisateurs TO cicada_user;
 GRANT CREATE ON SCHEMA referentiels TO cicada_user;
@@ -35,6 +37,7 @@ GRANT CREATE ON SCHEMA general TO cicada_user;
 GRANT CREATE ON SCHEMA taxonomie TO cicada_user;
 GRANT CREATE ON SCHEMA ref_habitats TO cicada_user;
 GRANT CREATE ON SCHEMA ref_inpg TO cicada_user;
+GRANT CREATE ON SCHEMA ref_campanule TO cicada_user;
 
 -- Configuration des permissions pour les séquences
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA utilisateurs TO cicada_user;
@@ -43,6 +46,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA general TO cicada_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA taxonomie TO cicada_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ref_habitats TO cicada_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ref_inpg TO cicada_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ref_campanule TO cicada_user;
 
 -- Configuration par défaut pour les futurs objets
 ALTER DEFAULT PRIVILEGES IN SCHEMA utilisateurs GRANT ALL ON TABLES TO cicada_user;
@@ -51,6 +55,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA general GRANT ALL ON TABLES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA taxonomie GRANT ALL ON TABLES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref_habitats GRANT ALL ON TABLES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref_inpg GRANT ALL ON TABLES TO cicada_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ref_campanule GRANT ALL ON TABLES TO cicada_user;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA utilisateurs GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA referentiels GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
@@ -58,6 +63,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA general GRANT USAGE, SELECT ON SEQUENCES TO c
 ALTER DEFAULT PRIVILEGES IN SCHEMA taxonomie GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref_habitats GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref_inpg GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ref_campanule GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
 
 -- Configuration des paramètres pour le français
 SET lc_messages TO 'fr_FR.UTF-8';

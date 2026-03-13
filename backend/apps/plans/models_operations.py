@@ -28,6 +28,20 @@ class Protocole(models.Model):
         default='',
         help_text=_("Nom du protocole dans Campanule")
     )
+    cd_protocole_campanule = models.IntegerField(
+        _("Code protocole Campanule"),
+        null=True,
+        blank=True,
+        help_text=_("Code du protocole dans le référentiel CAMPanule")
+    )
+    nb_etp_cycle = models.DecimalField(
+        _("Nombre d'ETP par cycle"),
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_("Nombre d'ETP nécessaire par cycle de collecte")
+    )
     respect_protocole = models.BooleanField(
         _("Respect strict du protocole"),
         null=True,
