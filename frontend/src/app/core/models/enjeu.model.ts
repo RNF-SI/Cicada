@@ -327,6 +327,8 @@ export interface Protocole {
   id_protocole?: number;
   protocole_dans_campanule?: boolean;
   protocole_campanule_nom?: string;
+  cd_protocole_campanule?: number;
+  nb_etp_cycle?: number;
   nom_protocole?: string;
   respect_protocole?: boolean;
   justification_non_respect?: string;

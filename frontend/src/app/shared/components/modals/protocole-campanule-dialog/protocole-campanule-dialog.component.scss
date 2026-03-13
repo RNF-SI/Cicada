@@ -1,0 +1,191 @@
+@import 'variables';
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  margin: 0;
+  padding: $spacing-lg $spacing-xl;
+  border-bottom: 2px solid $secondary-yellow;
+
+  i {
+    font-size: 20px;
+  }
+
+  span {
+    flex: 1;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $gray-dark;
+    font-size: 20px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+}
+
+.dialog-content {
+  padding: $spacing-lg $spacing-xl;
+  max-height: 70vh;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xxl;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  background-color: rgba($error-color, 0.1);
+  border: 1px solid $error-color;
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  color: $error-color;
+}
+
+// Protocol header
+.protocol-header {
+  margin-bottom: $spacing-lg;
+
+  .protocol-name {
+    font-size: $font-size-h3;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs 0;
+  }
+
+  .protocol-full-name {
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin: 0 0 $spacing-sm 0;
+  }
+
+  .protocol-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+}
+
+.meta-chip {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-medium;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+
+  &.meta-chip-secondary {
+    background-color: rgba($secondary-yellow, 0.3);
+    color: $black;
+  }
+
+  &.meta-chip-outline {
+    background-color: transparent;
+    border: 1px solid $gray-light;
+    color: $gray-dark;
+  }
+}
+
+// Sections
+.protocol-section {
+  margin-bottom: $spacing-lg;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-lighter;
+
+  .section-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $black;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 $spacing-sm 0;
+  }
+
+  .section-text {
+    font-size: $font-size-base;
+    color: $black;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
+// Detail cards
+.detail-card {
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+
+  strong {
+    color: $primary-color;
+  }
+
+  .section-text {
+    margin-top: $spacing-xs;
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+}
+
+.detail-row {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-xs 0;
+
+  .detail-label {
+    font-weight: $font-weight-medium;
+    color: $gray-dark;
+    min-width: 160px;
+    flex-shrink: 0;
+    font-size: $font-size-small;
+  }
+
+  .detail-value {
+    color: $black;
+    font-size: $font-size-small;
+  }
+}
+
+// Links
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.protocol-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px solid $primary-color;
+  width: fit-content;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  i {
+    font-size: 14px;
+  }
+}

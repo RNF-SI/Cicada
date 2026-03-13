@@ -1,0 +1,198 @@
+<h2 mat-dialog-title class="dialog-title">
+  <i class="fi fi-rr-document"></i>
+  <span>{{ 'campanule.dialog.title' | translate }}</span>
+  <button class="close-btn" (click)="close()">
+    <i class="fi fi-rr-cross-small"></i>
+  </button>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (protocole(); as p) {
+    <!-- Header -->
+    <div class="protocol-header">
+      <h3 class="protocol-name">{{ p.lb_protocole_court }}</h3>
+      @if (p.lb_protocole_complet && p.lb_protocole_complet !== p.lb_protocole_court) {
+        <p class="protocol-full-name">{{ p.lb_protocole_complet }}</p>
+      }
+      <div class="protocol-meta">
+        @if (p.cible) {
+          <span class="meta-chip">{{ p.cible }}</span>
+        }
+        @if (p.categorie_prot) {
+          <span class="meta-chip meta-chip-secondary">{{ p.categorie_prot }}</span>
+        }
+        @if (p.version) {
+          <span class="meta-chip meta-chip-outline">v{{ p.version }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Description -->
+    @if (p.description) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.description' | translate }}</h4>
+        <p class="section-text">{{ p.description }}</p>
+      </div>
+    }
+
+    <!-- Objectif -->
+    @if (p.descr_objectif_prot) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.objectif' | translate }}</h4>
+        <p class="section-text">{{ p.descr_objectif_prot }}</p>
+      </div>
+    }
+
+    <!-- Cible -->
+    @if (p.descr_cible_prot) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.cible' | translate }}</h4>
+        <p class="section-text">{{ p.descr_cible_prot }}</p>
+      </div>
+    }
+
+    <!-- Auteur(s) -->
+    @if (p.prot_auteur) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.auteurs' | translate }}</h4>
+        <p class="section-text">{{ p.prot_auteur }}</p>
+      </div>
+    }
+
+    <!-- Échantillonnage -->
+    @if (p.echantillonnages && p.echantillonnages.length > 0) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.echantillonnage' | translate }}</h4>
+        @for (ech of p.echantillonnages; track ech.cd_prot_echantillonnage) {
+          <div class="detail-card">
+            @if (ech.periode_an) {
+              <div class="detail-row">
+                <span class="detail-label">{{ 'campanule.dialog.periode' | translate }}</span>
+                <span class="detail-value">{{ ech.periode_an }}</span>
+              </div>
+            }
+            @if (ech.passages_an) {
+              <div class="detail-row">
+                <span class="detail-label">{{ 'campanule.dialog.passages' | translate }}</span>
+                <span class="detail-value">{{ ech.passages_an }}</span>
+              </div>
+            }
+            @if (ech.duree) {
+              <div class="detail-row">
+                <span class="detail-label">{{ 'campanule.dialog.duree' | translate }}</span>
+                <span class="detail-value">{{ ech.duree }}</span>
+              </div>
+            }
+            @if (ech.unite) {
+              <div class="detail-row">
+                <span class="detail-label">{{ 'campanule.dialog.unite' | translate }}</span>
+                <span class="detail-value">{{ ech.unite }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Méthodes -->
+    @if (p.methodes && p.methodes.length > 0) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.methodes' | translate }}</h4>
+        @for (m of p.methodes; track m.cd_methode) {
+          <div class="detail-card">
+            <strong>{{ m.lb_methode_court }}</strong>
+            @if (m.descr_methode) {
+              <p class="section-text">{{ m.descr_methode }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Techniques -->
+    @if (p.techniques && p.techniques.length > 0) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.techniques' | translate }}</h4>
+        @for (t of p.techniques; track t.cd_technique) {
+          <div class="detail-card">
+            <strong>{{ t.lb_technique_fr }}</strong>
+            @if (t.descr_technique) {
+              <p class="section-text">{{ t.descr_technique }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Informations complémentaires -->
+    <div class="protocol-section">
+      <h4 class="section-label">{{ 'campanule.dialog.infos' | translate }}</h4>
+      <div class="detail-card">
+        @if (p.nature_donnees) {
+          <div class="detail-row">
+            <span class="detail-label">{{ 'campanule.dialog.natureDonnees' | translate }}</span>
+            <span class="detail-value">{{ p.nature_donnees }}</span>
+          </div>
+        }
+        @if (p.echelle_restit) {
+          <div class="detail-row">
+            <span class="detail-label">{{ 'campanule.dialog.echelleRestit' | translate }}</span>
+            <span class="detail-value">{{ p.echelle_restit }}</span>
+          </div>
+        }
+        @if (p.date_publi) {
+          <div class="detail-row">
+            <span class="detail-label">{{ 'campanule.dialog.datePubli' | translate }}</span>
+            <span class="detail-value">{{ p.date_publi }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Liens -->
+    @if (p.url || p.url_perm || p.url_complementaire) {
+      <div class="protocol-section">
+        <h4 class="section-label">{{ 'campanule.dialog.liens' | translate }}</h4>
+        <div class="links-list">
+          @if (p.url_perm) {
+            <a class="protocol-link" (click)="openUrl(p.url_perm)">
+              <i class="fi fi-rr-link-alt"></i>
+              {{ 'campanule.dialog.urlPerm' | translate }}
+            </a>
+          }
+          @if (p.url && p.url !== p.url_perm) {
+            <a class="protocol-link" (click)="openUrl(p.url)">
+              <i class="fi fi-rr-link-alt"></i>
+              {{ 'campanule.dialog.urlProtocole' | translate }}
+            </a>
+          }
+          @if (p.url_complementaire) {
+            <a class="protocol-link" (click)="openUrl(p.url_complementaire)">
+              <i class="fi fi-rr-link-alt"></i>
+              {{ 'campanule.dialog.urlComplementaire' | translate }}
+            </a>
+          }
+        </div>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">
+    {{ 'common.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

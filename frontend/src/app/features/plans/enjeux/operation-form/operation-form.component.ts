@@ -8,7 +8,7 @@
 import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,13 +17,19 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
+import { CampanuleService } from '../../../../core/services/campanule.service';
 import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation, SuiviInventaire } from '../../../../core/models/enjeu.model';
+import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite } from '../../../../core/models/admin.model';
+import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 
 @Component({
   selector: 'app-operation-form',
@@ -40,6 +46,8 @@ import { PlanSite } from '../../../../core/models/admin.model';
     MatRadioModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatAutocompleteModule,
+    MatDialogModule,
     TranslateModule,
     HeaderComponent
   ],
@@ -53,8 +61,10 @@ export class OperationFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
+  private readonly campanuleService = inject(CampanuleService);
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   form!: FormGroup;
   isLoading = signal(false);
@@ -102,6 +112,11 @@ export class OperationFormComponent implements OnInit {
   // Suivi existant toggle
   estSuiviExistant = signal(false);
 
+  // CAMPanule autocomplete
+  campanuleSearchCtrl = new FormControl('');
+  campanuleResults = signal<CampanuleAutocomplete[]>([]);
+  selectedCampanule = signal<CampanuleAutocomplete | null>(null);
+
   // Collapsible sections state
   sectionsOpen: Record<string, boolean> = {
     details_suivi: true,
@@ -124,6 +139,7 @@ export class OperationFormComponent implements OnInit {
   ngOnInit(): void {
     this.initFrequenceLabels();
     this.initForm();
+    this.initCampanuleAutocomplete();
     this.loadRouteParams();
   }
 
@@ -149,7 +165,10 @@ export class OperationFormComponent implements OnInit {
       taxon_taxref: [null],
       annee_lancement_suivi: [null],
       protocole_dans_campanule: [null],
-      protocole_campanule_nom: [null],
+      protocole_campanule_nom: [''],
+      cd_protocole_campanule: [null],
+      nb_etp_cycle: [null],
+      nom_protocole: [''],
       respect_protocole: [null],
       justification_non_respect: [''],
       differences_protocole: [''],
@@ -384,7 +403,10 @@ export class OperationFormComponent implements OnInit {
       if (proto) {
         this.form.patchValue({
           protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
-          protocole_campanule_nom: proto.protocole_campanule_nom || null,
+          protocole_campanule_nom: proto.protocole_campanule_nom || '',
+          cd_protocole_campanule: proto.cd_protocole_campanule || null,
+          nb_etp_cycle: proto.nb_etp_cycle || null,
+          nom_protocole: proto.nom_protocole || '',
           respect_protocole: proto.respect_protocole ?? null,
           justification_non_respect: proto.justification_non_respect || '',
           differences_protocole: proto.differences_protocole || '',
@@ -392,6 +414,16 @@ export class OperationFormComponent implements OnInit {
           objectif_protocole: proto.objectif_protocole || '',
           periode_echantillonnage: proto.periode_echantillonnage || '',
         });
+
+        // Restore CAMPanule autocomplete state
+        if (proto.cd_protocole_campanule && proto.protocole_campanule_nom) {
+          this.campanuleSearchCtrl.setValue(proto.protocole_campanule_nom, { emitEvent: false });
+          this.selectedCampanule.set({
+            cd_protocole: proto.cd_protocole_campanule,
+            search_name: proto.protocole_campanule_nom,
+            lb_protocole_court: proto.protocole_campanule_nom,
+          });
+        }
       }
     }
 
@@ -481,6 +513,9 @@ export class OperationFormComponent implements OnInit {
       const protocoleData: Record<string, unknown> = {};
       if (rawFv.protocole_dans_campanule != null) protocoleData['protocole_dans_campanule'] = rawFv.protocole_dans_campanule;
       if (rawFv.protocole_campanule_nom) protocoleData['protocole_campanule_nom'] = rawFv.protocole_campanule_nom;
+      if (rawFv.cd_protocole_campanule != null) protocoleData['cd_protocole_campanule'] = rawFv.cd_protocole_campanule;
+      if (rawFv.nb_etp_cycle != null) protocoleData['nb_etp_cycle'] = rawFv.nb_etp_cycle;
+      if (rawFv.nom_protocole?.trim()) protocoleData['nom_protocole'] = rawFv.nom_protocole.trim();
       if (rawFv.respect_protocole != null) protocoleData['respect_protocole'] = rawFv.respect_protocole;
       if (rawFv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = rawFv.justification_non_respect.trim();
       if (rawFv.differences_protocole?.trim()) protocoleData['differences_protocole'] = rawFv.differences_protocole.trim();
@@ -623,10 +658,103 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
+  // ════════════════════════════════════════════════
+  // CAMPanule autocomplete
+  // ════════════════════════════════════════════════
+
+  private initCampanuleAutocomplete(): void {
+    this.campanuleSearchCtrl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      filter((val): val is string => typeof val === 'string' && val.length >= 1),
+      switchMap((search) => this.campanuleService.autocomplete(search))
+    ).subscribe({
+      next: (results) => this.campanuleResults.set(results),
+      error: () => this.campanuleResults.set([]),
+    });
+  }
+
+  displayCampanuleFn(option: CampanuleAutocomplete | string): string {
+    if (!option) return '';
+    if (typeof option === 'string') return option;
+    return option.lb_protocole_court || '';
+  }
+
+  onCampanuleSelected(event: any): void {
+    const selected: CampanuleAutocomplete = event.option.value;
+    this.selectedCampanule.set(selected);
+    this.campanuleSearchCtrl.setValue(selected.lb_protocole_court, { emitEvent: false });
+
+    this.form.patchValue({
+      protocole_campanule_nom: selected.lb_protocole_court,
+      cd_protocole_campanule: selected.cd_protocole,
+    });
+
+    // Fetch full protocol details to populate description/objectif/période
+    this.campanuleService.getProtocole(selected.cd_protocole).subscribe({
+      next: (detail) => {
+        this.form.patchValue({
+          description_protocole: detail.description || '',
+          objectif_protocole: detail.descr_objectif_prot || '',
+        });
+        if (detail.echantillonnages && detail.echantillonnages.length > 0) {
+          const periodes = detail.echantillonnages
+            .filter(e => e.periode_an)
+            .map(e => e.periode_an)
+            .join('; ');
+          if (periodes) {
+            this.form.patchValue({ periode_echantillonnage: periodes });
+          }
+        }
+      },
+    });
+  }
+
+  onCampanuleReset(): void {
+    this.selectedCampanule.set(null);
+    this.campanuleSearchCtrl.setValue('');
+    this.form.patchValue({
+      protocole_campanule_nom: '',
+      cd_protocole_campanule: null,
+      description_protocole: '',
+      objectif_protocole: '',
+      periode_echantillonnage: '',
+    });
+  }
+
+  consulterProtocole(): void {
+    const cdProtocole = this.form.get('cd_protocole_campanule')?.value;
+    if (!cdProtocole) return;
+
+    this.dialog.open(ProtocoleCampanuleDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { cdProtocole },
+    });
+  }
+
+  get isCampanule(): boolean {
+    return this.form.get('protocole_dans_campanule')?.value === true;
+  }
+
+  get isNotCampanule(): boolean {
+    return this.form.get('protocole_dans_campanule')?.value === false;
+  }
+
+  get isNonRespect(): boolean {
+    return this.form.get('respect_protocole')?.value === false;
+  }
+
+  get hasCampanuleSelected(): boolean {
+    return !!this.form.get('cd_protocole_campanule')?.value;
+  }
+
   private setSuiviFieldsEnabled(enabled: boolean): void {
     const fields = [
       'objectif_principal', 'cibles_principales', 'taxon_taxref',
       'annee_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
+      'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
       'respect_protocole', 'justification_non_respect', 'differences_protocole',
       'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
       'outil_bancarisation', 'outil_saisie', 'transmission_donnee'

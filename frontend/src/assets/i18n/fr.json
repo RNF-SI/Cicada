@@ -2057,29 +2057,32 @@
       "titleTaxon": "Importer une liste d'espèces",
       "titleHabitat": "Importer une liste d'habitats",
       "titleGeology": "Importer une liste de sites géologiques",
-      "instructions": "Saisissez un élément par ligne. Vous pouvez mélanger les formats : codes numériques, noms scientifiques, noms vernaculaires... Chaque ligne sera recherchée automatiquement dans le référentiel.",
-      "exampleTitleTaxon": "Formats acceptés pour les espèces :",
-      "exampleTitleHabitat": "Formats acceptés pour les habitats :",
+      "instructions": "Saisissez un code par ligne. Chaque code sera vérifié dans le référentiel.",
+      "exampleTitleTaxon": "Codes acceptés (cd_nom uniquement) :",
+      "exampleTitleHabitat": "Codes acceptés (cd_hab uniquement) :",
       "exampleTitleGeology": "Formats acceptés pour les sites géologiques :",
-      "exampleTaxon": "Lynx lynx                   ← nom scientifique\nLoutre d'Europe              ← nom vernaculaire\n60345                        ← code cd_nom (INPN)\nBombina variegata            ← nom scientifique",
-      "exampleHabitat": "Hêtraies acidiphiles         ← nom français\nG1.6                         ← code EUNIS / Corine Biotope\n16265                        ← code cd_hab (INPN)\nForêts alluviales            ← nom français (partiel)",
+      "exampleTaxon": "60345\n2852\n79301\n199860",
+      "exampleHabitat": "16265\n838\n10034\n2191",
       "exampleGeology": "Grotte de Lascaux            ← nom du site\nAQI0001                      ← code métier\n42                           ← code id_inpg\nFalaise de craie             ← nom du site (partiel)",
-      "helpTaxon": "Les codes cd_nom sont disponibles sur inpn.mnhn.fr. Mais le plus simple est de coller directement les noms d'espèces depuis votre tableur.",
-      "helpHabitat": "Les codes cd_hab sont disponibles sur inpn.mnhn.fr. Vous pouvez aussi utiliser les codes EUNIS (G1.6, E1.2…) ou les noms d'habitats.",
+      "helpTaxon": "Les codes cd_nom sont les identifiants numériques TaxRef, disponibles sur inpn.mnhn.fr. Un code par ligne.",
+      "helpHabitat": "Les codes cd_hab sont les identifiants numériques HabRef, disponibles sur inpn.mnhn.fr. Un code par ligne.",
       "helpGeology": "Les sites géologiques proviennent de l'INPG (Inventaire National du Patrimoine Géologique). Vous pouvez rechercher par nom de site, code métier ou id_inpg.",
-      "codesLabelTaxon": "Liste d'espèces (un par ligne)",
-      "codesLabelHabitat": "Liste d'habitats (un par ligne)",
+      "codesOnlyTaxon": "Seuls les codes numériques cd_nom sont acceptés. Pour rechercher par nom, utilisez la barre de recherche.",
+      "codesOnlyHabitat": "Seuls les codes numériques cd_hab sont acceptés. Pour rechercher par nom, utilisez la barre de recherche.",
+      "codesLabelTaxon": "Liste de codes cd_nom (un par ligne)",
+      "codesLabelHabitat": "Liste de codes cd_hab (un par ligne)",
       "codesLabelGeology": "Liste de sites géologiques (un par ligne)",
-      "placeholderTaxon": "Lynx lynx\nLoutre d'Europe\n60345\nBombina variegata",
-      "placeholderHabitat": "Hêtraies acidiphiles\nG1.6\n16265\nForêts alluviales",
+      "placeholderTaxon": "60345\n2852\n79301",
+      "placeholderHabitat": "16265\n838\n10034",
       "placeholderGeology": "Grotte de Lascaux\nAQI0001\n42\nFalaise de craie",
       "orUploadFile": "ou importer depuis un fichier",
       "chooseFile": "Choisir un fichier",
-      "fileHint": "Fichier .txt ou .csv avec un élément par ligne",
-      "importButton": "Rechercher dans le référentiel",
+      "fileHint": "Fichier .txt ou .csv avec un code par ligne",
+      "importButton": "Valider les codes",
       "confirmButton": "Ajouter les éléments trouvés",
       "foundCount": "{{count}} trouvé(s) dans le référentiel",
       "notFoundCount": "{{count}} non trouvé(s)",
+      "rejectedCount": "{{count}} rejeté(s) (format invalide)",
       "codeNotFound": "Non trouvé dans le référentiel",
       "matchedFrom": "trouvé via",
       "didYouMean": "Vouliez-vous dire :"
@@ -2207,6 +2210,12 @@
       "taxonTaxref": "Taxon - Taxref",
       "protocoleCampanule": "Protocole répertorié dans campanule ?",
       "protocoleNom": "Protocole (Campanule)",
+      "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
+      "campanuleSearchHint": "Recherche par nom du protocole, auteur ou cible taxonomique",
+      "nomProtocole": "Nom du protocole",
+      "nbEtpCycle": "Nombre d'ETP par cycle de collecte",
+      "nbEtpCycleHint": "Équivalent temps plein nécessaire pour un cycle de collecte",
+      "consulterProtocole": "Consulter le protocole",
       "respectProtocole": "Respectez-vous strictement le protocole ?",
       "justificationNonRespect": "Pourquoi ne respectez-vous pas le protocole ?",
       "differencesProtocole": "Quelque(s) différence(s) avec le protocole ?",
@@ -2404,13 +2413,18 @@
   },
   "inventaires": {
     "title": "Suivis et inventaires",
+    "pageTitle": "Inventaires et suivis scientifiques",
     "tabs": {
       "actifs": "Actifs",
       "inactifs": "Inactifs"
     },
     "actions": {
       "add": "Ajouter un inventaire/suivi",
-      "viewDetail": "Voir le détail"
+      "viewDetail": "Voir le détail",
+      "generate": "Générer"
+    },
+    "filters": {
+      "label": "Filtrer"
     },
     "searchPlaceholder": "Rechercher un suivi ou inventaire...",
     "resultsCount": "{{count}} résultat(s)",
@@ -2420,9 +2434,10 @@
     },
     "table": {
       "nom": "Nom du suivi",
-      "periode": "Période active",
+      "periode": "Période active du suivi/inventaire",
       "statut": "Statut",
-      "details": "Détails"
+      "details": "Détails",
+      "detailFiche": "Détails fiche"
     },
     "form": {
       "createTitle": "Nouveau suivi / inventaire",
@@ -2444,17 +2459,22 @@
         "bancarisation": "Bancarisation et stockage",
         "details": "Détails"
       },
-      "protocoleCampanule": "Protocole dans Campanule ?",
+      "protocoleCampanule": "Protocole répertorié dans campanule",
       "protocoleCampanuleNom": "Protocole Campanule",
+      "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
+      "campanuleSearchHint": "Recherche par nom du protocole, auteur ou cible taxonomique",
       "nomProtocole": "Nom du protocole",
+      "nbEtpCycle": "Nombre d'ETP par cycle de collecte",
+      "nbEtpCycleHint": "Veuillez préciser un estimatif du nombre total d'ETP nécessaire à la mise en œuvre sur un cycle : préparation, étude terrain et analyse des données",
       "descriptionProtocole": "Description du protocole",
       "modeValidation": "Mode et champ de validation",
-      "objectifProtocole": "Objectif du protocole",
+      "objectifProtocole": "Détails de l'objectif du protocole",
       "periodeEchantillonnage": "Période d'échantillonnage",
-      "respectProtocole": "Respect strict du protocole ?",
-      "justificationNonRespect": "Justification du non-respect",
-      "differencesProtocole": "Différences avec le protocole",
-      "frequence": "Fréquence de l'inventaire",
+      "respectProtocole": "Respectez-vous strictement le protocole ?",
+      "consulterProtocole": "Consulter le protocole",
+      "justificationNonRespect": "Pourquoi ne respectez-vous pas le protocole ?",
+      "differencesProtocole": "Quelle(s) différence(s) avec le protocole ?",
+      "frequence": "Fréquence de mise en oeuvre",
       "uniteJour": "jour(s)",
       "uniteSemaine": "semaine(s)",
       "uniteMois": "mois",
@@ -2464,7 +2484,10 @@
       "transmissionDonnee": "Transmission de la donnée ?",
       "statut": "Statut",
       "anneeFin": "Année de fin",
-      "commentaires": "Commentaires"
+      "commentaires": "Commentaires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "frequenceFoisPar": "fois par"
     },
     "messages": {
       "createSuccess": "Suivi / inventaire créé avec succès",
@@ -2474,6 +2497,33 @@
     "errors": {
       "loadFailed": "Erreur lors du chargement des données",
       "saveFailed": "Erreur lors de l'enregistrement"
+    }
+  },
+  "campanule": {
+    "dialog": {
+      "title": "Protocole CAMPanule",
+      "description": "Description",
+      "objectif": "Objectif",
+      "cible": "Cible",
+      "auteurs": "Auteur(s)",
+      "echantillonnage": "Échantillonnage",
+      "periode": "Période",
+      "passages": "Passages par an",
+      "duree": "Durée",
+      "unite": "Unité d'échantillonnage",
+      "methodes": "Méthodes",
+      "techniques": "Techniques",
+      "infos": "Informations complémentaires",
+      "natureDonnees": "Nature des données",
+      "echelleRestit": "Échelle de restitution",
+      "datePubli": "Date de publication",
+      "liens": "Liens",
+      "urlPerm": "Lien permanent INPN",
+      "urlProtocole": "Page du protocole",
+      "urlComplementaire": "Documentation complémentaire"
+    },
+    "errors": {
+      "loadFailed": "Erreur lors du chargement du protocole"
     }
   },
   "taxonomy": {

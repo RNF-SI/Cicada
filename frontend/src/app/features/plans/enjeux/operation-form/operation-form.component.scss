@@ -558,6 +558,94 @@ $form-side-margin: $spacing-xxl;
 }
 
 // ═══════════════════════════════════════════════
+// Readonly Fields (CAMPanule auto-filled)
+// ═══════════════════════════════════════════════
+.readonly-field {
+  margin-bottom: $spacing-sm;
+
+  .readonly-label {
+    display: block;
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin-bottom: $spacing-xs;
+  }
+
+  .readonly-value {
+    background-color: $gray-lighter;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-base;
+    color: $gray-dark;
+    line-height: 1.6;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+
+    &.readonly-value-multiline {
+      min-height: 100px;
+      align-items: flex-start;
+      white-space: pre-wrap;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// CAMPanule Autocomplete
+// ═══════════════════════════════════════════════
+.campanule-option {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+
+  .campanule-option-name {
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  .campanule-option-cible {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-dark;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: $error-color;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Consulter le protocole Link
+// ═══════════════════════════════════════════════
+.consulter-link {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  text-decoration: none;
+  border-bottom: 1px solid $primary-color;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: $spacing-lg;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.radio-field-row-with-link {
+  flex-wrap: wrap;
+}
+
+// ═══════════════════════════════════════════════
 // Readonly Sections (when suivi existant = Oui)
 // ═══════════════════════════════════════════════
 .readonly-section {
