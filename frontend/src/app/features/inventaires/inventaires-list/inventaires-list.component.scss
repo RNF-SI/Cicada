@@ -86,64 +86,80 @@
 }
 
 // ============================================
-// BREADCRUMB (Figma-specific, not global .breadcrumb)
+// BREADCRUMB (same style as plans-list)
 // ============================================
 
-.hero-breadcrumb {
+.breadcrumb {
+  position: relative;
   display: flex;
   align-items: center;
-  height: 48px;
+  justify-content: flex-start;
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  position: relative;
+  height: 43px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
-.hero-breadcrumb-home {
+.breadcrumb-home {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  border-radius: $border-radius-round;
+  width: 43px;
+  height: 43px;
   background-color: $primary-color;
+  border-radius: 50%;
   color: $white;
   text-decoration: none;
-  transition: background-color 0.2s;
-  z-index: 1;
-
-  &:hover {
-    background-color: $primary-hover;
-  }
+  transition: transform $transition-fast;
+  flex-shrink: 0;
+  z-index: 2;
 
   i {
-    font-size: 20px;
+    font-size: $font-size-h3;
+  }
+
+  &:hover {
+    transform: scale(1.05);
   }
 }
 
-.hero-breadcrumb-line {
-  width: 40px;
-  height: 0;
-  border-top: 1px solid rgba($primary-color, 0.3);
-  border-bottom: 1px solid rgba($primary-color, 0.3);
-  margin: 0 $spacing-sm;
+.breadcrumb-lines {
+  position: absolute;
+  left: 22px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $primary-color;
+  }
 }
 
-.hero-breadcrumb-text {
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.breadcrumb-current {
   color: $primary-color;
   font-size: $font-size-base;
-  font-weight: $font-weight-regular;
-  white-space: nowrap;
-}
-
-.hero-breadcrumb-line-end {
-  flex: 1;
-  height: 0;
-  border-top: 1px solid rgba($primary-color, 0.3);
-  border-bottom: 1px solid rgba($primary-color, 0.3);
-  margin-left: $spacing-sm;
+  font-family: $font-family;
 }
 
 // Title
@@ -646,8 +662,21 @@
     line-height: $line-height-h2;
   }
 
-  .hero-breadcrumb-line-end {
-    display: none;
+  .breadcrumb {
+    height: 36px;
+  }
+
+  .breadcrumb-home {
+    width: 36px;
+    height: 36px;
+
+    i {
+      font-size: $font-size-h4;
+    }
+  }
+
+  .breadcrumb-lines {
+    left: 18px;
   }
 
   .content-section {
