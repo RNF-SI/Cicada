@@ -130,7 +130,15 @@
             <span class="field-value">{{ suivi()?.objectif_principal || '—' }}</span>
           </div>
 
-          <!-- Cible(s) principale(s) -->
+          <!-- Objectif secondaire -->
+          @if (suivi()?.objectif_secondaire) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.objectifSecondaire' | translate }}</span>
+              <span class="field-value">{{ suivi()?.objectif_secondaire }}</span>
+            </div>
+          }
+
+          <!-- Cible principale -->
           <div class="field">
             <span class="field-label">{{ 'inventaires.form.ciblesPrincipales' | translate }}</span>
             <span class="field-value">{{ suivi()?.cibles_principales || '—' }}</span>

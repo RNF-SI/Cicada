@@ -68,7 +68,8 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
             'id_suivi_inventaire',
             'intitule', 'actif',
             # Détails
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'objectif_principal', 'objectif_secondaire',
+            'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',
             # Protocole (nested)
             'protocole',
@@ -90,7 +91,8 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
             'id_suivi_inventaire',
             'intitule', 'actif',
             # Détails
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'objectif_principal', 'objectif_secondaire',
+            'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',
             # Protocole (nested writable)
             'protocole',

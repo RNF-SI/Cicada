@@ -1,7 +1,7 @@
 /**
  * Formulaire Suivi/Inventaire (standalone) - création + édition.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -27,6 +27,21 @@ import { CampanuleService } from '../../../core/services/campanule.service';
 import { SuiviInventaireDetail, SuiviInventaireCreatePayload } from '../../../core/models/inventaire.model';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../core/models/campanule.model';
+
+/** Nomenclature option with grouping info */
+interface NomenclatureOption {
+  id_nomenclature: number;
+  mnemonique: string;
+  label: string;
+  definition?: string;
+  hierarchy?: string;
+}
+
+/** Grouped nomenclature for mat-optgroup display */
+interface NomenclatureGroup {
+  groupLabel: string;
+  options: NomenclatureOption[];
+}
 
 @Component({
   selector: 'app-inventaire-form',
@@ -72,10 +87,15 @@ export class InventaireFormComponent implements OnInit {
   existingSuivi = signal<SuiviInventaireDetail | null>(null);
 
   // Nomenclatures
-  typeSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
-  statutSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
-  objectifSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
-  cibleSuiviOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  typeSuiviOptions = signal<NomenclatureOption[]>([]);
+  statutSuiviOptions = signal<NomenclatureOption[]>([]);
+  objectifSuiviOptions = signal<NomenclatureOption[]>([]);
+  cibleSuiviOptions = signal<NomenclatureOption[]>([]);
+
+  // Grouped objectifs for mat-optgroup display
+  objectifGroups = computed<NomenclatureGroup[]>(() => {
+    return this.buildGroups(this.objectifSuiviOptions());
+  });
 
   // Reference item lists (taxons / habitats)
   taxonItems: TaxonRef[] = [];
@@ -121,6 +141,7 @@ export class InventaireFormComponent implements OnInit {
       id_type_suivi: [null],
       integre_plan_gestion: [null],
       objectif_principal: [''],
+      objectif_secondaire: [''],
       cibles_principales: [null],
       cible_secondaire: [''],
       annee_lancement_suivi: [null],
@@ -177,6 +198,47 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
+  /** Build grouped nomenclature structure from flat options using definition field */
+  private buildGroups(options: NomenclatureOption[]): NomenclatureGroup[] {
+    const groups: NomenclatureGroup[] = [];
+    const groupMap = new Map<string, NomenclatureOption[]>();
+
+    for (const opt of options) {
+      const groupKey = opt.definition || '';
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, []);
+      }
+      groupMap.get(groupKey)!.push(opt);
+    }
+
+    for (const [groupLabel, opts] of groupMap) {
+      groups.push({ groupLabel, options: opts });
+    }
+    return groups;
+  }
+
+  /** Check if selected cible requires taxref display */
+  get showTaxref(): boolean {
+    const cible = this.form.get('cibles_principales')?.value;
+    return cible === 'ESPECES';
+  }
+
+  /** Check if selected cible requires habitat display */
+  get showHabitat(): boolean {
+    const cible = this.form.get('cibles_principales')?.value;
+    return cible === 'HABITATS_VEGETATIONS';
+  }
+
+  /** Check if objectif principal is set (to show objectif secondaire) */
+  get hasObjectifPrincipal(): boolean {
+    return !!this.form.get('objectif_principal')?.value;
+  }
+
+  /** Check if cible principale is set (to show cible secondaire) */
+  get hasCiblePrincipale(): boolean {
+    return !!this.form.get('cibles_principales')?.value;
+  }
+
   private loadRouteParams(): void {
     const suiviIdStr = this.route.snapshot.paramMap.get('suiviId');
     if (suiviIdStr) {
@@ -227,6 +289,7 @@ export class InventaireFormComponent implements OnInit {
       id_type_suivi: suivi.id_type_suivi,
       integre_plan_gestion: suivi.integre_plan_gestion,
       objectif_principal: suivi.objectif_principal || '',
+      objectif_secondaire: suivi.objectif_secondaire || '',
       cibles_principales: suivi.cibles_principales || '',
       cible_secondaire: suivi.cible_secondaire || '',
       annee_lancement_suivi: suivi.annee_lancement_suivi,
@@ -400,8 +463,9 @@ export class InventaireFormComponent implements OnInit {
     if (fv.id_type_suivi) payload.id_type_suivi = fv.id_type_suivi;
     if (fv.integre_plan_gestion != null) payload.integre_plan_gestion = fv.integre_plan_gestion;
     if (fv.objectif_principal?.trim()) payload.objectif_principal = fv.objectif_principal.trim();
+    if (fv.objectif_secondaire?.trim()) payload.objectif_secondaire = fv.objectif_secondaire.trim();
     if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
-    if (fv.cible_secondaire?.trim()) payload.cible_secondaire = fv.cible_secondaire.trim();
+    if (fv.cible_secondaire) payload.cible_secondaire = fv.cible_secondaire;
     // Serialize taxon/habitat reference lists to strings
     if (this.taxonItems.length > 0) {
       payload.taxon_taxref = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');

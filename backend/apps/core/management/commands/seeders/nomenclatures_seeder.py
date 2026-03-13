@@ -77,18 +77,27 @@ class NomenclaturesSeeder(BaseSeeder):
     ]
 
     OBJECTIF_SUIVI_VALUES = [
-        {'mnemonique': 'CONSERVATION', 'label': 'Conservation'},
-        {'mnemonique': 'CONNAISSANCE', 'label': 'Connaissance'},
-        {'mnemonique': 'EVALUATION', 'label': 'Evaluation'},
-        {'mnemonique': 'SURVEILLANCE', 'label': 'Surveillance'},
+        {'mnemonique': 'OBJ_INVENTAIRE_INITIAL', 'label': 'Inventaire initial', 'definition': 'Inventorier et approfondir les connaissances fondamentales', 'hierarchy': 'A.1'},
+        {'mnemonique': 'OBJ_ACQUISITION_CONNAISSANCES', 'label': 'Acquisition ou approfondissement de connaissances biophysiques, ecologiques ou socio-economiques de base', 'definition': 'Inventorier et approfondir les connaissances fondamentales', 'hierarchy': 'A.2'},
+        {'mnemonique': 'OBJ_ETAT_CONSERVATION', 'label': 'Etat de conservation des habitats et especes', 'definition': 'Suivre, surveiller et evaluer l\'etat des composantes naturelles', 'hierarchy': 'B.1'},
+        {'mnemonique': 'OBJ_DYNAMIQUE_MILIEUX', 'label': 'Dynamique des milieux, habitats et communautes', 'definition': 'Suivre, surveiller et evaluer l\'etat des composantes naturelles', 'hierarchy': 'B.2'},
+        {'mnemonique': 'OBJ_PHYSICO_CHIMIQUES', 'label': 'Parametres physico-chimiques et climatiques', 'definition': 'Suivre, surveiller et evaluer l\'etat des composantes naturelles', 'hierarchy': 'B.3'},
+        {'mnemonique': 'OBJ_FONCTIONNALITES', 'label': 'Fonctionnalites ecologiques', 'definition': 'Suivre, surveiller et evaluer l\'etat des composantes naturelles', 'hierarchy': 'B.4'},
+        {'mnemonique': 'OBJ_RISQUES_ECOLOGIQUES', 'label': 'Risques ecologiques et signaux precoces', 'definition': 'Suivre, surveiller et evaluer les pressions et risques', 'hierarchy': 'C.1'},
+        {'mnemonique': 'OBJ_CHANGEMENT_CLIMATIQUE', 'label': 'Changement climatique (parametres et risques)', 'definition': 'Suivre, surveiller et evaluer les pressions et risques', 'hierarchy': 'C.2'},
+        {'mnemonique': 'OBJ_ACTIVITES_HUMAINES', 'label': 'Activites humaines et leurs impacts', 'definition': 'Suivre, surveiller et evaluer les pressions et risques', 'hierarchy': 'C.3'},
+        {'mnemonique': 'OBJ_EFFICACITE_GESTION', 'label': 'Efficacite des mesures de gestion', 'definition': 'Evaluer la gestion', 'hierarchy': 'D.1'},
+        {'mnemonique': 'OBJ_AUTRE', 'label': 'Autre', 'definition': '', 'hierarchy': 'E'},
     ]
 
     CIBLE_SUIVI_VALUES = [
-        {'mnemonique': 'FLORE', 'label': 'Flore'},
-        {'mnemonique': 'FAUNE', 'label': 'Faune'},
-        {'mnemonique': 'HABITAT', 'label': 'Habitat'},
-        {'mnemonique': 'PROCESSUS', 'label': 'Processus ecologiques'},
-        {'mnemonique': 'PAYSAGE', 'label': 'Paysage'},
+        {'mnemonique': 'MULTI_COMPOSANTES', 'label': 'Multi-composantes : biocenose et ecosysteme'},
+        {'mnemonique': 'ESPECES', 'label': 'Especes et groupes taxonomiques'},
+        {'mnemonique': 'HABITATS_VEGETATIONS', 'label': 'Habitats et vegetations'},
+        {'mnemonique': 'ABIOTIQUE', 'label': 'Composante abiotique'},
+        {'mnemonique': 'STRUCTURES_PAYSAGE', 'label': 'Structures spatiales et paysage'},
+        {'mnemonique': 'PROCESSUS_FONCTIONS', 'label': 'Processus et fonctions ecologiques'},
+        {'mnemonique': 'ANTHROPIQUE', 'label': 'Composante anthropique'},
     ]
 
     def seed(self) -> Dict[str, TypeNomenclature]:
@@ -225,14 +234,19 @@ class NomenclaturesSeeder(BaseSeeder):
             defaults={'label': 'Objectif du suivi/inventaire'}
         )
         for val in self.OBJECTIF_SUIVI_VALUES:
+            defaults = {
+                'cd_nomenclature': val['mnemonique'],
+                'label': val['label'],
+                'actif': True
+            }
+            if 'definition' in val:
+                defaults['definition'] = val['definition']
+            if 'hierarchy' in val:
+                defaults['hierarchy'] = val['hierarchy']
             Nomenclature.objects.update_or_create(
                 id_type=type_objectif_suivi,
                 mnemonique=val['mnemonique'],
-                defaults={
-                    'cd_nomenclature': val['mnemonique'],
-                    'label': val['label'],
-                    'actif': True
-                }
+                defaults=defaults
             )
             self.log_item('objectif_suivi', f"{val['label']} ({val['mnemonique']})")
 

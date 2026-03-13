@@ -40,8 +40,8 @@ def suivi_test_data(db):
         actif=True,
         annee_lancement_suivi=2020,
         annee_fin_suivi=None,
-        objectif_principal='conservation',
-        cibles_principales='flore',
+        objectif_principal='OBJ_ETAT_CONSERVATION',
+        cibles_principales='ESPECES',
         commentaires='Premier suivi de test',
         id_utilisateur_ajout=referent,
     )
@@ -50,8 +50,8 @@ def suivi_test_data(db):
         actif=True,
         annee_lancement_suivi=2018,
         annee_fin_suivi=2023,
-        objectif_principal='connaissance',
-        cibles_principales='faune',
+        objectif_principal='OBJ_ACQUISITION_CONNAISSANCES',
+        cibles_principales='ESPECES',
         commentaires='Deuxième suivi de test',
         id_utilisateur_ajout=referent,
     )
@@ -165,8 +165,8 @@ class TestSuivisCreateEndpoint:
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Nouveau suivi SA',
-            'objectif_principal': 'surveillance',
-            'cibles_principales': 'habitat',
+            'objectif_principal': 'OBJ_RISQUES_ECOLOGIQUES',
+            'cibles_principales': 'HABITATS_VEGETATIONS',
             'annee_lancement_suivi': 2025,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
@@ -177,8 +177,8 @@ class TestSuivisCreateEndpoint:
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Suivi avec protocole',
-            'objectif_principal': 'conservation',
-            'cibles_principales': 'flore',
+            'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+            'cibles_principales': 'ESPECES',
             'protocole': {
                 'protocole_dans_campanule': True,
                 'protocole_campanule_nom': 'Proto Test',
@@ -196,8 +196,8 @@ class TestSuivisCreateEndpoint:
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Suivi Campanule',
-            'objectif_principal': 'conservation',
-            'cibles_principales': 'faune',
+            'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+            'cibles_principales': 'ESPECES',
             'protocole': {
                 'protocole_dans_campanule': True,
                 'protocole_campanule_nom': 'STOC-EPS',
@@ -223,8 +223,8 @@ class TestSuivisCreateEndpoint:
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Suivi Custom',
-            'objectif_principal': 'surveillance',
-            'cibles_principales': 'habitat',
+            'objectif_principal': 'OBJ_RISQUES_ECOLOGIQUES',
+            'cibles_principales': 'HABITATS_VEGETATIONS',
             'protocole': {
                 'protocole_dans_campanule': False,
                 'nom_protocole': 'Mon protocole maison',
@@ -323,9 +323,10 @@ class TestSuivisDetailEndpoint:
             'intitule': 'Suivi roundtrip complet',
             'prix_indicatif': 1500,
             'integre_plan_gestion': True,
-            'objectif_principal': 'conservation',
-            'cibles_principales': 'faune',
-            'cible_secondaire': 'habitat',
+            'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+            'objectif_secondaire': 'OBJ_DYNAMIQUE_MILIEUX',
+            'cibles_principales': 'ESPECES',
+            'cible_secondaire': 'HABITATS_VEGETATIONS',
             'taxon_taxref': 'Aves, Chiroptera',
             'habitat_ref': 'Prairie humide',
             'annee_lancement_suivi': 2024,
@@ -358,9 +359,10 @@ class TestSuivisDetailEndpoint:
         assert data['intitule'] == 'Suivi roundtrip complet'
         assert float(data['prix_indicatif']) == 1500
         assert data['integre_plan_gestion'] is True
-        assert data['objectif_principal'] == 'conservation'
-        assert data['cibles_principales'] == 'faune'
-        assert data['cible_secondaire'] == 'habitat'
+        assert data['objectif_principal'] == 'OBJ_ETAT_CONSERVATION'
+        assert data['objectif_secondaire'] == 'OBJ_DYNAMIQUE_MILIEUX'
+        assert data['cibles_principales'] == 'ESPECES'
+        assert data['cible_secondaire'] == 'HABITATS_VEGETATIONS'
         assert data['taxon_taxref'] == 'Aves, Chiroptera'
         assert data['habitat_ref'] == 'Prairie humide'
         assert data['annee_lancement_suivi'] == 2024

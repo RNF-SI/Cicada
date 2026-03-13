@@ -62,7 +62,7 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
         if type_param:
             mnemonique = NOMENCLATURE_TYPE_MAPPING.get(type_param, type_param)
             qs = qs.filter(id_type__mnemonique=mnemonique)
-        return qs.order_by('label')
+        return qs.order_by('hierarchy', 'label')
 
 
 # =============================================================================

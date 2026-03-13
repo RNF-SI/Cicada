@@ -66,7 +66,8 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
             'frequence_nombre', 'frequence_unite',
             'commentaires',
             # Original fields
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'objectif_principal', 'objectif_secondaire',
+            'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',
             # Protocole (nested)
             'protocole',
@@ -107,7 +108,8 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
             'frequence_nombre', 'frequence_unite',
             'commentaires',
             # Original fields
-            'objectif_principal', 'cibles_principales', 'taxon_taxref',
+            'objectif_principal', 'objectif_secondaire',
+            'cibles_principales', 'taxon_taxref',
             'annee_lancement_suivi',
             # Protocole (nested writable)
             'protocole',

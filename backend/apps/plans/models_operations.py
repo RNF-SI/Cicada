@@ -236,18 +236,26 @@ class SuiviInventaire(models.Model):
     )
 
     # Détails de l'inventaire ou du suivi
-    objectif_principal = models.TextField(
+    objectif_principal = models.CharField(
         _("Objectif principal"),
-        blank=True,
-        default='',
-        help_text=_("Objectif principal de l'action")
-    )
-    cibles_principales = models.CharField(
-        _("Cible(s) principale(s)"),
         max_length=255,
         blank=True,
         default='',
-        help_text=_("Cible(s) principale(s) (Flore, Faune, Habitat, etc.)")
+        help_text=_("Objectif principal de la collecte de données (mnémonique nomenclature OBJECTIF_SUIVI)")
+    )
+    objectif_secondaire = models.CharField(
+        _("Objectif secondaire"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Objectif secondaire optionnel (mnémonique nomenclature OBJECTIF_SUIVI)")
+    )
+    cibles_principales = models.CharField(
+        _("Cible principale"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Cible principale (mnémonique nomenclature CIBLE_SUIVI)")
     )
     taxon_taxref = models.CharField(
         _("Taxon - Taxref"),

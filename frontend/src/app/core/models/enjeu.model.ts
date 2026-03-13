@@ -347,10 +347,15 @@ export interface Protocole {
  */
 export interface SuiviInventaire {
   id_suivi_inventaire?: number;
+  intitule?: string;
+  actif?: boolean;
   // Détails
   objectif_principal?: string;
+  objectif_secondaire?: string;
   cibles_principales?: string;
+  cible_secondaire?: string;
   taxon_taxref?: string;
+  habitat_ref?: string;
   annee_lancement_suivi?: number;
   // Protocole (nested)
   protocole?: Protocole;

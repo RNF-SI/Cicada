@@ -5,7 +5,7 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -23,13 +23,29 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
+import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
-import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation, SuiviInventaire } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
+
+/** Nomenclature option with grouping info */
+interface NomenclatureOption {
+  id_nomenclature: number;
+  mnemonique: string;
+  label: string;
+  definition?: string;
+  hierarchy?: string;
+}
+
+/** Grouped nomenclature for mat-optgroup display */
+interface NomenclatureGroup {
+  groupLabel: string;
+  options: NomenclatureOption[];
+}
 
 @Component({
   selector: 'app-operation-form',
@@ -49,7 +65,8 @@ import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components
     MatAutocompleteModule,
     MatDialogModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    ReferenceItemListComponent
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
@@ -86,6 +103,19 @@ export class OperationFormComponent implements OnInit {
   prioriteOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   operateurOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+
+  // Objectif/Cible nomenclatures
+  objectifSuiviOptions = signal<NomenclatureOption[]>([]);
+  cibleSuiviOptions = signal<NomenclatureOption[]>([]);
+
+  // Grouped objectifs for mat-optgroup display
+  objectifGroups = computed<NomenclatureGroup[]>(() => {
+    return this.buildGroups(this.objectifSuiviOptions());
+  });
+
+  // Reference item lists (taxons / habitats for operation suivi)
+  taxonItems: TaxonRef[] = [];
+  habitatItems: HabitatRef[] = [];
 
   // Plan sites (for "L'action est liée au/aux")
   planSites = signal<PlanSite[]>([]);
@@ -161,8 +191,9 @@ export class OperationFormComponent implements OnInit {
       id_priorite: [null],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
+      objectif_secondaire: [''],
       cibles_principales: [null],
-      taxon_taxref: [null],
+      cible_secondaire: [''],
       annee_lancement_suivi: [null],
       protocole_dans_campanule: [null],
       protocole_campanule_nom: [''],
@@ -305,6 +336,16 @@ export class OperationFormComponent implements OnInit {
       error: () => this.categorieFinanceOptions.set([])
     });
 
+    this.adminService.getNomenclaturesByType('OBJECTIF_SUIVI').subscribe({
+      next: (options) => this.objectifSuiviOptions.set(options),
+      error: () => this.objectifSuiviOptions.set([])
+    });
+
+    this.adminService.getNomenclaturesByType('CIBLE_SUIVI').subscribe({
+      next: (options) => this.cibleSuiviOptions.set(options),
+      error: () => this.cibleSuiviOptions.set([])
+    });
+
     this.loadOperationIfEdit();
   }
 
@@ -388,10 +429,26 @@ export class OperationFormComponent implements OnInit {
     // Populate suivi fields from nested suivi_inventaire
     const suivi = op.suivi_inventaire;
     if (suivi) {
+      // Parse taxon references from stored string
+      if (suivi.taxon_taxref) {
+        this.taxonItems = suivi.taxon_taxref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
+          cd_nom: 0,
+          nom_complet: name,
+        }));
+      }
+      // Parse habitat references
+      if (suivi.habitat_ref) {
+        this.habitatItems = suivi.habitat_ref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
+          cd_hab: '',
+          lb_hab_fr: name,
+        }));
+      }
+
       this.form.patchValue({
         objectif_principal: suivi.objectif_principal || '',
+        objectif_secondaire: suivi.objectif_secondaire || '',
         cibles_principales: suivi.cibles_principales || null,
-        taxon_taxref: suivi.taxon_taxref || null,
+        cible_secondaire: suivi.cible_secondaire || '',
         annee_lancement_suivi: suivi.annee_lancement_suivi || null,
         outil_bancarisation: suivi.outil_bancarisation || null,
         outil_saisie: suivi.outil_saisie || null,
@@ -502,8 +559,16 @@ export class OperationFormComponent implements OnInit {
     if (!this.estSuiviExistant()) {
       const suiviData: Record<string, unknown> = {};
       if (rawFv.objectif_principal?.trim()) suiviData['objectif_principal'] = rawFv.objectif_principal.trim();
+      if (rawFv.objectif_secondaire?.trim()) suiviData['objectif_secondaire'] = rawFv.objectif_secondaire.trim();
       if (rawFv.cibles_principales) suiviData['cibles_principales'] = rawFv.cibles_principales;
-      if (rawFv.taxon_taxref) suiviData['taxon_taxref'] = rawFv.taxon_taxref;
+      if (rawFv.cible_secondaire) suiviData['cible_secondaire'] = rawFv.cible_secondaire;
+      // Serialize taxon/habitat reference lists to strings
+      if (this.taxonItems.length > 0) {
+        suiviData['taxon_taxref'] = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');
+      }
+      if (this.habitatItems.length > 0) {
+        suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
+      }
       if (rawFv.annee_lancement_suivi != null) suiviData['annee_lancement_suivi'] = rawFv.annee_lancement_suivi;
       if (rawFv.outil_bancarisation) suiviData['outil_bancarisation'] = rawFv.outil_bancarisation;
       if (rawFv.outil_saisie) suiviData['outil_saisie'] = rawFv.outil_saisie;
@@ -750,9 +815,59 @@ export class OperationFormComponent implements OnInit {
     return !!this.form.get('cd_protocole_campanule')?.value;
   }
 
+  /** Build grouped nomenclature structure from flat options using definition field */
+  private buildGroups(options: NomenclatureOption[]): NomenclatureGroup[] {
+    const groups: NomenclatureGroup[] = [];
+    const groupMap = new Map<string, NomenclatureOption[]>();
+
+    for (const opt of options) {
+      const groupKey = opt.definition || '';
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, []);
+      }
+      groupMap.get(groupKey)!.push(opt);
+    }
+
+    for (const [groupLabel, opts] of groupMap) {
+      groups.push({ groupLabel, options: opts });
+    }
+    return groups;
+  }
+
+  /** Check if selected cible requires taxref display */
+  get showTaxref(): boolean {
+    const cible = this.form.get('cibles_principales')?.value;
+    return cible === 'ESPECES';
+  }
+
+  /** Check if selected cible requires habitat display */
+  get showHabitat(): boolean {
+    const cible = this.form.get('cibles_principales')?.value;
+    return cible === 'HABITATS_VEGETATIONS';
+  }
+
+  /** Check if objectif principal is set (to show objectif secondaire) */
+  get hasObjectifPrincipal(): boolean {
+    return !!this.form.get('objectif_principal')?.value;
+  }
+
+  /** Check if cible principale is set (to show cible secondaire) */
+  get hasCiblePrincipale(): boolean {
+    return !!this.form.get('cibles_principales')?.value;
+  }
+
+  onTaxonsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.taxonItems = items as TaxonRef[];
+  }
+
+  onHabitatsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.habitatItems = items as HabitatRef[];
+  }
+
   private setSuiviFieldsEnabled(enabled: boolean): void {
     const fields = [
-      'objectif_principal', 'cibles_principales', 'taxon_taxref',
+      'objectif_principal', 'objectif_secondaire',
+      'cibles_principales', 'cible_secondaire',
       'annee_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
       'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
       'respect_protocole', 'justification_non_respect', 'differences_protocole',

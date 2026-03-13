@@ -4099,9 +4099,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Restauration hydraulique du marais sud',
                 'intitule': 'Suivi entomologique des carabiques',
-                'objectif_principal': 'Suivre les populations de carabiques comme bio-indicateurs '
-                                     'de la qualité du sol et de l\'humidité du marais',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Coléoptères, Carabidae',
                 'annee_lancement_suivi': 1998,
                 'id_statut': _statut_en_cours,
@@ -4121,9 +4120,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Suivi cartographique des habitats humides',
                 'intitule': 'Suivi démographique du flamant rose',
-                'objectif_principal': 'Évaluer le succès de reproduction et la dynamique '
-                                     'démographique de la colonie camarguaise',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Phoenicopterus roseus',
                 'annee_lancement_suivi': 2010,
                 'id_statut': _statut_en_cours,
@@ -4143,9 +4141,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Régulation de la fréquentation autour des colonies',
                 'intitule': 'Cartographie évolutive des habitats',
-                'objectif_principal': 'Cartographier l\'évolution spatiale des habitats '
-                                     'et détecter les changements d\'occupation du sol',
-                'cibles_principales': 'Habitats',
+                'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': None,
                 'id_statut': _statut_a_venir,
@@ -4157,9 +4154,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Suivi visuel des haltes migratoires du Balbuzard',
                 'intitule': 'Suivi migration Balbuzard pêcheur - Lac de Remoray',
-                'objectif_principal': 'Documenter la phénologie migratoire, les effectifs '
-                                     'et la durée de halte du Balbuzard pêcheur',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_ACQUISITION_CONNAISSANCES',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Pandion haliaetus',
                 'annee_lancement_suivi': 2018,
                 'id_statut': _statut_en_cours,
@@ -4181,9 +4177,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Suivi piézométrique mensuel des tourbières',
                 'intitule': 'Réseau piézométrique des tourbières du Haut-Doubs',
-                'objectif_principal': 'Suivre la dynamique de la nappe dans les tourbières '
-                                     'pour évaluer l\'efficacité des travaux de restauration',
-                'cibles_principales': 'Habitat',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2012,
                 'id_statut': _statut_en_cours,
@@ -4206,9 +4201,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Débroussaillage sélectif des bouleaux sur tourbières',
                 'intitule': 'Suivi post-intervention débroussaillage tourbières',
-                'objectif_principal': 'Évaluer l\'efficacité des coupes de ligneux '
-                                     'sur la recolonisation par les sphaignes',
-                'cibles_principales': 'Habitat',
+                'objectif_principal': 'OBJ_EFFICACITE_GESTION',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2020,
                 'id_statut': _statut_en_cours,
@@ -4231,9 +4225,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Relevés phytosociologiques des communautés turficoles',
                 'intitule': 'Suivi phytosociologique des tourbières du bassin de Remoray',
-                'objectif_principal': 'Documenter la composition floristique et l\'état de '
-                                     'conservation des communautés végétales turficoles',
-                'cibles_principales': 'Flore',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': 'Sphagnum spp., Drosera rotundifolia, Menyanthes trifoliata',
                 'annee_lancement_suivi': 2015,
                 'id_statut': _statut_termine,
@@ -4256,9 +4249,8 @@ class EnjeuxSeeder(BaseSeeder):
             {
                 'op_match': 'Suivi photographique par drone des tourbières',
                 'intitule': 'Télédétection par drone des tourbières du Haut-Doubs',
-                'objectif_principal': 'Cartographier finement l\'occupation du sol '
-                                     'des tourbières et détecter les changements',
-                'cibles_principales': 'Habitat',
+                'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
                 'annee_lancement_suivi': 2022,
                 'id_statut': _statut_en_cours,
@@ -4502,8 +4494,8 @@ class EnjeuxSeeder(BaseSeeder):
         standalone_data = [
             {
                 'intitule': 'Suivi phénologique des orchidées',
-                'objectif_principal': 'Évaluer les dates de floraison',
-                'cibles_principales': 'Flore',
+                'objectif_principal': 'OBJ_ACQUISITION_CONNAISSANCES',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Orchidaceae',
                 'annee_lancement_suivi': 2022,
                 'actif': True,
@@ -4517,8 +4509,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Inventaire chiroptères estival',
-                'objectif_principal': 'Dénombrer les colonies de reproduction',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Chiroptera',
                 'annee_lancement_suivi': 2019,
                 'actif': True,
@@ -4531,8 +4523,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Suivi qualité des eaux de surface',
-                'objectif_principal': 'Surveiller les paramètres physico-chimiques',
-                'cibles_principales': 'Habitat',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
                 'annee_lancement_suivi': 2015,
                 'annee_fin_suivi': 2025,
                 'actif': True,
@@ -4547,8 +4539,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Inventaire bryophytes tourbières',
-                'objectif_principal': 'Cartographier la diversité bryologique',
-                'cibles_principales': 'Flore',
+                'objectif_principal': 'OBJ_INVENTAIRE_INITIAL',
+                'cibles_principales': 'ESPECES',
                 'annee_lancement_suivi': 2020,
                 'annee_fin_suivi': 2022,
                 'actif': False,
@@ -4558,8 +4550,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Suivi et inventaire amphibiens',
-                'objectif_principal': 'Suivre les populations d\'amphibiens',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Amphibia',
                 'annee_lancement_suivi': 2024,
                 'actif': True,
@@ -4573,8 +4565,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Suivi photographique des paysages',
-                'objectif_principal': 'Documenter l\'évolution paysagère',
-                'cibles_principales': 'Paysage',
+                'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
+                'cibles_principales': 'STRUCTURES_PAYSAGE',
                 'annee_lancement_suivi': 2026,
                 'actif': True,
                 'id_type_suivi': type_suivi,
@@ -4585,8 +4577,8 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'intitule': 'Inventaire entomologique prairies',
-                'objectif_principal': 'Recenser la diversité des insectes pollinisateurs',
-                'cibles_principales': 'Faune',
+                'objectif_principal': 'OBJ_INVENTAIRE_INITIAL',
+                'cibles_principales': 'ESPECES',
                 'annee_lancement_suivi': 2016,
                 'annee_fin_suivi': 2019,
                 'actif': False,

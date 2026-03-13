@@ -116,40 +116,98 @@
 
           @if (sectionsOpen['details_suivi']) {
             <div class="section-content">
-              <!-- Objectif principal -->
+              <!-- Objectif principal (grouped select) -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'enjeux.operations.objectifPrincipal' | translate }}</mat-label>
                 <mat-select formControlName="objectif_principal">
-                  <mat-option [value]="null">—</mat-option>
-                  <mat-option value="conservation">{{ 'enjeux.operations.objectifConservation' | translate }}</mat-option>
-                  <mat-option value="connaissance">{{ 'enjeux.operations.objectifConnaissance' | translate }}</mat-option>
-                  <mat-option value="sensibilisation">{{ 'enjeux.operations.objectifSensibilisation' | translate }}</mat-option>
-                  <mat-option value="gestion">{{ 'enjeux.operations.objectifGestion' | translate }}</mat-option>
+                  <mat-option [value]="''">—</mat-option>
+                  @for (group of objectifGroups(); track group.groupLabel) {
+                    @if (group.groupLabel) {
+                      <mat-optgroup [label]="group.groupLabel">
+                        @for (opt of group.options; track opt.id_nomenclature) {
+                          <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                        }
+                      </mat-optgroup>
+                    } @else {
+                      @for (opt of group.options; track opt.id_nomenclature) {
+                        <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                      }
+                    }
+                  }
                 </mat-select>
               </mat-form-field>
 
-              <!-- Cible(s) principale(s) -->
+              <!-- Objectif secondaire (conditional: only if objectif principal is set) -->
+              @if (hasObjectifPrincipal) {
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'enjeux.operations.objectifSecondaire' | translate }}</mat-label>
+                  <mat-select formControlName="objectif_secondaire">
+                    <mat-option [value]="''">—</mat-option>
+                    @for (group of objectifGroups(); track group.groupLabel) {
+                      @if (group.groupLabel) {
+                        <mat-optgroup [label]="group.groupLabel">
+                          @for (opt of group.options; track opt.id_nomenclature) {
+                            <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                          }
+                        </mat-optgroup>
+                      } @else {
+                        @for (opt of group.options; track opt.id_nomenclature) {
+                          <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                        }
+                      }
+                    }
+                  </mat-select>
+                </mat-form-field>
+              }
+
+              <!-- Cible principale -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'enjeux.operations.ciblesPrincipales' | translate }}</mat-label>
                 <mat-select formControlName="cibles_principales">
                   <mat-option [value]="null">—</mat-option>
-                  <mat-option value="flore">{{ 'enjeux.operations.cibleFlore' | translate }}</mat-option>
-                  <mat-option value="faune">{{ 'enjeux.operations.cibleFaune' | translate }}</mat-option>
-                  <mat-option value="habitat">{{ 'enjeux.operations.cibleHabitat' | translate }}</mat-option>
-                  <mat-option value="geologie">{{ 'enjeux.operations.cibleGeologie' | translate }}</mat-option>
-                  <mat-option value="paysage">{{ 'enjeux.operations.ciblePaysage' | translate }}</mat-option>
+                  @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
+                    <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
 
-              <!-- Taxon - Taxref -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.taxonTaxref' | translate }}</mat-label>
-                <mat-select formControlName="taxon_taxref">
-                  <mat-option [value]="null">—</mat-option>
-                  <mat-option value="flore">{{ 'enjeux.operations.cibleFlore' | translate }}</mat-option>
-                  <mat-option value="faune">{{ 'enjeux.operations.cibleFaune' | translate }}</mat-option>
-                </mat-select>
-              </mat-form-field>
+              <!-- Taxon(s) référé(s) — conditional: only when cible = ESPECES -->
+              @if (showTaxref) {
+                <div class="form-group">
+                  <label class="form-label">{{ 'enjeux.operations.taxonTaxref' | translate }}</label>
+                  <app-reference-item-list
+                    type="taxon"
+                    [items]="taxonItems"
+                    (itemsChange)="onTaxonsChange($event)">
+                  </app-reference-item-list>
+                </div>
+              }
+
+              <!-- Habitat(s) — conditional: only when cible = HABITATS_VEGETATIONS -->
+              @if (showHabitat) {
+                <div class="form-group">
+                  <label class="form-label">{{ 'enjeux.operations.habitatRef' | translate }}</label>
+                  <app-reference-item-list
+                    type="habitat"
+                    [items]="habitatItems"
+                    (itemsChange)="onHabitatsChange($event)">
+                  </app-reference-item-list>
+                </div>
+              }
+
+              <!-- Cible secondaire (conditional: only if cible principale is set) -->
+              @if (hasCiblePrincipale) {
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'enjeux.operations.cibleSecondaire' | translate }}</mat-label>
+                  <mat-select formControlName="cible_secondaire">
+                    <mat-option [value]="''">—</mat-option>
+                    @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
+                      <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>{{ 'enjeux.operations.cibleSecondaireHint' | translate }}</mat-hint>
+                </mat-form-field>
+              }
 
               <!-- Année de lancement du suivi (si antérieur) -->
               <mat-form-field appearance="outline" class="full-width">

@@ -80,18 +80,52 @@
               </mat-radio-group>
             </div>
 
-            <!-- Objectif principal -->
+            <!-- Objectif principal (grouped select) -->
             <mat-form-field appearance="outline">
               <mat-label>{{ 'inventaires.form.objectifPrincipal' | translate }}</mat-label>
               <mat-select formControlName="objectif_principal">
                 <mat-option [value]="''">—</mat-option>
-                @for (opt of objectifSuiviOptions(); track opt.id_nomenclature) {
-                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                @for (group of objectifGroups(); track group.groupLabel) {
+                  @if (group.groupLabel) {
+                    <mat-optgroup [label]="group.groupLabel">
+                      @for (opt of group.options; track opt.id_nomenclature) {
+                        <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                      }
+                    </mat-optgroup>
+                  } @else {
+                    <!-- Options without group (e.g. "Autre") -->
+                    @for (opt of group.options; track opt.id_nomenclature) {
+                      <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                    }
+                  }
                 }
               </mat-select>
             </mat-form-field>
 
-            <!-- Cible(s) principale(s) -->
+            <!-- Objectif secondaire (conditional: only if objectif principal is set) -->
+            @if (hasObjectifPrincipal) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'inventaires.form.objectifSecondaire' | translate }}</mat-label>
+                <mat-select formControlName="objectif_secondaire">
+                  <mat-option [value]="''">—</mat-option>
+                  @for (group of objectifGroups(); track group.groupLabel) {
+                    @if (group.groupLabel) {
+                      <mat-optgroup [label]="group.groupLabel">
+                        @for (opt of group.options; track opt.id_nomenclature) {
+                          <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                        }
+                      </mat-optgroup>
+                    } @else {
+                      @for (opt of group.options; track opt.id_nomenclature) {
+                        <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                      }
+                    }
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            <!-- Cible principale -->
             <mat-form-field appearance="outline">
               <mat-label>{{ 'inventaires.form.ciblesPrincipales' | translate }}</mat-label>
               <mat-select formControlName="cibles_principales">
@@ -102,36 +136,43 @@
               </mat-select>
             </mat-form-field>
 
-            <!-- Cible secondaire -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.cibleSecondaire' | translate }}</mat-label>
-              <mat-select formControlName="cible_secondaire">
-                <mat-option value="">—</mat-option>
-                @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
-                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <!-- Taxon(s) référé(s) — conditional: only when cible = ESPECES -->
+            @if (showTaxref) {
+              <div class="form-group">
+                <label class="form-label">{{ 'inventaires.form.taxonRef' | translate }}</label>
+                <app-reference-item-list
+                  type="taxon"
+                  [items]="taxonItems"
+                  (itemsChange)="onTaxonsChange($event)">
+                </app-reference-item-list>
+              </div>
+            }
 
-            <!-- Taxon(s) référé(s) — reference item list -->
-            <div class="form-group">
-              <label class="form-label">{{ 'inventaires.form.taxonRef' | translate }}</label>
-              <app-reference-item-list
-                type="taxon"
-                [items]="taxonItems"
-                (itemsChange)="onTaxonsChange($event)">
-              </app-reference-item-list>
-            </div>
+            <!-- Habitat — conditional: only when cible = HABITATS_VEGETATIONS -->
+            @if (showHabitat) {
+              <div class="form-group">
+                <label class="form-label">{{ 'inventaires.form.habitat' | translate }}</label>
+                <app-reference-item-list
+                  type="habitat"
+                  [items]="habitatItems"
+                  (itemsChange)="onHabitatsChange($event)">
+                </app-reference-item-list>
+              </div>
+            }
 
-            <!-- Habitat — reference item list -->
-            <div class="form-group">
-              <label class="form-label">{{ 'inventaires.form.habitat' | translate }}</label>
-              <app-reference-item-list
-                type="habitat"
-                [items]="habitatItems"
-                (itemsChange)="onHabitatsChange($event)">
-              </app-reference-item-list>
-            </div>
+            <!-- Cible secondaire (conditional: only if cible principale is set) -->
+            @if (hasCiblePrincipale) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'inventaires.form.cibleSecondaire' | translate }}</mat-label>
+                <mat-select formControlName="cible_secondaire">
+                  <mat-option value="">—</mat-option>
+                  @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
+                    <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+                <mat-hint>{{ 'inventaires.form.cibleSecondaireHint' | translate }}</mat-hint>
+              </mat-form-field>
+            }
 
             <!-- Année de lancement -->
             <mat-form-field appearance="outline">

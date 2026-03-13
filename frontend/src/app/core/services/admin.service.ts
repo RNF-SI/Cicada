@@ -616,7 +616,7 @@ export class AdminService {
   /**
    * Get nomenclatures by type
    */
-  getNomenclaturesByType(typeMnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string }[]> {
+  getNomenclaturesByType(typeMnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string; definition?: string; hierarchy?: string }[]> {
     return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}`)
       .pipe(
         map(res => res.results || res),

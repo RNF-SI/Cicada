@@ -290,8 +290,8 @@ class TestOperationCreateEndpoint:
             'libelle': 'Opération avec suivi',
             'est_suivi_existant': False,
             'suivi_inventaire': {
-                'objectif_principal': 'conservation',
-                'cibles_principales': 'flore',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Taxon Test',
                 'protocole': {
                     'protocole_dans_campanule': True,
@@ -302,8 +302,8 @@ class TestOperationCreateEndpoint:
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération avec suivi')
         assert op.id_suivi is not None
-        assert op.id_suivi.objectif_principal == 'conservation'
-        assert op.id_suivi.cibles_principales == 'flore'
+        assert op.id_suivi.objectif_principal == 'OBJ_ETAT_CONSERVATION'
+        assert op.id_suivi.cibles_principales == 'ESPECES'
         assert op.id_suivi.id_protocole is not None
         assert op.id_suivi.id_protocole.protocole_dans_campanule is True
         assert op.id_suivi.id_protocole.protocole_campanule_nom == 'Proto Test'
@@ -391,7 +391,7 @@ class TestOperationDetailEndpoint:
             id_utilisateur_ajout=operation_test_data['referent']
         )
         suivi = SuiviInventaireFactory(
-            objectif_principal='test objectif',
+            objectif_principal='OBJ_INVENTAIRE_INITIAL',
             id_protocole=protocole,
             id_utilisateur_ajout=operation_test_data['referent']
         )
@@ -403,7 +403,7 @@ class TestOperationDetailEndpoint:
         response = api_client.get(f'/api/plans/operations/{op.id_operation}/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['suivi_inventaire'] is not None
-        assert response.data['suivi_inventaire']['objectif_principal'] == 'test objectif'
+        assert response.data['suivi_inventaire']['objectif_principal'] == 'OBJ_INVENTAIRE_INITIAL'
         assert response.data['suivi_inventaire']['protocole'] is not None
         assert response.data['suivi_inventaire']['protocole']['protocole_campanule_nom'] == 'Proto Detail Test'
 
@@ -417,8 +417,8 @@ class TestOperationDetailEndpoint:
             'est_suivi_existant': False,
             'suivi_inventaire': {
                 'intitule': 'Suivi STOC',
-                'objectif_principal': 'conservation',
-                'cibles_principales': 'faune',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Aves',
                 'protocole': {
                     'protocole_dans_campanule': True,
@@ -441,8 +441,8 @@ class TestOperationDetailEndpoint:
         suivi = response.data['suivi_inventaire']
         assert suivi is not None
         assert suivi['intitule'] == 'Suivi STOC'
-        assert suivi['objectif_principal'] == 'conservation'
-        assert suivi['cibles_principales'] == 'faune'
+        assert suivi['objectif_principal'] == 'OBJ_ETAT_CONSERVATION'
+        assert suivi['cibles_principales'] == 'ESPECES'
         assert suivi['taxon_taxref'] == 'Aves'
 
         proto = suivi['protocole']
@@ -468,8 +468,8 @@ class TestOperationDetailEndpoint:
             'est_suivi_existant': False,
             'suivi_inventaire': {
                 'intitule': 'Suivi piézo',
-                'objectif_principal': 'surveillance',
-                'cibles_principales': 'habitat',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
                 'protocole': {
                     'protocole_dans_campanule': False,
                     'nom_protocole': 'Protocole piézométrique maison',
@@ -518,8 +518,8 @@ class TestOperationDetailEndpoint:
             'est_suivi_existant': False,
             'suivi_inventaire': {
                 'intitule': 'Suivi switch',
-                'objectif_principal': 'conservation',
-                'cibles_principales': 'faune',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'ESPECES',
                 'protocole': {
                     'protocole_dans_campanule': True,
                     'protocole_campanule_nom': 'EPOC',

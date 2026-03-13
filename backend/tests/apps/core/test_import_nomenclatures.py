@@ -95,6 +95,54 @@ class TestImportNomenclaturesCommand:
         assert 'INVENTAIRE' in mnemoniques
         assert 'SUIVI_INVENTAIRE' in mnemoniques
 
+    def test_import_objectif_suivi_values(self):
+        """L'import crée les 11 valeurs OBJECTIF_SUIVI avec hiérarchie."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+
+        type_obj = TypeNomenclature.objects.get(mnemonique='OBJECTIF_SUIVI')
+        noms = Nomenclature.objects.filter(id_type=type_obj)
+        mnemoniques = set(noms.values_list('mnemonique', flat=True))
+        assert len(mnemoniques) == 11
+        # Catégorie A - Inventorier
+        assert 'OBJ_INVENTAIRE_INITIAL' in mnemoniques
+        assert 'OBJ_ACQUISITION_CONNAISSANCES' in mnemoniques
+        # Catégorie B - Suivre/surveiller état
+        assert 'OBJ_ETAT_CONSERVATION' in mnemoniques
+        assert 'OBJ_DYNAMIQUE_MILIEUX' in mnemoniques
+        assert 'OBJ_PHYSICO_CHIMIQUES' in mnemoniques
+        assert 'OBJ_FONCTIONNALITES' in mnemoniques
+        # Catégorie C - Suivre/surveiller pressions
+        assert 'OBJ_RISQUES_ECOLOGIQUES' in mnemoniques
+        assert 'OBJ_CHANGEMENT_CLIMATIQUE' in mnemoniques
+        assert 'OBJ_ACTIVITES_HUMAINES' in mnemoniques
+        # Catégorie D - Évaluer gestion
+        assert 'OBJ_EFFICACITE_GESTION' in mnemoniques
+        # Autre
+        assert 'OBJ_AUTRE' in mnemoniques
+
+        # Vérifier que definition (groupe) et hierarchy sont renseignés
+        obj_inv = noms.get(mnemonique='OBJ_INVENTAIRE_INITIAL')
+        assert obj_inv.definition != ''
+        assert obj_inv.hierarchy == 'A.1'
+
+    def test_import_cible_suivi_values(self):
+        """L'import crée les 7 valeurs CIBLE_SUIVI."""
+        self._clear_nomenclatures()
+        self._call_command('--force')
+
+        type_cible = TypeNomenclature.objects.get(mnemonique='CIBLE_SUIVI')
+        noms = Nomenclature.objects.filter(id_type=type_cible)
+        mnemoniques = set(noms.values_list('mnemonique', flat=True))
+        assert len(mnemoniques) == 7
+        assert 'MULTI_COMPOSANTES' in mnemoniques
+        assert 'ESPECES' in mnemoniques
+        assert 'HABITATS_VEGETATIONS' in mnemoniques
+        assert 'ABIOTIQUE' in mnemoniques
+        assert 'STRUCTURES_PAYSAGE' in mnemoniques
+        assert 'PROCESSUS_FONCTIONS' in mnemoniques
+        assert 'ANTHROPIQUE' in mnemoniques
+
     def test_idempotent_skip(self):
         """L'import est ignoré si les données existent déjà."""
         self._clear_nomenclatures()

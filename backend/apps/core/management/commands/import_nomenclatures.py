@@ -88,8 +88,10 @@ class Command(BaseCommand):
         """Vide les tables de nomenclatures."""
         self.stdout.write('  Vidage des tables existantes...')
         with connection.cursor() as cursor:
-            cursor.execute('TRUNCATE TABLE t_nomenclatures CASCADE;')
-            cursor.execute('TRUNCATE TABLE bib_nomenclatures_types CASCADE;')
+            # DELETE FROM au lieu de TRUNCATE pour éviter les erreurs
+            # "pending trigger events" dans les transactions (tests, etc.)
+            cursor.execute('DELETE FROM t_nomenclatures;')
+            cursor.execute('DELETE FROM bib_nomenclatures_types;')
         self.stdout.write(self.style.SUCCESS('  ✓ Tables vidées'))
 
     def _execute_insert_file(self, file_path, description):

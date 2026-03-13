@@ -48,6 +48,7 @@ export interface SuiviInventaireDetail {
   commentaires?: string;
   // Original fields
   objectif_principal?: string;
+  objectif_secondaire?: string;
   cibles_principales?: string;
   taxon_taxref?: string;
   annee_lancement_suivi?: number;
@@ -84,6 +85,7 @@ export interface SuiviInventaireCreatePayload {
   commentaires?: string;
   // Original fields
   objectif_principal?: string;
+  objectif_secondaire?: string;
   cibles_principales?: string;
   taxon_taxref?: string;
   annee_lancement_suivi?: number;
