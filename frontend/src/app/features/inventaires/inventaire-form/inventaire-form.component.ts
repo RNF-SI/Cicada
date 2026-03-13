@@ -373,7 +373,11 @@ export class InventaireFormComponent implements OnInit {
   }
 
   cancel(): void {
-    this.router.navigate(['/inventaires']);
+    if (this.isEditMode() && this.suiviId()) {
+      this.router.navigate(['/inventaires', this.suiviId()]);
+    } else {
+      this.router.navigate(['/inventaires']);
+    }
   }
 
   save(): void {
@@ -443,7 +447,7 @@ export class InventaireFormComponent implements OnInit {
       : this.inventaireService.createInventaire(payload);
 
     request$.subscribe({
-      next: () => {
+      next: (result) => {
         this.isLoading.set(false);
         const msgKey = this.isEditMode()
           ? 'inventaires.messages.updateSuccess'
@@ -453,7 +457,13 @@ export class InventaireFormComponent implements OnInit {
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );
-        this.router.navigate(['/inventaires']);
+        // Navigate to detail page after save
+        const id = result?.id_suivi_inventaire || this.suiviId();
+        if (id) {
+          this.router.navigate(['/inventaires', id]);
+        } else {
+          this.router.navigate(['/inventaires']);
+        }
       },
       error: (err) => {
         this.isLoading.set(false);

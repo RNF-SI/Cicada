@@ -153,6 +153,10 @@ export class InventairesListComponent implements OnInit {
   }
 
   navigateToDetail(suivi: SuiviInventaireList): void {
+    this.router.navigate(['/inventaires', suivi.id_suivi_inventaire]);
+  }
+
+  navigateToEdit(suivi: SuiviInventaireList): void {
     this.router.navigate(['/inventaires', suivi.id_suivi_inventaire, 'modifier']);
   }
 

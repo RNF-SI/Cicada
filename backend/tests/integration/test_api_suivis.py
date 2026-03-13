@@ -314,6 +314,84 @@ class TestSuivisDetailEndpoint:
         assert response.data['protocole'] is not None
         assert response.data['protocole']['protocole_campanule_nom'] == 'Proto Detail'
 
+    def test_detail_roundtrip_all_fields(self, api_client, suivi_test_data):
+        """Test POST create → GET detail returns all fields for edit form pre-fill."""
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+
+        # Create a suivi with all fields populated
+        response = api_client.post('/api/inventaires/suivis/', {
+            'intitule': 'Suivi roundtrip complet',
+            'prix_indicatif': 1500,
+            'integre_plan_gestion': True,
+            'objectif_principal': 'conservation',
+            'cibles_principales': 'faune',
+            'cible_secondaire': 'habitat',
+            'taxon_taxref': 'Aves, Chiroptera',
+            'habitat_ref': 'Prairie humide',
+            'annee_lancement_suivi': 2024,
+            'annee_fin_suivi': 2030,
+            'frequence_nombre': 2,
+            'frequence_unite': 'mois',
+            'commentaires': 'Commentaire de test complet',
+            'outil_bancarisation': 'GeoNature',
+            'outil_saisie': 'OdkCollect',
+            'transmission_donnee': True,
+            'protocole': {
+                'protocole_dans_campanule': True,
+                'protocole_campanule_nom': 'STOC-EPS',
+                'cd_protocole_campanule': 42,
+                'description_protocole': 'Suivi temporel des oiseaux communs',
+                'objectif_protocole': 'Évaluer les tendances',
+                'periode_echantillonnage': 'Avril - Juin',
+                'respect_protocole': True,
+            },
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        suivi_id = response.data['id_suivi_inventaire']
+
+        # GET detail — simulates opening the edit form
+        response = api_client.get(f'/api/inventaires/suivis/{suivi_id}/')
+        assert response.status_code == status.HTTP_200_OK
+        data = response.data
+
+        # All main fields must be present for form pre-fill
+        assert data['intitule'] == 'Suivi roundtrip complet'
+        assert float(data['prix_indicatif']) == 1500
+        assert data['integre_plan_gestion'] is True
+        assert data['objectif_principal'] == 'conservation'
+        assert data['cibles_principales'] == 'faune'
+        assert data['cible_secondaire'] == 'habitat'
+        assert data['taxon_taxref'] == 'Aves, Chiroptera'
+        assert data['habitat_ref'] == 'Prairie humide'
+        assert data['annee_lancement_suivi'] == 2024
+        assert data['annee_fin_suivi'] == 2030
+        assert data['frequence_nombre'] == 2
+        assert data['frequence_unite'] == 'mois'
+        assert data['commentaires'] == 'Commentaire de test complet'
+
+        # Bancarisation
+        assert data['outil_bancarisation'] == 'GeoNature'
+        assert data['outil_saisie'] == 'OdkCollect'
+        assert data['transmission_donnee'] is True
+
+        # Nested protocole
+        proto = data['protocole']
+        assert proto is not None
+        assert proto['protocole_dans_campanule'] is True
+        assert proto['protocole_campanule_nom'] == 'STOC-EPS'
+        assert proto['cd_protocole_campanule'] == 42
+        assert proto['description_protocole'] == 'Suivi temporel des oiseaux communs'
+        assert proto['objectif_protocole'] == 'Évaluer les tendances'
+        assert proto['periode_echantillonnage'] == 'Avril - Juin'
+        assert proto['respect_protocole'] is True
+
+        # Computed/read-only fields for the detail page
+        assert 'nb_operations' in data
+        assert 'createur_nom' in data
+        assert 'statut_label' in data
+        assert 'type_label' in data
+        assert 'date_ajout' in data
+
 
 # =============================================================================
 # TestSuivisUpdateEndpoint

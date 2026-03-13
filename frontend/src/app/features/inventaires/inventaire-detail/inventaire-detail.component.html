@@ -1,0 +1,367 @@
+<app-header></app-header>
+
+<div class="detail-page">
+  <!-- Hero Section (Yellow band) -->
+  <div class="hero-section">
+    <div class="hero-background">
+      <div class="hero-pattern"></div>
+    </div>
+
+    <div class="hero-content">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="Fil d'Ariane">
+        <a routerLink="/accueil" class="breadcrumb-home" [title]="'header.home' | translate">
+          <i class="fi fi-rr-home"></i>
+        </a>
+        <div class="breadcrumb-lines"></div>
+        <div class="breadcrumb-text">
+          <a routerLink="/inventaires" class="breadcrumb-link">{{ 'inventaires.title' | translate }}</a>
+          <i class="fi fi-rr-angle-small-right breadcrumb-separator"></i>
+          <span class="breadcrumb-current">{{ titre() }}</span>
+        </div>
+      </nav>
+
+      <!-- Title + Status -->
+      <div class="hero-title-row">
+        <h1>{{ titre() || ('inventaires.detail.untitled' | translate) }}</h1>
+        @if (suivi()?.statut_label) {
+          <span class="status-chip" [ngClass]="getStatutClass()">
+            {{ suivi()?.statut_label }}
+          </span>
+        }
+      </div>
+
+      <!-- Meta row -->
+      @if (suivi()) {
+        <div class="hero-meta">
+          @if (suivi()?.type_label) {
+            <span class="meta-item">
+              <i class="fi fi-rr-test-tube"></i>
+              {{ suivi()?.type_label }}
+            </span>
+          }
+          @if (periode()) {
+            <span class="meta-item">
+              <i class="fi fi-rr-calendar"></i>
+              {{ periode() }}
+            </span>
+          }
+          @if (suivi()?.nb_operations) {
+            <span class="meta-item">
+              <i class="fi fi-rr-settings"></i>
+              {{ suivi()?.nb_operations }} {{ 'inventaires.detail.operations' | translate }}
+            </span>
+          }
+          @if (suivi()?.createur_nom) {
+            <span class="meta-item">
+              <i class="fi fi-rr-user"></i>
+              {{ suivi()?.createur_nom }}
+            </span>
+          }
+        </div>
+      }
+
+      <!-- Edit button -->
+      <button class="btn-edit" (click)="navigateToEdit()">
+        <i class="fi fi-rr-pencil"></i>
+        {{ 'inventaires.detail.edit' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'common.loading' | translate }}</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="error-container">
+      <i class="fi fi-rr-exclamation"></i>
+      <p>{{ errorMessage() }}</p>
+      <button mat-stroked-button routerLink="/inventaires">
+        {{ 'inventaires.detail.backToList' | translate }}
+      </button>
+    </div>
+  } @else if (suivi()) {
+    <div class="detail-container">
+      <!-- ═══════════════════════════════════════ -->
+      <!-- CARD: Informations générales            -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="detail-card detail-card-flush">
+        <div class="detail-grid">
+          <!-- Intitulé -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.intitule' | translate }}</span>
+            <span class="field-value">{{ suivi()?.intitule || '—' }}</span>
+          </div>
+
+          <!-- Type de suivi -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.typeSuivi' | translate }}</span>
+            <span class="field-value">{{ suivi()?.type_label || '—' }}</span>
+          </div>
+
+          <!-- Prix indicatif -->
+          @if (suivi()?.prix_indicatif != null) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.prixIndicatif' | translate }}</span>
+              <span class="field-value">{{ suivi()?.prix_indicatif }} €/an</span>
+            </div>
+          }
+
+          <!-- Intégré dans le plan de gestion -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.integrePG' | translate }}</span>
+            <span class="field-value">{{ formatBoolean(suivi()?.integre_plan_gestion) }}</span>
+          </div>
+
+          <!-- Plan de gestion lié -->
+          @if (suivi()?.plan_nom) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.detail.planLie' | translate }}</span>
+              <span class="field-value">{{ suivi()?.plan_nom }}</span>
+            </div>
+          }
+
+          <!-- Objectif principal -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.objectifPrincipal' | translate }}</span>
+            <span class="field-value">{{ suivi()?.objectif_principal || '—' }}</span>
+          </div>
+
+          <!-- Cible(s) principale(s) -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.ciblesPrincipales' | translate }}</span>
+            <span class="field-value">{{ suivi()?.cibles_principales || '—' }}</span>
+          </div>
+
+          <!-- Cible secondaire -->
+          @if (suivi()?.cible_secondaire) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.cibleSecondaire' | translate }}</span>
+              <span class="field-value">{{ suivi()?.cible_secondaire }}</span>
+            </div>
+          }
+
+          <!-- Taxon(s) référé(s) -->
+          @if (suivi()?.taxon_taxref) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.taxonRef' | translate }}</span>
+              <span class="field-value">{{ suivi()?.taxon_taxref }}</span>
+            </div>
+          }
+
+          <!-- Habitat -->
+          @if (suivi()?.habitat_ref) {
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.habitat' | translate }}</span>
+              <span class="field-value">{{ suivi()?.habitat_ref }}</span>
+            </div>
+          }
+
+          <!-- Année de lancement -->
+          <div class="field">
+            <span class="field-label">{{ 'inventaires.form.anneeLancement' | translate }}</span>
+            <span class="field-value">{{ suivi()?.annee_lancement_suivi || '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- CARD: Détails du protocole              -->
+      <!-- ═══════════════════════════════════════ -->
+      @if (hasProtocole()) {
+        <div class="detail-card">
+          <div class="section-header">
+            <span class="section-label">{{ 'inventaires.form.sections.protocole' | translate }}</span>
+          </div>
+          <div class="section-underline"></div>
+
+          <div class="section-content">
+            <div class="detail-grid">
+              <!-- Protocole Campanule ? -->
+              <div class="field">
+                <span class="field-label">{{ 'inventaires.form.protocoleCampanule' | translate }}</span>
+                <span class="field-value">{{ formatBoolean(suivi()?.protocole?.protocole_dans_campanule) }}</span>
+              </div>
+
+              <!-- MODE CAMPANULE -->
+              @if (isCampanule()) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.protocoleCampanuleNom' | translate }}</span>
+                  <span class="field-value field-value-highlight">
+                    {{ suivi()?.protocole?.protocole_campanule_nom || '—' }}
+                    @if (suivi()?.protocole?.cd_protocole_campanule) {
+                      <a class="consulter-link" (click)="consulterProtocole()">
+                        {{ 'inventaires.form.consulterProtocole' | translate }}
+                      </a>
+                    }
+                  </span>
+                </div>
+              }
+
+              <!-- MODE NON-CAMPANULE -->
+              @if (isNotCampanule()) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.nomProtocole' | translate }}</span>
+                  <span class="field-value">{{ suivi()?.protocole?.nom_protocole || '—' }}</span>
+                </div>
+
+                @if (suivi()?.protocole?.nb_etp_cycle != null) {
+                  <div class="field">
+                    <span class="field-label">{{ 'inventaires.form.nbEtpCycle' | translate }}</span>
+                    <span class="field-value">{{ suivi()?.protocole?.nb_etp_cycle }}</span>
+                  </div>
+                }
+              }
+
+              <!-- Description du protocole -->
+              @if (suivi()?.protocole?.description_protocole) {
+                <div class="field field-full">
+                  <span class="field-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</span>
+                  <span class="field-value field-value-multiline">{{ suivi()?.protocole?.description_protocole }}</span>
+                </div>
+              }
+
+              <!-- Objectif du protocole -->
+              @if (suivi()?.protocole?.objectif_protocole) {
+                <div class="field field-full">
+                  <span class="field-label">{{ 'inventaires.form.objectifProtocole' | translate }}</span>
+                  <span class="field-value field-value-multiline">{{ suivi()?.protocole?.objectif_protocole }}</span>
+                </div>
+              }
+
+              <!-- Période d'échantillonnage -->
+              @if (suivi()?.protocole?.periode_echantillonnage) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.periodeEchantillonnage' | translate }}</span>
+                  <span class="field-value">{{ suivi()?.protocole?.periode_echantillonnage }}</span>
+                </div>
+              }
+
+              <!-- Mode de validation -->
+              @if (isNotCampanule() && suivi()?.protocole?.mode_validation) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.modeValidation' | translate }}</span>
+                  <span class="field-value">{{ suivi()?.protocole?.mode_validation }}</span>
+                </div>
+              }
+
+              <!-- Respect du protocole -->
+              <div class="field">
+                <span class="field-label">{{ 'inventaires.form.respectProtocole' | translate }}</span>
+                <span class="field-value">{{ formatBoolean(suivi()?.protocole?.respect_protocole) }}</span>
+              </div>
+
+              <!-- Non-respect fields -->
+              @if (isNonRespect()) {
+                @if (suivi()?.protocole?.justification_non_respect) {
+                  <div class="field field-full">
+                    <span class="field-label">{{ 'inventaires.form.justificationNonRespect' | translate }}</span>
+                    <span class="field-value field-value-multiline">{{ suivi()?.protocole?.justification_non_respect }}</span>
+                  </div>
+                }
+                @if (suivi()?.protocole?.differences_protocole) {
+                  <div class="field field-full">
+                    <span class="field-label">{{ 'inventaires.form.differencesProtocole' | translate }}</span>
+                    <span class="field-value field-value-multiline">{{ suivi()?.protocole?.differences_protocole }}</span>
+                  </div>
+                }
+              }
+
+              <!-- Fréquence -->
+              @if (frequenceLabel()) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.frequence' | translate }}</span>
+                  <span class="field-value">{{ frequenceLabel() }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- CARD: Bancarisation et stockage         -->
+      <!-- ═══════════════════════════════════════ -->
+      @if (suivi()?.outil_bancarisation || suivi()?.outil_saisie || suivi()?.transmission_donnee != null) {
+        <div class="detail-card">
+          <div class="section-header">
+            <span class="section-label">{{ 'inventaires.form.sections.bancarisation' | translate }}</span>
+          </div>
+          <div class="section-underline"></div>
+
+          <div class="section-content">
+            <div class="detail-grid">
+              @if (suivi()?.outil_bancarisation) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.outilBancarisation' | translate }}</span>
+                  <span class="field-value">{{ suivi()?.outil_bancarisation }}</span>
+                </div>
+              }
+
+              @if (suivi()?.outil_saisie) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.outilSaisie' | translate }}</span>
+                  <span class="field-value">{{ suivi()?.outil_saisie }}</span>
+                </div>
+              }
+
+              @if (suivi()?.transmission_donnee != null) {
+                <div class="field">
+                  <span class="field-label">{{ 'inventaires.form.transmissionDonnee' | translate }}</span>
+                  <span class="field-value">{{ formatBoolean(suivi()?.transmission_donnee) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- CARD: Détails                           -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="detail-card">
+        <div class="section-header">
+          <span class="section-label">{{ 'inventaires.form.sections.details' | translate }}</span>
+        </div>
+        <div class="section-underline"></div>
+
+        <div class="section-content">
+          <div class="detail-grid">
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.statut' | translate }}</span>
+              <span class="field-value">{{ suivi()?.statut_label || '—' }}</span>
+            </div>
+
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.form.anneeFin' | translate }}</span>
+              <span class="field-value">{{ suivi()?.annee_fin_suivi || '—' }}</span>
+            </div>
+
+            @if (suivi()?.commentaires) {
+              <div class="field field-full">
+                <span class="field-label">{{ 'inventaires.form.commentaires' | translate }}</span>
+                <span class="field-value field-value-multiline">{{ suivi()?.commentaires }}</span>
+              </div>
+            }
+
+            <!-- Audit info -->
+            <div class="field">
+              <span class="field-label">{{ 'inventaires.detail.dateCreation' | translate }}</span>
+              <span class="field-value">{{ suivi()?.date_ajout | date:'dd/MM/yyyy' }}</span>
+            </div>
+
+            @if (suivi()?.date_maj) {
+              <div class="field">
+                <span class="field-label">{{ 'inventaires.detail.dateMaj' | translate }}</span>
+                <span class="field-value">{{ suivi()?.date_maj | date:'dd/MM/yyyy' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

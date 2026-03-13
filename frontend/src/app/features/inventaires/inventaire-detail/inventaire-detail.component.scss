@@ -1,0 +1,467 @@
+@import 'variables';
+
+$detail-side-margin: $page-gutter;
+
+// ============================================
+// PAGE LAYOUT
+// ============================================
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.detail-page {
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+// ============================================
+// HERO SECTION (Yellow band — same as list)
+// ============================================
+
+.hero-section {
+  position: relative;
+  background-color: $secondary-yellow;
+  border-radius: 0 0 20px 20px;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  margin: 0 $page-gutter;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  opacity: 0.2;
+  background: radial-gradient(circle at 70% 50%, rgba($primary-color, 0.08) 0%, transparent 60%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+// ============================================
+// BREADCRUMB (primary blue on yellow bg)
+// ============================================
+
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  height: 43px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  background-color: $primary-color;
+  border-radius: 50%;
+  color: $white;
+  text-decoration: none;
+  transition: transform $transition-fast;
+  flex-shrink: 0;
+  z-index: 2;
+
+  i {
+    font-size: $font-size-h3;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 22px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $primary-color;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.breadcrumb-link {
+  color: $primary-color;
+  font-size: $font-size-base;
+  font-family: $font-family;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb-separator {
+  color: $primary-color;
+  font-size: 14px;
+}
+
+.breadcrumb-current {
+  color: $primary-color;
+  font-size: $font-size-base;
+  font-family: $font-family;
+  font-weight: $font-weight-bold;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ============================================
+// HERO TITLE + STATUS
+// ============================================
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+
+  h1 {
+    color: $primary-color;
+    font-size: $font-size-h1;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-h1;
+    margin: 0;
+  }
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px $spacing-md;
+  border-radius: 40px;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  color: $black;
+}
+
+.status-en-cours,
+.status-en\ cours {
+  background-color: $score-good;
+}
+
+.status-terminé,
+.status-termine {
+  background-color: $info-color;
+}
+
+.status-à-venir,
+.status-a-venir {
+  background-color: $secondary-orange-salmon;
+}
+
+.status-chip-default {
+  background-color: $gray-light;
+}
+
+// ============================================
+// HERO META
+// ============================================
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-base;
+  color: $primary-color;
+
+  i {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+}
+
+// ============================================
+// EDIT BUTTON
+// ============================================
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 40px;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+}
+
+// ============================================
+// LOADING & ERROR
+// ============================================
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container {
+  i {
+    font-size: $font-size-h1;
+    color: $error-color;
+  }
+
+  p {
+    color: $error-color;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+// ============================================
+// DETAIL CONTAINER + CARDS
+// ============================================
+
+.detail-container {
+  margin: 0 $detail-side-margin;
+  padding: 0 0 $spacing-xl 0;
+}
+
+.detail-card {
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+
+  &.detail-card-flush {
+    border-radius: 0;
+    margin-top: -20px; // overlap hero rounded corner
+    margin-bottom: $spacing-lg;
+  }
+}
+
+// ============================================
+// SECTION HEADERS (same as form)
+// ============================================
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-label {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.section-underline {
+  height: 2px;
+  background-color: $secondary-yellow;
+  margin-top: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.section-content {
+  margin-top: $spacing-lg;
+}
+
+// ============================================
+// DETAIL GRID (label/value pairs)
+// ============================================
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-lg $spacing-xxl;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  &.field-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.field-label {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-value {
+  font-size: $font-size-base;
+  color: $black;
+  line-height: 1.5;
+
+  &.field-value-highlight {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+
+  &.field-value-multiline {
+    white-space: pre-wrap;
+    background-color: $gray-lighter;
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm $spacing-md;
+    line-height: 1.6;
+  }
+}
+
+// ============================================
+// CONSULTER LINK
+// ============================================
+
+.consulter-link {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-small;
+  text-decoration: none;
+  border-bottom: 1px solid $primary-color;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-tablet) {
+  .hero-section {
+    padding: $spacing-md;
+    margin: 0 $spacing-md;
+    min-height: auto;
+  }
+
+  .hero-title-row h1 {
+    font-size: $font-size-h2;
+    line-height: $line-height-h2;
+  }
+
+  .breadcrumb {
+    height: 36px;
+  }
+
+  .breadcrumb-home {
+    width: 36px;
+    height: 36px;
+
+    i {
+      font-size: $font-size-h4;
+    }
+  }
+
+  .breadcrumb-lines {
+    left: 18px;
+  }
+
+  .breadcrumb-current {
+    max-width: 200px;
+  }
+
+  .hero-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .detail-container {
+    margin: 0 $spacing-md;
+  }
+
+  .detail-card {
+    padding: $spacing-lg;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+}

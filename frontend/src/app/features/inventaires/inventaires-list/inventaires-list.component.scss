@@ -60,6 +60,7 @@
   background-color: $secondary-yellow;
   border-radius: 0 0 20px 20px;
   padding: $spacing-lg $spacing-xl $spacing-xl;
+  margin: 0 $page-gutter;
   min-height: 240px;
   overflow: hidden;
 }
@@ -189,7 +190,7 @@
 // ============================================
 
 .content-section {
-  padding: $spacing-xl $spacing-xl $spacing-xl 88px;
+  padding: $spacing-xl $content-gutter;
 }
 
 // Search Bar (underline style)
@@ -654,6 +655,7 @@
 @media (max-width: $breakpoint-tablet) {
   .hero-section {
     padding: $spacing-md;
+    margin: 0 $spacing-md;
     min-height: auto;
   }
 

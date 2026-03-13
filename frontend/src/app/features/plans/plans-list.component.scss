@@ -23,7 +23,7 @@
   position: relative;
   background-color: $primary-color;
   border-radius: 0 0 20px $border-radius-xl;
-  margin: 0 65px;
+  margin: 0 $page-gutter;
   padding: 32px 34px;
   min-height: 180px;
   overflow: hidden;
@@ -205,7 +205,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 65px;
+  margin: 0 $page-gutter;
   padding-top: $spacing-lg;
   padding-bottom: $spacing-md;
   gap: $spacing-lg;
@@ -222,7 +222,7 @@ h1 {
 // ============================================
 
 .content-section {
-  padding: 0 72px $spacing-xxl;
+  padding: 0 $content-gutter $spacing-xxl;
 }
 
 .tab {

@@ -2489,6 +2489,15 @@
       "requiredAfter": "sont obligatoires",
       "frequenceFoisPar": "fois par"
     },
+    "detail": {
+      "untitled": "Suivi / inventaire sans titre",
+      "edit": "Modifier",
+      "backToList": "Retour à la liste",
+      "operations": "opération(s)",
+      "planLie": "Plan de gestion lié",
+      "dateCreation": "Date de création",
+      "dateMaj": "Dernière modification"
+    },
     "messages": {
       "createSuccess": "Suivi / inventaire créé avec succès",
       "updateSuccess": "Suivi / inventaire mis à jour avec succès",
