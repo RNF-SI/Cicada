@@ -24,7 +24,7 @@
         </nav>
         <div class="plan-header">
           <div class="plan-subtitle">
-            <i class="fi fi-rr-mind-share"></i>
+            <i class="fi fi-rr-apps"></i>
             <span>{{ 'plans.mindmap.title' | translate | uppercase }}</span>
           </div>
           <h1 class="plan-title">{{ planNom() }}</h1>
@@ -45,20 +45,20 @@
         </div>
       } @else if (!treeData()) {
         <div class="empty-container">
-          <i class="fi fi-rr-mind-share"></i>
+          <i class="fi fi-rr-apps"></i>
           <p>{{ 'plans.mindmap.empty' | translate }}</p>
         </div>
       } @else {
         <div class="mindmap-wrapper">
-          <!-- View toggle -->
+          <!-- View toggle: Enjeux vs Actions -->
           <div class="view-toggle">
-            <button [class.active]="viewMode() === 'icicle'" (click)="switchView('icicle')">
+            <button [class.active]="viewMode() === 'enjeux'" (click)="switchView('enjeux')">
               <i class="fi fi-rr-apps"></i>
-              {{ 'plans.mindmap.viewIcicle' | translate }}
+              {{ 'plans.mindmap.viewEnjeux' | translate }}
             </button>
-            <button [class.active]="viewMode() === 'mindmap'" (click)="switchView('mindmap')">
-              <i class="fi fi-rr-mind-share"></i>
-              {{ 'plans.mindmap.viewTree' | translate }}
+            <button [class.active]="viewMode() === 'actions'" (click)="switchView('actions')">
+              <i class="fi fi-rr-refresh"></i>
+              {{ 'plans.mindmap.viewActions' | translate }}
             </button>
           </div>
 
@@ -72,37 +72,37 @@
             }
           </div>
 
-          @if (viewMode() === 'mindmap') {
-            <!-- SVG Container (Tree) -->
-            <div class="mindmap-container" #svgContainer></div>
+          <!-- Hint -->
+          <p class="icicle-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
 
-            <!-- Tree Controls -->
-            <div class="mindmap-controls">
-              <button mat-stroked-button (click)="expandAll()">
-                <i class="fi fi-rr-expand-arrows-alt"></i>
-                {{ 'plans.mindmap.expandAll' | translate }}
-              </button>
-              <button mat-stroked-button (click)="collapseAll()">
-                <i class="fi fi-rr-compress-alt"></i>
-                {{ 'plans.mindmap.collapseAll' | translate }}
-              </button>
-              <button mat-stroked-button (click)="resetZoom()">
-                <i class="fi fi-rr-marker"></i>
-                {{ 'plans.mindmap.resetZoom' | translate }}
-              </button>
-            </div>
-          } @else {
-            <!-- Icicle hint -->
-            <p class="icicle-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
-
-            <!-- Icicle Container -->
+          @if (viewMode() === 'enjeux') {
+            <!-- Icicle Container (normal: Enjeux → Actions) -->
             <div class="icicle-container" #icicleContainer></div>
 
-            <!-- Icicle Controls -->
+            <!-- Controls -->
             <div class="mindmap-controls">
               <button mat-stroked-button (click)="resetIcicle()">
                 <i class="fi fi-rr-marker"></i>
-                {{ 'plans.mindmap.resetZoom' | translate }}
+                {{ 'plans.mindmap.resetZoomPlan' | translate }}
+              </button>
+              <button mat-stroked-button (click)="focusOnEnjeu()">
+                <i class="fi fi-rr-target"></i>
+                {{ 'plans.mindmap.focusEnjeu' | translate }}
+              </button>
+            </div>
+          } @else {
+            <!-- Icicle Container (inverse: Actions → Enjeux) -->
+            <div class="icicle-container" #icicleInverseContainer></div>
+
+            <!-- Controls -->
+            <div class="mindmap-controls">
+              <button mat-stroked-button (click)="resetIcicleInverse()">
+                <i class="fi fi-rr-marker"></i>
+                {{ 'plans.mindmap.resetZoomPlan' | translate }}
+              </button>
+              <button mat-stroked-button (click)="focusOnOperation()">
+                <i class="fi fi-rr-target"></i>
+                {{ 'plans.mindmap.focusOperation' | translate }}
               </button>
             </div>
           }

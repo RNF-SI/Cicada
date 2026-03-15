@@ -325,7 +325,8 @@ class PlanDuplicationService:
                 )
 
                 for old_pression in Pression.objects.filter(id_facteur_influence_id=old_fi_id):
-                    Pression.objects.create(
+                    old_pression_id = old_pression.id_pression
+                    new_pression = Pression.objects.create(
                         id_facteur_influence=new_fi,
                         id_pressref=old_pression.id_pressref,
                         libelle=old_pression.libelle,
@@ -334,32 +335,32 @@ class PlanDuplicationService:
                         id_utilisateur_maj=user,
                     )
 
-                # Copy OO -> ResultatAttendu -> Indicateur -> Metrique (under this facteur)
-                for old_oo in ObjectifOperationnel.objects.filter(id_facteur_influence_id=old_fi_id):
-                    new_oo = ObjectifOperationnel.objects.create(
-                        id_facteur_influence=new_fi,
-                        libelle=old_oo.libelle,
-                        description=old_oo.description,
-                        id_utilisateur_ajout=user,
-                        id_utilisateur_maj=user,
-                    )
-
-                    for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
-                        new_ra = ResultatAttendu.objects.create(
-                            id_oo=new_oo,
-                            libelle=old_ra.libelle,
-                            description=old_ra.description,
+                    # Copy OO -> ResultatAttendu -> Indicateur -> Metrique (under this pression)
+                    for old_oo in ObjectifOperationnel.objects.filter(id_pression_id=old_pression_id):
+                        new_oo = ObjectifOperationnel.objects.create(
+                            id_pression=new_pression,
+                            libelle=old_oo.libelle,
+                            description=old_oo.description,
                             id_utilisateur_ajout=user,
                             id_utilisateur_maj=user,
                         )
 
-                        for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
-                            new_ind = PlanDuplicationService._copy_indicateur(
-                                old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                        for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
+                            new_ra = ResultatAttendu.objects.create(
+                                id_oo=new_oo,
+                                libelle=old_ra.libelle,
+                                description=old_ra.description,
+                                id_utilisateur_ajout=user,
+                                id_utilisateur_maj=user,
                             )
-                            PlanDuplicationService._copy_indicateur_relations(
-                                old_ind, new_ind, user
-                            )
+
+                            for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
+                                new_ind = PlanDuplicationService._copy_indicateur(
+                                    old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                                )
+                                PlanDuplicationService._copy_indicateur_relations(
+                                    old_ind, new_ind, user
+                                )
 
             # Copy EtatActuel -> OLT -> NiveauExigence -> Indicateur -> Metrique
             for old_ea in EtatActuel.objects.filter(id_enjeu_id=old_enjeu_id):

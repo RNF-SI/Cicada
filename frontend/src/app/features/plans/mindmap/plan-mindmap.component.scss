@@ -222,7 +222,7 @@
     font-weight: $font-weight-bold;
     cursor: pointer;
     gap: $spacing-xs;
-    transition: background $transition-fast, color $transition-fast;
+    transition: background 0.2s, color 0.2s;
 
     &.active {
       background: $primary-color;
@@ -291,17 +291,6 @@
   color: $black;
 }
 
-// SVG Container
-.mindmap-container {
-  position: relative;
-  width: 100%;
-  height: calc(100vh - 480px);
-  min-height: 500px;
-  background: #0c0e13;
-  border-radius: $border-radius-sm;
-  overflow: hidden;
-}
-
 // Controls
 .mindmap-controls {
   display: flex;
@@ -321,78 +310,10 @@
 }
 
 // ============================================
-// D3 SVG STYLES (applied via D3, documented here)
+// D3 ICICLE SVG STYLES
 // ============================================
 
 :host ::ng-deep {
-  .mindmap-container svg {
-    width: 100%;
-    height: 100%;
-    cursor: grab;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  .node {
-    cursor: pointer;
-
-    circle {
-      stroke: rgba(255, 255, 255, 0.3);
-      stroke-width: 1.5px;
-      transition: stroke-width 0.2s;
-    }
-
-    &:hover circle {
-      stroke: rgba(255, 255, 255, 0.7);
-      stroke-width: 2.5px;
-    }
-
-    text {
-      font-family: 'Nunito', sans-serif;
-      fill: #c8cdd5;
-      pointer-events: none;
-    }
-
-    .node-count {
-      font-size: 9px;
-      fill: #0c0e13;
-      font-weight: 700;
-      text-anchor: middle;
-      dominant-baseline: central;
-    }
-  }
-
-  .link {
-    fill: none;
-    stroke-width: 1.5px;
-  }
-
-  .tooltip-box {
-    position: absolute;
-    padding: 8px 12px;
-    background: rgba(12, 14, 19, 0.92);
-    border: 1px solid rgba(200, 205, 213, 0.2);
-    border-radius: 6px;
-    color: #c8cdd5;
-    font-family: 'Nunito', sans-serif;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 10;
-    white-space: nowrap;
-
-    .tooltip-type {
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-
-    .tooltip-name {
-      color: #fff;
-    }
-  }
-
-  // Icicle D3 styles
   .icicle-container svg {
     cursor: pointer;
     font-family: 'Nunito', sans-serif;
@@ -436,11 +357,6 @@
   .plan-title {
     font-size: 28px;
     line-height: 36px;
-  }
-
-  .mindmap-container {
-    height: 400px;
-    min-height: 300px;
   }
 
   .icicle-container {

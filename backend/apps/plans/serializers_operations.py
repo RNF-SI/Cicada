@@ -6,7 +6,7 @@ from rest_framework import serializers
 from .models_operations import (
     Protocole, SuiviInventaire,
     Operation, CorOperationSite,
-    OperationAnnee, FinanceOperation
+    OperationAnnee, OperationAnneeOrganisme, FinanceOperation
 )
 
 
@@ -14,16 +14,31 @@ from .models_operations import (
 # Serializers pour les entités nested
 # =============================================================================
 
+class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
+    """Serializer pour la ventilation budget/travail par organisme."""
+    organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
+
+    class Meta:
+        model = OperationAnneeOrganisme
+        fields = [
+            'id_operation_annee_organisme',
+            'id_organisme', 'organisme_nom',
+            'budget_fonctionnement', 'budget_investissement', 'etp'
+        ]
+        read_only_fields = ['id_operation_annee_organisme']
+
+
 class OperationAnneeSerializer(serializers.ModelSerializer):
     """Serializer pour la programmation annuelle d'une opération."""
     operateur_label = serializers.CharField(source='id_operateur.label', read_only=True)
+    organismes = OperationAnneeOrganismeSerializer(many=True, read_only=True)
 
     class Meta:
         model = OperationAnnee
         fields = [
             'id_operation_annee', 'annee', 'periodicite',
             'budget', 'etp', 'id_operateur', 'operateur_label',
-            'periodicite_mensuelle', 'geom'
+            'periodicite_mensuelle', 'geom', 'organismes'
         ]
         read_only_fields = ['id_operation_annee']
 
@@ -203,6 +218,8 @@ class OperationListSerializer(serializers.ModelSerializer):
     nb_sites = serializers.SerializerMethodField()
     nb_operation_annees = serializers.SerializerMethodField()
     nb_finances = serializers.SerializerMethodField()
+    enjeu_slug = serializers.SerializerMethodField()
+    oo_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
@@ -224,6 +241,7 @@ class OperationListSerializer(serializers.ModelSerializer):
             'indicateur_id', 'indicateur_nom',
             'nb_sites',
             'nb_operation_annees', 'nb_finances',
+            'enjeu_slug', 'oo_id',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
@@ -252,10 +270,73 @@ class OperationListSerializer(serializers.ModelSerializer):
     def get_nb_finances(self, obj):
         return obj.finances.count()
 
+    def _get_enjeu_via_ne(self, indicateur):
+        """Traverse NE path: Indicateur → NE → OLT → EtatActuel → Enjeu."""
+        try:
+            ne = indicateur.id_ne
+            if ne and ne.id_olt and ne.id_olt.id_etat_actuel and ne.id_olt.id_etat_actuel.id_enjeu:
+                return ne.id_olt.id_etat_actuel.id_enjeu
+        except AttributeError:
+            pass
+        return None
+
+    def _get_enjeu_and_oo_via_ra(self, indicateur):
+        """Traverse RA path: Indicateur → RA → OO → Pression → FI → Enjeu."""
+        try:
+            ra = indicateur.id_resultat_attendu
+            if ra and ra.id_oo and ra.id_oo.id_pression and ra.id_oo.id_pression.id_facteur_influence:
+                fi = ra.id_oo.id_pression.id_facteur_influence
+                if fi.id_enjeu:
+                    return fi.id_enjeu, ra.id_oo.id_oo
+        except AttributeError:
+            pass
+        return None, None
+
+    def get_enjeu_slug(self, obj):
+        if not obj.id_metrique or not obj.id_metrique.id_indicateur:
+            return None
+        indicateur = obj.id_metrique.id_indicateur
+        # Try NE path first
+        enjeu = self._get_enjeu_via_ne(indicateur)
+        if enjeu:
+            return enjeu.slug
+        # Try RA path
+        enjeu, _ = self._get_enjeu_and_oo_via_ra(indicateur)
+        if enjeu:
+            return enjeu.slug
+        return None
+
+    def get_oo_id(self, obj):
+        if not obj.id_metrique or not obj.id_metrique.id_indicateur:
+            return None
+        indicateur = obj.id_metrique.id_indicateur
+        _, oo_id = self._get_enjeu_and_oo_via_ra(indicateur)
+        return oo_id
+
 
 # =============================================================================
 # Serializer de création/modification
 # =============================================================================
+
+class OperationAnneeOrganismeWriteSerializer(serializers.Serializer):
+    """Write serializer for organisme budget data within an operation year."""
+    id_organisme = serializers.IntegerField()
+    budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
+
+
+class OperationAnneeWriteSerializer(serializers.Serializer):
+    """Write serializer for operation year with nested organismes."""
+    annee = serializers.IntegerField()
+    periodicite = serializers.BooleanField(default=False)
+    budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
+    id_operateur = serializers.IntegerField(required=False, allow_null=True)
+    periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
+    geom = serializers.JSONField(required=False, allow_null=True, default=None)
+    organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])
+
 
 class OperationCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Opération."""
@@ -265,7 +346,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         required=False,
         default=[]
     )
-    operation_annees = OperationAnneeSerializer(many=True, required=False, default=[])
+    operation_annees = OperationAnneeWriteSerializer(many=True, required=False, default=[])
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
     suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True)
 
@@ -291,13 +372,26 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_operation']
 
     def _create_operation_annees(self, operation, annees_data):
-        """Create OperationAnnee objects in bulk."""
+        """Create OperationAnnee objects with nested organismes."""
         if not annees_data:
             return
-        OperationAnnee.objects.bulk_create([
-            OperationAnnee(id_operation=operation, **annee)
-            for annee in annees_data
-        ])
+        for annee_data in annees_data:
+            organismes_data = annee_data.pop('organismes', [])
+            # Convert FK integer to _id field
+            if 'id_operateur' in annee_data:
+                annee_data['id_operateur_id'] = annee_data.pop('id_operateur')
+            annee_obj = OperationAnnee.objects.create(id_operation=operation, **annee_data)
+            if organismes_data:
+                OperationAnneeOrganisme.objects.bulk_create([
+                    OperationAnneeOrganisme(
+                        id_operation_annee=annee_obj,
+                        id_organisme_id=org['id_organisme'],
+                        budget_fonctionnement=org.get('budget_fonctionnement'),
+                        budget_investissement=org.get('budget_investissement'),
+                        etp=org.get('etp'),
+                    )
+                    for org in organismes_data
+                ])
 
     def _create_finances(self, operation, finances_data):
         """Create FinanceOperation objects in bulk."""

@@ -871,8 +871,11 @@
 
                                                     <!-- Opérations (Actions) de cette métrique -->
                                                     @if (met.operations && met.operations.length > 0) {
+                                                      <div class="metrique-operations-section">
+                                                        <p class="metrique-operations-title">{{ 'enjeux.metriques.actionsTitle' | translate }} ({{ met.operations.length }})</p>
+                                                      </div>
                                                       @for (op of met.operations; track op.id_operation) {
-                                            <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)">
+                                            <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
                                               <!-- En-tête de l'action (cliquable pour expand/collapse) -->
                                               <div class="operation-header" (click)="toggleOperation(op.id_operation)">
                                                 <div class="operation-header-left">
@@ -981,20 +984,68 @@
                                                                 </td>
                                                               }
                                                             </tr>
-                                                            <!-- Budget -->
-                                                            <tr>
-                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                            @if (hasOrganismeData(op)) {
+                                                              <!-- Per-organisme rows -->
+                                                              @for (org of getOperationOrganismes(op); track org.id_organisme) {
+                                                                <tr class="prog-org-header">
+                                                                  <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
+                                                                  }
+                                                                </tr>
                                                               }
-                                                            </tr>
-                                                            <!-- Travail -->
-                                                            <tr>
-                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                              }
-                                                            </tr>
+                                                              <!-- Total cross-organismes -->
+                                                              <tr class="prog-total-header">
+                                                                <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
+                                                            } @else {
+                                                              <!-- Flat budget/travail (no per-org data) -->
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
+                                                            }
                                                           </tbody>
                                                         </table>
                                                       </div>
@@ -1054,14 +1105,86 @@
                                         }
 
                                                     <!-- Bouton ajout opération pour cette métrique -->
-                                                    <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur, met.id_metrique)">
+                                                    <button class="add-item-btn" (click)="navigateToOperationForm(met.id_metrique)">
                                                       <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
                                                     </button>
                                                   </div>
                                                 }
                                               }
 
-                                              <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                              <!-- Bouton ajout métrique standalone -->
+                                              @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                                <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
+                                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
+                                                </button>
+                                              }
+
+                                              <!-- Formulaire inline ajout métrique -->
+                                              @if (addingMetriqueForIndicateur() === ind.id_indicateur && standaloneMetriqueForm) {
+                                                <div class="metrique-form-block standalone-metrique-form">
+                                                  <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
+                                                  <div class="metrique-row">
+                                                    <mat-form-field appearance="outline" class="flex-grow">
+                                                      <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.nom_metrique">
+                                                    </mat-form-field>
+                                                  </div>
+                                                  <div class="metrique-row-2col">
+                                                    <mat-form-field appearance="outline">
+                                                      <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.unite">
+                                                    </mat-form-field>
+                                                    <mat-form-field appearance="outline">
+                                                      <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                      <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
+                                                        @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                                          <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                                        }
+                                                      </mat-select>
+                                                    </mat-form-field>
+                                                  </div>
+                                                  <div class="metrique-row-2col">
+                                                    <mat-form-field appearance="outline" class="col-narrow">
+                                                      <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                                      <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
+                                                    </mat-form-field>
+                                                    <mat-form-field appearance="outline" class="col-wide">
+                                                      <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
+                                                    </mat-form-field>
+                                                  </div>
+                                                  <div class="score-threshold-grid">
+                                                    @for (level of scoreLevels; track level) {
+                                                      <div class="score-column">
+                                                        <div class="score-column-header score-header-{{level}}">
+                                                          <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                                          <span class="score-header-value">= {{level}}</span>
+                                                        </div>
+                                                        <div class="score-column-inputs">
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
+                                                          </mat-form-field>
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
+                                                          </mat-form-field>
+                                                        </div>
+                                                      </div>
+                                                    }
+                                                  </div>
+                                                  <div class="inline-form-actions">
+                                                    <button mat-flat-button color="primary"
+                                                      (click)="saveStandaloneMetrique(ind.id_indicateur)"
+                                                      [disabled]="isSavingStandaloneMetrique() || !standaloneMetriqueForm.nom_metrique.trim()">
+                                                      {{ 'common.actions.save' | translate }}
+                                                    </button>
+                                                    <button mat-stroked-button (click)="cancelAddStandaloneMetrique()">
+                                                      {{ 'common.actions.cancel' | translate }}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              }
                                             </div>
                                           }
                                         }
@@ -1343,16 +1466,16 @@
                         <textarea matInput [(ngModel)]="editOoDescription" rows="2"></textarea>
                       </mat-form-field>
                       <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }} *</mat-label>
-                        <mat-select [(ngModel)]="editOoFacteurId" required>
-                          @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
-                            <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
+                        <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
+                        <mat-select [(ngModel)]="editOoPressionId" required>
+                          @for (p of selectedPressions(); track p.id_pression) {
+                            <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
                           }
                         </mat-select>
                       </mat-form-field>
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || !editOoFacteurId">
+                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || !editOoPressionId">
                         {{ 'common.actions.save' | translate }}
                       </button>
                       <button mat-stroked-button (click)="cancelEditOo()">
@@ -1389,10 +1512,15 @@
                         <p class="olt-description">{{ oo.description }}</p>
                       }
 
-                      <!-- Facteur d'influence associé -->
+                      <!-- Facteur d'influence et pression associés -->
                       @if (oo.facteur_influence_libelle) {
                         <p class="oo-facteur-info">
                           {{ 'enjeux.oo.facteurDescription' | translate }} : <strong>{{ oo.facteur_influence_libelle }}</strong>
+                        </p>
+                      }
+                      @if (oo.pression_libelle) {
+                        <p class="oo-facteur-info">
+                          {{ 'enjeux.oo.pressionLabel' | translate }} : <strong>{{ oo.pression_libelle }}</strong>
                         </p>
                       }
 
@@ -1632,8 +1760,11 @@
 
                                             <!-- Opérations (Actions) de cette métrique -->
                                             @if (met.operations && met.operations.length > 0) {
+                                              <div class="metrique-operations-section">
+                                                <p class="metrique-operations-title">{{ 'enjeux.metriques.actionsTitle' | translate }} ({{ met.operations.length }})</p>
+                                              </div>
                                               @for (op of met.operations; track op.id_operation) {
-                                    <div class="operation-card" [class.expanded]="isOoOperationExpanded(op.id_operation)">
+                                    <div class="operation-card" [class.expanded]="isOoOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
                                       <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                         <div class="operation-header-left">
                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
@@ -1735,18 +1866,65 @@
                                                         </td>
                                                       }
                                                     </tr>
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                    @if (hasOrganismeData(op)) {
+                                                      @for (org of getOperationOrganismes(op); track org.id_organisme) {
+                                                        <tr class="prog-org-header">
+                                                          <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                          @for (year of getPlanYears(); track year) {
+                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
+                                                          }
+                                                        </tr>
+                                                        <tr>
+                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                          @for (year of getPlanYears(); track year) {
+                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
+                                                          }
+                                                        </tr>
+                                                        <tr>
+                                                          <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                          @for (year of getPlanYears(); track year) {
+                                                            <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
+                                                          }
+                                                        </tr>
+                                                        <tr>
+                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                          @for (year of getPlanYears(); track year) {
+                                                            <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
+                                                          }
+                                                        </tr>
                                                       }
-                                                    </tr>
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                      }
-                                                    </tr>
+                                                      <tr class="prog-total-header">
+                                                        <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                        }
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                        }
+                                                      </tr>
+                                                    } @else {
+                                                      <tr>
+                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                        }
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                        }
+                                                      </tr>
+                                                    }
                                                   </tbody>
                                                 </table>
                                               </div>
@@ -1803,14 +1981,86 @@
                                 }
 
                                     <!-- Bouton ajout opération pour cette métrique -->
-                                    <button class="add-item-btn" (click)="navigateToOperationForm(ind.id_indicateur, met.id_metrique)">
+                                    <button class="add-item-btn" (click)="navigateToOperationForm(met.id_metrique)">
                                       <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
                                     </button>
                                           </div>
                                         }
                                       }
 
-                                      <!-- Note: métriques are now added/edited via the indicateur edit form (pencil icon) -->
+                                      <!-- Bouton ajout métrique standalone (OO) -->
+                                      @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                        <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
+                                          <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
+                                        </button>
+                                      }
+
+                                      <!-- Formulaire inline ajout métrique (OO) -->
+                                      @if (addingMetriqueForIndicateur() === ind.id_indicateur && standaloneMetriqueForm) {
+                                        <div class="metrique-form-block standalone-metrique-form">
+                                          <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
+                                          <div class="metrique-row">
+                                            <mat-form-field appearance="outline" class="flex-grow">
+                                              <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
+                                              <input matInput [(ngModel)]="standaloneMetriqueForm.nom_metrique">
+                                            </mat-form-field>
+                                          </div>
+                                          <div class="metrique-row-2col">
+                                            <mat-form-field appearance="outline">
+                                              <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
+                                              <input matInput [(ngModel)]="standaloneMetriqueForm.unite">
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline">
+                                              <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                              <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
+                                                @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                                                  <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+                                                }
+                                              </mat-select>
+                                            </mat-form-field>
+                                          </div>
+                                          <div class="metrique-row-2col">
+                                            <mat-form-field appearance="outline" class="col-narrow">
+                                              <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
+                                              <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-wide">
+                                              <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
+                                              <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
+                                            </mat-form-field>
+                                          </div>
+                                          <div class="score-threshold-grid">
+                                            @for (level of scoreLevels; track level) {
+                                              <div class="score-column">
+                                                <div class="score-column-header score-header-{{level}}">
+                                                  <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
+                                                  <span class="score-header-value">= {{level}}</span>
+                                                </div>
+                                                <div class="score-column-inputs">
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                    <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
+                                                  </mat-form-field>
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                    <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
+                                                  </mat-form-field>
+                                                </div>
+                                              </div>
+                                            }
+                                          </div>
+                                          <div class="inline-form-actions">
+                                            <button mat-flat-button color="primary"
+                                              (click)="saveStandaloneMetrique(ind.id_indicateur)"
+                                              [disabled]="isSavingStandaloneMetrique() || !standaloneMetriqueForm.nom_metrique.trim()">
+                                              {{ 'common.actions.save' | translate }}
+                                            </button>
+                                            <button mat-stroked-button (click)="cancelAddStandaloneMetrique()">
+                                              {{ 'common.actions.cancel' | translate }}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      }
                                     </div>
                                   }
                                 }
@@ -1981,16 +2231,24 @@
                       <textarea matInput [(ngModel)]="newOoDescription" rows="2"></textarea>
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }} *</mat-label>
-                      <mat-select [(ngModel)]="newOoFacteurId" required>
+                      <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }}</mat-label>
+                      <mat-select [(ngModel)]="newOoFacteurFilterId" (ngModelChange)="newOoPressionId = null">
                         @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                           <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
                         }
                       </mat-select>
                     </mat-form-field>
+                    <mat-form-field class="full-width" appearance="outline">
+                      <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
+                      <mat-select [(ngModel)]="newOoPressionId" required [disabled]="!newOoFacteurFilterId">
+                        @for (p of filteredPressionsForNewOo(); track p.id_pression) {
+                          <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || !newOoFacteurId">
+                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || !newOoPressionId">
                       {{ 'common.actions.save' | translate }}
                     </button>
                     <button mat-stroked-button (click)="cancelAddOo()">
@@ -2000,29 +2258,29 @@
                 </div>
               }
 
-              <!-- Bouton ajouter un OO (visible seulement si au moins un facteur d'influence existe) -->
-              @if (!addingOo() && selectedFacteurs().length > 0) {
+              <!-- Bouton ajouter un OO (visible seulement si au moins une pression existe) -->
+              @if (!addingOo() && selectedPressions().length > 0) {
                 <button class="add-item-btn" (click)="startAddOo()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
                 </button>
               }
 
-              <!-- Message si aucun facteur d'influence (guard : créer un facteur d'abord) -->
-              @if (selectedFacteurs().length === 0 && totalOoCount() === 0 && !addingOo()) {
+              <!-- Message si aucune pression (guard : créer une pression d'abord) -->
+              @if (selectedPressions().length === 0 && totalOoCount() === 0 && !addingOo()) {
                 <div class="info-block info-block-warning">
                   <div class="info-icon">
                     <i class="fi fi-rr-exclamation"></i>
                   </div>
                   <div class="info-content">
-                    <p class="info-title">{{ 'enjeux.oo.noFacteurTitle' | translate }}</p>
-                    <p class="info-description">{{ 'enjeux.oo.noFacteurDescription' | translate }}</p>
+                    <p class="info-title">{{ 'enjeux.oo.noPressionTitle' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.oo.noPressionDescription' | translate }}</p>
                   </div>
                 </div>
               }
 
-              <!-- Empty state si aucun OO mais des facteurs existent -->
-              @if (totalOoCount() === 0 && selectedFacteurs().length > 0 && !addingOo()) {
+              <!-- Empty state si aucun OO mais des pressions existent -->
+              @if (totalOoCount() === 0 && selectedPressions().length > 0 && !addingOo()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>

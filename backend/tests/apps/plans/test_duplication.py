@@ -567,14 +567,15 @@ class TestCopySubElements:
 
 @pytest.mark.django_db
 @pytest.mark.unit
-class TestOOFacteurRemap:
-    """Tests for ObjectifOperationnel under FacteurInfluence duplication."""
+class TestOOPressionRemap:
+    """Tests for ObjectifOperationnel under Pression duplication."""
 
-    def test_oo_with_facteur_remapped(self, source_plan, user):
+    def test_oo_with_pression_remapped(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        pression = PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
         ObjectifOperationnelFactory(
-            id_facteur_influence=fi,
+            id_pression=pression,
             libelle='OO linked',
             id_utilisateur_ajout=user,
         )
@@ -587,15 +588,17 @@ class TestOOFacteurRemap:
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
-        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
-        # The FK must point to the NEW facteur, not the old one
-        assert new_oo.id_facteur_influence == new_fi
-        assert new_oo.id_facteur_influence_id != fi.id_facteur_influence
+        new_pression = Pression.objects.get(id_facteur_influence=new_fi)
+        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
+        # The FK must point to the NEW pression, not the old one
+        assert new_oo.id_pression == new_pression
+        assert new_oo.id_pression_id != pression.id_pression
 
     def test_oo_resultat_attendu_indicateur_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
-        oo = ObjectifOperationnelFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
+        pression = PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
+        oo = ObjectifOperationnelFactory(id_pression=pression, id_utilisateur_ajout=user)
         ra = ResultatAttenduFactory(id_oo=oo, libelle='RA A', id_utilisateur_ajout=user)
         ind = IndicateurPressionFactory(id_resultat_attendu=ra, nom_indicateur='Ind OO', id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind, nom_metrique='Met OO', id_utilisateur_ajout=user)
@@ -608,7 +611,8 @@ class TestOOFacteurRemap:
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
-        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
+        new_pression = Pression.objects.get(id_facteur_influence=new_fi)
+        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         assert new_ra.libelle == 'RA A'
 
@@ -810,9 +814,10 @@ class TestFullHierarchyDuplication:
         MetriqueFactory(id_indicateur=ind_ne, id_utilisateur_ajout=user)
         CorIndicateurTaxonFactory(id_indicateur=ind_ne, cd_nom=22222)
 
-        # OO linked to FI + RA + Indicateur (on RA) + Metrique
+        # OO linked to Pression under FI + RA + Indicateur (on RA) + Metrique
+        pression = Pression.objects.filter(id_facteur_influence=fi).first()
         oo = ObjectifOperationnelFactory(
-            id_facteur_influence=fi, id_utilisateur_ajout=user
+            id_pression=pression, id_utilisateur_ajout=user
         )
         ra = ResultatAttenduFactory(id_oo=oo, id_utilisateur_ajout=user)
         ind_ra = IndicateurPressionFactory(id_resultat_attendu=ra, id_utilisateur_ajout=user)
@@ -858,8 +863,9 @@ class TestFullHierarchyDuplication:
         assert Metrique.objects.filter(id_indicateur=new_ind_ne).count() == 1
         assert CorIndicateurTaxon.objects.filter(id_indicateur=new_ind_ne).count() == 1
 
-        # Verify OO chain under facteur
-        new_oo = ObjectifOperationnel.objects.get(id_facteur_influence=new_fi)
+        # Verify OO chain under pression
+        new_pression = Pression.objects.filter(id_facteur_influence=new_fi).first()
+        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         new_ind_ra = Indicateur.objects.get(id_resultat_attendu=new_ra)
         assert Metrique.objects.filter(id_indicateur=new_ind_ra).count() == 1

@@ -12,7 +12,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from collections import defaultdict
 
-from .models_operations import Operation, OperationAnnee, FinanceOperation
+from .models_operations import Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
 from .models_indicateurs import Indicateur
 from .models import PlanGestion, CorRolePlan
 from apps.users.permissions import IsReferent
@@ -37,10 +37,16 @@ class OperationViewSet(viewsets.ModelViewSet):
 
     queryset = Operation.objects.select_related(
         'id_priorite', 'id_type_action', 'id_utilisateur_ajout', 'id_utilisateur_maj',
-        'id_metrique', 'id_metrique__id_indicateur'
+        'id_metrique', 'id_metrique__id_indicateur',
+        # NE path: Indicateur → NE → OLT → EtatActuel → Enjeu
+        'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu',
+        # RA path: Indicateur → RA → OO → Pression → FI → Enjeu
+        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
     ).prefetch_related(
         'sites',
-        Prefetch('operation_annees', queryset=OperationAnnee.objects.select_related('id_operateur')),
+        Prefetch('operation_annees', queryset=OperationAnnee.objects.select_related('id_operateur').prefetch_related(
+            Prefetch('organismes', queryset=OperationAnneeOrganisme.objects.select_related('id_organisme'))
+        )),
         Prefetch('finances', queryset=FinanceOperation.objects.select_related('id_categorie')),
     )
 
@@ -109,7 +115,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
             Q(id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg=plan) |
-            Q(id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_facteur_influence__id_enjeu__id_pg=plan)
+            Q(id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
         ).distinct()
 
         grouped = defaultdict(list)

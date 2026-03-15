@@ -50,7 +50,7 @@ class FakeTranslateLoader implements TranslateLoader {
             site: 'Site',
             sites: 'Sites',
             users: 'Utilisateurs',
-            mindmap: 'Mindmap',
+            mindmap: "Tableau d'arborescence",
             documents: 'Documents',
           },
           viewDetails: 'Voir les d\u00e9tails',
@@ -107,7 +107,7 @@ class FakeTranslateLoader implements TranslateLoader {
             statusError: 'Erreur lors du changement de statut',
           },
         },
-        mindmap: { viewMindmap: 'Voir la mindmap' },
+        mindmap: { viewMindmap: "Voir le tableau d'arborescence" },
       },
       modals: {
         planForm: {

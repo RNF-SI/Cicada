@@ -48,11 +48,18 @@ interface SyntheseAccordion {
   subItems?: SubAccordion[];
 }
 
+interface OperationSynthItem {
+  label: string;
+  enjeuSlug?: string;
+  ooId?: number;
+  operationId: number;
+}
+
 interface SubAccordion {
   id: string;
   title: string;
   expanded: boolean;
-  items?: string[];
+  items?: OperationSynthItem[];
 }
 
 @Component({
@@ -137,11 +144,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   allOos = computed(() => {
     return this.enjeuxData().flatMap(enjeu =>
       (enjeu.facteurs_influence || []).flatMap(fi =>
-        (fi.objectifs_operationnels || []).map(oo => ({
-          ...oo,
-          enjeu_libelle: enjeu.libelle,
-          enjeu_id: enjeu.id_enjeu
-        }))
+        (fi.pressions || []).flatMap(p =>
+          (p.objectifs_operationnels || []).map(oo => ({
+            ...oo,
+            enjeu_libelle: enjeu.libelle,
+            enjeu_id: enjeu.id_enjeu
+          }))
+        )
       )
     );
   });
@@ -316,7 +325,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
           expanded: index === 0,
           items: (group.operations || []).map((op: any) => {
             const code = op.code_operation ? `${op.code_operation} : ` : '';
-            return `${code}${op.libelle}`;
+            return {
+              label: `${code}${op.libelle}`,
+              enjeuSlug: op.enjeu_slug || undefined,
+              ooId: op.oo_id || undefined,
+              operationId: op.id_operation,
+            } as OperationSynthItem;
           })
         }));
 
@@ -374,6 +388,17 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     if (enjeu) {
       this.navigateToEnjeuDetail(enjeu);
     }
+  }
+
+  navigateToOperation(item: OperationSynthItem): void {
+    const slug = this.planSlug();
+    if (!slug || !item.enjeuSlug) return;
+    const queryParams: Record<string, string | number> = { tab: 'operations' };
+    if (item.ooId) {
+      queryParams['expandOo'] = item.ooId;
+    }
+    queryParams['expandOperation'] = item.operationId;
+    this.router.navigate(['/plans', slug, 'enjeux', item.enjeuSlug], { queryParams });
   }
 
   navigateToMindmap(): void {

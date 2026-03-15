@@ -325,6 +325,12 @@ export type PlanStatut = 'draft' | 'valide' | 'archive';
 /**
  * Site associé à un plan de gestion
  */
+export interface PlanSiteOrganisme {
+  id_organisme: number;
+  nom_organisme: string;
+  principal: boolean;
+}
+
 export interface PlanSite {
   id_site: number;
   nom_site: string;
@@ -338,6 +344,8 @@ export interface PlanSite {
   current_user_has_access?: boolean;
   /** Statut du lien plan-site (active = lié, pending = en attente de validation) */
   status?: 'active' | 'pending';
+  /** Organismes liés au site */
+  organismes?: PlanSiteOrganisme[];
 }
 
 /**

@@ -7,7 +7,7 @@ from rest_framework import status
 from apps.plans.models_enjeux import ObjectifOperationnel, ResultatAttendu
 from apps.plans.models_indicateurs import Indicateur
 from tests.factories.enjeux import (
-    EnjeuFactory, FacteurInfluenceFactory,
+    EnjeuFactory, FacteurInfluenceFactory, PressionFactory,
     ObjectifOperationnelFactory, ResultatAttenduFactory,
     IndicateurPressionFactory, MetriqueFactory,
     NomenclatureEnjeuFactory, NomenclatureTypeIndicateurFactory,
@@ -51,13 +51,21 @@ def oo_test_data(db):
         id_enjeu=enjeu, libelle='Facteur Climat',
         id_utilisateur_ajout=referent
     )
+    pression1 = PressionFactory(
+        id_facteur_influence=facteur, libelle='Pression Urbaine',
+        id_utilisateur_ajout=referent
+    )
+    pression2 = PressionFactory(
+        id_facteur_influence=facteur2, libelle='Pression Climatique',
+        id_utilisateur_ajout=referent
+    )
     oo1 = ObjectifOperationnelFactory(
-        id_facteur_influence=facteur, libelle='OO Réduire pressions',
+        id_pression=pression1, libelle='OO Réduire pressions',
         description='Réduire les pressions anthropiques',
         id_utilisateur_ajout=referent
     )
     oo2 = ObjectifOperationnelFactory(
-        id_facteur_influence=facteur2, libelle='OO Restaurer habitats',
+        id_pression=pression2, libelle='OO Restaurer habitats',
         id_utilisateur_ajout=referent
     )
     ra1 = ResultatAttenduFactory(
@@ -97,6 +105,8 @@ def oo_test_data(db):
         'enjeu': enjeu,
         'facteur': facteur,
         'facteur2': facteur2,
+        'pression1': pression1,
+        'pression2': pression2,
         'oo1': oo1,
         'oo2': oo2,
         'ra1': ra1,
@@ -146,29 +156,29 @@ class TestObjectifOperationnelCreate:
         """Test referent can create an OO."""
         api_client.force_authenticate(user=oo_test_data['referent'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_facteur_influence': oo_test_data['facteur'].id_facteur_influence,
+            'id_pression': oo_test_data['pression1'].id_pression,
             'libelle': 'Nouvel OO',
             'description': 'Description test',
         })
         assert response.status_code == status.HTTP_201_CREATED
         assert ObjectifOperationnel.objects.filter(libelle='Nouvel OO').exists()
 
-    def test_referent_creates_with_facteur(self, api_client, oo_test_data):
-        """Test referent can create an OO linked to a facteur d'influence."""
+    def test_referent_creates_with_pression(self, api_client, oo_test_data):
+        """Test referent can create an OO linked to a pression."""
         api_client.force_authenticate(user=oo_test_data['referent'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_facteur_influence': oo_test_data['facteur'].id_facteur_influence,
-            'libelle': 'OO avec Facteur',
+            'id_pression': oo_test_data['pression1'].id_pression,
+            'libelle': 'OO avec Pression',
         })
         assert response.status_code == status.HTTP_201_CREATED
-        oo = ObjectifOperationnel.objects.get(libelle='OO avec Facteur')
-        assert oo.id_facteur_influence == oo_test_data['facteur']
+        oo = ObjectifOperationnel.objects.get(libelle='OO avec Pression')
+        assert oo.id_pression == oo_test_data['pression1']
 
     def test_non_referent_denied(self, api_client, oo_test_data):
         """Test non-referent cannot create."""
         api_client.force_authenticate(user=oo_test_data['user'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_facteur_influence': oo_test_data['facteur'].id_facteur_influence,
+            'id_pression': oo_test_data['pression1'].id_pression,
             'libelle': 'Should Fail',
         })
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -177,7 +187,7 @@ class TestObjectifOperationnelCreate:
         """Test audit fields are set on create."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_facteur_influence': oo_test_data['facteur'].id_facteur_influence,
+            'id_pression': oo_test_data['pression1'].id_pression,
             'libelle': 'OO Audit',
         })
         assert response.status_code == status.HTTP_201_CREATED
@@ -259,30 +269,30 @@ class TestObjectifOperationnelDetail:
 
 @pytest.mark.django_db
 @pytest.mark.integration
-class TestObjectifOperationnelByFacteur:
-    """Tests for GET /api/plans/objectifs-operationnels/by-facteur/{facteur_id}/"""
+class TestObjectifOperationnelByPression:
+    """Tests for GET /api/plans/objectifs-operationnels/by-pression/{pression_id}/"""
 
     def test_unauthenticated_returns_401(self, api_client, oo_test_data):
         """Test unauthenticated access returns 401."""
-        facteur_id = oo_test_data['facteur'].id_facteur_influence
-        response = api_client.get(f'/api/plans/objectifs-operationnels/by-facteur/{facteur_id}/')
+        pression_id = oo_test_data['pression1'].id_pression
+        response = api_client.get(f'/api/plans/objectifs-operationnels/by-pression/{pression_id}/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_referent_gets_by_facteur(self, api_client, oo_test_data):
-        """Test referent can get OOs by facteur d'influence."""
+    def test_referent_gets_by_pression(self, api_client, oo_test_data):
+        """Test referent can get OOs by pression."""
         api_client.force_authenticate(user=oo_test_data['referent'])
-        facteur_id = oo_test_data['facteur'].id_facteur_influence
-        response = api_client.get(f'/api/plans/objectifs-operationnels/by-facteur/{facteur_id}/')
+        pression_id = oo_test_data['pression1'].id_pression
+        response = api_client.get(f'/api/plans/objectifs-operationnels/by-pression/{pression_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert 'facteur_id' in response.data
+        assert 'pression_id' in response.data
         assert 'objectifs_operationnels' in response.data
         assert 'total' in response.data
         assert response.data['total'] >= 1
 
-    def test_nonexistent_facteur_returns_404(self, api_client, oo_test_data):
-        """Test nonexistent facteur returns 404."""
+    def test_nonexistent_pression_returns_404(self, api_client, oo_test_data):
+        """Test nonexistent pression returns 404."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
-        response = api_client.get('/api/plans/objectifs-operationnels/by-facteur/99999/')
+        response = api_client.get('/api/plans/objectifs-operationnels/by-pression/99999/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -523,14 +533,14 @@ class TestOoCascadeDelete:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Indicateur.objects.filter(id_indicateur=ind_id).exists()
 
-    def test_delete_oo_does_not_delete_facteur(self, api_client, oo_test_data):
-        """Test deleting an OO does not delete the parent facteur d'influence."""
+    def test_delete_oo_does_not_delete_pression(self, api_client, oo_test_data):
+        """Test deleting an OO does not delete the parent pression."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         oo_id = oo_test_data['oo1'].id_oo
-        facteur_id = oo_test_data['facteur'].id_facteur_influence
+        pression_id = oo_test_data['pression1'].id_pression
         api_client.delete(f'/api/plans/objectifs-operationnels/{oo_id}/')
-        from apps.plans.models_enjeux import FacteurInfluence
-        assert FacteurInfluence.objects.filter(id_facteur_influence=facteur_id).exists()
+        from apps.plans.models_enjeux import Pression
+        assert Pression.objects.filter(id_pression=pression_id).exists()
 
 
 # =============================================================================
@@ -542,22 +552,24 @@ class TestOoCascadeDelete:
 class TestEnjeuDetailIncludesOo:
     """Tests that enjeu detail endpoint includes OOs nested under facteurs_influence."""
 
-    def test_enjeu_detail_includes_facteurs_with_oo(self, api_client, oo_test_data):
-        """Test enjeu detail includes facteurs_influence with objectifs_operationnels."""
+    def test_enjeu_detail_includes_pressions_with_oo(self, api_client, oo_test_data):
+        """Test enjeu detail includes pressions with objectifs_operationnels under facteurs."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         enjeu_id = oo_test_data['enjeu'].id_enjeu
         response = api_client.get(f'/api/plans/enjeux/{enjeu_id}/')
         assert response.status_code == status.HTTP_200_OK
         assert 'facteurs_influence' in response.data
-        # Collect all OOs from all facteurs
+        # Collect all OOs from all pressions under all facteurs
         all_oos = []
         for fi in response.data['facteurs_influence']:
-            assert 'objectifs_operationnels' in fi
-            all_oos.extend(fi['objectifs_operationnels'])
+            assert 'pressions' in fi
+            for pression in fi['pressions']:
+                assert 'objectifs_operationnels' in pression
+                all_oos.extend(pression['objectifs_operationnels'])
         assert len(all_oos) >= 2
 
-    def test_enjeu_detail_facteur_nb_oo(self, api_client, oo_test_data):
-        """Test facteur d'influence includes nb_objectifs_operationnels count."""
+    def test_enjeu_detail_pression_nb_oo(self, api_client, oo_test_data):
+        """Test pression includes nb_objectifs_operationnels count."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         enjeu_id = oo_test_data['enjeu'].id_enjeu
         response = api_client.get(f'/api/plans/enjeux/{enjeu_id}/')
@@ -565,27 +577,32 @@ class TestEnjeuDetailIncludesOo:
             fi for fi in response.data['facteurs_influence']
             if fi['libelle'] == 'Facteur Urbanisation'
         )
-        assert facteur['nb_objectifs_operationnels'] == 1
+        pression = next(
+            p for p in facteur['pressions']
+            if p['libelle'] == 'Pression Urbaine'
+        )
+        assert pression['nb_objectifs_operationnels'] == 1
 
     def test_enjeu_detail_oo_nested_ra(self, api_client, oo_test_data):
-        """Test enjeu detail includes nested RAs in OOs under facteurs."""
+        """Test enjeu detail includes nested RAs in OOs under pressions."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         enjeu_id = oo_test_data['enjeu'].id_enjeu
         response = api_client.get(f'/api/plans/enjeux/{enjeu_id}/')
-        # Find OO under facteur Urbanisation
+        # Find OO under pression under facteur Urbanisation
         facteur = next(
             fi for fi in response.data['facteurs_influence']
             if fi['libelle'] == 'Facteur Urbanisation'
         )
+        pression = facteur['pressions'][0]
         oo_with_ra = next(
-            oo for oo in facteur['objectifs_operationnels']
+            oo for oo in pression['objectifs_operationnels']
             if oo['libelle'] == 'OO Réduire pressions'
         )
         assert 'resultats_attendus' in oo_with_ra
         assert len(oo_with_ra['resultats_attendus']) >= 2
 
     def test_enjeu_detail_ra_nested_indicateurs(self, api_client, oo_test_data):
-        """Test enjeu detail includes nested indicateurs in RAs under facteurs."""
+        """Test enjeu detail includes nested indicateurs in RAs under pressions."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         enjeu_id = oo_test_data['enjeu'].id_enjeu
         response = api_client.get(f'/api/plans/enjeux/{enjeu_id}/')
@@ -593,8 +610,9 @@ class TestEnjeuDetailIncludesOo:
             fi for fi in response.data['facteurs_influence']
             if fi['libelle'] == 'Facteur Urbanisation'
         )
+        pression = facteur['pressions'][0]
         oo_with_ra = next(
-            oo for oo in facteur['objectifs_operationnels']
+            oo for oo in pression['objectifs_operationnels']
             if oo['libelle'] == 'OO Réduire pressions'
         )
         ra_with_ind = next(

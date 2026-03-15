@@ -28,9 +28,9 @@ import { ReferenceItemListComponent } from '../../../../shared/components/refere
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
-import { Operation, OperationCreatePayload, OperationAnnee, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
-import { PlanSite } from '../../../../core/models/admin.model';
+import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 
 /** Nomenclature option with grouping info */
@@ -97,8 +97,8 @@ export class OperationFormComponent implements OnInit {
   isEditMode = signal(false);
   existingOperation = signal<Operation | null>(null);
 
-  // Query param: pré-lier un indicateur
-  prelinkedIndicateurId = signal<number | null>(null);
+  // Query param: pré-lier une métrique
+  prelinkedMetriqueId = signal<number | null>(null);
 
   // Nomenclatures
   typeActionOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
@@ -140,8 +140,29 @@ export class OperationFormComponent implements OnInit {
   // Finances
   finances: FinanceOperation[] = [];
 
-  // Sites M2M checkboxes
+  // Per-organisme budget data: key = `${yearIndex}-${organismeId}`
+  orgBudgets: Record<string, { fonct: number | null; invest: number | null; etp: number | null }> = {};
+
+  // Available organismes derived from selected sites
+  availableOrganismes = computed(() => {
+    this.selectedSiteIdsVersion(); // dependency trigger
+    const sites = this.planSites();
+    const selectedIds = this.selectedSiteIds;
+    const orgMap = new Map<number, { id_organisme: number; nom_organisme: string }>();
+    for (const site of sites) {
+      if (!selectedIds[site.id_site]) continue;
+      for (const org of site.organismes || []) {
+        if (!orgMap.has(org.id_organisme)) {
+          orgMap.set(org.id_organisme, { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme });
+        }
+      }
+    }
+    return Array.from(orgMap.values()).sort((a, b) => a.nom_organisme.localeCompare(b.nom_organisme));
+  });
+
+  // Sites M2M checkboxes — use signal so computed can react
   selectedSiteIds: Record<number, boolean> = {};
+  selectedSiteIdsVersion = signal(0); // bump to trigger recompute
 
   // Suivi existant toggle
   estSuiviExistant = signal(false);
@@ -242,9 +263,9 @@ export class OperationFormComponent implements OnInit {
       this.isEditMode.set(true);
     }
 
-    const indicateurIdStr = this.route.snapshot.queryParamMap.get('indicateurId');
-    if (indicateurIdStr) {
-      this.prelinkedIndicateurId.set(parseInt(indicateurIdStr, 10));
+    const metriqueIdStr = this.route.snapshot.queryParamMap.get('metriqueId');
+    if (metriqueIdStr) {
+      this.prelinkedMetriqueId.set(parseInt(metriqueIdStr, 10));
     }
 
     this.loadData();
@@ -395,7 +416,7 @@ export class OperationFormComponent implements OnInit {
   private loadOperationIfEdit(): void {
     const opId = this.operationId();
     if (!opId) {
-      const prelinkedId = this.prelinkedIndicateurId();
+      const prelinkedId = this.prelinkedMetriqueId();
       if (prelinkedId) {
         // prelinkedId is now expected to be a metrique ID
         this.form.patchValue({ id_metrique: prelinkedId });
@@ -509,6 +530,7 @@ export class OperationFormComponent implements OnInit {
       for (const siteId of op.site_ids) {
         this.selectedSiteIds[siteId] = true;
       }
+      this.selectedSiteIdsVersion.update(v => v + 1);
     }
 
     // Restore operation_annees from relational data
@@ -527,6 +549,20 @@ export class OperationFormComponent implements OnInit {
       // Re-sort
       this.years.sort((a, b) => a - b);
       this.operationAnnees.sort((a, b) => a.annee - b.annee);
+
+      // Restore per-organisme data
+      for (const serverAnnee of op.operation_annees) {
+        const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+        if (yearIdx >= 0 && serverAnnee.organismes) {
+          for (const org of serverAnnee.organismes) {
+            this.orgBudgets[this.orgKey(yearIdx, org.id_organisme)] = {
+              fonct: org.budget_fonctionnement,
+              invest: org.budget_investissement,
+              etp: org.etp,
+            };
+          }
+        }
+      }
     }
 
     // Restore default monthly template
@@ -630,18 +666,39 @@ export class OperationFormComponent implements OnInit {
     // Template mensuel (mêmes mois chaque année)
     payload.programmation_mensuelle_defaut = { ...this.programmationMensuelleDefaut };
 
-    // Operation annees: apply the monthly template to all years
-    const anneesToSave = this.operationAnnees.map(a => ({
-      annee: a.annee,
-      periodicite: a.periodicite,
-      budget: a.budget,
-      etp: a.etp,
-      id_operateur: a.id_operateur || undefined,
-      periodicite_mensuelle: { ...this.programmationMensuelleDefaut }
-    }));
+    // Operation annees: apply the monthly template to all years + per-organisme data
+    const orgs = this.availableOrganismes();
+    const anneesToSave = this.operationAnnees.map((a, idx) => {
+      // Build per-organisme array for this year
+      const orgEntries: { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null }[] = [];
+      for (const org of orgs) {
+        const data = this.getOrgBudget(idx, org.id_organisme);
+        if (data.fonct != null || data.invest != null || data.etp != null) {
+          orgEntries.push({
+            id_organisme: org.id_organisme,
+            budget_fonctionnement: data.fonct,
+            budget_investissement: data.invest,
+            etp: data.etp,
+          });
+        }
+      }
+      // Compute totals from per-organisme data
+      const totalBudget = orgEntries.reduce((sum, o) => sum + (o.budget_fonctionnement || 0) + (o.budget_investissement || 0), 0);
+      const totalEtp = orgEntries.reduce((sum, o) => sum + (o.etp || 0), 0);
+      return {
+        annee: a.annee,
+        periodicite: a.periodicite,
+        budget: orgEntries.length > 0 ? totalBudget : a.budget,
+        etp: orgEntries.length > 0 ? totalEtp : a.etp,
+        id_operateur: a.id_operateur || undefined,
+        periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
+        organismes: orgEntries,
+      };
+    });
 
     const hasAnneeData = anneesToSave.some(
       a => a.periodicite || a.budget != null || a.etp != null || a.id_operateur != null ||
+        a.organismes.length > 0 ||
         Object.values(a.periodicite_mensuelle).some(v => v)
     );
     if (hasAnneeData) {
@@ -912,6 +969,56 @@ export class OperationFormComponent implements OnInit {
 
   toggleSite(siteId: number): void {
     this.selectedSiteIds[siteId] = !this.selectedSiteIds[siteId];
+    this.selectedSiteIdsVersion.update(v => v + 1);
+  }
+
+  // ════════════════════════════════════════════════
+  // Per-organisme budget/travail
+  // ════════════════════════════════════════════════
+
+  private orgKey(yearIdx: number, orgId: number): string {
+    return `${yearIdx}-${orgId}`;
+  }
+
+  getOrgBudget(yearIdx: number, orgId: number): { fonct: number | null; invest: number | null; etp: number | null } {
+    const key = this.orgKey(yearIdx, orgId);
+    if (!this.orgBudgets[key]) {
+      this.orgBudgets[key] = { fonct: null, invest: null, etp: null };
+    }
+    return this.orgBudgets[key];
+  }
+
+  updateOrgBudgetFonct(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).fonct = value ? parseFloat(value) : null;
+  }
+
+  updateOrgBudgetInvest(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).invest = value ? parseFloat(value) : null;
+  }
+
+  updateOrgEtp(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).etp = value ? parseFloat(value) : null;
+  }
+
+  getOrgTotal(yearIdx: number, orgId: number): number {
+    const data = this.getOrgBudget(yearIdx, orgId);
+    return (data.fonct || 0) + (data.invest || 0);
+  }
+
+  getYearTotalBudget(yearIdx: number): number {
+    let total = 0;
+    for (const org of this.availableOrganismes()) {
+      total += this.getOrgTotal(yearIdx, org.id_organisme);
+    }
+    return total;
+  }
+
+  getYearTotalEtp(yearIdx: number): number {
+    let total = 0;
+    for (const org of this.availableOrganismes()) {
+      total += this.getOrgBudget(yearIdx, org.id_organisme).etp || 0;
+    }
+    return total;
   }
 
   // ════════════════════════════════════════════════
@@ -952,6 +1059,11 @@ export class OperationFormComponent implements OnInit {
         id_operateur: first.id_operateur,
         periodicite_mensuelle: { ...first.periodicite_mensuelle }
       };
+      // Duplicate per-organisme data
+      for (const org of this.availableOrganismes()) {
+        const srcData = this.getOrgBudget(0, org.id_organisme);
+        this.orgBudgets[this.orgKey(i, org.id_organisme)] = { ...srcData };
+      }
     }
   }
 

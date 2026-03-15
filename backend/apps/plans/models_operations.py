@@ -666,6 +666,53 @@ class OperationAnnee(models.Model):
         return f"Opération {self.id_operation_id} - {self.annee}"
 
 
+class OperationAnneeOrganisme(models.Model):
+    """
+    Ventilation budget/travail par organisme pour une année d'opération.
+    """
+
+    id_operation_annee_organisme = models.AutoField(primary_key=True)
+    id_operation_annee = models.ForeignKey(
+        OperationAnnee,
+        on_delete=models.CASCADE,
+        related_name='organismes',
+        db_column='id_operation_annee',
+        verbose_name=_("Année d'opération")
+    )
+    id_organisme = models.ForeignKey(
+        'users.BibOrganismes',
+        on_delete=models.CASCADE,
+        db_column='id_organisme',
+        verbose_name=_("Organisme")
+    )
+    budget_fonctionnement = models.DecimalField(
+        _("Budget fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    budget_investissement = models.DecimalField(
+        _("Budget investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    etp = models.DecimalField(
+        _("Travail prévisionnel (jours)"),
+        max_digits=8, decimal_places=2,
+        null=True, blank=True
+    )
+
+    class Meta:
+        db_table = '"general"."t_operation_annee_organismes"'
+        db_table_comment = "Ventilation budget/travail par organisme et par année"
+        verbose_name = _("Organisme - Année d'opération")
+        verbose_name_plural = _("Organismes - Années d'opération")
+        unique_together = ['id_operation_annee', 'id_organisme']
+        ordering = ['id_organisme__nom_organisme']
+
+    def __str__(self):
+        return f"OpAnnée {self.id_operation_annee_id} - Org {self.id_organisme_id}"
+
+
 class FinanceOperation(models.Model):
     """
     Source de financement d'une opération.

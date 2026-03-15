@@ -76,15 +76,15 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
         'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
         'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
-        'facteurs_influence__objectifs_operationnels',
-        'facteurs_influence__objectifs_operationnels__id_utilisateur_ajout',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
-        'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
+        'facteurs_influence__pressions__objectifs_operationnels',
+        'facteurs_influence__pressions__objectifs_operationnels__id_utilisateur_ajout',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]
@@ -460,14 +460,14 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
         'pressions', 'pressions__id_utilisateur_ajout',
-        'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
-        'objectifs_operationnels__resultats_attendus',
-        'objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
-        'objectifs_operationnels__resultats_attendus__indicateurs',
-        'objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
-        'objectifs_operationnels__resultats_attendus__indicateurs__metriques',
-        'objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
-        'objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
+        'pressions__objectifs_operationnels', 'pressions__objectifs_operationnels__id_utilisateur_ajout',
+        'pressions__objectifs_operationnels__resultats_attendus',
+        'pressions__objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
+        'pressions__objectifs_operationnels__resultats_attendus__indicateurs',
+        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
+        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
+        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
+        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]
@@ -540,6 +540,16 @@ class PressionViewSet(viewsets.ModelViewSet):
 
     queryset = Pression.objects.select_related(
         'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+    ).prefetch_related(
+        'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
+        'objectifs_operationnels__id_pression',
+        'objectifs_operationnels__resultats_attendus',
+        'objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
+        'objectifs_operationnels__resultats_attendus__indicateurs',
+        'objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
+        'objectifs_operationnels__resultats_attendus__indicateurs__metriques',
+        'objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
+        'objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]
@@ -824,11 +834,12 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     - POST /api/plans/objectifs-operationnels/ - Créer
     - PATCH /api/plans/objectifs-operationnels/{id}/ - Modifier
     - DELETE /api/plans/objectifs-operationnels/{id}/ - Supprimer
-    - GET /api/plans/objectifs-operationnels/by-facteur/{facteur_id}/ - Par facteur d'influence
+    - GET /api/plans/objectifs-operationnels/by-pression/{pression_id}/ - Par pression
     """
 
     queryset = ObjectifOperationnel.objects.select_related(
-        'id_facteur_influence', 'id_facteur_influence__id_enjeu',
+        'id_pression', 'id_pression__id_facteur_influence',
+        'id_pression__id_facteur_influence__id_enjeu',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
         'resultats_attendus', 'resultats_attendus__id_utilisateur_ajout',
@@ -861,14 +872,14 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -877,18 +888,18 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
-    @action(detail=False, methods=['get'], url_path=r'by-facteur/(?P<facteur_id>\d+)')
-    def by_facteur(self, request, facteur_id=None):
+    @action(detail=False, methods=['get'], url_path=r'by-pression/(?P<pression_id>\d+)')
+    def by_pression(self, request, pression_id=None):
         """
-        Récupérer les objectifs opérationnels d'un facteur d'influence.
+        Récupérer les objectifs opérationnels d'une pression.
 
-        GET /api/plans/objectifs-operationnels/by-facteur/{facteur_id}/
+        GET /api/plans/objectifs-operationnels/by-pression/{pression_id}/
         """
-        facteur = get_object_or_404(FacteurInfluence, id_facteur_influence=facteur_id)
-        oos = self.get_queryset().filter(id_facteur_influence=facteur)
+        pression = get_object_or_404(Pression, id_pression=pression_id)
+        oos = self.get_queryset().filter(id_pression=pression)
         return Response({
-            'facteur_id': int(facteur_id),
-            'facteur_libelle': facteur.libelle,
+            'pression_id': int(pression_id),
+            'pression_libelle': pression.libelle,
             'objectifs_operationnels': ObjectifOperationnelSerializer(oos, many=True).data,
             'total': oos.count()
         })
@@ -931,14 +942,14 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_oo__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_oo__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_oo__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_oo__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):

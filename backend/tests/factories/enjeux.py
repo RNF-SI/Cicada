@@ -188,7 +188,7 @@ class ObjectifOperationnelFactory(DjangoModelFactory):
     class Meta:
         model = ObjectifOperationnel
 
-    id_facteur_influence = factory.SubFactory(FacteurInfluenceFactory)
+    id_pression = factory.SubFactory(PressionFactory)
     libelle = factory.Sequence(lambda n: f'OO Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)

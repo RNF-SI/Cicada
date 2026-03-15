@@ -95,10 +95,11 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(source='site.slug', read_only=True)
     type_site_label = serializers.SerializerMethodField()
     current_user_has_access = serializers.SerializerMethodField()
+    organismes = serializers.SerializerMethodField()
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang', 'current_user_has_access']
+        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang', 'current_user_has_access', 'organismes']
 
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
@@ -131,6 +132,18 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
                 return True
 
         return False
+
+    def get_organismes(self, obj):
+        """Retourne les organismes liés au site via CorOgSite."""
+        from apps.users.models import CorOgSite
+        return [
+            {
+                'id_organisme': cor.uuid_og.id_organisme,
+                'nom_organisme': cor.uuid_og.nom_organisme if cor.uuid_og else '',
+                'principal': cor.principal,
+            }
+            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og')
+        ]
 
 
 class PlanReferentListSerializer(serializers.ModelSerializer):

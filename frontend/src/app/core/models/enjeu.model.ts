@@ -139,6 +139,8 @@ export interface Pression {
   id_pressref?: string;
   libelle: string;
   description?: string;
+  objectifs_operationnels?: ObjectifOperationnel[];
+  nb_objectifs_operationnels?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
@@ -154,8 +156,6 @@ export interface FacteurInfluence {
   description?: string;
   pressions?: Pression[];
   nb_pressions?: number;
-  objectifs_operationnels?: ObjectifOperationnel[];
-  nb_oo?: number;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
@@ -230,9 +230,10 @@ export interface NiveauExigence {
  */
 export interface ObjectifOperationnel {
   id_oo: number;
-  id_facteur_influence: number;
+  id_pression: number;
   libelle: string;
   description?: string;
+  pression_libelle?: string;
   facteur_influence_libelle?: string;
   resultats_attendus?: ResultatAttendu[];
   nb_resultats_attendus?: number;
@@ -385,6 +386,18 @@ export interface ProgrammationAnnuelleRow {
 }
 
 /**
+ * Ventilation budget/travail par organisme pour une année d'opération
+ */
+export interface OperationAnneeOrganisme {
+  id_operation_annee_organisme?: number;
+  id_organisme: number;
+  organisme_nom?: string;
+  budget_fonctionnement: number | null;
+  budget_investissement: number | null;
+  etp: number | null;
+}
+
+/**
  * Programmation annuelle d'une opération (table relationnelle)
  */
 export interface OperationAnnee {
@@ -397,6 +410,7 @@ export interface OperationAnnee {
   operateur_label?: string;
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
+  organismes?: OperationAnneeOrganisme[];
 }
 
 /**
@@ -511,7 +525,7 @@ export interface IndicateurCreatePayload {
  * Payload for creating an ObjectifOperationnel
  */
 export interface ObjectifOperationnelCreatePayload {
-  id_facteur_influence: number;
+  id_pression: number;
   libelle: string;
   description?: string;
 }

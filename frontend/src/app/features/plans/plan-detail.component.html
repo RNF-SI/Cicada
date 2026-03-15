@@ -197,10 +197,15 @@
                               @if (subItem.expanded && subItem.items && subItem.items.length > 0) {
                                 <div class="sub-accordion-content">
                                   <ul class="action-list">
-                                    @for (item of subItem.items; track item) {
-                                      <li class="action-item">
+                                    @for (item of subItem.items; track item.operationId) {
+                                      <li class="action-item"
+                                          [class.clickable]="item.enjeuSlug"
+                                          (click)="item.enjeuSlug ? navigateToOperation(item) : null">
                                         <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="action-bullet">
-                                        <span class="action-text">{{ item }}</span>
+                                        <span class="action-text">{{ item.label }}</span>
+                                        @if (item.enjeuSlug) {
+                                          <i class="fi fi-rr-angle-small-right action-arrow"></i>
+                                        }
                                       </li>
                                     }
                                   </ul>
@@ -253,17 +258,19 @@
                                         </div>
                                       }
                                     }
-                                    <!-- OO sous l'enjeu (via facteurs d'influence) -->
+                                    <!-- OO sous l'enjeu (via facteurs → pressions) -->
                                     @for (fi of enjeu.facteurs_influence || []; track fi.id_facteur_influence) {
-                                      @if (fi.objectifs_operationnels && fi.objectifs_operationnels.length > 0) {
-                                        <div class="synthese-sub-list">
-                                          @for (oo of fi.objectifs_operationnels; track oo.id_oo) {
-                                            <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
-                                              <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
-                                              <span class="synthese-sub-label">{{ oo.libelle }}</span>
-                                            </div>
-                                          }
-                                        </div>
+                                      @for (pression of fi.pressions || []; track pression.id_pression) {
+                                        @if (pression.objectifs_operationnels && pression.objectifs_operationnels.length > 0) {
+                                          <div class="synthese-sub-list">
+                                            @for (oo of pression.objectifs_operationnels; track oo.id_oo) {
+                                              <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
+                                                <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
+                                                <span class="synthese-sub-label">{{ oo.libelle }}</span>
+                                              </div>
+                                            }
+                                          </div>
+                                        }
                                       }
                                     }
                                   </div>
@@ -474,14 +481,14 @@
           <div class="section-card compact clickable" (click)="navigateToMindmap()">
             <app-section-title
               [title]="'plans.detail.sections.mindmap' | translate"
-              icon="fi-rr-mind-share"
+              icon="fi-rr-apps"
               ellipseColor="pale-green"
               iconColor="primary"
               size="md"
               [showLine]="true">
             </app-section-title>
             <div class="mindmap-placeholder">
-              <i class="fi fi-rr-mind-share"></i>
+              <i class="fi fi-rr-apps"></i>
               <span>{{ 'plans.mindmap.viewMindmap' | translate }}</span>
             </div>
           </div>

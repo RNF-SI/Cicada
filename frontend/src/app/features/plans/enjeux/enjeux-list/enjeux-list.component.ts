@@ -3,7 +3,7 @@
  * - Sans enjeu sélectionné : liste plate de cartes accordéon
  * - Avec enjeu sélectionné (route :enjeuId) : vue détail avec 3 onglets
  */
-import { Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -64,6 +64,7 @@ type TabType = 'detail' | 'olt' | 'operations';
   styleUrl: './enjeux-list.component.scss'
 })
 export class EnjeuxListComponent implements OnInit {
+  private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enjeuService = inject(EnjeuService);
@@ -137,6 +138,8 @@ export class EnjeuxListComponent implements OnInit {
 
   // Opérations expand/collapse
   expandedOperationIds = signal<Set<number>>(new Set());
+  // Pending scroll to a specific operation after data loads
+  pendingScrollToOperation = signal<number | null>(null);
 
   // Indicateurs state
   expandedIndicateurIds = signal<Set<number>>(new Set());
@@ -158,16 +161,22 @@ export class EnjeuxListComponent implements OnInit {
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   isSavingIndicateur = signal(false);
 
+  // Standalone metrique add (outside indicateur edit form)
+  addingMetriqueForIndicateur = signal<number | null>(null);
+  standaloneMetriqueForm: MetriqueFormData | null = null;
+  isSavingStandaloneMetrique = signal(false);
+
   // OO (Objectifs Opérationnels) state
   expandedOoIds = signal<Set<number>>(new Set());
   addingOo = signal(false);
   editingOoId = signal<number | null>(null);
   newOoLibelle = '';
   newOoDescription = '';
-  newOoFacteurId: number | null = null;
+  newOoFacteurFilterId: number | null = null;
+  newOoPressionId: number | null = null;
   editOoLibelle = '';
   editOoDescription = '';
-  editOoFacteurId: number | null = null;
+  editOoPressionId: number | null = null;
 
   // Résultat Attendu state
   addingRaForOo = signal<number | null>(null);
@@ -312,11 +321,41 @@ export class EnjeuxListComponent implements OnInit {
       if (enjeuSlug) {
         this.selectedEnjeuSlug.set(enjeuSlug);
         this.enjeuDetailExpanded.set(true);
-        this.activeTab.set('detail');
         // Reset list toggle state on enjeu change
         this.showDetailTaxonList.set(false);
         this.showDetailHabitatList.set(false);
         this.showDetailGeologyList.set(false);
+
+        // Check query params for tab, expandOo, expandOperation
+        const qp = this.route.snapshot.queryParamMap;
+        const tab = qp.get('tab');
+        if (tab === 'operations' || tab === 'olt') {
+          this.activeTab.set(tab as TabType);
+        } else {
+          this.activeTab.set('detail');
+        }
+        const expandOo = qp.get('expandOo');
+        if (expandOo) {
+          const ooId = parseInt(expandOo, 10);
+          if (!isNaN(ooId)) {
+            this.expandedOoIds.update(s => { const ns = new Set(s); ns.add(ooId); return ns; });
+          }
+        }
+        const expandOperation = qp.get('expandOperation');
+        if (expandOperation) {
+          const opId = parseInt(expandOperation, 10);
+          if (!isNaN(opId)) {
+            this.pendingScrollToOperation.set(opId);
+          }
+        }
+        // Clean up query params from URL
+        if (expandOo || expandOperation) {
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: {},
+            replaceUrl: true,
+          });
+        }
       } else {
         this.selectedEnjeuSlug.set(null);
       }
@@ -343,6 +382,7 @@ export class EnjeuxListComponent implements OnInit {
           next: (response) => {
             this.planEnjeuxData.set(response);
             this.isLoading.set(false);
+            this.expandAndScrollToOperation();
           },
           error: () => {
             this.errorMessage.set(
@@ -450,11 +490,16 @@ export class EnjeuxListComponent implements OnInit {
     return this.selectedEtats().length;
   });
 
-  // Computed pour les OOs de l'enjeu sélectionné (via facteurs d'influence)
-  selectedOos = computed(() => {
+  // Computed pour les pressions de l'enjeu sélectionné (via facteurs d'influence)
+  selectedPressions = computed(() => {
     const enjeu = this.selectedEnjeu();
     if (!enjeu) return [];
-    return (enjeu.facteurs_influence || []).flatMap(fi => fi.objectifs_operationnels || []);
+    return (enjeu.facteurs_influence || []).flatMap(fi => fi.pressions || []);
+  });
+
+  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions)
+  selectedOos = computed(() => {
+    return this.selectedPressions().flatMap(p => p.objectifs_operationnels || []);
   });
 
   totalOoCount = computed(() => {
@@ -1348,6 +1393,47 @@ export class EnjeuxListComponent implements OnInit {
     });
   }
 
+  // --- Standalone metrique add ---
+  startAddStandaloneMetrique(indicateurId: number): void {
+    this.addingMetriqueForIndicateur.set(indicateurId);
+    this.standaloneMetriqueForm = this.createEmptyMetrique();
+    this.loadTypeMetriqueOptions();
+  }
+
+  cancelAddStandaloneMetrique(): void {
+    this.addingMetriqueForIndicateur.set(null);
+    this.standaloneMetriqueForm = null;
+  }
+
+  saveStandaloneMetrique(indicateurId: number): void {
+    if (!this.standaloneMetriqueForm || !this.standaloneMetriqueForm.nom_metrique.trim()) return;
+    this.isSavingStandaloneMetrique.set(true);
+    const payload = this.buildMetriquePayload(indicateurId, this.standaloneMetriqueForm);
+    this.enjeuService.createMetrique(payload).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.metriques.createSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.addingMetriqueForIndicateur.set(null);
+        this.standaloneMetriqueForm = null;
+        this.isSavingStandaloneMetrique.set(false);
+        this.loadPlanData();
+      },
+      error: () => {
+        this.isSavingStandaloneMetrique.set(false);
+        this.snackBar.open(
+          this.translate.instant('enjeux.messages.createError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
   startEditIndicateur(ind: any): void {
     this.editingIndicateurId.set(ind.id_indicateur);
     this.editIndicateurNom = ind.nom_indicateur;
@@ -1560,6 +1646,83 @@ export class EnjeuxListComponent implements OnInit {
     return '- - -';
   }
 
+  /**
+   * After data is loaded, if a pending operation scroll target exists,
+   * walk the enjeu tree to find it, expand all parent nodes, then scroll.
+   */
+  private expandAndScrollToOperation(): void {
+    const opId = this.pendingScrollToOperation();
+    if (!opId) return;
+    this.pendingScrollToOperation.set(null);
+
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu) return;
+
+    // Search in OO path (operations tab): FI → Pression → OO → RA → Indicateur → Métrique → Opération
+    for (const fi of enjeu.facteurs_influence || []) {
+      for (const pression of fi.pressions || []) {
+        for (const oo of pression.objectifs_operationnels || []) {
+          for (const ra of oo.resultats_attendus || []) {
+            for (const ind of ra.indicateurs || []) {
+              for (const met of ind.metriques || []) {
+                for (const op of met.operations || []) {
+                  if (op.id_operation === opId) {
+                    // Expand the whole chain: OO → indicateur → operation
+                    this.expandedOoIds.update(s => { const ns = new Set(s); ns.add(oo.id_oo); return ns; });
+                    this.expandedOoIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
+                    this.expandedOoOperationIds.update(s => { const ns = new Set(s); ns.add(opId); return ns; });
+                    this.scrollToElement(`operation-${opId}`);
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Search in NE path (olt tab): EtatActuel → OLT → NE → Indicateur → Métrique → Opération
+    for (const ea of enjeu.etats_actuels || []) {
+      for (const olt of ea.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          for (const ind of ne.indicateurs || []) {
+            for (const met of ind.metriques || []) {
+              for (const op of met.operations || []) {
+                if (op.id_operation === opId) {
+                  this.activeTab.set('olt');
+                  this.expandedEtatIds.update(s => { const ns = new Set(s); ns.add(ea.id_etat_actuel); return ns; });
+                  this.expandedOltIds.update(s => { const ns = new Set(s); ns.add(olt.id_olt); return ns; });
+                  this.expandedIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
+                  this.expandedOperationIds.update(s => { const ns = new Set(s); ns.add(opId); return ns; });
+                  this.scrollToElement(`operation-${opId}`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private scrollToElement(id: string): void {
+    // Poll until the element exists in the DOM (Angular needs multiple
+    // change-detection cycles to render the cascade of @if blocks).
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = setInterval(() => {
+      attempts++;
+      const el = this.elRef.nativeElement.querySelector(`#${id}`);
+      if (el) {
+        clearInterval(interval);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (attempts >= maxAttempts) {
+        clearInterval(interval);
+      }
+    }, 100);
+  }
+
   // ============================================
   // Operations (Actions) - Expand/collapse + helpers
   // ============================================
@@ -1686,6 +1849,53 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   /**
+   * Check if an operation has per-organisme data in any of its annees.
+   */
+  hasOrganismeData(op: Operation): boolean {
+    if (!op.operation_annees) return false;
+    return op.operation_annees.some(a => a.organismes && a.organismes.length > 0);
+  }
+
+  /**
+   * Get unique organismes across all annees of an operation.
+   */
+  getOperationOrganismes(op: Operation): { id_organisme: number; organisme_nom: string }[] {
+    if (!op.operation_annees) return [];
+    const map = new Map<number, string>();
+    for (const a of op.operation_annees) {
+      for (const org of a.organismes || []) {
+        if (!map.has(org.id_organisme)) {
+          map.set(org.id_organisme, org.organisme_nom || '');
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, nom]) => ({ id_organisme: id, organisme_nom: nom }))
+      .sort((a, b) => a.organisme_nom.localeCompare(b.organisme_nom));
+  }
+
+  /**
+   * Get organisme budget/etp for a specific year.
+   */
+  getOrgAnnee(op: Operation, year: number, orgId: number): { fonct: number | null; invest: number | null; etp: number | null } {
+    const annee = this.getOperationAnnee(op, year);
+    if (!annee?.organismes) return { fonct: null, invest: null, etp: null };
+    const org = annee.organismes.find(o => o.id_organisme === orgId);
+    if (!org) return { fonct: null, invest: null, etp: null };
+    return {
+      fonct: org.budget_fonctionnement,
+      invest: org.budget_investissement,
+      etp: org.etp
+    };
+  }
+
+  formatOrgBudgetTotal(op: Operation, year: number, orgId: number): string {
+    const d = this.getOrgAnnee(op, year, orgId);
+    const total = (d.fonct || 0) + (d.invest || 0);
+    return total ? total.toLocaleString('fr-FR') + '€' : '-';
+  }
+
+  /**
    * Format budget value for display.
    */
   formatBudget(value: number | null | undefined): string {
@@ -1719,11 +1929,10 @@ export class EnjeuxListComponent implements OnInit {
   // Operations (Actions) - Navigation vers page dédiée
   // ============================================
 
-  navigateToOperationForm(indicateurId?: number, metriqueId?: number): void {
+  navigateToOperationForm(metriqueId?: number): void {
     const slug = this.planSlug();
     if (!slug) return;
     const queryParams: any = {};
-    if (indicateurId) queryParams.indicateurId = indicateurId;
     if (metriqueId) queryParams.metriqueId = metriqueId;
     const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
@@ -1802,26 +2011,36 @@ export class EnjeuxListComponent implements OnInit {
     return this.expandedOoIds().has(id);
   }
 
+  // Computed pour filtrer les pressions par facteur d'influence sélectionné
+  filteredPressionsForNewOo = computed(() => {
+    if (!this.newOoFacteurFilterId) return [];
+    return this.selectedPressions().filter(
+      p => p.id_facteur_influence === this.newOoFacteurFilterId
+    );
+  });
+
   startAddOo(): void {
     this.addingOo.set(true);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurId = null;
+    this.newOoFacteurFilterId = null;
+    this.newOoPressionId = null;
   }
 
   cancelAddOo(): void {
     this.addingOo.set(false);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurId = null;
+    this.newOoFacteurFilterId = null;
+    this.newOoPressionId = null;
   }
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim() || !this.newOoFacteurId) return;
+    if (!enjeu || !this.newOoLibelle.trim() || !this.newOoPressionId) return;
 
     this.enjeuService.createObjectifOperationnel({
-      id_facteur_influence: this.newOoFacteurId,
+      id_pression: this.newOoPressionId,
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -1844,21 +2063,21 @@ export class EnjeuxListComponent implements OnInit {
     this.editingOoId.set(oo.id_oo);
     this.editOoLibelle = oo.libelle;
     this.editOoDescription = oo.description || '';
-    this.editOoFacteurId = oo.id_facteur_influence;
+    this.editOoPressionId = oo.id_pression;
   }
 
   cancelEditOo(): void {
     this.editingOoId.set(null);
     this.editOoLibelle = '';
     this.editOoDescription = '';
-    this.editOoFacteurId = null;
+    this.editOoPressionId = null;
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim() || !this.editOoFacteurId) return;
+    if (!this.editOoLibelle.trim() || !this.editOoPressionId) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      id_facteur_influence: this.editOoFacteurId,
+      id_pression: this.editOoPressionId,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({

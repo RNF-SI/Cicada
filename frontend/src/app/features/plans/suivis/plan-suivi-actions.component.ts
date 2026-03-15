@@ -184,14 +184,16 @@ export class PlanSuiviActionsComponent implements OnInit {
       }
     }
 
-    // Branch 2: Facteur d'influence → OO → RA → Indicateur → Métrique → Opération
+    // Branch 2: Facteur d'influence → Pression → OO → RA → Indicateur → Métrique → Opération
     const facteurs = enjeu.facteurs_influence || [];
     for (const fi of facteurs) {
-      const oos = fi.objectifs_operationnels || [];
-      for (const oo of oos) {
-        const ras = oo.resultats_attendus || [];
-        for (const ra of ras) {
-          this.extractOpsFromIndicateurs(ra.indicateurs || [], enjeu, result, seenIds);
+      for (const pression of fi.pressions || []) {
+        const oos = pression.objectifs_operationnels || [];
+        for (const oo of oos) {
+          const ras = oo.resultats_attendus || [];
+          for (const ra of ras) {
+            this.extractOpsFromIndicateurs(ra.indicateurs || [], enjeu, result, seenIds);
+          }
         }
       }
     }

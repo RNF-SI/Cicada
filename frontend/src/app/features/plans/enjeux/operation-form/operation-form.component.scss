@@ -361,6 +361,57 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+// Per-organisme group header
+.org-group-header {
+  td {
+    background-color: $gray-lighter;
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  .org-name {
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.total-group-header {
+  td {
+    background-color: rgba($secondary-pale-green, 0.3);
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  .org-name {
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.label-indent {
+  padding-left: $spacing-lg !important;
+}
+
+.text-bold {
+  font-weight: $font-weight-bold;
+}
+
+.computed-cell {
+  background-color: $gray-lighter;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  text-align: center;
+  padding: $spacing-xs;
+}
+
 .duplicate-btn {
   display: inline-flex;
   align-items: center;

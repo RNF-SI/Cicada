@@ -19,7 +19,7 @@ from apps.plans.models_indicateurs import (
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
-    CorOperationSite, OperationAnnee, FinanceOperation
+    CorOperationSite, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
 )
 from apps.users.models import Role, Site
 
@@ -1879,8 +1879,9 @@ class EnjeuxSeeder(BaseSeeder):
             facteur_urbain = next((f for f in facteurs_created if 'urbanisation' in f.libelle.lower() or 'urbain' in f.libelle.lower()), None)
             facteur_hydro = next((f for f in facteurs_created if 'hydrologique' in f.libelle.lower() or 'hydraulique' in f.libelle.lower()), None)
 
+            pression_urbain = Pression.objects.filter(id_facteur_influence=facteur_urbain).first()
             oo, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=facteur_urbain,
+                id_pression=pression_urbain,
                 libelle='Réduire la pression urbaine sur les zones humides',
                 defaults={
                     'description': 'Mettre en place des mesures de protection et de gestion '
@@ -1915,8 +1916,9 @@ class EnjeuxSeeder(BaseSeeder):
             ras_created.append(ra2)
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra2.libelle[:50]}')
 
+            pression_hydro = Pression.objects.filter(id_facteur_influence=facteur_hydro).first()
             oo2, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=facteur_hydro,
+                id_pression=pression_hydro,
                 libelle='Restaurer le régime hydrologique naturel',
                 defaults={
                     'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
@@ -1943,8 +1945,9 @@ class EnjeuxSeeder(BaseSeeder):
         enjeu_tourbieres = next((e for e in enjeux_created if 'tourbières' in e.libelle.lower()), None)
         facteur_assechement = next((f for f in facteurs_created if 'assèchement' in f.libelle.lower()), None)
         if enjeu_tourbieres:
+            pression_assechement = Pression.objects.filter(id_facteur_influence=facteur_assechement).first()
             oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=facteur_assechement,
+                id_pression=pression_assechement,
                 libelle='Maintenir le niveau piézométrique des tourbières',
                 defaults={
                     'description': 'Surveiller et maintenir le niveau piézométrique '
@@ -1993,8 +1996,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             facteurs_created.append(fi_colonisation)
 
+            pression_colonisation = Pression.objects.filter(id_facteur_influence=fi_colonisation).first()
+            if not pression_colonisation:
+                pression_colonisation, _ = Pression.objects.update_or_create(
+                    id_facteur_influence=fi_colonisation,
+                    libelle='Colonisation par bouleaux et saules',
+                    defaults={
+                        'description': 'Progression des ligneux favorisée par l\'assèchement des tourbières.',
+                        'id_utilisateur_ajout': admin
+                    }
+                )
+                pressions_created.append(pression_colonisation)
             oo_veg, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=fi_colonisation,
+                id_pression=pression_colonisation,
                 libelle='Restaurer les communautés végétales turficoles',
                 defaults={
                     'description': 'Favoriser la recolonisation par les sphaignes et espèces '
@@ -2021,8 +2035,9 @@ class EnjeuxSeeder(BaseSeeder):
         enjeu_qualite = next((e for e in enjeux_created if 'qualité des eaux' in e.libelle), None)
         facteur_agricole = next((f for f in facteurs_created if 'agricoles du bassin' in f.libelle.lower()), None)
         if enjeu_qualite:
+            pression_agricole = Pression.objects.filter(id_facteur_influence=facteur_agricole).first()
             oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=facteur_agricole,
+                id_pression=pression_agricole,
                 libelle='Réduire les apports en nutriments d\'origine agricole',
                 defaults={
                     'description': 'Réduire de 30% les flux de phosphore et d\'azote '
@@ -2072,8 +2087,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             facteurs_created.append(fi_eee)
 
+            pression_eee = Pression.objects.filter(id_facteur_influence=fi_eee).first()
+            if not pression_eee:
+                pression_eee, _ = Pression.objects.update_or_create(
+                    id_facteur_influence=fi_eee,
+                    libelle='Introduction et propagation d\'espèces exotiques',
+                    defaults={
+                        'description': 'Progression de la Renouée du Japon et de l\'écrevisse de Californie.',
+                        'id_utilisateur_ajout': admin
+                    }
+                )
+                pressions_created.append(pression_eee)
             oo_eee, created = ObjectifOperationnel.objects.update_or_create(
-                id_facteur_influence=fi_eee,
+                id_pression=pression_eee,
                 libelle='Contenir l\'expansion de la Renouée du Japon',
                 defaults={
                     'description': 'Empêcher la progression des 3 stations connues de Renouée '
@@ -4514,6 +4540,41 @@ class EnjeuxSeeder(BaseSeeder):
                     id_operation_id=op_id, id_site=site
                 )
 
+        # Create per-organisme breakdown for OperationAnnee entries
+        from apps.users.models import CorOgSite
+        orgs_created = 0
+        for op in operations_created:
+            plan_sites = op.sites.all()
+            if not plan_sites.exists():
+                continue
+            # Collect unique organismes for this operation's sites
+            org_list = []
+            org_ids_seen = set()
+            for site in plan_sites:
+                for cor in CorOgSite.objects.filter(id_site=site).select_related('uuid_og'):
+                    if cor.uuid_og_id not in org_ids_seen:
+                        org_ids_seen.add(cor.uuid_og_id)
+                        org_list.append(cor.uuid_og)
+            if not org_list:
+                continue
+            nb_orgs = len(org_list)
+            for oa in OperationAnnee.objects.filter(id_operation=op):
+                budget = float(oa.budget or 0)
+                etp = float(oa.etp or 0)
+                per_org_budget = budget / nb_orgs
+                per_org_etp = etp / nb_orgs
+                for org in org_list:
+                    OperationAnneeOrganisme.objects.update_or_create(
+                        id_operation_annee=oa,
+                        id_organisme=org,
+                        defaults={
+                            'budget_fonctionnement': round(per_org_budget * 0.6, 2),
+                            'budget_investissement': round(per_org_budget * 0.4, 2),
+                            'etp': round(per_org_etp, 2),
+                        }
+                    )
+                    orgs_created += 1
+
         # =====================================================================
         # Standalone SuiviInventaire (not linked to operations)
         # =====================================================================
@@ -4672,6 +4733,7 @@ class EnjeuxSeeder(BaseSeeder):
             Nombre total d'éléments supprimés
         """
         count = 0
+        count += OperationAnneeOrganisme.objects.all().delete()[0]
         count += FinanceOperation.objects.all().delete()[0]
         count += OperationAnnee.objects.all().delete()[0]
         count += CorOperationSite.objects.all().delete()[0]

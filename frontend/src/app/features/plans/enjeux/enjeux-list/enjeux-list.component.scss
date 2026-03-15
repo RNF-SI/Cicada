@@ -1422,6 +1422,20 @@
   letter-spacing: 2px;
 }
 
+// Operations section title under metrique
+.metrique-operations-section {
+  margin-top: $spacing-sm;
+  padding-left: $spacing-sm;
+  border-left: 3px solid $secondary-orange-salmon;
+
+  .metrique-operations-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: $gray-dark;
+    margin: 0 0 $spacing-xs;
+  }
+}
+
 // Metrique form block (used in both unified and standalone)
 .metrique-form-block {
   background-color: $white;
@@ -1788,6 +1802,40 @@
     font-size: 13px;
     color: $gray-dark;
     line-height: 1.4;
+  }
+
+  .prog-org-header td {
+    background-color: $gray-lighter;
+    padding: $spacing-xxs $spacing-sm;
+    height: auto;
+  }
+
+  .prog-org-name {
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .prog-total-header td {
+    background-color: rgba($secondary-pale-green, 0.3);
+    padding: $spacing-xxs $spacing-sm;
+    height: auto;
+  }
+
+  .prog-indent {
+    padding-left: $spacing-lg;
+    font-weight: $font-weight-regular;
+    font-size: 13px;
+  }
+
+  .prog-bold {
+    font-weight: $font-weight-bold;
+  }
+
+  .prog-computed {
+    background-color: $gray-lighter;
   }
 }
 

@@ -1277,7 +1277,7 @@
         "synthese": "Synthèse",
         "site": "Site",
         "sites": "Sites",
-        "mindmap": "Mindmap",
+        "mindmap": "Tableau d'arborescence",
         "documents": "Documents",
         "users": "Utilisateurs"
       },
@@ -1357,7 +1357,7 @@
         "bilan": "Bilan",
         "suiviActions": "Suivi des actions",
         "tableauDeBord": "Tableau de bord",
-        "mindmap": "Mind Map"
+        "mindmap": "Tableau d'arborescence"
       },
       "tabs": {
         "details": "Détails et saisie",
@@ -1420,15 +1420,16 @@
       }
     },
     "mindmap": {
-      "title": "Mind Map",
-      "viewMindmap": "Voir la Mind Map",
-      "viewTree": "Arborescence",
-      "viewIcicle": "Tableau",
+      "title": "Tableau d'arborescence",
+      "viewMindmap": "Voir le tableau d'arborescence",
+      "viewEnjeux": "Enjeux → Actions",
+      "viewActions": "Actions → Enjeux",
       "clickHint": "Cliquez sur un élément pour explorer sa hiérarchie",
-      "expandAll": "Tout déplier",
-      "collapseAll": "Tout replier",
       "resetZoom": "Recentrer",
-      "loading": "Chargement de la mind map...",
+      "resetZoomPlan": "Recentrer sur le plan",
+      "focusEnjeu": "Recentrer sur l'enjeu",
+      "focusOperation": "Recentrer sur l'opération",
+      "loading": "Chargement du tableau d'arborescence...",
       "empty": "Aucune donnée à afficher"
     },
     "duplicate": {
@@ -2162,8 +2163,9 @@
       "label": "OO",
       "countSuffix": "objectif(s) opérationnel(s) (OO) saisi(s)",
       "libelleLabel": "Intitulé de l'objectif opérationnel (OO)",
-      "facteurLabel": "Facteur d'influence géré par l'OO",
-      "facteurDescription": "L'objectif opérationnel a pour but de gérer le facteur d'influence",
+      "facteurLabel": "Facteur d'influence",
+      "facteurDescription": "Facteur d'influence",
+      "pressionLabel": "Pression",
       "addButton": "Ajouter un objectif opérationnel",
       "newTitle": "Nouvel objectif opérationnel",
       "editTitle": "Modifier l'objectif opérationnel",
@@ -2174,10 +2176,12 @@
       "deleteSuccess": "Objectif opérationnel supprimé avec succès",
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
-      "usageNote": "Un objectif opérationnel est généralement associé à un facteur d'influence identifié sur l'enjeu.",
+      "usageNote": "Un objectif opérationnel est généralement associé à une pression identifiée sur l'enjeu.",
       "descriptionLabel": "Détails / commentaires",
       "noFacteurTitle": "Aucun facteur d'influence",
-      "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
+      "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
+      "noPressionTitle": "Aucune pression",
+      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
     },
     "resultatAttendu": {
       "label": "Résultat attendu",
@@ -2244,6 +2248,11 @@
       "sitesLies": "L'action est liée au/aux",
       "progBudget": "Budget prévisionnel (€)",
       "progTravail": "Travail prévisionnel (jours)",
+      "budgetFonctionnement": "Budget prév. OG (€) Fonctionnement",
+      "budgetInvestissement": "Budget prév. OG (€) Investissement",
+      "budgetTotal": "Budget prév. OG (€) TOTAL",
+      "travailPrevisionnel": "Travail prévisionnel (jours)",
+      "totalLabel": "TOTAL",
       "duplicateFirstCol": "Dupliquer valeurs de la 1ère colonne",
       "actionLieeAux": "L'action est liée au/aux",
       "frequenceAction": "Fréquence de l'action",
@@ -2359,6 +2368,7 @@
       "createSuccess": "Métrique créée avec succès",
       "updateSuccess": "Métrique mise à jour avec succès",
       "deleteSuccess": "Métrique supprimée avec succès",
+      "actionsTitle": "Actions liées à cette métrique",
       "scores": {
         "tresMauvais": "Très mauvais",
         "mauvais": "Mauvais",

@@ -552,46 +552,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 .prefetch_related(
                     'facteurs_influence__pressions',
                     'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
-                    'facteurs_influence__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
+                    'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
+                    'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
+                    'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
                 )
                 .order_by('rang', 'libelle')
             )
 
-            # Pre-build operation nodes keyed by indicateur ID
-            # via Metrique → Operation (FK id_metrique on Operation)
-            ind_to_ops = {}  # indicateur_id -> [op_node, ...]
-            # Collect all indicateur IDs first
-            all_indicateur_ids = set()
-            for enjeu in enjeux:
-                for ea in enjeu.etats_actuels.all():
-                    for olt in ea.objectifs_long_terme.all():
-                        for ne in olt.niveaux_exigence.all():
-                            for ind in ne.indicateurs.all():
-                                all_indicateur_ids.add(ind.id_indicateur)
-                for facteur in enjeu.facteurs_influence.all():
-                    for oo in facteur.objectifs_operationnels.all():
-                        for ra in oo.resultats_attendus.all():
-                            for ind in ra.indicateurs.all():
-                                all_indicateur_ids.add(ind.id_indicateur)
-
-            if all_indicateur_ids:
-                # Find operations linked via metriques belonging to these indicateurs
-                operations_qs = (
-                    Operation.objects
-                    .filter(id_metrique__id_indicateur__in=all_indicateur_ids)
-                    .select_related('id_metrique')
-                )
-                for op in operations_qs:
-                    ind_id = op.id_metrique.id_indicateur_id
-                    op_node = {
-                        'name': op.libelle,
-                        'entityType': 'operation',
-                        'id': op.id_operation,
-                    }
-                    ind_to_ops.setdefault(ind_id, []).append(op_node)
-
             def build_indicateur_node(ind):
-                """Build an indicateur node with metriques, mesures AND operations."""
+                """Build an indicateur node with metriques and their operations nested."""
                 ind_node = {
                     'name': ind.nom_indicateur,
                     'entityType': 'indicateur',
@@ -603,11 +572,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         'name': met.nom_metrique,
                         'entityType': 'metrique',
                         'id': met.id_metrique,
+                        'children': [],
                     }
+                    for op in met.operations.all():
+                        met_node['children'].append({
+                            'name': op.libelle,
+                            'entityType': 'operation',
+                            'id': op.id_operation,
+                        })
                     ind_node['children'].append(met_node)
-                # Append linked operations
-                for op_node in ind_to_ops.get(ind.id_indicateur, []):
-                    ind_node['children'].append(op_node)
                 return ind_node
 
             for enjeu in enjeux:
@@ -628,30 +601,32 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         'children': []
                     }
                     for pression in facteur.pressions.all():
-                        facteur_node['children'].append({
+                        pression_node = {
                             'name': pression.libelle,
                             'entityType': 'pression',
-                            'id': pression.id_pression
-                        })
-                    # OO branch (nested under facteur)
-                    for oo in facteur.objectifs_operationnels.all():
-                        oo_node = {
-                            'name': oo.libelle,
-                            'entityType': 'oo',
-                            'id': oo.id_oo,
+                            'id': pression.id_pression,
                             'children': []
                         }
-                        for ra in oo.resultats_attendus.all():
-                            ra_node = {
-                                'name': ra.libelle,
-                                'entityType': 'resultat_attendu',
-                                'id': ra.id_ra,
+                        # OO branch (nested under pression)
+                        for oo in pression.objectifs_operationnels.all():
+                            oo_node = {
+                                'name': oo.libelle,
+                                'entityType': 'oo',
+                                'id': oo.id_oo,
                                 'children': []
                             }
-                            for ind in ra.indicateurs.all():
-                                ra_node['children'].append(build_indicateur_node(ind))
-                            oo_node['children'].append(ra_node)
-                        facteur_node['children'].append(oo_node)
+                            for ra in oo.resultats_attendus.all():
+                                ra_node = {
+                                    'name': ra.libelle,
+                                    'entityType': 'resultat_attendu',
+                                    'id': ra.id_ra,
+                                    'children': []
+                                }
+                                for ind in ra.indicateurs.all():
+                                    ra_node['children'].append(build_indicateur_node(ind))
+                                oo_node['children'].append(ra_node)
+                            pression_node['children'].append(oo_node)
+                        facteur_node['children'].append(pression_node)
                     enjeu_node['children'].append(facteur_node)
 
                 # EtatActuel -> OLT branch
@@ -719,6 +694,172 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         tree = build_tree()
         return Response(tree)
+
+    @action(detail=True, methods=['get'], url_path='mindmap-inverse')
+    def mindmap_inverse(self, request, pk=None):
+        """
+        GET /api/plans/plans/{id}/mindmap-inverse/
+        Returns an inverted tree: Operations → Métrique → Indicateur → ... → Enjeu
+        """
+        plan = self.get_object()
+        from .models_enjeux import (
+            Enjeu, FacteurInfluence, Pression,
+            EtatActuel, ObjectifLongTerme, NiveauExigence,
+            ObjectifOperationnel, ResultatAttendu,
+        )
+        from .models_indicateurs import Indicateur, Metrique
+        from .models_operations import Operation
+
+        # Collect all operations belonging to this plan, with their full ancestry
+        operations = (
+            Operation.objects
+            .filter(
+                id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg=plan
+            )
+            .select_related(
+                'id_metrique',
+                'id_metrique__id_indicateur',
+                'id_metrique__id_indicateur__id_ne',
+                'id_metrique__id_indicateur__id_ne__id_olt',
+                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel',
+                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu',
+                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_categorie',
+            )
+        )
+
+        # Also collect operations from the OO branch
+        operations_oo = (
+            Operation.objects
+            .filter(
+                id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan
+            )
+            .select_related(
+                'id_metrique',
+                'id_metrique__id_indicateur',
+                'id_metrique__id_indicateur__id_resultat_attendu',
+                'id_metrique__id_indicateur__id_resultat_attendu__id_oo',
+                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression',
+                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence',
+                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
+                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_categorie',
+            )
+        )
+
+        root = {
+            'name': plan.nom,
+            'entityType': 'plan',
+            'id': plan.id_pg,
+            'children': []
+        }
+
+        def build_olt_ancestry(op):
+            """Build inverted path: Operation → Métrique → Indicateur → NE → OLT → EtatActuel → Enjeu"""
+            met = op.id_metrique
+            ind = met.id_indicateur
+            ne = ind.id_ne
+            olt = ne.id_olt
+            ea = olt.id_etat_actuel
+            enjeu = ea.id_enjeu
+            is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
+
+            return {
+                'name': met.nom_metrique,
+                'entityType': 'metrique',
+                'id': met.id_metrique,
+                'children': [{
+                    'name': ind.nom_indicateur,
+                    'entityType': 'indicateur',
+                    'id': ind.id_indicateur,
+                    'children': [{
+                        'name': ne.libelle,
+                        'entityType': 'niveau_exigence',
+                        'id': ne.id_ne,
+                        'children': [{
+                            'name': olt.libelle,
+                            'entityType': 'olt',
+                            'id': olt.id_olt,
+                            'children': [{
+                                'name': ea.libelle,
+                                'entityType': 'etat_actuel',
+                                'id': ea.id_etat_actuel,
+                                'children': [{
+                                    'name': enjeu.intitule_court or enjeu.libelle,
+                                    'entityType': 'fcr' if is_fcr else 'enjeu',
+                                    'id': enjeu.id_enjeu,
+                                }]
+                            }]
+                        }]
+                    }]
+                }]
+            }
+
+        def build_oo_ancestry(op):
+            """Build inverted path: Operation → Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu"""
+            met = op.id_metrique
+            ind = met.id_indicateur
+            ra = ind.id_resultat_attendu
+            oo = ra.id_oo
+            pression = oo.id_pression
+            facteur = pression.id_facteur_influence
+            enjeu = facteur.id_enjeu
+            is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
+
+            return {
+                'name': met.nom_metrique,
+                'entityType': 'metrique',
+                'id': met.id_metrique,
+                'children': [{
+                    'name': ind.nom_indicateur,
+                    'entityType': 'indicateur',
+                    'id': ind.id_indicateur,
+                    'children': [{
+                        'name': ra.libelle,
+                        'entityType': 'resultat_attendu',
+                        'id': ra.id_ra,
+                        'children': [{
+                            'name': oo.libelle,
+                            'entityType': 'oo',
+                            'id': oo.id_oo,
+                            'children': [{
+                                'name': pression.libelle,
+                                'entityType': 'pression',
+                                'id': pression.id_pression,
+                                'children': [{
+                                    'name': facteur.libelle,
+                                    'entityType': 'facteur',
+                                    'id': facteur.id_facteur_influence,
+                                    'children': [{
+                                        'name': enjeu.intitule_court or enjeu.libelle,
+                                        'entityType': 'fcr' if is_fcr else 'enjeu',
+                                        'id': enjeu.id_enjeu,
+                                    }]
+                                }]
+                            }]
+                        }]
+                    }]
+                }]
+            }
+
+        # Build operation nodes with their ancestry as children
+        for op in operations:
+            op_node = {
+                'name': op.libelle,
+                'entityType': 'operation',
+                'id': op.id_operation,
+                'children': [build_olt_ancestry(op)]
+            }
+            root['children'].append(op_node)
+
+        for op in operations_oo:
+            op_node = {
+                'name': op.libelle,
+                'entityType': 'operation',
+                'id': op.id_operation,
+                'children': [build_oo_ancestry(op)]
+            }
+            root['children'].append(op_node)
+
+        return Response(root)
 
     @action(detail=True, methods=['post'], url_path='duplicate')
     def duplicate(self, request, pk=None):

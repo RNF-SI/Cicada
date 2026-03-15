@@ -600,4 +600,11 @@ export class EnjeuService {
   getMindmapData(planId: number): Observable<MindmapNode> {
     return this.http.get<MindmapNode>(`${this.apiUrl}/plans/${planId}/mindmap/`);
   }
+
+  /**
+   * Get the inverse mindmap tree data for a plan (Actions → Enjeux).
+   */
+  getMindmapInverseData(planId: number): Observable<MindmapNode> {
+    return this.http.get<MindmapNode>(`${this.apiUrl}/plans/${planId}/mindmap-inverse/`);
+  }
 }

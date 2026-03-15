@@ -653,19 +653,19 @@ class NiveauExigence(models.Model):
 
 class ObjectifOperationnel(models.Model):
     """
-    Objectif opérationnel (OO) rattaché à un facteur d'influence.
+    Objectif opérationnel (OO) rattaché à une pression.
     Décrit les résultats concrets attendus pendant la durée du plan de gestion.
-    Hiérarchie : Enjeu → FacteurInfluence → OO → ResultatAttendu.
+    Hiérarchie : Enjeu → FacteurInfluence → Pression → OO → ResultatAttendu.
     """
 
     id_oo = models.AutoField(primary_key=True)
-    id_facteur_influence = models.ForeignKey(
-        FacteurInfluence,
+    id_pression = models.ForeignKey(
+        Pression,
         on_delete=models.CASCADE,
         related_name='objectifs_operationnels',
-        db_column='id_facteur_influence',
-        verbose_name=_("Facteur d'influence"),
-        help_text=_("Facteur d'influence parent de cet objectif opérationnel")
+        db_column='id_pression',
+        verbose_name=_("Pression"),
+        help_text=_("Pression parente de cet objectif opérationnel")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -701,13 +701,13 @@ class ObjectifOperationnel(models.Model):
 
     class Meta:
         db_table = '"general"."t_objectifs_operationnels"'
-        db_table_comment = "Objectifs opérationnels des facteurs d'influence"
+        db_table_comment = "Objectifs opérationnels des pressions"
         verbose_name = _("Objectif opérationnel")
         verbose_name_plural = _("Objectifs opérationnels")
         ordering = ['libelle']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_facteur_influence})"
+        return f"{self.libelle} ({self.id_pression})"
 
 
 class ResultatAttendu(models.Model):

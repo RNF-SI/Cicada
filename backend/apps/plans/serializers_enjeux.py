@@ -176,15 +176,17 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
     resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
     nb_resultats_attendus = serializers.SerializerMethodField()
-    facteur_influence_libelle = serializers.CharField(
-        source='id_facteur_influence.libelle', read_only=True
+    pression_libelle = serializers.CharField(
+        source='id_pression.libelle', read_only=True
     )
+    facteur_influence_libelle = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_facteur_influence', 'facteur_influence_libelle',
+            'id_oo', 'id_pression', 'pression_libelle',
+            'facteur_influence_libelle',
             'libelle', 'description',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -194,19 +196,27 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     def get_nb_resultats_attendus(self, obj):
         return obj.resultats_attendus.count()
 
+    def get_facteur_influence_libelle(self, obj):
+        try:
+            return obj.id_pression.id_facteur_influence.libelle
+        except AttributeError:
+            return None
+
 
 class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Objectifs Opérationnels."""
     nb_resultats_attendus = serializers.SerializerMethodField()
-    facteur_influence_libelle = serializers.CharField(
-        source='id_facteur_influence.libelle', read_only=True
+    pression_libelle = serializers.CharField(
+        source='id_pression.libelle', read_only=True
     )
+    facteur_influence_libelle = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_facteur_influence', 'facteur_influence_libelle',
+            'id_oo', 'id_pression', 'pression_libelle',
+            'facteur_influence_libelle',
             'libelle', 'description',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -216,6 +226,12 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     def get_nb_resultats_attendus(self, obj):
         return obj.resultats_attendus.count()
 
+    def get_facteur_influence_libelle(self, obj):
+        try:
+            return obj.id_pression.id_facteur_influence.libelle
+        except AttributeError:
+            return None
+
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'un Objectif Opérationnel."""
@@ -223,7 +239,7 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_facteur_influence',
+            'id_oo', 'id_pression',
             'libelle', 'description'
         ]
         read_only_fields = ['id_oo']
@@ -339,7 +355,9 @@ class EtatActuelCreateSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class PressionSerializer(serializers.ModelSerializer):
-    """Serializer pour la lecture d'une Pression."""
+    """Serializer pour la lecture d'une Pression avec OO imbriqués."""
+    objectifs_operationnels = ObjectifOperationnelSerializer(many=True, read_only=True)
+    nb_objectifs_operationnels = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
@@ -347,9 +365,13 @@ class PressionSerializer(serializers.ModelSerializer):
         fields = [
             'id_pression', 'id_facteur_influence', 'id_pressref',
             'libelle', 'description',
+            'objectifs_operationnels', 'nb_objectifs_operationnels',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_pression', 'date_ajout', 'date_maj']
+
+    def get_nb_objectifs_operationnels(self, obj):
+        return obj.objectifs_operationnels.count()
 
 
 class PressionCreateSerializer(serializers.ModelSerializer):
@@ -369,11 +391,9 @@ class PressionCreateSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class FacteurInfluenceSerializer(serializers.ModelSerializer):
-    """Serializer détaillé pour un Facteur d'Influence avec pressions et OO imbriqués."""
+    """Serializer détaillé pour un Facteur d'Influence avec pressions (et OO imbriqués sous pressions)."""
     pressions = PressionSerializer(many=True, read_only=True)
     nb_pressions = serializers.SerializerMethodField()
-    objectifs_operationnels = ObjectifOperationnelSerializer(many=True, read_only=True)
-    nb_objectifs_operationnels = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
@@ -382,16 +402,12 @@ class FacteurInfluenceSerializer(serializers.ModelSerializer):
             'id_facteur_influence', 'id_enjeu',
             'libelle', 'description',
             'pressions', 'nb_pressions',
-            'objectifs_operationnels', 'nb_objectifs_operationnels',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_facteur_influence', 'date_ajout', 'date_maj']
 
     def get_nb_pressions(self, obj):
         return obj.pressions.count()
-
-    def get_nb_objectifs_operationnels(self, obj):
-        return obj.objectifs_operationnels.count()
 
 
 class FacteurInfluenceListSerializer(serializers.ModelSerializer):

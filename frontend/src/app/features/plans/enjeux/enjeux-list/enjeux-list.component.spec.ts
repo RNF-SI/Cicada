@@ -149,16 +149,22 @@ const mockEnjeu1: Enjeu = {
   nb_facteurs_influence: 2,
   facteurs_influence: [
     {
-      id_facteur_influence: 101, id_enjeu: 1, libelle: 'Urbanisation', date_ajout: '', date_maj: '', pressions: [],
-      objectifs_operationnels: [
+      id_facteur_influence: 101, id_enjeu: 1, libelle: 'Urbanisation', date_ajout: '', date_maj: '',
+      pressions: [
         {
-          id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
-          resultats_attendus: [
-            { id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '' }
-          ]
+          id_pression: 301, id_facteur_influence: 101, libelle: 'Pression Urbaine', date_ajout: '', date_maj: '',
+          objectifs_operationnels: [
+            {
+              id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
+              resultats_attendus: [
+                { id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '' }
+              ]
+            }
+          ],
+          nb_objectifs_operationnels: 1,
         }
       ],
-      nb_oo: 1,
+      nb_pressions: 1,
     },
     { id_facteur_influence: 102, id_enjeu: 1, libelle: 'Agriculture', date_ajout: '', date_maj: '' },
   ],
@@ -306,8 +312,8 @@ describe('EnjeuxListComponent', () => {
       updateMetrique: jest.fn().mockReturnValue(of({ id_metrique: 901, id_indicateur: 801, nom_metrique: 'Met modifiée', date_ajout: '', date_maj: '' })),
       deleteMetrique: jest.fn().mockReturnValue(of(void 0)),
       // OO
-      createObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1002, id_facteur_influence: 101, libelle: 'Nouvel OO', date_ajout: '', date_maj: '' })),
-      updateObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1001, id_facteur_influence: 101, libelle: 'OO modifié', date_ajout: '', date_maj: '' })),
+      createObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1002, id_pression: 301, libelle: 'Nouvel OO', date_ajout: '', date_maj: '' })),
+      updateObjectifOperationnel: jest.fn().mockReturnValue(of({ id_oo: 1001, id_pression: 301, libelle: 'OO modifié', date_ajout: '', date_maj: '' })),
       deleteObjectifOperationnel: jest.fn().mockReturnValue(of(void 0)),
       // RA
       createResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1102, id_oo: 1001, libelle: 'Nouveau RA', date_ajout: '', date_maj: '' })),
@@ -1495,7 +1501,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
 
     it('should toggle OO expanded state', () => {
@@ -1524,11 +1530,11 @@ describe('EnjeuxListComponent', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = 'Nouvel OO';
       component.newOoDescription = 'Desc OO';
-      component.newOoFacteurId = 101;
+      component.newOoPressionId = 301;
       component.saveOo();
 
       expect(mockEnjeuService.createObjectifOperationnel).toHaveBeenCalledWith(expect.objectContaining({
-        id_facteur_influence: 101,
+        id_pression: 301,
         libelle: 'Nouvel OO',
         description: 'Desc OO',
       }));
@@ -1537,15 +1543,15 @@ describe('EnjeuxListComponent', () => {
     it('should not save OO with empty libelle', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = '   ';
-      component.newOoFacteurId = 101;
+      component.newOoPressionId = 301;
       component.saveOo();
       expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
     });
 
-    it('should not save OO without facteur_influence', () => {
+    it('should not save OO without pression', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = 'Nouvel OO';
-      component.newOoFacteurId = null;
+      component.newOoPressionId = null;
       component.saveOo();
       expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1568,7 +1574,7 @@ describe('EnjeuxListComponent', () => {
       component.editOoLibelle = 'OO modifié';
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
-        id_facteur_influence: 101,
+        id_pression: 301,
         libelle: 'OO modifié',
       }));
     });
@@ -1580,10 +1586,10 @@ describe('EnjeuxListComponent', () => {
       expect(mockEnjeuService.updateObjectifOperationnel).not.toHaveBeenCalled();
     });
 
-    it('should not save edit OO without facteur_influence', () => {
+    it('should not save edit OO without pression', () => {
       component.startEditOo(mockOo);
       component.editOoLibelle = 'OO modifié';
-      component.editOoFacteurId = null;
+      component.editOoPressionId = null;
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1626,7 +1632,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_facteur_influence: 101, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
     const mockRa: ResultatAttendu = {
       id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '',

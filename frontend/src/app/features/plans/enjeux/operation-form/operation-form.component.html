@@ -517,36 +517,126 @@
                             </td>
                           }
                         </tr>
-                        <!-- Row: Budget prévisionnel -->
-                        <tr>
-                          <td class="label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                            <td>
-                              <div class="prog-input-wrapper">
-                                <input type="number"
-                                       class="prog-input prog-input-suffixed"
-                                       [value]="annee.budget"
-                                       (change)="updateBudget(i, $any($event.target).value)">
-                                <span class="prog-input-suffix">€</span>
-                              </div>
-                            </td>
+
+                        <!-- Per-organisme groups -->
+                        @if (availableOrganismes().length > 0) {
+                          @for (org of availableOrganismes(); track org.id_organisme) {
+                            <!-- Org group header -->
+                            <tr class="org-group-header">
+                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                                {{ org.nom_organisme }}
+                              </td>
+                            </tr>
+                            <!-- Budget fonctionnement -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="number"
+                                           class="prog-input prog-input-suffixed"
+                                           [value]="getOrgBudget(i, org.id_organisme).fonct"
+                                           (change)="updateOrgBudgetFonct(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <!-- Budget investissement -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="number"
+                                           class="prog-input prog-input-suffixed"
+                                           [value]="getOrgBudget(i, org.id_organisme).invest"
+                                           (change)="updateOrgBudgetInvest(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <!-- Budget TOTAL (computed, read-only) -->
+                            <tr>
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">
+                                  {{ getOrgTotal(i, org.id_organisme) | number:'1.0-2' }} €
+                                </td>
+                              }
+                            </tr>
+                            <!-- Travail prévisionnel (jours) -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="number"
+                                           class="prog-input prog-input-suffixed"
+                                           [value]="getOrgBudget(i, org.id_organisme).etp"
+                                           (change)="updateOrgEtp(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">j</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
                           }
-                        </tr>
-                        <!-- Row: Travail prévisionnel (jours) -->
-                        <tr>
-                          <td class="label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                            <td>
-                              <div class="prog-input-wrapper">
-                                <input type="number"
-                                       class="prog-input prog-input-suffixed"
-                                       [value]="annee.etp"
-                                       (change)="updateEtp(i, $any($event.target).value)">
-                                <span class="prog-input-suffix">j</span>
-                              </div>
+
+                          <!-- TOTAL cross-organismes -->
+                          <tr class="total-group-header">
+                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              {{ 'enjeux.operations.totalLabel' | translate }}
                             </td>
-                          }
-                        </tr>
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ getYearTotalBudget(i) | number:'1.0-2' }} €
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ getYearTotalEtp(i) | number:'1.0-2' }} j
+                              </td>
+                            }
+                          </tr>
+                        } @else {
+                          <!-- Fallback: flat budget/travail rows when no sites selected -->
+                          <tr>
+                            <td class="label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="annee.budget"
+                                         (change)="updateBudget(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="annee.etp"
+                                         (change)="updateEtp(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">j</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                        }
+
                         <!-- Row: Opérateur -->
                         <tr>
                           <td class="label-cell">{{ 'enjeux.operations.operateurTypeLabel' | translate }}</td>
