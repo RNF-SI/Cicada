@@ -23,6 +23,17 @@ async function findPlanByName(page: import('@playwright/test').Page, nameFragmen
   return findPlan(page, nameFragment);
 }
 
+/**
+ * Helper: switch to OLT tab and expand the first etat actuel.
+ * Most OLT tests need the etat expanded to see OLTs/NEs inside.
+ */
+async function switchToOltAndExpandFirstEtat(page: import('@playwright/test').Page, enjeuxPage: EnjeuxPage) {
+  await enjeuxPage.switchTab('olt');
+  const firstEtat = page.locator('.olt-section-header').first();
+  await firstEtat.click();
+  await page.waitForTimeout(500);
+}
+
 
 // =========================================================================
 // Navigation and Display
@@ -645,7 +656,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
 
       // Clean up
       const lastPression = facteur.locator('.pression-card').last();
-      await lastPression.locator('.pression-card-actions button[title]').first().click();
+      await lastPression.locator('.pression-card-actions button:has(i.fi-rr-trash)').click();
       await page.waitForTimeout(300);
       await enjeuxPage.confirmDelete();
       await page.waitForTimeout(500);
@@ -671,7 +682,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
 
       // Delete the last pression (our temp one)
       const lastPression = enjeuxPage.facteurCards.first().locator('.pression-card').last();
-      await lastPression.locator('.pression-card-actions button[title]').first().click();
+      await lastPression.locator('.pression-card-actions button:has(i.fi-rr-trash)').click();
       await page.waitForTimeout(300);
 
       // Confirm
@@ -698,7 +709,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
       if (initialCount > 0) {
         // Try to delete first pression
         const firstPression = enjeuxPage.facteurCards.first().locator('.pression-card').first();
-        await firstPression.locator('.pression-card-actions button[title]').first().click();
+        await firstPression.locator('.pression-card-actions button:has(i.fi-rr-trash)').click();
         await page.waitForTimeout(300);
 
         // Cancel
@@ -808,7 +819,12 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Should have OLT bars
+    // Expand the first etat actuel to reveal OLTs inside
+    const firstEtat = page.locator('.olt-section-header').first();
+    await firstEtat.click();
+    await page.waitForTimeout(500);
+
+    // Should have OLT bars inside expanded etat
     const oltBars = page.locator('.olt-expanded-content .olt-section-header');
     const count = await oltBars.count();
     expect(count).toBeGreaterThanOrEqual(1);
@@ -836,14 +852,18 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Click on first OLT bar to expand
+    // Expand first etat actuel
+    await page.locator('.olt-section-header').first().click();
+    await page.waitForTimeout(500);
+
+    // Click on first OLT bar to expand it
     const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();
     await firstOlt.click();
     await page.waitForTimeout(300);
 
-    // Should show expanded content
-    const expandedContent = page.locator('.olt-expanded-content');
-    const isVisible = await expandedContent.first().isVisible().catch(() => false);
+    // Should show NE content inside expanded OLT
+    const neContent = page.locator('.ne-card, .ne-content, .olt-expanded-content .olt-expanded-content');
+    const isVisible = await neContent.first().isVisible().catch(() => false);
     expect(isVisible).toBe(true);
   });
 
@@ -855,6 +875,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
+
+    // Expand first etat actuel
+    await page.locator('.olt-section-header').first().click();
+    await page.waitForTimeout(500);
 
     // Expand the first OLT
     const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();
@@ -959,6 +983,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
+    // Expand first etat actuel to reveal OLT content
+    await page.locator('.olt-section-header').first().click();
+    await page.waitForTimeout(500);
+
     const addOltBtn = page.locator('.olt-expanded-content .add-item-btn').first();
     await expect(addOltBtn).toBeVisible();
   });
@@ -970,7 +998,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await enjeuxPage.switchTab('olt');
+    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
 
     const initialOltCount = await page.locator('.olt-expanded-content .olt-section-header').count();
 
@@ -995,9 +1023,9 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await enjeuxPage.switchTab('olt');
+    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
 
-    // Expand first OLT
+    // Expand first OLT inside expanded etat
     await page.locator('.olt-expanded-content .olt-section-header').first().click();
     await page.waitForTimeout(300);
 
@@ -1012,9 +1040,9 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await enjeuxPage.switchTab('olt');
+    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
 
-    // Expand first OLT
+    // Expand first OLT inside expanded etat
     await page.locator('.olt-expanded-content .olt-section-header').first().click();
     await page.waitForTimeout(300);
 
@@ -1041,7 +1069,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await enjeuxPage.switchTab('olt');
+    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
 
     // First create a temp OLT so we don't delete seeded data
     await page.locator('.olt-expanded-content .add-item-btn').first().click();
@@ -1105,7 +1133,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await enjeuxPage.switchTab('olt');
+    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
 
     // Click edit on first OLT
     const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();

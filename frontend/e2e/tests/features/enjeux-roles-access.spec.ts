@@ -33,8 +33,13 @@ async function findPlan(page: import('@playwright/test').Page, nameFragment: str
   const { ok, data } = await apiGet(page, 'plans/plans/', { search: nameFragment });
   if (!ok) return null;
   const results = data.results || data;
-  const plan = Array.isArray(results) ? results[0] : null;
-  if (!plan) return null;
+  if (!Array.isArray(results) || results.length === 0) return null;
+  // Prefer valide plans with name match, then any valide, then first result
+  const nameMatch = (p: any) => p.nom?.toLowerCase().includes(nameFragment.toLowerCase());
+  const plan = results.find((p: any) => p.statut === 'valide' && nameMatch(p))
+    || results.find((p: any) => p.statut === 'valide')
+    || results.find((p: any) => p.statut !== 'archive')
+    || results[0];
   return { id_pg: plan.id_pg as number, slug: plan.slug as string };
 }
 
