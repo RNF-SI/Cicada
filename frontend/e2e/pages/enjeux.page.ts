@@ -304,7 +304,7 @@ export class EnjeuxPage {
    */
   async deleteFacteur(index: number) {
     const facteur = this.facteurCards.nth(index);
-    await facteur.locator('.facteur-card-actions button[title]').first().click();
+    await facteur.locator('.facteur-card-actions button:has(i.fi-rr-trash)').click();
     await this.page.waitForTimeout(300);
   }
 
