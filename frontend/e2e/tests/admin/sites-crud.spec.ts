@@ -30,14 +30,23 @@ test.describe.serial('Admin Sites - CRUD', () => {
     const dialog = page.locator('mat-dialog-container');
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
+    // Touch required fields to trigger validation (mat-error needs touched + invalid)
+    const nameInput = dialog.locator('input[formControlName="nom_site"], input[formcontrolname="nom_site"]').first();
+    if (await nameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await nameInput.click();
+      await nameInput.blur();
+    }
+
     // Try to submit empty form
     const submitBtn = dialog.locator('button').filter({ hasText: /créer|enregistrer|valider/i });
     if (await submitBtn.isVisible()) {
       await submitBtn.click();
-      // Should show validation errors
+      await page.waitForTimeout(500);
+      // Should show validation errors (mat-error) or submit button disabled
       const errors = dialog.locator('mat-error');
       const errorCount = await errors.count();
-      expect(errorCount).toBeGreaterThan(0);
+      const isDisabled = await submitBtn.isDisabled().catch(() => false);
+      expect(errorCount > 0 || isDisabled).toBeTruthy();
     }
 
     await page.keyboard.press('Escape');

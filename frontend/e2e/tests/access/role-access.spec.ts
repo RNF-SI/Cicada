@@ -74,17 +74,20 @@ test.describe('Role-based Access Control', () => {
     ];
 
     for (const url of restrictedPages) {
-      await page.goto(url);
-      // Wait for Angular to process route guards and redirect
-      await page.waitForTimeout(5000);
-      const currentUrl = page.url();
-      // Should be redirected away - either to another admin page, accueil, or login
-      const lastSegment = url.split('/').pop()!;
-      const isRedirected = !currentUrl.includes(lastSegment) ||
-        currentUrl.includes('/auth/login') ||
-        currentUrl.includes('/accueil') ||
-        currentUrl.includes('/validations');
-      expect(isRedirected).toBeTruthy();
+      await page.goto(url, { waitUntil: 'networkidle' });
+      // Wait for Angular route guards to process and redirect
+      const redirected = await page.waitForURL(
+        /\/accueil|\/auth\/login|\/validations/,
+        { timeout: 10000 }
+      ).then(() => true).catch(() => false);
+
+      if (!redirected) {
+        // Fallback: check URL doesn't contain the restricted segment
+        const currentUrl = page.url();
+        const lastSegment = url.split('/').pop()!;
+        const isRedirected = !currentUrl.includes(lastSegment);
+        expect(isRedirected).toBeTruthy();
+      }
     }
   });
 

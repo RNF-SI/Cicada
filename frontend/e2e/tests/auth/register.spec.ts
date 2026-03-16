@@ -25,7 +25,7 @@ test.describe('Registration', () => {
       firstName: 'E2E',
       lastName: 'TestUser',
       email: uniqueEmail,
-      organisme: 'RNF',
+      organisme: 'Reserves',
       password: 'Test123!e2e',
       confirmPassword: 'Test123!e2e',
       justification: 'Test E2E registration',
@@ -74,7 +74,7 @@ test.describe('Registration', () => {
       firstName: 'Duplicate',
       lastName: 'User',
       email: 'admin@test.fr', // Already exists
-      organisme: 'RNF',
+      organisme: 'Reserves',
       password: 'Test123!dup',
       confirmPassword: 'Test123!dup',
       justification: 'Test E2E duplicate email',
