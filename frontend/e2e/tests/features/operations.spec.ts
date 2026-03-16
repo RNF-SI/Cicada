@@ -33,7 +33,7 @@ async function createOperationViaApi(
   metriqueId?: number,
 ): Promise<number> {
   const payload: Record<string, unknown> = { libelle };
-  if (metriqueId) payload.id_metrique = metriqueId;
+  if (metriqueId) payload['id_metrique'] = metriqueId;
   const { ok, data } = await apiPost(page, 'plans/operations/', payload);
   if (!ok) throw new Error(`Failed to create operation via API (status: ${data?.detail || 'unknown'})`);
   return data.id_operation;
