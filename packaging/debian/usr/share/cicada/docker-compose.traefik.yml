@@ -1,0 +1,63 @@
+# CICADA - Option Traefik (HTTPS avec Let's Encrypt)
+# À utiliser avec : -f docker-compose.yml -f docker-compose.db.yml (si DB) -f docker-compose.traefik.yml
+# Nécessite dans .env : TRAEFIK_ENABLED=true, CICADA_DOMAIN=..., ACME_EMAIL=...
+# Compatible Apache/Nginx : si 80/443 sont pris, définir TRAEFIK_HTTP_PORT et TRAEFIK_HTTPS_PORT (ex. 8080, 8443)
+# puis configurer votre Apache/Nginx pour proxy vers http://127.0.0.1:TRAEFIK_HTTP_PORT ou https://127.0.0.1:TRAEFIK_HTTPS_PORT
+
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: cicada_traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - cicada_network
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "${TRAEFIK_HTTPS_PORT:-443}:443"
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=cicada_network"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL requis si Traefik activé}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - traefik_letsencrypt:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      # Redirect HTTP -> HTTPS
+      - "traefik.http.routers.cicada-redirect.rule=Host(`${CICADA_DOMAIN}`)"
+      - "traefik.http.routers.cicada-redirect.entrypoints=web"
+      - "traefik.http.routers.cicada-redirect.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+  frontend:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cicada-frontend.rule=Host(`${CICADA_DOMAIN}`)"
+      - "traefik.http.routers.cicada-frontend.priority=1"
+      - "traefik.http.routers.cicada-frontend.entrypoints=websecure"
+      - "traefik.http.routers.cicada-frontend.tls=true"
+      - "traefik.http.routers.cicada-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cicada-frontend.loadbalancer.server.port=80"
+
+  web:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cicada-api.rule=Host(`${CICADA_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.cicada-api.priority=100"
+      - "traefik.http.routers.cicada-api.entrypoints=websecure"
+      - "traefik.http.routers.cicada-api.tls=true"
+      - "traefik.http.routers.cicada-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cicada-api.loadbalancer.server.port=8000"
+
+volumes:
+  traefik_letsencrypt:
+    driver: local

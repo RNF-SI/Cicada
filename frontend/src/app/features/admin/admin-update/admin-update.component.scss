@@ -1,0 +1,112 @@
+@import '../../../../assets/scss/variables';
+
+.admin-update {
+  padding: $spacing-lg;
+  max-width: 640px;
+}
+
+.page-header {
+  margin-bottom: $spacing-xl;
+}
+
+.page-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  color: $primary-color;
+  margin: 0 0 8px 0;
+}
+
+.page-subtitle {
+  font-family: 'Nunito', sans-serif;
+  font-size: $font-size-base;
+  font-weight: 400;
+  color: $gray-dark;
+  margin: 0;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+}
+
+.update-section {
+  background: $white;
+  border-radius: 11px;
+  padding: $spacing-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.section-header {
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: $gray-dark;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  i {
+    color: $primary-color;
+  }
+}
+
+.version-info {
+  .version-current {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-base;
+  }
+
+  .update-available {
+    margin-top: $spacing-md;
+    padding: $spacing-md;
+    background: #fff3cd;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+
+    .update-message {
+      margin: 0 0 $spacing-sm 0;
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+
+      i {
+        color: #856404;
+      }
+    }
+
+    .last-check {
+      margin: 0 0 $spacing-md 0;
+      font-size: 14px;
+      color: $gray-dark;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+
+      .btn-spinner {
+        margin-right: $spacing-xs;
+      }
+    }
+  }
+
+  .up-to-date {
+    margin: $spacing-md 0 0 0;
+    padding: $spacing-md;
+    background: #d4edda;
+    border-radius: 8px;
+    color: #155724;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+}

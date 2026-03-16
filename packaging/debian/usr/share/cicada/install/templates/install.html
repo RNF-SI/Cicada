@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation CICADA</title>
+    <link rel="stylesheet" href="/static/css/install.css">
+</head>
+<body>
+    <div class="install-container">
+        <header>
+            <h1>🌿 Installation CICADA</h1>
+            <p>Configurez votre instance en quelques étapes</p>
+        </header>
+        
+        <form id="install-form">
+            <!-- Section Admin -->
+            <section class="form-section">
+                <h2>Compte administrateur</h2>
+                <div class="form-group">
+                    <label for="admin_email">Email administrateur *</label>
+                    <input type="email" id="admin_email" name="admin_email" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_password">Mot de passe *</label>
+                    <input type="password" id="admin_password" name="admin_password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="admin_password_confirm">Confirmer le mot de passe *</label>
+                    <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_nom">Nom *</label>
+                    <input type="text" id="admin_nom" name="admin_nom" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_prenom">Prénom *</label>
+                    <input type="text" id="admin_prenom" name="admin_prenom" required>
+                </div>
+            </section>
+
+            <!-- Section DNS/Site -->
+            <section class="form-section">
+                <h2>Configuration du site</h2>
+                <div class="form-group">
+                    <label for="domain">Nom de domaine *</label>
+                    <input type="text" id="domain" name="domain" required placeholder="example.org">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="reverse_proxy_present" name="reverse_proxy_present" onchange="toggleReverseProxyFields()">
+                        <span>Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ?</span>
+                    </label>
+                </div>
+                <div id="reverse_proxy_fields" class="hidden">
+                    <div class="info-box">
+                        <p><strong>Pas de Traefik.</strong> Le frontend sera exposé sur le port ci-dessous. Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (et éventuellement <code>/api</code> vers le backend).</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="frontend_port">Port d'exposition du frontend</label>
+                        <input type="number" id="frontend_port" name="frontend_port" value="8080" min="1" max="65535" placeholder="8080">
+                        <small class="form-help">Indiquez ce port dans la configuration de votre reverse proxy (ex. ProxyPass vers http://127.0.0.1:8080).</small>
+                    </div>
+                </div>
+                <div id="traefik_fields">
+                    <div class="info-box">
+                        <p>Traefik sera utilisé sur les ports <strong>80</strong> et <strong>443</strong> (HTTPS avec Let's Encrypt). Aucune configuration Apache/Nginx nécessaire.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="acme_email">Email pour Let's Encrypt *</label>
+                        <input type="email" id="acme_email" name="acme_email" placeholder="admin@example.org">
+                        <small class="form-help">Requis pour l'obtention des certificats SSL</small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="backend_port">Port backend</label>
+                    <input type="number" id="backend_port" name="backend_port" value="8000" min="1" max="65535">
+                </div>
+            </section>
+
+            <!-- Section Base de données -->
+            <section class="form-section">
+                <h2>Base de données PostgreSQL</h2>
+                <div class="form-group">
+                    <label for="db_type">Type d'installation *</label>
+                    <select id="db_type" name="db_type" required onchange="toggleDbFields()">
+                        <option value="docker">Nouvelle instance dans un conteneur Docker</option>
+                        <option value="existing">Utiliser une instance PostgreSQL existante</option>
+                    </select>
+                    <small class="form-help">Choisissez si vous voulez créer une nouvelle base dans Docker ou utiliser une instance existante</small>
+                </div>
+                <div id="db_docker_fields">
+                    <div class="info-box">
+                        <p>Une nouvelle instance PostgreSQL sera créée dans un conteneur Docker. Les paramètres ci-dessous seront utilisés pour créer la base de données et l'utilisateur.</p>
+                    </div>
+                </div>
+                <div id="db_existing_fields" class="hidden">
+                    <div class="info-box">
+                        <p><strong>Important :</strong> La base de données et l'utilisateur doivent déjà exister sur l'instance PostgreSQL. Assurez-vous d'avoir créé la base et l'utilisateur avec les permissions nécessaires avant de continuer.</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="db_host">Hôte PostgreSQL *</label>
+                    <input type="text" id="db_host" name="db_host" value="db" required>
+                    <small class="form-help">Pour Docker : 'db'. Pour instance existante : adresse IP ou hostname</small>
+                </div>
+                <div class="form-group">
+                    <label for="db_port">Port PostgreSQL *</label>
+                    <input type="number" id="db_port" name="db_port" value="5432" min="1" max="65535" required>
+                </div>
+                <div class="form-group">
+                    <label for="db_name">Nom de la base de données *</label>
+                    <input type="text" id="db_name" name="db_name" value="cicada" required>
+                    <small class="form-help" id="db_name_help">Sera créée automatiquement si nouvelle instance Docker</small>
+                </div>
+                <div class="form-group">
+                    <label for="db_user">Utilisateur PostgreSQL *</label>
+                    <input type="text" id="db_user" name="db_user" value="cicada_user" required>
+                    <small class="form-help" id="db_user_help">Sera créé automatiquement si nouvelle instance Docker</small>
+                </div>
+                <div class="form-group">
+                    <label for="db_password">Mot de passe PostgreSQL *</label>
+                    <input type="password" id="db_password" name="db_password" required>
+                    <button type="button" class="btn-generate" onclick="generatePassword('db_password')">Générer</button>
+                </div>
+            </section>
+
+            <!-- Section Redis -->
+            <section class="form-section">
+                <h2>Redis</h2>
+                <div class="form-group">
+                    <label for="redis_host">Hôte Redis</label>
+                    <input type="text" id="redis_host" name="redis_host" value="redis">
+                </div>
+                <div class="form-group">
+                    <label for="redis_port">Port Redis</label>
+                    <input type="number" id="redis_port" name="redis_port" value="6379" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="redis_password">Mot de passe Redis (optionnel)</label>
+                    <input type="password" id="redis_password" name="redis_password">
+                    <button type="button" class="btn-generate" onclick="generatePassword('redis_password')">Générer</button>
+                </div>
+            </section>
+
+            <!-- Section RGPD -->
+            <section class="form-section rgpd-section">
+                <h2>Consentement RGPD (optionnel)</h2>
+                <div class="info-box">
+                    <p><strong>Note :</strong> Le suivi technique (version, heartbeat) ne nécessite
+                    pas de consentement car ce sont des données anonymes.</p>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rgpd_consent" name="rgpd_consent">
+                        <span>J'autorise l'envoi de données nominatives (nom, email, structure)
+                        aux mainteneurs de Cicada</span>
+                    </label>
+                </div>
+                <div id="rgpd_fields" class="hidden">
+                    <div class="form-group">
+                        <label for="structure_name">Nom de la structure/organisme *</label>
+                        <input type="text" id="structure_name" name="structure_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact_email">Email de contact *</label>
+                        <input type="email" id="contact_email" name="contact_email">
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" id="submit-btn" class="btn-primary">Installer</button>
+            </div>
+        </form>
+
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+            <p id="loading-message">Installation en cours...</p>
+            <div id="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+            <div id="steps-list" class="steps-list"></div>
+        </div>
+
+        <div id="error-message" class="hidden"></div>
+        <div id="success-message" class="hidden"></div>
+    </div>
+
+    <script src="/static/js/install.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[Unit]
+Description=CICADA Heartbeat Timer
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=30min
+Persistent=true
+OnBootSec=5min
+
+[Install]
+WantedBy=timers.target

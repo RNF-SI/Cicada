@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Heartbeat quotidien pour l'API de suivi"""
+import sys
+import json
+import logging
+import requests
+from pathlib import Path
+
+TOKEN_FILE = "/etc/cicada/instance_token"
+CONFIG_FILE = "/etc/cicada/cicada.conf"
+UPDATE_FILE = "/var/lib/cicada/update_available.json"
+LOG_FILE = "/var/log/cicada/heartbeat.log"
+
+def get_tracking_api_url():
+    """
+    Lit l'URL de l'API de suivi :
+    - En dev : depuis variable d'environnement TRACKING_API_URL
+    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
+    """
+    import os
+    import configparser
+    
+    if os.path.exists(CONFIG_FILE):
+        config = configparser.ConfigParser()
+        config.read(CONFIG_FILE)
+        return config.get('CICADA', 'TRACKING_API_URL')
+    else:
+        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.rnf.fr/api')
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('cicada.heartbeat')
+
+def get_token():
+    token_path = Path(TOKEN_FILE)
+    if not token_path.exists():
+        logger.error(f"Token introuvable: {TOKEN_FILE}")
+        sys.exit(1)
+    return token_path.read_text().strip()
+
+def get_version():
+    config_path = Path(CONFIG_FILE)
+    if config_path.exists():
+        for line in config_path.read_text().splitlines():
+            if line.startswith('VERSION='):
+                return line.split('=', 1)[1].strip()
+    return "unknown"
+
+def send_heartbeat():
+    token = get_token()
+    version = get_version()
+    tracking_url = get_tracking_api_url()
+
+    try:
+        response = requests.post(
+            f"{tracking_url}/instances/heartbeat/",
+            json={'version': version},
+            headers={'X-Instance-Token': token},
+            timeout=10  # Timeout réduit
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        logger.info(f"Heartbeat envoyé. Version: {version}")
+
+        # Sauvegarder les infos de mise à jour
+        Path(UPDATE_FILE).write_text(json.dumps({
+            'update_available': data.get('update_available', False),
+            'current_version': version,
+            'latest_version': data.get('latest_version'),
+            'last_check': data.get('last_heartbeat'),
+        }))
+
+        if data.get('update_available'):
+            logger.warning(f"Mise à jour disponible: {data.get('latest_version')}")
+
+        # Si l'enregistrement était en attente et que le heartbeat fonctionne,
+        # essayer de s'enregistrer maintenant (sans X-Instance-Token : l'API attend
+        # le token dans le body pour l'enregistrement, pas en auth)
+        registration_pending = Path("/var/lib/cicada/registration_pending")
+        if registration_pending.exists():
+            try:
+                register_response = requests.post(
+                    f"{tracking_url}/instances/register/",
+                    json={'token': token, 'version': version},
+                    headers={'Content-Type': 'application/json'},
+                    timeout=10
+                )
+                if register_response.ok:
+                    logger.info("Instance enregistrée avec succès (en attente depuis l'installation)")
+                    registration_pending.unlink()
+            except Exception:
+                # Échec d'enregistrement, on continue quand même
+                pass
+
+        return True
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur heartbeat: {e}")
+        return False
+
+if __name__ == '__main__':
+    success = send_heartbeat()
+    sys.exit(0 if success else 1)

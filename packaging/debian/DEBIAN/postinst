@@ -1,0 +1,62 @@
+#!/bin/bash
+# Ne pas utiliser set -e pour permettre la continuation même en cas d'erreur mineure
+set -e
+
+CICADA_DIR="/var/lib/cicada"
+CONFIG_DIR="/etc/cicada"
+TOKEN_FILE="$CONFIG_DIR/instance_token"
+
+# Créer les répertoires
+mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+# Permettre à www-data (Django/gunicorn) de créer le fichier trigger de mise à jour
+chgrp www-data "$CICADA_DIR" 2>/dev/null || true
+chmod 775 "$CICADA_DIR" 2>/dev/null || true
+
+# Générer le token d'instance si absent
+if [ ! -f "$TOKEN_FILE" ]; then
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c "import uuid; print(uuid.uuid4())" > "$TOKEN_FILE"
+        chmod 600 "$TOKEN_FILE"
+    else
+        # Si python3 n'est pas disponible, générer un token simple avec /dev/urandom
+        # (moins idéal mais fonctionne)
+        cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/' > "$TOKEN_FILE"
+        chmod 600 "$TOKEN_FILE"
+    fi
+fi
+
+# Créer un venv dédié pour l'installateur Flask (évite PEP 668 / externally-managed-environment)
+INSTALLER_VENV="$CICADA_DIR/installer-venv"
+if command -v python3 >/dev/null 2>&1; then
+    if [ ! -d "$INSTALLER_VENV" ] || [ ! -x "$INSTALLER_VENV/bin/python" ]; then
+        python3 -m venv "$INSTALLER_VENV" || { echo "Warning: impossible de créer le venv de l'installateur"; exit 0; }
+    fi
+    "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests || true
+fi
+
+# Activer et démarrer les services (si systemd est disponible)
+# Vérifier si systemd est vraiment disponible (pas juste les fichiers)
+if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
+    systemctl daemon-reload || true
+    systemctl enable cicada-installer.service || true
+    systemctl start cicada-installer.service || true
+    systemctl enable cicada-heartbeat.timer || true
+    systemctl start cicada-heartbeat.timer || true
+    systemctl enable cicada-updater.path || true
+    systemctl start cicada-updater.path || true
+elif [ -d /run/systemd/system ] && [ -S /run/systemd/private ]; then
+    # systemd est présent mais peut-être pas encore démarré
+    systemctl daemon-reload || true
+    systemctl enable cicada-installer.service || true
+    systemctl enable cicada-heartbeat.timer || true
+    systemctl enable cicada-updater.path || true
+else
+    # Pas de systemd (ex: conteneur Docker), on continue quand même
+    echo "Note: systemd non disponible, les services ne seront pas démarrés automatiquement"
+fi
+
+echo ""
+echo "============================================"
+echo "CICADA installé avec succès !"
+echo "Accédez à http://localhost:4567 pour continuer"
+echo "============================================"

@@ -541,6 +541,19 @@
         "positionSaved": "Position de l'image mise à jour"
       }
     },
+    "update": {
+      "title": "Mise à jour",
+      "subtitle": "Gérez les mises à jour de l'application",
+      "versionTitle": "Version de l'application",
+      "currentVersion": "Version actuelle :",
+      "updateAvailable": "Mise à jour disponible",
+      "lastCheck": "Dernière vérification",
+      "actionUpdate": "Mettre à jour",
+      "upToDate": "L'application est à jour",
+      "confirmUpdate": "Voulez-vous mettre à jour vers la version {{version}} ?",
+      "scheduled": "La mise à jour a été planifiée",
+      "error": "Erreur lors de la mise à jour"
+    },
     "rgpd": {
       "title": "Demandes RGPD",
       "subtitle": "Traitez les demandes de suppression de compte",

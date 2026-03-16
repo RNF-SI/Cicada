@@ -14,6 +14,7 @@ import { AdminModulesComponent } from './admin-modules/admin-modules.component';
 import { AdminLogsComponent } from './admin-logs/admin-logs.component';
 import { AdminSettingsComponent } from './admin-settings/admin-settings.component';
 import { AdminRgpdComponent } from './admin-rgpd/admin-rgpd.component';
+import { AdminUpdateComponent } from './admin-update/admin-update.component';
 
 /**
  * Admin Routes Configuration
@@ -109,6 +110,11 @@ export const ADMIN_ROUTES: Routes = [
         path: 'parametres',
         component: AdminSettingsComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage settings
+      },
+      {
+        path: 'mise-a-jour',
+        component: AdminUpdateComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin
       }
     ]
   }

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+# Arrêter les services avant suppression (si systemd est disponible)
+if systemctl is-system-running >/dev/null 2>&1 || [ -d /run/systemd/system ]; then
+    systemctl stop cicada-installer.service || true
+    systemctl stop cicada-heartbeat.timer || true
+    systemctl stop cicada-heartbeat.service || true
+    systemctl stop cicada-updater.service || true
+    systemctl stop cicada-updater.path || true
+fi
+
+# Arrêter les conteneurs Docker si en cours d'exécution
+if [ -f "/var/lib/cicada/.env" ]; then
+    docker compose -f /usr/share/cicada/docker-compose.yml --env-file /var/lib/cicada/.env down || true
+fi

@@ -1,0 +1,207 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Informations système{% endblock %}
+
+{% block content %}
+<h1>Informations système CICADA</h1>
+
+<div class="system-info-container">
+    <!-- Version actuelle -->
+    <section class="info-section">
+        <h2>Version</h2>
+        <div class="info-box">
+            <p><strong>Version actuelle :</strong> {{ current_version }}</p>
+            {% if update_info.update_available %}
+            <p class="update-available">
+                <strong>⚠️ Mise à jour disponible :</strong> {{ update_info.latest_version }}
+            </p>
+            <button id="update-btn" class="btn-update" data-version="{{ update_info.latest_version }}">
+                Mettre à jour
+            </button>
+            {% else %}
+            <p class="up-to-date">✓ Vous êtes à jour</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- RGPD -->
+    <section class="info-section">
+        <h2>Consentement RGPD</h2>
+        <div class="info-box">
+            {% if rgpd_info.consent_given %}
+            <p><strong>Statut :</strong> Consentement donné</p>
+            {% if rgpd_info.structure_name %}
+            <p><strong>Structure :</strong> {{ rgpd_info.structure_name }}</p>
+            {% endif %}
+            {% if rgpd_info.admin_email %}
+            <p><strong>Contact :</strong> {{ rgpd_info.admin_email }}</p>
+            {% endif %}
+            <button id="withdraw-consent-btn" class="btn-withdraw">
+                Retirer le consentement
+            </button>
+            {% else %}
+            <p><strong>Statut :</strong> Aucun consentement donné</p>
+            <p class="info-text">Les données techniques (version, heartbeat) sont collectées sans consentement car anonymes.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateBtn = document.getElementById('update-btn');
+    const withdrawBtn = document.getElementById('withdraw-consent-btn');
+
+    if (updateBtn) {
+        updateBtn.addEventListener('click', async function() {
+            if (!confirm('Êtes-vous sûr de vouloir mettre à jour l\'application ?')) {
+                return;
+            }
+            
+            const version = this.dataset.version;
+            try {
+                const response = await fetch('/admin/system/trigger-update/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ version: version })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Mise à jour programmée. Elle sera effectuée dans quelques instants.');
+                } else {
+                    alert('Erreur : ' + data.error);
+                }
+            } catch (error) {
+                alert('Erreur lors de la mise à jour : ' + error.message);
+            }
+        });
+    }
+
+    if (withdrawBtn) {
+        withdrawBtn.addEventListener('click', async function() {
+            if (!confirm('Êtes-vous sûr de vouloir retirer le consentement RGPD ? Les données personnelles seront supprimées.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/system/withdraw-consent/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Consentement retiré avec succès.');
+                    location.reload();
+                } else {
+                    alert('Erreur : ' + data.error);
+                }
+            } catch (error) {
+                alert('Erreur : ' + error.message);
+            }
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+
+<style>
+.system-info-container {
+    max-width: 800px;
+    margin: 20px 0;
+}
+
+.info-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.info-section h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.info-box {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.update-available {
+    color: #856404;
+    background: #fff3cd;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.up-to-date {
+    color: #155724;
+    background: #d4edda;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.btn-update {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.btn-update:hover {
+    background: #0056b3;
+}
+
+.btn-withdraw {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.btn-withdraw:hover {
+    background: #c82333;
+}
+
+.info-text {
+    color: #6c757d;
+    font-size: 14px;
+    margin-top: 10px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,8 @@
+# CICADA - Exposition du port frontend (utilisé SANS Traefik)
+# À utiliser avec : -f docker-compose.yml -f docker-compose.db.yml (si DB) -f docker-compose.frontend-ports.yml
+# Ne pas utiliser avec docker-compose.traefik.yml (Traefik gère l'accès au frontend)
+
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-80}:80"

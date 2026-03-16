@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.habitats',
     'apps.geology',
     'apps.campanule',
+    'apps.system',
 ]
 
 MIDDLEWARE = [
