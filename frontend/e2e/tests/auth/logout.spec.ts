@@ -6,7 +6,7 @@ test.describe('Logout', () => {
     await expect(page).toHaveURL(/\/accueil/);
 
     // Open user menu and click logout
-    await page.locator('button[matmenutriggerfor="userMenu"]').click();
+    await page.locator('button.user-menu-trigger').click();
     await page.locator('button.logout-item').click();
 
     // Should redirect to login
@@ -33,7 +33,7 @@ test.describe('Logout', () => {
 
   test('should show logout button in user menu', async ({ superAdminPage: page }) => {
     await page.goto('/accueil');
-    await page.locator('button[matmenutriggerfor="userMenu"]').click();
+    await page.locator('button.user-menu-trigger').click();
 
     const logoutItem = page.locator('button.logout-item');
     await expect(logoutItem).toBeVisible();

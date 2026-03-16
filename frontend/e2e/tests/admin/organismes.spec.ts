@@ -29,16 +29,17 @@ test.describe('Admin Organismes', () => {
 
     if (await orgPage.searchInput.isVisible()) {
       // Search by a term that matches one of the seed organismes
-      await orgPage.searchOrganisme('RNF');
-      // Wait for filtering to apply (may have debounce)
+      // Seeder uses "Reserves Naturelles de France" (no accent)
+      await orgPage.searchOrganisme('Reserves');
+      // Wait for filtering to apply
       await page.waitForTimeout(1000);
 
       // Check if results are filtered - either we find a card or the grid reduced
       const cardCount = await orgPage.organismeCards.count();
       if (cardCount === 0) {
-        // Search might filter client-side by full name - try different term
+        // Fallback: try partial name
         await orgPage.searchInput.clear();
-        await orgPage.searchOrganisme('Réserves');
+        await orgPage.searchOrganisme('France');
         await page.waitForTimeout(1000);
       }
 

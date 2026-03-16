@@ -12,8 +12,8 @@ test.describe('Data Scope by Role', () => {
     expect(rowCount).toBeGreaterThan(0);
 
     // Admin RNF should see fewer users than super admin (only their organisme)
-    // RNF test users: admin@test.fr, admin.rnf@test.fr, referent.camargue@test.fr, user.rnf@test.fr, test@example.com = 5
-    expect(rowCount).toBeLessThanOrEqual(6);
+    // RNF test users: 5 active + 1 inactive + 1 pending + 1 deletion-requested = 8
+    expect(rowCount).toBeLessThanOrEqual(10);
 
     // Verify known RNF users are visible
     const rnfUserRow = usersPage.getRowByEmail('user.rnf@test.fr');
