@@ -285,7 +285,7 @@ test.describe('Enjeu Form - Conditional Fields', () => {
 // =========================================================================
 test.describe('Enjeu Form - Edit', () => {
   test('should pre-fill form when editing existing enjeu', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const enjeu = await findFirstEnjeu(referentPage, plan.id_pg);
     const form = new EnjeuFormPage(referentPage);
     await form.gotoEdit(plan.slug, enjeu.slug || enjeu.id_enjeu.toString());
@@ -296,7 +296,7 @@ test.describe('Enjeu Form - Edit', () => {
   });
 
   test('should update an enjeu libelle', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const enjeu = await findFirstEnjeu(referentPage, plan.id_pg);
     const form = new EnjeuFormPage(referentPage);
     await form.gotoEdit(plan.slug, enjeu.slug || enjeu.id_enjeu.toString());
@@ -454,7 +454,7 @@ test.describe('FCR Form - Validation', () => {
 
 test.describe('FCR Form - Edit', () => {
   test('should pre-fill form when editing existing FCR', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const fcr = await findFirstFcr(referentPage, plan.id_pg);
     const form = new FcrFormPage(referentPage);
     await form.gotoEdit(plan.slug, fcr.id_enjeu);
@@ -465,7 +465,7 @@ test.describe('FCR Form - Edit', () => {
   });
 
   test('should update FCR libelle', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const fcr = await findFirstFcr(referentPage, plan.id_pg);
     const form = new FcrFormPage(referentPage);
     await form.gotoEdit(plan.slug, fcr.id_enjeu);

@@ -99,7 +99,7 @@ test.describe('Operations - Navigation and Form Display', () => {
   });
 
   test('should display metrique select with plan metrics', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
@@ -111,7 +111,7 @@ test.describe('Operations - Navigation and Form Display', () => {
   });
 
   test('should pre-link metrique when metriqueId query param is provided', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const metrique = await findFirstMetrique(referentPage, plan.id_pg);
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug, metrique.id_metrique);
@@ -208,7 +208,7 @@ test.describe('Operations - Create', () => {
   });
 
   test('should create operation with linked metrique', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
@@ -252,7 +252,7 @@ test.describe('Operations - Create', () => {
 // =========================================================================
 test.describe('Operations - Edit', () => {
   test('should display edit title when editing existing operation', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     let op: any;
     try {
       op = await findFirstOperation(referentPage, plan.id_pg);
@@ -270,7 +270,7 @@ test.describe('Operations - Edit', () => {
   });
 
   test('should pre-fill form fields when editing', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     let op: any;
     try {
       op = await findFirstOperation(referentPage, plan.id_pg);
@@ -288,7 +288,7 @@ test.describe('Operations - Edit', () => {
   });
 
   test('should update an operation libelle', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     let op: any;
     try {
       op = await findFirstOperation(referentPage, plan.id_pg);
@@ -322,7 +322,7 @@ test.describe('Operations - Edit', () => {
   });
 
   test('should preserve existing data after edit roundtrip', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     let op: any;
     try {
       op = await findFirstOperation(referentPage, plan.id_pg);
@@ -575,7 +575,7 @@ test.describe('Operations - Programmation', () => {
   });
 
   test('should display site checkboxes in programmation', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const plan = await findPlan(referentPage, 'Camargue');
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();

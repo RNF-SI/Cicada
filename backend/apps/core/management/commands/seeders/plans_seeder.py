@@ -40,7 +40,7 @@ class PlansSeeder(BaseSeeder):
         plans = [
             # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres
             {
-                'nom': 'Plan de gestion 2020-2030 - Zones humides mediterraneennes',
+                'nom': 'Plan de gestion 2020-2030 - Camargue',
                 'annee_debut': 2020,
                 'annee_fin': 2030,
                 'rang': 3,
@@ -830,7 +830,7 @@ class PlansSeeder(BaseSeeder):
         """
         return [
             '\nPlans de gestion principaux (10):',
-            '  - Plan 2020-2030 Zones humides mediterraneennes (valide) - multisites',
+            '  - Plan 2020-2030 Camargue (valide) - multisites',
             '  - Plan 2018-2028 Aiguilles Rouges (valide) - admin membre',
             '  - Plan 2022-2032 Grand-Voyeux (draft) - CEN',
             '  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide) - multisites',

@@ -12,31 +12,15 @@
  */
 import { test, expect } from '../../fixtures/auth.fixture';
 import { EnjeuxPage } from '../../pages/enjeux.page';
+import { findPlan, findFirstEnjeuId } from '../../helpers/plan.helper';
 
 /**
  * Helper: discover a plan ID by searching for a plan whose name contains the given text.
- * Uses the API to find the plan since database IDs are dynamic.
+ * Uses the authenticated helper from plan.helper.ts.
  */
 async function findPlanIdByName(page: import('@playwright/test').Page, nameFragment: string): Promise<number> {
-  const response = await page.request.get('/api/plans/plans/', {
-    params: { search: nameFragment },
-  });
-  const data = await response.json();
-  const results = data.results || data;
-  const plan = Array.isArray(results) ? results[0] : null;
-  if (!plan) throw new Error(`Plan with name containing "${nameFragment}" not found`);
+  const plan = await findPlan(page, nameFragment);
   return plan.id_pg;
-}
-
-/**
- * Helper: find the first enjeu ID for a plan (for detail navigation tests).
- */
-async function findFirstEnjeuId(page: import('@playwright/test').Page, planId: number): Promise<number> {
-  const response = await page.request.get(`/api/plans/enjeux/by-plan/${planId}/`);
-  const data = await response.json();
-  const enjeux = data.enjeux || [];
-  if (enjeux.length === 0) throw new Error(`No enjeux found for plan ${planId}`);
-  return enjeux[0].id_enjeu;
 }
 
 
