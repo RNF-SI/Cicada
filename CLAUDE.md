@@ -428,8 +428,8 @@ docker compose exec web python manage.py seed_testdata --only=users,plans
 |-------|-----------|-------|------------|
 | Backend | pytest + pytest-django + Factory Boy | 356 | 56% |
 | Frontend (unitaires) | Jest + jest-preset-angular | 132 | 7% |
-| **Frontend (E2E)** | **Playwright** | **155** | **Admin + Features + Access** |
-| **Total** | | **~643** | |
+| **Frontend (E2E)** | **Playwright** | **431** | **Admin + Features + Enjeux + Plans + Access** |
+| **Total** | | **~919** | |
 
 #### Backend (pytest)
 
@@ -541,16 +541,16 @@ npm run e2e:debug
 
 **Prérequis** : Stack Docker en cours (`docker compose up -d`) + données de test (`seed_testdata`).
 
-**Tests E2E disponibles (155 tests) :**
+**Tests E2E disponibles (431 tests) :**
 
-*Authentication & Access:*
+*Authentication & Access (26 tests) :*
 - `auth/login.spec.ts` - Login valide/invalide, champs vides, returnUrl (5 tests)
 - `auth/logout.spec.ts` - Déconnexion, suppression tokens (3 tests)
 - `auth/register.spec.ts` - Inscription, validation, email doublon (5 tests)
-- `access/role-access.spec.ts` - Contrôle d'accès par rôle (8 tests)
-- `access/data-scope.spec.ts` - Scope données par organisme (5 tests)
+- `access/role-access.spec.ts` - Contrôle d'accès par rôle, redirection referent/user (8 tests)
+- `access/data-scope.spec.ts` - Scope données par organisme, isolation users/sites (5 tests)
 
-*Admin:*
+*Admin (51 tests) :*
 - `admin/users-list.spec.ts` - Liste utilisateurs, recherche, filtres (6 tests)
 - `admin/users-actions.spec.ts` - Activation/désactivation, assign site (5 tests)
 - `admin/users-sites.spec.ts` - Associations sites/plans (4 tests)
@@ -558,20 +558,42 @@ npm run e2e:debug
 - `admin/sites-crud.spec.ts` - Création site, validation formulaire (5 tests)
 - `admin/sites-orgs.spec.ts` - Liens organismes/sites (3 tests)
 - `admin/validations.spec.ts` - Liste, filtres, approbation (6 tests)
-- `admin/validation-workflow.spec.ts` - **Workflow multi-utilisateurs** : demande → vue admin → approbation/rejet → vérification (8 tests)
+- `admin/validation-workflow.spec.ts` - Workflow multi-utilisateurs : demande → vue admin → approbation/rejet → vérification (10 tests)
 - `admin/organismes.spec.ts` - Grille, détail, recherche (4 tests)
 - `admin/dashboard.spec.ts` - Statistiques, accès (3 tests)
 
-*Features:*
-- `features/notifications.spec.ts` - Liste notifications, marquer lu, état vide (7 tests)
-- `features/activity.spec.ts` - Timeline activité, onglets par rôle, filtres, pagination (20 tests)
-- `features/profile.spec.ts` - Page profil, infos utilisateur, RGPD, mes demandes (19 tests)
-- `features/bulk-import.spec.ts` - Import en masse sites, stepper, upload, mapping (10 tests)
-- `features/duplicate-detection.spec.ts` - Détection doublons INPN et noms similaires (9 tests)
-- `features/impersonation.spec.ts` - Impersonation admin, bannière, navigation (9 tests)
+*Enjeux & Arborescence (152 tests) :*
+- `features/enjeux.spec.ts` - Navigation, détail, CRUD facteurs/pressions, onglets OLT/Opérations, CRUD OLT/NE (58 tests)
+- `features/enjeu-forms.spec.ts` - Formulaires enjeu/FCR : création, édition, validation, champs conditionnels (28 tests)
+- `features/enjeux-roles-access.spec.ts` - Accès par rôle : super admin, admin_og, referent, user, isolation cross-org (22 tests)
+- `features/enjeux-olt-hierarchy.spec.ts` - Hiérarchie OLT : état actuel → OLT → NE, affichage, CRUD imbriqué (17 tests)
+- `features/enjeux-operations-hierarchy.spec.ts` - Hiérarchie opérations : métriques, opérations, CRUD, liens (21 tests)
+- `features/enjeux-cascade-delete.spec.ts` - Suppression en cascade : enjeu, facteur, pression avec confirmation (6 tests)
 
-*Navigation:*
+*Plans (71 tests) :*
+- `features/plan-create.spec.ts` - Création plan : formulaire, sélection sites, rédacteurs, permissions (31 tests)
+- `features/plan-views.spec.ts` - Vues plan : tableau de bord, timeline, bilan, suivi actions (28 tests)
+- `features/plans-list.spec.ts` - Liste plans, recherche, filtres, tri (12 tests)
+
+*Opérations & Suivis (53 tests) :*
+- `features/operations.spec.ts` - CRUD opérations, lien métriques, filtres, tri (30 tests)
+- `features/inventaires.spec.ts` - CRUD suivis/inventaires, formulaires, listes (23 tests)
+
+*Autres Features (68 tests) :*
+- `features/profile.spec.ts` - Page profil, infos utilisateur, RGPD, mes demandes (18 tests)
+- `features/activity.spec.ts` - Timeline activité, onglets par rôle, filtres, pagination (15 tests)
+- `features/bulk-import.spec.ts` - Import en masse sites, stepper, upload, mapping (11 tests)
+- `features/impersonation.spec.ts` - Impersonation admin, bannière, navigation (9 tests)
+- `features/duplicate-detection.spec.ts` - Détection doublons INPN et noms similaires (8 tests)
+- `features/notifications.spec.ts` - Liste notifications, marquer lu, état vide (7 tests)
+
+*Navigation (4 tests) :*
 - `navigation/navigation.spec.ts` - Header, sidebar, liens (4 tests)
+
+**Helpers E2E :**
+- `helpers/plan.helper.ts` - Helpers API authentifiés (findPlan, findFirstEnjeu, apiGet/Post/Patch/Delete)
+- `pages/*.page.ts` - Page objects (EnjeuxPage, AdminUsersPage, PlanCreatePage, etc.)
+- `fixtures/auth.fixture.ts` - Fixtures Playwright avec sessions pré-authentifiées par rôle
 
 #### CI/CD
 
