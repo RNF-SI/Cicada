@@ -119,16 +119,19 @@ export class EnjeuxPage {
 
   /**
    * Navigate to the enjeux list for a given plan.
+   * @param planSlugOrId - Plan slug (preferred) or numeric ID
    */
-  async goto(planId: number) {
-    await this.page.goto(`/plans/${planId}/enjeux`);
+  async goto(planSlugOrId: string | number) {
+    await this.page.goto(`/plans/${planSlugOrId}/enjeux`);
   }
 
   /**
    * Navigate to enjeu detail view.
+   * @param planSlugOrId - Plan slug (preferred) or numeric ID
+   * @param enjeuSlugOrId - Enjeu slug (preferred) or numeric ID
    */
-  async gotoDetail(planId: number, enjeuId: number) {
-    await this.page.goto(`/plans/${planId}/enjeux/${enjeuId}`);
+  async gotoDetail(planSlugOrId: string | number, enjeuSlugOrId: string | number) {
+    await this.page.goto(`/plans/${planSlugOrId}/enjeux/${enjeuSlugOrId}`);
   }
 
   /**

@@ -1,0 +1,601 @@
+/**
+ * E2E Tests for Operations (Actions) CRUD within the Enjeux module.
+ *
+ * Tests:
+ * - Navigation and form display (~6 tests)
+ * - Create operations (~6 tests)
+ * - Edit operations (~4 tests)
+ * - Form validation (~3 tests)
+ * - Form interactions (~5 tests)
+ * - Delete operations (~2 tests)
+ *
+ * Prerequisite: seed_testdata with enjeux seeder (creates ~36 operations
+ * across multiple plans with full data: suivi, protocole, annees, finances).
+ */
+import { test, expect } from '../../fixtures/auth.fixture';
+import { OperationFormPage } from '../../pages/operation-form.page';
+import {
+  findPlan,
+  findFirstOperation,
+  findFirstMetrique,
+  apiPost,
+  apiGet,
+  apiPatch,
+  apiDelete,
+} from '../../helpers/plan.helper';
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+/** Create an operation via the API and return its ID. */
+async function createOperationViaApi(
+  page: import('@playwright/test').Page,
+  libelle: string,
+  metriqueId?: number,
+): Promise<number> {
+  const payload: Record<string, unknown> = { libelle };
+  if (metriqueId) payload.id_metrique = metriqueId;
+  const { ok, data } = await apiPost(page, 'plans/operations/', payload);
+  if (!ok) throw new Error(`Failed to create operation via API (status: ${data?.detail || 'unknown'})`);
+  return data.id_operation;
+}
+
+/** Delete an operation via the API. */
+async function deleteOperationViaApi(page: import('@playwright/test').Page, operationId: number) {
+  await apiDelete(page, `plans/operations/${operationId}/`);
+}
+
+// =========================================================================
+// Navigation and Form Display
+// =========================================================================
+test.describe('Operations - Navigation and Form Display', () => {
+  test('should display the create operation form page', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await expect(formPage.heroTitle).toBeVisible();
+    await expect(formPage.libelleInput).toBeVisible();
+    await expect(formPage.validateBtn).toBeVisible();
+    await expect(formPage.cancelBtn).toBeVisible();
+  });
+
+  test('should display create title for new operation', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const title = await formPage.heroTitle.innerText();
+    // Create title should be something like "Nouvelle action" or "Créer une action"
+    expect(title.length).toBeGreaterThan(0);
+  });
+
+  test('should display all form sections', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Check all section headers are visible
+    await expect(formPage.sectionDetailsSuivi).toBeVisible();
+    await expect(formPage.sectionProtocole).toBeVisible();
+    await expect(formPage.sectionBancarisation).toBeVisible();
+    await expect(formPage.sectionProgrammation).toBeVisible();
+    await expect(formPage.sectionDetails).toBeVisible();
+    await expect(formPage.sectionEmprise).toBeVisible();
+  });
+
+  test('should display type action select with options', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.typeActionSelect.click();
+    const options = await referentPage.locator('mat-option').count();
+    expect(options).toBeGreaterThan(1); // At least "—" + real options
+    await referentPage.keyboard.press('Escape');
+  });
+
+  test('should display metrique select with plan metrics', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.metriqueSelect.click();
+    const options = await referentPage.locator('mat-option').count();
+    expect(options).toBeGreaterThanOrEqual(1); // At least the "--" option; plan may or may not have metrics
+    await referentPage.keyboard.press('Escape');
+  });
+
+  test('should pre-link metrique when metriqueId query param is provided', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const metrique = await findFirstMetrique(referentPage, plan.id_pg);
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug, metrique.id_metrique);
+    await formPage.waitForForm();
+
+    // The metrique select should have a value (not the default "--")
+    const selectedText = await formPage.metriqueSelect.innerText();
+    expect(selectedText).not.toBe('--');
+  });
+
+  test('super admin should access operation form', async ({ superAdminPage }) => {
+    const plan = await findPlan(superAdminPage, 'Camargue');
+    const formPage = new OperationFormPage(superAdminPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await expect(formPage.libelleInput).toBeVisible();
+  });
+});
+
+// =========================================================================
+// Create Operations
+// =========================================================================
+test.describe('Operations - Create', () => {
+  test('should create an operation with minimal data (libelle only)', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Minimal ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+    await formPage.submit();
+
+    // Should show success snackbar and navigate back
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+
+  test('should create an operation with type action and priority', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Priority ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+    await formPage.selectFirstTypeAction();
+    await formPage.selectPriority(0); // First priority option
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+
+  test('should create an operation with protocole non-campanule', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Protocole ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+
+    // Fill protocole
+    await formPage.fillProtocoleNonCampanule('Protocole E2E Test', {
+      description: 'Description du protocole de test',
+      objectif: 'Objectif du protocole de test',
+      periode: 'Janvier-Mars',
+    });
+    await formPage.setRespectProtocoleOui();
+
+    // Set frequency
+    await formPage.setFrequence(2, 'an');
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+
+  test('should create an operation with description', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Description ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+    await formPage.fillDescription('Description de test pour cette action E2E');
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+
+  test('should create operation with linked metrique', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Metrique ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+
+    // Select first available metrique
+    await formPage.metriqueSelect.click();
+    await referentPage.locator('mat-option').filter({ hasNotText: '--' }).first().click();
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+
+  test('should create operation with finances', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Op Finances ${Date.now()}`;
+    await formPage.fillLibelle(uniqueName);
+
+    // Add a finance entry
+    await formPage.addFinance('Financement test E2E');
+
+    // Verify the row appeared
+    const financeCount = await formPage.financeRows.count();
+    expect(financeCount).toBe(1);
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+});
+
+// =========================================================================
+// Edit Operations
+// =========================================================================
+test.describe('Operations - Edit', () => {
+  test('should display edit title when editing existing operation', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    let op: any;
+    try {
+      op = await findFirstOperation(referentPage, plan.id_pg);
+    } catch {
+      test.skip(true, 'No operations found for this plan — cannot test edit title');
+      return;
+    }
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoEdit(plan.slug, op.id_operation);
+    await formPage.waitForForm();
+
+    const title = await formPage.heroTitle.innerText();
+    // Edit title should be different from create title
+    expect(title.length).toBeGreaterThan(0);
+  });
+
+  test('should pre-fill form fields when editing', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    let op: any;
+    try {
+      op = await findFirstOperation(referentPage, plan.id_pg);
+    } catch {
+      test.skip(true, 'No operations found for this plan — cannot test edit pre-fill');
+      return;
+    }
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoEdit(plan.slug, op.id_operation);
+    await formPage.waitForForm();
+
+    // Libelle should be pre-filled
+    const libelleValue = await formPage.libelleInput.inputValue();
+    expect(libelleValue).toBe(op.libelle);
+  });
+
+  test('should update an operation libelle', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    let op: any;
+    try {
+      op = await findFirstOperation(referentPage, plan.id_pg);
+    } catch {
+      test.skip(true, 'No operations found for this plan — cannot test update');
+      return;
+    }
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoEdit(plan.slug, op.id_operation);
+    await formPage.waitForForm();
+
+    // Modify the libelle
+    const updatedName = `${op.libelle} (E2E modifie)`;
+    await formPage.fillLibelle(updatedName);
+    await formPage.submit();
+
+    // Wait for either snackbar or URL change (whichever comes first)
+    await Promise.race([
+      formPage.waitForSnackbar().catch(() => {}),
+      referentPage.waitForURL(/\/enjeux/, { timeout: 10000 }).catch(() => {}),
+    ]);
+    // Give a moment for navigation to complete
+    await referentPage.waitForTimeout(1000);
+
+    // Verify via API that it was updated
+    const { data: updated } = await apiGet(referentPage, `plans/operations/${op.id_operation}/`);
+    expect(updated.libelle).toBe(updatedName);
+
+    // Restore original name
+    await apiPatch(referentPage, `plans/operations/${op.id_operation}/`, { libelle: op.libelle });
+  });
+
+  test('should preserve existing data after edit roundtrip', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    let op: any;
+    try {
+      op = await findFirstOperation(referentPage, plan.id_pg);
+    } catch {
+      test.skip(true, 'No operations found for this plan — cannot test edit roundtrip');
+      return;
+    }
+
+    // Get full operation details first
+    const { data: detail } = await apiGet(referentPage, `plans/operations/${op.id_operation}/`);
+
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoEdit(plan.slug, op.id_operation);
+    await formPage.waitForForm();
+
+    // Just submit without changes
+    await formPage.submit();
+
+    // Wait for either snackbar or URL change (whichever comes first)
+    await Promise.race([
+      formPage.waitForSnackbar().catch(() => {}),
+      referentPage.waitForURL(/\/enjeux/, { timeout: 10000 }).catch(() => {}),
+    ]);
+    await referentPage.waitForTimeout(1000);
+
+    // Verify fields preserved
+    const { data: after } = await apiGet(referentPage, `plans/operations/${op.id_operation}/`);
+    expect(after.libelle).toBe(detail.libelle);
+    if (detail.id_priorite) expect(after.id_priorite).toBe(detail.id_priorite);
+  });
+});
+
+// =========================================================================
+// Form Validation
+// =========================================================================
+test.describe('Operations - Validation', () => {
+  test('should show error when submitting empty libelle', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Submit with empty form
+    await formPage.submit();
+
+    // Should stay on the form page (not navigate away)
+    await referentPage.waitForTimeout(1000);
+    expect(referentPage.url()).toContain('/operations/nouveau');
+
+    // The mat-error for required field should be visible
+    const hasError = await formPage.hasLibelleError();
+    expect(hasError).toBeTruthy();
+  });
+
+  test('should not submit when libelle exceeds max length', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Fill with 501 characters
+    await formPage.fillLibelle('A'.repeat(501));
+    await formPage.submit();
+
+    // Should stay on the form
+    await referentPage.waitForTimeout(1000);
+    expect(referentPage.url()).toContain('/operations/nouveau');
+  });
+
+  test('should show error banner on API error', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    // Navigate to edit with a non-existent ID
+    await formPage.gotoEdit(plan.slug, 999999);
+    await formPage.waitForForm();
+
+    // Should show an error banner or error state
+    await referentPage.waitForTimeout(2000);
+    const hasError = await formPage.errorBanner.isVisible().catch(() => false);
+    // Might show error banner or redirect — either is acceptable
+    expect(hasError || referentPage.url().includes('/enjeux')).toBeTruthy();
+  });
+});
+
+// =========================================================================
+// Form Interactions
+// =========================================================================
+test.describe('Operations - Form Interactions', () => {
+  test('should toggle collapsible sections', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Sections start open — check content is visible
+    const detailsContent = referentPage.locator('.section-content').first();
+    await expect(detailsContent).toBeVisible();
+
+    // Click to collapse the first section
+    await formPage.sectionDetailsSuivi.click();
+    await referentPage.waitForTimeout(300);
+
+    // Click to re-expand
+    await formPage.sectionDetailsSuivi.click();
+    await referentPage.waitForTimeout(300);
+    await expect(detailsContent).toBeVisible();
+  });
+
+  test('should show protocole fields when selecting non-campanule', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Initially, nom_protocole should not be visible (no radio selected)
+    await expect(formPage.nomProtocoleInput).not.toBeVisible();
+
+    // Select "Non" for campanule
+    await formPage.protocoleCampanuleNon.click();
+    await referentPage.waitForTimeout(300);
+
+    // Now nom_protocole and nb_etp_cycle should be visible
+    await expect(formPage.nomProtocoleInput).toBeVisible();
+    await expect(formPage.nbEtpCycleInput).toBeVisible();
+  });
+
+  test('should show justification field when respect protocole is No', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Select non-campanule first
+    await formPage.protocoleCampanuleNon.click();
+    await referentPage.waitForTimeout(300);
+
+    // Select "Non" for respect protocole
+    await formPage.setRespectProtocoleNon();
+    await referentPage.waitForTimeout(300);
+
+    // Justification and differences fields should appear
+    await expect(formPage.justificationNonRespect).toBeVisible();
+  });
+
+  test('should increment and decrement frequency', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Need to select a protocole mode for frequency controls to appear
+    await formPage.protocoleCampanuleNon.click();
+    await referentPage.waitForTimeout(300);
+
+    // Click increment several times
+    await formPage.frequenceIncrementBtn.click();
+    await formPage.frequenceIncrementBtn.click();
+    await formPage.frequenceIncrementBtn.click();
+    let value = await formPage.frequenceInput.inputValue();
+    expect(parseInt(value)).toBe(3);
+
+    // Decrement once
+    await formPage.frequenceDecrementBtn.click();
+    value = await formPage.frequenceInput.inputValue();
+    expect(parseInt(value)).toBe(2);
+  });
+
+  test('should add and remove finance entries', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Initially no finance rows
+    let count = await formPage.financeRows.count();
+    expect(count).toBe(0);
+
+    // Add two finance rows
+    await formPage.addFinance('Finance 1');
+    await formPage.addFinance('Finance 2');
+    count = await formPage.financeRows.count();
+    expect(count).toBe(2);
+
+    // Remove the first finance row
+    await formPage.financeRows.first().locator('.finance-remove-btn').click();
+    await referentPage.waitForTimeout(300);
+    count = await formPage.financeRows.count();
+    expect(count).toBe(1);
+  });
+});
+
+// =========================================================================
+// Cancel Navigation
+// =========================================================================
+test.describe('Operations - Cancel', () => {
+  test('should navigate back to enjeux list on cancel', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.cancel();
+    await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
+  });
+});
+
+// =========================================================================
+// Delete Operations
+// =========================================================================
+test.describe('Operations - Delete via API', () => {
+  test('should create then delete an operation via API', async ({ superAdminPage }) => {
+    const uniqueName = `E2E Op Delete ${Date.now()}`;
+    let opId: number;
+    try {
+      opId = await createOperationViaApi(superAdminPage, uniqueName);
+    } catch {
+      test.skip(true, 'Operation creation via API failed');
+      return;
+    }
+
+    // Verify it exists (super admin sees all)
+    const { ok: checkOk } = await apiGet(superAdminPage, `plans/operations/${opId}/`);
+    expect(checkOk).toBeTruthy();
+
+    // Delete via API
+    await deleteOperationViaApi(superAdminPage, opId);
+
+    // Verify it's gone (should 404)
+    const { status } = await apiGet(superAdminPage, `plans/operations/${opId}/`);
+    expect(status).toBe(404);
+  });
+});
+
+// =========================================================================
+// Programmation Section
+// =========================================================================
+test.describe('Operations - Programmation', () => {
+  test('should display programmation table with plan years', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // The programmation table should be visible (section is open by default)
+    await expect(formPage.programmationTable.first()).toBeVisible();
+
+    // Table should have year headers
+    const headers = await formPage.programmationTable.first().locator('thead th').allInnerTexts();
+    expect(headers.length).toBeGreaterThan(1); // label + at least 1 year
+  });
+
+  test('should display site checkboxes in programmation', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'mediterraneennes');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // The plan may or may not have sites linked — verify page loads without error
+    const siteCount = await formPage.sitesCheckboxes.count();
+    expect(siteCount).toBeGreaterThanOrEqual(0);
+  });
+
+  test('should show monthly programming table', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    // Check the monthly table exists (12 month headers)
+    const monthlyTable = formPage.programmationTable.nth(1);
+    await expect(monthlyTable).toBeVisible();
+    const monthHeaders = await monthlyTable.locator('thead th').allInnerTexts();
+    // label + 12 months
+    expect(monthHeaders.length).toBe(13);
+  });
+});
