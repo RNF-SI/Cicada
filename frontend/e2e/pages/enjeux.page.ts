@@ -95,7 +95,7 @@ export class EnjeuxPage {
 
     // Facteurs d'influence
     this.facteurCards = page.locator('.facteur-influence-card');
-    this.addFacteurButton = page.locator('.add-facteur-btn');
+    this.addFacteurButton = page.locator('.add-item-btn').first();
     this.facteurInlineForm = page.locator('.inline-form').filter({ has: page.locator('.facteur-bullet') });
 
     // Pressions
@@ -313,7 +313,7 @@ export class EnjeuxPage {
    */
   async clickAddPression(facteurIndex: number) {
     const facteur = this.facteurCards.nth(facteurIndex);
-    await facteur.locator('.add-pression-btn').click();
+    await facteur.locator('.add-item-btn').click();
     await this.page.waitForTimeout(300);
   }
 

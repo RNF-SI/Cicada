@@ -15,12 +15,12 @@ import { EnjeuxPage } from '../../pages/enjeux.page';
 import { findPlan, findFirstEnjeuId } from '../../helpers/plan.helper';
 
 /**
- * Helper: discover a plan ID by searching for a plan whose name contains the given text.
+ * Helper: discover a plan by searching for a plan whose name contains the given text.
  * Uses the authenticated helper from plan.helper.ts.
+ * Returns { id_pg, slug } — use slug for navigation (routes use :slug), id_pg for API calls.
  */
-async function findPlanIdByName(page: import('@playwright/test').Page, nameFragment: string): Promise<number> {
-  const plan = await findPlan(page, nameFragment);
-  return plan.id_pg;
+async function findPlanByName(page: import('@playwright/test').Page, nameFragment: string) {
+  return findPlan(page, nameFragment);
 }
 
 
@@ -31,18 +31,18 @@ async function findPlanIdByName(page: import('@playwright/test').Page, nameFragm
 test.describe('Enjeux - Navigation and Display', () => {
 
   test('should display the enjeux list page for a plan', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.pageTitle).toBeVisible();
   });
 
   test('should display breadcrumb with correct navigation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.breadcrumb).toBeVisible();
@@ -53,9 +53,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should display enjeu accordions in the list', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     // Camargue has 5 enjeux
@@ -64,9 +64,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should display FCR accordions after enjeux', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     // Camargue has 2 FCR
@@ -75,9 +75,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should display correct total count', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     // 5 enjeux + 2 FCR = 7 total
@@ -85,9 +85,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should expand and collapse an accordion on click', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     // Expand first accordion
@@ -101,9 +101,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should show properties when accordion is expanded', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.expandAccordion(0);
@@ -116,9 +116,9 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should show facteurs count in expanded accordion', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     // First enjeu (Hab. humides) has 2 facteurs
@@ -134,18 +134,18 @@ test.describe('Enjeux - Navigation and Display', () => {
   });
 
   test('should display sidebar navigation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.sidebar).toBeVisible();
   });
 
   test('super admin should access enjeux page', async ({ superAdminPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
+    const plan = await findPlanByName(page, 'Camargue');
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.goto(planId);
+    await enjeuxPage.goto(plan.slug);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.pageTitle).toBeVisible();
@@ -162,10 +162,10 @@ test.describe('Enjeux - Navigation and Display', () => {
 test.describe('Enjeux - Detail View', () => {
 
   test('should navigate to enjeu detail view', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Detail view should show the enjeu title
@@ -173,10 +173,10 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should display detail tabs', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Should show 3 tabs: Détail, OLT, Opérations
@@ -185,20 +185,20 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should show Detail tab as active by default', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.tabDetail).toHaveClass(/active/);
   });
 
   test('should display enjeu detail card with properties', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.enjeuDetailCard).toBeVisible();
@@ -206,10 +206,10 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should display facteurs d\'influence in detail view', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // First enjeu (Hab. humides) has 2 facteurs
@@ -218,10 +218,10 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should expand a facteur card to show details', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -233,10 +233,10 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should show pressions inside expanded facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -249,10 +249,10 @@ test.describe('Enjeux - Detail View', () => {
   });
 
   test('should include enjeu name in breadcrumb on detail view', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Current breadcrumb should show the enjeu short name
@@ -270,20 +270,20 @@ test.describe('Enjeux - Detail View', () => {
 test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
 
   test('should display the add facteur button in detail view', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await expect(enjeuxPage.addFacteurButton).toBeVisible();
   });
 
   test('should show inline form when clicking add facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.clickAddFacteur();
@@ -296,10 +296,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should have save button disabled when libelle is empty', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.clickAddFacteur();
@@ -310,10 +310,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should create a facteur with libelle', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const initialCount = await enjeuxPage.getFacteurCount();
@@ -327,10 +327,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should show the new facteur in the list after creation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Check that one of the facteur cards contains our seeded data
@@ -347,10 +347,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should cancel adding a facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const initialCount = await enjeuxPage.getFacteurCount();
@@ -370,10 +370,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should open confirm dialog when deleting a facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -388,10 +388,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should cancel deletion and keep the facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const initialCount = await enjeuxPage.getFacteurCount();
@@ -409,10 +409,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should show inline edit form when clicking edit facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -431,10 +431,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should edit a facteur and see the updated title', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Create a temp facteur to edit (avoid modifying seed data)
@@ -461,10 +461,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
   });
 
   test('should delete a facteur after confirmation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // First create a temporary facteur so we don't delete seeded data
@@ -495,10 +495,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
 test.describe('Enjeux - CRUD Pressions', () => {
 
   test('should display add pression button inside expanded facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -510,10 +510,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should show inline pression form when clicking add', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -527,10 +527,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should create a pression', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -547,10 +547,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should show the new pression in the facteur', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -565,10 +565,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should cancel adding a pression', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -591,10 +591,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should show inline edit form when clicking edit pression', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -615,10 +615,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should edit a pression and see the updated title', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -651,10 +651,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should delete a pression after confirmation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -682,10 +682,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
   });
 
   test('should not delete pression when cancelling confirmation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     const facteurCount = await enjeuxPage.getFacteurCount();
@@ -718,10 +718,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
 test.describe('Enjeux - Tab Navigation', () => {
 
   test('should switch to OLT tab', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -733,10 +733,10 @@ test.describe('Enjeux - Tab Navigation', () => {
   });
 
   test('should switch to Operations tab and show empty state', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('operations');
@@ -747,10 +747,10 @@ test.describe('Enjeux - Tab Navigation', () => {
   });
 
   test('should switch back to Detail tab', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     // Go to OLT then back to Detail
@@ -770,10 +770,10 @@ test.describe('Enjeux - Tab Navigation', () => {
 test.describe('Enjeux - OLT Tab Display', () => {
 
   test('should display info note about typical usage', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -782,10 +782,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should display etat actuel cards with seeded data', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -797,10 +797,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should display OLT bars inside etat actuel', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -812,10 +812,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should display OLT count in top bar', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -825,10 +825,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should expand OLT to show niveaux d\'exigence', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -845,10 +845,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should show NE cards inside expanded OLT', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -865,10 +865,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
   });
 
   test('should show add etat actuel button', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -882,10 +882,10 @@ test.describe('Enjeux - OLT Tab Display', () => {
 test.describe('Enjeux - OLT Tab CRUD', () => {
 
   test('should show inline form when clicking add etat actuel', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -901,10 +901,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should cancel adding an etat actuel', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -925,10 +925,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should create an etat actuel', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -948,10 +948,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should show add OLT button inside etat actuel card', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -961,10 +961,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should create an OLT via inline form', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -986,10 +986,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should expand OLT and show add NE button', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -1003,10 +1003,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should create a NE inside an expanded OLT', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -1032,10 +1032,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should delete an OLT after confirmation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -1064,10 +1064,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should delete an etat actuel after confirmation', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
@@ -1096,10 +1096,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
   });
 
   test('should edit an OLT inline', async ({ referentPage: page }) => {
-    const planId = await findPlanIdByName(page, 'Camargue');
-    const enjeuId = await findFirstEnjeuId(page, planId);
+    const plan = await findPlanByName(page, 'Camargue');
+    const enjeuId = await findFirstEnjeuId(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
-    await enjeuxPage.gotoDetail(planId, enjeuId);
+    await enjeuxPage.gotoDetail(plan.slug, enjeuId);
     await enjeuxPage.waitForData();
 
     await enjeuxPage.switchTab('olt');
