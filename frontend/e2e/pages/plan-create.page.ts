@@ -108,15 +108,13 @@ export class PlanCreatePage {
     this.organismeChip = page.locator('.selected-organisme mat-chip-row');
     this.organismeRemoveBtn = page.locator('.selected-organisme button[matChipRemove]');
 
-    // Rédacteurs — first chips-field in the form
-    const redacteursSection = page.locator('.form-section-box').filter({ hasText: 'dacteur' }).first();
-    this.redacteursChips = redacteursSection.locator('mat-chip-row');
-    this.redacteursInput = redacteursSection.locator('mat-chip-grid input, .chips-field input[matInput]').first();
+    // Rédacteurs — first chips-field in the form (by position, not text)
+    this.redacteursChips = page.locator('.chips-field').first().locator('mat-chip-row');
+    this.redacteursInput = page.locator('.chips-field').first().locator('input');
 
     // Relecteurs — second chips-field
-    const relecteursSection = page.locator('.form-section-box').filter({ hasText: 'electeur' }).first();
-    this.relecteursChips = relecteursSection.locator('mat-chip-row');
-    this.relecteursInput = relecteursSection.locator('mat-chip-grid input, .chips-field input[matInput]').first();
+    this.relecteursChips = page.locator('.chips-field').nth(1).locator('mat-chip-row');
+    this.relecteursInput = page.locator('.chips-field').nth(1).locator('input');
 
     // Autocomplete panel (shared, only one visible at a time)
     this.autocompletePanel = page.locator('.mat-mdc-autocomplete-panel');
