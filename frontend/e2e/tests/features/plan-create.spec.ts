@@ -365,6 +365,10 @@ test.describe.serial('Plan Create - Creation and Verification', () => {
     await plansPage.goto();
     await plansPage.waitForData();
 
+    // Created plans are in 'Brouillon' (draft) status → switch to Inactifs tab
+    await plansPage.setTab('inactifs');
+    await page.waitForTimeout(1000);
+
     // Search for the plan created with required fields
     await plansPage.searchPlan(planNameRequired);
     const planRow = plansPage.getRowByName(planNameRequired);
