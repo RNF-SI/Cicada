@@ -35,21 +35,21 @@
         </div>
       }
 
-      <!-- Current referents section -->
+      <!-- Current users section -->
       <div class="referents-section">
         <h3 class="section-title">
-          <i class="fi fi-rr-user"></i>
-          {{ 'modals.linkPlanReferent.sections.currentReferents' | translate }} ({{ visibleAssignments.length }})
+          <i class="fi fi-rr-users"></i>
+          {{ 'modals.linkPlanReferent.sections.currentUsers' | translate }} ({{ visibleAssignments.length }})
         </h3>
 
-        @if (referentAssignments().length === 0) {
+        @if (userAssignments().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-info"></i>
-            <span>{{ 'modals.linkPlanReferent.noReferent' | translate }}</span>
+            <span>{{ 'modals.linkPlanReferent.noUsers' | translate }}</span>
           </div>
         } @else {
           <div class="referents-list">
-            @for (assignment of referentAssignments(); track assignment.user.id_role) {
+            @for (assignment of userAssignments(); track assignment.user.id_role) {
               <div class="referent-item"
                    [class.is-new]="assignment.isNew"
                    [class.is-deleted]="assignment.isDeleted">
@@ -57,6 +57,9 @@
                   <i class="fi fi-rr-user"></i>
                   <span class="referent-name">{{ getUserDisplayName(assignment.user) }}</span>
                   <span class="referent-email">({{ assignment.user.email }})</span>
+                  <span class="role-badge" [class.role-referent]="assignment.user.referent" [class.role-member]="!assignment.user.referent">
+                    {{ assignment.user.referent ? ('plans.detail.referent' | translate) : ('plans.detail.member' | translate) }}
+                  </span>
                 </div>
 
                 @if (assignment.isNew) {
@@ -67,16 +70,22 @@
                 }
 
                 @if (!assignment.isDeleted) {
+                  <button class="btn-toggle-role"
+                          type="button"
+                          [title]="(assignment.user.referent ? 'modals.linkPlanReferent.actions.demoteToMember' : 'modals.linkPlanReferent.actions.promoteToReferent') | translate"
+                          (click)="toggleReferent(assignment)">
+                    <i class="fi" [class.fi-rr-arrow-down]="assignment.user.referent" [class.fi-rr-arrow-up]="!assignment.user.referent"></i>
+                  </button>
                   <button class="btn-remove"
                           type="button"
-                          [title]="'modals.linkPlanReferent.actions.removeReferent' | translate"
-                          (click)="removeReferent(assignment)">
+                          [title]="'modals.linkPlanReferent.actions.removeUser' | translate"
+                          (click)="removeUser(assignment)">
                     <i class="fi fi-rr-cross-small"></i>
                   </button>
                 } @else {
                   <button class="btn-restore"
                           type="button"
-                          (click)="restoreReferent(assignment)">
+                          (click)="restoreUser(assignment)">
                     <i class="fi fi-rr-undo"></i>
                     {{ 'modals.linkPlanReferent.actions.restore' | translate }}
                   </button>
@@ -87,11 +96,11 @@
         }
       </div>
 
-      <!-- Add referent section -->
+      <!-- Add user section -->
       <div class="add-referent-section">
         <h3 class="section-title">
           <i class="fi fi-rr-add"></i>
-          {{ 'modals.linkPlanReferent.sections.addReferent' | translate }}
+          {{ 'modals.linkPlanReferent.sections.addUser' | translate }}
         </h3>
 
         <div class="add-referent-form">
@@ -103,7 +112,7 @@
                    [placeholder]="'modals.linkPlanReferent.searchPlaceholder' | translate">
             <mat-autocomplete #userAuto="matAutocomplete"
                               [displayWith]="displayUser"
-                              (optionSelected)="addReferent($event.option.value)">
+                              (optionSelected)="addUser($event.option.value)">
               @for (user of filteredUsers(); track user.id_role) {
                 <mat-option [value]="user">
                   <div class="autocomplete-option">
@@ -120,6 +129,13 @@
               }
             </mat-autocomplete>
           </mat-form-field>
+
+          <div class="add-as-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="addAsReferent">
+              <span>{{ 'modals.linkPlanReferent.addAsReferent' | translate }}</span>
+            </label>
+          </div>
         </div>
       </div>
 

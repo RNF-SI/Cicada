@@ -19,7 +19,8 @@
       "validate": "Valider",
       "associate": "Associer",
       "searching": "Recherche en cours",
-      "reset": "Réinitialiser"
+      "reset": "Réinitialiser",
+      "select": "Sélectionner"
     },
     "status": {
       "active": "Actif",
@@ -35,6 +36,9 @@
     },
     "loading": "Chargement des données...",
     "none": "Aucun",
+    "createdAt": "Créé le",
+    "by": "par",
+    "retry": "Réessayer",
     "messages": {
       "loading": "Chargement...",
       "noResults": "Aucun résultat",
@@ -69,7 +73,10 @@
       "never": "Jamais"
     },
     "all": "Tout",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "yes": "Oui",
+    "no": "Non",
+    "requiredFields": "Les champs avec * sont obligatoires"
   },
   "auth": {
     "login": {
@@ -302,6 +309,7 @@
         "periode": "Période",
         "sites": "Sites",
         "referents": "Référents",
+        "users": "Utilisateurs",
         "lastUpdate": "Dernière MAJ",
         "actions": "Actions"
       },
@@ -328,6 +336,7 @@
         "noPlans": "Aucun plan de gestion trouvé"
       },
       "others": "+{{count}} autres",
+      "referent": "Référent",
       "messages": {
         "loading": "Chargement des plans de gestion...",
         "sitesUpdated": "Sites du plan mis à jour",
@@ -452,7 +461,8 @@
         "plan_access": "Accès plan",
         "module_access": "Accès module",
         "referent_validation": "Validation référent",
-        "site_org_link": "Lien site-organisme"
+        "site_org_link": "Lien site-organisme",
+        "plan_site_link": "Lien plan-site"
       },
       "actions": {
         "approve": "Approuver",
@@ -530,6 +540,19 @@
         "restored": "Image par défaut restaurée",
         "positionSaved": "Position de l'image mise à jour"
       }
+    },
+    "update": {
+      "title": "Mise à jour",
+      "subtitle": "Gérez les mises à jour de l'application",
+      "versionTitle": "Version de l'application",
+      "currentVersion": "Version actuelle :",
+      "updateAvailable": "Mise à jour disponible",
+      "lastCheck": "Dernière vérification",
+      "actionUpdate": "Mettre à jour",
+      "upToDate": "L'application est à jour",
+      "confirmUpdate": "Voulez-vous mettre à jour vers la version {{version}} ?",
+      "scheduled": "La mise à jour a été planifiée",
+      "error": "Erreur lors de la mise à jour"
     },
     "rgpd": {
       "title": "Demandes RGPD",
@@ -733,28 +756,43 @@
       }
     },
     "linkPlanReferent": {
-      "title": "Gérer les référents du plan",
+      "title": "Gérer les utilisateurs du plan",
       "sections": {
         "currentReferents": "Référents du plan",
-        "addReferent": "Ajouter un référent"
+        "currentUsers": "Utilisateurs du plan",
+        "addReferent": "Ajouter un référent",
+        "addUser": "Ajouter un utilisateur"
       },
       "noReferent": "Aucun référent assigné à ce plan",
+      "noUsers": "Aucun utilisateur assigné à ce plan",
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
-      "infoText": "Les référents peuvent modifier et valider le plan de gestion. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
+      "addAsReferent": "Ajouter en tant que référent",
+      "infoText": "Les <strong>référents</strong> peuvent modifier et valider le plan. Les <strong>membres</strong> ont accès en lecture seule aux données du plan. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
       "badges": {
         "new": "Nouveau",
         "deleted": "Supprimé"
       },
       "actions": {
         "removeReferent": "Retirer ce référent",
-        "restore": "Restaurer"
+        "removeUser": "Retirer cet utilisateur",
+        "restore": "Restaurer",
+        "promoteToReferent": "Promouvoir en référent",
+        "demoteToMember": "Rétrograder en membre"
       },
       "messages": {
         "referentAdded": "Référent \"{{name}}\" ajouté à la liste",
-        "addError": "Erreur lors de l'ajout des référents: {{error}}",
+        "userAdded": "Utilisateur \"{{name}}\" ajouté à la liste",
+        "addError": "Erreur lors de l'ajout: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
       }
+    },
+    "linkPlanToSite": {
+      "title": "Lier un plan de gestion",
+      "search": "Rechercher un plan...",
+      "noResults": "Aucun plan disponible",
+      "success": "Plan lié au site avec succès",
+      "error": "Erreur lors de la liaison du plan"
     },
     "linkSiteOrganisme": {
       "titleManageSites": "Gérer les sites de l'organisme",
@@ -908,6 +946,7 @@
       "fields": {
         "name": "Nom du site",
         "type": "Type de site",
+        "typePrecision": "Précisez le type de site",
         "localId": "Identifiant local",
         "inpnId": "Identifiant INPN",
         "surface": "Surface officielle (ha)",
@@ -919,12 +958,14 @@
       "hints": {
         "localId": "Code interne de référence",
         "inpnId": "Code national INPN",
+        "typePrecision": "Indiquez le type de site non présent dans la liste",
         "requestAsReferent": "En tant que référent, vous pourrez gérer les accès et inviter d'autres utilisateurs sur ce site"
       },
       "errors": {
         "nameRequired": "Le nom est requis",
         "surfacePositive": "La surface doit être positive",
-        "inpnDuplicate": "Ce code INPN est déjà utilisé par un autre site."
+        "inpnDuplicate": "Ce code INPN est déjà utilisé par un autre site.",
+        "typePrecisionRequired": "La précision du type est requise pour \"Autre\""
       },
       "messages": {
         "linkError": "Site créé mais erreur lors de la liaison: {{error}}"
@@ -1014,6 +1055,9 @@
         "rangRequired": "Le rang est obligatoire",
         "rangMin": "Le rang doit être au minimum 1"
       },
+      "sitesScopeMine": "Mes sites",
+      "sitesScopeOrg": "Mon organisme",
+      "sitesScopeAll": "Tous les sites",
       "noSiteMatching": "Aucun site correspondant à \"{{query}}\"",
       "noSiteAvailable": "Aucun site disponible",
       "noUserMatching": "Aucun utilisateur correspondant à \"{{query}}\"",
@@ -1132,10 +1176,10 @@
     },
     "status": {
       "draft": "Brouillon",
-      "valide": "Validé",
+      "valide": "Valide",
       "archive": "Archivé",
-      "en_cours": "En cours",
-      "annule": "Annulé"
+      "inProgress": "En cours de révision",
+      "midterm": "Évaluation mi-parcours"
     },
     "list": {
       "title": "Plans de gestion",
@@ -1143,9 +1187,10 @@
       "search": "Rechercher un plan...",
       "empty": "Aucun plan de gestion",
       "createPlan": "Créer un plan de gestion",
-      "newBlankPlan": "Nouveau plan vierge",
-      "duplicatePlan": "Dupliquer un plan existant",
+      "newBlankPlan": "À partir d'une base vierge",
+      "duplicatePlan": "Sur la base d'un PG existant",
       "oldVersions": "Voir les anciennes versions",
+      "hideOldVersions": "Masquer les anciennes versions",
       "multisites": "multisites",
       "tabs": {
         "active": "Actifs",
@@ -1159,12 +1204,18 @@
       },
       "actions": {
         "follow": "Suivre",
+        "followDisabledTooltip": "Le suivi n'est disponible que pour les plans validés",
         "view": "Voir",
         "editStatus": "Modifier le statut"
       }
     },
     "myPlans": {
       "empty": "Vous n'avez accès à aucun plan de gestion pour le moment.",
+      "emptyTitle": "Aucun plan de gestion",
+      "emptyHint1": "Vous n'êtes encore associé(e) à aucun plan, ce qui peut arriver si :",
+      "emptyReason1": "Votre compte vient d'être créé et un administrateur n'a pas encore configuré vos accès",
+      "emptyReason2": "Vous n'avez pas encore été désigné(e) comme référent ou membre d'un site ayant un plan",
+      "emptyHint2": "Vous pouvez demander l'accès à un plan existant dans la section ci-dessous, ou contacter un administrateur de votre organisme.",
       "referent": "Référent"
     },
     "pendingPlans": {
@@ -1175,10 +1226,11 @@
     },
     "requestAccess": {
       "title": "Demander l'accès à un plan",
-      "description": "Recherchez et demandez l'accès aux plans de gestion qui vous intéressent.",
+      "description": "Demandez l'accès aux plans de gestion de votre organisme.",
       "searchPlaceholder": "Rechercher un plan...",
-      "noResults": "Aucun plan trouvé",
+      "noResults": "Aucun plan disponible pour votre organisme",
       "button": "Demander l'accès",
+      "buttonWithSite": "Demander le lien et l'accès",
       "pending": "Demande en attente",
       "rejected": "Refusé",
       "retry": "Redemander"
@@ -1187,15 +1239,80 @@
       "title": "Tous les plans de gestion",
       "loginPrompt": "Connectez-vous pour demander l'accès à un plan de gestion."
     },
+    "lifecycle": {
+      "dialog": {
+        "title": "Modifier le statut du plan",
+        "noActions": "Aucune action disponible pour ce statut."
+      },
+      "actions": {
+        "validate": "Valider le plan",
+        "validateDesc": "Passer le plan en statut validé. Il sera considéré comme le plan officiel en vigueur.",
+        "archive": "Archiver",
+        "archiveHint": "Rend le plan inactif",
+        "archiveDesc": "Archiver ce plan. Il restera consultable mais ne sera plus actif.",
+        "reactivate": "Réactiver",
+        "reactivateHint": "Rend le plan actif",
+        "reactivateDesc": "Réactiver ce plan archivé pour le remettre en brouillon et le modifier.",
+        "createEvaluation": "Lancer une évaluation mi-parcours",
+        "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
+        "toDraft": "Remettre en brouillon",
+        "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau."
+      },
+      "warnings": {
+        "validateTitle": "Valider le plan de gestion",
+        "validateWarning1": "Une fois validé, le plan ne sera modifiable que sous la forme d'une nouvelle version.",
+        "validateWarning2": "Le suivi des plans de gestion n'est disponible qu'aux plans validés.",
+        "validateWarning3": "La validation CSRPN sera gérée dans une future version.",
+        "archiveTitle": "Archiver le plan de gestion",
+        "archiveWarning": "Ce plan ne sera plus actif. Il restera consultable mais le suivi ne sera plus accessible.",
+        "toDraftTitle": "Remettre en brouillon",
+        "toDraftWarning": "Attention : remettre ce plan en brouillon annulera sa validation. Le suivi ne sera plus accessible.",
+        "toDraftConfirm": "Je confirme vouloir remettre en brouillon",
+        "reactivateTitle": "Réactiver le plan",
+        "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif."
+      },
+      "messages": {
+        "statusChanged": "Le statut du plan a été modifié avec succès.",
+        "statusError": "Erreur lors du changement de statut.",
+        "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
+        "evaluationError": "Erreur lors de la création de l'évaluation."
+      },
+      "timeline": {
+        "title": "Cycle de vie",
+        "planInitial": "Plan initial",
+        "current": "actuel"
+      }
+    },
     "detail": {
       "title": "Détail du plan",
       "noContent": "Aucun contenu pour le moment",
       "sections": {
         "synthese": "Synthèse",
         "site": "Site",
-        "mindmap": "Mindmap",
-        "documents": "Documents"
+        "sites": "Sites",
+        "mindmap": "Tableau d'arborescence",
+        "documents": "Documents",
+        "users": "Utilisateurs"
       },
+      "noSites": "Aucun site associé",
+      "noUsers": "Aucun utilisateur associé",
+      "referent": "Référent",
+      "member": "Membre",
+      "manageSites": "Gérer les sites",
+      "manageUsers": "Gérer les utilisateurs",
+      "addSite": "Ajouter un site",
+      "removeSite": "Retirer",
+      "confirmRemoveSite": "Retirer le site {{name}} de ce plan ?",
+      "siteRemoved": "Site retiré du plan",
+      "siteAdded": "Site ajouté au plan",
+      "sitesUpdated": "Sites du plan mis à jour",
+      "usersUpdated": "Utilisateurs du plan mis à jour",
+      "pendingSites": "Sites en attente de validation",
+      "siteLinkRequested": "Demande de liaison envoyée",
+      "siteLinkDirect": "Site lié avec succès",
+      "siteLinkMixed": "Sites liés et demandes de liaison envoyées",
+      "siteNoAccess": "Vous n'avez pas accès à ce site",
+      "requestSiteAccess": "Demander l'accès",
       "accordions": {
         "enjeux": "Enjeux et Facteurs clés de réussite",
         "objectifsLT": "Objectifs long terme",
@@ -1203,7 +1320,42 @@
         "actions": "Actions et suivis"
       },
       "viewDetails": "Voir en détails",
+      "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
+      "documents": {
+        "add": "Ajouter un document",
+        "download": "Télécharger",
+        "delete": "Supprimer",
+        "view": "Voir",
+        "empty": "Aucun document",
+        "confirmDelete": "Voulez-vous vraiment supprimer le document \"{{name}}\" ?",
+        "uploadSuccess": "Document uploadé avec succès",
+        "deleteSuccess": "Document supprimé avec succès",
+        "deleteError": "Erreur lors de la suppression du document",
+        "downloadError": "Erreur lors du téléchargement du document",
+        "upload": {
+          "title": "Ajouter un document",
+          "selectFile": "Sélectionner un fichier",
+          "dragDrop": "ou glissez-déposez un fichier ici",
+          "type": "Type de document",
+          "types": {
+            "document": "Document principal",
+            "annexe": "Annexe",
+            "carte": "Carte",
+            "photo": "Photographie",
+            "rapport": "Rapport d'étude",
+            "autre": "Autre"
+          },
+          "titre": "Titre (optionnel)",
+          "description": "Description (optionnel)",
+          "auteur": "Auteur (optionnel)",
+          "dateDocument": "Date du document (optionnel)",
+          "public": "Document public",
+          "publicHint": "Le document sera accessible sans authentification",
+          "uploading": "Upload en cours...",
+          "send": "Envoyer"
+        }
+      },
       "sidebar": {
         "title": "PLAN DE GESTION",
         "overview": "Vue d'ensemble",
@@ -1214,7 +1366,11 @@
         "actions": "Actions",
         "suivis": "Suivis",
         "indicateurs": "Indicateurs",
-        "bilans": "Bilans"
+        "bilans": "Bilans",
+        "bilan": "Bilan",
+        "suiviActions": "Suivi des actions",
+        "tableauDeBord": "Tableau de bord",
+        "mindmap": "Tableau d'arborescence"
       },
       "tabs": {
         "details": "Détails et saisie",
@@ -1231,12 +1387,108 @@
       "reassignSuccess": "Le plan a été réassigné avec succès",
       "reassignError": "Erreur lors de la réassignation"
     },
-    "status": {
-      "draft": "Brouillon",
-      "valide": "Valide",
-      "archive": "Archivé",
-      "inProgress": "En cours de révision",
-      "midterm": "Évaluation mi-parcours"
+    "suivis": {
+      "bilan": {
+        "title": "Bilan",
+        "comingSoon": "Cette fonctionnalité est en cours de développement."
+      },
+      "actions": {
+        "title": "Suivi des actions",
+        "filterLabel": "FILTRER",
+        "categorieAction": "Catégorie d'action",
+        "enjeu": "Enjeu",
+        "priorite": "Priorité",
+        "exportTable": "Exporter le tableau",
+        "global": "Global",
+        "annuel": "Annuel",
+        "legendLabel": "Légende :",
+        "actionPrevue": "Action prévue",
+        "actionPrevueRealisee": "Action prévue et réalisée",
+        "actionPrevuePartielle": "Action prévue et partiellement réalisée",
+        "actionRealiseeNonPrevue": "Action réalisée non prévue",
+        "actionPartielleNonPrevue": "Action partiellement réalisée non prévue",
+        "tableHeader": "Actions (priorité)",
+        "leCasEcheant": "le cas échéant",
+        "noOperations": "Aucune action n'est encore définie pour ce plan.",
+        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Vision opérationnelle d'un enjeu."
+      },
+      "tableauDeBord": {
+        "title": "Tableau de bord",
+        "etat": "Etat",
+        "pression": "Pression",
+        "filterLabel": "FILTRER",
+        "typeObjectif": "Type d'objectif",
+        "nomObjectif": "Nom de l'objectif",
+        "legendLabel": "Légende :",
+        "tresMauvais": "Très mauvais",
+        "mauvais": "Mauvais",
+        "moyen": "Moyen",
+        "bon": "Bon",
+        "tresBon": "Très bon",
+        "sansDonnee": "Sans donnée",
+        "niveauExigence": "Niveau d'exigence",
+        "indicateurs": "Indicateurs",
+        "noData": "Aucun indicateur n'est encore défini pour ce plan.",
+        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu."
+      }
+    },
+    "mindmap": {
+      "title": "Tableau d'arborescence",
+      "viewMindmap": "Voir le tableau d'arborescence",
+      "viewEnjeux": "Enjeux → Actions",
+      "viewActions": "Actions → Enjeux",
+      "clickHint": "Cliquez sur un élément pour explorer sa hiérarchie",
+      "resetZoom": "Recentrer",
+      "resetZoomPlan": "Recentrer sur le plan",
+      "focusEnjeu": "Recentrer sur l'enjeu",
+      "focusOperation": "Recentrer sur l'opération",
+      "loading": "Chargement du tableau d'arborescence...",
+      "empty": "Aucune donnée à afficher"
+    },
+    "duplicate": {
+      "title": "Créer à partir d'un plan existant",
+      "subtitle": "Sélectionnez un plan de gestion sur lequel vous souhaitez vous baser pour créer le nouveau",
+      "searchPlaceholder": "Rechercher un plan...",
+      "noResults": "Aucun plan trouvé",
+      "selectPlan": "Sélectionner",
+      "dialog": {
+        "title": "Créer sur la base de ce plan",
+        "subtitle": "Choisissez les éléments à copier",
+        "planInfo": "Plan source",
+        "options": {
+          "sites": "Sites associés",
+          "sitesDescription": "Copie les associations site-plan",
+          "referents": "Référents",
+          "referentsDescription": "Copie les référents du plan",
+          "fichiers": "Fichiers joints",
+          "fichiersDescription": "Copie les documents et fichiers attachés",
+          "enjeux": "Enjeux et FCR",
+          "enjeuxDescription": "Copie les enjeux, FCR et leurs données associées (taxons, habitats, géologie)",
+          "subElements": "Sous-éléments (hiérarchie complète)",
+          "subElementsDescription": "Copie les facteurs d influence, pressions, objectifs, indicateurs et métriques"
+        },
+        "hints": {
+          "excludedData": "Les mesures et opérations ne sont pas copiées.",
+          "newStatus": "Le nouveau plan sera en statut Brouillon.",
+          "subElementsDisabled": "Activez \"Enjeux et FCR\" pour copier les sous-éléments."
+        },
+        "cancel": "Annuler",
+        "confirm": "Appliquer"
+      },
+      "sections": {
+        "myPlans": "Mes plans de gestion",
+        "orgPlans": "Plans de mon organisme",
+        "allPlans": "Tous les plans de gestion"
+      },
+      "success": "Nouveau plan créé avec succès",
+      "error": "Erreur lors de la création du plan",
+      "table": {
+        "name": "Nom du plan",
+        "period": "Période",
+        "status": "Statut",
+        "sites": "Sites",
+        "actions": "Actions"
+      }
     }
   },
   "profile": {
@@ -1486,6 +1738,10 @@
       "organismes": "Organismes gestionnaires",
       "noGeometry": "Géométrie non disponible",
       "noPlans": "Aucun plan de gestion associé",
+      "linkPlan": "Lier un plan",
+      "pendingPlans": "En attente de validation",
+      "requestPlanAccess": "Demander l'accès à un plan",
+      "planLinked": "Plan lié au site avec succès",
       "noDocuments": "Aucun document",
       "inactive": "Site inactif",
       "menu": {
@@ -1560,15 +1816,24 @@
     "dialog": {
       "titleSite": "Demander l'accès à un site",
       "titlePlan": "Demander l'accès à un plan",
+      "titlePlanWithSite": "Demander le lien au site et l'accès au plan",
       "targetLabel": "Cible",
       "selectSite": "Sélectionner un site",
+      "selectSiteForPlan": "Sélectionner le site à rejoindre",
+      "siteAccessNote": "Vous n'êtes lié à aucun site de ce plan. Une demande de lien au site sera également envoyée.",
       "justificationLabel": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès...",
       "justificationHint": "Cette information sera transmise aux administrateurs",
       "submit": "Envoyer la demande",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "roleLabel": "Type d'accès demandé",
+      "roleMember": "Membre",
+      "roleMemberDesc": "Accès en lecture seule aux données du plan",
+      "roleReferent": "Référent",
+      "roleReferentDesc": "Accès complet : modification, validation, gestion des utilisateurs"
     },
     "success": "Votre demande a été envoyée et est en attente de validation",
+    "successBoth": "Vos demandes de lien au site et d'accès au plan ont été envoyées.",
     "error": "Erreur lors de l'envoi de la demande",
     "alreadyPending": "Une demande est déjà en cours pour cet élément"
   },
@@ -1675,5 +1940,658 @@
     "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
     "forbidden": "Accès refusé.",
     "network": "Erreur de connexion. Vérifiez votre connexion internet."
+  },
+  "enjeux": {
+    "title": "Enjeux et facteurs clés de réussite",
+    "subtitle": "Plan de gestion",
+    "empty": {
+      "message": "Aucun enjeu ou facteur clef de réussite (FCR) saisi",
+      "hint": "Commencez par ajouter un enjeu ou un facteur clef de réussite",
+      "description": "Les enjeux et facteurs clefs de réussite permettent de définir les priorités du plan de gestion.",
+      "noEnjeu": "Aucun enjeu ou facteur clef de réussite n'a été saisi pour ce plan."
+    },
+    "tabs": {
+      "detail": "Détail enjeu",
+      "olt": "Vision à long terme",
+      "operations": "Vision opérationnelle"
+    },
+    "count": "{{count}} enjeu(x) ou FCR saisi(s)",
+    "countZero": "Aucun enjeu ou FCR",
+    "countOne": "1 enjeu ou FCR saisi",
+    "addButton": "Ajouter enjeu/FCR",
+    "types": {
+      "enjeu": "Enjeu",
+      "fcr": "Facteur clef de réussite"
+    },
+    "sections": {
+      "enjeux": "ENJEUX",
+      "fcr": "FACTEURS CLÉS DE RÉUSSITE"
+    },
+    "enjeuForm": {
+      "titleNew": "Ajouter un enjeu",
+      "titleEdit": "Modifier l'enjeu",
+      "required": "Les champs avec * sont obligatoires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "libelle": "Intitulé de l'enjeu",
+      "libellePlaceholder": "Saisissez l'intitulé de l'enjeu",
+      "intituleCourt": "Intitulé court de l'enjeu",
+      "intituleCourtPlaceholder": "Intitulé court (max 25 car.)",
+      "intituleCourtHint": "Veuillez définir un nom raccourci pour l'enjeu (max 25 caractères)",
+      "priorite": "Priorité de l'enjeu",
+      "priorite1": "1",
+      "priorite2": "2",
+      "priorite3": "3",
+      "categorie": "Catégorie de l'enjeu",
+      "ecologique": "Écologique",
+      "socioEconomique": "Socio-économique",
+      "typeEnjeu": "L'enjeu est lié à",
+      "enjeuLieAEcologique": "L'enjeu est lié à :",
+      "enjeuLieASocioEco": "L'enjeu est lié :",
+      "habitat": "Un/des habitat(s)",
+      "espece": "Une/des espèce(s)",
+      "patrimoineGeologique": "Du patrimoine géologique",
+      "fonctionnaliteEcosysteme": "Une/des fonctionnalité(s) des écosystèmes",
+      "autreEcologique": "Autre",
+      "autreEcologiquePrecision": "Précisez le type écologique",
+      "autreEcologiquePrecisionPlaceholder": "Précisez la nature de l'enjeu écologique...",
+      "valeurPaysagere": "à la valeur paysagère",
+      "patrimoineCulturel": "au maintien du patrimoine culturel",
+      "developpementDurable": "au développement durable des ressources",
+      "usages": "aux usages",
+      "valeurAjoutee": "à une/des valeurs ajoutées sociale, économique, scientifique ou éducative",
+      "autreSocioEco": "Autre",
+      "autreSocioEcoPrecision": "Précisez le type socio-économique",
+      "autreSocioEcoPrecisionPlaceholder": "Précisez la nature de l'enjeu socio-économique...",
+      "typePatrimoineGeo": "Type de patrimoine géologique concerné par l'enjeu",
+      "geoExSitu": "Ex-situ",
+      "geoInSitu": "In-situ",
+      "patrimoineGeoConcerne": "Patrimoine géologique concerné par l'enjeu",
+      "rechercherINPG": "Rechercher le patrimoine INPG",
+      "rechercherINPGHint": "Rechercher un site dans l'Inventaire National du Patrimoine Géologique",
+      "habitatsConcernes": "Habitat(s) concerné(s)",
+      "especesConcernees": "Espèce(s) concernée(s)",
+      "processus": "Un processus",
+      "details": "Détails",
+      "etatEnjeu": "Précisions sur l'état de l'enjeu",
+      "etatEnjeuPlaceholder": "Décrivez l'état actuel de l'enjeu",
+      "commentaires": "Détails / commentaires",
+      "commentairesPlaceholder": "Informations complémentaires"
+    },
+    "fcrForm": {
+      "titleNew": "Ajouter un facteur clef de réussite",
+      "titleEdit": "Modifier le facteur clef de réussite",
+      "required": "Les champs avec * sont obligatoires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "libelle": "Intitulé du facteur clef de réussite",
+      "libellePlaceholder": "Saisissez l'intitulé du FCR",
+      "intituleCourt": "Intitulé court du facteur clef de réussite",
+      "intituleCourtPlaceholder": "Intitulé court (max 25 car.)",
+      "intituleCourtHint": "Veuillez définir un nom raccourci pour le FCR (max 25 caractères)",
+      "categorie": "Catégorie du FCR",
+      "connaissance": "Connaissance",
+      "ancrage": "Ancrage territorial",
+      "fonctionnement": "Fonctionnement de l'aire protégée",
+      "autre": "Autre",
+      "details": "Détails",
+      "commentaires": "Détails / commentaires",
+      "commentairesPlaceholder": "Informations complémentaires"
+    },
+    "accordion": {
+      "priorite": "Priorité",
+      "categorie": "Catégorie",
+      "categorieEnjeu": "Enjeu écologique",
+      "categorieSocioEco": "Enjeu socio-économique",
+      "enjeuLieA": "Enjeu lié à",
+      "especes": "Une/des espèces",
+      "habitats": "Un/des habitats",
+      "processus": "Un processus",
+      "listeEspeces": "Espèces concernées",
+      "listeHabitats": "Habitats concernés",
+      "listeGeologies": "Sites géologiques concernés",
+      "voirListe": "Voir la liste",
+      "masquerListe": "Masquer la liste",
+      "typePatrimoineGeo": "Type de patrimoine géologique",
+      "precisionAutre": "Précision",
+      "precisionAutreEco": "Autre (écologique) - précision",
+      "precisionAutreSocio": "Autre (socio-économique) - précision",
+      "etatEnjeu": "État de l'enjeu",
+      "detailsCommentaires": "Détails/commentaires"
+    },
+    "sidebar": {
+      "title": "Liste enjeux et FCR",
+      "enjeux": "Enjeux",
+      "fcr": "Facteurs clés de réussite"
+    },
+    "messages": {
+      "enjeuCreateSuccess": "Enjeu créé avec succès",
+      "enjeuUpdateSuccess": "Enjeu mis à jour avec succès",
+      "enjeuDeleteSuccess": "Enjeu supprimé avec succès",
+      "enjeuDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cet enjeu ?",
+      "enjeuDeleteConfirmTitle": "Supprimer l'enjeu",
+      "fcrCreateSuccess": "Facteur clef de réussite créé avec succès",
+      "fcrUpdateSuccess": "Facteur clef de réussite mis à jour avec succès",
+      "fcrDeleteSuccess": "Facteur clef de réussite supprimé avec succès",
+      "fcrDeleteConfirm": "Êtes-vous sûr de vouloir supprimer ce facteur clef de réussite ?",
+      "fcrDeleteConfirmTitle": "Supprimer le FCR",
+      "loadError": "Erreur lors du chargement des enjeux",
+      "createError": "Erreur lors de la création",
+      "updateError": "Erreur lors de la mise à jour",
+      "deleteError": "Erreur lors de la suppression",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
+    },
+    "importList": {
+      "titleTaxon": "Importer une liste d'espèces",
+      "titleHabitat": "Importer une liste d'habitats",
+      "titleGeology": "Importer une liste de sites géologiques",
+      "instructions": "Saisissez un code par ligne. Chaque code sera vérifié dans le référentiel.",
+      "exampleTitleTaxon": "Codes acceptés (cd_nom uniquement) :",
+      "exampleTitleHabitat": "Codes acceptés (cd_hab uniquement) :",
+      "exampleTitleGeology": "Formats acceptés pour les sites géologiques :",
+      "exampleTaxon": "60345\n2852\n79301\n199860",
+      "exampleHabitat": "16265\n838\n10034\n2191",
+      "exampleGeology": "Grotte de Lascaux            ← nom du site\nAQI0001                      ← code métier\n42                           ← code id_inpg\nFalaise de craie             ← nom du site (partiel)",
+      "helpTaxon": "Les codes cd_nom sont les identifiants numériques TaxRef, disponibles sur inpn.mnhn.fr. Un code par ligne.",
+      "helpHabitat": "Les codes cd_hab sont les identifiants numériques HabRef, disponibles sur inpn.mnhn.fr. Un code par ligne.",
+      "helpGeology": "Les sites géologiques proviennent de l'INPG (Inventaire National du Patrimoine Géologique). Vous pouvez rechercher par nom de site, code métier ou id_inpg.",
+      "codesOnlyTaxon": "Seuls les codes numériques cd_nom sont acceptés. Pour rechercher par nom, utilisez la barre de recherche.",
+      "codesOnlyHabitat": "Seuls les codes numériques cd_hab sont acceptés. Pour rechercher par nom, utilisez la barre de recherche.",
+      "codesLabelTaxon": "Liste de codes cd_nom (un par ligne)",
+      "codesLabelHabitat": "Liste de codes cd_hab (un par ligne)",
+      "codesLabelGeology": "Liste de sites géologiques (un par ligne)",
+      "placeholderTaxon": "60345\n2852\n79301",
+      "placeholderHabitat": "16265\n838\n10034",
+      "placeholderGeology": "Grotte de Lascaux\nAQI0001\n42\nFalaise de craie",
+      "orUploadFile": "ou importer depuis un fichier",
+      "chooseFile": "Choisir un fichier",
+      "fileHint": "Fichier .txt ou .csv avec un code par ligne",
+      "importButton": "Valider les codes",
+      "confirmButton": "Ajouter les éléments trouvés",
+      "foundCount": "{{count}} trouvé(s) dans le référentiel",
+      "notFoundCount": "{{count}} non trouvé(s)",
+      "rejectedCount": "{{count}} rejeté(s) (format invalide)",
+      "codeNotFound": "Non trouvé dans le référentiel",
+      "matchedFrom": "trouvé via",
+      "didYouMean": "Vouliez-vous dire :"
+    },
+    "countSuffix": "enjeu(x) ou FCR saisi(s)",
+    "referenceList": {
+      "taxonCount": "{{count}} taxon(s)",
+      "habitatCount": "{{count}} habitat(s)",
+      "importList": "Importer une liste",
+      "searchTaxon": "Rechercher un taxon",
+      "searchHabitat": "Rechercher un habitat",
+      "searchTaxonPlaceholder": "Nom scientifique ou vernaculaire...",
+      "searchHabitatPlaceholder": "Nom ou code habitat...",
+      "searchHint": "Saisissez au moins 2 caractères pour lancer la recherche",
+      "geologyCount": "{{count}} site(s) géologique(s)",
+      "searchGeology": "Rechercher un site géologique INPG",
+      "searchGeologyPlaceholder": "Nom du site ou code métier..."
+    },
+    "etatActuel": {
+      "label": "État actuel",
+      "newTitle": "Nouvel état actuel",
+      "editTitle": "Modifier l'état actuel",
+      "addButton": "Ajouter un état actuel",
+      "libelleLabel": "Description de l'état actuel",
+      "descriptionLabel": "Détails / commentaires",
+      "deleteTitle": "Supprimer l'état actuel",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet état actuel ? Ses objectifs à long terme et niveaux d'exigence seront également supprimés.",
+      "createSuccess": "État actuel créé avec succès",
+      "updateSuccess": "État actuel mis à jour avec succès",
+      "deleteSuccess": "État actuel supprimé avec succès"
+    },
+    "olt": {
+      "empty": "Aucun objectif à long terme (OLT) saisi",
+      "addButton": "Ajouter un objectif à long terme",
+      "hint": "Qu'est-ce qu'un objectif à long terme ?",
+      "description": "Un objectif à long terme (OLT) traduit l'état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion.",
+      "usageNote": "En général, un enjeu est associé à un seul état actuel et un seul objectif à long terme (OLT). Il est toutefois possible d'en ajouter plusieurs si nécessaire.",
+      "countSuffix": "objectif(s) à long terme (OLT) saisi(s)",
+      "label": "OLT",
+      "newTitle": "Nouvel objectif à long terme",
+      "editTitle": "Modifier l'OLT",
+      "deleteTitle": "Supprimer l'OLT",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet OLT ? Ses niveaux d'exigence seront également supprimés.",
+      "libelleLabel": "Intitulé de l'objectif à long terme",
+      "descriptionLabel": "Détails / commentaires",
+      "createSuccess": "Objectif à long terme créé avec succès",
+      "updateSuccess": "Objectif à long terme mis à jour avec succès",
+      "deleteSuccess": "Objectif à long terme supprimé avec succès"
+    },
+    "niveauExigence": {
+      "label": "Niveau d'exigence",
+      "newTitle": "Nouveau niveau d'exigence",
+      "addButton": "Ajouter un niveau d'exigence",
+      "libelleLabel": "Intitulé du niveau d'exigence",
+      "descriptionLabel": "Détails / commentaires",
+      "deleteTitle": "Supprimer le niveau d'exigence",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce niveau d'exigence ?",
+      "createSuccess": "Niveau d'exigence créé avec succès",
+      "updateSuccess": "Niveau d'exigence mis à jour avec succès",
+      "deleteSuccess": "Niveau d'exigence supprimé avec succès"
+    },
+    "oo": {
+      "label": "OO",
+      "countSuffix": "objectif(s) opérationnel(s) (OO) saisi(s)",
+      "libelleLabel": "Intitulé de l'objectif opérationnel (OO)",
+      "facteurLabel": "Facteur d'influence",
+      "facteurDescription": "Facteur d'influence",
+      "pressionLabel": "Pression",
+      "addButton": "Ajouter un objectif opérationnel",
+      "newTitle": "Nouvel objectif opérationnel",
+      "editTitle": "Modifier l'objectif opérationnel",
+      "deleteTitle": "Supprimer l'objectif opérationnel",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet objectif opérationnel ? Ses résultats attendus seront également supprimés.",
+      "createSuccess": "Objectif opérationnel créé avec succès",
+      "updateSuccess": "Objectif opérationnel mis à jour avec succès",
+      "deleteSuccess": "Objectif opérationnel supprimé avec succès",
+      "hint": "Qu'est-ce qu'un objectif opérationnel ?",
+      "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
+      "usageNote": "Un objectif opérationnel est généralement associé à une pression identifiée sur l'enjeu.",
+      "descriptionLabel": "Détails / commentaires",
+      "noFacteurTitle": "Aucun facteur d'influence",
+      "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
+      "noPressionTitle": "Aucune pression",
+      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
+    },
+    "resultatAttendu": {
+      "label": "Résultat attendu",
+      "libelleLabel": "Intitulé du résultat attendu",
+      "addButton": "Ajouter un résultat attendu",
+      "newTitle": "Nouveau résultat attendu",
+      "editTitle": "Modifier le résultat attendu",
+      "deleteTitle": "Supprimer le résultat attendu",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce résultat attendu ?",
+      "createSuccess": "Résultat attendu créé avec succès",
+      "updateSuccess": "Résultat attendu mis à jour avec succès",
+      "deleteSuccess": "Résultat attendu supprimé avec succès",
+      "descriptionLabel": "Détails / commentaires"
+    },
+    "indicateurPression": {
+      "label": "Indicateur de pression",
+      "addButton": "Ajouter un indicateur de pression"
+    },
+    "operations": {
+      "empty": "Aucun objectif opérationnel saisi",
+      "addButton": "Ajouter un objectif opérationnel",
+      "addAction": "Ajouter une action",
+      "hint": "Qu'est-ce qu'un objectif opérationnel ?",
+      "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
+      "label": "Action",
+      "title": "Actions",
+      "createTitle": "Ajouter une action",
+      "editTitle": "Modifier l'action",
+      "typeActionLabel": "Type d'action",
+      "libelleLabel": "Intitulé de l'action",
+      "libellePlaceholder": "Saisissez l'intitulé de l'action...",
+      "metriqueAssocieeLabel": "Métrique associée",
+      "prioriteLabel": "Priorité",
+      "detailsSuiviTitle": "Détails de l'inventaire ou du suivi",
+      "objectifPrincipal": "Objectif principal",
+      "objectifSecondaire": "Objectif secondaire (optionnel)",
+      "ciblesPrincipales": "Cible principale",
+      "cibleSecondaire": "Cible secondaire (optionnel)",
+      "cibleSecondaireHint": "Objet secondaire sur lequel porte l'observation, la mesure ou l'analyse",
+      "taxonTaxref": "Taxon(s) référé(s)",
+      "habitatRef": "Habitat(s) référé(s)",
+      "protocoleCampanule": "Protocole répertorié dans campanule ?",
+      "protocoleNom": "Protocole (Campanule)",
+      "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
+      "campanuleSearchHint": "Recherche par nom du protocole (ex : STOC, PSDRF, EPOC...)",
+      "nomProtocole": "Nom du protocole",
+      "nbEtpCycle": "Nombre d'ETP par cycle de collecte",
+      "nbEtpCycleHint": "Équivalent temps plein nécessaire pour un cycle de collecte",
+      "consulterProtocole": "Consulter le protocole",
+      "respectProtocole": "Respectez-vous strictement le protocole ?",
+      "justificationNonRespect": "Pourquoi ne respectez-vous pas le protocole ?",
+      "differencesProtocole": "Quelque(s) différence(s) avec le protocole ?",
+      "dateLancement": "Date de lancement du suivi",
+      "outilBancarisation": "Comment la donnée est-elle stockée ou bancarisée ?",
+      "outilSaisie": "Existence d'un outil de saisie",
+      "transmissionDonnee": "Transmission de la donnée à l'organisme porteur ?",
+      "programmationTitle": "Programmation",
+      "programmation": "Programmation",
+      "programmationAnnuelle": "Programmation annuelle",
+      "programmationMensuelle": "Programmation mensuelle",
+      "progPeriodicite": "Périodicité",
+      "progPonctuelle": "Ponctuelle",
+      "progMois": "Mois programmés",
+      "sitesLies": "L'action est liée au/aux",
+      "progBudget": "Budget prévisionnel (€)",
+      "progTravail": "Travail prévisionnel (jours)",
+      "budgetFonctionnement": "Budget prév. OG (€) Fonctionnement",
+      "budgetInvestissement": "Budget prév. OG (€) Investissement",
+      "budgetTotal": "Budget prév. OG (€) TOTAL",
+      "travailPrevisionnel": "Travail prévisionnel (jours)",
+      "totalLabel": "TOTAL",
+      "duplicateFirstCol": "Dupliquer valeurs de la 1ère colonne",
+      "actionLieeAux": "L'action est liée au/aux",
+      "frequenceAction": "Fréquence de l'action",
+      "foisPar": "fois par",
+      "frequenceLabel": "Fréquence",
+      "frequenceNombre": "Nombre",
+      "frequenceUnite": "Unité",
+      "operateursLabel": "Opérateur(s) de l'action",
+      "partenairesLabel": "Partenaire(s) de l'action",
+      "financeursLabel": "Financeur(s) de l'action",
+      "financementsLabel": "Financement(s) de l'action",
+      "acteursTitle": "Acteurs",
+      "detailsLabel": "Détails",
+      "detailsCommentaires": "Détails / commentaires",
+      "indicateursReponse": "Indicateur(s) de réponse",
+      "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
+      "descriptionLabel": "Description",
+      "codeLabel": "Code opération",
+      "refLabel": "Référentiel opérations",
+      "anneeMinLabel": "Année min",
+      "anneeMaxLabel": "Année max",
+      "periodLabel": "Période",
+      "empriseSpatiale": "Emprise spatiale",
+      "ajouterEmprise": "Ajouter l'emprise spatiale",
+      "createSuccess": "Action créée avec succès",
+      "updateSuccess": "Action mise à jour avec succès",
+      "deleteSuccess": "Action supprimée avec succès",
+      "deleteTitle": "Supprimer l'action",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette action ?",
+      "uniteJour": "jour(s)",
+      "uniteSemaine": "semaine(s)",
+      "uniteMois": "mois",
+      "uniteAn": "an(s)",
+      "operateurTypeLabel": "Opérateur",
+      "selectYearMensuelle": "Année affichée :",
+      "financeTitle": "Sources de financement",
+      "financeLibelleLabel": "Libellé",
+      "categorieFinanceLabel": "Catégorie",
+      "addFinance": "+ Ajouter un financeur",
+      "recurringHint": "Les mois cochés ci-dessous seront appliqués à toutes les années sélectionnées.",
+      "estSuiviExistantLabel": "Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?",
+      "intituleSuiviLabel": "Intitulé de l'inventaire ou suivi",
+      "aucunSuiviDisponible": "Aucun suivi disponible - module à venir",
+      "protocoleTitle": "Protocole",
+      "descriptionProtocole": "Description du protocole",
+      "objectifProtocole": "Détails de l'objectif du protocole",
+      "periodeEchantillonnage": "Période d'échantillonnage",
+      "periodeEchantillonnagePlaceholder": "Ex: Avril - Juin",
+      "bancarisationTitle": "Bancarisation et stockage de la donnée"
+    },
+    "facteurInfluence": {
+      "label": "Facteur d'influence",
+      "newTitle": "Nouveau facteur d'influence",
+      "addButton": "Ajouter un facteur d'influence",
+      "viewButton": "Voir les facteurs",
+      "countSuffix": "facteur(s) d'influence",
+      "libelleLabel": "Intitulé du facteur d'influence",
+      "descriptionLabel": "Détails / commentaires",
+      "details": "DÉTAILS",
+      "deleteTitle": "Supprimer le facteur d'influence",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce facteur d'influence ? Ses pressions seront également supprimées.",
+      "editTitle": "Modifier le facteur d'influence",
+      "createSuccess": "Facteur d'influence créé avec succès",
+      "updateSuccess": "Facteur d'influence mis à jour avec succès",
+      "deleteSuccess": "Facteur d'influence supprimé avec succès"
+    },
+    "pression": {
+      "label": "Pression",
+      "newTitle": "Nouvelle pression à gérer",
+      "addButton": "Ajouter une pression",
+      "libelleLabel": "Intitulé de la pression à gérer",
+      "descriptionLabel": "Détails / commentaires",
+      "details": "DÉTAILS",
+      "deleteTitle": "Supprimer la pression",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette pression ?",
+      "editTitle": "Modifier la pression",
+      "createSuccess": "Pression créée avec succès",
+      "updateSuccess": "Pression mise à jour avec succès",
+      "deleteSuccess": "Pression supprimée avec succès"
+    },
+    "indicateurs": {
+      "label": "Indicateur d'état",
+      "addButton": "Ajouter un indicateur",
+      "newTitle": "Nouvel indicateur d'état",
+      "editTitle": "Modifier l'indicateur",
+      "nomLabel": "Intitulé de l'indicateur",
+      "typeLabel": "Type d'indicateur",
+      "standardiseLabel": "Indicateur standardisé",
+      "descriptionLabel": "Description",
+      "createSuccess": "Indicateur créé avec succès",
+      "updateSuccess": "Indicateur mis à jour avec succès",
+      "deleteSuccess": "Indicateur supprimé avec succès",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet indicateur ? Ses métriques et mesures seront également supprimées.",
+      "types": {
+        "etat": "État",
+        "pression": "Pression",
+        "reponse": "Réponse"
+      }
+    },
+    "metriques": {
+      "label": "Métrique",
+      "addButton": "Ajouter une métrique",
+      "nomLabel": "Intitulé de la métrique",
+      "typeLabel": "Type de métrique",
+      "uniteLabel": "Unité",
+      "ponderationLabel": "Pondération",
+      "etatReferenceLabel": "État de référence",
+      "seuilsTitle": "Seuils de scores",
+      "min": "Min",
+      "max": "Max",
+      "partialError": "L'indicateur a été créé mais certaines métriques n'ont pas pu être enregistrées",
+      "sectionTitle": "MÉTRIQUES",
+      "createSuccess": "Métrique créée avec succès",
+      "updateSuccess": "Métrique mise à jour avec succès",
+      "deleteSuccess": "Métrique supprimée avec succès",
+      "actionsTitle": "Actions liées à cette métrique",
+      "scores": {
+        "tresMauvais": "Très mauvais",
+        "mauvais": "Mauvais",
+        "moyen": "Moyen",
+        "bon": "Bon",
+        "tresBon": "Très bon"
+      }
+    },
+    "mesures": {
+      "label": "Mesure",
+      "addButton": "Ajouter une mesure",
+      "valeurLabel": "Valeur",
+      "dateLabel": "Date de mesure",
+      "commentaireLabel": "Commentaire",
+      "createSuccess": "Mesure créée avec succès",
+      "deleteSuccess": "Mesure supprimée avec succès"
+    }
+  },
+  "taxonomie": {
+    "searchTaxon": "Rechercher un taxon...",
+    "searchHabitat": "Rechercher un habitat...",
+    "noResults": "Aucun résultat",
+    "minChars": "Saisissez au moins 3 caractères",
+    "addTaxon": "Ajouter un taxon",
+    "addHabitat": "Ajouter un habitat",
+    "taxons": "Taxons",
+    "habitats": "Habitats"
+  },
+  "responsabilites": {
+    "title": "Responsabilités",
+    "subtitle": "Responsabilités du site",
+    "empty": {
+      "message": "Aucune responsabilité définie",
+      "hint": "Définissez les responsabilités du site en termes de conservation"
+    },
+    "type": {
+      "floristique": "Floristique",
+      "faunistique": "Faunistique",
+      "habitat": "Habitat",
+      "geologique": "Géologique",
+      "paysager": "Paysager"
+    },
+    "niveau": {
+      "local": "Local",
+      "regional": "Régional",
+      "national": "National",
+      "international": "International"
+    },
+    "form": {
+      "titleNew": "Ajouter une responsabilité",
+      "titleEdit": "Modifier la responsabilité",
+      "type": "Type de responsabilité",
+      "niveau": "Niveau de responsabilité",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez cette responsabilité"
+    },
+    "messages": {
+      "createSuccess": "Responsabilité créée avec succès",
+      "updateSuccess": "Responsabilité mise à jour avec succès",
+      "deleteSuccess": "Responsabilité supprimée avec succès",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette responsabilité ?"
+    }
+  },
+  "inventaires": {
+    "title": "Suivis et inventaires",
+    "pageTitle": "Inventaires et suivis scientifiques",
+    "tabs": {
+      "actifs": "Actifs",
+      "inactifs": "Inactifs"
+    },
+    "actions": {
+      "add": "Ajouter un inventaire/suivi",
+      "viewDetail": "Voir le détail",
+      "generate": "Générer"
+    },
+    "filters": {
+      "label": "Filtrer"
+    },
+    "searchPlaceholder": "Rechercher un suivi ou inventaire...",
+    "resultsCount": "{{count}} résultat(s)",
+    "empty": {
+      "title": "Aucun suivi ou inventaire",
+      "description": "Commencez par ajouter un suivi ou un inventaire pour cette catégorie."
+    },
+    "table": {
+      "nom": "Nom du suivi",
+      "periode": "Période active du suivi/inventaire",
+      "statut": "Statut",
+      "details": "Détails",
+      "detailFiche": "Détails fiche"
+    },
+    "form": {
+      "createTitle": "Nouveau suivi / inventaire",
+      "editTitle": "Modifier le suivi / inventaire",
+      "intitule": "Intitulé",
+      "intitulePlaceholder": "Nom du suivi ou inventaire",
+      "prixIndicatif": "Prix à titre indicatif",
+      "prixPlaceholder": "0.00",
+      "typeSuivi": "Type de suivi",
+      "integrePG": "L'inventaire ou le suivi est inscrit dans le plan de gestion",
+      "suitIndicateur": "Le suivi/inventaire permet-il de suivre un indicateur ?",
+      "typeIndicateur": "Type d'indicateur",
+      "infoStandalone": {
+        "title": "Utilisation autonome possible",
+        "description": "Ce formulaire peut être utilisé de manière autonome, sans passer par la gestion complète des plans dans Cicada. Il permet de décrire et suivre vos inventaires ou suivis scientifiques indépendamment."
+      },
+      "objectifPrincipal": "Objectif principal",
+      "objectifSecondaire": "Objectif secondaire (optionnel)",
+      "ciblesPrincipales": "Cible principale",
+      "cibleSecondaire": "Cible secondaire (optionnel)",
+      "cibleSecondaireHint": "Objet secondaire sur lequel porte l'observation, la mesure ou l'analyse",
+      "taxonRef": "Taxon(s) référé(s)",
+      "habitat": "Habitat(s) référé(s)",
+      "dateLancement": "Date de lancement du suivi",
+      "dateLancementPlaceholder": "JJ/MM/AAAA",
+      "sections": {
+        "protocole": "Détails du protocole",
+        "bancarisation": "Bancarisation et stockage de la donnée",
+        "details": "Détails"
+      },
+      "protocoleCampanule": "Protocole répertorié dans campanule",
+      "protocoleCampanuleNom": "Protocole Campanule",
+      "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
+      "campanuleSearchHint": "Recherche par nom du protocole (ex : STOC, PSDRF, EPOC...)",
+      "nomProtocole": "Nom du protocole",
+      "nbEtpCycle": "Nombre d'ETP par cycle de collecte",
+      "nbEtpCycleHint": "Veuillez préciser un estimatif du nombre total d'ETP nécessaire à la mise en œuvre sur un cycle : préparation, étude terrain et analyse des données",
+      "descriptionProtocole": "Descriptif du protocole",
+      "modeValidation": "Mode et champ de validation",
+      "objectifProtocole": "Détails de l'objectif du protocole",
+      "periodeEchantillonnage": "Période d'échantillonnage",
+      "periodeSuivi": "Période de suivi",
+      "documentationDisponible": "Une documentation décrivant le protocole est-elle disponible ?",
+      "urlDocumentation": "URL de la documentation",
+      "urlDocumentationPlaceholder": "https://...",
+      "respectProtocole": "Respectez-vous strictement le protocole ?",
+      "consulterProtocole": "Consulter le protocole",
+      "justificationNonRespect": "Pourquoi ne respectez-vous pas le protocole ?",
+      "differencesProtocole": "Quelle(s) différence(s) avec le protocole ?",
+      "frequence": "Fréquence de mise en oeuvre",
+      "frequencePrecision": "Précisez la fréquence",
+      "frequencePrecisionPlaceholder": "ex : Tous les 3 ans",
+      "outilBancarisation": "Comment la donnée est-elle stockée ou bancarisée ?",
+      "outilSaisie": "Existence d'un outil de saisie",
+      "transmissionDonnee": "Transmission de la donnée à l'organisme porteur ?",
+      "statut": "Statut",
+      "anneeFin": "Année de fin",
+      "commentaires": "Détails / commentaires",
+      "requiredBefore": "Les champs avec",
+      "requiredAfter": "sont obligatoires",
+      "frequenceFoisPar": "fois par"
+    },
+    "detail": {
+      "untitled": "Suivi / inventaire sans titre",
+      "edit": "Modifier",
+      "backToList": "Retour à la liste",
+      "operations": "opération(s)",
+      "planLie": "Plan de gestion lié",
+      "dateCreation": "Date de création",
+      "dateMaj": "Dernière modification"
+    },
+    "messages": {
+      "createSuccess": "Suivi / inventaire créé avec succès",
+      "updateSuccess": "Suivi / inventaire mis à jour avec succès",
+      "deleteSuccess": "Suivi / inventaire supprimé avec succès"
+    },
+    "errors": {
+      "loadFailed": "Erreur lors du chargement des données",
+      "saveFailed": "Erreur lors de l'enregistrement"
+    }
+  },
+  "campanule": {
+    "dialog": {
+      "title": "Protocole CAMPanule",
+      "description": "Description",
+      "objectif": "Objectif",
+      "cible": "Cible",
+      "auteurs": "Auteur(s)",
+      "echantillonnage": "Échantillonnage",
+      "periode": "Période",
+      "passages": "Passages par an",
+      "duree": "Durée",
+      "unite": "Unité d'échantillonnage",
+      "methodes": "Méthodes",
+      "techniques": "Techniques",
+      "infos": "Informations complémentaires",
+      "natureDonnees": "Nature des données",
+      "echelleRestit": "Échelle de restitution",
+      "datePubli": "Date de publication",
+      "liens": "Liens",
+      "urlPerm": "Lien permanent INPN",
+      "urlProtocole": "Page du protocole",
+      "urlComplementaire": "Documentation complémentaire"
+    },
+    "errors": {
+      "loadFailed": "Erreur lors du chargement du protocole"
+    }
+  },
+  "taxonomy": {
+    "rank": "Rang",
+    "status": "Statut",
+    "author": "Auteur",
+    "hierarchy": "Hiérarchie taxonomique",
+    "groups": "Groupes INPN",
+    "names": "Noms",
+    "validName": "Nom valide",
+    "vernacularName": "Nom vernaculaire",
+    "vernacularNameEn": "Nom vernaculaire (EN)",
+    "viewOnInpn": "Voir sur l'INPN",
+    "searchTaxon": "Rechercher un taxon",
+    "searchHabitat": "Rechercher un habitat"
   }
 }

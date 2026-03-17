@@ -35,6 +35,7 @@ class ValidationRequestsSeeder(BaseSeeder):
     - site_org_unlink
     - invite_org_to_site
     - invite_user_to_site
+    - plan_site_link
     """
 
     name = 'validation_requests'
@@ -318,6 +319,44 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'validation_comment': "Merci pour l'invitation mais je ne suis pas disponible actuellement.",
                 'validated_at': now - timedelta(days=7),
             },
+
+            # LIEN PLAN-SITE (demande de liaison d'un site a un plan)
+            {
+                'request_type': 'plan_site_link',
+                'requester': referent_camargue,
+                'target_plan': plans[0],  # Plan Camargue
+                'target_site': sites[3],  # Vercors
+                'status': 'pending',
+                'justification': 'Collaboration inter-sites sur le suivi des oiseaux migrateurs.',
+            },
+            {
+                'request_type': 'plan_site_link',
+                'requester': referent_vercors,
+                'target_plan': plans[3],  # Plan inter-sites Vercors-Ecrins
+                'target_site': sites[4],  # Marais de Brouage
+                'status': 'pending',
+                'justification': 'Extension du plan aux zones humides du littoral atlantique.',
+            },
+            {
+                'request_type': 'plan_site_link',
+                'requester': user_rnf,
+                'target_plan': plans[1],  # Plan Aiguilles Rouges
+                'target_site': sites[6],  # Lac de Remoray
+                'status': 'approved',
+                'justification': 'Etude comparative des ecosystemes montagnards et lacustres.',
+                'validator': admin_rnf,
+                'validation_comment': 'Lien approuve pour le projet de recherche.',
+                'validated_at': now - timedelta(days=4),
+            },
+            # Demande par un referent de site non lie au plan
+            {
+                'request_type': 'plan_site_link',
+                'requester': referent_vercors,
+                'target_plan': plans[1],  # Plan Aiguilles Rouges (referent_vercors n'est pas membre)
+                'target_site': sites[3],  # Vercors (referent_vercors est referent)
+                'status': 'pending',
+                'justification': 'Lier le site du Vercors au plan Aiguilles Rouges pour etude comparative.',
+            },
         ]
 
     def seed(self) -> List[ValidationRequest]:
@@ -393,10 +432,10 @@ class ValidationRequestsSeeder(BaseSeeder):
             Liste des lignes du resume
         """
         return [
-            '\nDemandes de validation (27):',
+            '\nDemandes de validation (31):',
             '  Types: user_registration, site_access, plan_access, referent_validation,',
             '         admin_deactivation, module_access, site_creation, site_org_link,',
-            '         site_org_unlink, invite_org_to_site, invite_user_to_site',
+            '         site_org_unlink, invite_org_to_site, invite_user_to_site, plan_site_link',
             '  Statuts: pending, approved, rejected',
             '\n  Demandes plan_access (7):',
             '    - 5 demandes pending (user_rnf, user_cen, referent_camargue)',

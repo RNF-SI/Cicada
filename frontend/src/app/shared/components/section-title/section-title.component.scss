@@ -172,15 +172,35 @@ $section-ellipse-size: $ellipse-size-md;
 .section-title-text {
   margin: 0;
   font-family: $font-family;
-  font-size: $font-size-h2; // $font-size-h2
+  font-size: $font-size-h2;
   font-weight: $font-weight-bold;
   color: $primary-color;
-  line-height: $line-height-h2; // $line-height-h2
+  line-height: $line-height-h2;
 
   &.small {
-    font-size: $font-size-h4; // $font-size-h4
+    font-size: $font-size-h4;
     line-height: $line-height-h4;
   }
+
+  // Variantes de couleur du titre
+  &.color-terra-cotta {
+    color: $secondary-terra-cotta;
+  }
+
+  &.color-salmon {
+    color: $secondary-orange-salmon;
+  }
+
+  &.color-yellow {
+    color: $secondary-yellow;
+  }
+}
+
+.section-title-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
 }
 
 // Ligne de séparation sous le titre - couleur selon l'ellipse

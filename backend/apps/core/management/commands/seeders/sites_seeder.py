@@ -26,7 +26,7 @@ class SitesSeeder(BaseSeeder):
     """
 
     name = 'sites'
-    dependencies = ['organismes', 'nomenclatures']
+    dependencies = ['organismes']
 
     # Coordonnees reelles des sites naturels francais (lon, lat, offset)
     SITES_COORDS = {

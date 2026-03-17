@@ -1,0 +1,37 @@
+<mat-form-field appearance="outline" class="habitat-autocomplete-field">
+  <mat-label>{{ label() }}</mat-label>
+  <input
+    matInput
+    [formControl]="searchControl"
+    [matAutocomplete]="auto"
+    [placeholder]="placeholder()"
+    [required]="required()"
+  >
+  @if (isLoading()) {
+    <mat-spinner matSuffix diameter="20"></mat-spinner>
+  }
+  @if (selectedHabitat()) {
+    <button matSuffix mat-icon-button (click)="clear()" type="button" aria-label="Effacer">
+      <mat-icon>close</mat-icon>
+    </button>
+  }
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    [displayWith]="displayFn"
+    (optionSelected)="onOptionSelected($event)"
+  >
+    @for (habitat of results(); track habitat.cd_hab) {
+      <mat-option [value]="habitat">
+        <div class="habitat-option">
+          @if (habitat.lb_code) {
+            <span class="habitat-code">[{{ habitat.lb_code }}]</span>
+          }
+          <span class="habitat-nom">{{ habitat.lb_hab_fr }}</span>
+          @if (habitat.lb_typo) {
+            <span class="habitat-typo">{{ habitat.lb_typo }}</span>
+          }
+        </div>
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

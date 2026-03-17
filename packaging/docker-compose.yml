@@ -1,0 +1,127 @@
+services:
+  # Base de données PostgreSQL avec PostGIS
+  # Ce service n'est démarré que si DB_TYPE=docker (profile with-db)
+  db:
+    profiles:
+      - with-db
+    image: postgis/postgis:15-3.3-alpine
+    container_name: cicada_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cicada}
+      POSTGRES_USER: ${POSTGRES_USER:-cicada_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outil_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /usr/share/cicada/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - "5432"
+    networks:
+      - cicada_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cicada_user} -d ${POSTGRES_DB:-cicada}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: cicada_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    networks:
+      - cicada_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Django (Backend)
+  web:
+    build: 
+      context: /usr/share/cicada/backend
+      dockerfile: Dockerfile
+    container_name: cicada_web
+    environment:
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-django-secret-key-for-development}
+      - DATABASE_URL=postgis://${POSTGRES_USER:-cicada_user}:${POSTGRES_PASSWORD:-outil_password}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-cicada}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      - DB_HOST=${POSTGRES_HOST:-db}
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - DB_NAME=${POSTGRES_DB:-cicada}
+      - DB_USER=${POSTGRES_USER:-cicada_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-outil_password}
+      - POSTGRES_DB=${POSTGRES_DB:-cicada}
+      - POSTGRES_USER=${POSTGRES_USER:-cicada_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-outil_password}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+
+
+    volumes:
+      - /usr/share/cicada/backend:/app
+      - media_files:/app/media
+      - static_files:/app/static
+      - logs_data:/app/logs
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    # La dépendance à db est conditionnelle : seulement si DB_TYPE=docker
+    # Si DB_TYPE=existing, db n'est pas démarré et web se connecte à la base externe
+    networks:
+      - cicada_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint: ["/entrypoint.sh"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+  # Application Angular (Frontend) - Mode développement  
+  frontend:
+    image: node:18-alpine
+    container_name: cicada_frontend
+    working_dir: /app
+    volumes:
+      - /usr/share/cicada/frontend:/app
+      - /app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    command: sh -c "npm install && npm run start:docker"
+    depends_on:
+      - web
+    networks:
+      - cicada_network
+    environment:
+      - NODE_ENV=development
+
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_files:
+    driver: local
+  static_files:
+    driver: local
+  logs_data:
+    driver: local
+
+networks:
+  cicada_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

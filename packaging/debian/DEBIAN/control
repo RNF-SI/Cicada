@@ -1,0 +1,10 @@
+Package: cicada
+Version: 0.1.12
+Section: web
+Priority: optional
+Architecture: amd64
+Depends: docker-ce (>= 5:29.0.0), docker-ce-cli, containerd.io, docker-compose-plugin, python3, python3-venv, python3-pip, curl
+Maintainer: SI RNF <si@rnfrance.org>
+Description: Application de gestion des plans de gestion d'espaces naturels
+ CICADA permet de centraliser et standardiser la gestion des plans
+ de gestion des aires protégées françaises.

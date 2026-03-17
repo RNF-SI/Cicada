@@ -40,6 +40,11 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.plans',
     'apps.notifications',
+    'apps.taxonomy',
+    'apps.habitats',
+    'apps.geology',
+    'apps.campanule',
+    'apps.system',
 ]
 
 MIDDLEWARE = [
@@ -91,7 +96,7 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {
-            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,public'
+            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
         },
     }
 }

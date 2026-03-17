@@ -42,9 +42,11 @@ export interface OrganismeCreatePayload {
  */
 export interface SiteUserAccess {
   has_access: boolean;
-  is_referent: boolean;
-  is_conservateur: boolean;
+  is_referent?: boolean;
+  is_conservateur?: boolean;
   role_label: string;
+  /** Type d'accès pour le styling frontend */
+  access_type?: 'super_admin' | 'referent' | 'conservateur' | 'membre' | 'admin_og' | 'organisme';
 }
 
 /**
@@ -70,6 +72,8 @@ export interface AdminSite {
   type_site?: SiteTypeInfo | null;
   /** Label du type de site (retourné par tous les serializers) */
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   marin?: boolean;
   outre_mer?: boolean;
@@ -93,6 +97,8 @@ export interface SiteCreatePayload {
   id_inpn?: string;
   /** ID de nomenclature pour le type de site (envoyé comme type_site_id au backend) */
   type_site_id?: number;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   marin?: boolean;
   outre_mer?: boolean;
@@ -231,6 +237,8 @@ export interface OrganismeSite {
   surf_off?: number;
   type_site?: string;
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   active?: boolean;
   principal?: boolean;
 }
@@ -277,6 +285,36 @@ export interface PaginatedResponseNested<T> {
   results: T[];
 }
 
+// ==================== FICHIERS PLANS ====================
+
+/**
+ * Types de fichiers attachés à un plan de gestion
+ */
+export type FichierType = 'document' | 'annexe' | 'carte' | 'photo' | 'rapport' | 'autre';
+
+/**
+ * Fichier attaché à un plan de gestion
+ */
+export interface PlanFichier {
+  id: number;
+  nom_fichier: string;
+  chemin_fichier: string;
+  url: string | null;
+  type_fichier: FichierType;
+  titre: string | null;
+  description: string | null;
+  auteur: string | null;
+  public: boolean;
+  ordre_affichage: number;
+  taille_fichier: number | null;
+  file_size_human: string | null;
+  extension: string | null;
+  is_image: boolean;
+  is_document: boolean;
+  date_upload: string;
+  date_document: string | null;
+}
+
 // ==================== PLANS DE GESTION ====================
 
 /**
@@ -287,12 +325,27 @@ export type PlanStatut = 'draft' | 'valide' | 'archive';
 /**
  * Site associé à un plan de gestion
  */
+export interface PlanSiteOrganisme {
+  id_organisme: number;
+  nom_organisme: string;
+  principal: boolean;
+}
+
 export interface PlanSite {
   id_site: number;
   nom_site: string;
+  slug?: string;
   type_site_label?: string;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off?: number;
   rang?: number;
+  /** Indique si l'utilisateur courant a accès à ce site */
+  current_user_has_access?: boolean;
+  /** Statut du lien plan-site (active = lié, pending = en attente de validation) */
+  status?: 'active' | 'pending';
+  /** Organismes liés au site */
+  organismes?: PlanSiteOrganisme[];
 }
 
 /**
@@ -321,11 +374,28 @@ export interface PlanMembre {
 }
 
 /**
+ * Élément de la chaîne de versions d'un plan de gestion
+ */
+export interface PlanVersionChainItem {
+  id_pg: number;
+  nom: string;
+  slug: string;
+  version: string;
+  statut: PlanStatut;
+  annee_debut?: number;
+  annee_fin?: number;
+  type_document?: string;
+  type_document_mnemonique?: string;
+  is_current: boolean;
+}
+
+/**
  * Plan de gestion - modèle complet depuis l'API
  */
 export interface AdminPlan {
   id_pg: number;
   nom: string;
+  slug?: string;
   id_cdr?: number;
   rang?: number;
   statut: PlanStatut;
@@ -353,6 +423,16 @@ export interface AdminPlan {
   membres?: PlanMembre[];
   id_utilisateur_ajout?: number;
   id_utilisateur_maj?: number;
+  // Fichiers
+  fichiers?: PlanFichier[];
+  nb_fichiers?: number;
+  // Version chain fields
+  plan_parent_id?: number | null;
+  plan_parent_nom?: string | null;
+  plan_parent_slug?: string | null;
+  type_document_display?: string | null;
+  children_count?: number;
+  version_chain?: PlanVersionChainItem[];
 }
 
 /**
@@ -381,6 +461,17 @@ export interface PlanCreatePayload {
   relecteurs?: string;
   commentaire?: string;
   referents_ids?: number[];
+}
+
+/**
+ * Options pour la duplication d'un plan de gestion
+ */
+export interface PlanDuplicateOptions {
+  copy_sites: boolean;
+  copy_referents: boolean;
+  copy_fichiers: boolean;
+  copy_enjeux: boolean;
+  copy_sub_elements: boolean;
 }
 
 /**
@@ -429,6 +520,8 @@ export interface DuplicateSite {
   id_inpn: string | null;
   id_local: string | null;
   type_site_label: string | null;
+  /** Précision du type de site quand le type est "Autre" */
+  type_site_precision?: string | null;
   surf_off: number | null;
   organismes: Array<{
     id_organisme: number;
@@ -473,6 +566,8 @@ export interface BulkImportSiteRow {
   errors: string[];
   warnings: string[];
   duplicate_info: BulkImportDuplicateInfo | null;
+  /** Sites avec noms similaires (avertissement non bloquant) */
+  similar_names?: { id_site: number; nom_site: string }[];
   /** Sélectionné pour import (état local, non retourné par l'API) */
   selected?: boolean;
 }

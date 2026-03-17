@@ -1,0 +1,7 @@
+[Unit]
+Description=CICADA Update Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cicada-updater
+User=root

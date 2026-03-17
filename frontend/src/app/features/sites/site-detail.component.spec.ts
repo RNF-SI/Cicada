@@ -211,11 +211,15 @@ describe('SiteDetailComponent', () => {
 
     const validationServiceMock = {
       getMyRequests: getMyRequestsMock,
-      requestReferent: requestReferentMock
+      requestReferent: requestReferentMock,
+      getValidationRequests: jest.fn().mockReturnValue(of({ count: 0, results: [] }))
     };
+
+    const isAdminOrganismeSignal = signal(false);
 
     const authServiceMock = {
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
+      isAdminOrganisme: isAdminOrganismeSignal.asReadonly(),
       isAuthenticated: isAuthenticatedSignal.asReadonly(),
       isImpersonating: isImpersonatingSignal.asReadonly(),
       impersonationInfo: impersonationInfoSignal.asReadonly(),

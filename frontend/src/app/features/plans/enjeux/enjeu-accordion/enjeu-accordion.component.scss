@@ -1,0 +1,300 @@
+@import 'variables';
+
+.accordion {
+  background-color: $white;
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: 0 $border-radius-lg $border-radius-lg 0;
+  overflow: hidden;
+  transition: all $transition-fast;
+
+  &.fcr {
+    border-left-color: $secondary-orange-salmon;
+  }
+
+  &.expanded {
+    background-color: transparent;
+    border-left: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+// Header
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+
+  .fcr &:hover {
+    background-color: rgba($secondary-orange-salmon, 0.03);
+  }
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+// Ellipse icon in header
+.header-icon {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  flex-shrink: 0;
+
+  .header-ellipse-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: rotate(-90deg) scaleY(-1);
+  }
+
+  .header-ellipse-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: $white;
+  }
+}
+
+.accordion-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  line-height: 22px;
+}
+
+// Header actions
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+}
+
+// Icon buttons
+.action-btn {
+  width: 36px;
+  height: 36px;
+  color: $gray-dark;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// Expand button
+.expand-btn {
+  width: 36px;
+  height: 36px;
+  color: $primary-color;
+
+  i {
+    font-size: 18px;
+  }
+}
+
+// Body (expanded)
+.accordion-body {
+  background-color: rgba($secondary-terra-cotta, 0.08);
+  border: 1px solid $secondary-terra-cotta;
+  border-radius: 0 20px 0 20px;
+  padding: $spacing-lg;
+
+  .fcr & {
+    background-color: rgba($secondary-orange-salmon, 0.08);
+    border-color: $secondary-orange-salmon;
+  }
+}
+
+// Sub-header in body
+.body-sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.body-sub-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.body-sub-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+  flex-shrink: 0;
+}
+
+.body-sub-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.body-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  flex-shrink: 0;
+}
+
+// Property lines (inline)
+.property-lines {
+  margin-bottom: $spacing-md;
+}
+
+.property-line {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  padding: $spacing-xxs 0;
+}
+
+.prop-label {
+  font-size: 15px;
+  color: $gray-dark;
+  flex-shrink: 0;
+}
+
+.prop-value {
+  font-size: 15px;
+  color: $black;
+  font-weight: $font-weight-regular;
+
+  &.prop-link {
+    color: $black;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+// Detail Sections
+.detail-section {
+  padding-top: $spacing-md;
+  border-top: 1px solid rgba($black, 0.1);
+  margin-bottom: $spacing-lg;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.detail-title {
+  margin: 0 0 $spacing-sm 0;
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 24px;
+}
+
+.detail-text {
+  margin: 0;
+  font-size: 15px;
+  color: $black;
+  line-height: $line-height-base;
+  white-space: pre-wrap;
+}
+
+// Reference lists (taxons, habitats, geologies)
+.reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  padding: $spacing-xs 0 $spacing-sm $spacing-lg;
+}
+
+.reference-chip {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  font-size: 13px;
+  color: $primary-color;
+  background-color: rgba($primary-color, 0.06);
+  border-radius: $border-radius-pill;
+  border: 1px solid rgba($primary-color, 0.15);
+  line-height: 20px;
+}
+
+// Facteurs d'influence summary
+.facteurs-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1px solid rgba($black, 0.1);
+  margin-top: $spacing-md;
+}
+
+.facteurs-count {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+
+  i {
+    font-size: 14px;
+    color: $secondary-terra-cotta;
+  }
+}
+
+// Metadata
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1px solid rgba($black, 0.1);
+  margin-top: $spacing-lg;
+}
+
+.metadata-item {
+  font-size: 12px;
+  color: $gray-dark;
+}
+
+// Responsive
+@media (max-width: $breakpoint-tablet) {
+  .accordion-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .header-content {
+    flex-wrap: wrap;
+  }
+
+  .body-sub-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+}

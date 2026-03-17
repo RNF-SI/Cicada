@@ -57,7 +57,7 @@
                   <i class="fi fi-rr-marker"></i>
                   <span class="site-name">{{ assignment.site.nom_site }}</span>
                   @if (assignment.site.type_site_label) {
-                    <span class="site-type">({{ assignment.site.type_site_label }})</span>
+                    <span class="site-type">({{ assignment.site | siteTypeDisplay }})</span>
                   }
                 </div>
 
@@ -111,13 +111,14 @@
                   <div class="autocomplete-option">
                     <span class="option-name">{{ site.nom_site }}</span>
                     @if (site.type_site_label) {
-                      <span class="option-type">{{ site.type_site_label }}</span>
+                      <span class="option-type">{{ site | siteTypeDisplay }}</span>
                     }
                   </div>
                 </mat-option>
               }
             </mat-autocomplete>
           </mat-form-field>
+
         </div>
       </div>
 

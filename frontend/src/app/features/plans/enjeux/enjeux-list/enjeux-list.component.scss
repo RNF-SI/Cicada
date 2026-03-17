@@ -1,0 +1,2077 @@
+@import 'variables';
+
+// ============================================
+// LAYOUT
+// ============================================
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.enjeux-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+}
+
+// Loading & Error states
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container {
+  i {
+    font-size: $font-size-h1;
+    color: $error-color;
+  }
+
+  p {
+    color: $error-color;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+// ============================================
+// MAIN CONTENT
+// ============================================
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+.hero-section {
+  position: relative;
+  background-color: $primary-color;
+  border-radius: 0 0 20px 20px;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 0.2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+// Breadcrumb
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $white;
+  border-radius: 50%;
+  color: $primary-color;
+  text-decoration: none;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 12px;
+  transition: transform $transition-fast;
+
+  i {
+    font-size: 20px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $white;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.breadcrumb-link {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.breadcrumb-chevron {
+  color: $white;
+  font-size: $font-size-base;
+}
+
+.breadcrumb-current {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+// Plan Header
+.plan-header {
+  margin-top: $spacing-md;
+}
+
+.plan-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-sm;
+  line-height: 24px;
+
+  i {
+    font-size: 15px;
+  }
+}
+
+.plan-title {
+  color: $white;
+  font-size: 48px;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: 72px;
+  margin: 0 0 $spacing-lg 0;
+}
+
+// Hero buttons
+.hero-actions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: $white;
+  color: $primary-color;
+  border: none;
+  border-radius: 80px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: box-shadow $transition-fast;
+  box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05);
+  line-height: 24px;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.btn-hero-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: transparent;
+  color: $white;
+  border: 1px solid $white;
+  border-radius: 80px;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  line-height: 24px;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background-color: rgba($white, 0.1);
+  }
+}
+
+// ============================================
+// CONTENT SECTION
+// ============================================
+
+.content-section {
+  padding: $spacing-xl $spacing-xl;
+}
+
+// ============================================
+// EMPTY STATE
+// ============================================
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xxl;
+  text-align: center;
+
+  .empty-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.info-block {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  background-color: rgba($secondary-orange-salmon, 0.15);
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  max-width: 600px;
+  margin-top: $spacing-xl;
+  text-align: left;
+
+  .info-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background-color: $secondary-orange-salmon;
+    border-radius: $border-radius-round;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      color: $black;
+      font-size: 20px;
+    }
+  }
+
+  .info-content {
+    flex: 1;
+
+    .info-title {
+      font-weight: $font-weight-bold;
+      color: $black;
+      margin: 0 0 $spacing-xs 0;
+    }
+
+    .info-description {
+      color: $gray-dark;
+      margin: 0;
+      font-size: $font-size-small;
+    }
+  }
+}
+
+// ============================================
+// TABS (vue détail enjeu)
+// ============================================
+
+.tabs-container {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xl;
+  border-bottom: 2px solid $gray-light;
+  padding-bottom: 0;
+}
+
+.tab-item {
+  padding: $spacing-sm $spacing-lg;
+  border: none;
+  background: none;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $gray-dark;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &.active {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    border-bottom-color: $primary-color;
+  }
+}
+
+// ============================================
+// ENJEU HEADER (vue détail)
+// ============================================
+
+.enjeu-header-section {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.enjeu-icon-wrapper {
+  width: 68px;
+  height: 68px;
+  position: relative;
+  flex-shrink: 0;
+
+  .enjeu-ellipse-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: rotate(-90deg) scaleY(-1);
+  }
+
+  .enjeu-ellipse-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: $white;
+  }
+}
+
+.enjeu-header-middle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.enjeu-main-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.enjeu-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.enjeu-header-divider {
+  width: 100%;
+  height: 1px;
+  background-color: $gray-light;
+  margin-bottom: $spacing-lg;
+}
+
+// Icon button flat (utilisé dans le header et les cartes)
+.icon-btn-flat {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  border-radius: $border-radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $gray-dark;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+}
+
+// ============================================
+// ENJEU DETAIL CARD (terra-cotta)
+// ============================================
+
+.enjeu-detail-card {
+  background-color: rgba($secondary-terra-cotta, 0.08);
+  border: 1px solid $secondary-terra-cotta;
+  border-radius: 0 20px 20px 0;
+  overflow: hidden;
+}
+
+.card-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+}
+
+.card-section-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-section-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+  flex-shrink: 0;
+}
+
+.card-section-name {
+  margin: 0;
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-section-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.expand-arrow {
+  font-size: 16px;
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+.card-detail-body {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+// Property lines
+.property-line {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+  padding: $spacing-xs 0;
+}
+
+.prop-label {
+  font-size: 15px;
+  color: $gray-dark;
+  flex-shrink: 0;
+}
+
+.prop-value {
+  font-size: 15px;
+  color: $black;
+  font-weight: $font-weight-regular;
+
+  &.prop-link {
+    color: $black;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+// Reference lists (taxons, habitats, geologies)
+.reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  padding: $spacing-xs 0 $spacing-sm $spacing-lg;
+}
+
+.reference-chip {
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  font-size: 13px;
+  color: $primary-color;
+  background-color: rgba($primary-color, 0.06);
+  border-radius: $border-radius-pill;
+  border: 1px solid rgba($primary-color, 0.15);
+  line-height: 20px;
+}
+
+// Section blocks (état de l'enjeu, détails/commentaires)
+.section-block {
+  margin-top: $spacing-lg;
+  margin-bottom: $spacing-sm;
+}
+
+.section-line {
+  height: 1px;
+  background-color: rgba($black, 0.1);
+  margin-bottom: $spacing-md;
+}
+
+.section-title-uppercase {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 24px;
+}
+
+.section-text {
+  margin: 0;
+  font-size: 15px;
+  color: $black;
+  line-height: $line-height-base;
+  white-space: pre-wrap;
+}
+
+// ============================================
+// FACTEUR D'INFLUENCE CARDS (terra-cotta)
+// ============================================
+
+.facteur-influence-card {
+  background-color: $white;
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: 0 20px 0 20px;
+  overflow: hidden;
+  transition: box-shadow $transition-fast;
+
+  &.expanded {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.facteur-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-terra-cotta, 0.03);
+  }
+}
+
+.facteur-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.facteur-bullet {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.facteur-card-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: $font-weight-bold;
+  color: $secondary-terra-cotta;
+  line-height: 36px;
+}
+
+.facteur-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.facteur-card-body {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid $gray-light;
+}
+
+// ============================================
+// PRESSION CARDS (nested inside facteur)
+// ============================================
+
+.pression-card {
+  background-color: $white;
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: 0 20px 0 20px;
+  margin-top: $spacing-sm;
+  overflow: hidden;
+}
+
+.pression-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($secondary-orange-salmon, 0.03);
+  }
+}
+
+.pression-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.pression-bullet {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.pression-card-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  line-height: 30px;
+}
+
+.pression-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.pression-card-body {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1px solid rgba($secondary-orange-salmon, 0.3);
+}
+
+// ============================================
+// INLINE FORMS (facteur + pression creation)
+// ============================================
+
+.inline-form {
+  background-color: rgba($secondary-terra-cotta, 0.06);
+  border: 1px dashed rgba($secondary-terra-cotta, 0.4);
+  border-radius: $border-radius-md;
+  padding: $spacing-md $spacing-lg;
+  margin-top: $spacing-md;
+}
+
+.inline-form-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.inline-form-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.inline-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  .full-width {
+    width: 100%;
+  }
+}
+
+.inline-form-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+// Unified add item button (Figma: stroked pill with + icon)
+.add-item-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: $spacing-xs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-lg;
+  background: none;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  i {
+    font-size: 20px;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
+// ============================================
+// OLT CONTENT (Vision à long terme)
+// ============================================
+
+.olt-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// ============================================
+// OO CONTENT (Vision opérationnelle)
+// ============================================
+
+.oo-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.oo-facteur-info {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+
+  strong {
+    color: $black;
+    font-style: normal;
+  }
+}
+
+// Note d'usage en haut de l'onglet
+.olt-info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($info-color, 0.08);
+  border-left: 3px solid $info-color;
+  border-radius: 0 $border-radius-md $border-radius-md 0;
+  margin-bottom: $spacing-xs;
+
+  i {
+    color: $info-color;
+    font-size: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  span {
+    color: $gray-dark;
+    font-size: $font-size-small;
+    line-height: $line-height-base;
+  }
+}
+
+.olt-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+
+  .count-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+}
+
+// ============================================
+// ÉTAT ACTUEL CARD (vert pâle conteneur)
+// ============================================
+
+.etat-actuel-card {
+  background-color: rgba($secondary-pale-green, 0.15);
+  border-left: 3px solid $secondary-pale-green;
+  border-radius: 0 20px 20px 0;
+  overflow: hidden;
+  margin-bottom: $spacing-sm;
+}
+
+.etat-actuel-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+}
+
+.etat-actuel-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.etat-actuel-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: $border-radius-round;
+  background-color: $secondary-pale-green;
+  flex-shrink: 0;
+}
+
+.etat-actuel-card-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.etat-actuel-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.etat-actuel-card-body {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+.etat-description {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+}
+
+// État card inner layout (used inside etat-actuel-card)
+.etat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  cursor: pointer;
+}
+
+.etat-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.etat-ellipse {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.etat-card-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.etat-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.etat-card-body {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+// État actuel inline form variant
+.etat-inline-form {
+  background-color: rgba($secondary-pale-green, 0.12);
+  border-color: rgba($secondary-pale-green, 0.5);
+}
+
+// ============================================
+// OLT HEADER (uses app-section-title)
+// ============================================
+
+.olt-section-header {
+  cursor: pointer;
+  margin-bottom: $spacing-sm;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.olt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.expand-arrow-olt {
+  font-size: 16px;
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+// OLT expanded content
+.olt-expanded-content {
+  padding: $spacing-sm 0 $spacing-md $spacing-xl;
+}
+
+.olt-description {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+}
+
+// OLT inline form variant
+.olt-inline-form {
+  background-color: rgba($primary-color, 0.04);
+  border-color: rgba($primary-color, 0.3);
+}
+
+// ============================================
+// NE CARDS (terra-cotta, inside OLT)
+// ============================================
+
+.ne-card {
+  background-color: $white;
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: 0 20px 0 20px;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  overflow: hidden;
+}
+
+.ne-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-sm;
+}
+
+.ne-card-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.ne-ellipse {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.ne-card-title {
+  margin: 0;
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $secondary-terra-cotta;
+  line-height: 36px;
+}
+
+.ne-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.ne-description {
+  color: $gray-dark;
+  font-size: $font-size-base;
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-base;
+}
+
+// NE inline form variant
+.ne-inline-form {
+  margin-bottom: $spacing-sm;
+}
+
+// ============================================
+// ADD BUTTONS (OLT tab)
+// ============================================
+
+// Add état actuel button (always visible at bottom)
+// Legacy aliases → use .add-item-btn instead
+
+// ============================================
+// TAB EMPTY STATE (OLT / Opérations)
+// ============================================
+
+.tab-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xxl;
+  text-align: center;
+}
+
+.tab-empty-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.tab-empty-text {
+  color: $gray-dark;
+  font-size: $font-size-base;
+  margin: 0;
+}
+
+// ============================================
+// ENJEUX CONTENT (liste plate)
+// ============================================
+
+.enjeux-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+// Barre haut : compteur + bouton ajouter
+.list-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .count-text {
+    color: $gray-dark;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+}
+
+// Liste plate d'accordéons
+.enjeux-flat-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// ============================================
+// Indicateurs & Métriques
+// ============================================
+
+// Indicateur d'état block (orange-salmon bordered box)
+.indicateur-block {
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: 0 20px 0 20px;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.indicateur-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.indicateur-subtitle-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.indicateur-ellipse {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.indicateur-nom {
+  font-weight: $font-weight-bold;
+  font-size: 20px;
+  line-height: 30px;
+  color: $black;
+}
+
+.indicateur-type-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $border-radius-pill;
+  font-size: 12px;
+  font-weight: $font-weight-semibold;
+  background: rgba($secondary-orange-salmon, 0.2);
+  color: $primary-color;
+}
+
+.indicateur-std-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $border-radius-sm;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  background: $primary-color;
+  color: $white;
+}
+
+.indicateur-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-shrink: 0;
+}
+
+.indicateur-content {
+  margin-top: $spacing-md;
+}
+
+.indicateur-meta {
+  display: flex;
+  gap: $spacing-xs;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-md;
+
+  .meta-label {
+    color: $gray-dark;
+  }
+
+  .meta-value {
+    color: $black;
+  }
+}
+
+.metriques-title {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  color: $black;
+  margin: 0 0 $spacing-sm 0;
+}
+
+// Métriques table
+.metriques-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: $spacing-sm;
+}
+
+.metriques-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  font-size: $font-size-small;
+
+  thead {
+    th {
+      background-color: $primary-color;
+      color: $white;
+      font-weight: $font-weight-bold;
+      text-align: left;
+      padding: $spacing-sm $spacing-md;
+      white-space: nowrap;
+      border-right: 1px solid rgba($white, 0.2);
+      font-size: 13px;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &.score-col {
+        text-align: center;
+        min-width: 100px;
+      }
+
+      &.score-col-1 { background-color: $score-very-bad; color: $black; }
+      &.score-col-2 { background-color: $score-bad; color: $black; }
+      &.score-col-3 { background-color: $score-neutral; color: $black; }
+      &.score-col-4 { background-color: $score-good; color: $black; }
+      &.score-col-5 { background-color: $score-very-good; color: $black; }
+
+      &.actions-col {
+        width: 40px;
+        min-width: 40px;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      &:nth-child(even) {
+        background-color: rgba($gray-lighter, 0.3);
+      }
+    }
+
+    td {
+      padding: $spacing-xs $spacing-md;
+      border-right: 1px solid $gray-light;
+      border-top: 1px solid $gray-light;
+      color: $black;
+      vertical-align: middle;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &.score-cell {
+        text-align: center;
+        font-size: 12px;
+      }
+
+      &.score-cell-1 { background-color: rgba($score-very-bad, 0.12); }
+      &.score-cell-2 { background-color: rgba($score-bad, 0.12); }
+      &.score-cell-3 { background-color: rgba($score-neutral, 0.12); }
+      &.score-cell-4 { background-color: rgba($score-good, 0.12); }
+      &.score-cell-5 { background-color: rgba($score-very-good, 0.12); }
+
+      &.actions-col {
+        text-align: center;
+        border-right: none;
+      }
+    }
+  }
+}
+
+.indicateur-form {
+  margin-top: $spacing-sm;
+}
+
+// Add indicateur button (inside NE)
+// .add-indicateur-btn → replaced by .add-item-btn
+
+// ============================================
+// UNIFIED INDICATEUR FORM (with inline métriques)
+// ============================================
+
+.unified-indicateur-form {
+  background-color: rgba($secondary-orange-salmon, 0.08);
+  border: 1px dashed rgba($secondary-orange-salmon, 0.5);
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-top: $spacing-md;
+}
+
+.unified-form-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.unified-form-title {
+  margin: 0;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.form-required-note {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  margin: 0 0 $spacing-md 0;
+}
+
+.form-radio-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .form-radio-label {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  mat-radio-group {
+    display: flex;
+    gap: $spacing-md;
+  }
+}
+
+// Métriques section inside unified form
+.metriques-section {
+  margin-top: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.metriques-section-title {
+  margin: 0 0 $spacing-md 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+// Operations section title under metrique
+.metrique-operations-section {
+  margin-top: $spacing-sm;
+  padding-left: $spacing-sm;
+  border-left: 3px solid $secondary-orange-salmon;
+
+  .metrique-operations-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: $gray-dark;
+    margin: 0 0 $spacing-xs;
+  }
+}
+
+// Metrique form block (used in both unified and standalone)
+.metrique-form-block {
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  &.standalone-metrique-form {
+    margin-top: $spacing-md;
+    background-color: rgba($secondary-orange-salmon, 0.06);
+    border: 1px dashed rgba($secondary-orange-salmon, 0.4);
+  }
+}
+
+.metrique-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .flex-grow {
+    flex: 1;
+  }
+
+  .metrique-delete-btn {
+    margin-top: $spacing-xs;
+    color: $error-color;
+
+    &:hover {
+      background-color: rgba($error-color, 0.06);
+    }
+  }
+}
+
+.metrique-row-2col {
+  display: flex;
+  gap: $spacing-md;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  .col-narrow {
+    flex: 0.4;
+  }
+
+  .col-wide {
+    flex: 0.6;
+  }
+}
+
+// Score threshold grid (5 colored columns)
+.score-threshold-grid {
+  display: flex;
+  gap: 0;
+  margin-top: $spacing-sm;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  border: 1px solid $gray-light;
+}
+
+.score-column {
+  flex: 1;
+  min-width: 0;
+
+  &:not(:last-child) {
+    border-right: 1px solid $gray-light;
+  }
+}
+
+.score-column-header {
+  padding: $spacing-xs $spacing-xs;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  .score-header-label {
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    line-height: 1.2;
+  }
+
+  .score-header-value {
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  &.score-header-1 { background-color: $score-very-bad; }
+  &.score-header-2 { background-color: $score-bad; }
+  &.score-header-3 { background-color: $score-neutral; }
+  &.score-header-4 { background-color: $score-good; }
+  &.score-header-5 { background-color: $score-very-good; }
+}
+
+.score-column-inputs {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs;
+  gap: $spacing-xxs;
+
+  .score-input {
+    width: 100%;
+
+    ::ng-deep {
+      .mat-mdc-form-field-infix {
+        min-height: 32px;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        padding: 0 8px;
+      }
+
+      .mdc-floating-label {
+        font-size: 11px;
+      }
+
+      input {
+        font-size: 13px;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+    }
+  }
+}
+
+// Add metrique link button (inside unified form)
+// .add-metrique-link-btn, .add-link-btn → replaced by .add-item-btn
+
+// ============================================
+// OPERATIONS (ACTIONS)
+// ============================================
+
+// ============================================
+// OPERATION CARDS (expandable)
+// ============================================
+
+.operation-card {
+  border: 1px solid $secondary-yellow;
+  border-radius: 0 20px 0 20px;
+  margin-bottom: $spacing-sm;
+  background: rgba($secondary-yellow, 0.08);
+  transition: border-color $transition-fast;
+  overflow: hidden;
+  padding: $spacing-md;
+
+  &:hover {
+    border-color: darken($secondary-yellow, 10%);
+  }
+
+  &.expanded {
+    border-color: $secondary-yellow;
+  }
+}
+
+.operation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  gap: $spacing-md;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.operation-header-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.operation-ellipse {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.operation-libelle {
+  font-weight: $font-weight-bold;
+  font-size: 20px;
+  line-height: 30px;
+  color: $black;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.operation-header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  flex-shrink: 0;
+}
+
+.expand-arrow-op {
+  font-size: 18px;
+  color: $gray-dark;
+  transition: transform 0.2s;
+}
+
+// Expanded content
+.operation-expanded-content {
+  padding-top: $spacing-md;
+}
+
+.operation-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.operation-meta-item {
+  display: flex;
+  gap: $spacing-xs;
+  font-size: 15px;
+  line-height: 24px;
+  color: $black;
+
+  .meta-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+  }
+}
+
+.operation-section {
+  margin-bottom: $spacing-md;
+}
+
+.operation-section-separator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md 0 $spacing-xs 0;
+
+  .separator-line {
+    width: 214px;
+    height: 1px;
+    background: $gray-lighter;
+  }
+}
+
+.operation-section-title {
+  font-size: 15px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  line-height: 24px;
+  margin: 0 0 $spacing-sm 0;
+}
+
+.operation-detail-line {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xxs;
+  font-size: 15px;
+  line-height: 24px;
+
+  .detail-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+    white-space: nowrap;
+    min-width: fit-content;
+  }
+
+  .detail-value {
+    color: $black;
+  }
+}
+
+.operation-actors-section {
+  margin-bottom: $spacing-md;
+}
+
+.operation-description {
+  font-size: 15px;
+  color: $black;
+  margin: 0;
+  line-height: 24px;
+}
+
+// Programmation table
+.programmation-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: $spacing-sm;
+}
+
+.programmation-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+  font-size: 15px;
+  line-height: 24px;
+
+  th, td {
+    padding: 12px $spacing-md;
+    text-align: center;
+    border: 1px solid $gray-lighter;
+  }
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    font-weight: $font-weight-bold;
+    font-size: 15px;
+    line-height: 24px;
+    white-space: nowrap;
+    border-color: $white;
+    height: 44px;
+  }
+
+  .prog-label-col {
+    text-align: left;
+    min-width: 200px;
+  }
+
+  .prog-year-col {
+    min-width: 70px;
+  }
+
+  .prog-label-cell {
+    text-align: left;
+    font-weight: $font-weight-bold;
+    color: $black;
+    font-size: 15px;
+    background: $white;
+    white-space: nowrap;
+  }
+
+  .prog-cell {
+    font-size: 15px;
+    color: $black;
+    vertical-align: middle;
+    background: $white;
+    height: 64px;
+  }
+
+  .prog-budget {
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+  }
+
+  .prog-dash {
+    color: $gray;
+  }
+
+  .prog-months-cell {
+    font-size: 13px;
+    color: $gray-dark;
+    line-height: 1.4;
+  }
+
+  .prog-org-header td {
+    background-color: $gray-lighter;
+    padding: $spacing-xxs $spacing-sm;
+    height: auto;
+  }
+
+  .prog-org-name {
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .prog-total-header td {
+    background-color: rgba($secondary-pale-green, 0.3);
+    padding: $spacing-xxs $spacing-sm;
+    height: auto;
+  }
+
+  .prog-indent {
+    padding-left: $spacing-lg;
+    font-weight: $font-weight-regular;
+    font-size: 13px;
+  }
+
+  .prog-bold {
+    font-weight: $font-weight-bold;
+  }
+
+  .prog-computed {
+    background-color: $gray-lighter;
+  }
+}
+
+.prevu-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.monthly-planning {
+  display: flex;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  font-size: 15px;
+  line-height: 24px;
+
+  .monthly-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+  }
+
+  .monthly-months {
+    color: $black;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.priority-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $border-radius-pill;
+  font-size: 12px;
+  font-weight: $font-weight-semibold;
+  color: $white;
+
+  &.priority-1 {
+    background: $error-color;
+  }
+
+  &.priority-2 {
+    background: $warning-color;
+  }
+
+  &.priority-3 {
+    background: $info-color;
+  }
+}
+
+// Operation form
+.operation-form {
+  border: 1px solid $secondary-orange-salmon;
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  margin-top: $spacing-sm;
+  background: rgba($secondary-orange-salmon, 0.03);
+}
+
+.operation-form-title {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  color: $primary-color;
+  margin: 0 0 $spacing-sm 0;
+}
+
+.operation-form-row {
+  display: flex;
+  gap: $spacing-md;
+
+  > mat-form-field {
+    flex: 1;
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-desktop) {
+  .plan-title {
+    font-size: 36px;
+    line-height: 48px;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .enjeux-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .plan-sidebar {
+    width: 100%;
+    border-bottom: 1px solid rgba($primary-color, 0.15);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: $spacing-xs $spacing-sm;
+    gap: $spacing-xs;
+  }
+
+  .menu-item-wrapper {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  .menu-item {
+    white-space: nowrap;
+    border-radius: $border-radius-pill;
+    margin: 0 $spacing-xs;
+    width: auto;
+  }
+
+  .submenu {
+    display: none;
+  }
+
+  .hero-section {
+    border-radius: 0;
+    min-height: auto;
+  }
+
+  .plan-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .content-section {
+    padding: $spacing-lg $spacing-md;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap;
+  }
+
+  .info-block {
+    flex-direction: column;
+    text-align: center;
+
+    .info-content {
+      text-align: center;
+    }
+  }
+
+  .list-top-bar {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .tabs-container {
+    overflow-x: auto;
+    gap: 0;
+  }
+
+  .tab-item {
+    white-space: nowrap;
+    padding: $spacing-sm $spacing-md;
+  }
+
+  .enjeu-header-section {
+    flex-wrap: wrap;
+  }
+
+  .enjeu-header-middle {
+    flex-wrap: wrap;
+  }
+
+  .card-section-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .facteur-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .pression-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .inline-form-actions {
+    flex-wrap: wrap;
+  }
+
+  .pression-card {
+    margin-left: $spacing-sm;
+  }
+
+  .etat-actuel-card-header {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .olt-section-header {
+    ::ng-deep .section-title-wrapper {
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+    }
+  }
+
+  .olt-expanded-content {
+    padding-left: $spacing-md;
+  }
+
+  .olt-info-note {
+    span {
+      font-size: $font-size-small;
+    }
+  }
+
+  .metrique-row-2col {
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    .col-narrow,
+    .col-wide {
+      flex: 1;
+    }
+  }
+
+  .score-threshold-grid {
+    flex-wrap: wrap;
+
+    .score-column {
+      flex: 1 1 calc(50% - 1px);
+      min-width: 100px;
+    }
+  }
+
+  .form-radio-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+  }
+}

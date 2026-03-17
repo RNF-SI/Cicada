@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+# Nettoyer les fichiers temporaires
+rm -f /var/lib/cicada/.install_lock
+rm -f /var/lib/cicada/install_status.json
+rm -f /var/lib/cicada/update_trigger.json
+rm -f /var/lib/cicada/update_result.json
+
+# Recharger systemd (si disponible)
+if systemctl is-system-running >/dev/null 2>&1 || [ -d /run/systemd/system ]; then
+    systemctl daemon-reload || true
+fi

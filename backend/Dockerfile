@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y \
     libgdal-dev \
     libgeos-dev \
     libproj-dev \
+    gosu \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Installation des dépendances Python
@@ -30,8 +32,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copie du code source
 COPY . .
 
+# Création de l'utilisateur non-root
+RUN groupadd -r cicada && useradd -r -g cicada cicada
+
 # Création du répertoire pour les médias
-RUN mkdir -p /app/media /app/static
+RUN mkdir -p /app/media /app/static /app/logs && chown -R cicada:cicada /app/media /app/static /app/logs
 
 # Script d'initialisation
 COPY docker/entrypoint.sh /entrypoint.sh

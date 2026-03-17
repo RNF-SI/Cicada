@@ -1,0 +1,374 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.mindmap-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+}
+
+// Loading / Error / Empty
+.loading-container,
+.error-container,
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container i {
+  font-size: $font-size-h1;
+  color: $error-color;
+}
+
+.empty-container i {
+  font-size: 48px;
+  color: $gray;
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+.hero-section {
+  position: relative;
+  background-color: $primary-color;
+  border-radius: 0 0 20px 20px;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 0.2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $white;
+  border-radius: 50%;
+  color: $primary-color;
+  text-decoration: none;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 12px;
+
+  i { font-size: 20px; }
+  &:hover { transform: scale(1.05); }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $white;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.breadcrumb-link {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.breadcrumb-chevron {
+  color: $white;
+  font-size: $font-size-base;
+}
+
+.breadcrumb-current {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+.plan-header {
+  margin-top: $spacing-md;
+}
+
+.plan-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-sm;
+
+  i { font-size: 15px; }
+}
+
+.plan-title {
+  color: $white;
+  font-size: 48px;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: 72px;
+  margin: 0 0 $spacing-lg 0;
+}
+
+// ============================================
+// CONTENT
+// ============================================
+
+.content-section {
+  padding: $spacing-xl;
+}
+
+.mindmap-wrapper {
+  position: relative;
+}
+
+// View Toggle
+.view-toggle {
+  display: inline-flex;
+  margin-bottom: $spacing-md;
+  border: 1px solid $primary-color;
+  border-radius: 9999px;
+  overflow: hidden;
+
+  button {
+    display: flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-md;
+    background: $white;
+    color: $primary-color;
+    border: none;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    gap: $spacing-xs;
+    transition: background 0.2s, color 0.2s;
+
+    &.active {
+      background: $primary-color;
+      color: $white;
+    }
+
+    &:not(.active):hover {
+      background: rgba($primary-color, 0.08);
+    }
+
+    i {
+      font-size: 14px;
+    }
+  }
+}
+
+// Icicle hint
+.icicle-hint {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin: 0 0 $spacing-sm 0;
+  font-style: italic;
+}
+
+// Icicle Container
+.icicle-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 420px);
+  min-height: 600px;
+  background: $white;
+  border-radius: $border-radius-sm;
+  border: 1px solid rgba($primary-color, 0.08);
+  overflow: hidden;
+}
+
+// Legend
+.mindmap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm $spacing-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  background-color: $white;
+  border-radius: $border-radius-sm;
+  border: 1px solid rgba($primary-color, 0.08);
+}
+
+.legend-entry {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-family: $font-family;
+  font-size: 12px;
+  color: $black;
+}
+
+// Controls
+.mindmap-controls {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+  justify-content: center;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    i {
+      font-size: 14px;
+    }
+  }
+}
+
+// ============================================
+// D3 ICICLE SVG STYLES
+// ============================================
+
+:host ::ng-deep {
+  .icicle-container svg {
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+
+    rect {
+      transition: filter 0.15s;
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+    }
+
+    text {
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .icicle-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .icicle-name {
+      font-size: 12px;
+      font-weight: 400;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-tablet) {
+  .mindmap-layout {
+    flex-direction: column;
+  }
+
+  .plan-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .icicle-container {
+    height: 400px;
+    min-height: 300px;
+  }
+
+  .mindmap-legend {
+    gap: $spacing-xs $spacing-md;
+  }
+
+  .mindmap-controls {
+    flex-wrap: wrap;
+  }
+}

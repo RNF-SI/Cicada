@@ -1,0 +1,8 @@
+[Unit]
+Description=CICADA Instance Heartbeat
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cicada-heartbeat
+User=root

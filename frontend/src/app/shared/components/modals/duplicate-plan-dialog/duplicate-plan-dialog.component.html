@@ -1,0 +1,103 @@
+<h2 mat-dialog-title>{{ 'plans.duplicate.dialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="dialog-subtitle text-muted">
+    {{ 'plans.duplicate.dialog.subtitle' | translate }}
+  </p>
+
+  <!-- Plan source info -->
+  <div class="plan-info">
+    <h4>{{ 'plans.duplicate.dialog.planInfo' | translate }}</h4>
+    <div class="plan-info-details">
+      <span class="plan-name">{{ data.planName }}</span>
+      <span class="plan-meta" *ngIf="data.planPeriod">{{ data.planPeriod }}</span>
+      <span class="plan-meta" *ngIf="data.nbSites">{{ data.nbSites }} site(s)</span>
+    </div>
+  </div>
+
+  <!-- Copy options -->
+  <div class="options-list">
+    <div class="option-item">
+      <mat-checkbox
+        [checked]="copySites()"
+        (change)="copySites.set($event.checked)"
+        color="primary"
+      >
+        {{ 'plans.duplicate.dialog.options.sites' | translate }}
+      </mat-checkbox>
+      <span class="option-description">{{ 'plans.duplicate.dialog.options.sitesDescription' | translate }}</span>
+    </div>
+
+    <div class="option-item">
+      <mat-checkbox
+        [checked]="copyReferents()"
+        (change)="copyReferents.set($event.checked)"
+        color="primary"
+      >
+        {{ 'plans.duplicate.dialog.options.referents' | translate }}
+      </mat-checkbox>
+      <span class="option-description">{{ 'plans.duplicate.dialog.options.referentsDescription' | translate }}</span>
+    </div>
+
+    <div class="option-item">
+      <mat-checkbox
+        [checked]="copyFichiers()"
+        (change)="copyFichiers.set($event.checked)"
+        color="primary"
+      >
+        {{ 'plans.duplicate.dialog.options.fichiers' | translate }}
+      </mat-checkbox>
+      <span class="option-description">{{ 'plans.duplicate.dialog.options.fichiersDescription' | translate }}</span>
+    </div>
+
+    <div class="option-item">
+      <mat-checkbox
+        [checked]="copyEnjeux()"
+        (change)="onEnjeuxChange($event.checked)"
+        color="primary"
+      >
+        {{ 'plans.duplicate.dialog.options.enjeux' | translate }}
+      </mat-checkbox>
+      <span class="option-description">{{ 'plans.duplicate.dialog.options.enjeuxDescription' | translate }}</span>
+    </div>
+
+    <div class="option-item option-nested">
+      <mat-checkbox
+        [checked]="copySubElements()"
+        (change)="copySubElements.set($event.checked)"
+        [disabled]="subElementsDisabled()"
+        color="primary"
+      >
+        {{ 'plans.duplicate.dialog.options.subElements' | translate }}
+      </mat-checkbox>
+      <span class="option-description">
+        {{ 'plans.duplicate.dialog.options.subElementsDescription' | translate }}
+      </span>
+      <span class="option-hint" *ngIf="subElementsDisabled()">
+        {{ 'plans.duplicate.dialog.hints.subElementsDisabled' | translate }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Hints -->
+  <div class="hints">
+    <div class="hint-item">
+      <i class="fi fi-rr-info"></i>
+      <span>{{ 'plans.duplicate.dialog.hints.excludedData' | translate }}</span>
+    </div>
+    <div class="hint-item">
+      <i class="fi fi-rr-info"></i>
+      <span>{{ 'plans.duplicate.dialog.hints.newStatus' | translate }}</span>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()" [disabled]="loading()">
+    {{ 'plans.duplicate.dialog.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="onConfirm()" [disabled]="loading()">
+    <mat-spinner *ngIf="loading()" diameter="20"></mat-spinner>
+    <span *ngIf="!loading()">{{ 'plans.duplicate.dialog.confirm' | translate }}</span>
+  </button>
+</mat-dialog-actions>

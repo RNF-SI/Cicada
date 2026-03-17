@@ -1,5 +1,9 @@
 @import 'variables';
 
+:host {
+  display: block;
+}
+
 .leaflet-map-wrapper {
   position: relative;
   width: 100%;
@@ -12,8 +16,8 @@
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
-    z-index: $z-index-modal;
+    height: 100vh !important;
+    z-index: $z-index-tooltip + 10;
     border-radius: 0;
   }
 }

@@ -1,0 +1,8 @@
+[Unit]
+Description=Watch for CICADA update trigger
+
+[Path]
+PathExists=/var/lib/cicada/update_trigger.json
+
+[Install]
+WantedBy=multi-user.target

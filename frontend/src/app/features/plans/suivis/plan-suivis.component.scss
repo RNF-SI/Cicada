@@ -1,0 +1,223 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+.hero-section {
+  position: relative;
+  background-color: $primary-color;
+  border-radius: 0 0 20px 20px;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: 240px;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 0.2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+// Breadcrumb
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $white;
+  border-radius: 50%;
+  color: $primary-color;
+  text-decoration: none;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 12px;
+  transition: transform $transition-fast;
+
+  i {
+    font-size: 20px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $white;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.breadcrumb-link {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.breadcrumb-chevron {
+  color: $white;
+  font-size: $font-size-base;
+}
+
+.breadcrumb-current {
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+// Plan Header
+.plan-header {
+  margin-top: $spacing-md;
+}
+
+.plan-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-sm;
+  line-height: 24px;
+
+  i {
+    font-size: 15px;
+  }
+}
+
+.plan-title {
+  color: $white;
+  font-size: 48px;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: 72px;
+  margin: 0;
+}
+
+// ============================================
+// CONTENT
+// ============================================
+
+.content-section {
+  padding: $spacing-xl;
+}
+
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  text-align: center;
+  color: $gray-dark;
+
+  i {
+    font-size: 48px;
+    margin-bottom: $spacing-md;
+    color: $gray;
+  }
+
+  p {
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    color: $gray-dark;
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: $breakpoint-tablet) {
+  .suivis-layout {
+    flex-direction: column;
+  }
+
+  .plan-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+}

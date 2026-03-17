@@ -68,6 +68,9 @@ export class SectionTitleComponent {
   /** Taille du titre */
   @Input() titleSize: 'normal' | 'small' = 'normal';
 
+  /** Couleur du titre (par défaut primary) */
+  @Input() titleColor: 'primary' | 'terra-cotta' | 'salmon' | 'yellow' = 'primary';
+
   /** Afficher la bordure de l'ellipse */
   @Input() showBorder: boolean = false;
 

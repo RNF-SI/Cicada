@@ -60,13 +60,15 @@
       <button
         class="tab"
         [class.active]="activeTab() === 'actifs'"
-        (click)="setTab('actifs')">
+        (click)="setTab('actifs')"
+        data-testid="tab-actifs">
         {{ 'plans.list.tabs.active' | translate }}
       </button>
       <button
         class="tab"
         [class.active]="activeTab() === 'inactifs'"
-        (click)="setTab('inactifs')">
+        (click)="setTab('inactifs')"
+        data-testid="tab-inactifs">
         {{ 'plans.list.tabs.inactive' | translate }}
       </button>
     </div>
@@ -75,11 +77,10 @@
     @if (showScopeToggle()) {
       <app-view-scope-toggle
         [currentScope]="viewScope()"
-        [showSitesOption]="true"
+        [showSitesOption]="false"
         [showOrganismeOption]="isAdminOrganisme()"
         [showAllOption]="isSuperAdmin()"
         [mineLabel]="'plans.scope.mine' | translate"
-        [sitesLabel]="'plans.scope.sites' | translate"
         [organismeLabel]="'plans.scope.organisme' | translate"
         [allLabel]="'plans.scope.all' | translate"
         (scopeChange)="onScopeChange($event)">
@@ -94,15 +95,45 @@
   } @else {
     <!-- Section 1: Mes plans de gestion -->
       <section class="content-section my-plans-section">
+        <!-- Toolbar: Recherche + Anciennes versions -->
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fi fi-rr-search"></i>
+            <input
+              type="text"
+              [placeholder]="'plans.list.search' | translate"
+              (input)="onMyPlansSearch($event)"
+              data-testid="plans-search-input"
+            />
+          </div>
+          <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
+            @if (showOldVersions()) {
+              <span>{{ 'plans.list.hideOldVersions' | translate }}</span>
+            } @else {
+              <span>{{ 'plans.list.oldVersions' | translate }}</span>
+            }
+            <i class="fi fi-rr-time-past"></i>
+          </button>
+        </div>
+
         @if (myPlans().length === 0) {
-          <div class="empty-state">
+          <div class="empty-state empty-state--detailed">
             <i class="fi fi-rr-document empty-icon"></i>
-            <p>{{ 'plans.myPlans.empty' | translate }}</p>
+            <h3 class="empty-title">{{ 'plans.myPlans.emptyTitle' | translate }}</h3>
+            <p>{{ 'plans.myPlans.emptyHint1' | translate }}</p>
+            <ul class="empty-reasons">
+              <li>{{ 'plans.myPlans.emptyReason1' | translate }}</li>
+              <li>{{ 'plans.myPlans.emptyReason2' | translate }}</li>
+            </ul>
+            <p class="empty-action-hint">
+              <i class="fi fi-rr-arrow-down"></i>
+              {{ 'plans.myPlans.emptyHint2' | translate }}
+            </p>
           </div>
         } @else {
           <!-- Table des plans -->
           <div class="table-container">
-            <table class="plans-table">
+            <table class="plans-table" data-testid="plans-table">
               <thead>
                 <tr>
                   <th class="col-name">
@@ -118,20 +149,59 @@
                 </tr>
               </thead>
               <tbody>
-                @for (plan of myPlans(); track plan.id_pg; let odd = $odd) {
-                  <tr [class.odd]="odd">
+                @for (plan of paginatedPlans(); track plan.id_pg; let odd = $odd) {
+                  <!-- Lignes ancêtres AU-DESSUS du plan courant -->
+                  @if (linkedPlansById().has(plan.id_pg)) {
+                    @for (ancestor of linkedPlansById().get(plan.id_pg)!; track ancestor.id_pg; let first = $first; let last = $last) {
+                      <tr class="ancestor-row" [class.ancestor-first]="first" [class.ancestor-last]="last">
+                        <td class="col-name">
+                          <div class="ancestor-indent">
+                            <span class="tree-line" [class.first]="first" [class.last]="false"></span>
+                            <span class="ancestor-name">{{ ancestor.nom }}</span>
+                            @if (ancestor.type_document_display) {
+                              <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
+                            }
+                            @if (ancestor.version) {
+                              <span class="ancestor-version">v{{ ancestor.version }}</span>
+                            }
+                          </div>
+                        </td>
+                        <td class="col-period">
+                          <span class="ancestor-text">{{ formatPeriod(ancestor) }}</span>
+                        </td>
+                        <td class="col-status">
+                          <span class="status-tag" [class]="getStatutClass(ancestor.statut)">
+                            {{ getStatutLabel(ancestor.statut) }}
+                          </span>
+                        </td>
+                        <td class="col-actions">
+                          <button class="btn-action" (click)="viewPlan(ancestor)">
+                            <span>{{ 'plans.list.actions.view' | translate }}</span>
+                            <i class="fi fi-rr-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                  <!-- Ligne principale du plan -->
+                  <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)">
                     <td class="col-name">
-                      <span class="plan-name">{{ plan.nom }}</span>
-                      @if (plan.sites && plan.sites.length > 1) {
-                        <span class="plan-separator">-</span>
-                        <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
-                      }
-                      @if (plan.isReferent) {
-                        <mat-chip class="referent-chip">
-                          <i class="fi fi-rr-star chip-icon"></i>
-                          {{ 'plans.myPlans.referent' | translate }}
-                        </mat-chip>
-                      }
+                      <div [class.child-indent]="linkedPlansById().has(plan.id_pg)">
+                        @if (linkedPlansById().has(plan.id_pg)) {
+                          <span class="tree-line last"></span>
+                        }
+                        <span class="plan-name">{{ plan.nom }}</span>
+                        @if (plan.sites && plan.sites.length > 1) {
+                          <span class="plan-separator">-</span>
+                          <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
+                        }
+                        @if (plan.isReferent) {
+                          <mat-chip class="referent-chip">
+                            <i class="fi fi-rr-star chip-icon"></i>
+                            {{ 'plans.myPlans.referent' | translate }}
+                          </mat-chip>
+                        }
+                      </div>
                     </td>
                     <td class="col-period">
                       <div class="period-content">
@@ -157,7 +227,11 @@
                     </td>
                     <td class="col-actions">
                       <div class="actions-content">
-                        <button class="btn-action" (click)="followPlan(plan)">
+                        <button class="btn-action"
+                                (click)="followPlan(plan)"
+                                [disabled]="plan.statut !== 'valide'"
+                                [matTooltip]="plan.statut !== 'valide' ? ('plans.list.actions.followDisabledTooltip' | translate) : ''"
+                                [class.btn-disabled]="plan.statut !== 'valide'">
                           <span>{{ 'plans.list.actions.follow' | translate }}</span>
                           <i class="fi fi-rr-stats"></i>
                         </button>
@@ -345,8 +419,8 @@
                           {{ 'plans.requestAccess.retry' | translate }}
                         </button>
                       </div>
-                    } @else {
-                      <!-- Plan sans demande : peut demander l'accès -->
+                    } @else if (plan.hasAccessViaSite) {
+                      <!-- Cas direct : lié à un site du plan -->
                       <button
                         mat-stroked-button
                         color="primary"
@@ -354,6 +428,16 @@
                       >
                         <i class="fi fi-rr-lock"></i>
                         {{ 'plans.requestAccess.button' | translate }}
+                      </button>
+                    } @else {
+                      <!-- Cas combiné : besoin de lien au site + accès au plan -->
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        (click)="openAccessRequestDialog(plan)"
+                      >
+                        <i class="fi fi-rr-link-alt"></i>
+                        {{ 'plans.requestAccess.buttonWithSite' | translate }}
                       </button>
                     }
                   </td>

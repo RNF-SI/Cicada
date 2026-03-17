@@ -1,0 +1,17 @@
+[Unit]
+Description=CICADA Installation Server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/var/lib/cicada/installer-venv/bin/python /usr/share/cicada/install/app.py
+WorkingDirectory=/usr/share/cicada/install
+# Écouter sur toutes les interfaces pour accès distant (ex. http://<ip>:4567)
+Environment=FLASK_HOST=0.0.0.0
+Environment=FLASK_PORT=4567
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

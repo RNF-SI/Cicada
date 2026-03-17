@@ -386,6 +386,12 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         comment,
                         override_referent=approve_as_referent
                     )
+                elif validation_request.request_type == 'plan_site_link':
+                    ValidationService.approve_plan_site_link(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
                 elif validation_request.request_type == 'admin_deactivation':
                     ValidationService.approve_admin_deactivation(
                         validation_request,
@@ -531,8 +537,16 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Verifier que l'utilisateur n'a pas deja acces (n'est pas referent)
+        # Verifier que l'utilisateur n'est pas deja referent
         if plan.referents.filter(id_role=request.user.id_role).exists():
+            return Response(
+                {'error': 'Vous avez deja acces a ce plan de gestion.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur n'est pas deja membre direct (CorRolePlan)
+        from apps.plans.models import CorRolePlan
+        if CorRolePlan.objects.filter(id_role=request.user, plan_de_gestion=plan).exists():
             return Response(
                 {'error': 'Vous avez deja acces a ce plan de gestion.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -553,12 +567,14 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
             )
 
         # Creer la demande
+        request_as_referent = request.data.get('request_as_referent', False)
         validation_request = ValidationRequest.objects.create(
             request_type='plan_access',
             status='pending',
             requester=request.user,
             target_plan=plan,
             justification=justification,
+            request_as_referent=request_as_referent,
         )
 
         # Notifier les validateurs (referents du plan + admin_og des sites)
@@ -567,6 +583,130 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         return Response({
             'id': validation_request.id,
             'message': 'Votre demande d\'acces au plan de gestion a ete soumise.',
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def request_plan_site_link(self, request):
+        """
+        POST /api/validations/request_plan_site_link/
+        Demande a lier un site a un plan de gestion.
+        """
+        serializer = PlanAccessRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        plan_id = request.data.get('plan_id')
+        site_id = request.data.get('site_id')
+        justification = serializer.validated_data.get('justification', '')
+
+        if not plan_id or not site_id:
+            return Response(
+                {'error': 'plan_id et site_id sont requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.plans.models import PlanGestion, CorSitePg
+        from apps.users.models import Site
+
+        try:
+            plan = PlanGestion.objects.get(id_pg=plan_id)
+        except PlanGestion.DoesNotExist:
+            return Response(
+                {'error': 'Plan de gestion introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            site = Site.objects.get(id_site=site_id)
+        except Site.DoesNotExist:
+            return Response(
+                {'error': 'Site introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifier que le site n'est pas deja lie
+        if CorSitePg.objects.filter(plan_de_gestion=plan, site=site).exists():
+            return Response(
+                {'error': 'Ce site est deja lie a ce plan.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier qu'une demande n'existe pas deja
+        existing = ValidationRequest.objects.filter(
+            request_type='plan_site_link',
+            target_plan=plan,
+            target_site=site,
+            status='pending'
+        ).exists()
+        if existing:
+            return Response(
+                {'error': 'Une demande de lien est deja en attente pour ce site.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verifier que l'utilisateur a un lien avec le plan ou le site
+        user = request.user
+        from apps.plans.models import CorRolePlan
+        from apps.users.models import CorRoleSite
+        is_plan_referent = plan.referents.filter(pk=user.pk).exists()
+        is_plan_member = CorRolePlan.objects.filter(id_role=user, plan_de_gestion=plan).exists()
+        is_site_referent = user.can_manage_site(site)
+        is_site_member = CorRoleSite.objects.filter(id_role=user, id_site=site).exists()
+
+        if not (user.is_admin_organisme() or is_plan_referent or is_plan_member or is_site_referent or is_site_member):
+            return Response(
+                {'error': "Vous n'avez pas les droits pour effectuer cette action."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Liaison directe si super_admin, ou admin_og qui gere le site,
+        # ou referent du plan ET du site
+        can_link_directly = (
+            user.is_super_admin() or
+            (user.is_admin_organisme() and is_site_referent) or
+            (is_plan_referent and is_site_referent)
+        )
+
+        if can_link_directly:
+            CorSitePg.objects.get_or_create(
+                site=site,
+                plan_de_gestion=plan,
+                defaults={'rang': 0}
+            )
+
+            # Notifier les referents du plan (sauf l'utilisateur courant)
+            for referent in plan.referents.filter(active=True).exclude(pk=user.pk):
+                NotificationService.create_notification(
+                    recipient=referent,
+                    notification_type='info',
+                    title=f"Site lié au plan {plan.nom}",
+                    message=f"Le site {site.nom_site} a été lié au plan de gestion {plan.nom}.",
+                    priority='medium',
+                    related_plan=plan,
+                    related_site=site,
+                    action_url=f"/plans/{plan.slug or plan.id_pg}",
+                )
+
+            return Response({
+                'message': 'Site lie au plan avec succes.',
+                'direct': True,
+            }, status=status.HTTP_201_CREATED)
+
+        # Sinon, creer une demande de validation
+        validation_request = ValidationRequest.objects.create(
+            request_type='plan_site_link',
+            status='pending',
+            requester=request.user,
+            target_plan=plan,
+            target_site=site,
+            justification=justification,
+        )
+
+        NotificationService.notify_validators(validation_request)
+
+        return Response({
+            'id': validation_request.id,
+            'message': 'Votre demande de lien plan-site a ete soumise et est en attente de validation.',
+            'direct': False,
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])

@@ -66,124 +66,7 @@
   }
 }
 
-// ============================================
-// SIDEBAR - Design Figma avec fond vert pâle
-// ============================================
-
-.plan-sidebar {
-  width: 234px;
-  background-color: $secondary-pale-green;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-header {
-  padding: $spacing-lg $spacing-md;
-  border-bottom: 1px solid rgba($primary-color, 0.15);
-}
-
-.sidebar-title {
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: $spacing-md 0;
-}
-
-.menu-item-wrapper {
-  margin-bottom: $spacing-xxs;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  width: calc(100% - #{$spacing-md});
-  padding: $spacing-sm $spacing-md;
-  background: transparent;
-  border: none;
-  border-radius: 0 $border-radius-pill $border-radius-pill 0;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  color: $primary-color;
-  cursor: pointer;
-  transition: all $transition-fast;
-  text-align: left;
-  margin: 0;
-  margin-left: 0;
-
-  i:first-child {
-    font-size: 16px;
-    color: $primary-color;
-  }
-
-  .chevron {
-    margin-left: auto;
-    font-size: $font-size-base;
-    color: $primary-color;
-    opacity: 0.7;
-    transition: transform $transition-fast;
-
-    &.expanded {
-      transform: rotate(180deg);
-    }
-  }
-
-  &:hover {
-    background-color: rgba($primary-color, 0.1);
-  }
-
-  &.active {
-    background-color: $white;
-    color: $primary-color;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-    i:first-child {
-      color: $primary-color;
-    }
-
-    .chevron {
-      color: $primary-color;
-      opacity: 1;
-    }
-  }
-}
-
-.submenu {
-  padding-left: $spacing-xl;
-  margin-top: $spacing-xs;
-}
-
-.submenu-item {
-  display: block;
-  width: 100%;
-  padding: $spacing-xs $spacing-md;
-  background: transparent;
-  border: none;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  color: $primary-color;
-  opacity: 0.8;
-  cursor: pointer;
-  text-align: left;
-  transition: all $transition-fast;
-
-  &:hover {
-    opacity: 1;
-  }
-
-  &.active {
-    opacity: 1;
-    font-weight: $font-weight-bold;
-  }
-}
+// Sidebar styles are in shared/plan-sidebar component
 
 // ============================================
 // MAIN CONTENT
@@ -392,6 +275,12 @@
   opacity: 0.5;
 }
 
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
 .btn-generate {
   display: inline-flex;
   align-items: center;
@@ -412,6 +301,42 @@
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.btn-lifecycle {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  border: none;
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &-success {
+    background-color: $success-color;
+    color: $white;
+  }
+
+  &-warning {
+    background-color: $secondary-yellow;
+    color: $black;
+  }
+
+  &-neutral {
+    background-color: $white;
+    color: $primary-color;
   }
 }
 
@@ -451,6 +376,16 @@
       margin-bottom: 0;
     }
   }
+
+  &.clickable {
+    cursor: pointer;
+    transition: box-shadow $transition-fast, transform $transition-fast;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 // Section cards - les titres utilisent maintenant app-section-title
@@ -474,10 +409,6 @@
 
   // Couleur terra-cotta (Enjeux, Objectifs)
   &.terra-cotta {
-    .accordion-indicator {
-      background-color: $secondary-terra-cotta;
-    }
-
     .accordion-title {
       color: $secondary-terra-cotta;
     }
@@ -485,10 +416,6 @@
 
   // Couleur orange (Actions)
   &.orange {
-    .accordion-indicator {
-      background-color: $secondary-orange-salmon;
-    }
-
     .accordion-title {
       color: $secondary-orange-salmon;
     }
@@ -512,12 +439,12 @@
   }
 }
 
-// Indicateur coloré carré (Design Figma)
-.accordion-indicator {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px; // Carré avec coins légèrement arrondis
+// Ellipse colorée (Design Figma)
+.accordion-ellipse {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .accordion-title {
@@ -551,6 +478,39 @@
   color: $gray-dark;
   font-size: $font-size-base;
   font-style: italic;
+}
+
+// Conteneur pour lien vers les enjeux
+.accordion-link-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-md;
+}
+
+.btn-view-details {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+  }
 }
 
 // ============================================
@@ -627,31 +587,34 @@
   align-items: flex-start;
   gap: $spacing-md;
   padding: $spacing-xs 0;
+  border-radius: $border-radius-sm;
+  transition: background-color $transition-fast;
+
+  &.clickable {
+    cursor: pointer;
+    padding: $spacing-xs $spacing-sm;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+    }
+
+    .action-arrow {
+      color: $gray-dark;
+      margin-left: auto;
+      flex-shrink: 0;
+      font-size: $font-size-base;
+      align-self: center;
+    }
+  }
 }
 
-// Puce personnalisée (4 carrés en croix selon design Figma)
+// Puce personnalisée (image Design System)
 .action-bullet {
-  position: relative;
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
-  margin-top: 6px;
-
-  // 4 carrés disposés en croix
-  &::before {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background-color: $secondary-terra-cotta;
-    border-radius: 1px;
-    top: 0;
-    left: 3px;
-    box-shadow:
-      0 6px 0 0 $secondary-terra-cotta,    // Bas
-      -3px 3px 0 0 $secondary-terra-cotta, // Gauche
-      3px 3px 0 0 $secondary-terra-cotta;  // Droite
-  }
+  margin-top: 5px;
+  object-fit: contain;
 }
 
 .action-text {
@@ -662,16 +625,278 @@
   line-height: 22px;
 }
 
-// Placeholders
-.map-placeholder,
-.mindmap-placeholder {
+// Sites list (in side column)
+.sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.site-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color $transition-fast, transform $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+    transform: translateX(4px);
+  }
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+
+  &.site-card-locked {
+    cursor: default;
+    opacity: 0.75;
+
+    &:hover {
+      background-color: $gray-lighter;
+      transform: none;
+    }
+
+    i {
+      color: $gray-dark;
+      font-size: 12px;
+    }
+  }
+}
+
+.site-request-access-btn {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    color: darken($primary-color, 10%);
+  }
+}
+
+.site-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.site-name {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+  word-break: break-word;
+}
+
+.site-type {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+// Pending sites
+.pending-sites-section {
+  margin-top: $spacing-sm;
+}
+
+.pending-sites-label {
+  display: block;
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: $spacing-xxs;
+}
+
+.pending-sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.site-card-pending {
+  opacity: 0.7;
+  border: 1px dashed $gray;
+
+  i {
+    color: $warning-color;
+    font-size: 12px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: $border-radius-pill;
+    font-family: $font-family;
+    font-size: 10px;
+    font-weight: $font-weight-semibold;
+
+    &.status-warning {
+      background-color: rgba($warning-color, 0.15);
+      color: $primary-color;
+    }
+  }
+}
+
+// Section header with inline edit button
+.section-header-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.btn-manage-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-top: $spacing-xs;
+  background: none;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-round;
+  color: $primary-color;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+    border-color: $primary-color;
+  }
+}
+
+.site-card-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+
+  .site-card {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.btn-remove-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: $gray;
+  cursor: pointer;
+  border-radius: $border-radius-round;
+  transition: color $transition-fast, background-color $transition-fast;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    color: $error-color;
+    background-color: rgba($error-color, 0.08);
+  }
+}
+
+// Users list in side column
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.user-card-small {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+}
+
+.user-avatar-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $border-radius-round;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+  flex-shrink: 0;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+.user-info-small {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-name-small {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  word-break: break-word;
+}
+
+.user-role-chip {
+  display: inline-block;
+  width: fit-content;
+  padding: 1px 8px;
+  background-color: rgba($secondary-orange-salmon, 0.3);
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: 10px;
+  font-weight: $font-weight-semibold;
+  color: $primary-color;
+
+  &.role-referent {
+    background-color: rgba($secondary-orange-salmon, 0.3);
+  }
+
+  &.role-member {
+    background-color: rgba($secondary-pale-green, 0.4);
+  }
+}
+
+.empty-state-small {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 162px;
-  background-color: $gray-lighter;
-  border-radius: $border-radius-sm;
+  padding: $spacing-lg;
   color: $gray;
 
   i {
@@ -681,6 +906,29 @@
 
   span {
     font-size: $font-size-small;
+  }
+}
+
+// Placeholders
+
+.mindmap-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  background-color: rgba($secondary-pale-green, 0.3);
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+
+  i {
+    font-size: $font-size-h2;
+    margin-bottom: $spacing-xs;
+  }
+
+  span {
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
   }
 }
 
@@ -698,35 +946,33 @@
   padding: $spacing-xs;
   border-radius: $border-radius-sm;
 
-  span:not(.doc-icon) {
+  .doc-info {
     flex: 1;
-    font-size: $font-size-small;
-    color: $black;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .doc-name {
+      font-size: $font-size-small;
+      color: $black;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+      font-size: 11px;
+      color: $gray-dark;
+    }
   }
 }
 
-// Icône document (carrés décorés selon design Figma)
+// Icône document (puce image Design System)
 .doc-icon {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background-color: $secondary-terra-cotta;
-    border-radius: 1px;
-    top: 0;
-    left: 5px;
-    box-shadow:
-      0 6px 0 0 $secondary-terra-cotta,
-      -3px 3px 0 0 $secondary-terra-cotta,
-      3px 3px 0 0 $secondary-terra-cotta;
-  }
+  object-fit: contain;
 }
 
 .btn-download {
@@ -746,6 +992,26 @@
 
   &:hover {
     color: $primary-hover;
+  }
+}
+
+.btn-delete-doc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  background: transparent;
+  border: none;
+  color: $gray;
+  cursor: pointer;
+
+  i {
+    font-size: $font-size-base;
+  }
+
+  &:hover {
+    color: $error-color;
   }
 }
 
@@ -774,6 +1040,147 @@
 }
 
 // ============================================
+// SYNTHÈSE - Liste enjeux et FCR
+// ============================================
+
+.synthese-enjeux-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.synthese-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+}
+
+.synthese-section-title {
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  margin-bottom: $spacing-xxs;
+}
+
+.synthese-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xxs 0;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.synthese-item-bullet {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.synthese-item-label {
+  flex: 1;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $primary-color;
+  font-weight: $font-weight-regular;
+}
+
+.synthese-item-priority {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $white;
+  background-color: $secondary-terra-cotta;
+  border-radius: $border-radius-sm;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.synthese-item-enjeu {
+  font-family: $font-family;
+  font-size: 10px;
+  color: $gray-dark;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.synthese-enjeu-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.synthese-sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 23px;
+  padding-left: $spacing-sm;
+  border-left: 2px solid $gray-lighter;
+}
+
+.synthese-sub-item {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.synthese-sub-tag {
+  font-family: $font-family;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: $border-radius-sm;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  line-height: 1.4;
+
+  &.olt {
+    background-color: $secondary-pale-green;
+    color: $primary-color;
+  }
+
+  &.oo {
+    background-color: rgba($secondary-terra-cotta, 0.15);
+    color: $secondary-terra-cotta;
+  }
+}
+
+.synthese-sub-label {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  line-height: 1.4;
+}
+
+.synthese-loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+}
+
+// ============================================
 // RESPONSIVE
 // ============================================
 
@@ -796,37 +1203,11 @@
 @media (max-width: $breakpoint-tablet) {
   .plan-detail-layout {
     flex-direction: column;
-    gap: 0; // Pas de gap en mobile
-  }
-
-  .plan-sidebar {
-    width: 100%;
-    border-bottom: 1px solid rgba($primary-color, 0.15);
+    gap: 0;
   }
 
   .plan-main {
     padding-right: 0;
-  }
-
-  .sidebar-nav {
-    display: flex;
-    overflow-x: auto;
-    padding: $spacing-xs $spacing-sm;
-  }
-
-  .menu-item-wrapper {
-    flex-shrink: 0;
-    margin-bottom: 0;
-  }
-
-  .menu-item {
-    white-space: nowrap;
-    border-radius: $border-radius-pill;
-    margin: 0 $spacing-xs;
-  }
-
-  .submenu {
-    display: none;
   }
 
   .hero-section {

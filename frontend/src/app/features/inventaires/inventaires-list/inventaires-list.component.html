@@ -1,0 +1,200 @@
+<app-header></app-header>
+
+<div class="inventaires-layout">
+  <main class="inventaires-main">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" [title]="'header.home' | translate">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <span class="breadcrumb-current">{{ 'inventaires.title' | translate }}</span>
+          </div>
+        </nav>
+
+        <!-- Title -->
+        <h1>{{ 'inventaires.pageTitle' | translate }}</h1>
+
+        <!-- Générer button -->
+        <button mat-flat-button color="primary" class="btn-generate">
+          <i class="fi fi-rr-download"></i>
+          {{ 'inventaires.actions.generate' | translate }}
+          <i class="fi fi-rr-angle-small-down"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Content Area -->
+    <section class="content-section">
+      <!-- Search Bar -->
+      <div class="search-bar">
+        <i class="fi fi-rr-search search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearch($event)"
+          [placeholder]="'common.actions.search' | translate">
+        <div class="search-underline"></div>
+      </div>
+
+      <!-- Filter Bar + Add Button Row -->
+      <div class="toolbar-row">
+        <div class="filter-bar">
+          <span class="filter-label">
+            {{ 'inventaires.filters.label' | translate }}
+          </span>
+          <div class="filter-options">
+            <button class="filter-btn" [class.filter-active]="statutFilter()"
+              [matMenuTriggerFor]="statutMenu">
+              {{ 'inventaires.table.statut' | translate }}
+              @if (statutFilter()) {
+                <span class="filter-badge">1</span>
+              }
+              <i class="fi fi-rr-angle-small-down"></i>
+            </button>
+            <mat-menu #statutMenu="matMenu">
+              <button mat-menu-item (click)="setStatutFilter(undefined)">
+                <span>{{ 'common.filters.all' | translate }}</span>
+              </button>
+              @for (statut of statutOptions(); track statut.id) {
+                <button mat-menu-item (click)="setStatutFilter(statut.id)">
+                  <span>{{ statut.label }}</span>
+                </button>
+              }
+            </mat-menu>
+          </div>
+          <div class="filter-separator"></div>
+        </div>
+
+        <button class="btn-add" (click)="navigateToCreate()">
+          <i class="fi fi-rr-plus-small"></i>
+          {{ 'inventaires.actions.add' | translate }}
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      @if (isLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>{{ 'common.loading' | translate }}</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="error-container">
+          <i class="fi fi-rr-exclamation"></i>
+          <p>{{ errorMessage() }}</p>
+          <button mat-stroked-button (click)="loadData()">
+            {{ 'common.actions.retry' | translate }}
+          </button>
+        </div>
+      } @else if (suivis().length === 0) {
+        <!-- Empty State -->
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fi fi-rr-test-tube"></i>
+          </div>
+          <h3>{{ 'inventaires.empty.title' | translate }}</h3>
+          <p>{{ 'inventaires.empty.description' | translate }}</p>
+          <button mat-flat-button color="primary" (click)="navigateToCreate()">
+            <i class="fi fi-rr-plus"></i>
+            {{ 'inventaires.actions.add' | translate }}
+          </button>
+        </div>
+      } @else {
+        <!-- Table -->
+        <div class="table-container">
+          <table class="suivis-table">
+            <thead>
+              <tr>
+                <th class="col-nom">
+                  {{ 'inventaires.table.nom' | translate }}
+                  <i class="fi fi-rr-arrow-small-down sort-icon"></i>
+                </th>
+                <th class="col-periode">{{ 'inventaires.table.periode' | translate }}</th>
+                <th class="col-statut">
+                  {{ 'inventaires.table.statut' | translate }}
+                  <i class="fi fi-rr-arrow-small-down sort-icon sort-icon-inactive"></i>
+                </th>
+                <th class="col-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (suivi of suivis(); track suivi.id_suivi_inventaire; let i = $index) {
+                <tr [class.row-alt]="i % 2 !== 0">
+                  <td class="col-nom">
+                    <span class="suivi-intitule">{{ suivi.intitule || '-' }}</span>
+                  </td>
+                  <td class="col-periode">
+                    {{ formatPeriode(suivi) }}
+                  </td>
+                  <td class="col-statut">
+                    <div class="statut-cell">
+                      @if (suivi.statut_label) {
+                        <span class="status-chip" [ngClass]="getStatutClass(suivi)">
+                          {{ suivi.statut_label }}
+                        </span>
+                      } @else {
+                        <span class="status-chip status-chip-default">-</span>
+                      }
+                      <button class="btn-edit-status" (click)="navigateToEdit(suivi)"
+                        [title]="'common.actions.edit' | translate">
+                        <i class="fi fi-rr-pencil"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="col-actions">
+                    <button class="btn-detail" (click)="navigateToDetail(suivi)"
+                      [title]="'inventaires.actions.viewDetail' | translate">
+                      {{ 'inventaires.table.detailFiche' | translate }}
+                      <i class="fi fi-rr-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            <button
+              class="pagination-btn nav"
+              [disabled]="currentPage() === 1"
+              (click)="previousPage()">
+              <i class="fi fi-rr-arrow-small-left"></i>
+            </button>
+
+            @for (page of paginationPages(); track $index) {
+              @if (page === '...') {
+                <span class="pagination-ellipsis">...</span>
+              } @else {
+                <button
+                  class="pagination-btn"
+                  [class.active]="page === currentPage()"
+                  (click)="goToPage(page)">
+                  {{ page }}
+                </button>
+              }
+            }
+
+            <button
+              class="pagination-btn nav"
+              [disabled]="currentPage() === totalPages()"
+              (click)="nextPage()">
+              <i class="fi fi-rr-arrow-small-right"></i>
+            </button>
+          </div>
+        }
+      }
+    </section>
+  </main>
+</div>

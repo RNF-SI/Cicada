@@ -8,11 +8,32 @@ from .views import (
     PlanGestionViewSet, CorPgFichierViewSet,
     bulk_assign_sites, export_geojson
 )
+from .views_enjeux import (
+    EnjeuViewSet, ResponsabiliteViewSet,
+    FacteurInfluenceViewSet, PressionViewSet,
+    EtatActuelViewSet, ObjectifLongTermeViewSet, NiveauExigenceViewSet,
+    ObjectifOperationnelViewSet, ResultatAttenduViewSet
+)
+from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet
+from .views_operations import OperationViewSet
 
 # Router pour les ViewSets
 router = DefaultRouter()
 router.register(r'plans', PlanGestionViewSet, basename='plangestion')
 router.register(r'fichiers', CorPgFichierViewSet, basename='corpgfichier')
+router.register(r'enjeux', EnjeuViewSet, basename='enjeu')
+router.register(r'responsabilites', ResponsabiliteViewSet, basename='responsabilite')
+router.register(r'facteurs-influence', FacteurInfluenceViewSet, basename='facteurinfluence')
+router.register(r'pressions', PressionViewSet, basename='pression')
+router.register(r'etats-actuels', EtatActuelViewSet, basename='etatactuel')
+router.register(r'objectifs-long-terme', ObjectifLongTermeViewSet, basename='objectiflongterme')
+router.register(r'niveaux-exigence', NiveauExigenceViewSet, basename='niveauexigence')
+router.register(r'indicateurs', IndicateurViewSet, basename='indicateur')
+router.register(r'metriques', MetriqueViewSet, basename='metrique')
+router.register(r'mesures', MesureViewSet, basename='mesure')
+router.register(r'objectifs-operationnels', ObjectifOperationnelViewSet, basename='objectifoperationnel')
+router.register(r'resultats-attendus', ResultatAttenduViewSet, basename='resultatattendu')
+router.register(r'operations', OperationViewSet, basename='operation')
 
 # URLs spécifiques
 # NOTE: Specific paths must come BEFORE the router to avoid being captured by router patterns
@@ -46,3 +67,23 @@ urlpatterns = [
 # PUT/PATCH /api/plans/fichiers/{id}/ - Modifier fichier
 # DELETE /api/plans/fichiers/{id}/ - Supprimer fichier
 # GET /api/plans/fichiers/{id}/download/ - Télécharger fichier
+
+# GET /api/plans/enjeux/ - Liste des enjeux/FCR
+# POST /api/plans/enjeux/ - Créer un enjeu/FCR
+# GET /api/plans/enjeux/{id}/ - Détail d'un enjeu/FCR
+# PUT/PATCH /api/plans/enjeux/{id}/ - Modifier un enjeu/FCR
+# DELETE /api/plans/enjeux/{id}/ - Supprimer un enjeu/FCR
+# GET /api/plans/enjeux/by-plan/{plan_id}/ - Enjeux d'un plan
+# POST /api/plans/enjeux/{id}/add_taxon/ - Ajouter un taxon
+# DELETE /api/plans/enjeux/{id}/remove_taxon/{cd_nom}/ - Supprimer un taxon
+# POST /api/plans/enjeux/{id}/add_habitat/ - Ajouter un habitat
+# DELETE /api/plans/enjeux/{id}/remove_habitat/{cd_hab}/ - Supprimer un habitat
+# GET /api/plans/enjeux/stats/ - Statistiques des enjeux
+
+# GET /api/plans/responsabilites/ - Liste des responsabilités
+# POST /api/plans/responsabilites/ - Créer une responsabilité
+# GET /api/plans/responsabilites/{id}/ - Détail d'une responsabilité
+# PUT/PATCH /api/plans/responsabilites/{id}/ - Modifier une responsabilité
+# DELETE /api/plans/responsabilites/{id}/ - Supprimer une responsabilité
+# GET /api/plans/responsabilites/by-site/{site_id}/ - Responsabilités d'un site
+# GET /api/plans/responsabilites/stats/ - Statistiques des responsabilités

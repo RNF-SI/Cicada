@@ -291,6 +291,27 @@ html {
   --mat-fab-foreground-color: #{$white};
   --mdc-fab-small-container-color: #{$primary-color};
   --mat-fab-small-foreground-color: #{$white};
+
+  // Datepicker - Calendar
+  --mat-datepicker-calendar-date-selected-state-background-color: #{$primary-color};
+  --mat-datepicker-calendar-date-selected-state-text-color: #{$white};
+  --mat-datepicker-calendar-date-today-outline-color: #{$primary-color};
+  --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$primary-color};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{rgba($primary-color, 0.12)};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{rgba($primary-color, 0.08)};
+  --mat-datepicker-calendar-date-text-color: #{$black};
+  --mat-datepicker-calendar-body-label-text-color: #{$gray-dark};
+  --mat-datepicker-calendar-period-button-text-color: #{$black};
+  --mat-datepicker-calendar-navigation-button-icon-color: #{$black};
+  --mat-datepicker-calendar-header-text-color: #{$black};
+  --mat-datepicker-toggle-icon-color: #{$primary-color};
+
+  // Chip (mat-chip-row) - texte lisible
+  --mdc-chip-label-text-color: #{$black};
+  --mdc-chip-elevated-container-color: #{$gray-lighter};
+  --mdc-chip-with-trailing-icon-trailing-icon-color: #{$gray-dark};
+  --mat-chip-trailing-action-focus-state-layer-color: #{$primary-color};
+  --mat-chip-selected-trailing-icon-color: #{$white};
 }
 
 // Material component overrides (must come after theme application)
@@ -797,5 +818,22 @@ body {
 
   .mat-mdc-menu-content {
     padding: 0 !important;
+  }
+}
+
+// Leaflet map fullscreen mode - hide other page content
+body.leaflet-map-fullscreen-active {
+  overflow: hidden;
+
+  // Hide header so it doesn't overlay the fullscreen map
+  app-header {
+    display: none;
+  }
+
+  // Remove overflow clipping on ancestor containers so the fixed-position map can escape
+  .map-container,
+  .map-column {
+    overflow: visible;
+    position: static;
   }
 }

@@ -102,7 +102,7 @@
             <th>{{ 'admin.plans.table.status' | translate }}</th>
             <th>{{ 'admin.plans.table.periode' | translate }}</th>
             <th>{{ 'admin.plans.table.sites' | translate }}</th>
-            <th>{{ 'admin.plans.table.referents' | translate }}</th>
+            <th>{{ 'admin.plans.table.users' | translate }}</th>
             <th>{{ 'admin.plans.table.lastUpdate' | translate }}</th>
             <th>{{ 'admin.plans.table.actions' | translate }}</th>
           </tr>
@@ -172,26 +172,25 @@
                 }
               </td>
 
-              <!-- Referents -->
+              <!-- Utilisateurs (Referents + Membres) -->
               <td class="referents-cell">
-                @if (plan.referents.length === 0) {
+                @if (plan.membres.length === 0) {
                   <span class="text-muted">{{ 'admin.plans.empty.noReferent' | translate }}</span>
-                } @else if (plan.referents.length === 1) {
-                  <span class="referent-chip" [matTooltip]="plan.referents[0].email">
-                    <i class="fi fi-rr-user"></i>
-                    <span class="referent-name">{{ plan.referents[0].nom }}</span>
-                  </span>
                 } @else {
                   <div class="referents-list">
-                    @for (ref of plan.referents.slice(0, 2); track ref.id) {
-                      <span class="referent-chip" [matTooltip]="ref.email">
-                        <i class="fi fi-rr-user"></i>
-                        <span class="referent-name">{{ ref.nom }}</span>
+                    @for (member of plan.membres.slice(0, 3); track member.id) {
+                      <span class="referent-chip" [class.member-chip]="!member.referent"
+                            [matTooltip]="member.email + (member.referent ? ' (Référent)' : ' (Membre)')">
+                        <i class="fi" [class.fi-rr-user]="member.referent" [class.fi-rr-following]="!member.referent"></i>
+                        <span class="referent-name">{{ member.nom }}</span>
+                        @if (member.referent) {
+                          <span class="role-indicator referent" [title]="'admin.plans.referent' | translate">R</span>
+                        }
                       </span>
                     }
-                    @if (plan.referents.length > 2) {
-                      <span class="referents-more" [matTooltip]="getOtherReferentsNames(plan.referents)">
-                        {{ 'admin.plans.others' | translate:{ count: plan.referents.length - 2 } }}
+                    @if (plan.membres.length > 3) {
+                      <span class="referents-more" [matTooltip]="getOtherMembresNames(plan.membres)">
+                        {{ 'admin.plans.others' | translate:{ count: plan.membres.length - 3 } }}
                       </span>
                     }
                   </div>
@@ -208,7 +207,7 @@
                 <button class="btn-icon" [title]="'admin.plans.actions.view' | translate" (click)="viewPlan(plan)">
                   <i class="fi fi-rr-eye"></i>
                 </button>
-                @if (isAdminOrganisme()) {
+                @if (canManagePlan(plan)) {
                   <button class="btn-icon" [title]="'admin.plans.actions.manageSites' | translate" (click)="managePlanSites(plan)">
                     <i class="fi fi-rr-marker"></i>
                   </button>

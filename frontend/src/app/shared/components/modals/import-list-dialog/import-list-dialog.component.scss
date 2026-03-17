@@ -1,0 +1,265 @@
+@import 'variables';
+
+.import-dialog-content {
+  min-width: 500px;
+}
+
+.dialog-title {
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-sm;
+}
+
+.dialog-instructions {
+  color: $gray-dark;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-xs;
+}
+
+.format-hint {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-md;
+}
+
+// Encadré d'exemples
+.example-box {
+  background-color: rgba($primary-color, 0.05);
+  border: 1px solid rgba($primary-color, 0.2);
+  border-radius: $border-radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .example-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  .example-codes {
+    background-color: $white;
+    border: 1px solid $gray-lighter;
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm $spacing-md;
+    font-family: monospace;
+    font-size: $font-size-small;
+    color: $black;
+    line-height: 1.6;
+    margin: 0 0 $spacing-sm 0;
+    white-space: pre-wrap;
+  }
+
+  .example-help {
+    font-size: $font-size-small;
+    color: $gray-dark;
+    margin: 0;
+    font-style: italic;
+  }
+}
+
+// Codes-only notice
+.codes-only-notice {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+  background-color: rgba($secondary-yellow, 0.2);
+  border: 1px solid rgba($secondary-yellow, 0.5);
+  border-radius: $border-radius-sm;
+  color: $black;
+  font-size: $font-size-small;
+  font-weight: $font-weight-medium;
+
+  i {
+    font-size: 14px;
+    color: $warning-color;
+  }
+}
+
+.codes-textarea {
+  width: 100%;
+
+  textarea {
+    min-height: 200px;
+    font-family: monospace;
+    font-size: $font-size-base;
+  }
+}
+
+.file-upload-section {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-lighter;
+
+  .file-upload-label {
+    color: $gray-dark;
+    font-size: $font-size-small;
+  }
+
+  input[type='file'] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    cursor: pointer;
+  }
+
+  .file-hint {
+    font-size: $font-size-small;
+    color: $gray;
+    font-style: italic;
+  }
+}
+
+// Results section
+.results-section {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.results-summary {
+  display: flex;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid $gray-lighter;
+}
+
+.found-count {
+  color: $success-color;
+  font-weight: $font-weight-bold;
+}
+
+.not-found-count {
+  color: $error-color;
+  font-weight: $font-weight-bold;
+}
+
+.rejected-count {
+  color: $warning-color;
+  font-weight: $font-weight-bold;
+}
+
+.result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $gray-lighter;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .result-icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    margin-top: 2px;
+
+    &.valid {
+      color: $success-color;
+    }
+
+    &.invalid {
+      color: $error-color;
+    }
+  }
+
+  .result-label {
+    font-size: $font-size-base;
+    color: $black;
+  }
+
+  .result-secondary {
+    font-size: $font-size-small;
+    color: $gray-dark;
+    font-style: italic;
+  }
+
+  .result-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .result-meta {
+    display: flex;
+    gap: $spacing-md;
+    margin-top: 2px;
+  }
+
+  .result-code {
+    font-size: $font-size-small;
+    color: $gray;
+    font-family: monospace;
+  }
+
+  .result-input {
+    font-size: $font-size-small;
+    color: $gray;
+  }
+
+  &.not-found {
+    background-color: rgba($error-color, 0.03);
+  }
+
+  &.rejected {
+    background-color: rgba($warning-color, 0.05);
+  }
+
+  .rejected-icon {
+    color: $warning-color;
+  }
+
+  .candidates {
+    margin-top: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    background-color: rgba($secondary-yellow, 0.15);
+    border-radius: $border-radius-sm;
+    font-size: $font-size-small;
+
+    .candidates-label {
+      color: $gray-dark;
+      font-weight: $font-weight-medium;
+      margin-right: $spacing-xs;
+    }
+
+    .candidate-item {
+      color: $primary-color;
+      font-weight: $font-weight-medium;
+
+      &:not(:last-child)::after {
+        content: ', ';
+        color: $gray;
+        font-weight: $font-weight-regular;
+      }
+    }
+  }
+}
+
+// Dialog actions
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xl;
+}

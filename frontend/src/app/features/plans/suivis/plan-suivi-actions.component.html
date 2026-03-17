@@ -1,0 +1,220 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="suivi-actions"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else {
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ 'plans.suivis.actions.title' | translate }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-document"></i>
+              <span>{{ 'plans.detail.sidebar.title' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ 'plans.suivis.actions.title' | translate }}</h1>
+            <div class="hero-actions">
+              <button class="btn-hero-primary" [matMenuTriggerFor]="generateMenu">
+                <i class="fi fi-rr-download"></i>
+                <span>{{ 'plans.detail.generate' | translate }}</span>
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #generateMenu="matMenu">
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-pdf"></i>
+                  <span>Exporter en PDF</span>
+                </button>
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-word"></i>
+                  <span>Exporter en Word</span>
+                </button>
+              </mat-menu>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content Section -->
+      <section class="content-section">
+        <!-- Toggle Global / Annuel -->
+        <div class="view-toggle">
+          <button
+            class="toggle-btn"
+            [class.active]="activeView() === 'global'"
+            (click)="setView('global')">
+            {{ 'plans.suivis.actions.global' | translate }}
+          </button>
+          <button
+            class="toggle-btn"
+            [class.active]="activeView() === 'annuel'"
+            (click)="setView('annuel')">
+            {{ 'plans.suivis.actions.annuel' | translate }}
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+          <div class="filter-bar-left">
+            <div class="filter-label">{{ 'plans.suivis.actions.filterLabel' | translate }}</div>
+            <div class="filter-buttons">
+              <!-- Catégorie d'action -->
+              <button class="filter-btn" [matMenuTriggerFor]="catMenu"
+                [class.filter-active]="filterCategorieAction()">
+                {{ 'plans.suivis.actions.categorieAction' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #catMenu="matMenu">
+                <button mat-menu-item (click)="setCategorieFilter(null)">
+                  <em>Toutes</em>
+                </button>
+                @for (cat of categorieActions(); track cat) {
+                  <button mat-menu-item (click)="setCategorieFilter(cat)">
+                    {{ cat }}
+                  </button>
+                }
+              </mat-menu>
+              <div class="filter-separator"></div>
+
+              <!-- Enjeu -->
+              <button class="filter-btn" [matMenuTriggerFor]="enjeuMenu"
+                [class.filter-active]="filterEnjeu()">
+                {{ 'plans.suivis.actions.enjeu' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #enjeuMenu="matMenu">
+                <button mat-menu-item (click)="setEnjeuFilter(null)">
+                  <em>Tous</em>
+                </button>
+                @for (e of enjeux(); track e.id) {
+                  <button mat-menu-item (click)="setEnjeuFilter(e.id)">
+                    {{ e.libelle }}
+                  </button>
+                }
+              </mat-menu>
+              <div class="filter-separator"></div>
+
+              <!-- Priorité -->
+              <button class="filter-btn" [matMenuTriggerFor]="prioMenu"
+                [class.filter-active]="filterPriorite()">
+                {{ 'plans.suivis.actions.priorite' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #prioMenu="matMenu">
+                <button mat-menu-item (click)="setPrioriteFilter(null)">
+                  <em>Toutes</em>
+                </button>
+                @for (p of priorites(); track p) {
+                  <button mat-menu-item (click)="setPrioriteFilter(p)">
+                    {{ p }}
+                  </button>
+                }
+              </mat-menu>
+              <div class="filter-separator"></div>
+            </div>
+          </div>
+          <button class="export-btn">
+            {{ 'plans.suivis.actions.exportTable' | translate }}
+            <i class="fi fi-rr-download"></i>
+          </button>
+        </div>
+
+        <!-- Légende -->
+        <div class="legend">
+          <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+          <div class="legend-items">
+            @for (item of legendItems; track item.status) {
+              <div class="legend-item">
+                <img [src]="getActionIcon(item.status)" class="action-status-icon legend-icon" alt="">
+                <span class="legend-text">{{ item.labelKey | translate }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Table -->
+        @if (filteredOperations().length === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            <p>{{ 'plans.suivis.actions.noOperations' | translate }}</p>
+            <p class="empty-hint">{{ 'plans.suivis.actions.noOperationsHint' | translate }}</p>
+          </div>
+        } @else {
+          <div class="table-wrapper">
+            <table class="actions-table">
+              <thead>
+                <tr>
+                  <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                  @for (year of yearColumns(); track year) {
+                    <th class="col-year">{{ year }}</th>
+                  }
+                  <th class="col-icons"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
+                  <tr [class.row-alt]="idx % 2 === 1">
+                    <td class="col-action">
+                      <div class="action-name">{{ item.operation.libelle }}</div>
+                      @if (item.operation.priorite_label) {
+                        <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
+                          {{ item.operation.priorite_label }}
+                        </div>
+                      }
+                    </td>
+                    @for (year of yearColumns(); track year) {
+                      <td class="col-year">
+                        @if (getActionStatusForYear(item.operation, year); as status) {
+                          <img [src]="getActionIcon(status)" class="action-status-icon" alt="">
+                        }
+                      </td>
+                    }
+                    <td class="col-icons">
+                      <div class="row-actions">
+                        <button class="icon-btn-flat" title="Statistiques">
+                          <i class="fi fi-rr-chart-histogram"></i>
+                        </button>
+                        <button class="icon-btn-flat" title="Voir détails">
+                          <i class="fi fi-rr-eye"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  </main>
+</div>

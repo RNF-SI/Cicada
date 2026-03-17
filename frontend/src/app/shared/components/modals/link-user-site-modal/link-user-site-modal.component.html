@@ -134,7 +134,7 @@
                     <div class="autocomplete-option">
                       <span class="option-name">{{ site.nom_site }}</span>
                       @if (site.type_site_label) {
-                        <span class="option-type">{{ site.type_site_label }}</span>
+                        <span class="option-type">{{ site | siteTypeDisplay }}</span>
                       }
                     </div>
                   </mat-option>
@@ -178,7 +178,7 @@
           <div class="site-details">
             <span class="site-name">{{ data.site?.nom_site }}</span>
             @if (data.site?.type_site_label) {
-              <span class="site-type">{{ data.site?.type_site_label }}</span>
+              <span class="site-type">{{ data.site | siteTypeDisplay }}</span>
             }
           </div>
         </div>

@@ -31,10 +31,23 @@
 
         <!-- Choix des sites * -->
         <div class="form-section sites-section">
-          <label class="field-label">
-            {{ 'modals.planForm.fields.sites' | translate }} *
-            <span class="count-badge">{{ getSelectedSitesCount() }}</span>
-          </label>
+          <div class="field-label-row">
+            <label class="field-label">
+              {{ 'modals.planForm.fields.sites' | translate }} *
+              <span class="count-badge">{{ getSelectedSitesCount() }}</span>
+            </label>
+            @if (showSiteScopeToggle()) {
+              <app-view-scope-toggle
+                [currentScope]="siteScope()"
+                [showOrganismeOption]="true"
+                [showAllOption]="isSuperAdmin()"
+                [mineLabel]="'modals.planForm.sitesScopeMine' | translate"
+                [organismeLabel]="'modals.planForm.sitesScopeOrg' | translate"
+                [allLabel]="'modals.planForm.sitesScopeAll' | translate"
+                (scopeChange)="onSiteScopeChange($event)">
+              </app-view-scope-toggle>
+            }
+          </div>
 
           <div class="search-box">
             <i class="fi fi-rr-search"></i>
@@ -63,6 +76,11 @@
                   <span class="item-name">{{ site.nom }}</span>
                   @if (site.type) {
                     <span class="item-type">{{ site.type }}</span>
+                  }
+                  @if (site.accessLabel) {
+                    <span class="item-access" [ngClass]="'access-' + site.accessType">
+                      {{ site.accessLabel }}
+                    </span>
                   }
                 </div>
               </div>

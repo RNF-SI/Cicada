@@ -524,6 +524,117 @@ class TestImpersonation:
         assert 'results' in response.data
         assert isinstance(response.data['results'], list)
 
+    def test_stop_impersonation_returns_admin_tokens(self, api_client, db):
+        """Test stop impersonation returns tokens for original admin."""
+        super_admin = SuperAdminFactory()
+        super_admin.set_password('AdminPass123!')
+        super_admin.save()
+
+        target_user = RoleFactory()
+
+        # Start impersonation
+        api_client.force_authenticate(user=super_admin)
+        start_response = api_client.post(
+            f'/api/auth/impersonate/{target_user.id_role}/',
+            {'reason': 'Test stop'}
+        )
+        assert start_response.status_code == status.HTTP_200_OK
+
+        impersonation_token = start_response.data['access']
+
+        # Use the impersonation token to stop
+        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {impersonation_token}')
+        stop_response = api_client.post('/api/auth/stop-impersonation/')
+
+        assert stop_response.status_code == status.HTTP_200_OK
+        assert 'access' in stop_response.data
+        assert 'refresh' in stop_response.data
+
+    def test_stop_impersonation_without_session(self, api_client, db):
+        """Test stop impersonation fails when not in impersonation session."""
+        super_admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post('/api/auth/stop-impersonation/')
+
+        # Should fail because no impersonation claims in token
+        # 401 is returned when force_authenticate is used (no JWT token with claims)
+        assert response.status_code in [
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN
+        ]
+
+    def test_impersonate_nonexistent_user(self, api_client, db):
+        """Test impersonating a nonexistent user returns 404."""
+        super_admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post('/api/auth/impersonate/99999/')
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_impersonation_creates_log_entry(self, api_client, db):
+        """Test starting impersonation creates a log entry."""
+        from apps.authentication.models import ImpersonationLog
+
+        super_admin = SuperAdminFactory()
+        target_user = RoleFactory()
+
+        initial_count = ImpersonationLog.objects.count()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post(
+            f'/api/auth/impersonate/{target_user.id_role}/',
+            {'reason': 'Audit log test'}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        assert ImpersonationLog.objects.count() == initial_count + 1
+        log = ImpersonationLog.objects.latest('started_at')
+        assert log.impersonator == super_admin
+        assert log.impersonated_user == target_user
+        assert log.reason == 'Audit log test'
+        assert log.ended_at is None  # Still active
+
+    def test_impersonation_token_contains_claims(self, api_client, db):
+        """Test impersonation JWT token contains proper claims."""
+        import jwt
+        from django.conf import settings
+
+        super_admin = SuperAdminFactory()
+        target_user = RoleFactory()
+
+        api_client.force_authenticate(user=super_admin)
+        response = api_client.post(
+            f'/api/auth/impersonate/{target_user.id_role}/'
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        token = response.data['access']
+        # Decode without verification to inspect claims
+        decoded = jwt.decode(token, options={"verify_signature": False})
+
+        assert decoded.get('is_impersonating') is True
+        assert decoded.get('impersonator_id') == super_admin.id_role
+
+    def test_impersonation_logs_filter_by_impersonator(self, api_client, db):
+        """Test filtering impersonation logs by impersonator_id."""
+        super_admin = SuperAdminFactory()
+        target_user = RoleFactory()
+
+        # Create an impersonation session
+        api_client.force_authenticate(user=super_admin)
+        api_client.post(f'/api/auth/impersonate/{target_user.id_role}/')
+
+        response = api_client.get(
+            '/api/auth/impersonation-logs/',
+            {'impersonator_id': super_admin.id_role}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        for item in response.data['results']:
+            assert item['impersonator']['id'] == super_admin.id_role
+
 
 @pytest.mark.django_db
 @pytest.mark.integration

@@ -20,8 +20,15 @@ urlpatterns = [
     path('api/auth/', include('apps.authentication.urls')),
     path('api/users/', include('apps.users.urls')),
     path('api/plans/', include('apps.plans.urls')),
+    path('api/inventaires/', include('apps.plans.urls_suivis')),
     path('api/', include('apps.notifications.urls')),
     path('api/', include('apps.core.urls')),
+    path('api/taxref/', include('apps.taxonomy.urls')),
+    path('api/habref/', include('apps.habitats.urls')),
+    path('api/inpg/', include('apps.geology.urls')),
+    path('api/campanule/', include('apps.campanule.urls')),
+    path('admin/system/', include('apps.system.urls')),
+    path('api/system/', include('apps.system.api_urls')),
 ]
 
 # Serve media files in development

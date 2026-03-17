@@ -10,7 +10,9 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
-  signal
+  signal,
+  Renderer2,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
@@ -59,6 +61,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   private map: L.Map | null = null;
   private geoJsonLayer: L.GeoJSON | null = null;
   readonly isFullscreen = signal(false);
+  private readonly renderer = inject(Renderer2);
 
   // Couleurs du design system
   private readonly primaryColor = '#025359';
@@ -80,6 +83,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   }
 
   ngOnDestroy(): void {
+    this.renderer.removeClass(document.body, 'leaflet-map-fullscreen-active');
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -223,6 +227,12 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
    */
   toggleFullscreen(): void {
     this.isFullscreen.update(v => !v);
+    // Toggle body class to hide other content when map is fullscreen
+    if (this.isFullscreen()) {
+      this.renderer.addClass(document.body, 'leaflet-map-fullscreen-active');
+    } else {
+      this.renderer.removeClass(document.body, 'leaflet-map-fullscreen-active');
+    }
     // Rafraîchir la carte après le changement de taille
     setTimeout(() => {
       this.map?.invalidateSize();

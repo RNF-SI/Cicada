@@ -3,12 +3,17 @@
   "version": "0.1.12",
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",
-    "start:docker": "ng serve --host 0.0.0.0 --port 4200 --allowed-hosts all --proxy-config proxy.conf.docker.json",
+    "start:docker": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.docker.json",
     "build": "ng build",
     "build:prod": "ng build --configuration production",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "e2e": "playwright test --config=e2e/playwright.config.ts",
+    "e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
+    "e2e:headed": "playwright test --config=e2e/playwright.config.ts --headed",
+    "e2e:debug": "playwright test --config=e2e/playwright.config.ts --debug",
+    "e2e:codegen": "playwright codegen http://localhost:4200"
   },
   "dependencies": {
     "@angular/animations": "^19.0.0",
@@ -22,6 +27,8 @@
     "@angular/router": "^19.0.0",
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0",
     "leaflet": "^1.9.0",
     "leaflet-draw": "^1.0.4",
     "rxjs": "~7.8.0",
@@ -33,6 +40,7 @@
     "@angular-devkit/build-angular": "^19.0.0",
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
+    "@playwright/test": "^1.58.1",
     "@types/jest": "^29.5.12",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet-draw": "^1.0.13",

@@ -33,6 +33,7 @@ export type ValidationRequestType =
   | 'admin_demotion'
   | 'referent_validation'
   | 'site_org_link'
+  | 'plan_site_link'
   | 'invite_org_to_site'
   | 'invite_user_to_site';
 
@@ -180,6 +181,9 @@ export interface ValidationRequestListItem {
   requester_name: string;
   target_name?: string;
   target_site_id?: number;
+  target_site_name?: string;
+  target_plan_id?: number;
+  target_plan_name?: string;
   justification?: string;
   validator_name?: string;
   validator_comment?: string;
@@ -275,6 +279,7 @@ export interface SiteAccessRequestData {
  */
 export interface PlanAccessRequestData {
   justification?: string;
+  request_as_referent?: boolean;
 }
 
 /**

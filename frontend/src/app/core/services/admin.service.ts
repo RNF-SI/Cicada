@@ -7,6 +7,7 @@ import {
   AdminSite,
   AdminUser,
   AdminPlan,
+  PlanFichier,
   OrganismeCreatePayload,
   SiteCreatePayload,
   PlanCreatePayload,
@@ -24,7 +25,8 @@ import {
   BulkImportFieldMapping,
   BulkImportValidationResult,
   BulkImportResult,
-  BulkImportJobStatus
+  BulkImportJobStatus,
+  PlanDuplicateOptions
 } from '../models/admin.model';
 
 export interface DashboardStats {
@@ -144,7 +146,7 @@ export class AdminService {
   /**
    * Get list of sites
    */
-  getSites(params?: { search?: string; page?: number; page_size?: number; type?: string }): Observable<PaginatedResponse<AdminSite>> {
+  getSites(params?: { search?: string; page?: number; page_size?: number; type?: string; organisme?: number }): Observable<PaginatedResponse<AdminSite>> {
     let httpParams = new HttpParams();
     if (params?.search) {
       httpParams = httpParams.set('search', params.search);
@@ -157,6 +159,9 @@ export class AdminService {
     }
     if (params?.type) {
       httpParams = httpParams.set('id_type_site', params.type);
+    }
+    if (params?.organisme) {
+      httpParams = httpParams.set('organisme', params.organisme.toString());
     }
 
     return this.http.get<PaginatedResponse<AdminSite>>(`${this.apiUrl}/sites/`, { params: httpParams })
@@ -261,7 +266,7 @@ export class AdminService {
   /**
    * Get site types (nomenclatures)
    */
-  getSiteTypes(): Observable<{ id_nomenclature: number; cd_nomenclature: string; label: string }[]> {
+  getSiteTypes(): Observable<{ id_nomenclature: number; cd_nomenclature: string | null; mnemonique: string; label: string }[]> {
     return this.http.get<any>('/api/nomenclatures/?type=TYPE_SITE')
       .pipe(
         map(res => res.results || res),
@@ -398,6 +403,7 @@ export class AdminService {
     statut?: PlanStatut;
     organisme?: number;
     site?: number;
+    scope?: 'mine';
   }): Observable<PaginatedResponse<AdminPlan>> {
     let httpParams = new HttpParams();
     if (params?.search) {
@@ -418,6 +424,9 @@ export class AdminService {
     if (params?.site) {
       httpParams = httpParams.set('site_id', params.site.toString());
     }
+    if (params?.scope) {
+      httpParams = httpParams.set('scope', params.scope);
+    }
 
     return this.http.get<PaginatedResponse<AdminPlan>>(`${this.plansApiUrl}/plans/`, { params: httpParams })
       .pipe(catchError(this.handleError));
@@ -428,6 +437,14 @@ export class AdminService {
    */
   getPlan(id: number): Observable<AdminPlan> {
     return this.http.get<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get a plan de gestion by slug
+   */
+  getPlanBySlug(slug: string): Observable<AdminPlan> {
+    return this.http.get<AdminPlan>(`${this.plansApiUrl}/plans/by-slug/${slug}/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -460,6 +477,33 @@ export class AdminService {
    */
   updatePlanStatus(id: number, statut: PlanStatut): Observable<AdminPlan> {
     return this.http.patch<AdminPlan>(`${this.plansApiUrl}/plans/${id}/`, { statut })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Change plan status via dedicated endpoint with transition validation
+   * POST /api/plans/plans/{id}/change-status/
+   */
+  changePlanStatus(planId: number, newStatus: PlanStatut): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, { new_status: newStatus })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Create a mid-term evaluation from a validated plan
+   * POST /api/plans/plans/{id}/create-evaluation/
+   */
+  createEvaluation(planId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/create-evaluation/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Duplicate a plan with configurable options
+   * POST /api/plans/plans/{id}/duplicate/
+   */
+  duplicatePlan(planId: number, options: PlanDuplicateOptions): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/duplicate/`, options)
       .pipe(catchError(this.handleError));
   }
 
@@ -528,6 +572,26 @@ export class AdminService {
   }
 
   /**
+   * Assign a member (non-referent) to a plan
+   * POST /api/plans/plans/{id}/assign_member/
+   */
+  assignMemberToPlan(planId: number, userId: number): Observable<any> {
+    return this.http.post(`${this.plansApiUrl}/plans/${planId}/assign_member/`, {
+      user_id: userId
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove a member from a plan
+   * DELETE /api/plans/plans/{id}/remove_member/?user_id=X
+   */
+  removeMemberFromPlan(planId: number, userId: number): Observable<any> {
+    return this.http.delete(`${this.plansApiUrl}/plans/${planId}/remove_member/`, {
+      params: { user_id: userId.toString() }
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
    * Get evaluation types (nomenclatures)
    */
   getEvaluationTypes(): Observable<EvaluationType[]> {
@@ -545,6 +609,34 @@ export class AdminService {
     return this.http.get<any>('/api/nomenclatures/?type=TYPE_REDACTEUR')
       .pipe(
         map(res => res.results || res),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get nomenclatures by type
+   */
+  getNomenclaturesByType(typeMnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string; definition?: string; hierarchy?: string }[]> {
+    return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}`)
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get a specific nomenclature by type and mnemonique
+   */
+  getNomenclatureByMnemonique(typeMnemonique: string, mnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string }> {
+    return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}&mnemonique=${mnemonique}`)
+      .pipe(
+        map(res => {
+          const results = res.results || res;
+          if (Array.isArray(results) && results.length > 0) {
+            return results[0];
+          }
+          throw new Error(`Nomenclature ${mnemonique} not found for type ${typeMnemonique}`);
+        }),
         catchError(this.handleError)
       );
   }
@@ -679,6 +771,60 @@ export class AdminService {
       `${this.apiUrl}/sites/bulk_import_status/`,
       { params: { job_id: jobId.toString() } }
     ).pipe(catchError(this.handleError));
+  }
+
+  // ==================== FICHIERS PLANS ====================
+
+  /**
+   * Get fichiers for a plan
+   */
+  getPlanFichiers(planId: number): Observable<PaginatedResponse<PlanFichier>> {
+    return this.http.get<PaginatedResponse<PlanFichier>>(`${this.plansApiUrl}/fichiers/`, {
+      params: { plan_id: planId.toString() }
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Upload a fichier for a plan
+   */
+  uploadFichier(planId: number, file: File, metadata: {
+    type_fichier?: string;
+    titre?: string;
+    description?: string;
+    auteur?: string;
+    date_document?: string;
+    public?: boolean;
+  }): Observable<PlanFichier> {
+    const formData = new FormData();
+    formData.append('fichier', file);
+    formData.append('plan_de_gestion', planId.toString());
+    formData.append('nom_fichier', file.name);
+    if (metadata.type_fichier) formData.append('type_fichier', metadata.type_fichier);
+    if (metadata.titre) formData.append('titre', metadata.titre);
+    if (metadata.description) formData.append('description', metadata.description);
+    if (metadata.auteur) formData.append('auteur', metadata.auteur);
+    if (metadata.date_document) formData.append('date_document', metadata.date_document);
+    if (metadata.public !== undefined) formData.append('public', metadata.public.toString());
+
+    return this.http.post<PlanFichier>(`${this.plansApiUrl}/fichiers/`, formData)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Delete a fichier
+   */
+  deleteFichier(fichierId: number): Observable<void> {
+    return this.http.delete<void>(`${this.plansApiUrl}/fichiers/${fichierId}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Download a fichier as blob (needed because JWT auth can't be sent via window.open)
+   */
+  downloadFichierBlob(fichierId: number): Observable<Blob> {
+    return this.http.get(`${this.plansApiUrl}/fichiers/${fichierId}/download/`, {
+      responseType: 'blob'
+    }).pipe(catchError(this.handleError));
   }
 
   // ==================== ERROR HANDLING ====================

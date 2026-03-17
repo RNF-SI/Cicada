@@ -1,0 +1,59 @@
+<div class="admin-update">
+  <header class="page-header">
+    <h1 class="page-title">{{ 'admin.update.title' | translate }}</h1>
+    <p class="page-subtitle">{{ 'admin.update.subtitle' | translate }}</p>
+  </header>
+
+  <section class="update-section">
+    @if (loading()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+        <span>{{ 'common.loading' | translate }}</span>
+      </div>
+    } @else {
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fi fi-rr-document"></i>
+          {{ 'admin.update.versionTitle' | translate }}
+        </h2>
+      </div>
+
+      <div class="version-info">
+        <p class="version-current">
+          <strong>{{ 'admin.update.currentVersion' | translate }}</strong>
+          {{ versionInfo()?.current_version ?? '—' }}
+        </p>
+
+        @if (versionInfo()?.update_available && versionInfo()?.latest_version) {
+          <div class="update-available">
+            <p class="update-message">
+              <i class="fi fi-rr-bell"></i>
+              {{ 'admin.update.updateAvailable' | translate }}: <strong>{{ versionInfo()?.latest_version }}</strong>
+            </p>
+            @if (versionInfo()?.last_check) {
+              <p class="last-check">{{ 'admin.update.lastCheck' | translate }}: {{ formatDate(versionInfo()?.last_check ?? null) }}</p>
+            }
+            <button
+              mat-flat-button
+              color="primary"
+              (click)="triggerUpdate()"
+              [disabled]="updating()"
+            >
+              @if (updating()) {
+                <mat-spinner diameter="20" class="btn-spinner"></mat-spinner>
+              } @else {
+                <i class="fi fi-rr-download"></i>
+              }
+              {{ 'admin.update.actionUpdate' | translate }}
+            </button>
+          </div>
+        } @else {
+          <p class="up-to-date">
+            <i class="fi fi-rr-check-circle"></i>
+            {{ 'admin.update.upToDate' | translate }}
+          </p>
+        }
+      </div>
+    }
+  </section>
+</div>

@@ -1,0 +1,121 @@
+<app-header></app-header>
+
+<div class="fcr-form-page">
+  <!-- Hero Section (card-like) -->
+  <div class="hero-section">
+    <h1 class="hero-title">
+      {{ isEditMode() ? ('enjeux.fcrForm.titleEdit' | translate) : ('enjeux.fcrForm.titleNew' | translate) }}
+    </h1>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoadingData()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Form Content -->
+  @if (!isLoadingData()) {
+    <div class="form-container">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="error-banner">
+            <i class="fi fi-rr-exclamation"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- Main Section -->
+        <div class="form-card">
+          <!-- Required fields notice -->
+          <p class="required-notice">{{ 'enjeux.fcrForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.fcrForm.requiredAfter' | translate }}</p>
+          <!-- Intitulé -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.fcrForm.libelle' | translate }} <span class="required-star">*</span></mat-label>
+            <textarea matInput
+                      formControlName="libelle"
+                      rows="3"
+                      [placeholder]="'enjeux.fcrForm.libellePlaceholder' | translate">
+            </textarea>
+            @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
+              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+            }
+            @if (form.get('libelle')?.hasError('maxlength')) {
+              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Intitulé court -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.fcrForm.intituleCourt' | translate }} <span class="required-star">*</span></mat-label>
+            <input matInput
+                   formControlName="intitule_court"
+                   maxlength="50"
+                   [placeholder]="'enjeux.fcrForm.intituleCourtPlaceholder' | translate">
+            <mat-hint align="end">{{ intituleCourtLength }}/50</mat-hint>
+            <button mat-icon-button matSuffix type="button"
+                    [matTooltip]="'enjeux.fcrForm.intituleCourtHint' | translate"
+                    matTooltipPosition="above">
+              <i class="fi fi-rr-interrogation"></i>
+            </button>
+          </mat-form-field>
+
+          <!-- Catégorie FCR -->
+          <div class="form-group">
+            <label class="form-label">{{ 'enjeux.fcrForm.categorie' | translate }} <span class="required-star">*</span></label>
+            <mat-radio-group formControlName="id_categorie_fcr" class="fcr-category-group">
+              @for (option of fcrCategorieOptions(); track option.id) {
+                <mat-radio-button [value]="option.id">
+                  {{ option.translateKey | translate }}
+                </mat-radio-button>
+              }
+            </mat-radio-group>
+            @if (form.get('id_categorie_fcr')?.hasError('required') && form.get('id_categorie_fcr')?.touched) {
+              <mat-error class="category-error">{{ 'common.validation.required' | translate }}</mat-error>
+            }
+          </div>
+        </div>
+
+        <!-- Section Détails (accordéon) -->
+        <mat-expansion-panel class="details-panel" hideToggle>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
+              <span class="panel-title-text">{{ 'enjeux.fcrForm.details' | translate }}</span>
+              <i class="fi fi-rr-menu-burger panel-toggle-icon"></i>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="panel-content">
+            <!-- Commentaires -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'enjeux.fcrForm.commentaires' | translate }}</mat-label>
+              <textarea matInput
+                        formControlName="description"
+                        rows="4"
+                        [placeholder]="'enjeux.fcrForm.commentairesPlaceholder' | translate">
+              </textarea>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+      </form>
+    </div>
+
+    <!-- Action Bar (full-width, dark) -->
+    <div class="action-bar">
+      <button class="btn-action-cancel" type="button" (click)="onCancel()" [disabled]="isLoading()">
+        {{ 'common.actions.cancel' | translate }}
+      </button>
+      <button class="btn-action-validate" type="button" (click)="onSubmit()" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          {{ 'common.actions.validate' | translate }}
+        }
+      </button>
+    </div>
+  }
+</div>

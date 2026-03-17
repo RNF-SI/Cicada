@@ -177,6 +177,7 @@ class SiteListSerializer(serializers.ModelSerializer):
     plans_count = serializers.SerializerMethodField()
     organismes = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
+    current_user_access = serializers.SerializerMethodField()
 
     # Point de référence en GeoJSON simple
     geom_pt_geojson = serializers.SerializerMethodField()
@@ -185,9 +186,10 @@ class SiteListSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_pt_geojson',
-            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users'
+            'organismes_count', 'users_count', 'plans_count', 'organismes', 'users',
+            'current_user_access'
         ]
 
     def get_geom_pt_geojson(self, obj):
@@ -231,6 +233,93 @@ class SiteListSerializer(serializers.ModelSerializer):
             'referent': cor.referent
         } for cor in cor_users]
 
+    def get_current_user_access(self, obj):
+        """Retourne le type d'accès de l'utilisateur courant au site."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+
+        user = request.user
+
+        is_super = user.is_superuser or user.role_level == 'super_admin'
+
+        # Relation directe utilisateur-site (prioritaire même pour super_admin)
+        try:
+            cor_role_site = CorRoleSite.objects.get(id_role=user, id_site=obj)
+            is_referent = cor_role_site.referent and cor_role_site.referent_valid
+            if is_referent:
+                return {
+                    'has_access': True,
+                    'access_type': 'referent',
+                    'role_label': 'Référent'
+                }
+            if cor_role_site.conservateur:
+                return {
+                    'has_access': True,
+                    'access_type': 'conservateur',
+                    'role_label': 'Conservateur'
+                }
+            return {
+                'has_access': True,
+                'access_type': 'membre',
+                'role_label': 'Membre'
+            }
+        except CorRoleSite.DoesNotExist:
+            pass
+
+        # Super admin sans relation directe
+        if is_super:
+            # Vérifier si le site appartient à l'organisme du super_admin
+            if user.id_organisme:
+                is_own_org_site = CorOgSite.objects.filter(
+                    id_site=obj,
+                    uuid_og=user.id_organisme
+                ).exists()
+                if is_own_org_site:
+                    return {
+                        'has_access': True,
+                        'access_type': 'admin_og',
+                        'role_label': user.id_organisme.nom_organisme
+                    }
+            # Sinon afficher l'organisme gestionnaire principal
+            principal_org = CorOgSite.objects.filter(
+                id_site=obj, principal=True
+            ).select_related('uuid_og').first()
+            org_label = principal_org.uuid_og.nom_organisme if principal_org else 'Tous les sites'
+            return {
+                'has_access': True,
+                'access_type': 'super_admin',
+                'role_label': org_label
+            }
+
+        # Admin organisme gestionnaire du site
+        if user.role_level == 'admin_og' and user.id_organisme:
+            is_org_gestionnaire = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            if is_org_gestionnaire:
+                return {
+                    'has_access': True,
+                    'access_type': 'admin_og',
+                    'role_label': 'Admin organisme'
+                }
+
+        # Utilisateur via organisme (pas de relation directe)
+        if user.id_organisme:
+            is_org_site = CorOgSite.objects.filter(
+                id_site=obj,
+                uuid_og=user.id_organisme
+            ).exists()
+            if is_org_site:
+                return {
+                    'has_access': True,
+                    'access_type': 'organisme',
+                    'role_label': user.id_organisme.nom_organisme
+                }
+
+        return None
+
 
 class SiteGeoJSONSerializer(serializers.ModelSerializer):
     """
@@ -248,7 +337,7 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'surf_off', 'type_site', 'type_site_label', 'date_crea', 'marin',
+            'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'organismes',
             'users_assignes', 'modif_adm', 'modif_geo'
         ]
@@ -323,7 +412,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site',
-            'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'date_crea',
+            'jonction_nom', 'surf_off', 'type_site', 'type_site_label', 'type_site_precision', 'date_crea',
             'marin', 'outre_mer', 'active', 'modif_adm', 'modif_geo',
             'geom_geojson', 'geom_pt_geojson', 'organismes',
             'users_assignes', 'current_user_is_referent', 'current_user_access'
@@ -474,7 +563,7 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
         model = Site
         fields = [
             'id_site', 'slug', 'id_local', 'id_inpn', 'nom_site', 'jonction_nom',
-            'surf_off', 'type_site_id', 'date_crea', 'marin',
+            'surf_off', 'type_site_id', 'type_site_precision', 'date_crea', 'marin',
             'outre_mer', 'active', 'geom_geojson', 'geom_pt_geojson'
         ]
         read_only_fields = ['id_site', 'slug']
@@ -543,7 +632,28 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
             except Exception as e:
                 raise serializers.ValidationError(_("Point GeoJSON invalide: %(error)s") % {'error': str(e)})
         return value
-    
+
+    def validate(self, attrs):
+        """Validation croisée des champs."""
+        type_site_data = attrs.get('id_type_site')
+        type_site_precision = attrs.get('type_site_precision')
+
+        # Si le type de site est "Autre", la précision est requise
+        if type_site_data and type_site_data.get('id_nomenclature'):
+            try:
+                nomenclature = Nomenclature.objects.get(id_nomenclature=type_site_data['id_nomenclature'])
+                if nomenclature.mnemonique == 'AUTRE' and not type_site_precision:
+                    raise serializers.ValidationError({
+                        'type_site_precision': _("La précision du type est requise quand le type est 'Autre'.")
+                    })
+                # Si le type n'est pas "Autre", on efface la précision
+                if nomenclature.mnemonique != 'AUTRE':
+                    attrs['type_site_precision'] = None
+            except Nomenclature.DoesNotExist:
+                pass
+
+        return attrs
+
     def create(self, validated_data):
         """Crée un nouveau site."""
         type_site_data = validated_data.pop('id_type_site', None)

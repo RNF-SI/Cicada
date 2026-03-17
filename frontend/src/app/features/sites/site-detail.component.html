@@ -33,7 +33,7 @@
           <div class="title-left">
             <div class="subtitle">
               <i class="fi fi-rr-marker"></i>
-              <span>{{ site()!.type_site_label || 'Site' }}</span>
+              <span>{{ (site() | siteTypeDisplay) !== '-' ? (site() | siteTypeDisplay) : 'Site' }}</span>
             </div>
             <h1>{{ site()!.nom_site }}</h1>
             <div class="status-badges">
@@ -262,11 +262,26 @@
           <!-- Plans de gestion -->
           @if (activeMenuItem() === 'overview' || activeMenuItem() === 'plans') {
             <section class="plans-section">
-              <h2 class="section-title">
-                <i class="fi fi-rr-document"></i>
-                {{ 'sites.detail.associatedPlans' | translate }}
-                <span class="badge">{{ associatedPlans().length }}</span>
-              </h2>
+              <div class="section-header">
+                <h2 class="section-title">
+                  <i class="fi fi-rr-document"></i>
+                  {{ 'sites.detail.associatedPlans' | translate }}
+                  <span class="badge">{{ associatedPlans().length }}</span>
+                </h2>
+                <div class="section-actions">
+                  @if (canLinkPlan()) {
+                    <button class="btn-manage" (click)="linkPlanToSite()">
+                      <i class="fi fi-rr-plus"></i>
+                      <span>{{ 'sites.detail.linkPlan' | translate }}</span>
+                    </button>
+                  } @else {
+                    <button class="btn-manage btn-manage--secondary" (click)="requestPlanAccess()">
+                      <i class="fi fi-rr-lock"></i>
+                      <span>{{ 'sites.detail.requestPlanAccess' | translate }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
 
               @if (associatedPlans().length === 0) {
                 <div class="empty-state">
@@ -289,6 +304,24 @@
                       </div>
                     </div>
                   }
+                </div>
+              }
+
+              <!-- Plans en attente de validation -->
+              @if (pendingPlanRequests().length > 0) {
+                <div class="pending-plans-section">
+                  <span class="pending-plans-label">{{ 'sites.detail.pendingPlans' | translate }}</span>
+                  <div class="pending-plans-list">
+                    @for (req of pendingPlanRequests(); track req.id) {
+                      <div class="plan-card plan-card-pending">
+                        <div class="plan-info">
+                          <span class="plan-name">{{ req.target_plan_name }}</span>
+                          <span class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                        </div>
+                        <i class="fi fi-rr-hourglass"></i>
+                      </div>
+                    }
+                  </div>
                 </div>
               }
             </section>

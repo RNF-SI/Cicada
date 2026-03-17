@@ -258,17 +258,41 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 ### Project Setup (Current Implementation)
 
 ```bash
-# Docker setup (recommended)
+# 1. Copier le fichier d'environnement (optionnel, des valeurs par défaut existent)
+cp .env.example .env
+
+# 2. Lancer tous les services
 docker compose up -d
 
-# The setup includes:
-# - PostgreSQL with PostGIS
-# - Redis for caching
-# - Django backend with migrations applied
-# - Nomenclatures import (reference data)
-# - Static files collection
-# Note: Test data is NOT created automatically (use seed_testdata command)
+# 3. (Optionnel) Créer les données de test
+docker compose exec web python manage.py seed_testdata
 ```
+
+**Ce qui est lancé automatiquement :**
+- PostgreSQL avec PostGIS + création des schémas (dont `taxonomie` et `ref_habitats`)
+- Redis (cache + broker Celery)
+- Django : migrations, import nomenclatures, **import HabRef**, **import TaxRef**, création superuser, collectstatic, runserver
+- Frontend Angular : npm install + serveur de développement
+- Celery worker + beat (tâches asynchrones)
+- Mailpit (capture des emails en dev)
+
+**Pour accélérer le démarrage en dev/tests**, ajouter `TAXREF_IMPORT_OPTS=--lite` dans `.env` (~8k taxons au lieu de ~700k). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md).
+
+**⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine, modifiez le port externe correspondant dans `.env` :
+```bash
+# Serveur web (Apache, Nginx) déjà sur le port 80
+FRONTEND_PORT=8080
+
+# Port 8000 déjà utilisé
+DJANGO_PORT=8001
+
+# PostgreSQL local déjà sur 5432
+POSTGRES_EXTERNAL_PORT=5433
+
+# Redis local déjà sur 6379
+REDIS_EXTERNAL_PORT=6380
+```
+Ces variables ne changent que le port exposé sur la machine hôte. Les conteneurs Docker communiquent entre eux sur les ports internes par défaut.
 
 ### Development
 
@@ -289,8 +313,18 @@ docker compose exec web python manage.py seed_testdata --reset  # Remove test da
 docker compose exec web python manage.py seed_testdata --dry-run # Preview changes
 docker compose exec web python manage.py seed_testdata --only=users,plans  # Selective seeding
 
-# Import/Update nomenclatures (reference data)
-docker compose exec web python import_nomenclatures.py
+# Import/Update nomenclatures (reference data - lancé automatiquement au démarrage)
+docker compose exec web python manage.py import_nomenclatures                 # Import (skip si déjà fait)
+docker compose exec web python manage.py import_nomenclatures --force         # Upsert (ajouter + mettre à jour)
+docker compose exec web python manage.py import_nomenclatures --force --prune # Upsert + supprimer les obsolètes
+
+# Import référentiels INPN (voir docs/NOMENCLATURES.md pour le détail)
+docker compose exec web python manage.py import_habref                 # HabRef (auto au démarrage)
+docker compose exec web python manage.py import_taxref                 # TaxRef v18 complet (~700k taxons)
+docker compose exec web python manage.py import_taxref --lite          # TaxRef allégé (~8k taxons, pour dev/tests)
+docker compose exec web python manage.py import_taxref --version 17    # Version spécifique
+docker compose exec web python manage.py import_taxref --force         # Forcer le rechargement
+docker compose exec web python manage.py refresh_taxref_views          # Rafraîchir vues matérialisées
 
 # Test nomenclatures import
 docker compose exec web python test_nomenclatures.py
@@ -336,12 +370,11 @@ backend/apps/core/management/commands/
     ├── context.py                # SeederContext (partage de données)
     ├── signals.py                # Gestion centralisée des signaux (28)
     ├── modules_seeder.py         # 4 modules
-    ├── nomenclatures_seeder.py   # Nomenclatures et types
     ├── groups_seeder.py          # 4 groupes Django
     ├── organismes_seeder.py      # 5 organismes
     ├── sites_seeder.py           # 7 sites avec géométries PostGIS
     ├── users_seeder.py           # 14 utilisateurs
-    ├── plans_seeder.py           # 8 plans de gestion
+    ├── plans_seeder.py           # 9 plans de gestion + chaînes de versions
     ├── pending_users_seeder.py   # 3 PendingUser
     ├── validation_requests_seeder.py  # 22 demandes de validation
     ├── notifications_seeder.py   # 21+ notifications
@@ -360,12 +393,13 @@ backend/apps/core/management/commands/
 
 **Graphe de dépendances :**
 ```
-modules, nomenclatures, groups, organismes (indépendants)
+modules, groups, organismes (indépendants)
+    │  (Note: les nomenclatures sont importées séparément via `python manage.py import_nomenclatures`)
     │
-    ├── sites (deps: organismes, nomenclatures)
+    ├── sites (deps: organismes)
     ├── users (deps: organismes, sites, groups)
     ├── pending_users (deps: organismes)
-    ├── plans (deps: users, sites, nomenclatures)
+    ├── plans (deps: users, sites)
     ├── validation_requests (deps: users, sites, plans, organismes)
     ├── notifications (deps: users, sites, plans, organismes, validation_requests)
     ├── error_logs (deps: users)
@@ -393,8 +427,9 @@ docker compose exec web python manage.py seed_testdata --only=users,plans
 | Stack | Framework | Tests | Couverture |
 |-------|-----------|-------|------------|
 | Backend | pytest + pytest-django + Factory Boy | 356 | 56% |
-| Frontend | Jest + jest-preset-angular | 132 | 7% |
-| **Total** | | **488** | |
+| Frontend (unitaires) | Jest + jest-preset-angular | 132 | 7% |
+| **Frontend (E2E)** | **Playwright** | **431** | **Admin + Features + Enjeux + Plans + Access** |
+| **Total** | | **~919** | |
 
 #### Backend (pytest)
 
@@ -486,9 +521,83 @@ npm run test:coverage
 - `action-icon.component.spec.ts` - Composant ActionIcon (10 tests)
 - `navigation-tile.component.spec.ts` - Composant NavigationTile (24 tests)
 
+#### Frontend E2E (Playwright)
+
+```bash
+cd frontend
+
+# Tous les tests E2E (headless)
+npm run e2e
+
+# Interface visuelle Playwright
+npm run e2e:ui
+
+# Tests visibles dans le navigateur
+npm run e2e:headed
+
+# Mode debug
+npm run e2e:debug
+```
+
+**Prérequis** : Stack Docker en cours (`docker compose up -d`) + données de test (`seed_testdata`).
+
+**Tests E2E disponibles (431 tests) :**
+
+*Authentication & Access (26 tests) :*
+- `auth/login.spec.ts` - Login valide/invalide, champs vides, returnUrl (5 tests)
+- `auth/logout.spec.ts` - Déconnexion, suppression tokens (3 tests)
+- `auth/register.spec.ts` - Inscription, validation, email doublon (5 tests)
+- `access/role-access.spec.ts` - Contrôle d'accès par rôle, redirection referent/user (8 tests)
+- `access/data-scope.spec.ts` - Scope données par organisme, isolation users/sites (5 tests)
+
+*Admin (51 tests) :*
+- `admin/users-list.spec.ts` - Liste utilisateurs, recherche, filtres (6 tests)
+- `admin/users-actions.spec.ts` - Activation/désactivation, assign site (5 tests)
+- `admin/users-sites.spec.ts` - Associations sites/plans (4 tests)
+- `admin/sites-list.spec.ts` - Liste sites, recherche, filtres (5 tests)
+- `admin/sites-crud.spec.ts` - Création site, validation formulaire (5 tests)
+- `admin/sites-orgs.spec.ts` - Liens organismes/sites (3 tests)
+- `admin/validations.spec.ts` - Liste, filtres, approbation (6 tests)
+- `admin/validation-workflow.spec.ts` - Workflow multi-utilisateurs : demande → vue admin → approbation/rejet → vérification (10 tests)
+- `admin/organismes.spec.ts` - Grille, détail, recherche (4 tests)
+- `admin/dashboard.spec.ts` - Statistiques, accès (3 tests)
+
+*Enjeux & Arborescence (152 tests) :*
+- `features/enjeux.spec.ts` - Navigation, détail, CRUD facteurs/pressions, onglets OLT/Opérations, CRUD OLT/NE (58 tests)
+- `features/enjeu-forms.spec.ts` - Formulaires enjeu/FCR : création, édition, validation, champs conditionnels (28 tests)
+- `features/enjeux-roles-access.spec.ts` - Accès par rôle : super admin, admin_og, referent, user, isolation cross-org (22 tests)
+- `features/enjeux-olt-hierarchy.spec.ts` - Hiérarchie OLT : état actuel → OLT → NE, affichage, CRUD imbriqué (17 tests)
+- `features/enjeux-operations-hierarchy.spec.ts` - Hiérarchie opérations : métriques, opérations, CRUD, liens (21 tests)
+- `features/enjeux-cascade-delete.spec.ts` - Suppression en cascade : enjeu, facteur, pression avec confirmation (6 tests)
+
+*Plans (71 tests) :*
+- `features/plan-create.spec.ts` - Création plan : formulaire, sélection sites, rédacteurs, permissions (31 tests)
+- `features/plan-views.spec.ts` - Vues plan : tableau de bord, timeline, bilan, suivi actions (28 tests)
+- `features/plans-list.spec.ts` - Liste plans, recherche, filtres, tri (12 tests)
+
+*Opérations & Suivis (53 tests) :*
+- `features/operations.spec.ts` - CRUD opérations, lien métriques, filtres, tri (30 tests)
+- `features/inventaires.spec.ts` - CRUD suivis/inventaires, formulaires, listes (23 tests)
+
+*Autres Features (68 tests) :*
+- `features/profile.spec.ts` - Page profil, infos utilisateur, RGPD, mes demandes (18 tests)
+- `features/activity.spec.ts` - Timeline activité, onglets par rôle, filtres, pagination (15 tests)
+- `features/bulk-import.spec.ts` - Import en masse sites, stepper, upload, mapping (11 tests)
+- `features/impersonation.spec.ts` - Impersonation admin, bannière, navigation (9 tests)
+- `features/duplicate-detection.spec.ts` - Détection doublons INPN et noms similaires (8 tests)
+- `features/notifications.spec.ts` - Liste notifications, marquer lu, état vide (7 tests)
+
+*Navigation (4 tests) :*
+- `navigation/navigation.spec.ts` - Header, sidebar, liens (4 tests)
+
+**Helpers E2E :**
+- `helpers/plan.helper.ts` - Helpers API authentifiés (findPlan, findFirstEnjeu, apiGet/Post/Patch/Delete)
+- `pages/*.page.ts` - Page objects (EnjeuxPage, AdminUsersPage, PlanCreatePage, etc.)
+- `fixtures/auth.fixture.ts` - Fixtures Playwright avec sessions pré-authentifiées par rôle
+
 #### CI/CD
 
-Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`.
+Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`, et sur les tags de release `v*`.
 Configuration : `.github/workflows/tests.yml`
 
 ### Frontend Development
@@ -598,9 +707,12 @@ The backend follows a modular architecture with distinct Django apps:
 - **users**: User management, organizations (bib_organismes), role-based permissions system
 - **plans**: Management plans CRUD, multi-site support, file attachments *(API REST complète)*
 - **notifications**: Validation requests system, email notifications, Celery async tasks
+- **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
+- **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
+- **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
-  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management
+  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
 
 ### Database Schema Design
 
@@ -626,6 +738,8 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
 
 5. **general schema** (ODASE compatible): Management plans
    - `t_plan_gestion`: Management plans
+     - `plan_parent_id` FK self → chaîne de versions (plan initial → évaluation → plan révisé)
+     - `id_type_document` FK nomenclature → type de document (PLAN_INITIAL, EVAL_MI_PARCOURS, PLAN_REVISE)
    - `cor_ep_pg`: Many-to-many between plans and sites
    - `t_plan_gestion_referents`: Plan referents relationships
 
@@ -641,11 +755,36 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
    - `t_validation_requests`: Validation workflow
    - `t_pending_users`: Registration requests
 
+9. **taxonomie schema** (GeoNature compatible): Taxonomic reference (TaxRef)
+   - `taxref`: Main taxonomy table (~700k taxa, PK: cd_nom)
+   - `bib_taxref_rangs`: Taxonomic ranks
+   - `bib_taxref_habitats`: Habitat types
+   - `bib_taxref_statuts`: Taxonomic statuses
+   - `t_meta_taxref`: Referential versioning
+   - `vm_taxref_list_forautocomplete`: Materialized view with trigram index
+
+10. **ref_habitats schema** (GeoNature compatible): Habitat reference (HabRef)
+    - `habref`: Main habitat table (PK: cd_hab)
+    - `typoref`: Habitat typologies (EUNIS, Corine Biotope, etc.)
+    - `habref_corresp_hab`: Cross-typology correspondences
+    - `habref_corresp_taxon`: Habitat-taxon correspondences
+    - `autocomplete_habitat`: Denormalized table with trigram index
+
+11. **ref_campanule schema** (Cicada/INPN): Catalogue des protocoles CAMPanule
+    - `protocoles`: Protocoles de collecte (~224, PK: cd_protocole)
+    - `methodes`: Méthodes de collecte (~15, PK: cd_methode)
+    - `techniques`: Techniques de collecte (~178, PK: cd_technique)
+    - `attributs`: Vocabulaire contrôlé (domaine, objectif, cible, matériel)
+    - `prot_echantillonnage`: Plans d'échantillonnage
+    - `docs_web`: Références bibliographiques
+    - `prot_*_rel`, `meth_*_rel`, `tech_*_rel`: Tables de correspondance N-N
+    - `autocomplete_protocole`: Table dénormalisée avec index trigramme
+
 **Database Configuration**:
 ```python
 # search_path configured in settings/base.py
 OPTIONS = {
-    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,public'
+    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
 }
 ```
 
@@ -655,6 +794,7 @@ OPTIONS = {
 
 - **User Roles**: Super Admin > Admin Organisme > Utilisateur
 - **Référent** (access level, not a role): User is "referent" if assigned as site referent (`CorRoleSite.referent=True`) or plan referent (`PlanGestion.referents`)
+- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og et super_admin. Permission DRF `IsReferent` + vérification objet dans la vue.
 - **Permission Model**: Role-based with hierarchical access and Django groups
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
@@ -748,9 +888,11 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **8 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
+- **9 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
+  - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
+  - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
-- **Nomenclatures**: Site types, evaluation types, editor types
+- **Nomenclatures**: Importées automatiquement au démarrage via `import_nomenclatures` (types de sites, évaluations, rédacteurs, documents plan, suivis, enjeux, etc.)
 - **Validation Requests (27)**: Demandes de test avec différents statuts
   - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
   - Demandes `site_access`, `referent_validation`, `module_access`, etc.
@@ -898,11 +1040,20 @@ class UsersConfig(AppConfig):
 - 20+ endpoints including GeoJSON, statistics, bulk operations
 - Advanced filtering (25+ filters) and search capabilities
 - Upload/download system for plan files (documents, maps, reports)
+- **Cycle de vie des plans** :
+  - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
+    - Transitions : `draft↔valide`, `valide→archive`, `archive→valide`
+  - `POST /api/plans/plans/{id}/create-evaluation/` - Création d'une évaluation mi-parcours (référent du plan, admin_og+). Plan source doit être `valide` et de type plan (pas évaluation). Copie sites/référents, version incrémentée.
+  - `POST /api/plans/plans/{id}/duplicate/` - Duplication d'un plan avec options sélectives
+  - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature)
+  - Le serializer détail expose `version_chain` pour la timeline frontend
+  - **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+  - **Permissions lifecycle** : référent du plan (`PlanGestion.referents`), admin_og, super_admin. Vérification spécifique au plan dans la vue (pas juste le rôle global).
 - Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
 
 **API REST Notifications & Validations:**
 - Validation requests API at `/api/validations/`
-- Request types: `user_registration`, `site_access`, `plan_access`, `referent_validation`
+- Request types: `user_registration`, `site_access`, `plan_access`, `referent_validation`, `plan_site_link`
 - Status workflow: `pending` → `approved` / `rejected` / `cancelled` / `expired`
 - Endpoints:
   - `GET /api/validations/` - List validation requests (filtered by user role)
@@ -910,9 +1061,18 @@ class UsersConfig(AppConfig):
   - `GET /api/validations/my-requests/` - Current user's own requests
   - `POST /api/validations/{id}/approve/` - Approve a request
   - `POST /api/validations/{id}/reject/` - Reject a request
+  - `POST /api/validations/request_plan_site_link/` - Demande de lien plan-site (body: `{plan_id, site_id}`)
   - `GET /api/notifications/` - User notifications
   - `POST /api/notifications/{id}/read/` - Mark notification as read
   - `POST /api/notifications/read-all/` - Mark all as read
+
+**Validation plan-site link** (`plan_site_link`) :
+- **Droits** : référent du plan, membre du plan, référent/membre du site, admin_og+
+- **Lien direct** (sans validation) : super_admin, admin_og+référent site, référent plan+référent site
+- **Validation requise** : dans tous les autres cas
+  - Si le demandeur est **référent du plan** → validateurs = référents du site + admin_og du site
+  - Sinon (membre du plan, référent/membre du site) → validateurs = référents du plan
+- **Approbation** : crée `CorSitePg` + notifie le demandeur + notifie les référents du plan
 
 **Types de notifications disponibles:**
 | Type | Description | Déclencheur |
@@ -938,6 +1098,11 @@ class UsersConfig(AppConfig):
 - `notify_user_removed_from_site`: Notifie lors du retrait d'un site
 - `notify_user_deactivation`: Notifie lors de la désactivation
 - `notify_user_organisme_changed`: Notifie lors du changement d'organisme
+- `notify_plan_referents_new_member`: Notifie les référents d'un plan lors de l'ajout d'un membre/référent
+
+**Notifications liées aux validations plan-site** :
+- Lors de l'approbation d'un lien plan-site (`approve_plan_site_link`), les référents du plan sont notifiés que le site a été lié
+- Lors d'un lien direct plan-site (sans validation), les référents du plan sont également notifiés
 
 **API REST Activity (Historique d'activité):**
 - Unified activity timeline API at `/api/activity/`
@@ -1023,6 +1188,24 @@ Fichiers frontend:
 - Service: `frontend/src/app/core/services/activity.service.ts`
 - Modèles: `frontend/src/app/core/models/activity.model.ts`
 - Traductions: `frontend/src/assets/i18n/fr.json` (clés `activity.*`)
+
+**Cycle de vie des Plans (`/plans/:slug`):**
+- **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+- **Droits** : Actions de cycle de vie accessibles uniquement aux **référents du plan**, **admin organisme** et **super admin**. Calculé via `canManageLifecycle` computed dans `plan-detail.component.ts` (vérifie `plan.referents`, `authService.isAdminOrganisme()`, `authService.isSuperAdmin()`).
+- **PlanVersionTimelineComponent** : Timeline verticale des versions dans la colonne latérale (section "Cycle de vie")
+  - Nœuds cliquables (cercles avec icône type document), connectés par une ligne verticale
+  - Nœud courant mis en avant : fond coloré, bordure gauche terra-cotta, badge "actuel"
+  - Masqué si `version_chain.length <= 1`
+  - **Actions contextuelles** intégrées sous la timeline (si `canManage`) :
+    - Brouillon → "Valider le plan"
+    - Validé → "Remettre en brouillon" + "Lancer évaluation mi-parcours" (seulement plans, pas évaluations) + "Archiver (rend inactif)"
+    - Archivé → "Réactiver (rend actif)"
+  - Fichiers : `shared/components/plan-version-timeline/`
+- **StatusChangeDialogComponent** : Modale de changement de statut (alternative aux actions timeline, utilisée depuis la liste)
+  - Fichiers : `shared/components/modals/status-change-dialog/`
+- **DuplicatePlanDialogComponent** : Modale de duplication de plan avec options sélectives
+  - Fichiers : `shared/components/modals/duplicate-plan-dialog/`
+- Traductions : `frontend/src/assets/i18n/fr.json` (clés `plans.lifecycle.*`, `plans.duplicate.*`)
 
 ## Internationalisation (i18n)
 

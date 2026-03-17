@@ -257,6 +257,43 @@ class NotificationsSeeder(BaseSeeder):
                 'action_url': '/profile',
                 'read': False,
             },
+
+            # Notification: nouveau membre ajoute au plan (pour les referents)
+            {
+                'recipient': referent_camargue,
+                'notification_type': 'info',
+                'title': f'Nouvel utilisateur sur le plan {plans[0].nom}',
+                'message': f'Emma Durand a ete ajoute comme membre du plan de gestion {plans[0].nom}.',
+                'priority': 'low',
+                'related_plan': plans[0],
+                'related_user': user_rnf,
+                'action_url': f'/plans/{plans[0].slug or plans[0].id_pg}',
+                'read': False,
+            },
+            {
+                'recipient': admin,
+                'notification_type': 'info',
+                'title': f'Nouvel utilisateur sur le plan {plans[0].nom}',
+                'message': f'Emma Durand a ete ajoute comme membre du plan de gestion {plans[0].nom}.',
+                'priority': 'low',
+                'related_plan': plans[0],
+                'related_user': user_rnf,
+                'action_url': f'/plans/{plans[0].slug or plans[0].id_pg}',
+                'read': True,
+            },
+
+            # Notification: site valide pour un plan (pour les referents)
+            {
+                'recipient': referent_camargue,
+                'notification_type': 'info',
+                'title': f'Site lie au plan {plans[0].nom}',
+                'message': f'Le site {sites[4].nom_site} a ete lie au plan de gestion {plans[0].nom}.',
+                'priority': 'medium',
+                'related_plan': plans[0],
+                'related_site': sites[4],
+                'action_url': f'/plans/{plans[0].slug or plans[0].id_pg}',
+                'read': False,
+            },
         ]
 
     def seed(self) -> List[Notification]:
@@ -323,7 +360,7 @@ class NotificationsSeeder(BaseSeeder):
             Liste des lignes du resume
         """
         return [
-            '\nNotifications (21):',
+            '\nNotifications (24):',
             '  Types: validation_request, validation_approved, validation_rejected,',
             '         user_associated_site, user_associated_plan, user_removed_site,',
             '         user_removed_plan, account_deactivated, account_activated,',
@@ -331,10 +368,10 @@ class NotificationsSeeder(BaseSeeder):
             '         welcome, info, system_alert',
             '  Priorites: low, medium, high, critical',
             '\nRepartition par utilisateur:',
-            '    - admin@test.fr:              2 notifications (1 non lue)',
+            '    - admin@test.fr:              3 notifications (1 non lue)',
             '    - admin.rnf@test.fr:          4 notifications (2 non lues)',
             '    - admin.cen@test.fr:          3 notifications (2 non lues)',
-            '    - referent.camargue@test.fr:  2 notifications (2 non lues)',
+            '    - referent.camargue@test.fr:  4 notifications (4 non lues)',
             '    - referent.vercors@test.fr:   2 notifications (0 non lues)',
             '    - user.rnf@test.fr:           4 notifications (2 non lues)',
             '    - user.cen@test.fr:           2 notifications (0 non lues)',

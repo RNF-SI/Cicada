@@ -3,15 +3,27 @@
 .gauge {
   display: flex;
   align-items: center;
-  gap: $spacing-xxs;
-  width: 105px;
+  width: 117px;
+  height: 17px;
+  gap: 0;
+}
+
+.gauge-body {
+  position: relative;
+  flex: 1;
+  height: 100%;
 }
 
 .gauge-track {
-  position: relative;
-  flex: 1;
-  height: 2px;
-  background-color: $gray-light;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: transparent;
+  border: 1px solid $gray-light;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .gauge-fill {
@@ -19,71 +31,133 @@
   left: 0;
   top: 0;
   height: 100%;
-  background-color: $primary-color;
+  border-radius: 2px 0 0 2px;
   transition: width 0.3s ease;
+}
+
+.gauge-midpoint {
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
 }
 
 .gauge-pointer {
   position: absolute;
-  top: -4px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid $primary-color;
+  top: 0;
   transform: translateX(-50%);
-}
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 
-// Not started - no fill, pointer at start
-.gauge-not-started {
-  .gauge-fill {
-    width: 0;
-  }
-  .gauge-pointer {
-    left: 0 !important;
+  svg {
+    display: block;
   }
 }
 
-// In progress - partial fill
-.gauge-in-progress {
+// ============================================
+// Theme: primary (teal)
+// ============================================
+.theme-primary {
+  .gauge-track {
+    border-color: rgba($primary-color, 0.3);
+  }
+
   .gauge-fill {
     background-color: $primary-color;
   }
-  .gauge-pointer {
-    border-top-color: $primary-color;
+
+  .gauge-midpoint {
+    background-color: $primary-color;
+  }
+
+  .pointer-fill {
+    fill: $primary-color;
   }
 }
 
-// Completed - full fill, red color
-.gauge-completed {
+// ============================================
+// Theme: terra-cotta
+// ============================================
+.theme-terra-cotta {
+  .gauge-track {
+    border-color: rgba($secondary-terra-cotta, 0.3);
+  }
+
   .gauge-fill {
-    width: 100% !important;
     background-color: $secondary-terra-cotta;
   }
-  .gauge-pointer {
-    left: 100% !important;
-    border-top-color: $secondary-terra-cotta;
+
+  .gauge-midpoint {
+    background-color: $secondary-terra-cotta;
+  }
+
+  .pointer-fill {
+    fill: $secondary-terra-cotta;
+  }
+
+  .overflow-fill {
+    fill: $secondary-terra-cotta;
   }
 }
 
-// Exceeded - full fill with overflow indicator
+// ============================================
+// State: not-started
+// ============================================
+.gauge-not-started {
+  .gauge-track {
+    border-color: $gray-light;
+  }
+
+  .gauge-fill {
+    width: 0 !important;
+  }
+
+  .gauge-pointer {
+    left: 0 !important;
+    transform: translateX(0);
+  }
+}
+
+// ============================================
+// State: exceeded
+// ============================================
 .gauge-exceeded {
-  .gauge-fill {
-    width: 100% !important;
-    background-color: $secondary-terra-cotta;
+  .gauge-body {
+    flex: 0 0 auto;
+    width: 82%;
   }
+
+  .gauge-fill {
+    border-radius: 2px;
+  }
+
   .gauge-pointer {
-    left: 100% !important;
-    border-top-color: $secondary-terra-cotta;
+    left: calc(100% + 8px) !important;
   }
 }
 
 .gauge-overflow {
   display: flex;
   align-items: center;
-  margin-left: 2px;
+  align-self: flex-end;
+  gap: 2px;
+  height: 6px;
+}
 
-  svg {
-    transform: rotate(90deg);
-  }
+.overflow-dash {
+  width: 5px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.theme-terra-cotta .overflow-dash {
+  background-color: $secondary-terra-cotta;
+}
+
+.theme-primary .overflow-dash {
+  background-color: $primary-color;
 }

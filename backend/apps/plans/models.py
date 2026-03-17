@@ -3,8 +3,45 @@ Modèles pour la gestion des Plans de Gestion.
 """
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
+
+# Import des modèles Enjeux et Responsabilités pour exposition
+from .models_enjeux import (
+    Enjeu,
+    FacteurInfluence,
+    Pression,
+    Responsabilite,
+    EtatActuel,
+    ObjectifLongTerme,
+    NiveauExigence,
+    ObjectifOperationnel,
+    ResultatAttendu,
+    CorResponsabiliteTaxon,
+    CorResponsabiliteHabitat,
+    CorResponsabiliteGeologie,
+    CorResponsabiliteEnjeu,
+    CorEnjeuTaxon,
+    CorEnjeuHabitat,
+    CorEnjeuGeologie,
+)
+from .models_indicateurs import (
+    Indicateur,
+    CorIndicateurTaxon,
+    CorIndicateurHabitat,
+    CorIndicateurGeologie,
+    Metrique,
+    Mesure,
+)
+from .models_operations import (
+    Protocole,
+    SuiviInventaire,
+    Operation,
+    CorOperationSite,
+    OperationAnnee,
+    FinanceOperation,
+)
 
 
 class PlanGestion(models.Model):
@@ -22,7 +59,13 @@ class PlanGestion(models.Model):
     
     id_pg = models.AutoField(primary_key=True)
     id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
-    nom = models.CharField(_("Nom du plan de gestion"), max_length=255)
+    nom = models.CharField(_("Nom du plan de gestion"), max_length=255, unique=True)
+    slug = models.SlugField(
+        _("Slug"),
+        max_length=300,
+        unique=True,
+        help_text=_("Identifiant URL lisible, généré automatiquement depuis le nom")
+    )
 
     # Gestion multi-sites
     gestion_partagee = models.BooleanField(
@@ -138,6 +181,20 @@ class PlanGestion(models.Model):
         help_text=_("Version du plan (ex: 1.0, 1.1, 2.0...)")
     )
 
+    plan_parent = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='children',
+        verbose_name=_("Plan parent"),
+        help_text=_("Plan dont celui-ci est dérivé")
+    )
+
+    id_type_document = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='plans_type_document',
+        verbose_name=_("Type de document"),
+        help_text=_("Plan initial, évaluation mi-parcours, plan révisé...")
+    )
+
     # Géométrie (optionnelle, peut être calculée depuis les sites)
     geometrie = models.MultiPolygonField(
         _("Géométrie du plan"),
@@ -203,12 +260,31 @@ class PlanGestion(models.Model):
             if not self.pk:  # Création
                 self.id_utilisateur_ajout = self._current_user
             self.id_utilisateur_maj = self._current_user
-            
+
+        # Auto-générer le slug depuis le nom
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+
         super().save(*args, **kwargs)
-        
+
         # Mettre à jour la géométrie si nécessaire
         if not self.geometrie:
             self.update_geometrie()
+
+    def _generate_unique_slug(self):
+        """Génère un slug unique à partir du nom."""
+        base_slug = slugify(self.nom)
+        if not base_slug:
+            base_slug = 'plan'
+        slug = base_slug
+        counter = 2
+        qs = PlanGestion.objects.all()
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        while qs.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        return slug
 
     def update_geometrie(self):
         """Calcule et met à jour la géométrie du plan basée sur ses sites."""
@@ -255,6 +331,59 @@ class PlanGestion(models.Model):
         elif self.annee_fin:
             return f"Jusqu'en {self.annee_fin}"
         return "Période non définie"
+
+    def get_root_plan(self):
+        """Remonte la chaîne de versions jusqu'au plan racine."""
+        plan = self
+        visited = {self.pk}
+        while plan.plan_parent_id:
+            if plan.plan_parent_id in visited:
+                break
+            visited.add(plan.plan_parent_id)
+            plan = plan.plan_parent
+        return plan
+
+    def get_version_chain(self):
+        """
+        Retourne la chaîne complète de versions ordonnée chronologiquement.
+        Remonte au root puis collecte tous les descendants.
+        """
+        root = self.get_root_plan()
+
+        chain = []
+        queue = [root]
+        visited = set()
+        while queue:
+            current = queue.pop(0)
+            if current.pk in visited:
+                continue
+            visited.add(current.pk)
+            chain.append({
+                'id_pg': current.id_pg,
+                'nom': current.nom,
+                'slug': current.slug,
+                'version': current.version,
+                'statut': current.statut,
+                'annee_debut': current.annee_debut,
+                'annee_fin': current.annee_fin,
+                'type_document': current.id_type_document.label if current.id_type_document else None,
+                'type_document_mnemonique': current.id_type_document.mnemonique if current.id_type_document else None,
+                'is_current': current.pk == self.pk,
+            })
+            for child in current.children.all().order_by('date_ajout'):
+                queue.append(child)
+
+        return chain
+
+    def get_next_version(self):
+        """Incrémente la version mineure (1.0 → 1.1, 2.3 → 2.4)."""
+        try:
+            parts = self.version.split('.')
+            major = int(parts[0])
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            return f"{major}.{minor + 1}"
+        except (ValueError, IndexError):
+            return '1.1'
 
 
 class CorSitePg(models.Model):

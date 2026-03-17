@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminOrganisme, AdminSite, OrganismeSite } from '../../../../core/models/admin.model';
+import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
 
 // Interface for a site assignment in the modal
 interface SiteAssignment {
@@ -60,7 +61,8 @@ export interface LinkSiteOrganismeModalData {
     MatInputModule,
     MatCheckboxModule,
     MatIconModule,
-    TranslateModule
+    TranslateModule,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './link-site-organisme-modal.component.html',
   styleUrl: './link-site-organisme-modal.component.scss'

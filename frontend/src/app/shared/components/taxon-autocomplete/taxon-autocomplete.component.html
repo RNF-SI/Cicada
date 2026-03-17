@@ -1,0 +1,37 @@
+<mat-form-field appearance="outline" class="taxon-autocomplete-field">
+  <mat-label>{{ label() }}</mat-label>
+  <input
+    matInput
+    [formControl]="searchControl"
+    [matAutocomplete]="auto"
+    [placeholder]="placeholder()"
+    [required]="required()"
+  >
+  @if (isLoading()) {
+    <mat-spinner matSuffix diameter="20"></mat-spinner>
+  }
+  @if (selectedTaxon()) {
+    <button matSuffix mat-icon-button (click)="clear()" type="button" aria-label="Effacer">
+      <mat-icon>close</mat-icon>
+    </button>
+  }
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    [displayWith]="displayFn"
+    (optionSelected)="onOptionSelected($event)"
+  >
+    @for (taxon of results(); track taxon.cd_nom) {
+      <mat-option [value]="taxon">
+        <div class="taxon-option">
+          <span class="taxon-nom-latin">{{ taxon.lb_nom }}</span>
+          @if (taxon.nom_vern) {
+            <span class="taxon-nom-vern">{{ taxon.nom_vern.split(',')[0] }}</span>
+          }
+          <span class="taxon-meta">
+            {{ taxon.regne }} &middot; {{ taxon.group2_inpn }}
+          </span>
+        </div>
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

@@ -227,6 +227,37 @@ def track_validation_status(sender, instance, **kwargs):
         instance._original_status = None
 
 
+@receiver(post_save, sender='plans.CorRolePlan')
+def notify_plan_referents_new_member(sender, instance, created, **kwargs):
+    """
+    Notifie les referents d'un plan lorsqu'un nouvel utilisateur est ajoute comme membre.
+    """
+    if not created:
+        return
+
+    from .services import NotificationService
+    from apps.users.models import Role
+
+    plan = instance.plan_de_gestion
+    new_user = instance.id_role
+    user_name = f"{new_user.prenom_role} {new_user.nom_role}".strip() or new_user.email
+
+    # Notifier chaque referent du plan (sauf le nouvel utilisateur lui-meme)
+    for referent in plan.referents.filter(active=True).exclude(pk=new_user.pk):
+        role_label = "référent" if instance.referent else "membre"
+        NotificationService.create_notification(
+            recipient=referent,
+            notification_type='info',
+            title=f"Nouvel utilisateur sur le plan {plan.nom}",
+            message=f"{user_name} a été ajouté comme {role_label} du plan de gestion {plan.nom}.",
+            priority='low',
+            related_plan=plan,
+            related_user=new_user,
+            action_url=f"/plans/{plan.slug or plan.id_pg}",
+        )
+    logger.info(f"Plan {plan.nom} referents notified of new member {new_user}")
+
+
 @receiver(post_save, sender='plans.PlanGestion')
 def notify_plan_referent_association(sender, instance, created, **kwargs):
     """

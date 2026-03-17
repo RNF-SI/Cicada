@@ -9,6 +9,16 @@ if [ "$(id -u)" = "0" ]; then
     exec gosu cicada "$0" "$@"
 fi
 
+# Si une commande custom est passée (via docker-compose command:),
+# on l'exécute directement sans l'initialisation complète.
+# L'initialisation (migrate, import, etc.) est gérée par la command: elle-même.
+if [ "$#" -gt 0 ]; then
+    echo "=== Exécution de la commande : $@ ==="
+    exec "$@"
+fi
+
+# --- Initialisation complète (CMD par défaut du Dockerfile) ---
+
 echo "=== Initialisation de l'application Django ==="
 
 # Fonction pour attendre que la base de données soit disponible
@@ -48,10 +58,10 @@ export DB_PORT=${DB_PORT:-5432}
 export REDIS_HOST=${REDIS_HOST:-redis}
 export REDIS_PORT=${REDIS_PORT:-6379}
 
-# Installation de netcat si nécessaire pour les tests de connexion
+# Vérifier que netcat est disponible (installé dans le Dockerfile)
 if ! command -v nc &> /dev/null; then
-    echo "Installation de netcat..."
-    apt-get update && apt-get install -y netcat-traditional
+    echo "ERREUR: netcat n'est pas installé. Vérifiez le Dockerfile."
+    exit 1
 fi
 
 # Attendre les services externes
@@ -97,7 +107,6 @@ if [ "$DEBUG" = "True" ] && [ "$LOAD_FIXTURES" = "True" ]; then
 fi
 
 echo "=== Initialisation terminée ==="
-echo "Démarrage de l'application avec: $@"
 
-# Exécution de la commande passée en paramètre
-exec "$@"
+# Commande par défaut : lancer le serveur
+exec python manage.py runserver 0.0.0.0:8000

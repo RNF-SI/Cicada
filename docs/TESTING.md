@@ -16,11 +16,12 @@ Ce document décrit la stratégie de tests, les outils utilisés, et les fonctio
 
 ## Vue d'ensemble
 
-| Stack | Framework | Tests | Couverture |
-|-------|-----------|-------|------------|
-| Backend | pytest + pytest-django | 317 | 62% |
-| Frontend | Jest + jest-preset-angular | 55 | 10% global, 100% auth |
-| **Total** | - | **372** | - |
+| Stack | Framework | Tests | Couverture | Type |
+|-------|-----------|-------|------------|------|
+| Backend | pytest + pytest-django | 317 | 62% | Unitaires + Intégration |
+| Frontend | Jest + jest-preset-angular | 55 | 10% global, 100% auth | Unitaires |
+| **E2E** | **Playwright** | **~80** | **Voir détail ci-dessous** | **End-to-End** |
+| **Total** | - | **~452** | - | - |
 
 ### Architecture des tests
 
@@ -48,17 +49,33 @@ Cicada/
 │           ├── test_api_org_sites.py
 │           └── test_api_plans.py
 │
-└── frontend/
-    ├── jest.config.js             # Configuration Jest
-    ├── setup-jest.ts              # Setup environnement
-    ├── tsconfig.spec.json         # TypeScript pour tests
-    └── src/app/core/
-        ├── services/
-        │   └── auth.service.spec.ts
-        ├── guards/
-        │   └── auth.guard.spec.ts
-        └── interceptors/
-            └── auth.interceptor.spec.ts
+├── frontend/
+│   ├── jest.config.js             # Configuration Jest
+│   ├── setup-jest.ts              # Setup environnement
+│   ├── tsconfig.spec.json         # TypeScript pour tests
+│   └── src/app/core/
+│       ├── services/
+│       │   └── auth.service.spec.ts
+│       ├── guards/
+│       │   └── auth.guard.spec.ts
+│       └── interceptors/
+│           └── auth.interceptor.spec.ts
+│
+└── frontend/e2e/                  # Tests E2E Playwright
+    ├── playwright.config.ts       # Configuration Playwright
+    ├── global-setup.ts            # Attente services + seed données
+    ├── fixtures/
+    │   ├── auth.setup.ts          # Login des 6 utilisateurs de test
+    │   └── auth.fixture.ts        # Pages pré-authentifiées par rôle
+    ├── helpers/
+    │   ├── api.helper.ts          # Appels API directs
+    │   └── wait.helper.ts         # Utilitaires d'attente
+    ├── pages/                     # Page Objects (11 fichiers)
+    └── tests/
+        ├── auth/                  # Login, logout, register (13 tests)
+        ├── admin/                 # Users, sites, validations, etc. (46 tests)
+        ├── access/                # Contrôle d'accès par rôle (13 tests)
+        └── navigation/            # Navigation et header (4 tests)
 ```
 
 ---
@@ -382,14 +399,148 @@ npm test -- src/app/core/services/auth.service.spec.ts
 
 ---
 
+## E2E (Playwright)
+
+### Outils utilisés
+
+| Outil | Version | Usage |
+|-------|---------|-------|
+| @playwright/test | 1.49+ | Framework E2E |
+| Chromium | (bundled) | Navigateur de test |
+
+### Prérequis
+
+Les tests E2E s'exécutent contre le stack Docker réel (Django + PostgreSQL + Redis + Angular).
+
+```bash
+# 1. Démarrer les services Docker
+docker compose up -d
+
+# 2. S'assurer que les données de test existent
+docker compose exec web python manage.py seed_testdata
+```
+
+### Exécution
+
+```bash
+cd frontend
+
+# Tous les tests (headless)
+npm run e2e
+
+# Interface visuelle Playwright
+npm run e2e:ui
+
+# Tests visibles dans le navigateur
+npm run e2e:headed
+
+# Mode debug avec inspector
+npm run e2e:debug
+
+# Générer des tests via enregistrement
+npm run e2e:codegen
+```
+
+### Architecture
+
+#### Authentification (storageState)
+
+Les tests utilisent le mécanisme `storageState` de Playwright : un projet `auth-setup` se connecte via l'UI pour 6 utilisateurs de test et sauvegarde les tokens JWT dans des fichiers `.auth/*.json`. Les tests suivants réutilisent ces fichiers sans se reconnecter.
+
+| Utilisateur | Email | Rôle | Fichier storageState |
+|-------------|-------|------|---------------------|
+| Super Admin | `admin@test.fr` | super_admin | `super-admin.json` |
+| Admin RNF | `admin.rnf@test.fr` | admin_og | `admin-rnf.json` |
+| Admin CEN | `admin.cen@test.fr` | admin_og | `admin-cen.json` |
+| Référent | `referent.camargue@test.fr` | referent | `referent.json` |
+| User RNF | `user.rnf@test.fr` | utilisateur | `user-rnf.json` |
+| User CEN | `user.cen@test.fr` | utilisateur | `user-cen.json` |
+
+**Mot de passe commun** : `Test123!`
+
+#### Fixture custom (pages pré-authentifiées)
+
+```typescript
+// Usage dans les tests :
+test('admin voit le dashboard', async ({ superAdminPage }) => {
+  await superAdminPage.goto('/administration/dashboard');
+});
+
+test('admin RNF ne voit que ses users', async ({ adminRnfPage }) => {
+  await adminRnfPage.goto('/administration/utilisateurs');
+});
+```
+
+Chaque page a son propre contexte navigateur. On peut donc tester des workflows multi-utilisateurs sans impersonation.
+
+#### Page Objects
+
+| Page Object | Fichier | Description |
+|-------------|---------|-------------|
+| `LoginPage` | `login.page.ts` | Formulaire de connexion |
+| `RegisterPage` | `register.page.ts` | Formulaire d'inscription |
+| `HomePage` | `home.page.ts` | Page d'accueil avec tuiles |
+| `ProfilePage` | `profile.page.ts` | Page profil utilisateur |
+| `AdminLayoutPage` | `admin-layout.page.ts` | Sidebar admin + navigation |
+| `AdminUsersPage` | `admin-users.page.ts` | Tableau des utilisateurs |
+| `AdminSitesPage` | `admin-sites.page.ts` | Tableau des sites |
+| `AdminValidationsPage` | `admin-validations.page.ts` | Tableau des validations |
+| `AdminOrganismesPage` | `admin-organismes.page.ts` | Grille/détail organismes |
+| `AdminDashboardPage` | `admin-dashboard.page.ts` | Dashboard statistiques |
+| `SitesListPage` | `sites-list.page.ts` | Liste publique des sites |
+
+### Couverture E2E par fonctionnalité
+
+| Catégorie | Fichier | Tests | Fonctionnalités couvertes |
+|-----------|---------|-------|--------------------------|
+| **Auth** | `login.spec.ts` | 5 | Login valide, identifiants invalides, champs vides, returnUrl, lien inscription |
+| **Auth** | `logout.spec.ts` | 3 | Suppression tokens, redirection, bouton menu |
+| **Auth** | `register.spec.ts` | 5 | Inscription valide, validation, password mismatch, email doublon |
+| **Admin Users** | `users-list.spec.ts` | 6 | Liste complète, scope organisme, recherche, filtres rôle/statut |
+| **Admin Users** | `users-actions.spec.ts` | 5 | Activation/désactivation, assign site, impersonation |
+| **Admin Users** | `users-sites.spec.ts` | 4 | Site chips, assign modal, référent badge, plan chips |
+| **Admin Sites** | `sites-list.spec.ts` | 5 | Liste, recherche, filtre type, colonnes, résumé |
+| **Admin Sites** | `sites-crud.spec.ts` | 5 | Bouton ajout, modal création, validation, rôle-based |
+| **Admin Sites** | `sites-orgs.spec.ts` | 3 | Org chips, assign org, user chips |
+| **Admin** | `validations.spec.ts` | 6 | Liste, filtres statut/type, approbation, détail, état vide |
+| **Admin** | `validation-workflow.spec.ts` | 8 | **Workflow multi-utilisateurs complet** : création demande → vue admin → approbation/rejet → vérification statut |
+| **Admin** | `organismes.spec.ts` | 4 | Grille, détail admin_og, recherche, modal édition |
+| **Admin** | `dashboard.spec.ts` | 3 | Accès, stats cards, message bienvenue |
+| **Accès** | `role-access.spec.ts` | 8 | Accès super_admin, admin_og, référent, utilisateur, guest |
+| **Accès** | `data-scope.spec.ts` | 5 | Scope données RNF, CEN, super admin, référent |
+| **Navigation** | `navigation.spec.ts` | 4 | Header, sidebar rôle, items masqués, navigation sans erreur |
+| **Total** | **17 fichiers** | **~80** | |
+
+### Workflow de validation multi-utilisateurs
+
+Le test `validation-workflow.spec.ts` vérifie le flux complet sans utiliser l'impersonation :
+
+```
+1. userRnfPage (utilisateur) → crée une demande d'accès site via API
+2. userRnfPage (utilisateur) → vérifie la demande sur /mes-demandes (statut "en attente")
+3. superAdminPage (admin)    → vérifie la demande sur /admin/validations
+4. superAdminPage (admin)    → approuve la demande
+5. userRnfPage (utilisateur) → vérifie le statut "approuvé"
+6. superAdminPage (admin)    → vérifie dans l'historique des validations
+```
+
+Un second scénario teste le **rejet** avec un motif, en utilisant `userCenPage` et `superAdminPage`.
+
+### Rapports
+
+Les tests génèrent :
+- **Rapport HTML** : `frontend/playwright-report/` (ouvrable localement)
+- **JUnit XML** : `frontend/e2e-results.xml` (pour CI/CD)
+- **Screenshots** : `frontend/test-results/` (captures en cas d'échec)
+- **Traces** : Enregistrement vidéo + trace réseau en cas de retry
+
+---
+
 ## Prochaines étapes
 
 ### Priorité Haute
 
-1. **Tests E2E avec Playwright ou Cypress**
-   - Parcours utilisateur complet (login → création plan → export)
-   - Tests visuels de régression
-   - Tests multi-navigateurs
+1. ~~**Tests E2E avec Playwright ou Cypress**~~ ✅ Fait (Playwright, ~80 tests)
 
 2. **Augmenter couverture backend**
    - ViewSets plans (actuellement 59%)
@@ -432,192 +583,37 @@ npm test -- src/app/core/services/auth.service.spec.ts
 
 ## CI/CD avec GitHub Actions
 
-### Configuration recommandée
+### Workflow actuel (`.github/workflows/tests.yml`)
 
-Créer le fichier `.github/workflows/tests.yml` :
+Le workflow se déclenche sur :
+- Push vers `main` ou `develop`
+- Pull request vers `main` ou `develop`
+- Push d'un tag `v*` (releases)
+- Déclenchement manuel (`workflow_dispatch`)
 
-```yaml
-name: Tests
+### Jobs
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+| Job | Dépendance | Description |
+|-----|------------|-------------|
+| `backend-tests` | - | pytest avec PostgreSQL/PostGIS |
+| `frontend-tests` | - | Jest (unitaires Angular) |
+| `typecheck` | - | TypeScript `--noEmit` |
+| `e2e-tests` | `backend-tests` | **Playwright avec stack Docker complet** |
+| `build` | backend + frontend + typecheck | Build production Angular |
+| `email-tests` | - | Tests email Mailpit (workflow_dispatch uniquement) |
 
-env:
-  POSTGRES_DB: test_db
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-  DJANGO_SETTINGS_MODULE: config.settings.development
+### Job E2E détaillé
 
-jobs:
-  # ============================================
-  # Backend Tests
-  # ============================================
-  backend-tests:
-    runs-on: ubuntu-latest
+Le job `e2e-tests` :
+1. Démarre les services Docker (db, redis, web)
+2. Attend le health check backend (`/api/auth/health/`)
+3. Seed les données de test (`seed_testdata`)
+4. Installe Playwright + Chromium
+5. Démarre le dev server Angular
+6. Exécute les tests Playwright
+7. Upload le rapport HTML + JUnit en artifact (14 jours de rétention)
 
-    services:
-      postgres:
-        image: postgis/postgis:17-3.5
-        env:
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-django pytest-cov factory-boy Faker
-
-      - name: Run migrations
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgis://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
-        run: python manage.py migrate
-
-      - name: Run tests with coverage
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgis://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
-        run: |
-          pytest tests/ \
-            --cov=apps \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --junitxml=junit.xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./backend/coverage.xml
-          flags: backend
-          name: backend-coverage
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-test-results
-          path: ./backend/junit.xml
-
-  # ============================================
-  # Frontend Tests
-  # ============================================
-  frontend-tests:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Run tests with coverage
-        working-directory: ./frontend
-        run: npm run test:coverage -- --ci --reporters=default --reporters=jest-junit
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-test-results
-          path: ./frontend/junit.xml
-
-  # ============================================
-  # Linting & Type Checking
-  # ============================================
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python linters
-        run: pip install black isort flake8
-
-      - name: Check Python formatting
-        working-directory: ./backend
-        run: |
-          black --check .
-          isort --check-only .
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: TypeScript type check
-        working-directory: ./frontend
-        run: npx tsc --noEmit
-
-  # ============================================
-  # Build Check
-  # ============================================
-  build:
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build:prod
-```
+**Artefacts CI** : Le rapport Playwright est consultable dans l'onglet "Artifacts" de chaque run GitHub Actions.
 
 ### Badges pour README
 

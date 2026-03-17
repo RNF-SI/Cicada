@@ -1,0 +1,125 @@
+@import 'variables';
+
+.reference-item-list {
+  margin-top: $spacing-sm;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+
+  .item-count {
+    font-size: $font-size-small;
+    color: $gray-dark;
+    font-weight: $font-weight-medium;
+  }
+
+  .import-btn {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-small;
+
+    i {
+      font-size: 14px;
+    }
+  }
+}
+
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: $spacing-xs;
+}
+
+.item-chip {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background-color: rgba($primary-color, 0.08);
+  border: 1px solid rgba($primary-color, 0.2);
+  border-radius: $border-radius-pill;
+  padding: $spacing-xxs $spacing-xs $spacing-xxs $spacing-sm;
+  max-width: 100%;
+
+  .chip-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .chip-label {
+      font-size: $font-size-small;
+      color: $primary-color;
+      font-weight: $font-weight-medium;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip-secondary {
+      font-size: 11px;
+      color: $gray-dark;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: $gray;
+    cursor: pointer;
+    border-radius: $border-radius-round;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: rgba($error-color, 0.1);
+      color: $error-color;
+    }
+
+    i {
+      font-size: 12px;
+    }
+  }
+}
+
+.search-field {
+  width: 100%;
+}
+
+.autocomplete-option {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+
+  .option-label {
+    font-size: $font-size-base;
+    color: $black;
+  }
+
+  .option-secondary {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-tablet) {
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+}

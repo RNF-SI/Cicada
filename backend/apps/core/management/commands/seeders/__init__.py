@@ -23,12 +23,12 @@ from .signals import signals_disabled, disconnect_all_signals, reconnect_all_sig
 
 # Import des seeders individuels
 from .modules_seeder import ModulesSeeder
-from .nomenclatures_seeder import NomenclaturesSeeder
 from .groups_seeder import GroupsSeeder
 from .organismes_seeder import OrganismesSeeder
 from .sites_seeder import SitesSeeder
 from .users_seeder import UsersSeeder
 from .plans_seeder import PlansSeeder
+from .enjeux_seeder import EnjeuxSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -41,14 +41,14 @@ from .activity_logs_seeder import ActivityLogsSeeder
 SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     # Phase 1: Seeders independants
     ModulesSeeder,
-    NomenclaturesSeeder,
     GroupsSeeder,
     OrganismesSeeder,
 
     # Phase 2: Seeders avec dependances simples
-    SitesSeeder,         # deps: organismes, nomenclatures
+    SitesSeeder,         # deps: organismes
     UsersSeeder,         # deps: organismes, sites, groups
-    PlansSeeder,         # deps: users, sites, nomenclatures
+    PlansSeeder,         # deps: users, sites
+    EnjeuxSeeder,        # deps: plans
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes
@@ -150,12 +150,12 @@ __all__ = [
     'get_seeders_with_dependencies',
     # Seeders individuels
     'ModulesSeeder',
-    'NomenclaturesSeeder',
     'GroupsSeeder',
     'OrganismesSeeder',
     'SitesSeeder',
     'UsersSeeder',
     'PlansSeeder',
+    'EnjeuxSeeder',
     'PendingUsersSeeder',
     'ValidationRequestsSeeder',
     'NotificationsSeeder',

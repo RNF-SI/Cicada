@@ -1,0 +1,113 @@
+@import 'variables';
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  min-width: 400px;
+  padding-top: $spacing-md;
+
+  @media (max-width: 600px) {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+.site-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $gray-lighter;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-xs;
+}
+
+.site-icon {
+  width: 43px;
+  height: 43px;
+  border-radius: $border-radius-md;
+  background: $primary-color;
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-h4;
+  flex-shrink: 0;
+}
+
+.site-name {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  color: $black;
+}
+
+.search-section {
+  padding: $spacing-sm 0;
+}
+
+.plan-search-field {
+  width: 100%;
+}
+
+.autocomplete-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $spacing-xxs 0;
+
+  .option-name {
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  .option-period {
+    font-size: 11px;
+    color: $gray-dark;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+  gap: $spacing-md;
+
+  p {
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: 12px $spacing-md;
+  background: rgba($error-color, 0.05);
+  border: 1px solid rgba($error-color, 0.3);
+  border-radius: $border-radius-md;
+  color: $error-color;
+  font-size: $font-size-small;
+
+  i {
+    font-size: 16px;
+    margin-top: 2px;
+  }
+}
+
+mat-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+mat-dialog-actions {
+  padding: 16px $spacing-lg;
+  gap: $spacing-xs;
+
+  button {
+    min-width: 90px;
+  }
+}

@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""Service de mise à jour (exécuté en root).
+   Déclenché par systemd (cicada-updater.path) quand update_trigger.json est créé.
+   Met à jour le paquet APT, la version dans .env, tire les images Docker et redémarre la stack.
+"""
+import sys
+import json
+import subprocess
+import logging
+from pathlib import Path
+from datetime import datetime
+
+TRIGGER_FILE = "/var/lib/cicada/update_trigger.json"
+ENV_FILE = "/var/lib/cicada/.env"
+COMPOSE_DIR = "/usr/share/cicada"
+LOG_FILE = "/var/log/cicada/updater.log"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()]
+)
+logger = logging.getLogger('cicada.updater')
+
+
+def _get_compose_f_args():
+    """Construit la liste des -f pour docker compose à partir du .env (même logique que l'installateur)."""
+    if not Path(ENV_FILE).exists():
+        return ['-f', f'{COMPOSE_DIR}/docker-compose.yml', '-f', f'{COMPOSE_DIR}/docker-compose.db.yml']
+    db_type = 'docker'
+    traefik_enabled = False
+    for line in Path(ENV_FILE).read_text().splitlines():
+        if line.startswith('DB_TYPE='):
+            db_type = line.split('=', 1)[1].strip()
+        elif line.startswith('TRAEFIK_ENABLED='):
+            traefik_enabled = line.split('=', 1)[1].strip().lower() in ('true', '1', 'yes')
+    compose_files = [f'{COMPOSE_DIR}/docker-compose.yml']
+    if db_type == 'docker':
+        compose_files.append(f'{COMPOSE_DIR}/docker-compose.db.yml')
+    if traefik_enabled:
+        compose_files.append(f'{COMPOSE_DIR}/docker-compose.traefik.yml')
+    else:
+        compose_files.append(f'{COMPOSE_DIR}/docker-compose.frontend-ports.yml')
+    return sum([['-f', f] for f in compose_files], [])
+
+
+def _update_env_version(version: str) -> None:
+    """Met à jour CICADA_VERSION dans /var/lib/cicada/.env."""
+    path = Path(ENV_FILE)
+    if not path.exists():
+        logger.warning(".env absent, pas de mise à jour de CICADA_VERSION")
+        return
+    lines = path.read_text().splitlines()
+    updated = False
+    for i, line in enumerate(lines):
+        if line.startswith('CICADA_VERSION='):
+            lines[i] = f'CICADA_VERSION={version}'
+            updated = True
+            break
+    if not updated:
+        lines.append(f'CICADA_VERSION={version}')
+    path.write_text('\n'.join(lines) + '\n')
+    logger.info(f"CICADA_VERSION mis à jour à {version} dans .env")
+
+
+def main():
+    trigger_path = Path(TRIGGER_FILE)
+
+    if not trigger_path.exists():
+        logger.info("Pas de mise à jour demandée")
+        return
+
+    try:
+        trigger = json.loads(trigger_path.read_text())
+        version = trigger.get('version')
+
+        if not version:
+            logger.error("Version non spécifiée dans le trigger")
+            trigger_path.unlink()
+            return
+
+        logger.info(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
+
+        # 1. Mise à jour du paquet APT
+        subprocess.run(['apt-get', 'update', '-qq'], check=True)
+        subprocess.run(['apt-get', 'install', '-y', '-qq', f'cicada={version}'], check=True)
+
+        # 2. Mettre à jour CICADA_VERSION dans .env pour que Docker utilise les nouvelles images
+        _update_env_version(version)
+
+        # 3. Docker compose : pull puis up -d (mêmes fichiers que l'installateur)
+        if not Path(ENV_FILE).exists():
+            logger.warning(".env absent (installation non finalisée?), pas de mise à jour des conteneurs")
+        elif subprocess.run(['which', 'docker'], capture_output=True).returncode != 0:
+            logger.warning("Docker non trouvé, pas de mise à jour des conteneurs")
+        else:
+            compose_f = _get_compose_f_args()
+            base_cmd = ['docker', 'compose'] + compose_f + ['--env-file', ENV_FILE]
+            pull_cmd = base_cmd + ['pull']
+            logger.info("Téléchargement des nouvelles images Docker...")
+            r = subprocess.run(pull_cmd, cwd=COMPOSE_DIR, capture_output=True, text=True, timeout=600)
+            if r.returncode != 0:
+                logger.warning(f"docker compose pull a échoué: {r.stderr or r.stdout}")
+            else:
+                up_cmd = base_cmd + ['up', '-d']
+                logger.info("Redémarrage de la stack Docker...")
+                r2 = subprocess.run(up_cmd, cwd=COMPOSE_DIR, capture_output=True, text=True, timeout=300)
+                if r2.returncode != 0:
+                    logger.warning(f"docker compose up a échoué: {r2.stderr or r2.stdout}")
+
+        # 4. Redémarrer l'installateur (service web)
+        subprocess.run(['systemctl', 'restart', 'cicada-installer'], check=True, capture_output=True)
+
+        # 5. Supprimer le trigger et écrire le résultat
+        trigger_path.unlink()
+        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+            'success': True,
+            'version': version,
+            'timestamp': datetime.now().isoformat()
+        }))
+        logger.info(f"Mise à jour vers {version} terminée")
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Erreur de mise à jour (commande): {e}")
+        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }))
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Erreur de mise à jour: {e}")
+        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }))
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

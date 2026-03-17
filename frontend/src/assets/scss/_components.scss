@@ -5,87 +5,9 @@
 @import 'variables';
 
 // ============================================
-// JAUGES DE PROGRESSION (Kit UI)
+// JAUGES DE PROGRESSION
 // ============================================
-
-.gauge {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  font-size: $font-size-small;
-  color: $black;
-
-  &-bar {
-    display: flex;
-    align-items: center;
-    width: 90px;
-    height: 7px;
-    background-color: $gray-lighter;
-    border-radius: $border-radius-sm;
-    overflow: hidden;
-    position: relative;
-
-    &-fill {
-      height: 100%;
-      border-radius: $border-radius-sm;
-      transition: width $transition-base;
-    }
-  }
-
-  // Non démarrée
-  &.gauge-not-started {
-    .gauge-bar-fill {
-      width: 0;
-      background-color: $gauge-not-started;
-    }
-  }
-
-  // Mi-parcours
-  &.gauge-mid-progress {
-    .gauge-bar-fill {
-      background-color: $gauge-mid-progress;
-    }
-
-    .gauge-bar::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 7px;
-      background-color: $gauge-mid-progress;
-      border-radius: 0 $border-radius-sm $border-radius-sm 0;
-    }
-  }
-
-  // Parcours terminé
-  &.gauge-completed {
-    .gauge-bar-fill {
-      width: 100%;
-      background-color: $gauge-completed;
-    }
-  }
-
-  // Parcours dépassé (rouge pointillé)
-  &.gauge-exceeded {
-    .gauge-bar-fill {
-      width: 100%;
-      background: repeating-linear-gradient(
-        90deg,
-        $gauge-exceeded 0px,
-        $gauge-exceeded 6px,
-        transparent 5px,
-        transparent 9px
-      );
-    }
-
-    &::after {
-      content: '▸';
-      color: $gauge-exceeded;
-      margin-left: $spacing-xxs;
-    }
-  }
-}
+// Géré par PlanGaugeComponent (shared/components/plan-gauge/)
 
 // ============================================
 // INDICATEURS D'ACTIONS (Kit UI)
@@ -598,9 +520,14 @@
     transition: color $transition-fast;
 
     &::before {
-      content: '╋';
-      color: $error-color;
-      font-weight: $font-weight-bold;
+      content: '';
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin-top: 4px;
+      background-image: url('/assets/images/puces/puce-terra-cotta.png');
+      background-size: contain;
+      background-repeat: no-repeat;
       flex-shrink: 0;
     }
 
@@ -654,8 +581,14 @@
       font-size: $font-size-base;
 
       &::before {
-        content: '╋';
-        color: $error-color;
+        content: '';
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        background-image: url('/assets/images/puces/puce-terra-cotta.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        flex-shrink: 0;
       }
     }
 

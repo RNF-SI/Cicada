@@ -23,7 +23,7 @@
   position: relative;
   background-color: $primary-color;
   border-radius: 0 0 20px $border-radius-xl;
-  margin: 0 65px;
+  margin: 0 $page-gutter;
   padding: 32px 34px;
   min-height: 180px;
   overflow: hidden;
@@ -205,7 +205,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 65px;
+  margin: 0 $page-gutter;
   padding-top: $spacing-lg;
   padding-bottom: $spacing-md;
   gap: $spacing-lg;
@@ -222,7 +222,7 @@ h1 {
 // ============================================
 
 .content-section {
-  padding: 0 72px $spacing-xxl;
+  padding: 0 $content-gutter $spacing-xxl;
 }
 
 .tab {
@@ -418,12 +418,20 @@ h1 {
 .period-content {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: 12px;
 }
 
 .period-dates {
   color: $black;
   font-size: $font-size-base;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 80px;
+}
+
+app-plan-gauge {
+  flex-shrink: 0;
+  padding-bottom: 6px;
 }
 
 .status-content {
@@ -500,6 +508,126 @@ h1 {
   &:hover {
     text-decoration: underline;
   }
+
+  &.btn-disabled,
+  &:disabled {
+    color: $gray;
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+// ============================================
+// VERSION CHAIN (anciennes versions liées)
+// ============================================
+
+// Ligne ancêtre au-dessus du plan courant
+.ancestor-row {
+  background-color: rgba($beige, 0.6);
+
+  td {
+    height: 44px;
+    padding-top: $spacing-xs;
+    padding-bottom: $spacing-xs;
+    border-bottom: none;
+  }
+
+  &.ancestor-first td {
+    padding-top: $spacing-sm;
+  }
+}
+
+// Indentation des ancêtres et du plan enfant
+.ancestor-indent,
+.child-indent {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding-left: 32px;
+}
+
+// Ligne verticale + branche horizontale de l'arbre
+.tree-line {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+
+  // Ligne verticale (vers le bas, relie à la ligne suivante)
+  &::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: -14px;
+    width: 1px;
+    height: 28px;
+    background-color: $gray;
+  }
+
+  // Branche horizontale
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    width: 10px;
+    height: 1px;
+    background-color: $gray;
+  }
+
+  // Premier ancêtre : la ligne verticale commence au milieu
+  &.first::before {
+    top: 8px;
+    height: 20px;
+  }
+
+  // Dernier de la chaîne (le plan courant) : la ligne s'arrête
+  &.last::before {
+    top: -14px;
+    height: 22px;
+  }
+}
+
+// Plan enfant (a des ancêtres au-dessus)
+tr.is-child {
+  background-color: rgba($beige, 0.3);
+
+  td {
+    padding-top: $spacing-xs;
+    padding-bottom: $spacing-sm;
+  }
+}
+
+.ancestor-name {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.ancestor-type {
+  font-size: 11px;
+  color: $gray;
+  padding: 1px 6px;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+}
+
+.ancestor-version {
+  font-size: 11px;
+  color: $gray;
+  font-style: italic;
+}
+
+.ancestor-text {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.btn-link.active {
+  color: $secondary-terra-cotta;
 }
 
 // ============================================
@@ -620,6 +748,52 @@ h1 {
   font-size: $font-size-base;
   color: $gray-dark;
   margin: 0;
+}
+
+.empty-state--detailed {
+  align-items: flex-start;
+  text-align: left;
+  padding: $spacing-xl;
+  gap: $spacing-xs;
+
+  .empty-icon {
+    align-self: center;
+  }
+
+  .empty-title {
+    align-self: center;
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .empty-reasons {
+    margin: $spacing-xs 0;
+    padding-left: $spacing-lg;
+    list-style: disc;
+    color: $gray-dark;
+    font-size: $font-size-base;
+    font-family: $font-family;
+
+    li {
+      margin-bottom: $spacing-xxs;
+    }
+  }
+
+  .empty-action-hint {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+    margin-top: $spacing-sm;
+
+    i {
+      font-size: $font-size-base;
+    }
+  }
 }
 
 // ============================================

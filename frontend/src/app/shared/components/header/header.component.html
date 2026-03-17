@@ -48,7 +48,7 @@
         <app-notification-bell></app-notification-bell>
 
         <!-- User menu -->
-        <button mat-button [matMenuTriggerFor]="userMenu" class="nav-link user-menu-trigger">
+        <button mat-button [matMenuTriggerFor]="userMenu" class="nav-link user-menu-trigger" data-testid="user-menu-trigger">
           <i class="fi fi-rr-user user-icon"></i>
           <span class="user-name">{{ userDisplayName }}</span>
           <i class="fi fi-rr-angle-small-down chevron"></i>
@@ -80,7 +80,7 @@
             </button>
           }
           <mat-divider></mat-divider>
-          <button mat-menu-item (click)="logout()" class="logout-item">
+          <button mat-menu-item (click)="logout()" class="logout-item" data-testid="logout-btn">
             <i class="fi fi-rr-sign-out-alt menu-icon"></i>
             <span>{{ 'header.logout' | translate }}</span>
           </button>

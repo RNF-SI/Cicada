@@ -1,0 +1,117 @@
+<aside class="plan-sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">{{ 'plans.detail.sidebar.title' | translate }}</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <!-- Vue d'ensemble -->
+    <button
+      class="menu-item"
+      [class.active]="activePage() === 'overview'"
+      (click)="navigateToOverview()">
+      <i class="fi fi-rr-comment-info"></i>
+      <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
+    </button>
+
+    <!-- Détails et saisie -->
+    <div class="menu-item-wrapper">
+      <button
+        class="menu-item has-children"
+        [class.active]="activePage() === 'enjeux'"
+        (click)="toggleDetailsMenu()">
+        <i class="fi fi-rr-edit"></i>
+        <span>{{ 'plans.detail.sidebar.detailsEntry' | translate }}</span>
+        <i class="fi fi-rr-angle-small-up chevron" [class.collapsed]="!detailsMenuExpanded()"></i>
+      </button>
+
+      @if (detailsMenuExpanded()) {
+        <div class="submenu">
+          <button
+            class="submenu-item"
+            [class.active]="activePage() === 'enjeux'"
+            (click)="navigateToEnjeux()">
+            {{ 'enjeux.sidebar.title' | translate }}
+          </button>
+
+          <!-- Liste des enjeux -->
+          @if (enjeux().length > 0) {
+            <div class="submenu-section">
+              <span class="submenu-section-title">{{ 'enjeux.sidebar.enjeux' | translate }}</span>
+              <div class="submenu-tree">
+                @for (enjeu of enjeux(); track enjeu.id_enjeu) {
+                  <button
+                    class="submenu-tree-item"
+                    [class.selected]="selectedEnjeuSlug() === enjeu.slug"
+                    (click)="selectEnjeu(enjeu)">
+                    {{ enjeu.intitule_court || enjeu.libelle }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Liste des FCR -->
+          @if (fcr().length > 0) {
+            <div class="submenu-section">
+              <span class="submenu-section-title">{{ 'enjeux.sidebar.fcr' | translate }}</span>
+              <div class="submenu-tree">
+                @for (item of fcr(); track item.id_enjeu) {
+                  <button
+                    class="submenu-tree-item"
+                    [class.selected]="selectedEnjeuSlug() === item.slug"
+                    (click)="selectEnjeu(item)">
+                    {{ item.intitule_court || item.libelle }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Suivis -->
+    <div class="menu-item-wrapper">
+      <button
+        class="menu-item has-children"
+        [class.active]="isSuivisActive()"
+        (click)="toggleSuivisMenu()">
+        <i class="fi fi-rr-stats"></i>
+        <span>{{ 'plans.detail.sidebar.suivis' | translate }}</span>
+        <i class="fi fi-rr-angle-small-up chevron" [class.collapsed]="!suivisMenuExpanded()"></i>
+      </button>
+
+      @if (suivisMenuExpanded()) {
+        <div class="submenu">
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'bilan'"
+            (click)="navigateToBilan()">
+            {{ 'plans.detail.sidebar.bilan' | translate }}
+          </button>
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'suivi-actions'"
+            (click)="navigateToSuiviActions()">
+            {{ 'plans.detail.sidebar.suiviActions' | translate }}
+          </button>
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'tableau-de-bord'"
+            (click)="navigateToTableauDeBord()">
+            {{ 'plans.detail.sidebar.tableauDeBord' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Tableau d'arborescence -->
+    <button
+      class="menu-item"
+      [class.active]="isMindmapActive()"
+      (click)="navigateToMindmap()">
+      <i class="fi fi-rr-apps"></i>
+      <span>{{ 'plans.detail.sidebar.mindmap' | translate }}</span>
+    </button>
+  </nav>
+</aside>

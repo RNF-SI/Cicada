@@ -17,6 +17,7 @@ import { ValidationService } from '../../../../core/services/validation.service'
 import { ValidationRequestListItem } from '../../../../core/models/notification.model';
 import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
+import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
@@ -43,7 +44,8 @@ export interface SiteFormModalResult {
 
 interface SiteType {
   id_nomenclature: number;
-  cd_nomenclature: string;
+  cd_nomenclature: string | null;
+  mnemonique: string;
   label: string;
 }
 
@@ -63,7 +65,8 @@ interface SiteType {
     MatTabsModule,
     MatIconModule,
     TranslateModule,
-    LeafletMapEditComponent
+    LeafletMapEditComponent,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './site-form-modal.component.html',
   styleUrl: './site-form-modal.component.scss'
@@ -299,12 +302,23 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       id_local: [site?.id_local || '', Validators.maxLength(50)],
       id_inpn: [site?.id_inpn || '', Validators.maxLength(50)],
       id_type_site: [typeId],
+      type_site_precision: [site?.type_site_precision || '', Validators.maxLength(100)],
       surf_off: [site?.surf_off || null, [Validators.min(0)]],
       marin: [site?.marin || false],
       outre_mer: [site?.outre_mer || false],
       active: [site?.active !== false], // Default to true
       requestAsReferent: [true] // Default to true (user wants to become referent)
     });
+  }
+
+  /**
+   * Check if the selected site type is "Autre"
+   */
+  get isTypeAutre(): boolean {
+    const typeId = this.form.get('id_type_site')?.value;
+    if (!typeId) return false;
+    const selectedType = this.siteTypes().find(t => t.id_nomenclature === typeId);
+    return selectedType?.mnemonique === 'AUTRE' || selectedType?.label === 'Autre';
   }
 
   private loadSiteTypes(): void {
@@ -317,11 +331,12 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       error: () => {
         // Fallback: use hardcoded types if API fails
         this.siteTypes.set([
-          { id_nomenclature: 42, cd_nomenclature: 'RNN', label: 'Reserve Naturelle Nationale' },
-          { id_nomenclature: 43, cd_nomenclature: 'RNR', label: 'Reserve Naturelle Regionale' },
-          { id_nomenclature: 44, cd_nomenclature: 'PNR', label: 'Parc Naturel Regional' },
-          { id_nomenclature: 45, cd_nomenclature: 'ENS', label: 'Espace Naturel Sensible' },
-          { id_nomenclature: 46, cd_nomenclature: 'APB', label: 'Arrete de Protection de Biotope' }
+          { id_nomenclature: 42, cd_nomenclature: null, mnemonique: 'RNN', label: 'Reserve Naturelle Nationale' },
+          { id_nomenclature: 43, cd_nomenclature: null, mnemonique: 'RNR', label: 'Reserve Naturelle Regionale' },
+          { id_nomenclature: 600, cd_nomenclature: null, mnemonique: 'PNR', label: 'Parc Naturel Regional' },
+          { id_nomenclature: 601, cd_nomenclature: null, mnemonique: 'ENS', label: 'Espace Naturel Sensible' },
+          { id_nomenclature: 602, cd_nomenclature: null, mnemonique: 'APB', label: 'Arrete de Protection de Biotope' },
+          { id_nomenclature: 604, cd_nomenclature: null, mnemonique: 'AUTRE', label: 'Autre' }
         ]);
         this.isLoadingTypes.set(false);
       }
@@ -361,6 +376,12 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Validate precision required when type is "Autre"
+    if (this.isTypeAutre && !this.form.value.type_site_precision?.trim()) {
+      this.errorMessage.set(this.translate.instant('modals.siteForm.errors.typePrecisionRequired'));
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
@@ -369,6 +390,7 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       id_local: this.form.value.id_local || undefined,
       id_inpn: this.form.value.id_inpn || undefined,
       type_site_id: this.form.value.id_type_site || undefined,
+      type_site_precision: this.isTypeAutre ? (this.form.value.type_site_precision || undefined) : null,
       surf_off: this.form.value.surf_off || undefined,
       marin: this.form.value.marin,
       outre_mer: this.form.value.outre_mer,

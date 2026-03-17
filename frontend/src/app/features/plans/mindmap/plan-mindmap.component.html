@@ -1,0 +1,113 @@
+<app-header></app-header>
+<div class="mindmap-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="mindmap"></app-plan-sidebar>
+    }
+  }
+  <main class="plan-main">
+    <section class="hero-section">
+      <div class="hero-background"><div class="hero-pattern"></div></div>
+      <div class="hero-content">
+        <nav class="breadcrumb" aria-label="Fil d'Ariane">
+          <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <span class="breadcrumb-current">{{ 'plans.mindmap.title' | translate }}</span>
+          </div>
+        </nav>
+        <div class="plan-header">
+          <div class="plan-subtitle">
+            <i class="fi fi-rr-apps"></i>
+            <span>{{ 'plans.mindmap.title' | translate | uppercase }}</span>
+          </div>
+          <h1 class="plan-title">{{ planNom() }}</h1>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section">
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>{{ 'plans.mindmap.loading' | translate }}</p>
+        </div>
+      } @else if (error()) {
+        <div class="error-container">
+          <i class="fi fi-rr-exclamation"></i>
+          <p>{{ error() }}</p>
+        </div>
+      } @else if (!treeData()) {
+        <div class="empty-container">
+          <i class="fi fi-rr-apps"></i>
+          <p>{{ 'plans.mindmap.empty' | translate }}</p>
+        </div>
+      } @else {
+        <div class="mindmap-wrapper">
+          <!-- View toggle: Enjeux vs Actions -->
+          <div class="view-toggle">
+            <button [class.active]="viewMode() === 'enjeux'" (click)="switchView('enjeux')">
+              <i class="fi fi-rr-apps"></i>
+              {{ 'plans.mindmap.viewEnjeux' | translate }}
+            </button>
+            <button [class.active]="viewMode() === 'actions'" (click)="switchView('actions')">
+              <i class="fi fi-rr-refresh"></i>
+              {{ 'plans.mindmap.viewActions' | translate }}
+            </button>
+          </div>
+
+          <!-- Legend -->
+          <div class="mindmap-legend">
+            @for (item of legendItems; track item.type) {
+              <div class="legend-entry">
+                <span class="legend-dot" [style.background-color]="item.color"></span>
+                <span class="legend-label">{{ item.label }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Hint -->
+          <p class="icicle-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
+
+          @if (viewMode() === 'enjeux') {
+            <!-- Icicle Container (normal: Enjeux → Actions) -->
+            <div class="icicle-container" #icicleContainer></div>
+
+            <!-- Controls -->
+            <div class="mindmap-controls">
+              <button mat-stroked-button (click)="resetIcicle()">
+                <i class="fi fi-rr-marker"></i>
+                {{ 'plans.mindmap.resetZoomPlan' | translate }}
+              </button>
+              <button mat-stroked-button (click)="focusOnEnjeu()">
+                <i class="fi fi-rr-target"></i>
+                {{ 'plans.mindmap.focusEnjeu' | translate }}
+              </button>
+            </div>
+          } @else {
+            <!-- Icicle Container (inverse: Actions → Enjeux) -->
+            <div class="icicle-container" #icicleInverseContainer></div>
+
+            <!-- Controls -->
+            <div class="mindmap-controls">
+              <button mat-stroked-button (click)="resetIcicleInverse()">
+                <i class="fi fi-rr-marker"></i>
+                {{ 'plans.mindmap.resetZoomPlan' | translate }}
+              </button>
+              <button mat-stroked-button (click)="focusOnOperation()">
+                <i class="fi fi-rr-target"></i>
+                {{ 'plans.mindmap.focusOperation' | translate }}
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  </main>
+</div>

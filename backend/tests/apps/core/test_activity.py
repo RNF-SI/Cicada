@@ -753,3 +753,227 @@ class TestActivitySignals:
         ).count()
 
         assert final_count == initial_count + 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestActivityStatsEndpoint:
+    """Tests for Activity stats endpoint structure and data accuracy."""
+
+    def test_stats_returns_all_fields(self, api_client):
+        """Test stats endpoint returns total, by_type, by_action, by_day."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(entity_type='site', action='create')
+        ActivityLogFactory(entity_type='plan', action='update')
+
+        response = api_client.get('/api/activity/stats/')
+        assert response.status_code == 200
+
+        assert 'total' in response.data
+        assert isinstance(response.data['total'], int)
+        assert response.data['total'] >= 2
+
+        assert 'by_type' in response.data
+        assert isinstance(response.data['by_type'], dict)
+
+        assert 'by_action' in response.data
+        assert isinstance(response.data['by_action'], dict)
+
+        assert 'by_day' in response.data
+        assert isinstance(response.data['by_day'], list)
+
+    def test_stats_by_type_counts_correct(self, api_client):
+        """Test stats by_type counts match actual data."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(entity_type='site', action='create')
+        ActivityLogFactory(entity_type='site', action='update')
+        ActivityLogFactory(entity_type='plan', action='create')
+
+        response = api_client.get('/api/activity/stats/')
+        assert response.status_code == 200
+
+        by_type = response.data['by_type']
+        assert by_type.get('site', 0) >= 2
+        assert by_type.get('plan', 0) >= 1
+
+    def test_stats_by_action_counts_correct(self, api_client):
+        """Test stats by_action counts match actual data."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(action='create')
+        ActivityLogFactory(action='create')
+        ActivityLogFactory(action='delete')
+
+        response = api_client.get('/api/activity/stats/')
+        assert response.status_code == 200
+
+        by_action = response.data['by_action']
+        assert by_action.get('create', 0) >= 2
+        assert by_action.get('delete', 0) >= 1
+
+    def test_stats_by_day_format(self, api_client):
+        """Test stats by_day entries have date and count fields."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(action='create')
+
+        response = api_client.get('/api/activity/stats/')
+        assert response.status_code == 200
+
+        if len(response.data['by_day']) > 0:
+            day_entry = response.data['by_day'][0]
+            assert 'date' in day_entry
+            assert 'count' in day_entry
+            assert isinstance(day_entry['count'], int)
+
+    def test_stats_requires_authentication(self, api_client):
+        """Test stats endpoint requires authentication."""
+        response = api_client.get('/api/activity/stats/')
+        assert response.status_code == 401
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestActivityTabsCountsEndpoint:
+    """Tests for Activity tabs_counts endpoint per-role response."""
+
+    def test_tabs_counts_regular_user_fields(self, api_client):
+        """Test regular user gets base fields only."""
+        user = RoleFactory()
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 200
+
+        assert 'all' in response.data
+        assert 'my_sites' in response.data
+        assert 'my_plans' in response.data
+        assert 'my_rights' in response.data
+        assert 'notifications' in response.data
+        # Regular user should NOT have admin-only fields
+        assert 'system' not in response.data
+        assert 'rgpd' not in response.data
+
+    def test_tabs_counts_admin_og_has_validations(self, api_client):
+        """Test admin organisme gets validations field."""
+        admin_og = AdminOrganismeFactory()
+        api_client.force_authenticate(user=admin_og)
+
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 200
+
+        assert 'validations' in response.data
+        assert isinstance(response.data['validations'], int)
+
+    def test_tabs_counts_super_admin_has_all_fields(self, api_client):
+        """Test super admin gets system and rgpd fields."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 200
+
+        assert 'all' in response.data
+        assert 'my_sites' in response.data
+        assert 'my_plans' in response.data
+        assert 'my_rights' in response.data
+        assert 'notifications' in response.data
+        assert 'validations' in response.data
+        assert 'system' in response.data
+        assert 'rgpd' in response.data
+
+    def test_tabs_counts_values_are_integers(self, api_client):
+        """Test all tabs_counts values are integers."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 200
+
+        for key, value in response.data.items():
+            assert isinstance(value, int), f"{key} should be int, got {type(value)}"
+
+    def test_tabs_counts_requires_authentication(self, api_client):
+        """Test tabs_counts endpoint requires authentication."""
+        response = api_client.get('/api/activity/tabs_counts/')
+        assert response.status_code == 401
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestActivitySearchAndDateFilters:
+    """Tests for Activity search and date filters."""
+
+    def test_filter_by_search(self, api_client):
+        """Test filtering activities by search term."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(entity_name='Réserve de Camargue', action='create')
+        ActivityLogFactory(entity_name='Plan Vercors', action='create')
+
+        response = api_client.get('/api/activity/', {'search': 'Camargue'})
+        assert response.status_code == 200
+
+        results = response.data.get('results', response.data)
+        for item in results:
+            found = (
+                'Camargue' in (item.get('entity_name') or '')
+                or 'Camargue' in (item.get('description') or '')
+            )
+            assert found
+
+    def test_filter_by_since(self, api_client):
+        """Test filtering activities by since date is accepted."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        ActivityLogFactory(action='update')
+
+        # Request with a since date parameter
+        since_date = (timezone.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        response = api_client.get('/api/activity/', {'since': since_date})
+        assert response.status_code == 200
+
+        results = response.data.get('results', response.data)
+        assert len(results) >= 1
+
+    def test_filter_by_site_id(self, api_client):
+        """Test filtering activities by site_id."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        site1 = SiteFactory()
+        site2 = SiteFactory()
+        log1 = ActivityLogFactory.for_site(site1, action='update')
+        log2 = ActivityLogFactory.for_site(site2, action='update')
+
+        response = api_client.get('/api/activity/', {'site_id': site1.id_site})
+        assert response.status_code == 200
+
+        result_ids = [item['id'] for item in response.data.get('results', response.data)]
+        assert log1.id in result_ids
+        assert log2.id not in result_ids
+
+    def test_filter_by_plan_id(self, api_client):
+        """Test filtering activities by plan_id."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        plan1 = PlanGestionFactory()
+        plan2 = PlanGestionFactory()
+        log1 = ActivityLogFactory.for_plan(plan1, action='update')
+        log2 = ActivityLogFactory.for_plan(plan2, action='update')
+
+        response = api_client.get('/api/activity/', {'plan_id': plan1.id_pg})
+        assert response.status_code == 200
+
+        result_ids = [item['id'] for item in response.data.get('results', response.data)]
+        assert log1.id in result_ids
+        assert log2.id not in result_ids

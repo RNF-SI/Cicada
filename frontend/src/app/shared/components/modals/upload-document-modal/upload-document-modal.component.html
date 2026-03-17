@@ -1,0 +1,83 @@
+<h2 mat-dialog-title>{{ 'plans.detail.documents.upload.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <!-- File Selection -->
+  @if (!selectedFile()) {
+    <div class="file-select-zone">
+      <i class="fi fi-rr-cloud-upload"></i>
+      <button mat-stroked-button (click)="fileInput.click()">
+        {{ 'plans.detail.documents.upload.selectFile' | translate }}
+      </button>
+      <span class="drag-hint">{{ 'plans.detail.documents.upload.dragDrop' | translate }}</span>
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)">
+    </div>
+  } @else {
+    <div class="file-info">
+      <i class="fi fi-rr-document"></i>
+      <div class="file-details">
+        <span class="file-name">{{ selectedFile()!.name }}</span>
+        <span class="file-size">{{ formatFileSize(selectedFile()!.size) }}</span>
+      </div>
+      <button class="btn-change-file" (click)="fileInput.click()">
+        <i class="fi fi-rr-refresh"></i>
+      </button>
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)">
+    </div>
+  }
+
+  <!-- Metadata fields -->
+  <div class="metadata-fields">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'plans.detail.documents.upload.type' | translate }}</mat-label>
+      <mat-select [(ngModel)]="typeFichier">
+        @for (type of fichierTypes; track type.value) {
+          <mat-option [value]="type.value">{{ type.labelKey | translate }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'plans.detail.documents.upload.titre' | translate }}</mat-label>
+      <input matInput [(ngModel)]="titre">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'plans.detail.documents.upload.description' | translate }}</mat-label>
+      <textarea matInput [(ngModel)]="description" rows="3"></textarea>
+    </mat-form-field>
+
+    <div class="fields-row">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'plans.detail.documents.upload.auteur' | translate }}</mat-label>
+        <input matInput [(ngModel)]="auteur">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'plans.detail.documents.upload.dateDocument' | translate }}</mat-label>
+        <input matInput [matDatepicker]="picker" [(ngModel)]="dateDocument">
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="error-message">{{ errorMessage() }}</div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="uploading()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary"
+          (click)="submit()"
+          [disabled]="!selectedFile() || uploading()">
+    @if (uploading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+      {{ 'plans.detail.documents.upload.uploading' | translate }}
+    } @else {
+      {{ 'plans.detail.documents.upload.send' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

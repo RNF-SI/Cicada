@@ -1,0 +1,169 @@
+<app-header></app-header>
+
+<div class="page-container">
+  <div class="page-header">
+    <h1>{{ 'plans.duplicate.title' | translate }}</h1>
+    <p class="text-muted">{{ 'plans.duplicate.subtitle' | translate }}</p>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-row">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>{{ 'plans.duplicate.searchPlaceholder' | translate }}</mat-label>
+        <input
+          matInput
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          type="text"
+        />
+      </mat-form-field>
+
+      <button mat-stroked-button routerLink="/plans">
+        {{ 'plans.duplicate.dialog.cancel' | translate }}
+      </button>
+    </div>
+
+    <div class="toolbar-row toolbar-row--between">
+      <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
+        @if (showOldVersions()) {
+          <span>{{ 'plans.list.hideOldVersions' | translate }}</span>
+        } @else {
+          <span>{{ 'plans.list.oldVersions' | translate }}</span>
+        }
+        <i class="fi fi-rr-time-past"></i>
+      </button>
+
+      @if (showScopeToggle()) {
+        <app-view-scope-toggle
+          [currentScope]="planScope()"
+          [showOrganismeOption]="true"
+          [showAllOption]="isSuperAdmin()"
+          [mineLabel]="'plans.duplicate.sections.myPlans' | translate"
+          [organismeLabel]="'plans.duplicate.sections.orgPlans' | translate"
+          [allLabel]="'plans.duplicate.sections.allPlans' | translate"
+          (scopeChange)="onScopeChange($event)">
+        </app-view-scope-toggle>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (duplicating()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="text-muted">{{ 'plans.duplicate.dialog.confirm' | translate }}...</p>
+    </div>
+  } @else {
+    @if (filteredPlans().length > 0) {
+      <div class="table-container">
+        <table class="plans-table">
+          <thead>
+            <tr>
+              <th class="col-name">{{ 'plans.duplicate.table.name' | translate }}</th>
+              <th class="col-period">{{ 'plans.duplicate.table.period' | translate }}</th>
+              <th class="col-status">{{ 'plans.duplicate.table.status' | translate }}</th>
+              <th class="col-sites">{{ 'plans.duplicate.table.sites' | translate }}</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (plan of filteredPlans(); track plan.id_pg; let odd = $odd) {
+              <!-- Ancestor rows above the current plan -->
+              @if (linkedPlansById().has(plan.id_pg)) {
+                @for (ancestor of linkedPlansById().get(plan.id_pg)!; track ancestor.id_pg; let first = $first) {
+                  <tr class="ancestor-row" [class.ancestor-first]="first">
+                    <td class="col-name">
+                      <div class="ancestor-indent">
+                        <span class="tree-line" [class.first]="first"></span>
+                        <span class="ancestor-name">{{ ancestor.nom }}</span>
+                        @if (ancestor.type_document_display) {
+                          <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
+                        }
+                        @if (ancestor.version) {
+                          <span class="ancestor-version">v{{ ancestor.version }}</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="col-period">
+                      <span class="ancestor-text">{{ getPeriod(ancestor) }}</span>
+                    </td>
+                    <td class="col-status">
+                      <span class="status-tag" [ngClass]="getStatusClass(ancestor.statut)">
+                        {{ getStatusLabel(ancestor.statut) }}
+                      </span>
+                    </td>
+                    <td class="col-sites"></td>
+                    <td class="col-actions">
+                      <button mat-stroked-button class="btn-sm" (click)="onSelectPlan(ancestor)">
+                        {{ 'plans.duplicate.selectPlan' | translate }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              }
+              <!-- Main plan row -->
+              <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)">
+                <td class="col-name">
+                  <div [class.child-indent]="linkedPlansById().has(plan.id_pg)">
+                    @if (linkedPlansById().has(plan.id_pg)) {
+                      <span class="tree-line last"></span>
+                    }
+                    <span class="plan-name">{{ plan.nom }}</span>
+                  </div>
+                </td>
+                <td class="col-period">{{ getPeriod(plan) }}</td>
+                <td class="col-status">
+                  <span class="status-tag" [ngClass]="getStatusClass(plan.statut)">
+                    {{ getStatusLabel(plan.statut) }}
+                  </span>
+                </td>
+                <td class="col-sites">
+                  <div class="sites-cell">
+                    @for (site of (plan.sites || []).slice(0, 1); track site.id_site) {
+                      <span class="site-name">{{ site.nom_site }}</span>
+                      @if (getSiteAccess(site.id_site); as access) {
+                        <span class="item-access" [ngClass]="'access-' + access.accessType">
+                          {{ access.accessLabel }}
+                        </span>
+                      }
+                    }
+                    @if ((plan.sites || []).length > 1) {
+                      <span
+                        class="sites-more"
+                        [matTooltip]="getSitesTooltip(plan)"
+                        matTooltipClass="multiline-tooltip"
+                      >(+{{ (plan.sites || []).length - 1 }})</span>
+                    }
+                    @if ((plan.sites || []).length === 0) {
+                      <span>-</span>
+                    }
+                  </div>
+                </td>
+                <td class="col-actions">
+                  <button mat-flat-button color="primary" class="btn-sm" (click)="onSelectPlan(plan)">
+                    {{ 'plans.duplicate.selectPlan' | translate }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="results-count text-muted">
+        {{ filteredPlans().length }} plan(s)
+      </p>
+    } @else {
+      <!-- Empty state -->
+      <div class="empty-state">
+        <i class="fi fi-rr-search empty-icon"></i>
+        <p>{{ 'plans.duplicate.noResults' | translate }}</p>
+      </div>
+    }
+  }
+</div>

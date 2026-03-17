@@ -1,0 +1,111 @@
+@import 'variables';
+
+.file-select-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xl;
+  border: 2px dashed $gray-light;
+  border-radius: $border-radius-md;
+  background-color: $gray-lighter;
+  margin-bottom: $spacing-md;
+
+  i {
+    font-size: 32px;
+    color: $gray;
+  }
+
+  .drag-hint {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: $gray-lighter;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-md;
+
+  > i {
+    font-size: 20px;
+    color: $primary-color;
+  }
+
+  .file-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .file-name {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $black;
+      word-break: break-all;
+    }
+
+    .file-size {
+      font-size: $font-size-small;
+      color: $gray-dark;
+    }
+  }
+
+  .btn-change-file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid $gray-light;
+    border-radius: 50%;
+    color: $gray-dark;
+    cursor: pointer;
+
+    &:hover {
+      color: $primary-color;
+      border-color: $primary-color;
+    }
+  }
+}
+
+.metadata-fields {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.fields-row {
+  display: flex;
+  gap: $spacing-md;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.error-message {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background-color: rgba($error-color, 0.1);
+  color: $error-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+}
+
+mat-dialog-actions {
+  button {
+    mat-spinner {
+      display: inline-block;
+      margin-right: $spacing-xs;
+    }
+  }
+}

@@ -13,6 +13,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite, AdminUser, UserSiteRelation } from '../../../../core/models/admin.model';
+import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
 
 // Interface for a site assignment in the modal
 interface SiteAssignment {
@@ -61,7 +62,8 @@ export interface LinkUserSiteModalData {
     MatInputModule,
     MatCheckboxModule,
     MatIconModule,
-    TranslateModule
+    TranslateModule,
+    SiteTypeDisplayPipe
   ],
   templateUrl: './link-user-site-modal.component.html',
   styleUrl: './link-user-site-modal.component.scss'

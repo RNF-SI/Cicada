@@ -281,6 +281,212 @@ class TestBulkImportValidation:
         assert site['duplicate_info'] is not None
         assert site['duplicate_info']['type'] == 'exact_name'
 
+    def test_similar_name_in_db_returns_warning(self, api_client):
+        """Site with similar name in DB produces non-blocking warning."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site="Réserve Naturelle de Camargue")
+        api_client.force_authenticate(user=admin)
+
+        features = [_make_feature("Camargue")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        # Should have warning, not error
+        assert len(site['warnings']) > 0
+        assert 'similaire' in site['warnings'][0].lower()
+        assert len(site['errors']) == 0
+        assert site['duplicate_info'] is None
+        # similar_names should contain the existing site
+        assert len(site['similar_names']) > 0
+        assert site['similar_names'][0]['nom_site'] == 'Réserve Naturelle de Camargue'
+
+    def test_similar_name_no_warning_on_exact_match(self, api_client):
+        """Exact name match produces error, not similar name warning."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site="Camargue")
+        api_client.force_authenticate(user=admin)
+
+        features = [_make_feature("Camargue")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        # Should have blocking error, no similar name warning
+        assert len(site['errors']) > 0
+        assert site['duplicate_info'] is not None
+        assert site['duplicate_info']['type'] == 'exact_name'
+        # No similar name warning
+        similar_warnings = [w for w in site['warnings'] if 'similaire' in w.lower()]
+        assert len(similar_warnings) == 0
+
+    def test_similar_name_short_name_ignored(self, api_client):
+        """Names shorter than 3 characters don't trigger similar name search."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site="AB Testing Site")
+        api_client.force_authenticate(user=admin)
+
+        features = [_make_feature("AB")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        # Should have validation error (name too short), no similar name warning
+        similar_warnings = [w for w in site['warnings'] if 'similaire' in w.lower()]
+        assert len(similar_warnings) == 0
+
+    def test_similar_name_does_not_block_import(self, api_client):
+        """Sites with similar name warnings can still be imported."""
+        org = OrganismeFactory()
+        admin = SuperAdminFactory(id_organisme=org)
+        SiteFactory(nom_site="Réserve Naturelle de Camargue")
+        api_client.force_authenticate(user=admin)
+
+        # First validate
+        features = [_make_feature("Camargue")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        assert len(site['warnings']) > 0
+        assert len(site['errors']) == 0
+
+        # Now import - should succeed
+        sites = [
+            {'row_index': 0, 'mapped_data': {'nom_site': 'Camargue'}},
+        ]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['created'] == 1
+        assert Site.objects.filter(nom_site='Camargue').exists()
+
+    def test_similar_name_inactive_sites_excluded(self, api_client):
+        """Inactive sites are not considered for similar name detection."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site="Réserve Naturelle de Camargue", active=False)
+        api_client.force_authenticate(user=admin)
+
+        features = [_make_feature("Camargue")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        # No similar name warning because the existing site is inactive
+        similar_warnings = [w for w in site['warnings'] if 'similaire' in w.lower()]
+        assert len(similar_warnings) == 0
+
+    def test_similar_name_word_overlap_in_db(self, api_client):
+        """Sites sharing significant words with DB sites get a warning."""
+        admin = SuperAdminFactory()
+        SiteFactory(nom_site="Réserve naturelle du Marais de Lavours")
+        api_client.force_authenticate(user=admin)
+
+        features = [_make_feature("Parc naturel régional du Marais de Lavours")]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site = response.data['sites'][0]
+        assert len(site['errors']) == 0
+        assert len(site['warnings']) > 0
+        assert 'similaire' in site['warnings'][0].lower()
+        assert 'existants' in site['warnings'][0].lower()
+
+    def test_similar_name_intra_batch(self, api_client):
+        """Sites with similar names within the same batch get a warning."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        features = [
+            _make_feature("Réserve naturelle du Marais de Lavours"),
+            _make_feature("Parc naturel régional du Marais de Lavours"),
+        ]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site_a = response.data['sites'][0]
+        site_b = response.data['sites'][1]
+        # Both should have intra-batch similarity warnings
+        batch_warnings_a = [w for w in site_a['warnings'] if 'fichier' in w.lower()]
+        batch_warnings_b = [w for w in site_b['warnings'] if 'fichier' in w.lower()]
+        assert len(batch_warnings_a) > 0, f"Expected intra-batch warning for site A, got: {site_a['warnings']}"
+        assert len(batch_warnings_b) > 0, f"Expected intra-batch warning for site B, got: {site_b['warnings']}"
+        # Both should still be importable (no errors)
+        assert len(site_a['errors']) == 0
+        assert len(site_b['errors']) == 0
+
+    def test_similar_name_no_false_positive_different_sites(self, api_client):
+        """Sites with different geographic names don't trigger similarity."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        features = [
+            _make_feature("Réserve naturelle de Camargue"),
+            _make_feature("Réserve naturelle de la Vanoise"),
+        ]
+        f = _make_geojson_file(features)
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site_a = response.data['sites'][0]
+        site_b = response.data['sites'][1]
+        # Should NOT have similarity warnings (different geographic names)
+        batch_warnings_a = [w for w in site_a['warnings'] if 'similaire' in w.lower()]
+        batch_warnings_b = [w for w in site_b['warnings'] if 'similaire' in w.lower()]
+        assert len(batch_warnings_a) == 0, f"Unexpected warning: {site_a['warnings']}"
+        assert len(batch_warnings_b) == 0, f"Unexpected warning: {site_b['warnings']}"
+
     def test_permission_denied_for_regular_user(self, api_client):
         """Regular user cannot access bulk import."""
         user = RoleFactory()

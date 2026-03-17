@@ -188,6 +188,17 @@ export class ValidationService {
   }
 
   /**
+   * Demande a lier un site a un plan de gestion.
+   */
+  requestPlanSiteLink(planId: number, siteId: number, data?: { justification?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/request_plan_site_link/`, {
+      plan_id: planId,
+      site_id: siteId,
+      ...data
+    });
+  }
+
+  /**
    * Demande l'acces a un module.
    */
   requestModuleAccess(data: ModuleAccessRequestData): Observable<ValidationRequest> {

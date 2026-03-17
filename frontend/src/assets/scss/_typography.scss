@@ -1,7 +1,7 @@
 // Typography Styles - Design System
 // Based on Kit UI CICADA - November 2025
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+// Google Font loaded via <link> in index.html to avoid build-time inlining issues
 @import 'variables';
 
 // ============================================
@@ -206,21 +206,69 @@ li {
   margin-bottom: $spacing-xs;
 }
 
-// Custom bullet points (from design system)
+// ============================================
+// PUCES PERSONNALISÉES (images Design System)
+// ============================================
+// Usage: <img src="assets/images/puces/puce-{color}.png" alt="" class="puce">
+// Ou en tant que liste: <ul class="list-custom list-puce-terra-cotta">
+
+// Classe de base pour une puce image inline
+.puce {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+// Variantes de taille
+.puce-sm {
+  width: 8px;
+  height: 8px;
+}
+
+.puce-lg {
+  width: 14px;
+  height: 14px;
+}
+
+// Custom bullet points (from design system) - with puce images
 .list-custom {
   list-style: none;
   padding-left: 0;
-  
+
   li {
     position: relative;
     padding-left: $spacing-lg;
-    
+
     &::before {
-      content: '▸';
+      content: '';
       position: absolute;
       left: 0;
-      color: $primary-color;
+      top: 5px;
+      width: 11px;
+      height: 11px;
+      background-image: url('/assets/images/puces/puce-primary.png');
+      background-size: contain;
+      background-repeat: no-repeat;
     }
+  }
+
+  // Variantes de couleur
+  &.list-puce-terra-cotta li::before {
+    background-image: url('/assets/images/puces/puce-terra-cotta.png');
+  }
+
+  &.list-puce-salmon li::before {
+    background-image: url('/assets/images/puces/puce-salmon.png');
+  }
+
+  &.list-puce-yellow li::before {
+    background-image: url('/assets/images/puces/puce-yellow.png');
+  }
+
+  &.list-puce-pale-green li::before {
+    background-image: url('/assets/images/puces/puce-pale-green.png');
   }
 }
 

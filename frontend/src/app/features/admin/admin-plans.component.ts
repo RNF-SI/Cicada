@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,10 +28,19 @@ interface DisplayReferent {
   email: string;
 }
 
+// Interface for plan member (referent or simple member)
+interface DisplayMembre {
+  id: number;
+  nom: string;
+  email: string;
+  referent: boolean;
+}
+
 // Interface for display (mapping from API model)
 interface DisplayPlan {
   id: number;
   nom: string;
+  slug?: string;
   statut: PlanStatut;
   statutLabel: string;
   version?: string;
@@ -48,6 +57,7 @@ interface DisplayPlan {
   dateMaj?: Date;
   sites: DisplaySiteLie[];
   referents: DisplayReferent[];
+  membres: DisplayMembre[];
 }
 
 interface DisplayOrganisme {
@@ -72,6 +82,7 @@ interface DisplayOrganisme {
   styleUrl: './admin-plans.component.scss'
 })
 export class AdminPlansComponent implements OnInit {
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
@@ -81,6 +92,13 @@ export class AdminPlansComponent implements OnInit {
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+
+  /** Vérifie si l'utilisateur peut gérer un plan (référent du plan, admin_og ou super_admin). */
+  canManagePlan(plan: DisplayPlan): boolean {
+    if (this.isSuperAdmin() || this.isAdminOrganisme()) return true;
+    const userId = this.currentUser()?.id;
+    return !!userId && plan.membres.some(m => m.id === userId && m.referent);
+  }
 
   // Filter state
   searchQuery = '';
@@ -129,10 +147,14 @@ export class AdminPlansComponent implements OnInit {
       ? currentOrgId
       : undefined;
 
+    // For non-admin users (referents), use scope=mine to exclude org plans they're not linked to
+    const scope = !this.isSuperAdmin() && !this.isAdminOrganisme() ? 'mine' as const : undefined;
+
     this.adminService.getPlans({
       search: this.searchQuery || undefined,
       statut: this.filterStatut || undefined,
-      organisme: organismeFilter
+      organisme: organismeFilter,
+      scope
     }).subscribe({
       next: (response) => {
         const mapped = response.results.map(plan => this.mapPlan(plan));
@@ -157,6 +179,7 @@ export class AdminPlansComponent implements OnInit {
     return {
       id: plan.id_pg,
       nom: plan.nom,
+      slug: plan.slug,
       statut: plan.statut,
       statutLabel: this.translate.instant('admin.plans.status.' + plan.statut),
       version: plan.version,
@@ -181,6 +204,12 @@ export class AdminPlansComponent implements OnInit {
         id: r.id_role,
         nom: r.nom_complet || `${r.prenom_role || ''} ${r.nom_role || ''}`.trim() || r.email,
         email: r.email
+      })),
+      membres: (plan.membres || []).map(m => ({
+        id: m.id_role,
+        nom: m.nom_complet || `${m.prenom_role || ''} ${m.nom_role || ''}`.trim() || m.email,
+        email: m.email,
+        referent: m.referent
       }))
     };
   }
@@ -254,6 +283,12 @@ export class AdminPlansComponent implements OnInit {
             id_role: r.id,
             email: r.email,
             nom_complet: r.nom
+          })),
+          membres: plan.membres.map(m => ({
+            id_role: m.id,
+            email: m.email,
+            nom_complet: m.nom,
+            referent: m.referent
           }))
         }
       }
@@ -268,8 +303,7 @@ export class AdminPlansComponent implements OnInit {
   }
 
   viewPlan(plan: DisplayPlan): void {
-    // Navigate to plan detail page
-    window.location.href = `/plans/${plan.id}`;
+    this.router.navigate(['/plans', plan.slug || plan.id]);
   }
 
   validerPlan(plan: DisplayPlan): void {
@@ -338,6 +372,10 @@ export class AdminPlansComponent implements OnInit {
 
   getOtherReferentsNames(referents: DisplayReferent[]): string {
     return referents.slice(2).map(r => r.nom).join(', ');
+  }
+
+  getOtherMembresNames(membres: DisplayMembre[]): string {
+    return membres.slice(3).map(m => `${m.nom} (${m.referent ? 'Référent' : 'Membre'})`).join(', ');
   }
 
   formatDate(date?: Date): string {

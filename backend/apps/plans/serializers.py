@@ -36,7 +36,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
     class Meta:
         model = CorPgFichier
         fields = [
-            'id', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
+            'id', 'plan_de_gestion', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
             'type_fichier', 'titre', 'description', 'auteur', 'public',
             'ordre_affichage', 'taille_fichier', 'file_size_human', 'extension',
             'is_image', 'is_document', 'date_upload', 'date_document'
@@ -60,13 +60,15 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
     def get_is_image(self, obj):
         """Vérifie si le fichier est une image."""
         if obj.extension:
-            return obj.extension.lower() in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']
+            ext = obj.extension.lower().lstrip('.')
+            return ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
         return False
 
     def get_is_document(self, obj):
         """Vérifie si le fichier est un document."""
         if obj.extension:
-            return obj.extension.lower() in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods']
+            ext = obj.extension.lower().lstrip('.')
+            return ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods']
         return False
     
     def get_url(self, obj):
@@ -90,17 +92,58 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     """Serializer simplifié pour les sites dans la liste des plans."""
     id_site = serializers.IntegerField(source='site.id_site')
     nom_site = serializers.CharField(source='site.nom_site')
+    slug = serializers.SlugField(source='site.slug', read_only=True)
     type_site_label = serializers.SerializerMethodField()
+    current_user_has_access = serializers.SerializerMethodField()
+    organismes = serializers.SerializerMethodField()
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site', 'type_site_label', 'rang']
+        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang', 'current_user_has_access', 'organismes']
 
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.label
         return None
+
+    def get_current_user_has_access(self, obj):
+        """Vérifie si l'utilisateur courant a accès au site (même logique que SiteViewSet.get_queryset)."""
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+
+        user = request.user
+        site = obj.site
+
+        # Super admin a accès à tout
+        if user.is_super_admin():
+            return True
+
+        from apps.users.models import CorRoleSite, CorOgSite
+
+        # Accès direct via assignation personnelle (tous rôles)
+        if CorRoleSite.objects.filter(id_site=site, id_role=user).exists():
+            return True
+
+        # Admin organisme : accès via organisme
+        if user.is_admin_organisme() and user.id_organisme:
+            if CorOgSite.objects.filter(id_site=site, uuid_og=user.id_organisme).exists():
+                return True
+
+        return False
+
+    def get_organismes(self, obj):
+        """Retourne les organismes liés au site via CorOgSite."""
+        from apps.users.models import CorOgSite
+        return [
+            {
+                'id_organisme': cor.uuid_og.id_organisme,
+                'nom_organisme': cor.uuid_og.nom_organisme if cor.uuid_og else '',
+                'principal': cor.principal,
+            }
+            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og')
+        ]
 
 
 class PlanReferentListSerializer(serializers.ModelSerializer):
@@ -144,6 +187,11 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
     redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
 
+    # Version chain fields
+    plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
+    type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
+    children_count = serializers.IntegerField(source='children.count', read_only=True)
+
     # Include sites and referents details for admin display
     sites = PlanSiteListSerializer(many=True, read_only=True)
     referents = PlanReferentListSerializer(many=True, read_only=True)
@@ -152,11 +200,12 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang', 'annee_debut', 'annee_fin', 'periode_gestion',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin', 'periode_gestion',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie', 'statut', 'statut_display', 'version',
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_display', 'redacteur_type_display', 'redacteur_nom',
             'redacteurs', 'relecteurs',
+            'plan_parent_id', 'type_document_display', 'children_count',
             'nb_sites', 'nb_fichiers', 'sites', 'referents', 'membres', 'date_ajout', 'date_maj'
         ]
 
@@ -180,6 +229,14 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
     redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
+
+    # Version chain fields
+    plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
+    plan_parent_nom = serializers.CharField(source='plan_parent.nom', read_only=True, allow_null=True)
+    plan_parent_slug = serializers.SlugField(source='plan_parent.slug', read_only=True, allow_null=True)
+    type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
+    children_count = serializers.IntegerField(source='children.count', read_only=True)
+    version_chain = serializers.SerializerMethodField()
 
     # Utilisateurs
     utilisateur_ajout = RoleBasicSerializer(source='id_utilisateur_ajout', read_only=True)
@@ -217,23 +274,29 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             for site in obj.get_sites()
         ]
 
+    def get_version_chain(self, obj):
+        """Retourne la chaîne complète de versions."""
+        return obj.get_version_chain()
+
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang',
             'annee_debut', 'annee_fin', 'periode_gestion',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_id', 'evaluation_display', 'redacteur_type_id', 'redacteur_type_display',
             'redacteur_nom', 'redacteurs', 'relecteurs',
             'commentaire', 'statut', 'statut_display', 'version',
+            'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
+            'type_document_display', 'children_count', 'version_chain',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
             'sites', 'fichiers', 'referents', 'membres', 'sites_ids', 'referents_ids',
             'utilisateur_ajout', 'utilisateur_maj',
             'date_ajout', 'date_maj'
         ]
         read_only_fields = [
-            'id_pg', 'date_ajout', 'date_maj'
+            'id_pg', 'slug', 'date_ajout', 'date_maj'
         ]
     
     def create(self, validated_data):
@@ -314,6 +377,16 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         return plan
 
 
+class PlanDuplicateOptionsSerializer(serializers.Serializer):
+    """Serializer pour les options de duplication d'un plan."""
+
+    copy_sites = serializers.BooleanField(default=True)
+    copy_referents = serializers.BooleanField(default=True)
+    copy_fichiers = serializers.BooleanField(default=False)
+    copy_enjeux = serializers.BooleanField(default=True)
+    copy_sub_elements = serializers.BooleanField(default=True)
+
+
 class PlanGestionGeoJSONSerializer(serializers.ModelSerializer):
     """Serializer GeoJSON pour les Plans de Gestion."""
     
@@ -325,7 +398,7 @@ class PlanGestionGeoJSONSerializer(serializers.ModelSerializer):
         model = PlanGestion
         geo_field = 'geometrie'
         fields = [
-            'id_pg', 'nom', 'periode_gestion', 'gestion_partagee',
+            'id_pg', 'nom', 'slug', 'periode_gestion', 'gestion_partagee',
             'statut', 'statut_display', 'nb_sites'
         ]
 
@@ -339,7 +412,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'id_cdr', 'rang', 'annee_debut', 'annee_fin',
+            'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
@@ -347,7 +420,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'commentaire', 'statut', 'version', 'geometrie',
             'sites_ids', 'referents_ids'
         ]
-        read_only_fields = ['id_pg']
+        read_only_fields = ['id_pg', 'slug']
         extra_kwargs = {
             'nom': {'required': True},
             'rang': {'required': True},

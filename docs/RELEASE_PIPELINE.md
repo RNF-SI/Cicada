@@ -247,7 +247,9 @@ docker compose -f docker-compose.prod.yml logs -f web
 
 | Workflow | Declencheur | Action |
 |----------|-------------|--------|
-| `tests.yml` | Push / PR vers main, develop | Lance pytest et jest |
+| `tests.yml` | Push / PR vers main, develop + tags `v*` | Lance pytest, jest, **et Playwright E2E** |
 | `commitlint.yml` | PR vers main, develop | Valide les messages de commit |
 | `release-please.yml` | Push vers main | Cree/met a jour une PR de release |
 | `docker-publish.yml` | Push d'un tag `v*` | Build et push des images GHCR |
+
+> **Note** : Les tests E2E Playwright (`e2e-tests` dans `tests.yml`) se declenchent aussi sur les tags `v*`, ce qui signifie que les tests E2E complets s'executent avant/pendant la publication des images Docker. Le job E2E depend de `backend-tests` pour ne pas gaspiller de ressources si les tests unitaires echouent.
