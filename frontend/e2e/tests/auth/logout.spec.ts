@@ -6,8 +6,13 @@ test.describe('Logout', () => {
     await expect(page).toHaveURL(/\/accueil/);
 
     // Open user menu and click logout
-    await page.locator('button.user-menu-trigger').click();
-    await page.locator('button.logout-item').click();
+    const menuTrigger = page.locator('button.user-menu-trigger');
+    await menuTrigger.waitFor({ state: 'visible', timeout: 10000 });
+    await menuTrigger.click();
+    await page.waitForTimeout(500); // Wait for menu animation
+    const logoutBtn = page.locator('button.logout-item');
+    await logoutBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await logoutBtn.click();
 
     // Should redirect after logout (app navigates to /accueil)
     await expect(page).toHaveURL(/\/accueil|\/auth\/login/, { timeout: 10000 });

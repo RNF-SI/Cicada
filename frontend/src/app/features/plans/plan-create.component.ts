@@ -191,8 +191,12 @@ export class PlanCreateComponent implements OnInit {
   filteredOrganismes$!: Observable<AdminOrganisme[]>;
 
   ngOnInit(): void {
+    // Super admin defaults to 'all' scope to see every site
+    if (this.authService.isSuperAdmin()) {
+      this.siteScope.set('all');
+    }
     // Admin organisme defaults to 'organisme' scope to see all their org's sites
-    if (this.authService.isAdminOrganisme() && !this.authService.isSuperAdmin()) {
+    else if (this.authService.isAdminOrganisme()) {
       this.siteScope.set('organisme');
     }
     this.initForm();

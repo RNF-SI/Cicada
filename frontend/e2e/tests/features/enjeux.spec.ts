@@ -1083,7 +1083,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     // Delete the last OLT
     const lastOlt = page.locator('.olt-expanded-content .olt-section-header').last();
-    await lastOlt.locator('button:has(i.fi-rr-trash)').click(); // delete button
+    await lastOlt.locator('button:has(i.fi-rr-minus-circle)').click(); // delete button
     await page.waitForTimeout(300);
 
     // Confirm
@@ -1115,7 +1115,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     // Delete the last etat (our temp one)
     const lastEtat = page.locator('.olt-section-header').last();
-    await lastEtat.locator('button:has(i.fi-rr-trash)').click(); // delete button
+    await lastEtat.locator('button:has(i.fi-rr-minus-circle)').click(); // delete button
     await page.waitForTimeout(300);
 
     // Confirm
