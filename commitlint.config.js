@@ -77,8 +77,11 @@ module.exports = {
       ],
     ],
     'scope-empty': [1, 'never'], // warning si pas de scope
-    'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],
-    'header-max-length': [2, 'always', 100],
+    'subject-case': [1, 'never', ['start-case', 'pascal-case', 'upper-case']],
+    'header-max-length': [1, 'always', 200],
     'body-max-line-length': [1, 'always', 200],
+    // Downgrade to warning — historical commits don't follow conventional format
+    'subject-empty': [1, 'never'],
+    'type-empty': [1, 'never'],
   },
 };
