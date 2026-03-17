@@ -60,13 +60,15 @@
       <button
         class="tab"
         [class.active]="activeTab() === 'actifs'"
-        (click)="setTab('actifs')">
+        (click)="setTab('actifs')"
+        data-testid="tab-actifs">
         {{ 'plans.list.tabs.active' | translate }}
       </button>
       <button
         class="tab"
         [class.active]="activeTab() === 'inactifs'"
-        (click)="setTab('inactifs')">
+        (click)="setTab('inactifs')"
+        data-testid="tab-inactifs">
         {{ 'plans.list.tabs.inactive' | translate }}
       </button>
     </div>
@@ -101,6 +103,7 @@
               type="text"
               [placeholder]="'plans.list.search' | translate"
               (input)="onMyPlansSearch($event)"
+              data-testid="plans-search-input"
             />
           </div>
           <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
@@ -130,7 +133,7 @@
         } @else {
           <!-- Table des plans -->
           <div class="table-container">
-            <table class="plans-table">
+            <table class="plans-table" data-testid="plans-table">
               <thead>
                 <tr>
                   <th class="col-name">

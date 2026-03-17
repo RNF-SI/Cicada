@@ -304,6 +304,7 @@
                   (matChipInputTokenEnd)="addRedacteurFromText($event)"
                   [matAutocomplete]="redacteursAuto"
                   [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
+                  data-testid="redacteurs-input"
                 />
               </mat-chip-grid>
               <mat-autocomplete
@@ -354,6 +355,7 @@
                   (matChipInputTokenEnd)="addRelecteurFromText($event)"
                   [matAutocomplete]="relecteursAuto"
                   [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
+                  data-testid="relecteurs-input"
                 />
               </mat-chip-grid>
               <mat-autocomplete

@@ -563,7 +563,7 @@
                         <button class="icon-btn-flat" (click)="startEditEtat(etat); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                           <i class="fi fi-rr-pencil"></i>
                         </button>
-                        <button class="icon-btn-flat" (click)="deleteEtatActuel(etat); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                        <button class="icon-btn-flat" (click)="deleteEtatActuel(etat); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-etat">
                           <i class="fi fi-rr-minus-circle"></i>
                         </button>
                         <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isEtatExpanded(etat.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(etat.id_etat_actuel)"></i>
@@ -619,7 +619,7 @@
                                 <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                   <i class="fi fi-rr-pencil"></i>
                                 </button>
-                                <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-olt">
                                   <i class="fi fi-rr-minus-circle"></i>
                                 </button>
                                 <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOltExpanded(olt.id_olt)" [class.fi-rr-angle-small-up]="isOltExpanded(olt.id_olt)"></i>

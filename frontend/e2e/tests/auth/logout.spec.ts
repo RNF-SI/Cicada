@@ -6,11 +6,11 @@ test.describe('Logout', () => {
     await expect(page).toHaveURL(/\/accueil/);
 
     // Open user menu and click logout
-    const menuTrigger = page.locator('button.user-menu-trigger');
+    const menuTrigger = page.locator('[data-testid="user-menu-trigger"]');
     await menuTrigger.waitFor({ state: 'visible', timeout: 10000 });
     await menuTrigger.click();
     // Wait for menu to open (Material animation)
-    const logoutBtn = page.locator('.logout-item, [class*="logout"]');
+    const logoutBtn = page.locator('[data-testid="logout-btn"]');
     await logoutBtn.waitFor({ state: 'visible', timeout: 5000 });
     await logoutBtn.click();
 
@@ -38,9 +38,9 @@ test.describe('Logout', () => {
 
   test('should show logout button in user menu', async ({ superAdminPage: page }) => {
     await page.goto('/accueil');
-    await page.locator('button.user-menu-trigger').click();
+    await page.locator('[data-testid="user-menu-trigger"]').click();
 
-    const logoutItem = page.locator('button.logout-item');
+    const logoutItem = page.locator('[data-testid="logout-btn"]');
     await expect(logoutItem).toBeVisible();
   });
 });

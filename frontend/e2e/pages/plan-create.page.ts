@@ -108,13 +108,13 @@ export class PlanCreatePage {
     this.organismeChip = page.locator('.selected-organisme mat-chip-row');
     this.organismeRemoveBtn = page.locator('.selected-organisme button[matChipRemove]');
 
-    // Rédacteurs — first chips-field in the form (by position, not text)
-    this.redacteursChips = page.locator('.chips-field').first().locator('mat-chip-row');
-    this.redacteursInput = page.locator('.chips-field').first().locator('input');
+    // Rédacteurs
+    this.redacteursChips = page.locator('[data-testid="redacteurs-input"]').locator('..').locator('mat-chip-row');
+    this.redacteursInput = page.locator('[data-testid="redacteurs-input"]');
 
-    // Relecteurs — second chips-field
-    this.relecteursChips = page.locator('.chips-field').nth(1).locator('mat-chip-row');
-    this.relecteursInput = page.locator('.chips-field').nth(1).locator('input');
+    // Relecteurs
+    this.relecteursChips = page.locator('[data-testid="relecteurs-input"]').locator('..').locator('mat-chip-row');
+    this.relecteursInput = page.locator('[data-testid="relecteurs-input"]');
 
     // Autocomplete panel (shared, only one visible at a time)
     this.autocompletePanel = page.locator('.mat-mdc-autocomplete-panel');
