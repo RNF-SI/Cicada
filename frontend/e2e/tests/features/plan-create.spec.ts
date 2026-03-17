@@ -365,7 +365,14 @@ test.describe.serial('Plan Create - Creation and Verification', () => {
     await plansPage.goto();
     await plansPage.waitForData();
 
-    // Draft plans appear in Actifs tab (statut !== 'archive')
+    // Default scope is 'mine' (referent/member plans only).
+    // The E2E plan may not have the super admin as referent → switch to 'Tous'
+    const allScopeBtn = plansPage.getScopeButton('Tous');
+    if (await allScopeBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await allScopeBtn.click();
+      await page.waitForTimeout(1000);
+    }
+
     // Search for the plan created with required fields
     await plansPage.searchPlan(planNameRequired);
     const planRow = plansPage.getRowByName(planNameRequired);
