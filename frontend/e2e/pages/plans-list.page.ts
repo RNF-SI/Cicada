@@ -31,7 +31,7 @@ export class PlansListPage {
     this.createMenuNewBlank = page.locator('button', { hasText: 'Nouveau plan vierge' });
     this.emptyState = page.locator('.empty-icon').first();
     this.pagination = page.locator('.pagination');
-    this.searchInput = page.locator('.search-field input[matInput]');
+    this.searchInput = page.locator('.search-box input, .search-field input[matInput]').first();
     this.pendingSection = page.locator('table.plans-table-pending');
     this.requestAccessSection = page.locator('.search-field');
     this.breadcrumb = page.locator('nav.breadcrumb');
