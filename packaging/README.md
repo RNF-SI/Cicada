@@ -2,6 +2,8 @@
 
 Ce répertoire contient tous les fichiers nécessaires pour créer le package Debian (.deb) de CICADA.
 
+> **Voir aussi** : [Guide d'installation](../docs/INSTALLATION_GUIDE.md) (installation et mise à jour en production) | [Guide de test packaging](TESTING.md) (tests détaillés)
+
 ## Structure
 
 ```
@@ -31,7 +33,7 @@ packaging/
 1. **Définir l'URL de l'API de suivi** (optionnel, valeur par défaut utilisée sinon) :
 
 ```bash
-export TRACKING_API_URL="https://tracking.cicada.rnf.fr/api"
+export TRACKING_API_URL="https://tracking.cicada.reserves-naturelles.org/api"
 ```
 
 2. **Construire le package** (la version doit correspondre au tag des images sur ghcr.io) :
@@ -53,60 +55,27 @@ sudo dpkg -i packaging/build/cicada_*.deb
 
 ## Comment tester
 
-Après avoir construit le package (`./build-deb.sh`), tu peux tester à trois niveaux.
+Voir **[TESTING.md](TESTING.md)** pour le guide complet des tests.
 
-### 1. Test rapide (sans réseau, ~30 s)
+En résumé, il existe 6 scripts de test :
 
-Vérifie que le .deb installe bien tous les fichiers (compose, installer, `docker/postgres/init.sql`, config, services). **Docker n’est pas installé** dans le conteneur, donc les dépendances sont forcées.
+| Script | Durée | Ce qu’il teste |
+|--------|-------|----------------|
+| `test-install-quick.sh` | ~30s | Fichiers installés (pas de Docker) |
+| `test-install.sh` | ~5 min | Fichiers + services systemd + heartbeat |
+| `test-install-full.sh` | ~10 min | Installation + systemd + interface web |
+| `test-install-web.sh` | ~5 min | Interface web Flask (http://localhost:4567) |
+| `test-install-web-full.sh` | ~10 min | Interface web + Docker (pull images GHCR) |
+| **`test-upgrade-vm.sh`** | **10-20 min** | **Test d’upgrade v1→v2 en VM Multipass** |
 
 ```bash
-cd packaging
+# Tests rapides (conteneurs Docker)
 ./build-deb.sh
 ./test-install-quick.sh
+
+# Test d’upgrade complet (VM Multipass, avant release)
+./test-upgrade-vm.sh --from 0.1.12 --to 0.1.13
 ```
-
-À la fin : vérification des fichiers, affichage de `cicada.conf` et du token. Nettoyage : `docker rm -f cicada-test-quick`.
-
-### 2. Test avec Docker dans le conteneur (~5–10 min)
-
-Installe le package dans un conteneur Debian avec **Docker + Docker Compose** installés (sans lancer l’installateur web). Utile pour valider postinst, structure des fichiers et scripts.
-
-```bash
-cd packaging
-./build-deb.sh
-./test-install.sh
-```
-
-À la fin : vérifications + test du script heartbeat. Nettoyage : `docker rm -f cicada-test-install`.
-
-### 3. Test de l’interface web d’installation (pull des images)
-
-Lance un conteneur avec le **socket Docker** monté, installe le package et démarre l’installateur Flask. Tu peux ouvrir l’interface dans le navigateur et lancer une installation réelle (pull des images GHCR + `docker compose up`).
-
-**Prérequis :** accès réseau à **ghcr.io** (GitHub Container Registry) depuis la machine qui lance le conteneur (les commandes Docker s’exécutent côté hôte via le socket).
-
-```bash
-cd packaging
-./build-deb.sh
-./test-install-web.sh
-```
-
-Puis dans le navigateur : **http://localhost:4567**. Remplis le formulaire (admin, domaine, port frontend, mot de passe DB, etc.) et lance l’installation. L’installateur va :
-
-1. Générer le `.env`
-2. Faire `docker compose pull` (images `ghcr.io/rnf-si/cicada-*`)
-3. Lancer `docker compose up -d` (avec ou sans `--profile with-db`)
-
-Si les images ne sont pas encore publiées sur GHCR (ex. branche de dev), le **pull échouera** ; dans ce cas le test rapide et le test « avec Docker » restent valides pour la structure du package et l’installateur.
-
-Nettoyage : `docker rm -f cicada-test-web`.
-
-### Tester sur une vraie machine (recommandé avant release)
-
-1. Sur une VM ou un serveur Debian/Ubuntu avec Docker installé :
-2. Transférer le .deb puis : `sudo dpkg -i cicada_*.deb`
-3. Aller sur `http://<machine>:4567` (ou le port configuré dans `cicada.conf`)
-4. Compléter le formulaire et vérifier que les conteneurs démarrent et que l’app est accessible sur le port frontend choisi.
 
 ## Fichiers importants
 

@@ -1,31 +1,62 @@
 #!/bin/bash
-# Ne pas utiliser set -e pour permettre la continuation même en cas d'erreur mineure
 set -e
 
 CICADA_DIR="/var/lib/cicada"
 CONFIG_DIR="/etc/cicada"
 TOKEN_FILE="$CONFIG_DIR/instance_token"
+ENV_FILE="$CICADA_DIR/.env"
+COMPOSE_DIR="/usr/share/cicada"
+CONFIG_FILE="$CONFIG_DIR/cicada.conf"
 
-# Créer les répertoires
+# Lire la version du package depuis cicada.conf
+get_package_version() {
+    if [ -f "$CONFIG_FILE" ]; then
+        grep -E "^VERSION=" "$CONFIG_FILE" | cut -d'=' -f2 | tr -d ' '
+    else
+        echo "unknown"
+    fi
+}
+
+# Construire les arguments -f pour docker compose (même logique que cicada-updater)
+get_compose_f_args() {
+    local db_type="docker"
+    local traefik_enabled="false"
+
+    if [ -f "$ENV_FILE" ]; then
+        db_type=$(grep -E "^DB_TYPE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "docker")
+        traefik_enabled=$(grep -E "^TRAEFIK_ENABLED=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "false")
+    fi
+
+    local compose_files="-f $COMPOSE_DIR/docker-compose.yml"
+    if [ "$db_type" = "docker" ]; then
+        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.db.yml"
+    fi
+    if echo "$traefik_enabled" | grep -qiE "^(true|1|yes)$"; then
+        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.traefik.yml"
+    else
+        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.frontend-ports.yml"
+    fi
+
+    echo "$compose_files"
+}
+
+# --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
-# Permettre à www-data (Django/gunicorn) de créer le fichier trigger de mise à jour
 chgrp www-data "$CICADA_DIR" 2>/dev/null || true
 chmod 775 "$CICADA_DIR" 2>/dev/null || true
 
-# Générer le token d'instance si absent
+# --- Générer le token d'instance si absent ---
 if [ ! -f "$TOKEN_FILE" ]; then
     if command -v python3 >/dev/null 2>&1; then
         python3 -c "import uuid; print(uuid.uuid4())" > "$TOKEN_FILE"
         chmod 600 "$TOKEN_FILE"
     else
-        # Si python3 n'est pas disponible, générer un token simple avec /dev/urandom
-        # (moins idéal mais fonctionne)
         cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/' > "$TOKEN_FILE"
         chmod 600 "$TOKEN_FILE"
     fi
 fi
 
-# Créer un venv dédié pour l'installateur Flask (évite PEP 668 / externally-managed-environment)
+# --- Venv pour l'installateur Flask ---
 INSTALLER_VENV="$CICADA_DIR/installer-venv"
 if command -v python3 >/dev/null 2>&1; then
     if [ ! -d "$INSTALLER_VENV" ] || [ ! -x "$INSTALLER_VENV/bin/python" ]; then
@@ -34,8 +65,54 @@ if command -v python3 >/dev/null 2>&1; then
     "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests || true
 fi
 
-# Activer et démarrer les services (si systemd est disponible)
-# Vérifier si systemd est vraiment disponible (pas juste les fichiers)
+# --- Mise à jour Docker (uniquement si déjà installé, c'est-à-dire .env existe) ---
+if [ -f "$ENV_FILE" ] && command -v docker >/dev/null 2>&1; then
+    NEW_VERSION=$(get_package_version)
+    CURRENT_VERSION=$(grep -E "^CICADA_VERSION=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "")
+
+    if [ -n "$NEW_VERSION" ] && [ "$NEW_VERSION" != "unknown" ] && [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+        echo ""
+        echo "=== Mise à jour CICADA : $CURRENT_VERSION → $NEW_VERSION ==="
+
+        # 1. Mettre à jour CICADA_VERSION dans .env
+        if grep -q "^CICADA_VERSION=" "$ENV_FILE"; then
+            sed -i "s/^CICADA_VERSION=.*/CICADA_VERSION=$NEW_VERSION/" "$ENV_FILE"
+        else
+            echo "CICADA_VERSION=$NEW_VERSION" >> "$ENV_FILE"
+        fi
+        echo "  [OK] CICADA_VERSION=$NEW_VERSION dans .env"
+
+        # 2. Tirer les nouvelles images Docker
+        COMPOSE_F=$(get_compose_f_args)
+        echo "  [..] Téléchargement des nouvelles images Docker..."
+        if docker compose $COMPOSE_F --env-file "$ENV_FILE" pull 2>/dev/null; then
+            echo "  [OK] Images Docker téléchargées"
+
+            # 3. Redémarrer la stack
+            echo "  [..] Redémarrage de la stack Docker..."
+            if docker compose $COMPOSE_F --env-file "$ENV_FILE" up -d 2>/dev/null; then
+                echo "  [OK] Stack Docker redémarrée"
+            else
+                echo "  [WARN] Échec du redémarrage Docker. Lancez manuellement :"
+                echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE up -d"
+            fi
+        else
+            echo "  [WARN] Échec du téléchargement des images. Lancez manuellement :"
+            echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE pull"
+            echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE up -d"
+        fi
+
+        echo "=== Mise à jour terminée ==="
+    else
+        echo "CICADA : version déjà à jour ($NEW_VERSION)"
+    fi
+else
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "Première installation détectée : lancez l'installateur web pour configurer CICADA."
+    fi
+fi
+
+# --- Activer et démarrer les services systemd ---
 if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
     systemctl daemon-reload || true
     systemctl enable cicada-installer.service || true
@@ -45,18 +122,23 @@ if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/nul
     systemctl enable cicada-updater.path || true
     systemctl start cicada-updater.path || true
 elif [ -d /run/systemd/system ] && [ -S /run/systemd/private ]; then
-    # systemd est présent mais peut-être pas encore démarré
     systemctl daemon-reload || true
     systemctl enable cicada-installer.service || true
     systemctl enable cicada-heartbeat.timer || true
     systemctl enable cicada-updater.path || true
 else
-    # Pas de systemd (ex: conteneur Docker), on continue quand même
     echo "Note: systemd non disponible, les services ne seront pas démarrés automatiquement"
 fi
 
+# --- Message final ---
 echo ""
-echo "============================================"
-echo "CICADA installé avec succès !"
-echo "Accédez à http://localhost:4567 pour continuer"
-echo "============================================"
+if [ -f "$ENV_FILE" ]; then
+    echo "============================================"
+    echo "CICADA mis à jour avec succès !"
+    echo "============================================"
+else
+    echo "============================================"
+    echo "CICADA installé avec succès !"
+    echo "Accédez à http://localhost:4567 pour continuer"
+    echo "============================================"
+fi

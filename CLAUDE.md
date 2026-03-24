@@ -600,6 +600,25 @@ npm run e2e:debug
 Les tests s'exécutent automatiquement via GitHub Actions sur chaque push/PR vers `main` ou `develop`, et sur les tags de release `v*`.
 Configuration : `.github/workflows/tests.yml`
 
+#### Tests de packaging (avant release, local uniquement)
+
+Des tests spécifiques valident l'installation et la mise à jour du package Debian `.deb`. Ils ne sont **pas en CI** car ils nécessitent un hyperviseur (Multipass/VM) incompatible avec GitHub Actions.
+
+```bash
+cd packaging
+
+# Tests rapides en conteneurs Docker (fichiers, services, interface web)
+./test-install-quick.sh     # ~30s  - fichiers installés
+./test-install.sh           # ~5min - fichiers + services systemd
+./test-install-web.sh       # ~5min - interface web Flask
+
+# Test complet en VM Multipass (upgrade v1→v2, systemd réel, Docker réel)
+./test-upgrade-vm.sh --from 0.1.12 --to 0.1.13   # ~15min première fois, ~3min ensuite
+./test-upgrade-vm.sh --cleanup                     # Supprimer la VM
+```
+
+**Quand les lancer** : avant de publier un nouveau package `.deb` (release). Voir [`packaging/TESTING.md`](packaging/TESTING.md).
+
 ### Frontend Development
 
 ```bash

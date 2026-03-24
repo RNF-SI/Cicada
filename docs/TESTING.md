@@ -615,6 +615,41 @@ Le job `e2e-tests` :
 
 **Artefacts CI** : Le rapport Playwright est consultable dans l'onglet "Artifacts" de chaque run GitHub Actions.
 
+### Tests de packaging (hors CI)
+
+Les tests de packaging valident l'installation et la mise à jour du package Debian (`.deb`). Ils sont **exclus de la CI** pour deux raisons :
+1. **Hyperviseur requis** : le test VM utilise Multipass, qui nécessite KVM/QEMU — incompatible avec les runners GitHub Actions
+2. **Durée** : 10-20 min par exécution, inapproprié pour un pipeline déclenché à chaque push
+
+**Quand les lancer** : uniquement avant de publier un nouveau package `.deb` (release), pour valider que le mécanisme d'upgrade fonctionne.
+
+| Script | Environnement | Durée | Ce qu'il teste |
+|--------|--------------|-------|----------------|
+| `test-install-quick.sh` | Conteneur Docker | ~30s | Fichiers installés aux bons emplacements |
+| `test-install.sh` | Conteneur Docker | ~5 min | Fichiers + services systemd + heartbeat |
+| `test-install-web.sh` | Conteneur Docker | ~5 min | Interface web Flask (http://localhost:4567) |
+| `test-install-full.sh` | Conteneur Docker | ~10 min | Installation complète avec systemd |
+| `test-install-web-full.sh` | Conteneur Docker | ~10 min | Interface web + Docker fonctionnel |
+| **`test-upgrade-vm.sh`** | **VM Multipass** | **10-20 min** | **Upgrade v1→v2 : postinst, .env, systemd, docker compose** |
+
+```bash
+cd packaging
+
+# Prérequis pour le test VM
+sudo snap install multipass
+
+# Test d'upgrade complet (adapter les versions)
+./test-upgrade-vm.sh --from 0.1.12 --to 0.1.13
+
+# Relancer rapidement (réutilise la VM)
+./test-upgrade-vm.sh --skip-install --from 0.1.12 --to 0.1.13
+
+# Nettoyer
+./test-upgrade-vm.sh --cleanup
+```
+
+Documentation détaillée : [`packaging/TESTING.md`](../packaging/TESTING.md)
+
 ### Badges pour README
 
 Ajouter au `README.md` :
