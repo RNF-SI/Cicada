@@ -150,7 +150,7 @@ Une fois l'API déployée, mettre à jour l'URL dans `/etc/cicada/cicada.conf` s
 
 ```ini
 [CICADA]
-TRACKING_API_URL=https://tracking.cicada.rnf.fr/api
+TRACKING_API_URL=https://tracking.cicada.reserves-naturelles.org/api
 ```
 
 ## Maintenance

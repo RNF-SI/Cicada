@@ -23,11 +23,27 @@
                 </div>
                 <div class="form-group">
                     <label for="admin_password">Mot de passe *</label>
-                    <input type="password" id="admin_password" name="admin_password" required minlength="8">
+                    <div class="password-field">
+                        <input type="password" id="admin_password" name="admin_password" required minlength="8">
+                        <button type="button" class="btn-icon" onclick="togglePasswordVisibility('admin_password', this)" title="Afficher/Masquer">
+                            &#128065;
+                        </button>
+                        <button type="button" class="btn-icon" onclick="copyFieldValue('admin_password', this)" title="Copier">
+                            &#128203;
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="admin_password_confirm">Confirmer le mot de passe *</label>
-                    <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+                    <div class="password-field">
+                        <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+                        <button type="button" class="btn-icon" onclick="togglePasswordVisibility('admin_password_confirm', this)" title="Afficher/Masquer">
+                            &#128065;
+                        </button>
+                        <button type="button" class="btn-icon" onclick="copyFieldValue('admin_password_confirm', this)" title="Copier">
+                            &#128203;
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="admin_nom">Nom *</label>
@@ -45,6 +61,7 @@
                 <div class="form-group">
                     <label for="domain">Nom de domaine *</label>
                     <input type="text" id="domain" name="domain" required placeholder="example.org">
+                    <small class="form-help">La zone DNS de ce domaine doit pointer vers l’adresse IP de ce serveur (enregistrements A ou AAAA). Selon votre hébergeur DNS, la propagation peut prendre de quelques minutes à plusieurs heures.</small>
                 </div>
                 <div class="form-group">
                     <label class="checkbox-label">
@@ -67,9 +84,18 @@
                         <p>Traefik sera utilisé sur les ports <strong>80</strong> et <strong>443</strong> (HTTPS avec Let's Encrypt). Aucune configuration Apache/Nginx nécessaire.</p>
                     </div>
                     <div class="form-group">
-                        <label for="acme_email">Email pour Let's Encrypt *</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="acme_use_admin_email" name="acme_use_admin_email" checked onchange="toggleAcmeEmailMode()">
+                            <span>Utiliser l'adresse mail de l'administrateur pour Let's Encrypt</span>
+                        </label>
+                    </div>
+                    <div class="form-group hidden" id="acme_email_group">
+                        <label for="acme_email">Email alternatif pour Let's Encrypt *</label>
                         <input type="email" id="acme_email" name="acme_email" placeholder="admin@example.org">
-                        <small class="form-help">Requis pour l'obtention des certificats SSL</small>
+                        <small class="form-help">Utilisé uniquement si différent de l'email administrateur</small>
+                    </div>
+                    <div class="form-group">
+                        <small class="form-help">Un email valide est requis pour l'obtention des certificats SSL</small>
                     </div>
                 </div>
                 <div class="form-group">
@@ -99,14 +125,16 @@
                         <p><strong>Important :</strong> La base de données et l'utilisateur doivent déjà exister sur l'instance PostgreSQL. Assurez-vous d'avoir créé la base et l'utilisateur avec les permissions nécessaires avant de continuer.</p>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="db_host">Hôte PostgreSQL *</label>
-                    <input type="text" id="db_host" name="db_host" value="db" required>
-                    <small class="form-help">Pour Docker : 'db'. Pour instance existante : adresse IP ou hostname</small>
-                </div>
-                <div class="form-group">
-                    <label for="db_port">Port PostgreSQL *</label>
-                    <input type="number" id="db_port" name="db_port" value="5432" min="1" max="65535" required>
+                <div id="db_connection_fields">
+                    <div class="form-group">
+                        <label for="db_host">Hôte PostgreSQL *</label>
+                        <input type="text" id="db_host" name="db_host" value="db">
+                        <small class="form-help">Pour instance existante : adresse IP ou hostname</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="db_port">Port PostgreSQL *</label>
+                        <input type="number" id="db_port" name="db_port" value="5432" min="1" max="65535">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="db_name">Nom de la base de données *</label>
@@ -120,8 +148,16 @@
                 </div>
                 <div class="form-group">
                     <label for="db_password">Mot de passe PostgreSQL *</label>
-                    <input type="password" id="db_password" name="db_password" required>
-                    <button type="button" class="btn-generate" onclick="generatePassword('db_password')">Générer</button>
+                    <div class="password-field">
+                        <input type="password" id="db_password" name="db_password" required>
+                        <button type="button" class="btn-icon" onclick="togglePasswordVisibility('db_password', this)" title="Afficher/Masquer">
+                            &#128065;
+                        </button>
+                        <button type="button" class="btn-icon" onclick="copyFieldValue('db_password', this)" title="Copier">
+                            &#128203;
+                        </button>
+                        <button type="button" class="btn-generate" onclick="generatePassword('db_password')">Générer</button>
+                    </div>
                 </div>
             </section>
 
@@ -138,8 +174,72 @@
                 </div>
                 <div class="form-group">
                     <label for="redis_password">Mot de passe Redis (optionnel)</label>
-                    <input type="password" id="redis_password" name="redis_password">
-                    <button type="button" class="btn-generate" onclick="generatePassword('redis_password')">Générer</button>
+                    <div class="password-field">
+                        <input type="password" id="redis_password" name="redis_password">
+                        <button type="button" class="btn-icon" onclick="togglePasswordVisibility('redis_password', this)" title="Afficher/Masquer">
+                            &#128065;
+                        </button>
+                        <button type="button" class="btn-icon" onclick="copyFieldValue('redis_password', this)" title="Copier">
+                            &#128203;
+                        </button>
+                        <button type="button" class="btn-generate" onclick="generatePassword('redis_password')">Générer</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section SMTP -->
+            <section class="form-section">
+                <h2>Serveur mail (SMTP)</h2>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="smtp_enabled" name="smtp_enabled" onchange="toggleSmtpFields()">
+                        <span>Configurer un serveur SMTP maintenant</span>
+                    </label>
+                    <small class="form-help">Si décoché, les emails seront journalisés localement (mode console) et non envoyés.</small>
+                </div>
+                <div id="smtp_fields" class="hidden">
+                    <div class="form-group">
+                        <label for="smtp_host">Hôte SMTP *</label>
+                        <input type="text" id="smtp_host" name="smtp_host" placeholder="smtp.example.org">
+                    </div>
+                    <div class="form-group">
+                        <label for="smtp_port">Port SMTP *</label>
+                        <input type="number" id="smtp_port" name="smtp_port" value="587" min="1" max="65535">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="smtp_use_tls" name="smtp_use_tls" checked>
+                            <span>Utiliser STARTTLS</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="default_from_email">Email expéditeur par défaut *</label>
+                        <input type="email" id="default_from_email" name="default_from_email" placeholder="noreply@example.org">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="smtp_use_auth" name="smtp_use_auth" onchange="toggleSmtpAuthFields()">
+                            <span>Le serveur SMTP nécessite une authentification</span>
+                        </label>
+                    </div>
+                    <div id="smtp_auth_fields" class="hidden">
+                        <div class="form-group">
+                            <label for="smtp_user">Utilisateur SMTP *</label>
+                            <input type="text" id="smtp_user" name="smtp_user">
+                        </div>
+                        <div class="form-group">
+                            <label for="smtp_password">Mot de passe SMTP *</label>
+                            <div class="password-field">
+                                <input type="password" id="smtp_password" name="smtp_password">
+                                <button type="button" class="btn-icon" onclick="togglePasswordVisibility('smtp_password', this)" title="Afficher/Masquer">
+                                    &#128065;
+                                </button>
+                                <button type="button" class="btn-icon" onclick="copyFieldValue('smtp_password', this)" title="Copier">
+                                    &#128203;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

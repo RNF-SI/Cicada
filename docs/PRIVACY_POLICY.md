@@ -59,7 +59,7 @@ Vous pouvez accéder à toutes les données collectées sur votre instance via l
 
 ```bash
 curl -H "X-Instance-Token: VOTRE_TOKEN" \
-     https://tracking.cicada.rnf.fr/api/instances/me/
+     https://tracking.cicada.reserves-naturelles.org/api/instances/me/
 ```
 
 ### Droit de rectification (article 16)

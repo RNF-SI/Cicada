@@ -24,7 +24,7 @@ def get_tracking_api_url():
         config.read('/etc/cicada/cicada.conf')
         return config.get('CICADA', 'TRACKING_API_URL')
     else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.rnf.fr/api')
+        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
 
 
 class InstallService:
@@ -134,6 +134,16 @@ class InstallService:
         if data.get('use_traefik'):
             if not data.get('acme_email'):
                 errors.append("L'email Let's Encrypt (ACME) est requis lorsque Traefik est activé.")
+        if data.get('smtp_enabled'):
+            smtp_required = ['smtp_host', 'smtp_port', 'default_from_email']
+            for field in smtp_required:
+                if not data.get(field):
+                    errors.append(f"Le champ {field} est requis lorsque SMTP est activé.")
+            if data.get('smtp_use_auth'):
+                if not data.get('smtp_user'):
+                    errors.append("Le champ smtp_user est requis lorsque l'authentification SMTP est activée.")
+                if not data.get('smtp_password'):
+                    errors.append("Le champ smtp_password est requis lorsque l'authentification SMTP est activée.")
         return errors
 
     def generate_secrets(self, data):
@@ -165,6 +175,9 @@ class InstallService:
         cors_origins = f"{scheme}://{data['domain']}{port_suffix}"
         site_url = f"{scheme}://{data['domain']}{port_suffix}"
         cicada_version = self.get_version()
+        smtp_enabled = data.get('smtp_enabled') in (True, 'true', '1')
+        smtp_use_auth = data.get('smtp_use_auth') in (True, 'true', '1')
+        smtp_use_tls = data.get('smtp_use_tls') in (True, 'true', '1')
 
         env_lines = [
             f"SECRET_KEY={secrets_data['secret_key']}",
@@ -188,6 +201,14 @@ class InstallService:
             f"DJANGO_PORT={data.get('backend_port', 8000)}",
             "",
             f"SITE_URL={site_url}",
+            "",
+            f"EMAIL_BACKEND={'django.core.mail.backends.smtp.EmailBackend' if smtp_enabled else 'django.core.mail.backends.console.EmailBackend'}",
+            f"EMAIL_HOST={data.get('smtp_host', '').strip() if smtp_enabled else ''}",
+            f"EMAIL_PORT={data.get('smtp_port', 587) if smtp_enabled else 587}",
+            f"EMAIL_USE_TLS={'true' if smtp_enabled and smtp_use_tls else 'false'}",
+            f"EMAIL_HOST_USER={data.get('smtp_user', '').strip() if smtp_enabled and smtp_use_auth else ''}",
+            f"EMAIL_HOST_PASSWORD={data.get('smtp_password', '').strip() if smtp_enabled and smtp_use_auth else ''}",
+            f"DEFAULT_FROM_EMAIL={data.get('default_from_email', 'noreply@cicada.fr').strip() if smtp_enabled else 'noreply@cicada.fr'}",
             "",
             f"INSTANCE_TOKEN={token}",
             f"TRACKING_API_URL={tracking_api_url}",
