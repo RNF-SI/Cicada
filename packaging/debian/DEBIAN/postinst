@@ -5,39 +5,91 @@ CICADA_DIR="/var/lib/cicada"
 CONFIG_DIR="/etc/cicada"
 TOKEN_FILE="$CONFIG_DIR/instance_token"
 ENV_FILE="$CICADA_DIR/.env"
+LOCK_FILE="$CICADA_DIR/.install_lock"
+CONF_FILE="$CONFIG_DIR/cicada.conf"
 COMPOSE_DIR="/usr/share/cicada"
-CONFIG_FILE="$CONFIG_DIR/cicada.conf"
 
-# Lire la version du package depuis cicada.conf
-get_package_version() {
-    if [ -f "$CONFIG_FILE" ]; then
-        grep -E "^VERSION=" "$CONFIG_FILE" | cut -d'=' -f2 | tr -d ' '
-    else
-        echo "unknown"
+# --- Fonctions utilitaires (style Zacharie : awk, plus robuste) ---
+
+get_config_version() {
+    if [ -f "$CONF_FILE" ]; then
+        awk -F= '/^VERSION=/{print $2; exit}' "$CONF_FILE"
     fi
 }
 
-# Construire les arguments -f pour docker compose (même logique que cicada-updater)
-get_compose_f_args() {
+update_env_version() {
+    if [ ! -f "$ENV_FILE" ]; then
+        return 0
+    fi
+    local target_version
+    target_version="$(get_config_version)"
+    if [ -z "$target_version" ]; then
+        return 0
+    fi
+    if grep -q '^CICADA_VERSION=' "$ENV_FILE"; then
+        sed -i "s/^CICADA_VERSION=.*/CICADA_VERSION=$target_version/" "$ENV_FILE"
+    else
+        echo "CICADA_VERSION=$target_version" >> "$ENV_FILE"
+    fi
+}
+
+compose_files_args() {
     local db_type="docker"
     local traefik_enabled="false"
 
     if [ -f "$ENV_FILE" ]; then
-        db_type=$(grep -E "^DB_TYPE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "docker")
-        traefik_enabled=$(grep -E "^TRAEFIK_ENABLED=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "false")
+        db_type="$(awk -F= '/^DB_TYPE=/{print $2; exit}' "$ENV_FILE")"
+        traefik_enabled="$(awk -F= '/^TRAEFIK_ENABLED=/{print tolower($2); exit}' "$ENV_FILE")"
     fi
 
-    local compose_files="-f $COMPOSE_DIR/docker-compose.yml"
+    if [ -z "$db_type" ]; then
+        db_type="docker"
+    fi
+    if [ -z "$traefik_enabled" ]; then
+        traefik_enabled="false"
+    fi
+
+    local args="-f $COMPOSE_DIR/docker-compose.yml"
     if [ "$db_type" = "docker" ]; then
-        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.db.yml"
+        args="$args -f $COMPOSE_DIR/docker-compose.db.yml"
     fi
-    if echo "$traefik_enabled" | grep -qiE "^(true|1|yes)$"; then
-        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.traefik.yml"
+    if [ "$traefik_enabled" = "true" ] || [ "$traefik_enabled" = "1" ] || [ "$traefik_enabled" = "yes" ]; then
+        args="$args -f $COMPOSE_DIR/docker-compose.traefik.yml"
     else
-        compose_files="$compose_files -f $COMPOSE_DIR/docker-compose.frontend-ports.yml"
+        args="$args -f $COMPOSE_DIR/docker-compose.frontend-ports.yml"
+    fi
+    echo "$args"
+}
+
+restart_stack_if_configured() {
+    if [ ! -f "$ENV_FILE" ]; then
+        return 0
+    fi
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "  [WARN] Docker non disponible, la stack n'a pas été redéployée."
+        return 0
     fi
 
-    echo "$compose_files"
+    local compose_args
+    compose_args="$(compose_files_args)"
+
+    echo "  [..] Téléchargement des nouvelles images Docker..."
+    # shellcheck disable=SC2086
+    if docker compose $compose_args --env-file "$ENV_FILE" pull 2>/dev/null; then
+        echo "  [OK] Images Docker téléchargées"
+    else
+        echo "  [WARN] Échec du téléchargement. Lancez manuellement :"
+        echo "         cd $COMPOSE_DIR && docker compose $compose_args --env-file $ENV_FILE pull"
+    fi
+
+    echo "  [..] Redémarrage de la stack Docker..."
+    # shellcheck disable=SC2086
+    if docker compose $compose_args --env-file "$ENV_FILE" up -d 2>/dev/null; then
+        echo "  [OK] Stack Docker redémarrée"
+    else
+        echo "  [WARN] Échec du redémarrage. Lancez manuellement :"
+        echo "         cd $COMPOSE_DIR && docker compose $compose_args --env-file $ENV_FILE up -d"
+    fi
 }
 
 # --- Création des répertoires ---
@@ -65,53 +117,6 @@ if command -v python3 >/dev/null 2>&1; then
     "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests || true
 fi
 
-# --- Mise à jour Docker (uniquement si déjà installé, c'est-à-dire .env existe) ---
-if [ -f "$ENV_FILE" ] && command -v docker >/dev/null 2>&1; then
-    NEW_VERSION=$(get_package_version)
-    CURRENT_VERSION=$(grep -E "^CICADA_VERSION=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ' || echo "")
-
-    if [ -n "$NEW_VERSION" ] && [ "$NEW_VERSION" != "unknown" ] && [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
-        echo ""
-        echo "=== Mise à jour CICADA : $CURRENT_VERSION → $NEW_VERSION ==="
-
-        # 1. Mettre à jour CICADA_VERSION dans .env
-        if grep -q "^CICADA_VERSION=" "$ENV_FILE"; then
-            sed -i "s/^CICADA_VERSION=.*/CICADA_VERSION=$NEW_VERSION/" "$ENV_FILE"
-        else
-            echo "CICADA_VERSION=$NEW_VERSION" >> "$ENV_FILE"
-        fi
-        echo "  [OK] CICADA_VERSION=$NEW_VERSION dans .env"
-
-        # 2. Tirer les nouvelles images Docker
-        COMPOSE_F=$(get_compose_f_args)
-        echo "  [..] Téléchargement des nouvelles images Docker..."
-        if docker compose $COMPOSE_F --env-file "$ENV_FILE" pull 2>/dev/null; then
-            echo "  [OK] Images Docker téléchargées"
-
-            # 3. Redémarrer la stack
-            echo "  [..] Redémarrage de la stack Docker..."
-            if docker compose $COMPOSE_F --env-file "$ENV_FILE" up -d 2>/dev/null; then
-                echo "  [OK] Stack Docker redémarrée"
-            else
-                echo "  [WARN] Échec du redémarrage Docker. Lancez manuellement :"
-                echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE up -d"
-            fi
-        else
-            echo "  [WARN] Échec du téléchargement des images. Lancez manuellement :"
-            echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE pull"
-            echo "         cd $COMPOSE_DIR && docker compose $COMPOSE_F --env-file $ENV_FILE up -d"
-        fi
-
-        echo "=== Mise à jour terminée ==="
-    else
-        echo "CICADA : version déjà à jour ($NEW_VERSION)"
-    fi
-else
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "Première installation détectée : lancez l'installateur web pour configurer CICADA."
-    fi
-fi
-
 # --- Activer et démarrer les services systemd ---
 if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
     systemctl daemon-reload || true
@@ -130,13 +135,33 @@ else
     echo "Note: systemd non disponible, les services ne seront pas démarrés automatiquement"
 fi
 
-# --- Message final ---
-echo ""
+# --- Mise à jour ou première installation ---
 if [ -f "$ENV_FILE" ]; then
+    # Instance déjà configurée → mise à jour
+    touch "$LOCK_FILE"
+
+    NEW_VERSION="$(get_config_version)"
+    CURRENT_VERSION="$(awk -F= '/^CICADA_VERSION=/{print $2; exit}' "$ENV_FILE")"
+
+    if [ -n "$NEW_VERSION" ] && [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+        echo ""
+        echo "=== Mise à jour CICADA : $CURRENT_VERSION → $NEW_VERSION ==="
+        update_env_version
+        echo "  [OK] CICADA_VERSION=$NEW_VERSION dans .env"
+        restart_stack_if_configured
+        echo "=== Mise à jour terminée ==="
+    else
+        echo "CICADA : version déjà à jour ($NEW_VERSION)"
+    fi
+
+    echo ""
     echo "============================================"
     echo "CICADA mis à jour avec succès !"
+    echo "Configuration existante conservée."
     echo "============================================"
 else
+    # Première installation → l'utilisateur doit passer par l'installateur web
+    echo ""
     echo "============================================"
     echo "CICADA installé avec succès !"
     echo "Accédez à http://localhost:4567 pour continuer"
