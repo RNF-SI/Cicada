@@ -7,7 +7,7 @@ from factory.django import DjangoModelFactory
 
 from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression,
-    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
 )
@@ -139,20 +139,8 @@ class PressionFactory(DjangoModelFactory):
 
 
 # =============================================================================
-# État Actuel / OLT / Niveau d'Exigence factories
+# OLT / Niveau d'Exigence factories
 # =============================================================================
-
-class EtatActuelFactory(DjangoModelFactory):
-    """Factory for EtatActuel model (child of Enjeu, parent of OLT)."""
-
-    class Meta:
-        model = EtatActuel
-
-    id_enjeu = factory.SubFactory(EnjeuFactory)
-    libelle = factory.Sequence(lambda n: f'État Actuel Test {n}')
-    description = factory.Faker('sentence', locale='fr_FR')
-    id_utilisateur_ajout = factory.SubFactory(RoleFactory)
-
 
 class ObjectifLongTermeFactory(DjangoModelFactory):
     """Factory for ObjectifLongTerme model."""
@@ -160,7 +148,7 @@ class ObjectifLongTermeFactory(DjangoModelFactory):
     class Meta:
         model = ObjectifLongTerme
 
-    id_etat_actuel = factory.SubFactory(EtatActuelFactory)
+    id_enjeu = factory.SubFactory(EnjeuFactory)
     libelle = factory.Sequence(lambda n: f'OLT Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)

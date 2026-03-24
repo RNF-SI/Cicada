@@ -309,18 +309,16 @@ export class OperationFormComponent implements OnInit {
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               for (const enjeu of allEnjeux) {
-                for (const ea of enjeu.etats_actuels || []) {
-                  for (const olt of ea.objectifs_long_terme || []) {
-                    for (const ne of olt.niveaux_exigence || []) {
-                      for (const ind of ne.indicateurs || []) {
-                        indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
-                        for (const met of ind.metriques || []) {
-                          metriques.push({
-                            id_metrique: met.id_metrique,
-                            nom_metrique: met.nom_metrique,
-                            indicateur_nom: ind.nom_indicateur
-                          });
-                        }
+                for (const olt of enjeu.objectifs_long_terme || []) {
+                  for (const ne of olt.niveaux_exigence || []) {
+                    for (const ind of ne.indicateurs || []) {
+                      indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
+                      for (const met of ind.metriques || []) {
+                        metriques.push({
+                          id_metrique: met.id_metrique,
+                          nom_metrique: met.nom_metrique,
+                          indicateur_nom: ind.nom_indicateur
+                        });
                       }
                     }
                   }

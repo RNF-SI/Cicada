@@ -6,7 +6,7 @@ from django.contrib.gis.geos import GEOSGeometry
 
 from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
-    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
@@ -258,7 +258,7 @@ class ObjectifLongTermeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifLongTerme
         fields = [
-            'id_olt', 'id_etat_actuel',
+            'id_olt', 'id_enjeu',
             'libelle', 'description',
             'niveaux_exigence', 'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -277,7 +277,7 @@ class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifLongTerme
         fields = [
-            'id_olt', 'id_etat_actuel',
+            'id_olt', 'id_enjeu',
             'libelle', 'description',
             'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -294,60 +294,10 @@ class ObjectifLongTermeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifLongTerme
         fields = [
-            'id_olt', 'id_etat_actuel',
+            'id_olt', 'id_enjeu',
             'libelle', 'description'
         ]
         read_only_fields = ['id_olt']
-
-
-# =============================================================================
-# Serializers pour les États Actuels
-# =============================================================================
-
-class EtatActuelSerializer(serializers.ModelSerializer):
-    """Serializer détaillé pour un État Actuel avec OLTs imbriqués."""
-    objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
-    nb_olt = serializers.SerializerMethodField()
-    createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
-
-    class Meta:
-        model = EtatActuel
-        fields = [
-            'id_etat_actuel', 'id_enjeu',
-            'libelle', 'description',
-            'objectifs_long_terme', 'nb_olt',
-            'date_ajout', 'date_maj', 'createur_nom'
-        ]
-        read_only_fields = ['id_etat_actuel', 'date_ajout', 'date_maj']
-
-    def get_nb_olt(self, obj):
-        return obj.objectifs_long_terme.count()
-
-
-class EtatActuelListSerializer(serializers.ModelSerializer):
-    """Serializer léger pour la liste des États Actuels."""
-    createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
-
-    class Meta:
-        model = EtatActuel
-        fields = [
-            'id_etat_actuel', 'id_enjeu',
-            'libelle', 'description',
-            'date_ajout', 'date_maj', 'createur_nom'
-        ]
-        read_only_fields = ['id_etat_actuel', 'date_ajout', 'date_maj']
-
-
-class EtatActuelCreateSerializer(serializers.ModelSerializer):
-    """Serializer pour la création/modification d'un État Actuel."""
-
-    class Meta:
-        model = EtatActuel
-        fields = [
-            'id_etat_actuel', 'id_enjeu',
-            'libelle', 'description'
-        ]
-        read_only_fields = ['id_etat_actuel']
 
 
 # =============================================================================
@@ -514,9 +464,9 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     facteurs_influence = FacteurInfluenceSerializer(many=True, read_only=True)
     nb_facteurs_influence = serializers.SerializerMethodField()
 
-    # États actuels (nested, avec OLTs inclus)
-    etats_actuels = EtatActuelSerializer(many=True, read_only=True)
-    nb_etats_actuels = serializers.SerializerMethodField()
+    # Objectifs à long terme (nested, avec NE inclus)
+    objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
+    nb_objectifs_long_terme = serializers.SerializerMethodField()
 
     # Créateur
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
@@ -540,8 +490,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'taxons', 'habitats', 'geologies',
             # Facteurs d'influence
             'facteurs_influence', 'nb_facteurs_influence',
-            # États actuels (avec OLTs inclus)
-            'etats_actuels', 'nb_etats_actuels',
+            # Objectifs à long terme (avec NE inclus)
+            'objectifs_long_terme', 'nb_objectifs_long_terme',
             # Audit
             'date_ajout', 'date_maj', 'id_utilisateur_ajout', 'createur_nom'
         ]
@@ -550,8 +500,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     def get_nb_facteurs_influence(self, obj):
         return obj.facteurs_influence.count()
 
-    def get_nb_etats_actuels(self, obj):
-        return obj.etats_actuels.count()
+    def get_nb_objectifs_long_terme(self, obj):
+        return obj.objectifs_long_terme.count()
 
 
 class EnjeuCreateSerializer(serializers.ModelSerializer):

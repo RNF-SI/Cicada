@@ -11,7 +11,7 @@ from .views import (
 from .views_enjeux import (
     EnjeuViewSet, ResponsabiliteViewSet,
     FacteurInfluenceViewSet, PressionViewSet,
-    EtatActuelViewSet, ObjectifLongTermeViewSet, NiveauExigenceViewSet,
+    ObjectifLongTermeViewSet, NiveauExigenceViewSet,
     ObjectifOperationnelViewSet, ResultatAttenduViewSet
 )
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet
@@ -25,7 +25,6 @@ router.register(r'enjeux', EnjeuViewSet, basename='enjeu')
 router.register(r'responsabilites', ResponsabiliteViewSet, basename='responsabilite')
 router.register(r'facteurs-influence', FacteurInfluenceViewSet, basename='facteurinfluence')
 router.register(r'pressions', PressionViewSet, basename='pression')
-router.register(r'etats-actuels', EtatActuelViewSet, basename='etatactuel')
 router.register(r'objectifs-long-terme', ObjectifLongTermeViewSet, basename='objectiflongterme')
 router.register(r'niveaux-exigence', NiveauExigenceViewSet, basename='niveauexigence')
 router.register(r'indicateurs', IndicateurViewSet, basename='indicateur')

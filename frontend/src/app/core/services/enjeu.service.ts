@@ -18,8 +18,6 @@ import {
   FacteurInfluenceCreatePayload,
   Pression,
   PressionCreatePayload,
-  EtatActuel,
-  EtatActuelCreatePayload,
   ObjectifLongTerme,
   ObjectifLongTermeCreatePayload,
   NiveauExigence,
@@ -327,22 +325,6 @@ export class EnjeuService {
    */
   deletePression(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/pressions/${id}/`);
-  }
-
-  // ==========================================================================
-  // États Actuels CRUD
-  // ==========================================================================
-
-  createEtatActuel(payload: EtatActuelCreatePayload): Observable<EtatActuel> {
-    return this.http.post<EtatActuel>(`${this.apiUrl}/etats-actuels/`, payload);
-  }
-
-  updateEtatActuel(id: number, payload: Partial<EtatActuelCreatePayload>): Observable<EtatActuel> {
-    return this.http.patch<EtatActuel>(`${this.apiUrl}/etats-actuels/${id}/`, payload);
-  }
-
-  deleteEtatActuel(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/etats-actuels/${id}/`);
   }
 
   // ==========================================================================

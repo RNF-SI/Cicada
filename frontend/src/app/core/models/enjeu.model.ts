@@ -119,9 +119,9 @@ export interface Enjeu {
   facteurs_influence?: FacteurInfluence[];
   nb_facteurs_influence?: number;
 
-  // États Actuels (avec OLT imbriqués)
-  etats_actuels?: EtatActuel[];
-  nb_etats_actuels?: number;
+  // Objectifs à long terme (avec NE imbriqués)
+  objectifs_long_terme?: ObjectifLongTerme[];
+  nb_objectifs_long_terme?: number;
 
   // Audit
   date_ajout: string;
@@ -180,27 +180,12 @@ export interface PressionCreatePayload {
 }
 
 /**
- * État actuel rattaché à un enjeu.
- * Hiérarchie : Enjeu → EtatActuel → OLT → NiveauExigence.
- */
-export interface EtatActuel {
-  id_etat_actuel: number;
-  id_enjeu: number;
-  libelle: string;
-  description?: string;
-  objectifs_long_terme?: ObjectifLongTerme[];
-  nb_olt?: number;
-  date_ajout: string;
-  date_maj: string;
-  createur_nom?: string;
-}
-
-/**
- * Objectif à Long Terme (OLT) rattaché à un état actuel.
+ * Objectif à Long Terme (OLT) rattaché directement à un enjeu.
+ * Hiérarchie : Enjeu → OLT → NiveauExigence.
  */
 export interface ObjectifLongTerme {
   id_olt: number;
-  id_etat_actuel: number;
+  id_enjeu: number;
   libelle: string;
   description?: string;
   niveaux_exigence?: NiveauExigence[];
@@ -568,19 +553,10 @@ export interface MesureCreatePayload {
 }
 
 /**
- * Payload for creating an EtatActuel
- */
-export interface EtatActuelCreatePayload {
-  id_enjeu: number;
-  libelle: string;
-  description?: string;
-}
-
-/**
  * Payload for creating an ObjectifLongTerme
  */
 export interface ObjectifLongTermeCreatePayload {
-  id_etat_actuel: number;
+  id_enjeu: number;
   libelle: string;
   description?: string;
 }

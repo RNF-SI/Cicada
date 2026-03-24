@@ -177,9 +177,9 @@ export async function findFirstEnjeu(page: Page, planId: number) {
   const { data } = await apiGet(page, `plans/enjeux/by-plan/${planId}/`);
   const enjeux = data.enjeux || [];
   if (enjeux.length === 0) throw new Error(`No enjeux for plan ${planId}`);
-  // Prefer enjeux with etats_actuels (seeded data) over E2E-created ones
+  // Prefer enjeux with objectifs_long_terme (seeded data) over E2E-created ones
   const withData = enjeux.find((e: any) =>
-    (e.etats_actuels?.length > 0 || e.facteurs_influence?.length > 0) && !e.libelle?.startsWith('E2E')
+    (e.objectifs_long_terme?.length > 0 || e.facteurs_influence?.length > 0) && !e.libelle?.startsWith('E2E')
   );
   const picked = withData || enjeux.find((e: any) => !e.libelle?.startsWith('E2E')) || enjeux[0];
   return { id_enjeu: picked.id_enjeu as number, slug: (picked.slug || picked.id_enjeu) as string };
@@ -220,13 +220,11 @@ export async function findFirstMetrique(page: Page, planId: number) {
   const { data } = await apiGet(page, `plans/enjeux/by-plan/${planId}/`);
   const allEnjeux = [...(data.enjeux || []), ...(data.fcr || [])];
   for (const enjeu of allEnjeux) {
-    for (const ea of enjeu.etats_actuels || []) {
-      for (const olt of ea.objectifs_long_terme || []) {
-        for (const ne of olt.niveaux_exigence || []) {
-          for (const ind of ne.indicateurs || []) {
-            for (const met of ind.metriques || []) {
-              return { id_metrique: met.id_metrique as number, nom: met.nom_metrique as string };
-            }
+    for (const olt of enjeu.objectifs_long_terme || []) {
+      for (const ne of olt.niveaux_exigence || []) {
+        for (const ind of ne.indicateurs || []) {
+          for (const met of ind.metriques || []) {
+            return { id_metrique: met.id_metrique as number, nom: met.nom_metrique as string };
           }
         }
       }

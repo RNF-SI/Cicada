@@ -8,7 +8,7 @@ export interface MindmapNode {
 
 export type MindmapEntityType =
   | 'plan' | 'enjeu' | 'fcr' | 'facteur' | 'pression'
-  | 'olt' | 'etat_actuel' | 'niveau_exigence'
+  | 'olt' | 'etat_enjeu' | 'niveau_exigence'
   | 'oo' | 'resultat_attendu'
   | 'indicateur' | 'metrique' | 'mesure'
   | 'operation' | 'operation_annee' | 'finance'
@@ -21,7 +21,7 @@ export const MINDMAP_COLORS: Record<MindmapEntityType, string> = {
   facteur: '#F5B399',
   pression: '#FF7579',
   olt: '#04854B',
-  etat_actuel: '#82DB8A',
+  etat_enjeu: '#82DB8A',
   niveau_exigence: '#81C9D8',
   oo: '#81C9D8',
   resultat_attendu: '#F7D35C',
@@ -42,7 +42,7 @@ export const MINDMAP_LABELS: Record<MindmapEntityType, string> = {
   facteur: 'Facteur d\'influence',
   pression: 'Pression',
   olt: 'Objectif Long Terme',
-  etat_actuel: 'État Actuel',
+  etat_enjeu: 'État Actuel',
   niveau_exigence: 'Niveau d\'Exigence',
   oo: 'Objectif Opérationnel',
   resultat_attendu: 'Résultat Attendu',

@@ -2129,25 +2129,12 @@
       "searchGeology": "Rechercher un site géologique INPG",
       "searchGeologyPlaceholder": "Nom du site ou code métier..."
     },
-    "etatActuel": {
-      "label": "État actuel",
-      "newTitle": "Nouvel état actuel",
-      "editTitle": "Modifier l'état actuel",
-      "addButton": "Ajouter un état actuel",
-      "libelleLabel": "Description de l'état actuel",
-      "descriptionLabel": "Détails / commentaires",
-      "deleteTitle": "Supprimer l'état actuel",
-      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet état actuel ? Ses objectifs à long terme et niveaux d'exigence seront également supprimés.",
-      "createSuccess": "État actuel créé avec succès",
-      "updateSuccess": "État actuel mis à jour avec succès",
-      "deleteSuccess": "État actuel supprimé avec succès"
-    },
     "olt": {
       "empty": "Aucun objectif à long terme (OLT) saisi",
       "addButton": "Ajouter un objectif à long terme",
       "hint": "Qu'est-ce qu'un objectif à long terme ?",
       "description": "Un objectif à long terme (OLT) traduit l'état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion.",
-      "usageNote": "En général, un enjeu est associé à un seul état actuel et un seul objectif à long terme (OLT). Il est toutefois possible d'en ajouter plusieurs si nécessaire.",
+      "usageNote": "Utilisez cette section pour définir les objectifs à long terme de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
       "countSuffix": "objectif(s) à long terme (OLT) saisi(s)",
       "label": "OLT",
       "newTitle": "Nouvel objectif à long terme",

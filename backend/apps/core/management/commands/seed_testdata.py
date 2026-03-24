@@ -29,7 +29,7 @@ from apps.core.models import Module, Nomenclature, ErrorLog, ActivityLog
 from apps.plans.models import PlanGestion
 from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
-    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
@@ -251,7 +251,6 @@ class Command(BaseCommand):
         # Enjeux sous-entités
         count += NiveauExigence.objects.all().delete()[0]
         count += ObjectifLongTerme.objects.all().delete()[0]
-        count += EtatActuel.objects.all().delete()[0]
         count += Pression.objects.all().delete()[0]
         count += FacteurInfluence.objects.all().delete()[0]
         # Corrélations

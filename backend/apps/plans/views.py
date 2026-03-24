@@ -527,7 +527,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         from .models_enjeux import (
             Enjeu, FacteurInfluence, Pression,
-            ObjectifLongTerme, EtatActuel, NiveauExigence,
+            ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu
         )
         from .models_indicateurs import Indicateur, Metrique, Mesure
@@ -551,8 +551,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 .select_related('id_categorie')
                 .prefetch_related(
                     'facteurs_influence__pressions',
-                    'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
-                    'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
+                    'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
+                    'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
                 )
@@ -629,36 +629,36 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         facteur_node['children'].append(pression_node)
                     enjeu_node['children'].append(facteur_node)
 
-                # EtatActuel -> OLT branch
-                for ea in enjeu.etats_actuels.all():
-                    ea_node = {
-                        'name': ea.libelle,
-                        'entityType': 'etat_actuel',
-                        'id': ea.id_etat_actuel,
+                # État de l'enjeu -> OLT branch
+                # Build a virtual "état de l'enjeu" node from the etat_enjeu text field
+                etat_node = {
+                    'name': enjeu.etat_enjeu or 'État de l\'enjeu',
+                    'entityType': 'etat_enjeu',
+                    'id': enjeu.id_enjeu,
+                    'children': []
+                }
+                for olt in enjeu.objectifs_long_terme.all():
+                    olt_node = {
+                        'name': olt.libelle,
+                        'entityType': 'olt',
+                        'id': olt.id_olt,
                         'children': []
                     }
-                    for olt in ea.objectifs_long_terme.all():
-                        olt_node = {
-                            'name': olt.libelle,
-                            'entityType': 'olt',
-                            'id': olt.id_olt,
+
+                    # Niveaux d'exigence -> Indicateurs -> Metriques/Mesures + Operations
+                    for ne in olt.niveaux_exigence.all():
+                        ne_node = {
+                            'name': ne.libelle,
+                            'entityType': 'niveau_exigence',
+                            'id': ne.id_ne,
                             'children': []
                         }
+                        for ind in ne.indicateurs.all():
+                            ne_node['children'].append(build_indicateur_node(ind))
+                        olt_node['children'].append(ne_node)
 
-                        # Niveaux d'exigence -> Indicateurs -> Metriques/Mesures + Operations
-                        for ne in olt.niveaux_exigence.all():
-                            ne_node = {
-                                'name': ne.libelle,
-                                'entityType': 'niveau_exigence',
-                                'id': ne.id_ne,
-                                'children': []
-                            }
-                            for ind in ne.indicateurs.all():
-                                ne_node['children'].append(build_indicateur_node(ind))
-                            olt_node['children'].append(ne_node)
-
-                        ea_node['children'].append(olt_node)
-                    enjeu_node['children'].append(ea_node)
+                    etat_node['children'].append(olt_node)
+                enjeu_node['children'].append(etat_node)
 
                 root['children'].append(enjeu_node)
 
@@ -704,7 +704,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         plan = self.get_object()
         from .models_enjeux import (
             Enjeu, FacteurInfluence, Pression,
-            EtatActuel, ObjectifLongTerme, NiveauExigence,
+            ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
         )
         from .models_indicateurs import Indicateur, Metrique
@@ -714,16 +714,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         operations = (
             Operation.objects
             .filter(
-                id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg=plan
+                id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan
             )
             .select_related(
                 'id_metrique',
                 'id_metrique__id_indicateur',
                 'id_metrique__id_indicateur__id_ne',
                 'id_metrique__id_indicateur__id_ne__id_olt',
-                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel',
-                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu',
-                'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_categorie',
+                'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu',
+                'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_categorie',
             )
         )
 
@@ -753,13 +752,12 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         }
 
         def build_olt_ancestry(op):
-            """Build inverted path: Operation → Métrique → Indicateur → NE → OLT → EtatActuel → Enjeu"""
+            """Build inverted path: Operation → Métrique → Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
             met = op.id_metrique
             ind = met.id_indicateur
             ne = ind.id_ne
             olt = ne.id_olt
-            ea = olt.id_etat_actuel
-            enjeu = ea.id_enjeu
+            enjeu = olt.id_enjeu
             is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
 
             return {
@@ -779,9 +777,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                             'entityType': 'olt',
                             'id': olt.id_olt,
                             'children': [{
-                                'name': ea.libelle,
-                                'entityType': 'etat_actuel',
-                                'id': ea.id_etat_actuel,
+                                'name': enjeu.etat_enjeu or 'État de l\'enjeu',
+                                'entityType': 'etat_enjeu',
+                                'id': enjeu.id_enjeu,
                                 'children': [{
                                     'name': enjeu.intitule_court or enjeu.libelle,
                                     'entityType': 'fcr' if is_fcr else 'enjeu',

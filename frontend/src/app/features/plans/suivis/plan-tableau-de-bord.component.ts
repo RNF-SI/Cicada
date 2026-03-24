@@ -124,34 +124,31 @@ export class PlanTableauDeBordComponent implements OnInit {
         let oltCounter = 0;
 
         for (const enjeu of allEnjeux) {
-          const etats = enjeu.etats_actuels || [];
-          for (const ea of etats) {
-            const olts = ea.objectifs_long_terme || [];
-            for (const olt of olts) {
-              oltCounter++;
-              const rows: IndicatorRow[] = [];
+          const olts = enjeu.objectifs_long_terme || [];
+          for (const olt of olts) {
+            oltCounter++;
+            const rows: IndicatorRow[] = [];
 
-              const nes = olt.niveaux_exigence || [];
-              for (const ne of nes) {
-                const indicateurs = ne.indicateurs || [];
-                for (const ind of indicateurs) {
-                  rows.push({
-                    ne,
-                    indicateur: ind,
-                    expanded: false,
-                    metriques: ind.metriques || []
-                  });
-                }
-              }
-
-              if (rows.length > 0) {
-                groups.push({
-                  olt,
-                  oltIndex: oltCounter,
-                  enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
-                  rows
+            const nes = olt.niveaux_exigence || [];
+            for (const ne of nes) {
+              const indicateurs = ne.indicateurs || [];
+              for (const ind of indicateurs) {
+                rows.push({
+                  ne,
+                  indicateur: ind,
+                  expanded: false,
+                  metriques: ind.metriques || []
                 });
               }
+            }
+
+            if (rows.length > 0) {
+              groups.push({
+                olt,
+                oltIndex: oltCounter,
+                enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
+                rows
+              });
             }
           }
         }

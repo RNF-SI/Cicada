@@ -38,8 +38,8 @@ class OperationViewSet(viewsets.ModelViewSet):
     queryset = Operation.objects.select_related(
         'id_priorite', 'id_type_action', 'id_utilisateur_ajout', 'id_utilisateur_maj',
         'id_metrique', 'id_metrique__id_indicateur',
-        # NE path: Indicateur → NE → OLT → EtatActuel → Enjeu
-        'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu',
+        # NE path: Indicateur → NE → OLT → Enjeu
+        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu',
         # RA path: Indicateur → RA → OO → Pression → FI → Enjeu
         'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
     ).prefetch_related(
@@ -73,14 +73,14 @@ class OperationViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg__statut='valide')
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -114,7 +114,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg=plan) |
+            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
             Q(id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
         ).distinct()
 

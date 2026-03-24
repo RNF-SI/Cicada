@@ -520,67 +520,11 @@
 
               <!-- Barre haut : compteur -->
               <div class="olt-top-bar">
-                <p class="count-text">{{ totalEtatCount() }} {{ 'enjeux.etatActuel.countSuffix' | translate }}</p>
+                <p class="count-text">{{ totalOltCount() }} {{ 'enjeux.olt.countSuffix' | translate }}</p>
               </div>
 
-              <!-- Pour chaque État Actuel de l'enjeu -->
-              @for (etat of selectedEtats(); track etat.id_etat_actuel; let etatIdx = $index) {
-                <!-- Mode édition État Actuel -->
-                @if (editingEtatId() === etat.id_etat_actuel) {
-                  <div class="inline-form olt-inline-form">
-                    <div class="inline-form-header">
-                      <h4 class="inline-form-title">{{ 'enjeux.etatActuel.editTitle' | translate }}</h4>
-                    </div>
-                    <div class="inline-form-body">
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                        <input matInput [(ngModel)]="editEtatLibelle">
-                      </mat-form-field>
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                        <textarea matInput [(ngModel)]="editEtatDescription" rows="2"></textarea>
-                      </mat-form-field>
-                    </div>
-                    <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditEtat(etat)" [disabled]="!editEtatLibelle.trim()">
-                        {{ 'common.actions.save' | translate }}
-                      </button>
-                      <button mat-stroked-button (click)="cancelEditEtat()">
-                        {{ 'common.actions.cancel' | translate }}
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <!-- Barre État Actuel (utilise app-section-title réutilisable) -->
-                  <div class="olt-section-header" (click)="toggleEtat(etat.id_etat_actuel)">
-                    <app-section-title
-                      [title]="('enjeux.etatActuel.label' | translate) + ' ' + (etatIdx + 1) + ' : ' + etat.libelle"
-                      icon="fi-rr-leaf"
-                      ellipseColor="pale-green"
-                      size="md"
-                      [showLine]="true">
-                      <div sectionActions class="olt-header-actions">
-                        <button class="icon-btn-flat" (click)="startEditEtat(etat); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
-                        <button class="icon-btn-flat" (click)="deleteEtatActuel(etat); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-etat">
-                          <i class="fi fi-rr-minus-circle"></i>
-                        </button>
-                        <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isEtatExpanded(etat.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(etat.id_etat_actuel)"></i>
-                      </div>
-                    </app-section-title>
-                  </div>
-
-                  <!-- Contenu déplié de l'État Actuel -->
-                  @if (isEtatExpanded(etat.id_etat_actuel)) {
-                    <div class="olt-expanded-content">
-                      <!-- Description État Actuel -->
-                      @if (etat.description) {
-                        <p class="olt-description">{{ etat.description }}</p>
-                      }
-
-                      <!-- OLTs de cet État Actuel -->
-                      @for (olt of etat.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
+              <!-- Pour chaque OLT de l'enjeu -->
+              @for (olt of selectedEnjeu()?.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
                         <!-- Mode édition OLT -->
                         @if (editingOltId() === olt.id_olt) {
                           <div class="inline-form olt-inline-form">
@@ -1348,86 +1292,50 @@
                         }
                       }
 
-                      <!-- Formulaire inline nouvel OLT (inside État Actuel) -->
-                      @if (addingOltForEtat() === etat.id_etat_actuel) {
-                        <div class="inline-form olt-inline-form">
-                          <div class="inline-form-header">
-                            <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
-                          </div>
-                          <div class="inline-form-body">
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                              <input matInput [(ngModel)]="newOltLibelle">
-                            </mat-form-field>
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                              <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
-                            </mat-form-field>
-                          </div>
-                          <div class="inline-form-actions">
-                            <button mat-flat-button color="primary" (click)="saveOlt(etat)" [disabled]="!newOltLibelle.trim()">
-                              {{ 'common.actions.save' | translate }}
-                            </button>
-                            <button mat-stroked-button (click)="cancelAddOlt()">
-                              {{ 'common.actions.cancel' | translate }}
-                            </button>
-                          </div>
-                        </div>
-                      } @else {
-                        <button class="add-item-btn" (click)="startAddOlt(etat.id_etat_actuel)">
-                          <i class="fi fi-rr-plus-small"></i>
-                          {{ 'enjeux.olt.addButton' | translate }}
-                        </button>
-                      }
-                    </div>
-                  }
-                }
-              }
-
-              <!-- Formulaire inline nouvel État Actuel -->
-              @if (addingEtat()) {
+              <!-- Formulaire inline nouvel OLT -->
+              @if (addingOlt()) {
                 <div class="inline-form olt-inline-form">
                   <div class="inline-form-header">
-                    <h4 class="inline-form-title">{{ 'enjeux.etatActuel.newTitle' | translate }}</h4>
+                    <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="newEtatLibelle">
+                      <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                      <input matInput [(ngModel)]="newOltLibelle">
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                      <textarea matInput [(ngModel)]="newEtatDescription" rows="2"></textarea>
+                      <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                      <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
                     </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveEtatActuel()" [disabled]="!newEtatLibelle.trim()">
+                    <button mat-flat-button color="primary" (click)="saveOlt()" [disabled]="!newOltLibelle.trim()">
                       {{ 'common.actions.save' | translate }}
                     </button>
-                    <button mat-stroked-button (click)="cancelAddEtat()">
+                    <button mat-stroked-button (click)="cancelAddOlt()">
                       {{ 'common.actions.cancel' | translate }}
                     </button>
                   </div>
                 </div>
               }
 
-              <!-- Bouton ajouter un État Actuel (toujours visible) -->
-              @if (!addingEtat()) {
-                <button class="add-item-btn" (click)="startAddEtat()">
+              <!-- Bouton ajouter un OLT (toujours visible) -->
+              @if (!addingOlt()) {
+                <button class="add-item-btn" (click)="startAddOlt()">
                   <i class="fi fi-rr-plus-small"></i>
-                  {{ 'enjeux.etatActuel.addButton' | translate }}
+                  {{ 'enjeux.olt.addButton' | translate }}
                 </button>
               }
 
-              <!-- Empty state si aucun État Actuel -->
-              @if (totalEtatCount() === 0 && !addingEtat()) {
+              <!-- Empty state si aucun OLT -->
+              @if (totalOltCount() === 0 && !addingOlt()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>
                   </div>
                   <div class="info-content">
-                    <p class="info-title">{{ 'enjeux.etatActuel.hint' | translate }}</p>
-                    <p class="info-description">{{ 'enjeux.etatActuel.description' | translate }}</p>
+                    <p class="info-title">{{ 'enjeux.olt.hint' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.olt.description' | translate }}</p>
                   </div>
                 </div>
               }
