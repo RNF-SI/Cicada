@@ -33,9 +33,11 @@ import { CampanuleAutocomplete } from '../../../core/models/campanule.model';
 interface NomenclatureOption {
   id_nomenclature: number;
   mnemonique: string;
+  cd_nomenclature?: string;
   label: string;
   definition?: string;
   hierarchy?: string;
+  group_label?: string;
 }
 
 /** Grouped nomenclature for mat-optgroup display */
@@ -91,7 +93,16 @@ export class InventaireFormComponent implements OnInit {
 
   // Nomenclatures
   typeSuiviOptions = signal<NomenclatureOption[]>([]);
+  typeActionCSOptions = signal<NomenclatureOption[]>([]);
   statutSuiviOptions = signal<NomenclatureOption[]>([]);
+
+  // Type d'action CS autocomplete
+  typeActionSearchCtrl = new FormControl('');
+  typeActionGroups = computed<NomenclatureGroup[]>(() => {
+    return this.buildActionGroups(this.typeActionCSOptions(), this.typeActionSearchText());
+  });
+  typeActionSearchText = signal('');
+  selectedTypeAction = signal<NomenclatureOption | null>(null);
   objectifSuiviOptions = signal<NomenclatureOption[]>([]);
   cibleSuiviOptions = signal<NomenclatureOption[]>([]);
   typeIndicateurOptions = signal<NomenclatureOption[]>([]);
@@ -123,6 +134,7 @@ export class InventaireFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
+    this.initTypeActionAutocomplete();
     this.loadNomenclatures();
     this.initCampanuleAutocomplete();
     this.loadRouteParams();
@@ -132,6 +144,7 @@ export class InventaireFormComponent implements OnInit {
     this.form = this.fb.group({
       // Main card
       intitule: ['', [Validators.required, Validators.maxLength(500)]],
+      id_type_action: [null],
       id_type_suivi: [null],
       integre_plan_gestion: [null],
       suit_indicateur: [null],
@@ -171,6 +184,97 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
+  // ════════════════════════════════════════════════
+  // Type d'action CS autocomplete
+  // ════════════════════════════════════════════════
+
+  private initTypeActionAutocomplete(): void {
+    this.typeActionSearchCtrl.valueChanges.subscribe((val) => {
+      if (typeof val === 'string') {
+        this.typeActionSearchText.set(val);
+      }
+    });
+  }
+
+  displayTypeActionFn(option: NomenclatureOption | string | null): string {
+    if (!option) return '';
+    if (typeof option === 'string') return option;
+    const code = option.cd_nomenclature || option.mnemonique || '';
+    return `${code} - ${option.label}`;
+  }
+
+  onTypeActionSelected(option: NomenclatureOption): void {
+    this.selectedTypeAction.set(option);
+    this.form.get('id_type_action')?.setValue(option.id_nomenclature);
+  }
+
+  clearTypeAction(): void {
+    this.typeActionSearchCtrl.setValue('');
+    this.selectedTypeAction.set(null);
+    this.form.get('id_type_action')?.setValue(null);
+  }
+
+  getActionDepth(option: NomenclatureOption): number {
+    const code = option.cd_nomenclature || option.mnemonique || '';
+    return (code.match(/\./g) || []).length;
+  }
+
+  /**
+   * Construit les groupes filtrés pour l'autocomplete type d'action.
+   * Si le terme de recherche matche un nom de groupe, toutes les options
+   * de ce groupe sont affichées.
+   */
+  private buildActionGroups(options: NomenclatureOption[], searchText: string): NomenclatureGroup[] {
+    const searchTerm = searchText.toLowerCase();
+
+    const allGroups = new Map<string, NomenclatureOption[]>();
+    for (const opt of options) {
+      const groupKey = opt.group_label || '';
+      if (!allGroups.has(groupKey)) {
+        allGroups.set(groupKey, []);
+      }
+      allGroups.get(groupKey)!.push(opt);
+    }
+
+    if (!searchTerm) {
+      const groups: NomenclatureGroup[] = [];
+      for (const [groupLabel, opts] of allGroups) {
+        groups.push({ groupLabel, options: opts });
+      }
+      return groups;
+    }
+
+    const groups: NomenclatureGroup[] = [];
+    for (const [groupLabel, opts] of allGroups) {
+      if (groupLabel.toLowerCase().includes(searchTerm)) {
+        groups.push({ groupLabel, options: opts });
+      } else {
+        const filtered = opts.filter(opt => {
+          const code = opt.cd_nomenclature || opt.mnemonique || '';
+          return code.toLowerCase().includes(searchTerm)
+            || opt.label.toLowerCase().includes(searchTerm);
+        });
+        if (filtered.length > 0) {
+          groups.push({ groupLabel, options: filtered });
+        }
+      }
+    }
+    return groups;
+  }
+
+  private restoreTypeActionAutocomplete(typeActionId: number, options?: NomenclatureOption[]): void {
+    const opts = options || this.typeActionCSOptions();
+    const match = opts.find(o => o.id_nomenclature === typeActionId);
+    if (match) {
+      this.selectedTypeAction.set(match);
+      this.typeActionSearchCtrl.setValue(this.displayTypeActionFn(match), { emitEvent: false });
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  // CAMPanule autocomplete
+  // ════════════════════════════════════════════════
+
   private initCampanuleAutocomplete(): void {
     this.campanuleSearchCtrl.valueChanges.pipe(
       debounceTime(300),
@@ -184,6 +288,16 @@ export class InventaireFormComponent implements OnInit {
   }
 
   private loadNomenclatures(): void {
+    // Type d'action filtré sur les codes CS (Connaissance et Suivi)
+    this.adminService.getNomenclaturesByTypeAndPrefix('TYPE_ACTION', 'CS').subscribe({
+      next: (data) => {
+        this.typeActionCSOptions.set(data);
+        const suivi = this.existingSuivi();
+        if (suivi?.id_type_action) {
+          this.restoreTypeActionAutocomplete(suivi.id_type_action, data);
+        }
+      },
+    });
     this.adminService.getNomenclaturesByType('TYPE_SUIVI').subscribe({
       next: (data) => this.typeSuiviOptions.set(data),
     });

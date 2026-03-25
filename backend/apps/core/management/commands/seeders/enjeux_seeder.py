@@ -3757,13 +3757,14 @@ class EnjeuxSeeder(BaseSeeder):
         # ============================================
         self.log_header('Enrichissement des opérations avec données détaillées')
 
-        type_action_se = self._get_nomenclature('TYPE_ACTION', 'SUIVI_EVALUATION')
-        type_action_cs = self._get_nomenclature('TYPE_ACTION', 'CONNAISSANCE_SCIENTIFIQUE')
-        type_action_ge = self._get_nomenclature('TYPE_ACTION', 'GESTION_ENTRETIEN')
-        type_action_cc = self._get_nomenclature('TYPE_ACTION', 'COMMUNICATION')
-        type_action_tu = self._get_nomenclature('TYPE_ACTION', 'TRAVAUX_UNIQUE')
-        type_action_pi = self._get_nomenclature('TYPE_ACTION', 'POLICE_INSPECTION')
-        type_action_pa = self._get_nomenclature('TYPE_ACTION', 'PEDAGOGIE_ANIMATION')
+        # Codification Eden 62 - codes hiérarchiques (IP1, CS2, etc.)
+        type_action_cs3 = self._get_nomenclature('TYPE_ACTION', 'CS3')    # Suivi des végétations
+        type_action_cs8 = self._get_nomenclature('TYPE_ACTION', 'CS8')    # Inventaire de la faune
+        type_action_ip2 = self._get_nomenclature('TYPE_ACTION', 'IP2')    # Entretien d'habitats naturels
+        type_action_cc1 = self._get_nomenclature('TYPE_ACTION', 'CC1')    # Création de supports de communication
+        type_action_ip1 = self._get_nomenclature('TYPE_ACTION', 'IP1')    # Restauration d'habitats naturels
+        type_action_sp1 = self._get_nomenclature('TYPE_ACTION', 'SP1')    # Surveillance et police
+        type_action_pa1 = self._get_nomenclature('TYPE_ACTION', 'PA1')    # Éducation à la nature
         operateur_agent = self._get_nomenclature('OPERATEUR_TYPE', 'AGENT_RESERVE')
         operateur_presta = self._get_nomenclature('OPERATEUR_TYPE', 'PRESTATAIRE')
         operateur_benevole = self._get_nomenclature('OPERATEUR_TYPE', 'BENEVOLE')
@@ -3914,10 +3915,10 @@ class EnjeuxSeeder(BaseSeeder):
         }
 
         ref_to_type = {
-            'SE': type_action_se, 'CS': type_action_cs,
-            'GE': type_action_ge, 'CC': type_action_cc,
-            'IP': type_action_pi, 'PR': type_action_pi,
-            'TU': type_action_tu, 'PA': type_action_pa,
+            'SE': type_action_cs3, 'CS': type_action_cs8,
+            'GE': type_action_ip2, 'CC': type_action_cc1,
+            'IP': type_action_sp1, 'PR': type_action_sp1,
+            'TU': type_action_ip1, 'PA': type_action_pa1,
         }
 
         # Budget/ETP profiles for variety
@@ -4429,6 +4430,14 @@ class EnjeuxSeeder(BaseSeeder):
         statut_en_cours = self._get_nomenclature('STATUT_SUIVI', 'EN_COURS')
         statut_termine = self._get_nomenclature('STATUT_SUIVI', 'TERMINE')
         statut_a_venir = self._get_nomenclature('STATUT_SUIVI', 'A_VENIR')
+        # Type d'action CS pour les suivis/inventaires
+        ta_cs5 = self._get_nomenclature('TYPE_ACTION', 'CS5')     # Suivi de la flore
+        ta_cs8_1 = self._get_nomenclature('TYPE_ACTION', 'CS8_1')  # Inventaire des mammifères
+        ta_cs14_1 = self._get_nomenclature('TYPE_ACTION', 'CS14_1') # Suivi qualité d'eau
+        ta_cs6_2 = self._get_nomenclature('TYPE_ACTION', 'CS6_2')  # Inventaire des bryophytes
+        ta_cs9_4 = self._get_nomenclature('TYPE_ACTION', 'CS9_4')  # Suivi des amphibiens
+        ta_cs12 = self._get_nomenclature('TYPE_ACTION', 'CS12')    # Suivi photographique
+        ta_cs8_6 = self._get_nomenclature('TYPE_ACTION', 'CS8_6')  # Inventaire des insectes
 
         # Reference to first plan for some suivis
         plan_ref = plans[0] if plans else None
@@ -4442,6 +4451,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2022-04-01',
                 'actif': True,
                 'id_type_suivi': type_suivi,
+                'id_type_action': ta_cs5,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': True,
                 'id_pg': plan_ref,
@@ -4457,6 +4467,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2019-06-01',
                 'actif': True,
                 'id_type_suivi': type_inventaire,
+                'id_type_action': ta_cs8_1,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': False,
                 'commentaires': 'Comptage en sortie de gîte',
@@ -4471,6 +4482,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'annee_fin_suivi': 2025,
                 'actif': True,
                 'id_type_suivi': type_suivi,
+                'id_type_action': ta_cs14_1,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': True,
                 'id_pg': plan_ref,
@@ -4487,6 +4499,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'annee_fin_suivi': 2022,
                 'actif': False,
                 'id_type_suivi': type_inventaire,
+                'id_type_action': ta_cs6_2,
                 'id_statut': statut_termine,
                 'commentaires': 'Inventaire terminé, rapport final disponible',
             },
@@ -4498,6 +4511,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2024-02-15',
                 'actif': True,
                 'id_type_suivi': type_suivi_inv,
+                'id_type_action': ta_cs9_4,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': False,
                 'commentaires': 'Points d\'écoute nocturne + pêche électrique',
@@ -4512,6 +4526,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2026-04-01',
                 'actif': True,
                 'id_type_suivi': type_suivi,
+                'id_type_action': ta_cs12,
                 'id_statut': statut_a_venir,
                 'commentaires': 'Points de vue fixes, photographies saisonnières',
                 'frequence_nombre': 4,
@@ -4525,6 +4540,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'annee_fin_suivi': 2019,
                 'actif': False,
                 'id_type_suivi': type_inventaire,
+                'id_type_action': ta_cs8_6,
                 'id_statut': statut_termine,
                 'commentaires': 'Étude terminée, résultats publiés',
             },

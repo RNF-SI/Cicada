@@ -465,3 +465,80 @@ class TestSuivisDeleteEndpoint:
         response = api_client.delete(f'/api/inventaires/suivis/{suivi_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not SuiviInventaire.objects.filter(id_suivi_inventaire=suivi_id).exists()
+
+
+# =============================================================================
+# TestSuivisTypeAction
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSuivisTypeAction:
+    """Tests pour le champ id_type_action et le filtre type_action_prefix."""
+
+    @pytest.fixture(autouse=True)
+    def import_nomenclatures(self, db):
+        """Import nomenclatures pour les tests type_action."""
+        from django.core.management import call_command
+        call_command('import_nomenclatures', verbosity=0)
+
+    def test_create_suivi_with_type_action(self, api_client, suivi_test_data):
+        """Test création d'un suivi avec un type d'action CS."""
+        from apps.core.models import Nomenclature
+        cs8 = Nomenclature.objects.filter(
+            id_type__mnemonique='TYPE_ACTION', cd_nomenclature='CS8'
+        ).first()
+        assert cs8 is not None, "Nomenclature CS8 doit exister après import"
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        payload = {
+            'intitule': 'Inventaire faune avec type action',
+            'id_type_action': cs8.id_nomenclature,
+        }
+        response = api_client.post('/api/inventaires/suivis/', payload, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['id_type_action'] == cs8.id_nomenclature
+
+    def test_detail_returns_type_action_fields(self, api_client, suivi_test_data):
+        """Test que le détail retourne type_action_code et type_action_label."""
+        from apps.core.models import Nomenclature
+        cs8 = Nomenclature.objects.filter(
+            id_type__mnemonique='TYPE_ACTION', cd_nomenclature='CS8'
+        ).first()
+        assert cs8 is not None
+
+        suivi = suivi_test_data['suivi1']
+        suivi.id_type_action = cs8
+        suivi.save()
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.get(f'/api/inventaires/suivis/{suivi.id_suivi_inventaire}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['type_action_code'] == 'CS8'
+        assert response.data['type_action_label'] == cs8.label
+
+    def test_filter_by_type_action_prefix(self, api_client, suivi_test_data):
+        """Test filtre par préfixe de type d'action (CS8 → CS8, CS8.1, ...)."""
+        from apps.core.models import Nomenclature
+        cs8 = Nomenclature.objects.filter(
+            id_type__mnemonique='TYPE_ACTION', cd_nomenclature='CS8'
+        ).first()
+        cs8_1 = Nomenclature.objects.filter(
+            id_type__mnemonique='TYPE_ACTION', cd_nomenclature='CS8.1'
+        ).first()
+        assert cs8 is not None and cs8_1 is not None
+
+        # Assigner des types différents
+        suivi1 = suivi_test_data['suivi1']
+        suivi1.id_type_action = cs8
+        suivi1.save()
+        suivi2 = suivi_test_data['suivi2']
+        suivi2.id_type_action = cs8_1
+        suivi2.save()
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.get('/api/inventaires/suivis/?type_action_prefix=CS8')
+        assert response.status_code == status.HTTP_200_OK
+        ids = [s['id_suivi_inventaire'] for s in response.data['results']]
+        assert suivi1.id_suivi_inventaire in ids
+        assert suivi2.id_suivi_inventaire in ids

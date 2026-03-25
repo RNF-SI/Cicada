@@ -15,6 +15,8 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des suivis/inventaires."""
     statut_label = serializers.CharField(source='id_statut.label', read_only=True, default=None)
     type_label = serializers.CharField(source='id_type_suivi.label', read_only=True, default=None)
+    type_action_code = serializers.CharField(source='id_type_action.cd_nomenclature', read_only=True, default=None)
+    type_action_label = serializers.CharField(source='id_type_action.label', read_only=True, default=None)
     nb_operations = serializers.SerializerMethodField()
     plan_nom = serializers.CharField(source='id_pg.nom', read_only=True, default=None)
 
@@ -26,6 +28,7 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
             'date_lancement_suivi', 'annee_fin_suivi',
             'id_statut', 'statut_label',
             'id_type_suivi', 'type_label',
+            'id_type_action', 'type_action_code', 'type_action_label',
             'actif',
             'nb_operations',
             'id_pg', 'plan_nom',
@@ -46,6 +49,8 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
     protocole = ProtocoleSerializer(source='id_protocole', read_only=True)
     statut_label = serializers.CharField(source='id_statut.label', read_only=True, default=None)
     type_label = serializers.CharField(source='id_type_suivi.label', read_only=True, default=None)
+    type_action_code = serializers.CharField(source='id_type_action.cd_nomenclature', read_only=True, default=None)
+    type_action_label = serializers.CharField(source='id_type_action.label', read_only=True, default=None)
     nb_operations = serializers.SerializerMethodField()
     plan_nom = serializers.CharField(source='id_pg.nom', read_only=True, default=None)
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
@@ -59,6 +64,7 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
             # Standalone fields
             'intitule', 'prix_indicatif',
             'id_type_suivi', 'type_label',
+            'id_type_action', 'type_action_code', 'type_action_label',
             'integre_plan_gestion',
             'suit_indicateur', 'type_indicateur',
             'id_pg', 'plan_nom',
@@ -120,7 +126,7 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
             'id_suivi_inventaire',
             # Standalone fields
             'intitule', 'prix_indicatif',
-            'id_type_suivi',
+            'id_type_suivi', 'id_type_action',
             'integre_plan_gestion',
             'suit_indicateur', 'type_indicateur',
             'id_pg',

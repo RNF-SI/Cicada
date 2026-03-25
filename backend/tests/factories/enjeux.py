@@ -361,6 +361,7 @@ class SuiviInventaireFactory(DjangoModelFactory):
 
     intitule = factory.Sequence(lambda n: f'Suivi Test {n}')
     actif = True
+    id_type_action = None
     objectif_principal = 'OBJ_ETAT_CONSERVATION'
     cibles_principales = 'ESPECES'
     taxon_taxref = ''

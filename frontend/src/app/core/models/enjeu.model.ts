@@ -463,6 +463,7 @@ export interface OperationCreatePayload {
   annee_max?: number;
   // Suivi/inventaire
   est_suivi_existant?: boolean;
+  id_suivi?: number;
   suivi_inventaire?: Omit<SuiviInventaire, 'id_suivi_inventaire' | 'date_ajout' | 'date_maj'>;
   // Fréquence & acteurs
   frequence_nombre?: number;
