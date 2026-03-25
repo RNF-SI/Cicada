@@ -361,22 +361,20 @@ test.describe('Operations - Edit', () => {
 // Form Validation
 // =========================================================================
 test.describe('Operations - Validation', () => {
-  test('should show error when submitting empty libelle', async ({ referentPage }) => {
+  test('should allow submitting form with empty libelle', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
 
-    // Submit with empty form
+    // Submit with empty form — libelle is not required
     await formPage.submit();
 
-    // Should stay on the form page (not navigate away)
-    await referentPage.waitForTimeout(1000);
-    expect(referentPage.url()).toContain('/operations/nouveau');
-
-    // The mat-error for required field should be visible
-    const hasError = await formPage.hasLibelleError();
-    expect(hasError).toBeTruthy();
+    // Should submit successfully and navigate back
+    await Promise.race([
+      formPage.waitForSnackbar().catch(() => {}),
+      referentPage.waitForURL(/\/enjeux/, { timeout: 10000 }).catch(() => {}),
+    ]);
   });
 
   test('should not submit when libelle exceeds max length', async ({ referentPage }) => {

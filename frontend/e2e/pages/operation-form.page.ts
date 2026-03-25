@@ -89,8 +89,7 @@ export class OperationFormPage {
 
     // Main card — formControlName selectors
     this.libelleInput = page.locator('input[formControlName="libelle"]');
-    this.typeActionInput = page.locator('input[matAutocomplete="autoTypeAction"], input[ng-reflect-mat-autocomplete]').first()
-      .or(page.locator('mat-form-field').filter({ hasText: /type d'action/i }).locator('input[matInput]'));
+    this.typeActionInput = page.locator('input[placeholder*="Rechercher par code"]');
     this.typeActionClearBtn = page.locator('mat-form-field').filter({ hasText: /type d'action/i }).locator('button[matSuffix]');
     this.metriqueSelect = page.locator('mat-select[formControlName="id_metrique"]');
     this.prioriteRadioGroup = page.locator('mat-radio-group[formControlName="id_priorite"]');
@@ -170,11 +169,12 @@ export class OperationFormPage {
 
   /** Wait for form to be loaded (spinner gone, form visible, sections rendered). */
   async waitForForm() {
-    await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
     await this.libelleInput.or(this.errorBanner)
+      .first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+    // Wait for protocole section to be rendered (indicates full form is ready)
+    await this.protocoleCampanuleOui.or(this.protocoleCampanuleNon)
       .first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-    // Wait for section headers to render (indicates form + nomenclatures loaded)
-    await this.sectionProtocole.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   }
 
   /** Fill the libelle field. */
