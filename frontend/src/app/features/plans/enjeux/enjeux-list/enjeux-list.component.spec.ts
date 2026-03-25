@@ -932,6 +932,7 @@ describe('EnjeuxListComponent', () => {
       component.saveEditPression(pression);
 
       expect(mockEnjeuService.updatePression).toHaveBeenCalledWith(301, {
+        id_type_pression: null,
         libelle: 'Pression modifiée',
         description: 'Nouvelle desc',
       });
