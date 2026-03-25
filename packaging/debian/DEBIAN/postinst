@@ -153,12 +153,6 @@ if [ -f "$ENV_FILE" ]; then
     else
         echo "CICADA : version déjà à jour ($NEW_VERSION)"
     fi
-
-    echo ""
-    echo "============================================"
-    echo "CICADA mis à jour avec succès !"
-    echo "Configuration existante conservée."
-    echo "============================================"
 else
     # Première installation → l'utilisateur doit passer par l'installateur web
     echo ""
