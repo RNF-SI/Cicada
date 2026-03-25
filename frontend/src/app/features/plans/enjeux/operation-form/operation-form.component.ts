@@ -34,22 +34,13 @@ import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 
-/** Nomenclature option with grouping info */
-interface NomenclatureOption {
-  id_nomenclature: number;
-  mnemonique: string;
-  cd_nomenclature?: string;
-  label: string;
-  definition?: string;
-  hierarchy?: string;
-  group_label?: string;
-}
-
-/** Grouped nomenclature for mat-optgroup display */
-interface NomenclatureGroup {
-  groupLabel: string;
-  options: NomenclatureOption[];
-}
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+} from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
 @Component({
   selector: 'app-operation-form',
@@ -235,7 +226,7 @@ export class OperationFormComponent implements OnInit {
     this.form = this.fb.group({
       // Main card
       libelle: ['', [Validators.maxLength(500)]],
-      id_type_action: [null, [Validators.required]],
+      id_type_action: [null],
       id_suivi: [null],
       intitule_suivi: [''],
       id_metrique: [null],
@@ -866,12 +857,7 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
-  displayTypeActionFn(option: NomenclatureOption | string | null): string {
-    if (!option) return '';
-    if (typeof option === 'string') return option;
-    const code = option.cd_nomenclature || option.mnemonique || '';
-    return `${code} - ${option.label}`;
-  }
+  displayTypeActionFn = displayNomenclatureFn;
 
   onTypeActionSelected(option: NomenclatureOption): void {
     this.selectedTypeAction.set(option);
@@ -919,62 +905,11 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
-  /**
-   * Construit les groupes filtrés pour l'autocomplete type d'action.
-   * Si le terme de recherche matche un nom de groupe, toutes les options
-   * de ce groupe sont affichées (même si elles ne matchent pas individuellement).
-   */
   private buildActionGroups(options: NomenclatureOption[], searchText: string): NomenclatureGroup[] {
-    const searchTerm = searchText.toLowerCase();
-
-    // 1) Construire tous les groupes avec toutes leurs options
-    const allGroups = new Map<string, NomenclatureOption[]>();
-    for (const opt of options) {
-      const groupKey = opt.group_label || '';
-      if (!allGroups.has(groupKey)) {
-        allGroups.set(groupKey, []);
-      }
-      allGroups.get(groupKey)!.push(opt);
-    }
-
-    // 2) Si pas de recherche, tout afficher
-    if (!searchTerm) {
-      const groups: NomenclatureGroup[] = [];
-      for (const [groupLabel, opts] of allGroups) {
-        groups.push({ groupLabel, options: opts });
-      }
-      return groups;
-    }
-
-    // 3) Filtrer : si le titre du groupe matche → afficher toutes ses options
-    //    sinon → afficher seulement les options qui matchent
-    const groups: NomenclatureGroup[] = [];
-    for (const [groupLabel, opts] of allGroups) {
-      const groupMatches = groupLabel.toLowerCase().includes(searchTerm);
-
-      if (groupMatches) {
-        // Le titre du groupe matche → toutes ses options
-        groups.push({ groupLabel, options: opts });
-      } else {
-        // Filtrer les options individuellement
-        const filtered = opts.filter(opt => {
-          const code = opt.cd_nomenclature || opt.mnemonique || '';
-          return code.toLowerCase().includes(searchTerm)
-            || opt.label.toLowerCase().includes(searchTerm);
-        });
-        if (filtered.length > 0) {
-          groups.push({ groupLabel, options: filtered });
-        }
-      }
-    }
-    return groups;
+    return buildNomenclatureGroups(options, searchText);
   }
 
-  /** Indentation depth based on code dots (IP1=0, IP1.1=1, IP1.1.1=2) */
-  getActionDepth(option: NomenclatureOption): number {
-    const code = option.cd_nomenclature || option.mnemonique || '';
-    return (code.match(/\./g) || []).length;
-  }
+  getActionDepth = getNomenclatureDepth;
 
   // ════════════════════════════════════════════════
   // CAMPanule autocomplete

@@ -24,14 +24,11 @@ async function findPlanByName(page: import('@playwright/test').Page, nameFragmen
 }
 
 /**
- * Helper: switch to OLT tab and expand the first etat actuel.
- * Most OLT tests need the etat expanded to see OLTs/NEs inside.
+ * Helper: switch to OLT tab.
+ * In the new flat structure (Enjeu -> OLT -> NE), there is no EtatActuel level.
  */
-async function switchToOltAndExpandFirstEtat(page: import('@playwright/test').Page, enjeuxPage: EnjeuxPage) {
+async function switchToOltTab(page: import('@playwright/test').Page, enjeuxPage: EnjeuxPage) {
   await enjeuxPage.switchTab('olt');
-  const firstEtat = page.locator('.olt-section-header').first();
-  await firstEtat.click();
-  await page.waitForTimeout(500);
 }
 
 
@@ -795,7 +792,7 @@ test.describe('Enjeux - OLT Tab Display', () => {
     await expect(infoNote).toBeVisible();
   });
 
-  test('should display etat actuel cards with seeded data', async ({ referentPage: page }) => {
+  test('should display OLT cards with seeded data', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -804,13 +801,13 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // First enjeu (Habitats humides) should have at least 1 etat actuel from seed data
-    const etatCards = page.locator('.olt-section-header');
-    const count = await etatCards.count();
+    // First enjeu should have at least 1 OLT from seed data (flat structure, no EtatActuel)
+    const oltCards = page.locator('.olt-content .olt-section-header');
+    const count = await oltCards.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should display OLT bars inside etat actuel', async ({ referentPage: page }) => {
+  test('should expand OLT to reveal its content', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -819,15 +816,14 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Expand the first etat actuel to reveal OLTs inside
-    const firstEtat = page.locator('.olt-section-header').first();
-    await firstEtat.click();
+    // Click the first OLT to expand it (flat structure: OLTs are top-level)
+    const firstOlt = page.locator('.olt-content .olt-section-header').first();
+    await firstOlt.click();
     await page.waitForTimeout(500);
 
-    // Should have OLT bars inside expanded etat
-    const oltBars = page.locator('.olt-expanded-content .olt-section-header');
-    const count = await oltBars.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+    // Should show expanded content with NE cards or add-NE button
+    const expandedContent = page.locator('.olt-expanded-content');
+    await expect(expandedContent.first()).toBeVisible();
   });
 
   test('should display OLT count in top bar', async ({ referentPage: page }) => {
@@ -852,17 +848,13 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Expand first etat actuel
-    await page.locator('.olt-section-header').first().click();
-    await page.waitForTimeout(500);
-
-    // Click on first OLT bar to expand it
-    const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();
+    // Click on first OLT to expand it (flat structure: OLTs are top-level)
+    const firstOlt = page.locator('.olt-content .olt-section-header').first();
     await firstOlt.click();
     await page.waitForTimeout(300);
 
     // Should show NE content inside expanded OLT
-    const neContent = page.locator('.ne-card, .ne-content, .olt-expanded-content .olt-expanded-content');
+    const neContent = page.locator('.olt-expanded-content .ne-card, .olt-expanded-content .add-item-btn');
     const isVisible = await neContent.first().isVisible().catch(() => false);
     expect(isVisible).toBe(true);
   });
@@ -876,12 +868,8 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Expand first etat actuel
-    await page.locator('.olt-section-header').first().click();
-    await page.waitForTimeout(500);
-
-    // Expand the first OLT
-    const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();
+    // Expand the first OLT (flat structure: OLTs are top-level)
+    const firstOlt = page.locator('.olt-content .olt-section-header').first();
     await firstOlt.click();
     await page.waitForTimeout(300);
 
@@ -891,7 +879,7 @@ test.describe('Enjeux - OLT Tab Display', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should show add etat actuel button', async ({ referentPage: page }) => {
+  test('should show add OLT button', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -900,15 +888,15 @@ test.describe('Enjeux - OLT Tab Display', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    const addEtatBtn = page.locator('.olt-content > .add-item-btn');
-    await expect(addEtatBtn).toBeVisible();
+    const addOltBtn = page.locator('.olt-content > .add-item-btn');
+    await expect(addOltBtn).toBeVisible();
   });
 });
 
 
 test.describe('Enjeux - OLT Tab CRUD', () => {
 
-  test('should show inline form when clicking add etat actuel', async ({ referentPage: page }) => {
+  test('should show inline form when clicking add OLT', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -917,7 +905,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Click add etat actuel
+    // Click add OLT
     await page.locator('.olt-content > .add-item-btn').click();
     await page.waitForTimeout(300);
 
@@ -927,7 +915,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await expect(form.locator('input[matInput]')).toBeVisible();
   });
 
-  test('should cancel adding an etat actuel', async ({ referentPage: page }) => {
+  test('should cancel adding an OLT', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -936,7 +924,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    const initialCount = await page.locator('.olt-section-header').count();
+    const initialCount = await page.locator('.olt-content .olt-section-header').count();
 
     // Click add then cancel
     await page.locator('.olt-content > .add-item-btn').click();
@@ -947,11 +935,11 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     // Form hidden, count unchanged
     await expect(form).not.toBeVisible();
-    const newCount = await page.locator('.olt-section-header').count();
+    const newCount = await page.locator('.olt-content .olt-section-header').count();
     expect(newCount).toBe(initialCount);
   });
 
-  test('should create an etat actuel', async ({ referentPage: page }) => {
+  test('should create an OLT', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -960,21 +948,21 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    const initialCount = await page.locator('.olt-section-header').count();
+    const initialCount = await page.locator('.olt-content .olt-section-header').count();
 
     // Fill and submit the form
     await page.locator('.olt-content > .add-item-btn').click();
     await page.waitForTimeout(300);
     const form = page.locator('.olt-inline-form');
-    await form.locator('input[matInput]').fill('E2E Temp État Actuel');
+    await form.locator('input[matInput]').fill('E2E Temp OLT Direct');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
-    const newCount = await page.locator('.olt-section-header').count();
+    const newCount = await page.locator('.olt-content .olt-section-header').count();
     expect(newCount).toBe(initialCount + 1);
   });
 
-  test('should show add OLT button inside etat actuel card', async ({ referentPage: page }) => {
+  test('should show add NE button inside expanded OLT', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -983,12 +971,12 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Expand first etat actuel to reveal OLT content
-    await page.locator('.olt-section-header').first().click();
+    // Expand first OLT to reveal NE content (flat structure: OLTs are top-level)
+    await page.locator('.olt-content .olt-section-header').first().click();
     await page.waitForTimeout(500);
 
-    const addOltBtn = page.locator('.olt-expanded-content .add-item-btn').first();
-    await expect(addOltBtn).toBeVisible();
+    const addNeBtn = page.locator('.olt-expanded-content .add-item-btn').first();
+    await expect(addNeBtn).toBeVisible();
   });
 
   test('should create an OLT via inline form', async ({ referentPage: page }) => {
@@ -998,12 +986,12 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
+    await switchToOltTab(page, enjeuxPage);
 
-    const initialOltCount = await page.locator('.olt-expanded-content .olt-section-header').count();
+    const initialOltCount = await page.locator('.olt-content .olt-section-header').count();
 
-    // Click add OLT button inside first etat card
-    await page.locator('.olt-expanded-content .add-item-btn').first().click();
+    // Click add OLT button (top-level, flat structure)
+    await page.locator('.olt-content > .add-item-btn').click();
     await page.waitForTimeout(300);
 
     const form = page.locator('.olt-inline-form');
@@ -1012,7 +1000,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
-    const newOltCount = await page.locator('.olt-expanded-content .olt-section-header').count();
+    const newOltCount = await page.locator('.olt-content .olt-section-header').count();
     expect(newOltCount).toBe(initialOltCount + 1);
   });
 
@@ -1023,13 +1011,13 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
+    await switchToOltTab(page, enjeuxPage);
 
-    // Expand first OLT inside expanded etat
-    await page.locator('.olt-expanded-content .olt-section-header').first().click();
+    // Expand first OLT (flat structure: OLTs are top-level)
+    await page.locator('.olt-content .olt-section-header').first().click();
     await page.waitForTimeout(300);
 
-    const addNeBtn = page.locator('.ne-content .add-item-btn, .olt-expanded-content .add-item-btn').first();
+    const addNeBtn = page.locator('.olt-expanded-content .add-item-btn').first();
     await expect(addNeBtn).toBeVisible();
   });
 
@@ -1040,19 +1028,19 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
+    await switchToOltTab(page, enjeuxPage);
 
-    // Expand first OLT inside expanded etat
-    await page.locator('.olt-expanded-content .olt-section-header').first().click();
+    // Expand first OLT (flat structure: OLTs are top-level)
+    await page.locator('.olt-content .olt-section-header').first().click();
     await page.waitForTimeout(300);
 
     const initialNeCount = await page.locator('.ne-card').count();
 
-    // Click add NE button
-    await page.locator('.ne-content .add-item-btn, .olt-expanded-content .add-item-btn').first().click();
+    // Click add NE button inside expanded OLT
+    await page.locator('.olt-expanded-content .add-item-btn').first().click();
     await page.waitForTimeout(300);
 
-    const form = page.locator('.inline-form');
+    const form = page.locator('.ne-inline-form');
     await expect(form).toBeVisible();
     await form.locator('input[matInput]').fill('E2E Temp NE');
     await form.locator('button[mat-flat-button]').click();
@@ -1069,20 +1057,20 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
+    await switchToOltTab(page, enjeuxPage);
 
     // First create a temp OLT so we don't delete seeded data
-    await page.locator('.olt-expanded-content .add-item-btn').first().click();
+    await page.locator('.olt-content > .add-item-btn').click();
     await page.waitForTimeout(300);
     const form = page.locator('.olt-inline-form');
     await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
-    const countAfterAdd = await page.locator('.olt-expanded-content .olt-section-header').count();
+    const countAfterAdd = await page.locator('.olt-content .olt-section-header').count();
 
-    // Delete the last OLT
-    const lastOlt = page.locator('.olt-expanded-content .olt-section-header').last();
+    // Delete the last OLT (flat structure: OLTs are top-level)
+    const lastOlt = page.locator('.olt-content .olt-section-header').last();
     await lastOlt.locator('[data-testid="delete-olt"]').click(); // delete button
     await page.waitForTimeout(300);
 
@@ -1090,11 +1078,11 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.confirmDelete();
     await page.waitForTimeout(1000);
 
-    const countAfterDelete = await page.locator('.olt-expanded-content .olt-section-header').count();
+    const countAfterDelete = await page.locator('.olt-content .olt-section-header').count();
     expect(countAfterDelete).toBe(countAfterAdd - 1);
   });
 
-  test('should delete an etat actuel after confirmation', async ({ referentPage: page }) => {
+  test('should delete a newly created OLT after confirmation', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -1103,26 +1091,26 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // First create a temp etat actuel
+    // First create a temp OLT
     await page.locator('.olt-content > .add-item-btn').click();
     await page.waitForTimeout(300);
     const form = page.locator('.olt-inline-form');
-    await form.locator('input[matInput]').fill('E2E Temp État - À Supprimer');
+    await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer 2');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
-    const countAfterAdd = await page.locator('.olt-section-header').count();
+    const countAfterAdd = await page.locator('.olt-content .olt-section-header').count();
 
-    // Delete the last etat (our temp one)
-    const lastEtat = page.locator('.olt-section-header').last();
-    await lastEtat.locator('[data-testid="delete-etat"]').click(); // delete button
+    // Delete the last OLT (our temp one)
+    const lastOlt = page.locator('.olt-content .olt-section-header').last();
+    await lastOlt.locator('[data-testid="delete-olt"]').click(); // delete button
     await page.waitForTimeout(300);
 
     // Confirm
     await enjeuxPage.confirmDelete();
     await page.waitForTimeout(1000);
 
-    const countAfterDelete = await page.locator('.olt-section-header').count();
+    const countAfterDelete = await page.locator('.olt-content .olt-section-header').count();
     expect(countAfterDelete).toBe(countAfterAdd - 1);
   });
 
@@ -1133,10 +1121,10 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.gotoDetail(plan.slug, enjeu.slug);
     await enjeuxPage.waitForData();
 
-    await switchToOltAndExpandFirstEtat(page, enjeuxPage);
+    await switchToOltTab(page, enjeuxPage);
 
-    // Click edit on first OLT
-    const firstOlt = page.locator('.olt-expanded-content .olt-section-header').first();
+    // Click edit on first OLT (flat structure: OLTs are top-level)
+    const firstOlt = page.locator('.olt-content .olt-section-header').first();
     await firstOlt.locator('button:has(i.fi-rr-pencil)').click(); // edit button
     await page.waitForTimeout(300);
 

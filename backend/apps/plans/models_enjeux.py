@@ -430,6 +430,17 @@ class Pression(models.Model):
         null=True,
         help_text=_("Référence vers un référentiel de pressions (futur)")
     )
+    id_type_pression = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pressions_type',
+        db_column='id_type_pression',
+        verbose_name=_("Type de pression (PressRef)"),
+        help_text=_("Référence PressRef CARET V1"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_PRESSION'}
+    )
     libelle = models.CharField(
         _("Intitulé"),
         max_length=500,

@@ -29,22 +29,13 @@ import { SuiviInventaireDetail, SuiviInventaireCreatePayload } from '../../../co
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../core/models/campanule.model';
 
-/** Nomenclature option with grouping info */
-interface NomenclatureOption {
-  id_nomenclature: number;
-  mnemonique: string;
-  cd_nomenclature?: string;
-  label: string;
-  definition?: string;
-  hierarchy?: string;
-  group_label?: string;
-}
-
-/** Grouped nomenclature for mat-optgroup display */
-interface NomenclatureGroup {
-  groupLabel: string;
-  options: NomenclatureOption[];
-}
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+} from '../../../shared/utils/nomenclature-autocomplete.utils';
 
 @Component({
   selector: 'app-inventaire-form',
@@ -196,12 +187,7 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
-  displayTypeActionFn(option: NomenclatureOption | string | null): string {
-    if (!option) return '';
-    if (typeof option === 'string') return option;
-    const code = option.cd_nomenclature || option.mnemonique || '';
-    return `${code} - ${option.label}`;
-  }
+  displayTypeActionFn = displayNomenclatureFn;
 
   onTypeActionSelected(option: NomenclatureOption): void {
     this.selectedTypeAction.set(option);
@@ -214,52 +200,10 @@ export class InventaireFormComponent implements OnInit {
     this.form.get('id_type_action')?.setValue(null);
   }
 
-  getActionDepth(option: NomenclatureOption): number {
-    const code = option.cd_nomenclature || option.mnemonique || '';
-    return (code.match(/\./g) || []).length;
-  }
+  getActionDepth = getNomenclatureDepth;
 
-  /**
-   * Construit les groupes filtrés pour l'autocomplete type d'action.
-   * Si le terme de recherche matche un nom de groupe, toutes les options
-   * de ce groupe sont affichées.
-   */
   private buildActionGroups(options: NomenclatureOption[], searchText: string): NomenclatureGroup[] {
-    const searchTerm = searchText.toLowerCase();
-
-    const allGroups = new Map<string, NomenclatureOption[]>();
-    for (const opt of options) {
-      const groupKey = opt.group_label || '';
-      if (!allGroups.has(groupKey)) {
-        allGroups.set(groupKey, []);
-      }
-      allGroups.get(groupKey)!.push(opt);
-    }
-
-    if (!searchTerm) {
-      const groups: NomenclatureGroup[] = [];
-      for (const [groupLabel, opts] of allGroups) {
-        groups.push({ groupLabel, options: opts });
-      }
-      return groups;
-    }
-
-    const groups: NomenclatureGroup[] = [];
-    for (const [groupLabel, opts] of allGroups) {
-      if (groupLabel.toLowerCase().includes(searchTerm)) {
-        groups.push({ groupLabel, options: opts });
-      } else {
-        const filtered = opts.filter(opt => {
-          const code = opt.cd_nomenclature || opt.mnemonique || '';
-          return code.toLowerCase().includes(searchTerm)
-            || opt.label.toLowerCase().includes(searchTerm);
-        });
-        if (filtered.length > 0) {
-          groups.push({ groupLabel, options: filtered });
-        }
-      }
-    }
-    return groups;
+    return buildNomenclatureGroups(options, searchText);
   }
 
   private restoreTypeActionAutocomplete(typeActionId: number, options?: NomenclatureOption[]): void {

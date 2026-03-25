@@ -309,11 +309,15 @@ class PressionSerializer(serializers.ModelSerializer):
     objectifs_operationnels = ObjectifOperationnelSerializer(many=True, read_only=True)
     nb_objectifs_operationnels = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
+    pressref_code = serializers.CharField(source='id_type_pression.cd_nomenclature', read_only=True, default=None)
+    pressref_label = serializers.CharField(source='id_type_pression.label', read_only=True, default=None)
+    pressref_definition = serializers.CharField(source='id_type_pression.definition', read_only=True, default=None)
 
     class Meta:
         model = Pression
         fields = [
             'id_pression', 'id_facteur_influence', 'id_pressref',
+            'id_type_pression', 'pressref_code', 'pressref_label', 'pressref_definition',
             'libelle', 'description',
             'objectifs_operationnels', 'nb_objectifs_operationnels',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -331,7 +335,7 @@ class PressionCreateSerializer(serializers.ModelSerializer):
         model = Pression
         fields = [
             'id_pression', 'id_facteur_influence', 'id_pressref',
-            'libelle', 'description'
+            'id_type_pression', 'libelle', 'description'
         ]
         read_only_fields = ['id_pression']
 

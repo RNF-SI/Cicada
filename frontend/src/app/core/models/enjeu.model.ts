@@ -137,6 +137,10 @@ export interface Pression {
   id_pression: number;
   id_facteur_influence: number;
   id_pressref?: string;
+  id_type_pression?: number;
+  pressref_code?: string;
+  pressref_label?: string;
+  pressref_definition?: string;
   libelle: string;
   description?: string;
   objectifs_operationnels?: ObjectifOperationnel[];
@@ -175,6 +179,7 @@ export interface FacteurInfluenceCreatePayload {
  */
 export interface PressionCreatePayload {
   id_facteur_influence: number;
+  id_type_pression?: number;
   libelle: string;
   description?: string;
 }

@@ -2335,7 +2335,12 @@
       "editTitle": "Modifier la pression",
       "createSuccess": "Pression créée avec succès",
       "updateSuccess": "Pression mise à jour avec succès",
-      "deleteSuccess": "Pression supprimée avec succès"
+      "deleteSuccess": "Pression supprimée avec succès",
+      "pressrefLabel": "Type de pression (PressRef)",
+      "pressrefPlaceholder": "Rechercher un type de pression...",
+      "pressrefHint": "Optionnel - Référentiel PressRef CARET V1",
+      "pressrefDefinition": "DÉFINITION PRESSREF",
+      "pressrefExamples": "EXEMPLES EN AIRES PROTÉGÉES"
     },
     "indicateurs": {
       "label": "Indicateur d'état",

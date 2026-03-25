@@ -59,6 +59,13 @@ class EnjeuxSeeder(BaseSeeder):
             mnemonique=mnemonique
         ).first()
 
+    def _get_pressref(self, cd_nomenclature: str) -> Nomenclature:
+        """Récupère une nomenclature PressRef par son code."""
+        return Nomenclature.objects.filter(
+            id_type__mnemonique='TYPE_PRESSION',
+            cd_nomenclature=cd_nomenclature
+        ).first()
+
     def seed(self) -> dict:
         """
         Crée les enjeux, FCR et responsabilités de test.
@@ -1110,6 +1117,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Endiguement du Rhône',
                 defaults={
                     'description': 'Les digues limitent les échanges naturels entre le fleuve et les marais.',
+                    'id_type_pression': self._get_pressref('2.1.1'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1120,6 +1128,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Pompages agricoles',
                 defaults={
                     'description': 'Les prélèvements d\'eau pour la riziculture réduisent les niveaux des nappes.',
+                    'id_type_pression': self._get_pressref('2.1.1'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1141,6 +1150,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Extension des zones bâties',
                 defaults={
                     'description': 'Construction de lotissements et infrastructures touristiques.',
+                    'id_type_pression': self._get_pressref('1.1'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1165,6 +1175,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Dérangement en période de nidification',
                 defaults={
                     'description': 'Survol de drones et approche des photographes perturbant les colonies.',
+                    'id_type_pression': self._get_pressref('1.4.2'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1175,6 +1186,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Bruit des activités nautiques',
                 defaults={
                     'description': 'Navigation motorisée à proximité des zones de repos.',
+                    'id_type_pression': self._get_pressref('2.4'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1199,6 +1211,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Remontée de la limite forestière',
                 defaults={
                     'description': 'Les arbustes colonisent progressivement les pelouses d\'altitude.',
+                    'id_type_pression': self._get_pressref('3.3'),
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -1220,6 +1233,7 @@ class EnjeuxSeeder(BaseSeeder):
                 libelle='Érosion des sentiers de randonnée',
                 defaults={
                     'description': 'Plus de 500 passages par jour en haute saison sur certains sentiers.',
+                    'id_type_pression': self._get_pressref('1.3.1'),
                     'id_utilisateur_ajout': admin
                 }
             )

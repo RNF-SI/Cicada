@@ -15,7 +15,8 @@ export class OperationFormPage {
 
   // Main card
   readonly libelleInput: Locator;
-  readonly typeActionSelect: Locator;
+  readonly typeActionInput: Locator;
+  readonly typeActionClearBtn: Locator;
   readonly metriqueSelect: Locator;
   readonly prioriteRadioGroup: Locator;
 
@@ -88,7 +89,9 @@ export class OperationFormPage {
 
     // Main card — formControlName selectors
     this.libelleInput = page.locator('input[formControlName="libelle"]');
-    this.typeActionSelect = page.locator('mat-select[formControlName="id_type_action"]');
+    this.typeActionInput = page.locator('input[matAutocomplete="autoTypeAction"], input[ng-reflect-mat-autocomplete]').first()
+      .or(page.locator('mat-form-field').filter({ hasText: /type d'action/i }).locator('input[matInput]'));
+    this.typeActionClearBtn = page.locator('mat-form-field').filter({ hasText: /type d'action/i }).locator('button[matSuffix]');
     this.metriqueSelect = page.locator('mat-select[formControlName="id_metrique"]');
     this.prioriteRadioGroup = page.locator('mat-radio-group[formControlName="id_priorite"]');
 
@@ -165,11 +168,13 @@ export class OperationFormPage {
     await this.page.goto(`/plans/${planSlug}/enjeux/operations/${operationId}/modifier`);
   }
 
-  /** Wait for form to be loaded (spinner gone, form visible). */
+  /** Wait for form to be loaded (spinner gone, form visible, sections rendered). */
   async waitForForm() {
     await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await this.page.locator('form[formGroup]').or(this.libelleInput).or(this.errorBanner)
-      .first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    await this.libelleInput.or(this.errorBanner)
+      .first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    // Wait for section headers to render (indicates form + nomenclatures loaded)
+    await this.sectionProtocole.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   }
 
   /** Fill the libelle field. */
@@ -178,10 +183,22 @@ export class OperationFormPage {
     await this.libelleInput.fill(text);
   }
 
-  /** Select the first available type d'action option. */
+  /** Select the first available type d'action option from the autocomplete. */
   async selectFirstTypeAction() {
-    await this.typeActionSelect.click();
-    await this.page.locator('mat-option').filter({ hasNotText: '—' }).first().click();
+    await this.typeActionInput.click();
+    await this.typeActionInput.fill('');
+    await this.page.waitForTimeout(300);
+    await this.page.locator('.type-action-autocomplete mat-option').first().waitFor({ state: 'visible', timeout: 5000 });
+    await this.page.locator('.type-action-autocomplete mat-option').first().click();
+  }
+
+  /** Search and select a type d'action by text. */
+  async selectTypeAction(searchText: string) {
+    await this.typeActionInput.click();
+    await this.typeActionInput.fill(searchText);
+    await this.page.waitForTimeout(300);
+    await this.page.locator('.type-action-autocomplete mat-option').first().waitFor({ state: 'visible', timeout: 5000 });
+    await this.page.locator('.type-action-autocomplete mat-option').first().click();
   }
 
   /** Select a priority radio button by index (0-based). */

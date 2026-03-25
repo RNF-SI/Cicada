@@ -6,7 +6,7 @@
 import { Component, OnInit, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, Observable } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -34,6 +35,13 @@ import {
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+} from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
 type TabType = 'detail' | 'olt' | 'operations';
 
@@ -44,7 +52,9 @@ type TabType = 'detail' | 'olt' | 'operations';
     CommonModule,
     RouterModule,
     FormsModule,
+    ReactiveFormsModule,
     MatProgressSpinnerModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatMenuModule,
     MatIconModule,
@@ -113,6 +123,24 @@ export class EnjeuxListComponent implements OnInit {
   editingPressionId = signal<number | null>(null);
   editPressionLibelle = '';
   editPressionDescription = '';
+
+  // PressRef autocomplete state
+  pressrefOptions = signal<NomenclatureOption[]>([]);
+  pressrefSearchCtrl = new FormControl('');
+  pressrefSearchText = signal('');
+  selectedPressref = signal<NomenclatureOption | null>(null);
+  pressrefGroups = computed<NomenclatureGroup[]>(() => {
+    return buildNomenclatureGroups(this.pressrefOptions(), this.pressrefSearchText());
+  });
+  displayPressrefFn = displayNomenclatureFn;
+  getPressrefDepth = getNomenclatureDepth;
+  // Edit mode PressRef
+  editPressrefSearchCtrl = new FormControl('');
+  editPressrefSearchText = signal('');
+  editSelectedPressref = signal<NomenclatureOption | null>(null);
+  editPressrefGroups = computed<NomenclatureGroup[]>(() => {
+    return buildNomenclatureGroups(this.pressrefOptions(), this.editPressrefSearchText());
+  });
 
   // OLT / Niveaux d'exigence state
   expandedOltIds = signal<Set<number>>(new Set());
@@ -294,6 +322,20 @@ export class EnjeuxListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Charger les nomenclatures PressRef
+    this.adminService.getNomenclaturesByType('TYPE_PRESSION').subscribe({
+      next: (options) => this.pressrefOptions.set(options),
+      error: () => this.pressrefOptions.set([])
+    });
+
+    // Initialiser les subscriptions autocomplete PressRef
+    this.pressrefSearchCtrl.valueChanges.subscribe(val => {
+      if (typeof val === 'string') this.pressrefSearchText.set(val);
+    });
+    this.editPressrefSearchCtrl.valueChanges.subscribe(val => {
+      if (typeof val === 'string') this.editPressrefSearchText.set(val);
+    });
+
     // Récupérer le slug du plan depuis les paramètres parent
     const parentParams = this.route.parent?.snapshot.paramMap;
     const slug = parentParams?.get('slug');
@@ -635,12 +677,50 @@ export class EnjeuxListComponent implements OnInit {
     this.addingPressionForFacteur.set(facteurId);
     this.newPressionLibelle = '';
     this.newPressionDescription = '';
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.pressrefSearchText.set('');
   }
 
   cancelAddPression(): void {
     this.addingPressionForFacteur.set(null);
     this.newPressionLibelle = '';
     this.newPressionDescription = '';
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.pressrefSearchText.set('');
+  }
+
+  onPressrefSelected(option: NomenclatureOption): void {
+    this.selectedPressref.set(option);
+    this.newPressionLibelle = option.label;
+  }
+
+  clearPressref(): void {
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('');
+    this.pressrefSearchText.set('');
+  }
+
+  onEditPressrefSelected(option: NomenclatureOption): void {
+    this.editSelectedPressref.set(option);
+    this.editPressionLibelle = option.label;
+  }
+
+  clearEditPressref(): void {
+    this.editSelectedPressref.set(null);
+    this.editPressrefSearchCtrl.setValue('');
+    this.editPressrefSearchText.set('');
+  }
+
+  /** Parse la définition PressRef pour séparer définition et exemples */
+  parsePressrefDefinition(def: string | undefined): { definition: string; examples: string } {
+    if (!def) return { definition: '', examples: '' };
+    const parts = def.split('\\n\\nExemples : ');
+    return {
+      definition: parts[0] || '',
+      examples: parts[1] || ''
+    };
   }
 
   savePression(facteur: FacteurInfluence): void {
@@ -648,6 +728,7 @@ export class EnjeuxListComponent implements OnInit {
 
     this.enjeuService.createPression({
       id_facteur_influence: facteur.id_facteur_influence,
+      id_type_pression: this.selectedPressref()?.id_nomenclature || undefined,
       libelle: this.newPressionLibelle.trim(),
       description: this.newPressionDescription.trim() || undefined
     }).subscribe({
@@ -755,20 +836,40 @@ export class EnjeuxListComponent implements OnInit {
     this.editingPressionId.set(pression.id_pression);
     this.editPressionLibelle = pression.libelle;
     this.editPressionDescription = pression.description || '';
+    // Restaurer la sélection PressRef si elle existe
+    if (pression.id_type_pression) {
+      const match = this.pressrefOptions().find(o => o.id_nomenclature === pression.id_type_pression);
+      if (match) {
+        this.editSelectedPressref.set(match);
+        this.editPressrefSearchCtrl.setValue(displayNomenclatureFn(match), { emitEvent: false });
+      } else {
+        this.editSelectedPressref.set(null);
+        this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+      }
+    } else {
+      this.editSelectedPressref.set(null);
+      this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+    }
+    this.editPressrefSearchText.set('');
   }
 
   cancelEditPression(): void {
     this.editingPressionId.set(null);
     this.editPressionLibelle = '';
     this.editPressionDescription = '';
+    this.editSelectedPressref.set(null);
+    this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.editPressrefSearchText.set('');
   }
 
   saveEditPression(pression: Pression): void {
     if (!this.editPressionLibelle.trim()) return;
     const newLibelle = this.editPressionLibelle.trim();
     const newDescription = this.editPressionDescription.trim() || undefined;
+    const newTypePression = this.editSelectedPressref()?.id_nomenclature || null;
 
     this.enjeuService.updatePression(pression.id_pression, {
+      id_type_pression: newTypePression as any,
       libelle: newLibelle,
       description: newDescription
     }).subscribe({
@@ -779,20 +880,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditPression();
-        const enjeu = this.selectedEnjeu();
-        if (enjeu) {
-          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-            ...e,
-            facteurs_influence: (e.facteurs_influence || []).map(f => ({
-              ...f,
-              pressions: (f.pressions || []).map(p =>
-                p.id_pression === pression.id_pression
-                  ? { ...p, libelle: newLibelle, description: newDescription }
-                  : p
-              ),
-            })),
-          })));
-        }
+        this.loadPlanData();
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));

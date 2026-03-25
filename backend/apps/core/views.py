@@ -79,6 +79,12 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
                 item['group_label'] = get_action_group(
                     item.get('cd_nomenclature', '')
                 )
+        elif type_param == 'TYPE_PRESSION':
+            from .pressure_type_groups import get_pressure_group
+            for item in response.data:
+                item['group_label'] = get_pressure_group(
+                    item.get('cd_nomenclature', '')
+                )
         return response
 
 

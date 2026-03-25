@@ -63,6 +63,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         'taxons', 'habitats', 'geologies',
         'facteurs_influence', 'facteurs_influence__pressions',
+        'facteurs_influence__pressions__id_type_pression',
         'facteurs_influence__id_utilisateur_ajout',
         'facteurs_influence__pressions__id_utilisateur_ajout',
         'objectifs_long_terme', 'objectifs_long_terme__id_utilisateur_ajout',
@@ -536,7 +537,8 @@ class PressionViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Pression.objects.select_related(
-        'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj',
+        'id_type_pression'
     ).prefetch_related(
         'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
         'objectifs_operationnels__id_pression',
