@@ -381,6 +381,10 @@
                                     <h4 class="inline-form-title">{{ 'enjeux.pression.editTitle' | translate }}</h4>
                                   </div>
                                   <div class="inline-form-body">
+                                    <mat-form-field class="full-width" appearance="outline">
+                                      <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
+                                      <input matInput [(ngModel)]="editPressionLibelle">
+                                    </mat-form-field>
                                     <!-- PressRef autocomplete (edit) -->
                                     <mat-form-field appearance="outline" class="full-width">
                                       <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
@@ -400,19 +404,20 @@
                                         @for (group of editPressrefGroups(); track group.groupLabel) {
                                           <mat-optgroup [label]="group.groupLabel">
                                             @for (press of group.options; track press.id_nomenclature) {
-                                              <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)">
-                                                <span class="action-code">{{ press.cd_nomenclature }}</span>
-                                                <span class="action-label">{{ press.label }}</span>
+                                              <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)" class="pressref-option">
+                                                <div class="pressref-option-main">
+                                                  <span class="action-code">{{ press.cd_nomenclature }}</span>
+                                                  <span class="action-label">{{ press.label }}</span>
+                                                </div>
+                                                @if (parsePressrefDefinition(press.definition).examples) {
+                                                  <div class="pressref-option-examples">{{ parsePressrefDefinition(press.definition).examples }}</div>
+                                                }
                                               </mat-option>
                                             }
                                           </mat-optgroup>
                                         }
                                       </mat-autocomplete>
                                       <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
-                                    </mat-form-field>
-                                    <mat-form-field class="full-width" appearance="outline">
-                                      <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
-                                      <input matInput [(ngModel)]="editPressionLibelle">
                                     </mat-form-field>
                                     <mat-form-field class="full-width" appearance="outline">
                                       <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
@@ -433,12 +438,17 @@
                             <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
                               <div class="pression-card-left">
                                 <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
-                                <h4 class="pression-card-title">
+                                <div class="pression-card-title-block">
+                                  <h4 class="pression-card-title">
+                                    {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
+                                  </h4>
                                   @if (pression.pressref_code) {
-                                    <span class="pressref-code">{{ pression.pressref_code }}</span>
+                                    <div class="pression-card-type">
+                                      <span class="pressref-code">{{ pression.pressref_code }}</span>
+                                      <span class="pressref-label">{{ pression.pressref_label }}</span>
+                                    </div>
                                   }
-                                  {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
-                                </h4>
+                                </div>
                               </div>
                               <div class="pression-card-actions">
                                 <button class="icon-btn-flat" (click)="startEditPression(pression); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
@@ -489,6 +499,10 @@
                               <h4 class="inline-form-title">{{ 'enjeux.pression.newTitle' | translate }}</h4>
                             </div>
                             <div class="inline-form-body">
+                              <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="newPressionLibelle">
+                              </mat-form-field>
                               <!-- PressRef autocomplete -->
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
@@ -508,19 +522,20 @@
                                   @for (group of pressrefGroups(); track group.groupLabel) {
                                     <mat-optgroup [label]="group.groupLabel">
                                       @for (press of group.options; track press.id_nomenclature) {
-                                        <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)">
-                                          <span class="action-code">{{ press.cd_nomenclature }}</span>
-                                          <span class="action-label">{{ press.label }}</span>
+                                        <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)" class="pressref-option">
+                                          <div class="pressref-option-main">
+                                            <span class="action-code">{{ press.cd_nomenclature }}</span>
+                                            <span class="action-label">{{ press.label }}</span>
+                                          </div>
+                                          @if (parsePressrefDefinition(press.definition).examples) {
+                                            <div class="pressref-option-examples">{{ parsePressrefDefinition(press.definition).examples }}</div>
+                                          }
                                         </mat-option>
                                       }
                                     </mat-optgroup>
                                   }
                                 </mat-autocomplete>
                                 <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
-                              </mat-form-field>
-                              <mat-form-field appearance="outline" class="full-width">
-                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="newPressionLibelle">
                               </mat-form-field>
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>

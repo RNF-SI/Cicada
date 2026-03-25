@@ -41,6 +41,7 @@ import {
   buildNomenclatureGroups,
   getNomenclatureDepth,
   displayNomenclatureFn,
+  parseNomenclatureDefinition,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
 type TabType = 'detail' | 'olt' | 'operations';
@@ -130,7 +131,7 @@ export class EnjeuxListComponent implements OnInit {
   pressrefSearchText = signal('');
   selectedPressref = signal<NomenclatureOption | null>(null);
   pressrefGroups = computed<NomenclatureGroup[]>(() => {
-    return buildNomenclatureGroups(this.pressrefOptions(), this.pressrefSearchText());
+    return buildNomenclatureGroups(this.pressrefOptions(), this.pressrefSearchText(), { searchInDefinition: true });
   });
   displayPressrefFn = displayNomenclatureFn;
   getPressrefDepth = getNomenclatureDepth;
@@ -139,7 +140,7 @@ export class EnjeuxListComponent implements OnInit {
   editPressrefSearchText = signal('');
   editSelectedPressref = signal<NomenclatureOption | null>(null);
   editPressrefGroups = computed<NomenclatureGroup[]>(() => {
-    return buildNomenclatureGroups(this.pressrefOptions(), this.editPressrefSearchText());
+    return buildNomenclatureGroups(this.pressrefOptions(), this.editPressrefSearchText(), { searchInDefinition: true });
   });
 
   // OLT / Niveaux d'exigence state
@@ -693,7 +694,10 @@ export class EnjeuxListComponent implements OnInit {
 
   onPressrefSelected(option: NomenclatureOption): void {
     this.selectedPressref.set(option);
-    this.newPressionLibelle = option.label;
+    // Pré-remplir l'intitulé seulement s'il est vide
+    if (!this.newPressionLibelle.trim()) {
+      this.newPressionLibelle = option.label;
+    }
   }
 
   clearPressref(): void {
@@ -704,7 +708,6 @@ export class EnjeuxListComponent implements OnInit {
 
   onEditPressrefSelected(option: NomenclatureOption): void {
     this.editSelectedPressref.set(option);
-    this.editPressionLibelle = option.label;
   }
 
   clearEditPressref(): void {
@@ -713,15 +716,7 @@ export class EnjeuxListComponent implements OnInit {
     this.editPressrefSearchText.set('');
   }
 
-  /** Parse la définition PressRef pour séparer définition et exemples */
-  parsePressrefDefinition(def: string | undefined): { definition: string; examples: string } {
-    if (!def) return { definition: '', examples: '' };
-    const parts = def.split('\\n\\nExemples : ');
-    return {
-      definition: parts[0] || '',
-      examples: parts[1] || ''
-    };
-  }
+  parsePressrefDefinition = parseNomenclatureDefinition;
 
   savePression(facteur: FacteurInfluence): void {
     if (!this.newPressionLibelle.trim()) return;

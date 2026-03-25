@@ -900,5 +900,32 @@ body.leaflet-map-fullscreen-active {
       padding-left: calc(#{$spacing-xl} + 2 * #{$spacing-lg});
       .action-label { font-size: 11.5px; color: $gray-dark; }
     }
+
+    // Options PressRef avec exemples
+    &.pressref-option {
+      min-height: auto;
+      padding-top: $spacing-xs;
+      padding-bottom: $spacing-xs;
+      line-height: 1.4;
+
+      .pressref-option-main {
+        display: flex;
+        align-items: center;
+      }
+
+      .pressref-option-examples {
+        font-size: 11px;
+        color: $gray-dark;
+        font-style: italic;
+        margin-top: 2px;
+        white-space: normal;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+    }
   }
 }

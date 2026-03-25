@@ -18,6 +18,11 @@ export interface NomenclatureGroup {
   options: NomenclatureOption[];
 }
 
+export interface BuildNomenclatureGroupsOptions {
+  /** Chercher aussi dans le champ definition (exemples, etc.) */
+  searchInDefinition?: boolean;
+}
+
 /**
  * Construit les groupes filtrés pour un autocomplete de nomenclatures.
  * Si le terme de recherche matche un nom de groupe, toutes les options
@@ -25,9 +30,11 @@ export interface NomenclatureGroup {
  */
 export function buildNomenclatureGroups(
   options: NomenclatureOption[],
-  searchText: string
+  searchText: string,
+  opts?: BuildNomenclatureGroupsOptions
 ): NomenclatureGroup[] {
   const searchTerm = searchText.toLowerCase();
+  const searchDef = opts?.searchInDefinition ?? false;
 
   // 1) Construire tous les groupes avec toutes leurs options
   const allGroups = new Map<string, NomenclatureOption[]>();
@@ -42,8 +49,8 @@ export function buildNomenclatureGroups(
   // 2) Si pas de recherche, tout afficher
   if (!searchTerm) {
     const groups: NomenclatureGroup[] = [];
-    for (const [groupLabel, opts] of allGroups) {
-      groups.push({ groupLabel, options: opts });
+    for (const [groupLabel, grpOpts] of allGroups) {
+      groups.push({ groupLabel, options: grpOpts });
     }
     return groups;
   }
@@ -51,16 +58,18 @@ export function buildNomenclatureGroups(
   // 3) Filtrer : si le titre du groupe matche → afficher toutes ses options
   //    sinon → afficher seulement les options qui matchent
   const groups: NomenclatureGroup[] = [];
-  for (const [groupLabel, opts] of allGroups) {
+  for (const [groupLabel, grpOpts] of allGroups) {
     const groupMatches = groupLabel.toLowerCase().includes(searchTerm);
 
     if (groupMatches) {
-      groups.push({ groupLabel, options: opts });
+      groups.push({ groupLabel, options: grpOpts });
     } else {
-      const filtered = opts.filter(opt => {
+      const filtered = grpOpts.filter(opt => {
         const code = opt.cd_nomenclature || opt.mnemonique || '';
-        return code.toLowerCase().includes(searchTerm)
-          || opt.label.toLowerCase().includes(searchTerm);
+        if (code.toLowerCase().includes(searchTerm)) return true;
+        if (opt.label.toLowerCase().includes(searchTerm)) return true;
+        if (searchDef && opt.definition?.toLowerCase().includes(searchTerm)) return true;
+        return false;
       });
       if (filtered.length > 0) {
         groups.push({ groupLabel, options: filtered });
@@ -68,6 +77,21 @@ export function buildNomenclatureGroups(
     }
   }
   return groups;
+}
+
+/**
+ * Parse une définition de nomenclature contenant des exemples.
+ * Format attendu : "Définition...\n\nExemples : Exemple1, Exemple2"
+ */
+export function parseNomenclatureDefinition(def: string | undefined): { definition: string; examples: string } {
+  if (!def) return { definition: '', examples: '' };
+  const delimiter = '\\n\\nExemples : ';
+  const idx = def.indexOf(delimiter);
+  if (idx === -1) return { definition: def, examples: '' };
+  return {
+    definition: def.substring(0, idx),
+    examples: def.substring(idx + delimiter.length)
+  };
 }
 
 /** Profondeur d'indentation basée sur les points dans le code (1=0, 1.1=1, 1.1.1=2) */
