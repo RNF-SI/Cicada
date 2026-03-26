@@ -37,6 +37,11 @@
               "src/styles.scss"
             ],
             "scripts": [],
+            "optimization": {
+              "scripts": true,
+              "styles": true,
+              "fonts": false
+            },
             "stylePreprocessorOptions": {
               "includePaths": ["src/assets/scss"]
             }
