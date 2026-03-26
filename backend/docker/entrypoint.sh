@@ -9,15 +9,14 @@ if [ "$(id -u)" = "0" ]; then
     exec gosu cicada "$0" "$@"
 fi
 
-# Si une commande custom est passée (via docker-compose command:),
-# on l'exécute directement sans l'initialisation complète.
-# L'initialisation (migrate, import, etc.) est gérée par la command: elle-même.
-if [ "$#" -gt 0 ]; then
-    echo "=== Exécution de la commande : $@ ==="
+# Si la commande est celery (worker ou beat), l'exécuter directement sans init.
+# Les workers n'ont pas besoin de migrer — seul le conteneur web le fait.
+if [ "$#" -gt 0 ] && echo "$1" | grep -q "celery"; then
+    echo "=== Exécution Celery : $@ ==="
     exec "$@"
 fi
 
-# --- Initialisation complète (CMD par défaut du Dockerfile) ---
+# --- Initialisation (toujours exécutée pour web/gunicorn/runserver) ---
 
 echo "=== Initialisation de l'application Django ==="
 
@@ -68,11 +67,14 @@ fi
 wait_for_db
 wait_for_redis
 
-echo "=== Vérification des migrations ==="
-python manage.py showmigrations
-
 echo "=== Application des migrations ==="
 python manage.py migrate --noinput
+
+echo "=== Import des nomenclatures ==="
+python manage.py import_nomenclatures || echo "WARN: import_nomenclatures a échoué (non bloquant)"
+
+echo "=== Import HabRef ==="
+python manage.py import_habref || echo "WARN: import_habref a échoué (non bloquant)"
 
 echo "=== Collecte des fichiers statiques ==="
 python manage.py collectstatic --noinput --clear
@@ -99,14 +101,11 @@ else:
 "
 fi
 
-# Chargement des données de test/référence en développement
-if [ "$DEBUG" = "True" ] && [ "$LOAD_FIXTURES" = "True" ]; then
-    echo "=== Chargement des données de référence ==="
-    # Les fixtures seront ajoutées plus tard
-    # python manage.py loaddata fixtures/dev_data.json
-fi
-
 echo "=== Initialisation terminée ==="
 
-# Commande par défaut : lancer le serveur
-exec python manage.py runserver 0.0.0.0:8000
+# Lancer la commande passée (gunicorn en prod) ou runserver par défaut
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+else
+    exec python manage.py runserver 0.0.0.0:8000
+fi
