@@ -1,0 +1,307 @@
+#!/bin/bash
+# =============================================================================
+# cicada-prepare-db — Prépare une base PostgreSQL locale pour CICADA
+#
+# Vérifie les prérequis, crée l'utilisateur et la base, exécute init.sql.
+# Idempotent : peut être relancé sans risque.
+#
+# Usage :
+#   sudo cicada-prepare-db                    # Mode interactif
+#   sudo cicada-prepare-db --password SECRET  # Mode non-interactif
+#   sudo cicada-prepare-db --help
+# =============================================================================
+set -e
+
+# --- Configuration par défaut ---
+DB_NAME="cicada"
+DB_USER="cicada_user"
+DB_PASSWORD=""
+DB_PORT="5432"
+INIT_SQL="/usr/share/cicada/docker/postgres/init.sql"
+LOCALE="fr_FR.UTF-8"
+NON_INTERACTIVE=false
+
+# --- Couleurs ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
+log_fail() { echo -e "  ${RED}✗${NC} $1"; }
+log_warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+log_info() { echo -e "  ${BLUE}→${NC} $1"; }
+
+# --- Aide ---
+usage() {
+    echo "Usage: sudo cicada-prepare-db [OPTIONS]"
+    echo ""
+    echo "Prépare une base PostgreSQL locale pour CICADA."
+    echo "Doit être exécuté en tant que root (sudo)."
+    echo ""
+    echo "Options :"
+    echo "  --db-name NAME       Nom de la base (défaut: $DB_NAME)"
+    echo "  --db-user USER       Nom de l'utilisateur (défaut: $DB_USER)"
+    echo "  --password PASS      Mot de passe (sinon demandé interactivement)"
+    echo "  --port PORT          Port PostgreSQL (défaut: $DB_PORT)"
+    echo "  --init-sql PATH      Chemin vers init.sql (défaut: $INIT_SQL)"
+    echo "  -y, --yes            Mode non-interactif (pas de confirmation)"
+    echo "  -h, --help           Afficher cette aide"
+    exit 0
+}
+
+# --- Parsing des arguments ---
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --db-name)    DB_NAME="$2"; shift 2 ;;
+        --db-user)    DB_USER="$2"; shift 2 ;;
+        --password)   DB_PASSWORD="$2"; shift 2 ;;
+        --port)       DB_PORT="$2"; shift 2 ;;
+        --init-sql)   INIT_SQL="$2"; shift 2 ;;
+        -y|--yes)     NON_INTERACTIVE=true; shift ;;
+        -h|--help)    usage ;;
+        *)            echo "Option inconnue : $1"; usage ;;
+    esac
+done
+
+# --- Vérifications préalables ---
+
+echo ""
+echo -e "${BLUE}=== Préparation de la base PostgreSQL pour CICADA ===${NC}"
+echo ""
+
+# Root requis
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "${RED}Erreur : ce script doit être exécuté en tant que root (sudo).${NC}"
+    echo "Usage : sudo cicada-prepare-db"
+    exit 1
+fi
+
+# PostgreSQL installé
+echo "Vérification des prérequis :"
+if command -v psql >/dev/null 2>&1; then
+    PG_VERSION=$(psql --version | grep -oP '\d+\.\d+')
+    log_ok "PostgreSQL $PG_VERSION installé"
+else
+    log_fail "PostgreSQL non installé"
+    echo ""
+    echo "Installez PostgreSQL 17+ : sudo apt install postgresql-17 postgresql-17-postgis-3"
+    exit 1
+fi
+
+# PostgreSQL actif
+if systemctl is-active --quiet postgresql 2>/dev/null; then
+    log_ok "Service PostgreSQL actif"
+else
+    log_fail "Service PostgreSQL inactif"
+    echo ""
+    echo "Démarrez PostgreSQL : sudo systemctl start postgresql"
+    exit 1
+fi
+
+# PostGIS installé
+if dpkg -l | grep -q "postgresql-.*-postgis-3 "; then
+    POSTGIS_PKG=$(dpkg -l | grep "postgresql-.*-postgis-3 " | awk '{print $2, $3}' | head -1)
+    log_ok "PostGIS installé ($POSTGIS_PKG)"
+else
+    log_fail "PostGIS non installé"
+    echo ""
+    echo "Installez PostGIS : sudo apt install postgresql-17-postgis-3"
+    exit 1
+fi
+
+# init.sql présent
+if [ -f "$INIT_SQL" ]; then
+    SCHEMA_COUNT=$(grep -c 'CREATE SCHEMA IF NOT EXISTS' "$INIT_SQL")
+    log_ok "init.sql trouvé ($SCHEMA_COUNT schémas)"
+else
+    log_fail "init.sql introuvable : $INIT_SQL"
+    echo ""
+    echo "Ce fichier est installé par le package cicada."
+    echo "Vérifiez que le package est bien installé : dpkg -l | grep cicada"
+    exit 1
+fi
+
+# listen_addresses
+LISTEN=$(sudo -u postgres psql -t -c "SHOW listen_addresses;" 2>/dev/null | tr -d ' ')
+if [ "$LISTEN" = "*" ] || echo "$LISTEN" | grep -q "172.17"; then
+    log_ok "PostgreSQL écoute sur les bonnes interfaces ($LISTEN)"
+else
+    log_warn "PostgreSQL écoute sur '$LISTEN' — les conteneurs Docker pourraient ne pas pouvoir se connecter"
+    log_warn "Modifiez listen_addresses='*' dans postgresql.conf et redémarrez PostgreSQL"
+fi
+
+# pg_hba.conf — vérifier que Docker peut se connecter
+HBA_FILE=$(sudo -u postgres psql -t -c "SHOW hba_file;" 2>/dev/null | tr -d ' ')
+if [ -f "$HBA_FILE" ] && grep -qE "0\.0\.0\.0/0|172\.17\." "$HBA_FILE"; then
+    log_ok "pg_hba.conf autorise les connexions Docker"
+else
+    log_warn "pg_hba.conf pourrait ne pas autoriser les connexions Docker (172.17.0.0/16)"
+    log_warn "Ajoutez cette ligne si nécessaire : host all all 172.17.0.0/16 md5"
+fi
+
+echo ""
+
+# --- Mot de passe ---
+
+if [ -z "$DB_PASSWORD" ]; then
+    if [ "$NON_INTERACTIVE" = true ]; then
+        echo -e "${RED}Erreur : --password requis en mode non-interactif${NC}"
+        exit 1
+    fi
+    echo -e "${BLUE}Configuration :${NC}"
+    echo "  Base de données : $DB_NAME"
+    echo "  Utilisateur     : $DB_USER"
+    echo "  Port            : $DB_PORT"
+    echo ""
+    while true; do
+        read -s -p "  Mot de passe pour $DB_USER : " DB_PASSWORD
+        echo ""
+        if [ -z "$DB_PASSWORD" ]; then
+            echo -e "  ${RED}Le mot de passe ne peut pas être vide.${NC}"
+            continue
+        fi
+        read -s -p "  Confirmer le mot de passe : " DB_PASSWORD_CONFIRM
+        echo ""
+        if [ "$DB_PASSWORD" = "$DB_PASSWORD_CONFIRM" ]; then
+            break
+        else
+            echo -e "  ${RED}Les mots de passe ne correspondent pas.${NC}"
+        fi
+    done
+fi
+
+# --- Confirmation ---
+
+if [ "$NON_INTERACTIVE" = false ]; then
+    echo ""
+    echo -e "${YELLOW}Récapitulatif :${NC}"
+    echo "  Base de données : $DB_NAME"
+    echo "  Utilisateur     : $DB_USER"
+    echo "  Port            : $DB_PORT"
+    echo "  init.sql        : $INIT_SQL"
+    echo ""
+    read -p "  Continuer ? [O/n] " CONFIRM
+    if [ "$CONFIRM" = "n" ] || [ "$CONFIRM" = "N" ]; then
+        echo "Annulé."
+        exit 0
+    fi
+fi
+
+echo ""
+echo -e "${BLUE}Création de la base de données...${NC}"
+
+# --- Créer l'utilisateur (idempotent) ---
+
+USER_EXISTS=$(sudo -u postgres psql -t -c "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER';" 2>/dev/null | tr -d ' ')
+if [ "$USER_EXISTS" = "1" ]; then
+    log_ok "Utilisateur '$DB_USER' existe déjà — mise à jour du mot de passe"
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" >/dev/null 2>&1
+else
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" >/dev/null 2>&1
+    log_ok "Utilisateur '$DB_USER' créé"
+fi
+
+# --- Créer la base (idempotent) ---
+
+DB_EXISTS=$(sudo -u postgres psql -t -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';" 2>/dev/null | tr -d ' ')
+if [ "$DB_EXISTS" = "1" ]; then
+    log_ok "Base '$DB_NAME' existe déjà"
+else
+    # Vérifier si la locale est disponible
+    if locale -a 2>/dev/null | grep -q "fr_FR.utf8\|fr_FR.UTF-8"; then
+        sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER ENCODING 'UTF8' LC_COLLATE '$LOCALE' LC_CTYPE '$LOCALE' TEMPLATE template0;" >/dev/null 2>&1
+    else
+        log_warn "Locale $LOCALE non disponible, utilisation de la locale par défaut"
+        sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;" >/dev/null 2>&1
+    fi
+    log_ok "Base '$DB_NAME' créée"
+fi
+
+# --- Exécuter init.sql ---
+
+echo ""
+echo -e "${BLUE}Initialisation des schémas et extensions...${NC}"
+
+INIT_OUTPUT=$(sudo -u postgres psql -d "$DB_NAME" -f "$INIT_SQL" 2>&1)
+INIT_EXIT=$?
+
+if [ $INIT_EXIT -eq 0 ]; then
+    log_ok "init.sql exécuté avec succès"
+else
+    log_fail "Erreur lors de l'exécution de init.sql"
+    echo "$INIT_OUTPUT" | tail -10
+    exit 1
+fi
+
+# --- Vérification finale ---
+
+echo ""
+echo -e "${BLUE}Vérification...${NC}"
+
+# PostGIS activé dans la base
+POSTGIS_OK=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT PostGIS_Version();" 2>/dev/null | tr -d ' ')
+if [ -n "$POSTGIS_OK" ]; then
+    log_ok "PostGIS $POSTGIS_OK activé dans la base"
+else
+    log_fail "PostGIS non activé dans la base"
+fi
+
+# Schémas créés
+SCHEMA_LIST=$(sudo -u postgres psql -t -d "$DB_NAME" -c "
+    SELECT string_agg(nspname, ', ' ORDER BY nspname)
+    FROM pg_namespace
+    WHERE nspname IN ('utilisateurs','referentiels','ref_nomenclatures','ref_geo',
+                      'general','fichiers','ccd_commons','ccd_notifications',
+                      'taxonomie','ref_habitats','ref_inpg','ref_campanule');
+" 2>/dev/null | tr -d ' ')
+SCHEMA_ACTUAL=$(sudo -u postgres psql -t -d "$DB_NAME" -c "
+    SELECT count(*)
+    FROM pg_namespace
+    WHERE nspname IN ('utilisateurs','referentiels','ref_nomenclatures','ref_geo',
+                      'general','fichiers','ccd_commons','ccd_notifications',
+                      'taxonomie','ref_habitats','ref_inpg','ref_campanule');
+" 2>/dev/null | tr -d ' ')
+
+if [ "$SCHEMA_ACTUAL" = "12" ]; then
+    log_ok "12/12 schémas créés"
+else
+    log_fail "Seulement $SCHEMA_ACTUAL/12 schémas créés"
+    log_info "Schémas trouvés : $SCHEMA_LIST"
+fi
+
+# Connexion avec cicada_user
+if PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+    log_ok "Connexion avec '$DB_USER' réussie"
+else
+    log_warn "Connexion avec '$DB_USER' via TCP échouée — vérifiez pg_hba.conf"
+fi
+
+# IP Docker
+DOCKER_IP=$(ip addr show docker0 2>/dev/null | grep -oP 'inet \K[\d.]+')
+if [ -n "$DOCKER_IP" ]; then
+    log_ok "IP Docker : $DOCKER_IP"
+else
+    log_warn "Interface docker0 non trouvée (Docker est-il installé ?)"
+    DOCKER_IP="172.17.0.1"
+fi
+
+# --- Résumé ---
+
+echo ""
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  Base de données prête !${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo "  Utilisez ces paramètres dans l'installeur web (http://localhost:4567) :"
+echo ""
+echo -e "    Type de base    : ${BLUE}Base de données existante${NC}"
+echo -e "    Hôte            : ${BLUE}$DOCKER_IP${NC}"
+echo -e "    Port            : ${BLUE}$DB_PORT${NC}"
+echo -e "    Nom de la base  : ${BLUE}$DB_NAME${NC}"
+echo -e "    Utilisateur     : ${BLUE}$DB_USER${NC}"
+echo -e "    Mot de passe    : ${BLUE}(celui que vous venez de définir)${NC}"
+echo ""
+echo "  Notez bien le mot de passe, il vous sera demandé dans le formulaire."
+echo ""

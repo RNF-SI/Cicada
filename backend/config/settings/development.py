@@ -71,3 +71,15 @@ SIMPLE_JWT = {
 # Note: En production, ces valeurs doivent être False pour utiliser le worker
 CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'true').lower() == 'true'
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# =============================================================================
+# RATE LIMITING FOR DEVELOPMENT
+# =============================================================================
+# Relax auth rate limiting for E2E tests (auth setup logs in multiple users quickly)
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    'DEFAULT_THROTTLE_RATES': {
+        **REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
+        'auth': '30/minute',
+    },
+}
