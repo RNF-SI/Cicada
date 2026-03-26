@@ -6,16 +6,15 @@ import { TranslateModule } from '@ngx-translate/core';
   selector: 'app-pagination',
   standalone: true,
   imports: [CommonModule, TranslateModule],
-  styleUrl: './pagination.component.scss',
   template: `
     @if (totalItems() > 0) {
-      <div class="pagination-bar">
-        <span class="pagination-info">
-          {{ startItem() }}-{{ endItem() }} sur {{ totalItems() }}
-        </span>
+      <div class="pagination-container">
+        <div class="pagination-info">
+          <span class="info-text">{{ startItem() }}-{{ endItem() }} sur {{ totalItems() }}</span>
+        </div>
 
         @if (totalPages() > 1) {
-          <div class="pagination-controls">
+          <div class="pagination">
             <button
               class="page-btn"
               [disabled]="currentPage() <= 1"
@@ -26,7 +25,7 @@ import { TranslateModule } from '@ngx-translate/core';
 
             @for (p of visiblePages(); track p) {
               @if (p === -1) {
-                <span class="page-ellipsis">...</span>
+                <button class="page-btn page-ellipsis">...</button>
               } @else {
                 <button
                   class="page-btn"
