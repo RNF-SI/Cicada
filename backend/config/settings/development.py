@@ -75,11 +75,14 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # =============================================================================
 # RATE LIMITING FOR DEVELOPMENT
 # =============================================================================
-# Relax auth rate limiting for E2E tests (auth setup logs in multiple users quickly)
+# Disable throttling in development to avoid E2E test failures.
+# E2E tests (6 Playwright workers × 428 tests) easily exceed production limits.
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,
+    'DEFAULT_THROTTLE_CLASSES': [],
     'DEFAULT_THROTTLE_RATES': {
-        **REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
-        'auth': '30/minute',
+        'anon': None,
+        'user': None,
+        'auth': None,
     },
 }

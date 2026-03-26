@@ -2,6 +2,7 @@ import { test as base, type Page } from '@playwright/test';
 import path from 'path';
 
 const AUTH_DIR = path.join(__dirname, '..', '.auth');
+const BASE_URL = 'http://localhost:4200';
 
 type AuthFixtures = {
   superAdminPage: Page;
@@ -23,6 +24,7 @@ type AuthFixtures = {
 export const test = base.extend<AuthFixtures>({
   superAdminPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'super-admin.json'),
     });
     const page = await context.newPage();
@@ -32,6 +34,7 @@ export const test = base.extend<AuthFixtures>({
 
   adminRnfPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'admin-rnf.json'),
     });
     const page = await context.newPage();
@@ -41,6 +44,7 @@ export const test = base.extend<AuthFixtures>({
 
   adminCenPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'admin-cen.json'),
     });
     const page = await context.newPage();
@@ -50,6 +54,7 @@ export const test = base.extend<AuthFixtures>({
 
   referentPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'referent.json'),
     });
     const page = await context.newPage();
@@ -59,6 +64,7 @@ export const test = base.extend<AuthFixtures>({
 
   userRnfPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'user-rnf.json'),
     });
     const page = await context.newPage();
@@ -68,6 +74,7 @@ export const test = base.extend<AuthFixtures>({
 
   userCenPage: async ({ browser }, use) => {
     const context = await browser.newContext({
+      baseURL: BASE_URL,
       storageState: path.join(AUTH_DIR, 'user-cen.json'),
     });
     const page = await context.newPage();

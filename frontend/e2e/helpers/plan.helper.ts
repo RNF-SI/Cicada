@@ -18,13 +18,23 @@ const API_BASE = 'http://localhost:8000/api';
  */
 async function getAuthToken(page: Page): Promise<string> {
   // Ensure the page is on the app origin so localStorage is accessible.
-  // If we're still on about:blank, navigate to the app root first.
+  // If we're still on about:blank, navigate to a static asset to set the origin
+  // without triggering Angular (which might clear tokens via auth guards).
   const currentUrl = page.url();
   if (currentUrl === 'about:blank' || !currentUrl.startsWith('http://localhost')) {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/favicon.ico', { waitUntil: 'commit' });
   }
+
+  // Wait for localStorage to be accessible (storageState is loaded for this origin)
   const tokensStr = await page.evaluate(() => localStorage.getItem('auth_tokens'));
-  if (!tokensStr) throw new Error('No auth tokens in localStorage — make sure auth setup has run');
+  if (!tokensStr) {
+    // Retry once after a short wait — storageState may need a moment to apply
+    await page.waitForTimeout(500);
+    const retry = await page.evaluate(() => localStorage.getItem('auth_tokens'));
+    if (!retry) throw new Error('No auth tokens in localStorage — make sure auth setup has run');
+    const tokens = JSON.parse(retry);
+    return tokens.access;
+  }
   const tokens = JSON.parse(tokensStr);
   return tokens.access;
 }

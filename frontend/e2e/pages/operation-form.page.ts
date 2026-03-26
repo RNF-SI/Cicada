@@ -172,9 +172,19 @@ export class OperationFormPage {
     await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
     await this.libelleInput.or(this.errorBanner)
       .first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-    // Wait for protocole section to be rendered (indicates full form is ready)
-    await this.protocoleCampanuleOui.or(this.protocoleCampanuleNon)
-      .first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    // Wait for Programmation section (always visible) to confirm full form is ready
+    await this.sectionProgrammation.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+  }
+
+  /** Select a CS-type action to reveal Protocole/Bancarisation sections. */
+  async selectCSAction() {
+    await this.typeActionInput.click();
+    await this.typeActionInput.fill('CS');
+    await this.page.waitForTimeout(300);
+    const csOption = this.page.locator('.type-action-autocomplete mat-option').first();
+    await csOption.waitFor({ state: 'visible', timeout: 5000 });
+    await csOption.click();
+    await this.page.waitForTimeout(500);
   }
 
   /** Fill the libelle field. */
