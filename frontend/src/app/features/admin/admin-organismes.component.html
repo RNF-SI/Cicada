@@ -111,14 +111,15 @@
             <p>{{ 'admin.organismes.empty.noOrganismes' | translate }}</p>
           </div>
         }
-        <!-- Pagination -->
-        <app-pagination
-          [totalItems]="totalItems()"
-          [pageSize]="pageSize"
-          [currentPage]="currentPage()"
-          (pageChange)="onPageChange($event)"
-        ></app-pagination>
       </div>
+
+      <!-- Pagination -->
+      <app-pagination
+        [totalItems]="totalItems()"
+        [pageSize]="pageSize"
+        [currentPage]="currentPage()"
+        (pageChange)="onPageChange($event)"
+      ></app-pagination>
     } @else {
       <!-- Single organisme view for admin_og -->
       @if (currentOrganisme()) {
