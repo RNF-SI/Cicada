@@ -29,20 +29,13 @@ import { SuiviInventaireDetail, SuiviInventaireCreatePayload } from '../../../co
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../core/models/campanule.model';
 
-/** Nomenclature option with grouping info */
-interface NomenclatureOption {
-  id_nomenclature: number;
-  mnemonique: string;
-  label: string;
-  definition?: string;
-  hierarchy?: string;
-}
-
-/** Grouped nomenclature for mat-optgroup display */
-interface NomenclatureGroup {
-  groupLabel: string;
-  options: NomenclatureOption[];
-}
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+} from '../../../shared/utils/nomenclature-autocomplete.utils';
 
 @Component({
   selector: 'app-inventaire-form',
@@ -91,7 +84,16 @@ export class InventaireFormComponent implements OnInit {
 
   // Nomenclatures
   typeSuiviOptions = signal<NomenclatureOption[]>([]);
+  typeActionCSOptions = signal<NomenclatureOption[]>([]);
   statutSuiviOptions = signal<NomenclatureOption[]>([]);
+
+  // Type d'action CS autocomplete
+  typeActionSearchCtrl = new FormControl('');
+  typeActionGroups = computed<NomenclatureGroup[]>(() => {
+    return this.buildActionGroups(this.typeActionCSOptions(), this.typeActionSearchText());
+  });
+  typeActionSearchText = signal('');
+  selectedTypeAction = signal<NomenclatureOption | null>(null);
   objectifSuiviOptions = signal<NomenclatureOption[]>([]);
   cibleSuiviOptions = signal<NomenclatureOption[]>([]);
   typeIndicateurOptions = signal<NomenclatureOption[]>([]);
@@ -123,6 +125,7 @@ export class InventaireFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
+    this.initTypeActionAutocomplete();
     this.loadNomenclatures();
     this.initCampanuleAutocomplete();
     this.loadRouteParams();
@@ -132,6 +135,7 @@ export class InventaireFormComponent implements OnInit {
     this.form = this.fb.group({
       // Main card
       intitule: ['', [Validators.required, Validators.maxLength(500)]],
+      id_type_action: [null],
       id_type_suivi: [null],
       integre_plan_gestion: [null],
       suit_indicateur: [null],
@@ -171,6 +175,50 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
+  // ════════════════════════════════════════════════
+  // Type d'action CS autocomplete
+  // ════════════════════════════════════════════════
+
+  private initTypeActionAutocomplete(): void {
+    this.typeActionSearchCtrl.valueChanges.subscribe((val) => {
+      if (typeof val === 'string') {
+        this.typeActionSearchText.set(val);
+      }
+    });
+  }
+
+  displayTypeActionFn = displayNomenclatureFn;
+
+  onTypeActionSelected(option: NomenclatureOption): void {
+    this.selectedTypeAction.set(option);
+    this.form.get('id_type_action')?.setValue(option.id_nomenclature);
+  }
+
+  clearTypeAction(): void {
+    this.typeActionSearchCtrl.setValue('');
+    this.selectedTypeAction.set(null);
+    this.form.get('id_type_action')?.setValue(null);
+  }
+
+  getActionDepth = getNomenclatureDepth;
+
+  private buildActionGroups(options: NomenclatureOption[], searchText: string): NomenclatureGroup[] {
+    return buildNomenclatureGroups(options, searchText);
+  }
+
+  private restoreTypeActionAutocomplete(typeActionId: number, options?: NomenclatureOption[]): void {
+    const opts = options || this.typeActionCSOptions();
+    const match = opts.find(o => o.id_nomenclature === typeActionId);
+    if (match) {
+      this.selectedTypeAction.set(match);
+      this.typeActionSearchCtrl.setValue(this.displayTypeActionFn(match), { emitEvent: false });
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  // CAMPanule autocomplete
+  // ════════════════════════════════════════════════
+
   private initCampanuleAutocomplete(): void {
     this.campanuleSearchCtrl.valueChanges.pipe(
       debounceTime(300),
@@ -184,6 +232,16 @@ export class InventaireFormComponent implements OnInit {
   }
 
   private loadNomenclatures(): void {
+    // Type d'action filtré sur les codes CS (Connaissance et Suivi)
+    this.adminService.getNomenclaturesByTypeAndPrefix('TYPE_ACTION', 'CS').subscribe({
+      next: (data) => {
+        this.typeActionCSOptions.set(data);
+        const suivi = this.existingSuivi();
+        if (suivi?.id_type_action) {
+          this.restoreTypeActionAutocomplete(suivi.id_type_action, data);
+        }
+      },
+    });
     this.adminService.getNomenclaturesByType('TYPE_SUIVI').subscribe({
       next: (data) => this.typeSuiviOptions.set(data),
     });

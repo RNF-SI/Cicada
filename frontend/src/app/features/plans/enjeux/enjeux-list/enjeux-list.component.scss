@@ -725,12 +725,41 @@
   transform: rotate(-90deg) scaleY(-1);
 }
 
+.pression-card-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .pression-card-title {
   margin: 0;
   font-size: 20px;
   font-weight: $font-weight-bold;
   color: $black;
   line-height: 30px;
+}
+
+.pression-card-type {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  .pressref-code {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.08);
+    padding: 1px 6px;
+    border-radius: $border-radius-sm;
+    white-space: nowrap;
+  }
+
+  .pressref-label {
+    font-size: 12px;
+    color: $gray-dark;
+    font-style: italic;
+  }
 }
 
 .pression-card-actions {
@@ -743,6 +772,15 @@
 .pression-card-body {
   padding: $spacing-md $spacing-lg $spacing-lg;
   border-top: 1px solid rgba($secondary-orange-salmon, 0.3);
+
+  .pressref-detail {
+    margin-bottom: $spacing-md;
+
+    .pressref-examples {
+      font-style: italic;
+      color: $gray-dark;
+    }
+  }
 }
 
 // ============================================

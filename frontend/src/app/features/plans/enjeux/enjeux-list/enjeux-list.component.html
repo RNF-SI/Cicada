@@ -385,6 +385,40 @@
                                       <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
                                       <input matInput [(ngModel)]="editPressionLibelle">
                                     </mat-form-field>
+                                    <!-- PressRef autocomplete (edit) -->
+                                    <mat-form-field appearance="outline" class="full-width">
+                                      <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
+                                      <input matInput
+                                        [formControl]="editPressrefSearchCtrl"
+                                        [matAutocomplete]="autoEditPressref"
+                                        [placeholder]="'enjeux.pression.pressrefPlaceholder' | translate">
+                                      @if (editSelectedPressref()) {
+                                        <button matSuffix mat-icon-button type="button" (click)="clearEditPressref()" tabindex="-1">
+                                          <i class="fi fi-rr-cross-small"></i>
+                                        </button>
+                                      }
+                                      <mat-autocomplete #autoEditPressref="matAutocomplete"
+                                        [displayWith]="displayPressrefFn"
+                                        (optionSelected)="onEditPressrefSelected($event.option.value)"
+                                        class="type-action-autocomplete">
+                                        @for (group of editPressrefGroups(); track group.groupLabel) {
+                                          <mat-optgroup [label]="group.groupLabel">
+                                            @for (press of group.options; track press.id_nomenclature) {
+                                              <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)" class="pressref-option">
+                                                <div class="pressref-option-main">
+                                                  <span class="action-code">{{ press.cd_nomenclature }}</span>
+                                                  <span class="action-label">{{ press.label }}</span>
+                                                </div>
+                                                @if (parsePressrefDefinition(press.definition).examples) {
+                                                  <div class="pressref-option-examples">{{ parsePressrefDefinition(press.definition).examples }}</div>
+                                                }
+                                              </mat-option>
+                                            }
+                                          </mat-optgroup>
+                                        }
+                                      </mat-autocomplete>
+                                      <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
+                                    </mat-form-field>
                                     <mat-form-field class="full-width" appearance="outline">
                                       <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
                                       <textarea matInput [(ngModel)]="editPressionDescription" rows="2"></textarea>
@@ -404,9 +438,17 @@
                             <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
                               <div class="pression-card-left">
                                 <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
-                                <h4 class="pression-card-title">
-                                  {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
-                                </h4>
+                                <div class="pression-card-title-block">
+                                  <h4 class="pression-card-title">
+                                    {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
+                                  </h4>
+                                  @if (pression.pressref_code) {
+                                    <div class="pression-card-type">
+                                      <span class="pressref-code">{{ pression.pressref_code }}</span>
+                                      <span class="pressref-label">{{ pression.pressref_label }}</span>
+                                    </div>
+                                  }
+                                </div>
                               </div>
                               <div class="pression-card-actions">
                                 <button class="icon-btn-flat" (click)="startEditPression(pression); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
@@ -423,6 +465,20 @@
 
                             @if (isPressionExpanded(pression.id_pression)) {
                               <div class="pression-card-body">
+                                @if (pression.pressref_definition) {
+                                  <div class="pressref-detail">
+                                    <div class="section-block">
+                                      <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefDefinition' | translate }}</h4>
+                                    </div>
+                                    <p class="section-text">{{ parsePressrefDefinition(pression.pressref_definition).definition }}</p>
+                                    @if (parsePressrefDefinition(pression.pressref_definition).examples) {
+                                      <div class="section-block">
+                                        <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefExamples' | translate }}</h4>
+                                      </div>
+                                      <p class="section-text pressref-examples">{{ parsePressrefDefinition(pression.pressref_definition).examples }}</p>
+                                    }
+                                  </div>
+                                }
                                 @if (pression.description) {
                                   <div class="section-block">
                                     <h4 class="section-title-uppercase">{{ 'enjeux.pression.details' | translate }}</h4>
@@ -446,6 +502,40 @@
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
                                 <input matInput [(ngModel)]="newPressionLibelle">
+                              </mat-form-field>
+                              <!-- PressRef autocomplete -->
+                              <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
+                                <input matInput
+                                  [formControl]="pressrefSearchCtrl"
+                                  [matAutocomplete]="autoPressref"
+                                  [placeholder]="'enjeux.pression.pressrefPlaceholder' | translate">
+                                @if (selectedPressref()) {
+                                  <button matSuffix mat-icon-button type="button" (click)="clearPressref()" tabindex="-1">
+                                    <i class="fi fi-rr-cross-small"></i>
+                                  </button>
+                                }
+                                <mat-autocomplete #autoPressref="matAutocomplete"
+                                  [displayWith]="displayPressrefFn"
+                                  (optionSelected)="onPressrefSelected($event.option.value)"
+                                  class="type-action-autocomplete">
+                                  @for (group of pressrefGroups(); track group.groupLabel) {
+                                    <mat-optgroup [label]="group.groupLabel">
+                                      @for (press of group.options; track press.id_nomenclature) {
+                                        <mat-option [value]="press" [class]="'action-depth-' + getPressrefDepth(press)" class="pressref-option">
+                                          <div class="pressref-option-main">
+                                            <span class="action-code">{{ press.cd_nomenclature }}</span>
+                                            <span class="action-label">{{ press.label }}</span>
+                                          </div>
+                                          @if (parsePressrefDefinition(press.definition).examples) {
+                                            <div class="pressref-option-examples">{{ parsePressrefDefinition(press.definition).examples }}</div>
+                                          }
+                                        </mat-option>
+                                      }
+                                    </mat-optgroup>
+                                  }
+                                </mat-autocomplete>
+                                <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
                               </mat-form-field>
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
@@ -520,67 +610,11 @@
 
               <!-- Barre haut : compteur -->
               <div class="olt-top-bar">
-                <p class="count-text">{{ totalEtatCount() }} {{ 'enjeux.etatActuel.countSuffix' | translate }}</p>
+                <p class="count-text">{{ totalOltCount() }} {{ 'enjeux.olt.countSuffix' | translate }}</p>
               </div>
 
-              <!-- Pour chaque État Actuel de l'enjeu -->
-              @for (etat of selectedEtats(); track etat.id_etat_actuel; let etatIdx = $index) {
-                <!-- Mode édition État Actuel -->
-                @if (editingEtatId() === etat.id_etat_actuel) {
-                  <div class="inline-form olt-inline-form">
-                    <div class="inline-form-header">
-                      <h4 class="inline-form-title">{{ 'enjeux.etatActuel.editTitle' | translate }}</h4>
-                    </div>
-                    <div class="inline-form-body">
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                        <input matInput [(ngModel)]="editEtatLibelle">
-                      </mat-form-field>
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                        <textarea matInput [(ngModel)]="editEtatDescription" rows="2"></textarea>
-                      </mat-form-field>
-                    </div>
-                    <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditEtat(etat)" [disabled]="!editEtatLibelle.trim()">
-                        {{ 'common.actions.save' | translate }}
-                      </button>
-                      <button mat-stroked-button (click)="cancelEditEtat()">
-                        {{ 'common.actions.cancel' | translate }}
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <!-- Barre État Actuel (utilise app-section-title réutilisable) -->
-                  <div class="olt-section-header" (click)="toggleEtat(etat.id_etat_actuel)">
-                    <app-section-title
-                      [title]="('enjeux.etatActuel.label' | translate) + ' ' + (etatIdx + 1) + ' : ' + etat.libelle"
-                      icon="fi-rr-leaf"
-                      ellipseColor="pale-green"
-                      size="md"
-                      [showLine]="true">
-                      <div sectionActions class="olt-header-actions">
-                        <button class="icon-btn-flat" (click)="startEditEtat(etat); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
-                        <button class="icon-btn-flat" (click)="deleteEtatActuel(etat); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-etat">
-                          <i class="fi fi-rr-minus-circle"></i>
-                        </button>
-                        <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isEtatExpanded(etat.id_etat_actuel)" [class.fi-rr-angle-small-up]="isEtatExpanded(etat.id_etat_actuel)"></i>
-                      </div>
-                    </app-section-title>
-                  </div>
-
-                  <!-- Contenu déplié de l'État Actuel -->
-                  @if (isEtatExpanded(etat.id_etat_actuel)) {
-                    <div class="olt-expanded-content">
-                      <!-- Description État Actuel -->
-                      @if (etat.description) {
-                        <p class="olt-description">{{ etat.description }}</p>
-                      }
-
-                      <!-- OLTs de cet État Actuel -->
-                      @for (olt of etat.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
+              <!-- Pour chaque OLT de l'enjeu -->
+              @for (olt of selectedEnjeu()?.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
                         <!-- Mode édition OLT -->
                         @if (editingOltId() === olt.id_olt) {
                           <div class="inline-form olt-inline-form">
@@ -1348,86 +1382,50 @@
                         }
                       }
 
-                      <!-- Formulaire inline nouvel OLT (inside État Actuel) -->
-                      @if (addingOltForEtat() === etat.id_etat_actuel) {
-                        <div class="inline-form olt-inline-form">
-                          <div class="inline-form-header">
-                            <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
-                          </div>
-                          <div class="inline-form-body">
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                              <input matInput [(ngModel)]="newOltLibelle">
-                            </mat-form-field>
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                              <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
-                            </mat-form-field>
-                          </div>
-                          <div class="inline-form-actions">
-                            <button mat-flat-button color="primary" (click)="saveOlt(etat)" [disabled]="!newOltLibelle.trim()">
-                              {{ 'common.actions.save' | translate }}
-                            </button>
-                            <button mat-stroked-button (click)="cancelAddOlt()">
-                              {{ 'common.actions.cancel' | translate }}
-                            </button>
-                          </div>
-                        </div>
-                      } @else {
-                        <button class="add-item-btn" (click)="startAddOlt(etat.id_etat_actuel)">
-                          <i class="fi fi-rr-plus-small"></i>
-                          {{ 'enjeux.olt.addButton' | translate }}
-                        </button>
-                      }
-                    </div>
-                  }
-                }
-              }
-
-              <!-- Formulaire inline nouvel État Actuel -->
-              @if (addingEtat()) {
+              <!-- Formulaire inline nouvel OLT -->
+              @if (addingOlt()) {
                 <div class="inline-form olt-inline-form">
                   <div class="inline-form-header">
-                    <h4 class="inline-form-title">{{ 'enjeux.etatActuel.newTitle' | translate }}</h4>
+                    <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.etatActuel.libelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="newEtatLibelle">
+                      <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
+                      <input matInput [(ngModel)]="newOltLibelle">
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.etatActuel.descriptionLabel' | translate }}</mat-label>
-                      <textarea matInput [(ngModel)]="newEtatDescription" rows="2"></textarea>
+                      <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
+                      <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
                     </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveEtatActuel()" [disabled]="!newEtatLibelle.trim()">
+                    <button mat-flat-button color="primary" (click)="saveOlt()" [disabled]="!newOltLibelle.trim()">
                       {{ 'common.actions.save' | translate }}
                     </button>
-                    <button mat-stroked-button (click)="cancelAddEtat()">
+                    <button mat-stroked-button (click)="cancelAddOlt()">
                       {{ 'common.actions.cancel' | translate }}
                     </button>
                   </div>
                 </div>
               }
 
-              <!-- Bouton ajouter un État Actuel (toujours visible) -->
-              @if (!addingEtat()) {
-                <button class="add-item-btn" (click)="startAddEtat()">
+              <!-- Bouton ajouter un OLT (toujours visible) -->
+              @if (!addingOlt()) {
+                <button class="add-item-btn" (click)="startAddOlt()">
                   <i class="fi fi-rr-plus-small"></i>
-                  {{ 'enjeux.etatActuel.addButton' | translate }}
+                  {{ 'enjeux.olt.addButton' | translate }}
                 </button>
               }
 
-              <!-- Empty state si aucun État Actuel -->
-              @if (totalEtatCount() === 0 && !addingEtat()) {
+              <!-- Empty state si aucun OLT -->
+              @if (totalOltCount() === 0 && !addingOlt()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>
                   </div>
                   <div class="info-content">
-                    <p class="info-title">{{ 'enjeux.etatActuel.hint' | translate }}</p>
-                    <p class="info-description">{{ 'enjeux.etatActuel.description' | translate }}</p>
+                    <p class="info-title">{{ 'enjeux.olt.hint' | translate }}</p>
+                    <p class="info-description">{{ 'enjeux.olt.description' | translate }}</p>
                   </div>
                 </div>
               }

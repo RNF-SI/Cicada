@@ -13,7 +13,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, PlanEnjeuxResponse, FacteurInfluence, Pression,
-  ObjectifLongTerme, EtatActuel, NiveauExigence, Indicateur,
+  ObjectifLongTerme, NiveauExigence, Indicateur,
   ObjectifOperationnel, ResultatAttendu
 } from '../../../../core/models/enjeu.model';
 
@@ -55,13 +55,6 @@ class FakeTranslateLoader implements TranslateLoader {
           deleteTitle: 'Supprimer la pression',
           deleteConfirm: 'Confirmer suppression ?',
           deleteSuccess: 'Pression supprimée',
-        },
-        etatActuel: {
-          createSuccess: 'État actuel créé',
-          updateSuccess: 'État actuel mis à jour',
-          deleteTitle: 'Supprimer l\'état actuel',
-          deleteConfirm: 'Confirmer suppression ?',
-          deleteSuccess: 'État actuel supprimé',
         },
         olt: {
           createSuccess: 'OLT créé',
@@ -252,9 +245,6 @@ describe('EnjeuxListComponent', () => {
     createPression: jest.Mock;
     updatePression: jest.Mock;
     deletePression: jest.Mock;
-    createEtatActuel: jest.Mock;
-    updateEtatActuel: jest.Mock;
-    deleteEtatActuel: jest.Mock;
     createObjectifLongTerme: jest.Mock;
     updateObjectifLongTerme: jest.Mock;
     deleteObjectifLongTerme: jest.Mock;
@@ -291,13 +281,9 @@ describe('EnjeuxListComponent', () => {
       createPression: jest.fn().mockReturnValue(of({ id_pression: 888, id_facteur_influence: 101, libelle: 'Nouvelle', date_ajout: '', date_maj: '' })),
       updatePression: jest.fn().mockReturnValue(of({ id_pression: 301, id_facteur_influence: 101, libelle: 'Modifiée', date_ajout: '', date_maj: '' })),
       deletePression: jest.fn().mockReturnValue(of(void 0)),
-      // États actuels
-      createEtatActuel: jest.fn().mockReturnValue(of({ id_etat_actuel: 602, id_enjeu: 1, libelle: 'Nouvel état', date_ajout: '', date_maj: '' })),
-      updateEtatActuel: jest.fn().mockReturnValue(of({ id_etat_actuel: 601, id_enjeu: 1, libelle: 'État modifié', date_ajout: '', date_maj: '' })),
-      deleteEtatActuel: jest.fn().mockReturnValue(of(void 0)),
       // OLT
-      createObjectifLongTerme: jest.fn().mockReturnValue(of({ id_olt: 502, id_etat_actuel: 601, libelle: 'Nouvel OLT', date_ajout: '', date_maj: '' })),
-      updateObjectifLongTerme: jest.fn().mockReturnValue(of({ id_olt: 501, id_etat_actuel: 601, libelle: 'OLT modifié', date_ajout: '', date_maj: '' })),
+      createObjectifLongTerme: jest.fn().mockReturnValue(of({ id_olt: 502, id_enjeu: 1, libelle: 'Nouvel OLT', date_ajout: '', date_maj: '' })),
+      updateObjectifLongTerme: jest.fn().mockReturnValue(of({ id_olt: 501, id_enjeu: 1, libelle: 'OLT modifié', date_ajout: '', date_maj: '' })),
       deleteObjectifLongTerme: jest.fn().mockReturnValue(of(void 0)),
       // Niveaux d'exigence
       createNiveauExigence: jest.fn().mockReturnValue(of({ id_ne: 702, id_olt: 501, libelle: 'Nouveau NE', date_ajout: '', date_maj: '' })),
@@ -946,6 +932,7 @@ describe('EnjeuxListComponent', () => {
       component.saveEditPression(pression);
 
       expect(mockEnjeuService.updatePression).toHaveBeenCalledWith(301, {
+        id_type_pression: null,
         libelle: 'Pression modifiée',
         description: 'Nouvelle desc',
       });
@@ -1002,11 +989,8 @@ describe('EnjeuxListComponent', () => {
   describe('OLT', () => {
     beforeEach(() => setup());
 
-    const mockEtat: EtatActuel = {
-      id_etat_actuel: 601, id_enjeu: 1, libelle: 'État actuel test', date_ajout: '', date_maj: '',
-    };
     const mockOlt: ObjectifLongTerme = {
-      id_olt: 501, id_etat_actuel: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
+      id_olt: 501, id_enjeu: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
     };
 
     it('should toggle OLT expanded state', () => {
@@ -1018,16 +1002,16 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should start adding OLT', () => {
-      component.startAddOlt(601);
-      expect(component.addingOltForEtat()).toBe(601);
+      component.startAddOlt();
+      expect(component.addingOlt()).toBe(true);
       expect(component.newOltLibelle).toBe('');
     });
 
     it('should cancel adding OLT', () => {
-      component.startAddOlt(601);
+      component.startAddOlt();
       component.newOltLibelle = 'Test';
       component.cancelAddOlt();
-      expect(component.addingOltForEtat()).toBeNull();
+      expect(component.addingOlt()).toBe(false);
       expect(component.newOltLibelle).toBe('');
     });
 
@@ -1035,10 +1019,10 @@ describe('EnjeuxListComponent', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOltLibelle = 'Nouvel OLT';
       component.newOltDescription = 'Desc OLT';
-      component.saveOlt(mockEtat);
+      component.saveOlt();
 
       expect(mockEnjeuService.createObjectifLongTerme).toHaveBeenCalledWith({
-        id_etat_actuel: 601,
+        id_enjeu: 1,
         libelle: 'Nouvel OLT',
         description: 'Desc OLT',
       });
@@ -1047,7 +1031,7 @@ describe('EnjeuxListComponent', () => {
     it('should not save OLT with empty libelle', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOltLibelle = '   ';
-      component.saveOlt(mockEtat);
+      component.saveOlt();
       expect(mockEnjeuService.createObjectifLongTerme).not.toHaveBeenCalled();
     });
 
@@ -1112,121 +1096,6 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
-  // État actuel
-  // =========================================================================
-
-  describe('état actuel', () => {
-    beforeEach(() => setup());
-
-    const mockOlt: ObjectifLongTerme = {
-      id_olt: 501, id_etat_actuel: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
-    };
-    const mockEtat: EtatActuel = {
-      id_etat_actuel: 601, id_enjeu: 1, libelle: 'État actuel test', date_ajout: '', date_maj: '',
-    };
-
-    it('should toggle état actuel expanded state', () => {
-      expect(component.isEtatExpanded(601)).toBe(false);
-      component.toggleEtat(601);
-      expect(component.isEtatExpanded(601)).toBe(true);
-      component.toggleEtat(601);
-      expect(component.isEtatExpanded(601)).toBe(false);
-    });
-
-    it('should start adding état actuel', () => {
-      component.startAddEtat();
-      expect(component.addingEtat()).toBe(true);
-      expect(component.newEtatLibelle).toBe('');
-    });
-
-    it('should cancel adding état actuel', () => {
-      component.startAddEtat();
-      component.newEtatLibelle = 'Test';
-      component.cancelAddEtat();
-      expect(component.addingEtat()).toBe(false);
-      expect(component.newEtatLibelle).toBe('');
-    });
-
-    it('should call createEtatActuel on save', () => {
-      component['selectedEnjeuSlug'].set('protection-zones-humides');
-      component.newEtatLibelle = 'Nouvel état';
-      component.newEtatDescription = 'Desc';
-      component.saveEtatActuel();
-
-      expect(mockEnjeuService.createEtatActuel).toHaveBeenCalledWith({
-        id_enjeu: 1,
-        libelle: 'Nouvel état',
-        description: 'Desc',
-      });
-    });
-
-    it('should not save état actuel with empty libelle', () => {
-      component.newEtatLibelle = '   ';
-      component.saveEtatActuel();
-      expect(mockEnjeuService.createEtatActuel).not.toHaveBeenCalled();
-    });
-
-    it('should start editing état actuel with pre-filled values', () => {
-      component.startEditEtat(mockEtat);
-      expect(component.editingEtatId()).toBe(601);
-      expect(component.editEtatLibelle).toBe('État actuel test');
-    });
-
-    it('should cancel editing état actuel', () => {
-      component.startEditEtat(mockEtat);
-      component.cancelEditEtat();
-      expect(component.editingEtatId()).toBeNull();
-      expect(component.editEtatLibelle).toBe('');
-    });
-
-    it('should call updateEtatActuel on save edit', () => {
-      component.startEditEtat(mockEtat);
-      component.editEtatLibelle = 'État modifié';
-      component.saveEditEtat(mockEtat);
-      expect(mockEnjeuService.updateEtatActuel).toHaveBeenCalledWith(601, {
-        libelle: 'État modifié',
-        description: undefined,
-      });
-    });
-
-    it('should not save edit état with empty libelle', () => {
-      component.startEditEtat(mockEtat);
-      component.editEtatLibelle = '   ';
-      component.saveEditEtat(mockEtat);
-      expect(mockEnjeuService.updateEtatActuel).not.toHaveBeenCalled();
-    });
-
-    it('should reset editing state after successful état update', () => {
-      component.startEditEtat(mockEtat);
-      component.editEtatLibelle = 'Modifié';
-      component.saveEditEtat(mockEtat);
-      expect(component.editingEtatId()).toBeNull();
-    });
-
-    it('should set errorMessage on état update error', () => {
-      mockEnjeuService.updateEtatActuel.mockReturnValue(throwError(() => new Error('fail')));
-      component.startEditEtat(mockEtat);
-      component.editEtatLibelle = 'Modifié';
-      component.saveEditEtat(mockEtat);
-      expect(component.errorMessage()).toBeTruthy();
-    });
-
-    it('should call deleteEtatActuel after confirm', () => {
-      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
-      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
-      component.deleteEtatActuel(mockEtat);
-      expect(mockEnjeuService.deleteEtatActuel).toHaveBeenCalledWith(601);
-    });
-
-    it('should not delete état when dialog cancelled', () => {
-      const mockDialogRef = { afterClosed: () => of(false) } as MatDialogRef<any>;
-      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
-      component.deleteEtatActuel(mockEtat);
-      expect(mockEnjeuService.deleteEtatActuel).not.toHaveBeenCalled();
-    });
-  });
-
-  // =========================================================================
   // Niveau d'exigence
   // =========================================================================
 
@@ -1234,7 +1103,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOlt: ObjectifLongTerme = {
-      id_olt: 501, id_etat_actuel: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
+      id_olt: 501, id_enjeu: 1, libelle: 'OLT Test', date_ajout: '', date_maj: '',
     };
     const mockNe: NiveauExigence = {
       id_ne: 701, id_olt: 501, libelle: 'NE Test', date_ajout: '', date_maj: '',

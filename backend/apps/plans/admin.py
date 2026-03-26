@@ -14,7 +14,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     PlanGestion, CorSitePg, CorRolePlan, CorPgFichier,
     Enjeu, FacteurInfluence, Pression, Responsabilite,
-    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu,
@@ -1069,13 +1069,14 @@ class ResponsabiliteAdmin(admin.ModelAdmin):
 # Administration des États Actuels, OLT et Niveaux d'Exigence
 # =============================================================================
 
-@admin.register(EtatActuel)
-class EtatActuelAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les États Actuels."""
+@admin.register(ObjectifLongTerme)
+class ObjectifLongTermeAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les Objectifs à Long Terme."""
 
     list_display = [
         'libelle',
         'id_enjeu',
+        'nb_niveaux_exigence',
         'date_maj'
     ]
 
@@ -1103,60 +1104,13 @@ class EtatActuelAdmin(admin.ModelAdmin):
 
     list_per_page = 25
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
-        )
-
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.id_utilisateur_ajout = request.user
-        obj.id_utilisateur_maj = request.user
-        super().save_model(request, obj, form, change)
-
-
-@admin.register(ObjectifLongTerme)
-class ObjectifLongTermeAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les Objectifs à Long Terme."""
-
-    list_display = [
-        'libelle',
-        'id_etat_actuel',
-        'nb_niveaux_exigence',
-        'date_maj'
-    ]
-
-    list_filter = [
-        'id_etat_actuel__id_enjeu__id_pg',
-        'date_ajout'
-    ]
-
-    search_fields = [
-        'libelle',
-        'description',
-        'id_etat_actuel__libelle'
-    ]
-
-    readonly_fields = [
-        'date_ajout',
-        'date_maj',
-        'id_utilisateur_ajout'
-    ]
-
-    autocomplete_fields = [
-        'id_etat_actuel',
-        'id_utilisateur_maj'
-    ]
-
-    list_per_page = 25
-
     def nb_niveaux_exigence(self, obj):
         return obj.niveaux_exigence.count()
     nb_niveaux_exigence.short_description = "Niveaux d'exigence"
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'id_etat_actuel', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+            'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
         ).prefetch_related('niveaux_exigence')
 
     def save_model(self, request, obj, form, change):
@@ -1177,7 +1131,7 @@ class NiveauExigenceAdmin(admin.ModelAdmin):
     ]
 
     list_filter = [
-        'id_olt__id_etat_actuel__id_enjeu__id_pg',
+        'id_olt__id_enjeu__id_pg',
         'date_ajout'
     ]
 
@@ -1256,7 +1210,7 @@ class IndicateurAdmin(admin.ModelAdmin):
     list_filter = [
         'type_indicateur',
         'est_standardise',
-        'id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg',
+        'id_ne__id_olt__id_enjeu__id_pg',
         'date_ajout'
     ]
 
@@ -1313,7 +1267,7 @@ class MetriqueAdmin(admin.ModelAdmin):
 
     list_filter = [
         'type_metrique',
-        'id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg',
+        'id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
         'date_ajout'
     ]
 
@@ -1400,7 +1354,7 @@ class MesureAdmin(admin.ModelAdmin):
 
     list_filter = [
         'date_mesure',
-        'id_metrique__id_indicateur__id_ne__id_olt__id_etat_actuel__id_enjeu__id_pg',
+        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
         'date_ajout'
     ]
 

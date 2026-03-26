@@ -61,15 +61,33 @@
               }
             </mat-form-field>
 
-            <!-- Type de suivi -->
+            <!-- Type (codes CS - autocomplete groupé) -->
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.typeSuivi' | translate }} <span class="required-star">*</span></mat-label>
-              <mat-select formControlName="id_type_suivi">
-                <mat-option [value]="null">—</mat-option>
-                @for (opt of typeSuiviOptions(); track opt.id_nomenclature) {
-                  <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+              <mat-label>{{ 'inventaires.form.type' | translate }}</mat-label>
+              <input matInput
+                [formControl]="typeActionSearchCtrl"
+                [matAutocomplete]="autoTypeActionInv"
+                [placeholder]="'inventaires.form.typeActionPlaceholder' | translate">
+              @if (typeActionSearchCtrl.value) {
+                <button matSuffix mat-icon-button type="button" (click)="clearTypeAction()" tabindex="-1">
+                  <i class="fi fi-rr-cross-small"></i>
+                </button>
+              }
+              <mat-autocomplete #autoTypeActionInv="matAutocomplete"
+                [displayWith]="displayTypeActionFn"
+                (optionSelected)="onTypeActionSelected($event.option.value)"
+                class="type-action-autocomplete">
+                @for (group of typeActionGroups(); track group.groupLabel) {
+                  <mat-optgroup [label]="group.groupLabel">
+                    @for (action of group.options; track action.id_nomenclature) {
+                      <mat-option [value]="action" [class]="'action-depth-' + getActionDepth(action)">
+                        <span class="action-code">{{ action.cd_nomenclature || action.mnemonique }}</span>
+                        <span class="action-label">{{ action.label }}</span>
+                      </mat-option>
+                    }
+                  </mat-optgroup>
                 }
-              </mat-select>
+              </mat-autocomplete>
             </mat-form-field>
 
             <!-- Intégré dans le plan de gestion -->

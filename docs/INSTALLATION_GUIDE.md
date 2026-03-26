@@ -7,6 +7,7 @@
 - Système d'exploitation : Debian 11+ ou Ubuntu 20.04+
 - Docker et Docker Compose installés
 - Accès root ou sudo
+- **Si base de données externe** : PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
 
 ### Étapes d'installation
 
@@ -42,21 +43,74 @@ Ouvrez votre navigateur et accédez à :
 http://localhost:4567
 ```
 
-#### 4. Remplir le formulaire d'installation
+#### 4. (Optionnel) Préparer une base PostgreSQL externe
+
+Par défaut, l’installeur lance un conteneur PostgreSQL/PostGIS dans Docker. Si vous préférez utiliser un **PostgreSQL déjà installé** sur le serveur (recommandé en production pour la persistance des données), préparez-le avant de remplir le formulaire.
+
+**Pourquoi une base externe ?** Les données sont stockées directement sur le serveur, pas dans un volume Docker. Elles survivent à toute mise à jour, suppression ou recréation des conteneurs.
+
+##### Prérequis
+
+- PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
+- `pg_hba.conf` autorisant les connexions depuis le réseau Docker (par défaut `172.17.0.0/16`)
+- `listen_addresses = ‘*’` dans `postgresql.conf` (ou au minimum l’IP Docker `172.17.0.1`)
+
+##### Vérifications
+
+```bash
+# Vérifier PostgreSQL et PostGIS
+psql --version                              # PostgreSQL 17+
+apt list --installed 2>/dev/null | grep postgis  # postgis-3 installé
+
+# Vérifier que PostgreSQL écoute sur toutes les interfaces
+sudo -u postgres psql -c "SHOW listen_addresses;"
+# Doit retourner ‘*’ ou inclure l’IP Docker
+
+# Trouver l’IP Docker (les conteneurs utiliseront cette IP pour se connecter)
+ip addr show docker0 | grep ‘inet ‘
+# Typiquement : 172.17.0.1
+```
+
+##### Créer la base et initialiser les schémas
+
+Le script `cicada-prepare-db` (installé par le package) fait tout automatiquement : vérification des prérequis, création de l’utilisateur et de la base, exécution de `init.sql` (extensions, 12 schémas, permissions), et validation du résultat.
+
+```bash
+# Une seule commande — le script est interactif (demande le mot de passe)
+sudo cicada-prepare-db
+```
+
+Options disponibles :
+
+```bash
+sudo cicada-prepare-db --help                         # Aide
+sudo cicada-prepare-db --password SECRET              # Mode non-interactif
+sudo cicada-prepare-db --db-name mabase --db-user monuser  # Noms personnalisés
+```
+
+Le script affichera à la fin les paramètres à utiliser dans le formulaire d’installation web.
+
+**Schémas créés** : `utilisateurs`, `referentiels`, `ref_nomenclatures`, `ref_geo`, `general`, `fichiers`, `ccd_commons`, `ccd_notifications`, `taxonomie`, `ref_habitats`, `ref_inpg`, `ref_campanule`
+
+**Extensions créées** : `postgis`, `postgis_topology`, `fuzzystrmatch`, `postgis_tiger_geocoder`, `uuid-ossp`, `pg_trgm`, `unaccent`
+
+#### 5. Remplir le formulaire d’installation
 
 Le formulaire vous demande :
 
 - **Compte administrateur** : email, mot de passe, nom, prénom
-- **Configuration du site** : nom de domaine, **présence d’Apache/Nginx** sur le serveur, puis selon le cas : port d’exposition du frontend ou email Let's Encrypt
-- **Base de données PostgreSQL** : hôte, port, nom, utilisateur, mot de passe
+- **Configuration du site** : nom de domaine, **présence d’Apache/Nginx** sur le serveur, puis selon le cas : port d’exposition du frontend ou email Let’s Encrypt
+- **Base de données PostgreSQL** : type (Docker ou existante), hôte, port, nom, utilisateur, mot de passe
 - **Redis** : hôte, port, mot de passe (optionnel)
 - **Consentement RGPD** (optionnel) : pour partager vos données nominatives avec les mainteneurs
+
+**Si vous avez préparé une base externe (étape 4)** : choisissez "Base de données existante" et indiquez l’IP Docker du serveur (typiquement `172.17.0.1`) comme hôte, port `5432`, et les identifiants créés ci-dessus.
 
 **Question « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? »**  
 - **Si vous ne cochez pas** : Traefik est utilisé sur les ports 80 et 443 (HTTPS avec Let's Encrypt). Aucune configuration Apache/Nginx à prévoir.
 - **Si vous cochez** : pas de Traefik. Le frontend est exposé sur un port que vous choisissez (ex. 8080). Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (et éventuellement `/api` vers le backend).
 
-#### 5. Lancer l'installation
+#### 6. Lancer l'installation
 
 Cliquez sur "Installer" et attendez la fin du processus. L'installation va :
 
@@ -67,7 +121,7 @@ Cliquez sur "Installer" et attendez la fin du processus. L'installation va :
 5. Créer le compte administrateur
 6. Enregistrer l'instance auprès de l'API de suivi
 
-#### 6. Accéder à l'application
+#### 7. Accéder à l'application
 
 Une fois l'installation terminée, vous serez redirigé vers l'URL de l'application (ex. `http://votre-domaine` si port 80, ou `http://votre-domaine:8080` si vous avez choisi le port 8080). Connectez-vous avec les identifiants administrateur que vous avez définis.
 
@@ -158,24 +212,197 @@ sudo systemctl restart cicada-heartbeat.timer
 
 ## Mise à jour
 
-### Vérifier les mises à jour disponibles
+### Ce qui se passe automatiquement au démarrage
 
-Dans l'interface d'administration Django (`/admin/system/`), vous pouvez voir si une mise à jour est disponible (grâce au heartbeat qui interroge l'API de suivi).
+À chaque démarrage du conteneur `web`, l'entrypoint exécute automatiquement :
 
-### Mettre à jour (sans intervention manuelle)
+1. Attente que PostgreSQL et Redis soient disponibles
+2. **`python manage.py migrate`** — applique toutes les nouvelles migrations de base de données
+3. **`python manage.py collectstatic`** — met à jour les fichiers statiques
+4. **`python manage.py check`** — vérifie la cohérence de la configuration Django
+5. Lancement du serveur (gunicorn en production)
+
+**Vous n'avez donc jamais besoin de lancer `migrate` ou `collectstatic` manuellement.** Un simple redémarrage de la stack suffit.
+
+### Sauvegarde avant mise à jour (recommandé)
+
+Avant toute mise à jour, sauvegardez la base de données :
+
+```bash
+# Si la base est dans Docker (DB_TYPE=docker)
+docker compose --env-file /var/lib/cicada/.env exec db \
+  pg_dump -U ${POSTGRES_USER} ${POSTGRES_DB} > backup_cicada_$(date +%Y%m%d).sql
+
+# Si la base est externe (DB_TYPE=existing) — recommandé en production
+sudo -u postgres pg_dump cicada > backup_cicada_$(date +%Y%m%d).sql
+```
+
+### Les 3 méthodes de mise à jour
+
+| Méthode | Prérequis | Commandes à taper |
+|---------|-----------|-------------------|
+| **Option 1** — Interface web | API de suivi opérationnelle | Aucune (clic bouton) |
+| **Option 2** — `apt install` | Accès SSH au serveur | Une seule commande |
+| **Option 3** — Commandes manuelles | Accès SSH au serveur | 4 commandes |
+
+### Option 1 : Mise à jour depuis l'interface web (clic bouton)
+
+> **Prérequis** : L'API de suivi (`tracking.cicada.reserves-naturelles.org`) doit être opérationnelle. Si elle ne l'est pas, cette option n'est pas disponible — utilisez l'option 2 ou 3.
 
 1. Accédez à `/admin/system/` dans l'interface Django (compte superuser).
-2. Si une mise à jour est disponible, cliquez sur **« Mettre à jour »**.
-3. La mise à jour est alors effectuée automatiquement sur le serveur :
+2. Si une mise à jour est disponible (détectée par le heartbeat), cliquez sur **« Mettre à jour »**.
+3. La mise à jour est effectuée automatiquement sur le serveur :
    - Un fichier « trigger » est créé ; le service systemd `cicada-updater.path` réagit immédiatement.
    - Le script `cicada-updater` (exécuté en root) :
      - met à jour le paquet via APT (`apt install cicada=<version>`),
      - met à jour `CICADA_VERSION` dans `/var/lib/cicada/.env`,
      - tire les nouvelles images Docker (`docker compose pull`) et redémarre la stack (`docker compose up -d`),
      - redémarre le service de l'installateur web.
-4. Aucune commande manuelle sur le serveur n'est nécessaire. Vous pouvez rafraîchir la page après quelques dizaines de secondes pour constater la nouvelle version.
+4. Aucune commande manuelle sur le serveur n'est nécessaire. Rafraîchissez la page après quelques dizaines de secondes pour constater la nouvelle version.
 
 En cas d'échec, consulter les logs : `sudo journalctl -u cicada-updater.service` ou `sudo cat /var/log/cicada/updater.log`.
+
+### Option 2 : Mise à jour via `apt install` (recommandé)
+
+C'est la méthode la plus simple en ligne de commande. Le script `postinst` du package fait tout automatiquement : mise à jour de `CICADA_VERSION` dans `.env`, téléchargement des nouvelles images Docker, et redémarrage de la stack.
+
+```bash
+sudo apt-get update
+sudo apt-get install cicada=<version>   # ex: cicada=0.1.14
+```
+
+C'est tout. Le package :
+1. Met à jour les fichiers sur disque (docker-compose, scripts)
+2. Met à jour `CICADA_VERSION` dans `/var/lib/cicada/.env`
+3. Tire les nouvelles images Docker (`docker compose pull`)
+4. Redémarre la stack Docker (`docker compose up -d`)
+5. Les migrations et le collectstatic s'appliquent automatiquement au démarrage
+
+Si le pull ou le redémarrage échoue, le script affiche les commandes manuelles à lancer.
+
+### Option 3 : Mise à jour manuelle (commandes détaillées)
+
+Si `apt install` n'est pas disponible ou en cas de problème, voici la procédure complète étape par étape via SSH.
+
+#### Étape 1 — Sauvegarde de la base de données
+
+```bash
+# Si la base est dans Docker (DB_TYPE=docker)
+cd /usr/share/cicada
+sudo docker compose --env-file /var/lib/cicada/.env exec db \
+  pg_dump -U $(grep POSTGRES_USER /var/lib/cicada/.env | cut -d= -f2) \
+  $(grep POSTGRES_DB /var/lib/cicada/.env | cut -d= -f2) \
+  > backup_cicada_$(date +%Y%m%d_%H%M%S).sql
+
+# Si la base est externe (DB_TYPE=existing)
+pg_dump -h <host> -U <user> <db_name> > backup_cicada_$(date +%Y%m%d_%H%M%S).sql
+```
+
+#### Étape 2 — Mettre à jour le package Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install cicada=<version>   # ex: cicada=0.1.14
+```
+
+#### Étape 3 — Mettre à jour la version dans le .env
+
+```bash
+sudo sed -i 's/^CICADA_VERSION=.*/CICADA_VERSION=<version>/' /var/lib/cicada/.env
+
+# Vérifier
+grep CICADA_VERSION /var/lib/cicada/.env
+```
+
+#### Étape 4 — Tirer les nouvelles images Docker
+
+```bash
+cd /usr/share/cicada
+sudo docker compose --env-file /var/lib/cicada/.env pull
+```
+
+#### Étape 5 — Redémarrer la stack
+
+```bash
+sudo docker compose --env-file /var/lib/cicada/.env down
+sudo docker compose --env-file /var/lib/cicada/.env up -d
+```
+
+Au redémarrage, l'entrypoint applique automatiquement :
+- `python manage.py migrate` (migrations de base de données)
+- `python manage.py collectstatic` (fichiers statiques)
+- `python manage.py check` (vérification Django)
+
+#### Étape 6 — Vérifier les logs
+
+```bash
+sudo docker compose --env-file /var/lib/cicada/.env logs -f web
+```
+
+Attendez de voir dans les logs :
+```
+=== Application des migrations ===
+  Applying plans.0036_remove_etat_actuel... OK
+  ...
+=== Initialisation terminée ===
+```
+
+Ctrl+C pour quitter les logs une fois l'initialisation terminée.
+
+#### Étape 7 — Vérifier l'état des conteneurs
+
+```bash
+sudo docker compose --env-file /var/lib/cicada/.env ps
+```
+
+Tous les services doivent être à l'état `Up` ou `Up (healthy)`.
+
+#### Étape 8 — Mettre à jour les nomenclatures (si nécessaire)
+
+Si la nouvelle version ajoute ou modifie des nomenclatures (données de référence) :
+
+```bash
+sudo docker compose --env-file /var/lib/cicada/.env exec web \
+  python manage.py import_nomenclatures --force
+```
+
+Consultez les notes de version (changelog) pour savoir si cette étape est requise. En cas de doute, la lancer ne pose aucun risque — elle met à jour les nomenclatures existantes et ajoute les nouvelles.
+
+## Avertissements critiques — Ne pas perdre de données
+
+### JAMAIS `docker compose down -v`
+
+Le flag **`-v`** supprime les **volumes Docker**, c'est-à-dire :
+
+| Volume | Contenu | Conséquence si supprimé |
+|--------|---------|------------------------|
+| `postgres_data` | **Toute la base de données** | Plans, utilisateurs, sites, enjeux — **TOUT est perdu** |
+| `media_files` | Fichiers uploadés | Documents de plans, cartes, rapports — **perdus** |
+| `redis_data` | Cache et tâches Celery | Tâches en cours perdues (moins critique) |
+| `logs_data` | Historique des logs | Logs perdus (moins critique) |
+
+**Commande sûre** : `docker compose down` (sans `-v`) — arrête les conteneurs mais **préserve toutes les données**.
+
+### JAMAIS `seed_testdata` en production
+
+```bash
+# NE JAMAIS exécuter en production :
+docker compose exec web python manage.py seed_testdata         # injecte de faux utilisateurs/plans/sites
+docker compose exec web python manage.py seed_testdata --reset # SUPPRIME des données
+```
+
+### JAMAIS supprimer les volumes Docker manuellement
+
+```bash
+# NE JAMAIS exécuter :
+docker volume rm cicada_postgres_data     # supprime la base de données
+docker volume prune                       # supprime TOUS les volumes non utilisés
+docker system prune -a --volumes          # supprime TOUT (images + volumes + cache)
+```
+
+### JAMAIS modifier ou supprimer les fichiers de migration
+
+Les fichiers dans `migrations/` sont le versionnement de la base de données. Les supprimer ou les modifier après qu'ils ont été appliqués en production rend la base incohérente et peut entraîner des pertes de données.
 
 ## Désinstallation
 
@@ -258,6 +485,50 @@ sudo journalctl -u cicada-heartbeat.service -f
 # Exécuter manuellement
 sudo /usr/bin/cicada-heartbeat
 ```
+
+## Tests de déploiement
+
+Des scripts de test sont disponibles dans `packaging/` pour valider l'installation et la mise à jour avant un déploiement en production.
+
+| Test | Environnement | Durée | Usage |
+|------|--------------|-------|-------|
+| Tests Docker (5 scripts) | Conteneur Docker | 30s - 10 min | Développement courant |
+| **Test VM (Multipass)** | VM Ubuntu réelle | 10 - 20 min | **Avant une release** |
+
+Les tests Docker vérifient l'installation des fichiers et services, mais ne peuvent pas tester le vrai flux d'upgrade (pas de systemd). Le test VM (Multipass) teste le flux complet : installation v1 → upgrade v2, avec systemd et Docker réels.
+
+### Quand lancer ces tests
+
+- **Tests Docker** : pendant le développement, pour vérifier que les fichiers du package sont corrects
+- **Test VM** : **avant chaque publication d'un nouveau package `.deb`** (release). C'est le seul test qui valide le flux d'upgrade complet en conditions réelles.
+
+### Pourquoi ces tests ne sont pas en CI (GitHub Actions)
+
+1. **Hyperviseur requis** : le test VM utilise Multipass (KVM/QEMU), incompatible avec les runners GitHub Actions
+2. **Durée** : 10-20 min par exécution, trop long pour un pipeline déclenché à chaque push
+3. **Fréquence** : le packaging ne change qu'à chaque release, pas à chaque commit
+
+Les tests applicatifs (pytest, Jest, Playwright) qui valident les migrations, les nomenclatures et la logique métier tournent déjà en CI à chaque push.
+
+### Lancer le test d'upgrade
+
+```bash
+# Prérequis (une seule fois)
+sudo snap install multipass
+
+cd packaging
+
+# Test complet (adapter les versions à la release en cours)
+./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14
+
+# Relancer rapidement (réutilise la VM existante)
+./test-upgrade-vm.sh --skip-install --from 0.1.13 --to 0.1.14
+
+# Nettoyer après les tests
+./test-upgrade-vm.sh --cleanup
+```
+
+Pour le détail complet des tests disponibles, voir [`packaging/TESTING.md`](../packaging/TESTING.md).
 
 ## Support
 

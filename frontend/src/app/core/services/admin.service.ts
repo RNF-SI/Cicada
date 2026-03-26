@@ -625,6 +625,17 @@ export class AdminService {
   }
 
   /**
+   * Get nomenclatures by type filtered by code prefix
+   */
+  getNomenclaturesByTypeAndPrefix(typeMnemonique: string, prefix: string): Observable<{ id_nomenclature: number; mnemonique: string; cd_nomenclature?: string; label: string; definition?: string; hierarchy?: string; group_label?: string }[]> {
+    return this.http.get<any>(`/api/nomenclatures/?type=${typeMnemonique}&prefix=${prefix}`)
+      .pipe(
+        map(res => res.results || res),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
    * Get a specific nomenclature by type and mnemonique
    */
   getNomenclatureByMnemonique(typeMnemonique: string, mnemonique: string): Observable<{ id_nomenclature: number; mnemonique: string; label: string }> {

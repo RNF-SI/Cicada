@@ -91,3 +91,5 @@ frontend/e2e-results.xml
 # Fichiers generes
 backend/static/
 backend/celerybeat-schedule
+
+packaging/installer/venv/

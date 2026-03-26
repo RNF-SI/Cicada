@@ -49,7 +49,7 @@
 | 34 | Type d'indicateur (46) | `TYPE_INDICATEUR` | 3 | CICADA |
 | 35 | Type de métrique (48) | `TYPE_METRIQUE` | 3 | CICADA |
 | 36 | Priorité d'opération (50) | `PRIORITE_OPERATION` | 3 | CICADA |
-| 37 | Type d'action (51) | `TYPE_ACTION` | 10 | CICADA |
+| 37 | Type d'action (51) | `TYPE_ACTION` | 318 | CICADA (Eden 62) |
 | 38 | Type d'opérateur (52) | `OPERATEUR_TYPE` | 4 | CICADA |
 | 39 | Catégorie de financement (53) | `CATEGORIE_FINANCE` | 7 | CICADA |
 | 40 | Type de document plan (55) | `Type document plan` | 3 | CICADA |
@@ -535,20 +535,30 @@ Type de donnée pour les métriques d'indicateurs.
 
 ### 37. Type d'action (id_type=51)
 
-Classification des actions dans le plan de gestion.
+Classification hiérarchique des actions dans le plan de gestion.
+Source : Codification unique Eden 62, document de travail, février 2026.
 
-| ID | Mnémonique | Libellé |
-|----|------------|---------|
-| 780 | `SUIVI_EVALUATION` | Suivi / Évaluation |
-| 781 | `CONNAISSANCE_SCIENTIFIQUE` | Connaissance scientifique |
-| 782 | `TRAVAUX_UNIQUE` | Travaux unique |
-| 783 | `POLICE_INSPECTION` | Police / Inspection |
-| 784 | `GESTION_ENTRETIEN` | Gestion / Entretien |
-| 785 | `COMMUNICATION` | Communication |
-| 786 | `PEDAGOGIE_ANIMATION` | Pédagogie / Animation |
-| 787 | `ADMINISTRATION` | Administration |
-| 788 | `CREATION_ACCUEIL` | Création / Accueil |
-| 789 | `MAITRISE_FONCIERE` | Maîtrise foncière / territoriale |
+**318 entrées** organisées en 9 familles de codes hiérarchiques.
+Le champ `hierarchy` encode la relation parent/enfant (IP1.1 est enfant de IP1).
+
+| Préfixe | Famille | Exemples de codes |
+|---------|---------|-------------------|
+| `IP` | Gestion du patrimoine naturel | IP1 (Restauration), IP2 (Entretien), IP3 (Niveaux d'eau), IP4 (Non intervention), IP5-IP10 |
+| `MS` | Maintenance et support | MS1-MS3 (Outillage), MS5-MS6 (Risques), MS7-MS23 (Admin, foncier, budget) |
+| `EI` | Études et investigations | EI1-EI11 (Risques, paysages, facteurs, plan de gestion) |
+| `CS` | Connaissance et suivi | CS1-CS15 (Surveillance, inventaires, suivis faune/flore/abiotiques) |
+| `CI` | Création et maintenance d'infrastructures | CI1-CI11 (Accueil public, technique, patrimoine) |
+| `SP` | Surveillance et police | SP1 (Gardes nature), SP2 (Opérations de police) |
+| `PA` | Pédagogie et animation | PA1 (Grand public), PA2 (Public ciblé) |
+| `CC` | Communication | CC1 (Supports), CC2 (Autres actions) |
+| `PR` | Programmes de recherche | PR1 (Programmes scientifiques) |
+
+**Exemples de hiérarchie :**
+- `IP1` → Restauration d'habitats naturels (parent)
+  - `IP1.1` → Restauration par débroussaillage
+  - `IP1.5` → Restauration par pâturage
+    - `IP1.5.1` → Restauration par pâturage annuel
+    - `IP1.5.2` → Restauration par pâturage ponctuel
 
 ### 38. Type d'opérateur (id_type=52)
 

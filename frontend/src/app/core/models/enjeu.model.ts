@@ -119,9 +119,9 @@ export interface Enjeu {
   facteurs_influence?: FacteurInfluence[];
   nb_facteurs_influence?: number;
 
-  // États Actuels (avec OLT imbriqués)
-  etats_actuels?: EtatActuel[];
-  nb_etats_actuels?: number;
+  // Objectifs à long terme (avec NE imbriqués)
+  objectifs_long_terme?: ObjectifLongTerme[];
+  nb_objectifs_long_terme?: number;
 
   // Audit
   date_ajout: string;
@@ -137,6 +137,10 @@ export interface Pression {
   id_pression: number;
   id_facteur_influence: number;
   id_pressref?: string;
+  id_type_pression?: number;
+  pressref_code?: string;
+  pressref_label?: string;
+  pressref_definition?: string;
   libelle: string;
   description?: string;
   objectifs_operationnels?: ObjectifOperationnel[];
@@ -175,32 +179,18 @@ export interface FacteurInfluenceCreatePayload {
  */
 export interface PressionCreatePayload {
   id_facteur_influence: number;
+  id_type_pression?: number;
   libelle: string;
   description?: string;
 }
 
 /**
- * État actuel rattaché à un enjeu.
- * Hiérarchie : Enjeu → EtatActuel → OLT → NiveauExigence.
- */
-export interface EtatActuel {
-  id_etat_actuel: number;
-  id_enjeu: number;
-  libelle: string;
-  description?: string;
-  objectifs_long_terme?: ObjectifLongTerme[];
-  nb_olt?: number;
-  date_ajout: string;
-  date_maj: string;
-  createur_nom?: string;
-}
-
-/**
- * Objectif à Long Terme (OLT) rattaché à un état actuel.
+ * Objectif à Long Terme (OLT) rattaché directement à un enjeu.
+ * Hiérarchie : Enjeu → OLT → NiveauExigence.
  */
 export interface ObjectifLongTerme {
   id_olt: number;
-  id_etat_actuel: number;
+  id_enjeu: number;
   libelle: string;
   description?: string;
   niveaux_exigence?: NiveauExigence[];
@@ -478,6 +468,7 @@ export interface OperationCreatePayload {
   annee_max?: number;
   // Suivi/inventaire
   est_suivi_existant?: boolean;
+  id_suivi?: number;
   suivi_inventaire?: Omit<SuiviInventaire, 'id_suivi_inventaire' | 'date_ajout' | 'date_maj'>;
   // Fréquence & acteurs
   frequence_nombre?: number;
@@ -568,19 +559,10 @@ export interface MesureCreatePayload {
 }
 
 /**
- * Payload for creating an EtatActuel
- */
-export interface EtatActuelCreatePayload {
-  id_enjeu: number;
-  libelle: string;
-  description?: string;
-}
-
-/**
  * Payload for creating an ObjectifLongTerme
  */
 export interface ObjectifLongTermeCreatePayload {
-  id_etat_actuel: number;
+  id_enjeu: number;
   libelle: string;
   description?: string;
 }

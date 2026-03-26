@@ -26,7 +26,7 @@ def get_tracking_api_url():
         config.read('/etc/cicada/cicada.conf')
         return config.get('CICADA', 'TRACKING_API_URL')
     else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.rnf.fr/api')
+        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
 
 
 @staff_member_required

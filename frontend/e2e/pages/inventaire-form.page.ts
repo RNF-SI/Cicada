@@ -16,7 +16,7 @@ export class InventaireFormPage {
 
   // Main card fields
   readonly intituleInput: Locator;
-  readonly typeSuiviSelect: Locator;
+  readonly typeActionInput: Locator;
   readonly integrePgOui: Locator;
   readonly integrePgNon: Locator;
   readonly objectifPrincipalSelect: Locator;
@@ -70,7 +70,7 @@ export class InventaireFormPage {
 
     // Main card
     this.intituleInput = page.locator('input[formControlName="intitule"]');
-    this.typeSuiviSelect = page.locator('mat-select[formControlName="id_type_suivi"]');
+    this.typeActionInput = page.locator('mat-form-field').filter({ hasText: /type/i }).locator('input[matInput]').first();
     this.integrePgOui = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').first();
     this.integrePgNon = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').nth(1);
     this.objectifPrincipalSelect = page.locator('mat-select[formControlName="objectif_principal"]');
@@ -139,8 +139,11 @@ export class InventaireFormPage {
   }
 
   async selectFirstTypeSuivi() {
-    await this.typeSuiviSelect.click();
-    await this.page.locator('mat-option').filter({ hasNotText: '—' }).first().click();
+    await this.typeActionInput.click();
+    await this.typeActionInput.fill('');
+    await this.page.waitForTimeout(300);
+    await this.page.locator('.type-action-autocomplete mat-option').first().waitFor({ state: 'visible', timeout: 5000 });
+    await this.page.locator('.type-action-autocomplete mat-option').first().click();
   }
 
   async selectFirstObjectifPrincipal() {

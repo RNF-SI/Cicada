@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser l'affichage des champs DB et reverse proxy / Traefik
     toggleDbFields();
     toggleReverseProxyFields();
+    toggleAcmeEmailMode();
+    toggleSmtpFields();
+    toggleSmtpAuthFields();
 
     // Validation du mot de passe
     const password = document.getElementById('admin_password');
@@ -77,14 +80,21 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const [key, value] of formData.entries()) {
             if (key === 'rgpd_consent') {
                 data[key] = document.getElementById(key).checked;
+            } else if (key === 'smtp_enabled' || key === 'smtp_use_auth' || key === 'smtp_use_tls') {
+                data[key] = document.getElementById(key).checked;
             } else if (key !== 'reverse_proxy_present' && key !== 'acme_email') {
                 data[key] = value;
             }
         }
         const reverseProxyPresent = document.getElementById('reverse_proxy_present') && document.getElementById('reverse_proxy_present').checked;
+        const useAdminAcmeEmail = document.getElementById('acme_use_admin_email') && document.getElementById('acme_use_admin_email').checked;
         data.use_traefik = !reverseProxyPresent;
         if (data.use_traefik) {
-            data.acme_email = (document.getElementById('acme_email') && document.getElementById('acme_email').value) || '';
+            if (useAdminAcmeEmail) {
+                data.acme_email = (document.getElementById('admin_email') && document.getElementById('admin_email').value) || '';
+            } else {
+                data.acme_email = (document.getElementById('acme_email') && document.getElementById('acme_email').value) || '';
+            }
         }
         
         try {
@@ -238,7 +248,75 @@ function toggleReverseProxyFields() {
     } else {
         reverseProxyFields.classList.add('hidden');
         traefikFields.classList.remove('hidden');
-        if (acmeEmail) acmeEmail.required = true;
+        toggleAcmeEmailMode();
+    }
+}
+
+function toggleAcmeEmailMode() {
+    const reverseProxyPresent = document.getElementById('reverse_proxy_present');
+    const useAdminEmail = document.getElementById('acme_use_admin_email');
+    const acmeEmailGroup = document.getElementById('acme_email_group');
+    const acmeEmail = document.getElementById('acme_email');
+    if (!useAdminEmail || !acmeEmailGroup || !acmeEmail) return;
+
+    // Sans Traefik, ce champ n'est jamais requis/visible.
+    if (reverseProxyPresent && reverseProxyPresent.checked) {
+        acmeEmailGroup.classList.add('hidden');
+        acmeEmail.required = false;
+        acmeEmail.value = '';
+        return;
+    }
+
+    if (useAdminEmail.checked) {
+        acmeEmailGroup.classList.add('hidden');
+        acmeEmail.required = false;
+        acmeEmail.value = '';
+    } else {
+        acmeEmailGroup.classList.remove('hidden');
+        acmeEmail.required = true;
+    }
+}
+
+function toggleSmtpFields() {
+    const smtpEnabled = document.getElementById('smtp_enabled');
+    const smtpFields = document.getElementById('smtp_fields');
+    const smtpHost = document.getElementById('smtp_host');
+    const smtpPort = document.getElementById('smtp_port');
+    const defaultFromEmail = document.getElementById('default_from_email');
+    const smtpUseAuth = document.getElementById('smtp_use_auth');
+    if (!smtpEnabled || !smtpFields) return;
+
+    if (smtpEnabled.checked) {
+        smtpFields.classList.remove('hidden');
+        if (smtpHost) smtpHost.required = true;
+        if (smtpPort) smtpPort.required = true;
+        if (defaultFromEmail) defaultFromEmail.required = true;
+    } else {
+        smtpFields.classList.add('hidden');
+        if (smtpHost) { smtpHost.required = false; smtpHost.value = ''; }
+        if (smtpPort) { smtpPort.required = false; smtpPort.value = '587'; }
+        if (defaultFromEmail) { defaultFromEmail.required = false; defaultFromEmail.value = ''; }
+        if (smtpUseAuth) smtpUseAuth.checked = false;
+        toggleSmtpAuthFields();
+    }
+}
+
+function toggleSmtpAuthFields() {
+    const smtpEnabled = document.getElementById('smtp_enabled');
+    const smtpUseAuth = document.getElementById('smtp_use_auth');
+    const smtpAuthFields = document.getElementById('smtp_auth_fields');
+    const smtpUser = document.getElementById('smtp_user');
+    const smtpPassword = document.getElementById('smtp_password');
+    if (!smtpAuthFields || !smtpUseAuth || !smtpEnabled) return;
+
+    if (smtpEnabled.checked && smtpUseAuth.checked) {
+        smtpAuthFields.classList.remove('hidden');
+        if (smtpUser) smtpUser.required = true;
+        if (smtpPassword) smtpPassword.required = true;
+    } else {
+        smtpAuthFields.classList.add('hidden');
+        if (smtpUser) { smtpUser.required = false; smtpUser.value = ''; }
+        if (smtpPassword) { smtpPassword.required = false; smtpPassword.value = ''; }
     }
 }
 
@@ -251,25 +329,79 @@ function generatePassword(fieldId) {
     document.getElementById(fieldId).value = password;
 }
 
+function togglePasswordVisibility(fieldId, button) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    if (field.type === 'password') {
+        field.type = 'text';
+        if (button) button.title = 'Masquer';
+    } else {
+        field.type = 'password';
+        if (button) button.title = 'Afficher';
+    }
+}
+
+function copyFieldValue(fieldId, button) {
+    const field = document.getElementById(fieldId);
+    if (!field || !field.value) return;
+
+    const copiedLabel = 'Copié';
+    const defaultLabel = '&#128203;';
+
+    const onSuccess = () => {
+        if (!button) return;
+        const original = button.innerHTML;
+        button.textContent = copiedLabel;
+        setTimeout(() => {
+            button.innerHTML = original || defaultLabel;
+        }, 1200);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(field.value).then(onSuccess).catch(() => {
+            field.select();
+            document.execCommand('copy');
+            onSuccess();
+            field.setSelectionRange(field.value.length, field.value.length);
+        });
+    } else {
+        field.select();
+        document.execCommand('copy');
+        onSuccess();
+        field.setSelectionRange(field.value.length, field.value.length);
+    }
+}
+
 function toggleDbFields() {
     const dbType = document.getElementById('db_type').value;
     const dockerFields = document.getElementById('db_docker_fields');
     const existingFields = document.getElementById('db_existing_fields');
+    const dbConnectionFields = document.getElementById('db_connection_fields');
     const dbHost = document.getElementById('db_host');
+    const dbPort = document.getElementById('db_port');
     const dbNameHelp = document.getElementById('db_name_help');
     const dbUserHelp = document.getElementById('db_user_help');
     
     if (dbType === 'docker') {
         dockerFields.classList.remove('hidden');
         existingFields.classList.add('hidden');
+        if (dbConnectionFields) dbConnectionFields.classList.add('hidden');
         dbHost.value = 'db';
+        dbPort.value = '5432';
+        dbHost.required = false;
+        dbPort.required = false;
         dbHost.readOnly = true;
+        dbPort.readOnly = true;
         if (dbNameHelp) dbNameHelp.textContent = 'Sera créée automatiquement si nouvelle instance Docker';
         if (dbUserHelp) dbUserHelp.textContent = 'Sera créé automatiquement si nouvelle instance Docker';
     } else {
         dockerFields.classList.add('hidden');
         existingFields.classList.remove('hidden');
+        if (dbConnectionFields) dbConnectionFields.classList.remove('hidden');
+        dbHost.required = true;
+        dbPort.required = true;
         dbHost.readOnly = false;
+        dbPort.readOnly = false;
         if (dbNameHelp) dbNameHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
         if (dbUserHelp) dbUserHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
     }

@@ -13,7 +13,6 @@ from .models_enjeux import (
     FacteurInfluence,
     Pression,
     Responsabilite,
-    EtatActuel,
     ObjectifLongTerme,
     NiveauExigence,
     ObjectifOperationnel,

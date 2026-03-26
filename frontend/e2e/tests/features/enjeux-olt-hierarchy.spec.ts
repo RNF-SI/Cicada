@@ -1,7 +1,9 @@
 /**
  * E2E Tests for OLT tab hierarchy inline CRUD:
- * EtatActuel (edit), OLT (edit), NiveauExigence (edit/delete),
+ * OLT (edit), NiveauExigence (edit/delete),
  * Indicateurs (CRUD with nested Metriques), standalone Metriques.
+ *
+ * Hierarchy: Enjeu → OLT → NE → Indicateur → Metrique
  *
  * Prerequisite: seed_testdata with enjeux seeder.
  */
@@ -47,83 +49,21 @@ async function cancelInlineForm(page: import('@playwright/test').Page) {
   await page.waitForTimeout(300);
 }
 
-/** Expand an EA section header by clicking on it (toggles olt-expanded-content). */
-async function expandFirstEtat(page: import('@playwright/test').Page) {
-  const etatHeader = page.locator('.olt-content .olt-section-header').first();
-  await etatHeader.click();
-  await page.waitForTimeout(300);
-}
-
-/** Expand an OLT section header inside an already-expanded EA. */
+/** Expand an OLT section header by clicking on it. */
 async function expandFirstOlt(page: import('@playwright/test').Page) {
-  const oltHeader = page.locator('.olt-expanded-content .olt-section-header').first();
+  const oltHeader = page.locator('.olt-content .olt-section-header').first();
   await oltHeader.click();
   await page.waitForTimeout(300);
 }
-
-/** Expand full hierarchy: first EA, then first OLT inside it. */
-async function expandEaAndOlt(page: import('@playwright/test').Page) {
-  await expandFirstEtat(page);
-  await expandFirstOlt(page);
-}
-
-// =========================================================================
-// ETATS ACTUELS — Edit (create/delete already tested in enjeux.spec.ts)
-// =========================================================================
-test.describe('OLT Tab - Etats Actuels Edit', () => {
-  test('should display edit button on etat actuel', async ({ referentPage }) => {
-    const { enjeuxPage } = await gotoOltTab(referentPage, 'Lacs');
-    const etatHeaders = referentPage.locator('.olt-content .olt-section-header');
-    const count = await etatHeaders.count();
-    expect(count).toBeGreaterThanOrEqual(1);
-
-    // Look for edit pencil icon inside the first EA header
-    const editBtn = etatHeaders.first().locator('.icon-btn-flat .fi-rr-pencil').first();
-    await expect(editBtn).toBeVisible();
-  });
-
-  test('should edit etat actuel inline', async ({ referentPage }) => {
-    const { enjeuxPage } = await gotoOltTab(referentPage, 'Lacs');
-    const etatHeaders = referentPage.locator('.olt-content .olt-section-header');
-
-    // Click edit on first etat actuel
-    await etatHeaders.first().locator('.icon-btn-flat .fi-rr-pencil').first().locator('..').click();
-    await referentPage.waitForTimeout(300);
-
-    // Inline form should appear
-    const inlineForm = referentPage.locator('.olt-inline-form');
-    await expect(inlineForm.first()).toBeVisible();
-
-    // Cancel
-    await cancelInlineForm(referentPage);
-  });
-
-  test('should cancel etat actuel edit without changes', async ({ referentPage }) => {
-    const { enjeuxPage } = await gotoOltTab(referentPage, 'Lacs');
-    const etatHeaders = referentPage.locator('.olt-content .olt-section-header');
-    const initialText = await etatHeaders.first().innerText();
-
-    await etatHeaders.first().locator('.icon-btn-flat .fi-rr-pencil').first().locator('..').click();
-    await referentPage.waitForTimeout(300);
-    await cancelInlineForm(referentPage);
-
-    const afterHeaders = referentPage.locator('.olt-content .olt-section-header');
-    const afterText = await afterHeaders.first().innerText();
-    expect(afterText).toContain(initialText.substring(0, 20));
-  });
-});
 
 // =========================================================================
 // OLT — Edit (create/delete already tested)
 // =========================================================================
 test.describe('OLT Tab - OLT Edit', () => {
-  test('should display OLT items under etat actuel', async ({ referentPage }) => {
+  test('should display OLT items under enjeu', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand first EA to see OLTs
-    await expandFirstEtat(referentPage);
-
-    const oltHeaders = referentPage.locator('.olt-expanded-content .olt-section-header');
+    const oltHeaders = referentPage.locator('.olt-content .olt-section-header');
     const count = await oltHeaders.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
@@ -131,9 +71,7 @@ test.describe('OLT Tab - OLT Edit', () => {
   test('should show edit pencil on OLT item', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandFirstEtat(referentPage);
-
-    const oltHeaders = referentPage.locator('.olt-expanded-content .olt-section-header');
+    const oltHeaders = referentPage.locator('.olt-content .olt-section-header');
     const editBtn = oltHeaders.first().locator('.icon-btn-flat .fi-rr-pencil').first();
     await expect(editBtn).toBeVisible();
   });
@@ -146,8 +84,8 @@ test.describe('OLT Tab - Niveaux d\'Exigence Edit/Delete', () => {
   test('should display NE items under OLT', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand EA then OLT to reach NE level
-    await expandEaAndOlt(referentPage);
+    // Expand OLT to reach NE level
+    await expandFirstOlt(referentPage);
 
     const neCards = referentPage.locator('.ne-card');
     const neCount = await neCards.count();
@@ -157,8 +95,8 @@ test.describe('OLT Tab - Niveaux d\'Exigence Edit/Delete', () => {
   test('should show add NE button under OLT', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand EA then OLT to see add button
-    await expandEaAndOlt(referentPage);
+    // Expand OLT to see add button
+    await expandFirstOlt(referentPage);
 
     const addNeBtn = referentPage.locator('.add-item-btn').filter({ hasText: /exigence|niveau/i });
     // The button may or may not be visible depending on hierarchy expansion
@@ -174,8 +112,8 @@ test.describe('OLT Tab - Indicateurs', () => {
   test('should display indicateurs under NE', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand full hierarchy
-    await expandEaAndOlt(referentPage);
+    // Expand OLT hierarchy
+    await expandFirstOlt(referentPage);
 
     // Look for indicateur elements
     const indicateurs = referentPage.locator('.indicateur-block');
@@ -187,8 +125,8 @@ test.describe('OLT Tab - Indicateurs', () => {
   test('should display add indicateur button', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand hierarchy
-    await expandEaAndOlt(referentPage);
+    // Expand OLT
+    await expandFirstOlt(referentPage);
 
     const addBtn = referentPage.locator('.add-item-btn').filter({ hasText: /indicateur/i });
     const btnCount = await addBtn.count();
@@ -198,8 +136,8 @@ test.describe('OLT Tab - Indicateurs', () => {
   test('should open indicateur add form with all fields', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand hierarchy
-    await expandEaAndOlt(referentPage);
+    // Expand OLT
+    await expandFirstOlt(referentPage);
 
     const addBtn = referentPage.locator('.add-item-btn').filter({ hasText: /indicateur/i }).first();
     if (await addBtn.isVisible()) {
@@ -222,7 +160,7 @@ test.describe('OLT Tab - Indicateurs', () => {
   test('should create indicateur with name', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     const addBtn = referentPage.locator('.add-item-btn').filter({ hasText: /indicateur/i }).first();
     if (await addBtn.isVisible()) {
@@ -241,7 +179,7 @@ test.describe('OLT Tab - Indicateurs', () => {
   test('should show metrique fields inside indicateur form', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     const addBtn = referentPage.locator('.add-item-btn').filter({ hasText: /indicateur/i }).first();
     if (await addBtn.isVisible()) {
@@ -267,8 +205,8 @@ test.describe('OLT Tab - Metriques', () => {
   test('should display metriques under indicateurs', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    // Expand hierarchy: EA > OLT, then expand an indicateur
-    await expandEaAndOlt(referentPage);
+    // Expand OLT, then expand an indicateur
+    await expandFirstOlt(referentPage);
 
     // Expand first indicateur by clicking on its subtitle
     const indicateurSubtitle = referentPage.locator('.indicateur-subtitle').first();
@@ -287,7 +225,7 @@ test.describe('OLT Tab - Metriques', () => {
   test('should display add metrique button under indicateur', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     // Expand first indicateur
     const indicateurSubtitle = referentPage.locator('.indicateur-subtitle').first();
@@ -304,7 +242,7 @@ test.describe('OLT Tab - Metriques', () => {
   test('should display metrique details table with score thresholds', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     // Expand first indicateur
     const indicateurSubtitle = referentPage.locator('.indicateur-subtitle').first();
@@ -327,7 +265,7 @@ test.describe('OLT Tab - Indicateur Edit', () => {
   test('should show edit button on existing indicateur', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     // Expand first indicateur to see its action buttons
     const indicateurSubtitle = referentPage.locator('.indicateur-subtitle').first();
@@ -346,7 +284,7 @@ test.describe('OLT Tab - Indicateur Edit', () => {
   test('should show delete button on existing indicateur', async ({ referentPage }) => {
     await gotoOltTab(referentPage, 'Lacs');
 
-    await expandEaAndOlt(referentPage);
+    await expandFirstOlt(referentPage);
 
     // Expand first indicateur
     const indicateurSubtitle = referentPage.locator('.indicateur-subtitle').first();

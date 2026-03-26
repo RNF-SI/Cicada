@@ -6,7 +6,7 @@ from rest_framework import status
 
 from apps.plans.models_operations import Operation, Protocole, SuiviInventaire
 from tests.factories.enjeux import (
-    EnjeuFactory, EtatActuelFactory, NomenclatureEnjeuFactory,
+    EnjeuFactory, NomenclatureEnjeuFactory,
     ObjectifLongTermeFactory, NiveauExigenceFactory,
     IndicateurFactory, MetriqueFactory, ProtocoleFactory, SuiviInventaireFactory, OperationFactory,
     NomenclaturePrioriteOperationFactory,
@@ -52,12 +52,8 @@ def operation_test_data(db):
         rang=1, categorie_ecologique=True,
         id_utilisateur_ajout=referent
     )
-    etat = EtatActuelFactory(
-        id_enjeu=enjeu, libelle='État Actuel Test Op',
-        id_utilisateur_ajout=referent
-    )
     olt = ObjectifLongTermeFactory(
-        id_etat_actuel=etat, libelle='OLT Test Op',
+        id_enjeu=enjeu, libelle='OLT Test Op',
         id_utilisateur_ajout=referent
     )
     ne = NiveauExigenceFactory(

@@ -185,6 +185,17 @@ class SuiviInventaire(models.Model):
         help_text=_("Type : Suivi, Inventaire, ou Suivi et inventaire"),
         limit_choices_to={'id_type__mnemonique': 'TYPE_SUIVI'}
     )
+    id_type_action = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suivis_type_action',
+        db_column='id_type_action',
+        verbose_name=_("Type d'action"),
+        help_text=_("Code d'action CS associé (ex: CS8 = Inventaire de la faune)"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_ACTION'}
+    )
     integre_plan_gestion = models.BooleanField(
         _("Intégré dans un plan de gestion"),
         null=True,
@@ -408,7 +419,7 @@ class Operation(models.Model):
         related_name='operations_type_action',
         db_column='id_type_action',
         verbose_name=_("Type d'action"),
-        help_text=_("Type d'action (SE, CS, TU, PI, etc.)"),
+        help_text=_("Type d'action (IP1, CS2, CI2, SP1, etc.)"),
         limit_choices_to={'id_type__mnemonique': 'TYPE_ACTION'}
     )
     id_referentiel_operations = models.CharField(

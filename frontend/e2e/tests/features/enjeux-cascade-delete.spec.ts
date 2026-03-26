@@ -5,7 +5,7 @@
  * All tests create temporary data and clean up after themselves.
  *
  * Cascade chains tested:
- * - Enjeu -> EtatActuel -> OLT -> NE -> Indicateur -> Metrique
+ * - Enjeu -> OLT -> NE -> Indicateur -> Metrique
  * - Enjeu -> FacteurInfluence -> Pression -> OO -> RA
  * - OLT deletion removes NE children
  * - FacteurInfluence deletion removes Pression children
@@ -43,17 +43,9 @@ async function createPression(page: import('@playwright/test').Page, facteurId: 
   return data;
 }
 
-async function createEtatActuel(page: import('@playwright/test').Page, enjeuId: number, libelle: string) {
-  const { ok, data } = await apiPost(page, 'plans/etats-actuels/', {
-    id_enjeu: enjeuId, libelle,
-  });
-  expect(ok).toBeTruthy();
-  return data;
-}
-
-async function createOlt(page: import('@playwright/test').Page, etatId: number, libelle: string) {
+async function createOlt(page: import('@playwright/test').Page, enjeuId: number, libelle: string) {
   const { ok, data } = await apiPost(page, 'plans/objectifs-long-terme/', {
-    id_etat_actuel: etatId, libelle,
+    id_enjeu: enjeuId, libelle,
   });
   expect(ok).toBeTruthy();
   return data;
@@ -114,17 +106,15 @@ test.describe('Cascade Delete - Enjeu (full tree)', () => {
     expect(await entityExists(superAdminPage, `plans/pressions/${pression.id_pression}/`)).toBeFalsy();
   });
 
-  test('deleting enjeu should cascade to etats actuels and OLTs', async ({ superAdminPage }) => {
+  test('deleting enjeu should cascade to OLTs and NEs', async ({ superAdminPage }) => {
     const plan = await findPlan(superAdminPage, 'Camargue');
 
-    // Create: Enjeu -> EtatActuel -> OLT -> NE
-    const enjeu = await createEnjeu(superAdminPage, plan.id_pg, `E2E Cascade EA ${Date.now()}`);
-    const ea = await createEtatActuel(superAdminPage, enjeu.id_enjeu, 'E2E Cascade EtatActuel');
-    const olt = await createOlt(superAdminPage, ea.id_etat_actuel, 'E2E Cascade OLT');
+    // Create: Enjeu -> OLT -> NE
+    const enjeu = await createEnjeu(superAdminPage, plan.id_pg, `E2E Cascade OLT ${Date.now()}`);
+    const olt = await createOlt(superAdminPage, enjeu.id_enjeu, 'E2E Cascade OLT');
     const ne = await createNe(superAdminPage, olt.id_olt, 'E2E Cascade NE');
 
     // Verify all exist
-    expect(await entityExists(superAdminPage, `plans/etats-actuels/${ea.id_etat_actuel}/`)).toBeTruthy();
     expect(await entityExists(superAdminPage, `plans/objectifs-long-terme/${olt.id_olt}/`)).toBeTruthy();
     expect(await entityExists(superAdminPage, `plans/niveaux-exigence/${ne.id_ne}/`)).toBeTruthy();
 
@@ -132,7 +122,6 @@ test.describe('Cascade Delete - Enjeu (full tree)', () => {
     await apiDelete(superAdminPage, `plans/enjeux/${enjeu.id_enjeu}/`);
 
     // Verify all children gone
-    expect(await entityExists(superAdminPage, `plans/etats-actuels/${ea.id_etat_actuel}/`)).toBeFalsy();
     expect(await entityExists(superAdminPage, `plans/objectifs-long-terme/${olt.id_olt}/`)).toBeFalsy();
     expect(await entityExists(superAdminPage, `plans/niveaux-exigence/${ne.id_ne}/`)).toBeFalsy();
   });
@@ -168,9 +157,8 @@ test.describe('Cascade Delete - FacteurInfluence', () => {
 test.describe('Cascade Delete - OLT', () => {
   test('deleting OLT should cascade to niveaux exigence', async ({ superAdminPage }) => {
     const plan = await findPlan(superAdminPage, 'Camargue');
-    const enjeu = await createEnjeu(superAdminPage, plan.id_pg, `E2E Cascade OLT ${Date.now()}`);
-    const ea = await createEtatActuel(superAdminPage, enjeu.id_enjeu, 'E2E EA for OLT cascade');
-    const olt = await createOlt(superAdminPage, ea.id_etat_actuel, 'E2E OLT Parent');
+    const enjeu = await createEnjeu(superAdminPage, plan.id_pg, `E2E Cascade OLT Del ${Date.now()}`);
+    const olt = await createOlt(superAdminPage, enjeu.id_enjeu, 'E2E OLT Parent');
     const ne1 = await createNe(superAdminPage, olt.id_olt, 'E2E NE Child 1');
     const ne2 = await createNe(superAdminPage, olt.id_olt, 'E2E NE Child 2');
 
@@ -182,8 +170,8 @@ test.describe('Cascade Delete - OLT', () => {
     expect(await entityExists(superAdminPage, `plans/niveaux-exigence/${ne1.id_ne}/`)).toBeFalsy();
     expect(await entityExists(superAdminPage, `plans/niveaux-exigence/${ne2.id_ne}/`)).toBeFalsy();
 
-    // EtatActuel should still exist
-    expect(await entityExists(superAdminPage, `plans/etats-actuels/${ea.id_etat_actuel}/`)).toBeTruthy();
+    // Enjeu should still exist
+    expect(await entityExists(superAdminPage, `plans/enjeux/${enjeu.id_enjeu}/`)).toBeTruthy();
 
     // Cleanup
     await apiDelete(superAdminPage, `plans/enjeux/${enjeu.id_enjeu}/`);

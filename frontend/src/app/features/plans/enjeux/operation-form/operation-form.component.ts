@@ -28,25 +28,19 @@ import { ReferenceItemListComponent } from '../../../../shared/components/refere
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
+import { InventaireService } from '../../../../core/services/inventaire.service';
 import { Operation, OperationCreatePayload, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 
-/** Nomenclature option with grouping info */
-interface NomenclatureOption {
-  id_nomenclature: number;
-  mnemonique: string;
-  label: string;
-  definition?: string;
-  hierarchy?: string;
-}
-
-/** Grouped nomenclature for mat-optgroup display */
-interface NomenclatureGroup {
-  groupLabel: string;
-  options: NomenclatureOption[];
-}
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+} from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
 @Component({
   selector: 'app-operation-form',
@@ -81,6 +75,7 @@ export class OperationFormComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
   private readonly campanuleService = inject(CampanuleService);
+  private readonly inventaireService = inject(InventaireService);
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -101,8 +96,27 @@ export class OperationFormComponent implements OnInit {
   prelinkedMetriqueId = signal<number | null>(null);
 
   // Nomenclatures
-  typeActionOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+  typeActionOptions = signal<NomenclatureOption[]>([]);
   prioriteOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
+
+  // Type d'action autocomplete
+  typeActionSearchCtrl = new FormControl('');
+  typeActionGroups = computed<NomenclatureGroup[]>(() => {
+    return this.buildActionGroups(this.typeActionOptions(), this.typeActionSearchText());
+  });
+  typeActionSearchText = signal('');
+  selectedTypeAction = signal<NomenclatureOption | null>(null);
+
+  /** Vrai si le type d'action sélectionné est un code CS (Connaissance et Suivi) */
+  isCSAction = computed(() => {
+    const selected = this.selectedTypeAction();
+    if (!selected) return false;
+    const code = selected.cd_nomenclature || selected.mnemonique || '';
+    return code.startsWith('CS');
+  });
+
+  /** Inventaires existants chargés (filtrés par type d'action) */
+  availableInventaires = signal<{ id_suivi_inventaire: number; intitule: string; type_action_code?: string }[]>([]);
   operateurOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
 
@@ -194,6 +208,7 @@ export class OperationFormComponent implements OnInit {
   ngOnInit(): void {
     this.initFrequenceLabels();
     this.initForm();
+    this.initTypeActionAutocomplete();
     this.initCampanuleAutocomplete();
     this.loadRouteParams();
   }
@@ -210,8 +225,10 @@ export class OperationFormComponent implements OnInit {
   private initForm(): void {
     this.form = this.fb.group({
       // Main card
-      libelle: ['', [Validators.required, Validators.maxLength(500)]],
+      libelle: ['', [Validators.maxLength(500)]],
       id_type_action: [null],
+      id_suivi: [null],
+      intitule_suivi: [''],
       id_metrique: [null],
       id_priorite: [null],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
@@ -309,18 +326,16 @@ export class OperationFormComponent implements OnInit {
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               for (const enjeu of allEnjeux) {
-                for (const ea of enjeu.etats_actuels || []) {
-                  for (const olt of ea.objectifs_long_terme || []) {
-                    for (const ne of olt.niveaux_exigence || []) {
-                      for (const ind of ne.indicateurs || []) {
-                        indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
-                        for (const met of ind.metriques || []) {
-                          metriques.push({
-                            id_metrique: met.id_metrique,
-                            nom_metrique: met.nom_metrique,
-                            indicateur_nom: ind.nom_indicateur
-                          });
-                        }
+                for (const olt of enjeu.objectifs_long_terme || []) {
+                  for (const ne of olt.niveaux_exigence || []) {
+                    for (const ind of ne.indicateurs || []) {
+                      indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
+                      for (const met of ind.metriques || []) {
+                        metriques.push({
+                          id_metrique: met.id_metrique,
+                          nom_metrique: met.nom_metrique,
+                          indicateur_nom: ind.nom_indicateur
+                        });
                       }
                     }
                   }
@@ -343,7 +358,14 @@ export class OperationFormComponent implements OnInit {
     }
 
     this.adminService.getNomenclaturesByType('TYPE_ACTION').subscribe({
-      next: (options) => this.typeActionOptions.set(options),
+      next: (options) => {
+        this.typeActionOptions.set(options);
+        // Si on est en mode édition et que l'opération est déjà chargée, restaurer l'autocomplete
+        const op = this.existingOperation();
+        if (op?.id_type_action) {
+          this.restoreTypeActionAutocomplete(op.id_type_action, options);
+        }
+      },
       error: () => this.typeActionOptions.set([])
     });
 
@@ -461,6 +483,11 @@ export class OperationFormComponent implements OnInit {
       financeurs: op.financeurs || '',
       id_metrique: op.id_metrique || null
     });
+
+    // Restore type action autocomplete
+    if (op.id_type_action) {
+      this.restoreTypeActionAutocomplete(op.id_type_action);
+    }
 
     // Populate suivi fields from nested suivi_inventaire
     const suivi = op.suivi_inventaire;
@@ -591,8 +618,18 @@ export class OperationFormComponent implements OnInit {
     // getRawValue() includes disabled fields (for readonly suivi mode)
     const rawFv = this.form.getRawValue();
 
+    // Auto-remplir le libellé avec le type d'action si vide
+    let libelle = fv.libelle?.trim() || '';
+    if (!libelle) {
+      const selected = this.selectedTypeAction();
+      if (selected) {
+        const code = selected.cd_nomenclature || selected.mnemonique || '';
+        libelle = `${code} - ${selected.label}`;
+      }
+    }
+
     const payload: OperationCreatePayload = {
-      libelle: fv.libelle,
+      libelle,
     };
 
     if (fv.id_type_action) payload.id_type_action = fv.id_type_action;
@@ -606,9 +643,18 @@ export class OperationFormComponent implements OnInit {
     // est_suivi_existant
     payload.est_suivi_existant = this.estSuiviExistant();
 
-    // Build nested suivi_inventaire from form fields (only if not in "existing suivi" mode)
-    if (!this.estSuiviExistant()) {
+    // If existing suivi selected, pass id_suivi
+    if (this.estSuiviExistant() && fv.id_suivi) {
+      payload.id_suivi = fv.id_suivi;
+    }
+
+    // Build nested suivi_inventaire from form fields (only if CS action and not "existing suivi" mode)
+    if (this.isCSAction() && !this.estSuiviExistant()) {
       const suiviData: Record<string, unknown> = {};
+      // Intitulé de l'inventaire (requis pour les nouveaux)
+      if (fv.intitule_suivi?.trim()) suiviData['intitule'] = fv.intitule_suivi.trim();
+      // Propager le type d'action CS sélectionné
+      if (fv.id_type_action) suiviData['id_type_action'] = fv.id_type_action;
       if (rawFv.objectif_principal?.trim()) suiviData['objectif_principal'] = rawFv.objectif_principal.trim();
       if (rawFv.objectif_secondaire?.trim()) suiviData['objectif_secondaire'] = rawFv.objectif_secondaire.trim();
       if (rawFv.cibles_principales) suiviData['cibles_principales'] = rawFv.cibles_principales;
@@ -787,13 +833,83 @@ export class OperationFormComponent implements OnInit {
   setEstSuiviExistant(value: boolean): void {
     this.estSuiviExistant.set(value);
     if (value) {
-      // When switching to "existing suivi" mode, disable suivi fields
+      // "Existing suivi" mode: disable suivi fields, clear intitule_suivi
       this.setSuiviFieldsEnabled(false);
+      this.form.get('intitule_suivi')?.clearValidators();
+      this.form.get('intitule_suivi')?.updateValueAndValidity();
     } else {
-      // When switching back to manual mode, re-enable suivi fields
+      // "New suivi" mode: enable suivi fields, intitule_suivi required
       this.setSuiviFieldsEnabled(true);
+      this.form.get('intitule_suivi')?.setValidators([Validators.required]);
+      this.form.get('intitule_suivi')?.updateValueAndValidity();
     }
   }
+
+  // ════════════════════════════════════════════════
+  // Type d'action autocomplete (codes Eden 62)
+  // ════════════════════════════════════════════════
+
+  private initTypeActionAutocomplete(): void {
+    this.typeActionSearchCtrl.valueChanges.subscribe((val) => {
+      if (typeof val === 'string') {
+        this.typeActionSearchText.set(val);
+      }
+    });
+  }
+
+  displayTypeActionFn = displayNomenclatureFn;
+
+  onTypeActionSelected(option: NomenclatureOption): void {
+    this.selectedTypeAction.set(option);
+    this.form.get('id_type_action')?.setValue(option.id_nomenclature);
+
+    // Si c'est un code CS, charger les inventaires correspondants
+    const code = option.cd_nomenclature || option.mnemonique || '';
+    if (code.startsWith('CS')) {
+      this.loadInventairesByTypeAction(code);
+    } else {
+      this.availableInventaires.set([]);
+      this.estSuiviExistant.set(false);
+    }
+  }
+
+  clearTypeAction(): void {
+    this.typeActionSearchCtrl.setValue('');
+    this.selectedTypeAction.set(null);
+    this.form.get('id_type_action')?.setValue(null);
+    this.availableInventaires.set([]);
+    this.estSuiviExistant.set(false);
+  }
+
+  /** Charge les inventaires existants filtrés par préfixe du type d'action CS */
+  private loadInventairesByTypeAction(codePrefix: string): void {
+    this.inventaireService.getInventaires({ type_action_prefix: codePrefix, page_size: 200 }).subscribe({
+      next: (res) => {
+        const items = (res.results || []).map((inv: any) => ({
+          id_suivi_inventaire: inv.id_suivi_inventaire,
+          intitule: inv.intitule,
+          type_action_code: inv.type_action_code,
+        }));
+        this.availableInventaires.set(items);
+      },
+      error: () => this.availableInventaires.set([]),
+    });
+  }
+
+  private restoreTypeActionAutocomplete(typeActionId: number, options?: NomenclatureOption[]): void {
+    const opts = options || this.typeActionOptions();
+    const match = opts.find(o => o.id_nomenclature === typeActionId);
+    if (match) {
+      this.selectedTypeAction.set(match);
+      this.typeActionSearchCtrl.setValue(this.displayTypeActionFn(match), { emitEvent: false });
+    }
+  }
+
+  private buildActionGroups(options: NomenclatureOption[], searchText: string): NomenclatureGroup[] {
+    return buildNomenclatureGroups(options, searchText);
+  }
+
+  getActionDepth = getNomenclatureDepth;
 
   // ════════════════════════════════════════════════
   // CAMPanule autocomplete

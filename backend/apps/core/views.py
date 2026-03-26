@@ -51,6 +51,8 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API en lecture seule pour les nomenclatures.
     Filtrage par type via ?type=TYPE_SITE, ?type=TYPE_EVALUATION, etc.
+    Paramètres optionnels :
+    - ?prefix=CS  →  filtre les nomenclatures dont cd_nomenclature commence par le préfixe
     """
     serializer_class = NomenclatureSerializer
     permission_classes = [IsAuthenticated]
@@ -62,7 +64,28 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
         if type_param:
             mnemonique = NOMENCLATURE_TYPE_MAPPING.get(type_param, type_param)
             qs = qs.filter(id_type__mnemonique=mnemonique)
+        # Filtre optionnel par préfixe de code
+        prefix = self.request.query_params.get('prefix')
+        if prefix:
+            qs = qs.filter(cd_nomenclature__startswith=prefix)
         return qs.order_by('hierarchy', 'label')
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        type_param = request.query_params.get('type')
+        if type_param == 'TYPE_ACTION':
+            from .action_type_groups import get_action_group
+            for item in response.data:
+                item['group_label'] = get_action_group(
+                    item.get('cd_nomenclature', '')
+                )
+        elif type_param == 'TYPE_PRESSION':
+            from .pressure_type_groups import get_pressure_group
+            for item in response.data:
+                item['group_label'] = get_pressure_group(
+                    item.get('cd_nomenclature', '')
+                )
+        return response
 
 
 # =============================================================================

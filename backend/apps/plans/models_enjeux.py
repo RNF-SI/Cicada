@@ -430,6 +430,17 @@ class Pression(models.Model):
         null=True,
         help_text=_("Référence vers un référentiel de pressions (futur)")
     )
+    id_type_pression = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pressions_type',
+        db_column='id_type_pression',
+        verbose_name=_("Type de pression (PressRef)"),
+        help_text=_("Référence PressRef CARET V1"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_PRESSION'}
+    )
     libelle = models.CharField(
         _("Intitulé"),
         max_length=500,
@@ -479,18 +490,18 @@ class Pression(models.Model):
 
 class ObjectifLongTerme(models.Model):
     """
-    Objectif à long terme (OLT) rattaché à un état actuel.
+    Objectif à long terme (OLT) rattaché directement à un enjeu.
     Traduit l'état souhaité à atteindre à l'issue du plan de gestion.
-    Hiérarchie : Enjeu → EtatActuel → OLT → NiveauExigence.
+    Hiérarchie : Enjeu → OLT → NiveauExigence.
     """
 
     id_olt = models.AutoField(primary_key=True)
-    id_etat_actuel = models.ForeignKey(
-        'EtatActuel',
+    id_enjeu = models.ForeignKey(
+        Enjeu,
         on_delete=models.CASCADE,
         related_name='objectifs_long_terme',
-        db_column='id_etat_actuel',
-        verbose_name=_("État actuel")
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -526,68 +537,9 @@ class ObjectifLongTerme(models.Model):
 
     class Meta:
         db_table = '"general"."t_objectifs_long_terme"'
-        db_table_comment = "Objectifs à long terme des états actuels"
+        db_table_comment = "Objectifs à long terme des enjeux"
         verbose_name = _("Objectif à long terme")
         verbose_name_plural = _("Objectifs à long terme")
-        ordering = ['libelle']
-
-    def __str__(self):
-        return f"{self.libelle} ({self.id_etat_actuel})"
-
-
-class EtatActuel(models.Model):
-    """
-    État actuel rattaché à un enjeu.
-    Décrit l'état de conservation actuel d'un enjeu.
-    Un enjeu peut avoir un ou plusieurs états actuels.
-    Chaque état actuel peut avoir un ou plusieurs OLT.
-    """
-
-    id_etat_actuel = models.AutoField(primary_key=True)
-    id_enjeu = models.ForeignKey(
-        Enjeu,
-        on_delete=models.CASCADE,
-        related_name='etats_actuels',
-        db_column='id_enjeu',
-        verbose_name=_("Enjeu")
-    )
-    libelle = models.CharField(
-        _("Intitulé"),
-        max_length=500,
-        help_text=_("Intitulé de l'état actuel")
-    )
-    description = models.TextField(
-        _("Description"),
-        blank=True,
-        null=True,
-        help_text=_("Description détaillée de l'état actuel")
-    )
-
-    # Audit
-    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
-    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
-    id_utilisateur_ajout = models.ForeignKey(
-        'users.Role',
-        on_delete=models.PROTECT,
-        related_name='+',
-        db_column='id_utilisateur_ajout',
-        verbose_name=_("Créateur")
-    )
-    id_utilisateur_maj = models.ForeignKey(
-        'users.Role',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='+',
-        db_column='id_utilisateur_maj',
-        verbose_name=_("Dernier modificateur")
-    )
-
-    class Meta:
-        db_table = '"general"."t_etat_actuel"'
-        db_table_comment = "États actuels des enjeux"
-        verbose_name = _("État actuel")
-        verbose_name_plural = _("États actuels")
         ordering = ['libelle']
 
     def __str__(self):

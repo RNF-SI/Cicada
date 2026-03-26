@@ -1191,11 +1191,13 @@ class PublicRegistrationView:
 
 
 # Vue fonction pour l'inscription publique
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from apps.authentication.throttles import AuthRateThrottle
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRateThrottle])
 def public_registration_view(request):
     """Endpoint d'inscription publique."""
     serializer = PublicRegistrationSerializer(

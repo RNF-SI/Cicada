@@ -6,7 +6,7 @@ from rest_framework import status
 
 from apps.plans.models_indicateurs import Indicateur, Metrique, Mesure, CorIndicateurTaxon
 from tests.factories.enjeux import (
-    EnjeuFactory, EtatActuelFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
+    EnjeuFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
     NomenclatureEnjeuFactory,
     IndicateurFactory, MetriqueFactory, MesureFactory,
     NomenclatureTypeIndicateurFactory, NomenclatureTypeMetriqueFactory,
@@ -42,12 +42,8 @@ def indicateur_test_data(db):
         id_pg=plan, id_categorie=cat_enjeu, libelle='Enjeu Indicateur Test',
         id_utilisateur_ajout=referent
     )
-    etat = EtatActuelFactory(
-        id_enjeu=enjeu, libelle='État Actuel Indicateur',
-        id_utilisateur_ajout=referent
-    )
     olt = ObjectifLongTermeFactory(
-        id_etat_actuel=etat, libelle='OLT Indicateur',
+        id_enjeu=enjeu, libelle='OLT Indicateur',
         id_utilisateur_ajout=referent
     )
     ne1 = NiveauExigenceFactory(
@@ -106,7 +102,6 @@ def indicateur_test_data(db):
         'referent': referent,
         'user': user,
         'enjeu': enjeu,
-        'etat': etat,
         'olt': olt,
         'ne1': ne1,
         'ne2': ne2,

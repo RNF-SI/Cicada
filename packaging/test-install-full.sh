@@ -7,7 +7,10 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
-PACKAGE_FILE="$BUILD_DIR/cicada_0.1.12_amd64.deb"
+
+# Version dynamique : lire depuis cicada.conf ou utiliser VERSION env var
+VERSION="${VERSION:-$(awk -F= '/^VERSION=/{print $2; exit}' "$SCRIPT_DIR/debian/etc/cicada/cicada.conf" 2>/dev/null || echo "0.1.14")}"
+PACKAGE_FILE="$BUILD_DIR/cicada_${VERSION}_amd64.deb"
 CONTAINER_NAME="cicada-test-full"
 
 RED='\033[0;31m'
@@ -15,7 +18,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${GREEN}=== Test complet d'installation CICADA ===${NC}"
+echo -e "${GREEN}=== Test complet d'installation CICADA v${VERSION} ===${NC}"
 
 if [ ! -f "$PACKAGE_FILE" ]; then
     echo -e "${RED}Erreur : Le package $PACKAGE_FILE n'existe pas${NC}"

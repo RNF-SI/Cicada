@@ -96,7 +96,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor() {
     const legendTypes: MindmapEntityType[] = [
       'plan', 'enjeu', 'fcr', 'facteur', 'pression',
-      'olt', 'etat_actuel', 'niveau_exigence',
+      'olt', 'etat_enjeu', 'niveau_exigence',
       'oo', 'resultat_attendu',
       'indicateur', 'metrique', 'mesure',
       'operation', 'suivi', 'protocole'

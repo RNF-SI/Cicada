@@ -6,7 +6,7 @@
 import { Component, OnInit, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, Observable } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -28,12 +29,20 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
-  EtatActuel, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
+  ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
   MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee,
   ObjectifOperationnel, ResultatAttendu
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import {
+  NomenclatureOption,
+  NomenclatureGroup,
+  buildNomenclatureGroups,
+  getNomenclatureDepth,
+  displayNomenclatureFn,
+  parseNomenclatureDefinition,
+} from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
 type TabType = 'detail' | 'olt' | 'operations';
 
@@ -44,7 +53,9 @@ type TabType = 'detail' | 'olt' | 'operations';
     CommonModule,
     RouterModule,
     FormsModule,
+    ReactiveFormsModule,
     MatProgressSpinnerModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatMenuModule,
     MatIconModule,
@@ -114,19 +125,30 @@ export class EnjeuxListComponent implements OnInit {
   editPressionLibelle = '';
   editPressionDescription = '';
 
-  // EtatActuel / OLT / Niveaux d'exigence state
-  expandedEtatIds = signal<Set<number>>(new Set());
+  // PressRef autocomplete state
+  pressrefOptions = signal<NomenclatureOption[]>([]);
+  pressrefSearchCtrl = new FormControl('');
+  pressrefSearchText = signal('');
+  selectedPressref = signal<NomenclatureOption | null>(null);
+  pressrefGroups = computed<NomenclatureGroup[]>(() => {
+    return buildNomenclatureGroups(this.pressrefOptions(), this.pressrefSearchText(), { searchInDefinition: true });
+  });
+  displayPressrefFn = displayNomenclatureFn;
+  getPressrefDepth = getNomenclatureDepth;
+  // Edit mode PressRef
+  editPressrefSearchCtrl = new FormControl('');
+  editPressrefSearchText = signal('');
+  editSelectedPressref = signal<NomenclatureOption | null>(null);
+  editPressrefGroups = computed<NomenclatureGroup[]>(() => {
+    return buildNomenclatureGroups(this.pressrefOptions(), this.editPressrefSearchText(), { searchInDefinition: true });
+  });
+
+  // OLT / Niveaux d'exigence state
   expandedOltIds = signal<Set<number>>(new Set());
-  addingEtat = signal(false);
-  addingOltForEtat = signal<number | null>(null);
+  addingOlt = signal(false);
   addingNeForOlt = signal<number | null>(null);
-  editingEtatId = signal<number | null>(null);
   editingOltId = signal<number | null>(null);
   editingNeId = signal<number | null>(null);
-  newEtatLibelle = '';
-  newEtatDescription = '';
-  editEtatLibelle = '';
-  editEtatDescription = '';
   newOltLibelle = '';
   newOltDescription = '';
   newNeLibelle = '';
@@ -301,6 +323,20 @@ export class EnjeuxListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Charger les nomenclatures PressRef
+    this.adminService.getNomenclaturesByType('TYPE_PRESSION').subscribe({
+      next: (options) => this.pressrefOptions.set(options),
+      error: () => this.pressrefOptions.set([])
+    });
+
+    // Initialiser les subscriptions autocomplete PressRef
+    this.pressrefSearchCtrl.valueChanges.subscribe(val => {
+      if (typeof val === 'string') this.pressrefSearchText.set(val);
+    });
+    this.editPressrefSearchCtrl.valueChanges.subscribe(val => {
+      if (typeof val === 'string') this.editPressrefSearchText.set(val);
+    });
+
     // Récupérer le slug du plan depuis les paramètres parent
     const parentParams = this.route.parent?.snapshot.paramMap;
     const slug = parentParams?.get('slug');
@@ -481,13 +517,9 @@ export class EnjeuxListComponent implements OnInit {
     return this.selectedEnjeu()?.facteurs_influence || [];
   });
 
-  // Computed pour les États Actuels de l'enjeu sélectionné
-  selectedEtats = computed(() => {
-    return this.selectedEnjeu()?.etats_actuels || [];
-  });
-
-  totalEtatCount = computed(() => {
-    return this.selectedEtats().length;
+  // Computed pour le nombre d'OLT de l'enjeu sélectionné
+  totalOltCount = computed(() => {
+    return this.selectedEnjeu()?.objectifs_long_terme?.length || 0;
   });
 
   // Computed pour les pressions de l'enjeu sélectionné (via facteurs d'influence)
@@ -646,19 +678,52 @@ export class EnjeuxListComponent implements OnInit {
     this.addingPressionForFacteur.set(facteurId);
     this.newPressionLibelle = '';
     this.newPressionDescription = '';
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.pressrefSearchText.set('');
   }
 
   cancelAddPression(): void {
     this.addingPressionForFacteur.set(null);
     this.newPressionLibelle = '';
     this.newPressionDescription = '';
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.pressrefSearchText.set('');
   }
+
+  onPressrefSelected(option: NomenclatureOption): void {
+    this.selectedPressref.set(option);
+    // Pré-remplir l'intitulé seulement s'il est vide
+    if (!this.newPressionLibelle.trim()) {
+      this.newPressionLibelle = option.label;
+    }
+  }
+
+  clearPressref(): void {
+    this.selectedPressref.set(null);
+    this.pressrefSearchCtrl.setValue('');
+    this.pressrefSearchText.set('');
+  }
+
+  onEditPressrefSelected(option: NomenclatureOption): void {
+    this.editSelectedPressref.set(option);
+  }
+
+  clearEditPressref(): void {
+    this.editSelectedPressref.set(null);
+    this.editPressrefSearchCtrl.setValue('');
+    this.editPressrefSearchText.set('');
+  }
+
+  parsePressrefDefinition = parseNomenclatureDefinition;
 
   savePression(facteur: FacteurInfluence): void {
     if (!this.newPressionLibelle.trim()) return;
 
     this.enjeuService.createPression({
       id_facteur_influence: facteur.id_facteur_influence,
+      id_type_pression: this.selectedPressref()?.id_nomenclature || undefined,
       libelle: this.newPressionLibelle.trim(),
       description: this.newPressionDescription.trim() || undefined
     }).subscribe({
@@ -766,20 +831,40 @@ export class EnjeuxListComponent implements OnInit {
     this.editingPressionId.set(pression.id_pression);
     this.editPressionLibelle = pression.libelle;
     this.editPressionDescription = pression.description || '';
+    // Restaurer la sélection PressRef si elle existe
+    if (pression.id_type_pression) {
+      const match = this.pressrefOptions().find(o => o.id_nomenclature === pression.id_type_pression);
+      if (match) {
+        this.editSelectedPressref.set(match);
+        this.editPressrefSearchCtrl.setValue(displayNomenclatureFn(match), { emitEvent: false });
+      } else {
+        this.editSelectedPressref.set(null);
+        this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+      }
+    } else {
+      this.editSelectedPressref.set(null);
+      this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+    }
+    this.editPressrefSearchText.set('');
   }
 
   cancelEditPression(): void {
     this.editingPressionId.set(null);
     this.editPressionLibelle = '';
     this.editPressionDescription = '';
+    this.editSelectedPressref.set(null);
+    this.editPressrefSearchCtrl.setValue('', { emitEvent: false });
+    this.editPressrefSearchText.set('');
   }
 
   saveEditPression(pression: Pression): void {
     if (!this.editPressionLibelle.trim()) return;
     const newLibelle = this.editPressionLibelle.trim();
     const newDescription = this.editPressionDescription.trim() || undefined;
+    const newTypePression = this.editSelectedPressref()?.id_nomenclature || null;
 
     this.enjeuService.updatePression(pression.id_pression, {
+      id_type_pression: newTypePression as any,
       libelle: newLibelle,
       description: newDescription
     }).subscribe({
@@ -790,158 +875,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditPression();
-        const enjeu = this.selectedEnjeu();
-        if (enjeu) {
-          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-            ...e,
-            facteurs_influence: (e.facteurs_influence || []).map(f => ({
-              ...f,
-              pressions: (f.pressions || []).map(p =>
-                p.id_pression === pression.id_pression
-                  ? { ...p, libelle: newLibelle, description: newDescription }
-                  : p
-              ),
-            })),
-          })));
-        }
-      },
-      error: () => {
-        this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
-      }
-    });
-  }
-
-  // ============================================
-  // États Actuels
-  // ============================================
-
-  startAddEtat(): void {
-    this.addingEtat.set(true);
-    this.newEtatLibelle = '';
-    this.newEtatDescription = '';
-  }
-
-  cancelAddEtat(): void {
-    this.addingEtat.set(false);
-    this.newEtatLibelle = '';
-    this.newEtatDescription = '';
-  }
-
-  saveEtatActuel(): void {
-    const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newEtatLibelle.trim()) return;
-
-    this.enjeuService.createEtatActuel({
-      id_enjeu: enjeu.id_enjeu,
-      libelle: this.newEtatLibelle.trim(),
-      description: this.newEtatDescription.trim() || undefined
-    }).subscribe({
-      next: (newEtat) => {
-        this.snackBar.open(
-          this.translate.instant('enjeux.etatActuel.createSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.cancelAddEtat();
-        const createdEtat: EtatActuel = {
-          id_etat_actuel: newEtat.id_etat_actuel,
-          id_enjeu: enjeu.id_enjeu,
-          libelle: newEtat.libelle,
-          description: newEtat.description,
-          objectifs_long_terme: [],
-          nb_olt: 0,
-          date_ajout: newEtat.date_ajout || new Date().toISOString(),
-          date_maj: newEtat.date_maj || new Date().toISOString(),
-        };
-        this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-          ...e,
-          etats_actuels: [...(e.etats_actuels || []), createdEtat],
-          nb_etats_actuels: (e.nb_etats_actuels || 0) + 1,
-        })));
-      },
-      error: () => {
-        this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
-      }
-    });
-  }
-
-  deleteEtatActuel(etat: EtatActuel): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '450px',
-      data: {
-        title: this.translate.instant('enjeux.etatActuel.deleteTitle'),
-        message: this.translate.instant('enjeux.etatActuel.deleteConfirm'),
-        confirmText: this.translate.instant('common.actions.delete'),
-        cancelText: this.translate.instant('common.actions.cancel'),
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) {
-        this.enjeuService.deleteEtatActuel(etat.id_etat_actuel).subscribe({
-          next: () => {
-            this.snackBar.open(
-              this.translate.instant('enjeux.etatActuel.deleteSuccess'),
-              this.translate.instant('common.actions.close'),
-              { duration: 3000 }
-            );
-            const enjeu = this.selectedEnjeu();
-            if (enjeu) {
-              this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-                ...e,
-                etats_actuels: (e.etats_actuels || []).filter(ea => ea.id_etat_actuel !== etat.id_etat_actuel),
-                nb_etats_actuels: Math.max((e.nb_etats_actuels || 1) - 1, 0),
-              })));
-            }
-          },
-          error: () => {
-            this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
-          }
-        });
-      }
-    });
-  }
-
-  startEditEtat(etat: EtatActuel): void {
-    this.editingEtatId.set(etat.id_etat_actuel);
-    this.editEtatLibelle = etat.libelle;
-    this.editEtatDescription = etat.description || '';
-  }
-
-  cancelEditEtat(): void {
-    this.editingEtatId.set(null);
-    this.editEtatLibelle = '';
-    this.editEtatDescription = '';
-  }
-
-  saveEditEtat(etat: EtatActuel): void {
-    if (!this.editEtatLibelle.trim()) return;
-    const newLibelle = this.editEtatLibelle.trim();
-    const newDescription = this.editEtatDescription.trim() || undefined;
-
-    this.enjeuService.updateEtatActuel(etat.id_etat_actuel, {
-      libelle: newLibelle,
-      description: newDescription
-    }).subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('enjeux.etatActuel.updateSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.cancelEditEtat();
-        const enjeu = this.selectedEnjeu();
-        if (enjeu) {
-          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-            ...e,
-            etats_actuels: (e.etats_actuels || []).map(ea =>
-              ea.id_etat_actuel === etat.id_etat_actuel
-                ? { ...ea, libelle: newLibelle, description: newDescription }
-                : ea
-            ),
-          })));
-        }
+        this.loadPlanData();
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -969,39 +903,24 @@ export class EnjeuxListComponent implements OnInit {
     return this.expandedOltIds().has(id);
   }
 
-  toggleEtat(id: number): void {
-    this.expandedEtatIds.update(ids => {
-      const newIds = new Set(ids);
-      if (newIds.has(id)) {
-        newIds.delete(id);
-      } else {
-        newIds.add(id);
-      }
-      return newIds;
-    });
-  }
-
-  isEtatExpanded(id: number): boolean {
-    return this.expandedEtatIds().has(id);
-  }
-
-  startAddOlt(etatId: number): void {
-    this.addingOltForEtat.set(etatId);
+  startAddOlt(): void {
+    this.addingOlt.set(true);
     this.newOltLibelle = '';
     this.newOltDescription = '';
   }
 
   cancelAddOlt(): void {
-    this.addingOltForEtat.set(null);
+    this.addingOlt.set(false);
     this.newOltLibelle = '';
     this.newOltDescription = '';
   }
 
-  saveOlt(etat: EtatActuel): void {
-    if (!this.newOltLibelle.trim()) return;
+  saveOlt(): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu || !this.newOltLibelle.trim()) return;
 
     this.enjeuService.createObjectifLongTerme({
-      id_etat_actuel: etat.id_etat_actuel,
+      id_enjeu: enjeu.id_enjeu,
       libelle: this.newOltLibelle.trim(),
       description: this.newOltDescription.trim() || undefined
     }).subscribe({
@@ -1014,24 +933,18 @@ export class EnjeuxListComponent implements OnInit {
         this.cancelAddOlt();
         const createdOlt: ObjectifLongTerme = {
           id_olt: newOlt.id_olt,
-          id_etat_actuel: etat.id_etat_actuel,
+          id_enjeu: enjeu.id_enjeu,
           libelle: newOlt.libelle,
           description: newOlt.description,
           niveaux_exigence: [],
           date_ajout: newOlt.date_ajout || new Date().toISOString(),
           date_maj: newOlt.date_maj || new Date().toISOString(),
         };
-        const enjeu = this.selectedEnjeu();
-        if (enjeu) {
-          this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
-            ...e,
-            etats_actuels: (e.etats_actuels || []).map(ea =>
-              ea.id_etat_actuel === etat.id_etat_actuel
-                ? { ...ea, objectifs_long_terme: [...(ea.objectifs_long_terme || []), createdOlt], nb_olt: (ea.nb_olt || 0) + 1 }
-                : ea
-            ),
-          })));
-        }
+        this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
+          ...e,
+          objectifs_long_terme: [...(e.objectifs_long_terme || []), createdOlt],
+          nb_objectifs_long_terme: (e.nb_objectifs_long_terme || 0) + 1,
+        })));
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -1071,14 +984,11 @@ export class EnjeuxListComponent implements OnInit {
         if (enjeu) {
           this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
             ...e,
-            etats_actuels: (e.etats_actuels || []).map(ea => ({
-              ...ea,
-              objectifs_long_terme: (ea.objectifs_long_terme || []).map(o =>
-                o.id_olt === olt.id_olt
-                  ? { ...o, libelle: newLibelle, description: newDescription }
-                  : o
-              ),
-            })),
+            objectifs_long_terme: (e.objectifs_long_terme || []).map(o =>
+              o.id_olt === olt.id_olt
+                ? { ...o, libelle: newLibelle, description: newDescription }
+                : o
+            ),
           })));
         }
       },
@@ -1113,11 +1023,8 @@ export class EnjeuxListComponent implements OnInit {
             if (enjeu) {
               this.patchPlanEnjeuxData(data => this.mapEnjeuInResponse(data, enjeu.id_enjeu, e => ({
                 ...e,
-                etats_actuels: (e.etats_actuels || []).map(ea => ({
-                  ...ea,
-                  objectifs_long_terme: (ea.objectifs_long_terme || []).filter(o => o.id_olt !== olt.id_olt),
-                  nb_olt: ea.objectifs_long_terme?.some(o => o.id_olt === olt.id_olt) ? Math.max((ea.nb_olt || 1) - 1, 0) : ea.nb_olt,
-                })),
+                objectifs_long_terme: (e.objectifs_long_terme || []).filter(o => o.id_olt !== olt.id_olt),
+                nb_objectifs_long_terme: Math.max((e.nb_objectifs_long_terme || 1) - 1, 0),
               })));
             }
           },
@@ -1682,22 +1589,19 @@ export class EnjeuxListComponent implements OnInit {
       }
     }
 
-    // Search in NE path (olt tab): EtatActuel → OLT → NE → Indicateur → Métrique → Opération
-    for (const ea of enjeu.etats_actuels || []) {
-      for (const olt of ea.objectifs_long_terme || []) {
-        for (const ne of olt.niveaux_exigence || []) {
-          for (const ind of ne.indicateurs || []) {
-            for (const met of ind.metriques || []) {
-              for (const op of met.operations || []) {
-                if (op.id_operation === opId) {
-                  this.activeTab.set('olt');
-                  this.expandedEtatIds.update(s => { const ns = new Set(s); ns.add(ea.id_etat_actuel); return ns; });
-                  this.expandedOltIds.update(s => { const ns = new Set(s); ns.add(olt.id_olt); return ns; });
-                  this.expandedIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
-                  this.expandedOperationIds.update(s => { const ns = new Set(s); ns.add(opId); return ns; });
-                  this.scrollToElement(`operation-${opId}`);
-                  return;
-                }
+    // Search in NE path (olt tab): OLT → NE → Indicateur → Métrique → Opération
+    for (const olt of enjeu.objectifs_long_terme || []) {
+      for (const ne of olt.niveaux_exigence || []) {
+        for (const ind of ne.indicateurs || []) {
+          for (const met of ind.metriques || []) {
+            for (const op of met.operations || []) {
+              if (op.id_operation === opId) {
+                this.activeTab.set('olt');
+                this.expandedOltIds.update(s => { const ns = new Set(s); ns.add(olt.id_olt); return ns; });
+                this.expandedIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
+                this.expandedOperationIds.update(s => { const ns = new Set(s); ns.add(opId); return ns; });
+                this.scrollToElement(`operation-${opId}`);
+                return;
               }
             }
           }

@@ -59,7 +59,7 @@ class PlanDuplicationService:
         from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
         from .models_enjeux import (
             Enjeu, FacteurInfluence, Pression,
-            ObjectifLongTerme, EtatActuel, NiveauExigence,
+            ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
             CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
         )
@@ -253,7 +253,7 @@ class PlanDuplicationService:
         """Copy enjeux/FCR with their M2M and optionally sub-elements."""
         from .models_enjeux import (
             Enjeu, FacteurInfluence, Pression,
-            ObjectifLongTerme, EtatActuel, NiveauExigence,
+            ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
             CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
         )
@@ -362,42 +362,33 @@ class PlanDuplicationService:
                                     old_ind, new_ind, user
                                 )
 
-            # Copy EtatActuel -> OLT -> NiveauExigence -> Indicateur -> Metrique
-            for old_ea in EtatActuel.objects.filter(id_enjeu_id=old_enjeu_id):
-                new_ea = EtatActuel.objects.create(
+            # Copy OLT -> NiveauExigence -> Indicateur -> Metrique
+            for old_olt in ObjectifLongTerme.objects.filter(id_enjeu_id=old_enjeu_id):
+                new_olt = ObjectifLongTerme.objects.create(
                     id_enjeu=new_enjeu,
-                    libelle=old_ea.libelle,
-                    description=old_ea.description,
+                    libelle=old_olt.libelle,
+                    description=old_olt.description,
                     id_utilisateur_ajout=user,
                     id_utilisateur_maj=user,
                 )
 
-                for old_olt in ObjectifLongTerme.objects.filter(id_etat_actuel=old_ea):
-                    new_olt = ObjectifLongTerme.objects.create(
-                        id_etat_actuel=new_ea,
-                        libelle=old_olt.libelle,
-                        description=old_olt.description,
+                # NiveauExigence -> Indicateur -> Metrique
+                for old_ne in NiveauExigence.objects.filter(id_olt=old_olt):
+                    new_ne = NiveauExigence.objects.create(
+                        id_olt=new_olt,
+                        libelle=old_ne.libelle,
+                        description=old_ne.description,
                         id_utilisateur_ajout=user,
                         id_utilisateur_maj=user,
                     )
 
-                    # NiveauExigence -> Indicateur -> Metrique
-                    for old_ne in NiveauExigence.objects.filter(id_olt=old_olt):
-                        new_ne = NiveauExigence.objects.create(
-                            id_olt=new_olt,
-                            libelle=old_ne.libelle,
-                            description=old_ne.description,
-                            id_utilisateur_ajout=user,
-                            id_utilisateur_maj=user,
+                    for old_ind in Indicateur.objects.filter(id_ne=old_ne):
+                        new_ind = PlanDuplicationService._copy_indicateur(
+                            old_ind, user, id_ne=new_ne, id_resultat_attendu=None
                         )
-
-                        for old_ind in Indicateur.objects.filter(id_ne=old_ne):
-                            new_ind = PlanDuplicationService._copy_indicateur(
-                                old_ind, user, id_ne=new_ne, id_resultat_attendu=None
-                            )
-                            PlanDuplicationService._copy_indicateur_relations(
-                                old_ind, new_ind, user
-                            )
+                        PlanDuplicationService._copy_indicateur_relations(
+                            old_ind, new_ind, user
+                        )
 
     @staticmethod
     def _copy_indicateur(old_ind, user, id_ne=None, id_resultat_attendu=None):

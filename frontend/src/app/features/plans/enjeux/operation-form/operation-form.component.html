@@ -33,47 +33,89 @@
         <div class="form-card form-card-flush">
           <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
 
-          <!-- Type d'action -->
+          <!-- Type d'action (autocomplete groupé par catégorie) -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'enjeux.operations.typeActionLabel' | translate }}</mat-label>
-            <mat-select formControlName="id_type_action">
-              <mat-option [value]="null">—</mat-option>
-              @for (opt of typeActionOptions(); track opt.id_nomenclature) {
-                <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+            <input matInput
+              [formControl]="typeActionSearchCtrl"
+              [matAutocomplete]="autoTypeAction"
+              [placeholder]="'enjeux.operations.typeActionPlaceholder' | translate">
+            @if (typeActionSearchCtrl.value) {
+              <button matSuffix mat-icon-button type="button" (click)="clearTypeAction()" tabindex="-1">
+                <i class="fi fi-rr-cross-small"></i>
+              </button>
+            }
+            <mat-autocomplete #autoTypeAction="matAutocomplete"
+              [displayWith]="displayTypeActionFn"
+              (optionSelected)="onTypeActionSelected($event.option.value)"
+              class="type-action-autocomplete">
+              @for (group of typeActionGroups(); track group.groupLabel) {
+                <mat-optgroup [label]="group.groupLabel">
+                  @for (action of group.options; track action.id_nomenclature) {
+                    <mat-option [value]="action" [class]="'action-depth-' + getActionDepth(action)">
+                      <span class="action-code">{{ action.cd_nomenclature || action.mnemonique }}</span>
+                      <span class="action-label">{{ action.label }}</span>
+                    </mat-option>
+                  }
+                </mat-optgroup>
               }
-            </mat-select>
+            </mat-autocomplete>
+            @if (isCSAction()) {
+              <mat-hint>{{ 'enjeux.operations.typeActionCSHint' | translate }}</mat-hint>
+            }
           </mat-form-field>
 
-          <!-- Question suivi existant -->
-          <div class="radio-field-row">
-            <span class="radio-field-label">{{ 'enjeux.operations.estSuiviExistantLabel' | translate }}</span>
-            <mat-radio-group [value]="estSuiviExistant()" (change)="setEstSuiviExistant($event.value)" class="radio-inline">
-              <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
-              <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
-            </mat-radio-group>
-          </div>
+          <!-- Intitulé de l'action (optionnel, auto-rempli avec le type d'action si vide) -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
+            <input matInput formControlName="libelle"
+                   [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
+            <mat-hint>{{ 'enjeux.operations.libelleHint' | translate }}</mat-hint>
+            @if (form.get('libelle')?.hasError('maxlength')) {
+              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+            }
+          </mat-form-field>
 
-          <!-- Conditionnel : Oui → select suivi existant, Non → text input -->
-          @if (estSuiviExistant()) {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.operations.intituleSuiviLabel' | translate }}</mat-label>
-              <mat-select disabled>
-                <mat-option [value]="null">—</mat-option>
-              </mat-select>
-              <mat-hint class="empty-select-hint">{{ 'enjeux.operations.aucunSuiviDisponible' | translate }}</mat-hint>
-            </mat-form-field>
-          } @else {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }} <span class="required-star">*</span></mat-label>
-              <input matInput formControlName="libelle"
-                     [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
-              @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
-              }
-              @if (form.get('libelle')?.hasError('maxlength')) {
-                <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
-              }
-            </mat-form-field>
+          <!-- Question suivi existant (visible uniquement pour les actions CS) -->
+          @if (isCSAction()) {
+            <div class="radio-field-row">
+              <span class="radio-field-label">{{ 'enjeux.operations.estSuiviExistantLabel' | translate }}</span>
+              <mat-radio-group [value]="estSuiviExistant()" (change)="setEstSuiviExistant($event.value)" class="radio-inline">
+                <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+              </mat-radio-group>
+            </div>
+
+            <!-- Si Oui → sélecteur d'inventaires existants -->
+            @if (estSuiviExistant()) {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.intituleSuiviLabel' | translate }}</mat-label>
+                <mat-select formControlName="id_suivi">
+                  <mat-option [value]="null">—</mat-option>
+                  @for (inv of availableInventaires(); track inv.id_suivi_inventaire) {
+                    <mat-option [value]="inv.id_suivi_inventaire">
+                      @if (inv.type_action_code) {
+                        <span class="action-code">{{ inv.type_action_code }}</span>
+                      }
+                      {{ inv.intitule }}
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (availableInventaires().length === 0) {
+                  <mat-hint>{{ 'enjeux.operations.aucunSuiviDisponible' | translate }}</mat-hint>
+                }
+              </mat-form-field>
+            } @else {
+              <!-- Si Non → intitulé de l'inventaire en texte libre (requis) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'enjeux.operations.intituleSuiviLabel' | translate }} <span class="required-star">*</span></mat-label>
+                <input matInput formControlName="intitule_suivi"
+                       [placeholder]="'enjeux.operations.intituleSuiviPlaceholder' | translate">
+                @if (form.get('intitule_suivi')?.hasError('required') && form.get('intitule_suivi')?.touched) {
+                  <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                }
+              </mat-form-field>
+            }
           }
 
           <!-- Métrique associée -->
@@ -104,7 +146,9 @@
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Détails de l'inventaire ou du suivi   -->
+        <!-- (visible uniquement pour les actions CS)        -->
         <!-- ═══════════════════════════════════════════════ -->
+        @if (isCSAction()) {
         <div class="form-card" [class.readonly-section]="estSuiviExistant()">
           <div class="section-header" (click)="toggleSection('details_suivi')">
             <div class="section-title-row">
@@ -457,6 +501,7 @@
             </div>
           }
         </div>
+        } <!-- fin @if (isCSAction()) — sections Détails/Protocole/Bancarisation -->
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Programmation                         -->

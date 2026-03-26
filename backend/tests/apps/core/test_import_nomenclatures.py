@@ -223,10 +223,20 @@ class TestImportNomenclaturesCommand:
         assert TypeNomenclature.objects.filter(mnemonique='OPERATEUR_TYPE').exists()
         assert TypeNomenclature.objects.filter(mnemonique='CATEGORIE_FINANCE').exists()
 
-        # Types d'action
+        # Types d'action (codification Eden 62 - 318 entrées hiérarchiques)
         type_action = TypeNomenclature.objects.get(mnemonique='TYPE_ACTION')
         actions = Nomenclature.objects.filter(id_type=type_action)
-        assert actions.count() == 10
+        assert actions.count() == 318
+        # Vérifier quelques codes clés
+        assert actions.filter(cd_nomenclature='IP1').exists()
+        assert actions.filter(cd_nomenclature='CS8.1').exists()
+        assert actions.filter(cd_nomenclature='CI2').exists()
+        assert actions.filter(cd_nomenclature='SP1').exists()
+        # Vérifier la hiérarchie
+        ip1 = actions.get(cd_nomenclature='IP1')
+        assert ip1.hierarchy == 'IP1'
+        ip1_1 = actions.get(cd_nomenclature='IP1.1')
+        assert ip1_1.hierarchy == 'IP1.1'
 
     def test_import_bancarisation_nomenclatures(self):
         """L'import crée les nomenclatures de bancarisation et outil de saisie."""

@@ -323,7 +323,7 @@ export class EnjeuxPage {
   async addPression(facteurIndex: number, libelle: string, description?: string) {
     await this.clickAddPression(facteurIndex);
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.pression-bullet') });
-    await form.locator('input[matInput]').fill(libelle);
+    await form.locator('input[matInput]').first().fill(libelle);
     if (description) {
       await form.locator('textarea[matInput]').fill(description);
     }
@@ -348,7 +348,7 @@ export class EnjeuxPage {
     await this.clickEditPression(facteurIndex, pressionIndex);
     const facteur = this.facteurCards.nth(facteurIndex);
     const form = facteur.locator('.pression-card').nth(pressionIndex).locator('.inline-form, .edit-inline-form').first();
-    await form.locator('input[matInput]').fill(libelle);
+    await form.locator('input[matInput]').first().fill(libelle);
     if (description !== undefined) {
       await form.locator('textarea[matInput]').fill(description);
     }

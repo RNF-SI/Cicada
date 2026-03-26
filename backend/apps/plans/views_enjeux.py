@@ -12,7 +12,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
-    EtatActuel, ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
@@ -23,7 +23,6 @@ from .serializers_enjeux import (
     EnjeuListSerializer, EnjeuDetailSerializer, EnjeuCreateSerializer,
     FacteurInfluenceSerializer, FacteurInfluenceListSerializer, FacteurInfluenceCreateSerializer,
     PressionSerializer, PressionCreateSerializer,
-    EtatActuelSerializer, EtatActuelListSerializer, EtatActuelCreateSerializer,
     ObjectifLongTermeSerializer, ObjectifLongTermeListSerializer, ObjectifLongTermeCreateSerializer,
     NiveauExigenceSerializer, NiveauExigenceCreateSerializer,
     ObjectifOperationnelSerializer, ObjectifOperationnelListSerializer, ObjectifOperationnelCreateSerializer,
@@ -64,18 +63,17 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         'taxons', 'habitats', 'geologies',
         'facteurs_influence', 'facteurs_influence__pressions',
+        'facteurs_influence__pressions__id_type_pression',
         'facteurs_influence__id_utilisateur_ajout',
         'facteurs_influence__pressions__id_utilisateur_ajout',
-        'etats_actuels', 'etats_actuels__id_utilisateur_ajout',
-        'etats_actuels__objectifs_long_terme',
-        'etats_actuels__objectifs_long_terme__id_utilisateur_ajout',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__id_utilisateur_ajout',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
-        'etats_actuels__objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
+        'objectifs_long_terme', 'objectifs_long_terme__id_utilisateur_ajout',
+        'objectifs_long_terme__niveaux_exigence',
+        'objectifs_long_terme__niveaux_exigence__id_utilisateur_ajout',
+        'objectifs_long_terme__niveaux_exigence__indicateurs',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
         'facteurs_influence__pressions__objectifs_operationnels',
         'facteurs_influence__pressions__objectifs_operationnels__id_utilisateur_ajout',
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus',
@@ -539,7 +537,8 @@ class PressionViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Pression.objects.select_related(
-        'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_facteur_influence', 'id_utilisateur_ajout', 'id_utilisateur_maj',
+        'id_type_pression'
     ).prefetch_related(
         'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
         'objectifs_operationnels__id_pression',
@@ -605,24 +604,23 @@ class PressionViewSet(viewsets.ModelViewSet):
         })
 
 
-class EtatActuelViewSet(viewsets.ModelViewSet):
+class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les États Actuels.
+    ViewSet pour les Objectifs à Long Terme.
 
     Endpoints:
-    - GET /api/plans/etats-actuels/ - Liste
-    - GET /api/plans/etats-actuels/{id}/ - Détail
-    - POST /api/plans/etats-actuels/ - Créer
-    - PATCH /api/plans/etats-actuels/{id}/ - Modifier
-    - DELETE /api/plans/etats-actuels/{id}/ - Supprimer
-    - GET /api/plans/etats-actuels/by-enjeu/{enjeu_id}/ - Par enjeu
+    - GET /api/plans/objectifs-long-terme/ - Liste
+    - GET /api/plans/objectifs-long-terme/{id}/ - Détail
+    - POST /api/plans/objectifs-long-terme/ - Créer
+    - PATCH /api/plans/objectifs-long-terme/{id}/ - Modifier
+    - DELETE /api/plans/objectifs-long-terme/{id}/ - Supprimer
+    - GET /api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/ - Par enjeu
     """
 
-    queryset = EtatActuel.objects.select_related(
+    queryset = ObjectifLongTerme.objects.select_related(
         'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
-        'objectifs_long_terme', 'objectifs_long_terme__id_utilisateur_ajout',
-        'objectifs_long_terme__niveaux_exigence'
+        'niveaux_exigence', 'niveaux_exigence__id_utilisateur_ajout'
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferent]
@@ -633,10 +631,10 @@ class EtatActuelViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return EtatActuelListSerializer
+            return ObjectifLongTermeListSerializer
         elif self.action in ['create', 'update', 'partial_update']:
-            return EtatActuelCreateSerializer
-        return EtatActuelSerializer
+            return ObjectifLongTermeCreateSerializer
+        return ObjectifLongTermeSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -666,89 +664,15 @@ class EtatActuelViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path=r'by-enjeu/(?P<enjeu_id>\d+)')
     def by_enjeu(self, request, enjeu_id=None):
         """
-        Récupérer les états actuels d'un enjeu.
+        Récupérer les objectifs à long terme d'un enjeu.
 
-        GET /api/plans/etats-actuels/by-enjeu/{enjeu_id}/
+        GET /api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/
         """
         enjeu = get_object_or_404(Enjeu, id_enjeu=enjeu_id)
-        etats = self.get_queryset().filter(id_enjeu=enjeu)
+        olts = self.get_queryset().filter(id_enjeu=enjeu)
         return Response({
             'enjeu_id': int(enjeu_id),
             'enjeu_libelle': enjeu.libelle,
-            'etats_actuels': EtatActuelSerializer(etats, many=True).data,
-            'total': etats.count()
-        })
-
-
-class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour les Objectifs à Long Terme.
-
-    Endpoints:
-    - GET /api/plans/objectifs-long-terme/ - Liste
-    - GET /api/plans/objectifs-long-terme/{id}/ - Détail
-    - POST /api/plans/objectifs-long-terme/ - Créer
-    - PATCH /api/plans/objectifs-long-terme/{id}/ - Modifier
-    - DELETE /api/plans/objectifs-long-terme/{id}/ - Supprimer
-    - GET /api/plans/objectifs-long-terme/by-etat-actuel/{etat_actuel_id}/ - Par état actuel
-    """
-
-    queryset = ObjectifLongTerme.objects.select_related(
-        'id_etat_actuel', 'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related(
-        'niveaux_exigence', 'niveaux_exigence__id_utilisateur_ajout'
-    )
-
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
-    filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
-
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return ObjectifLongTermeListSerializer
-        elif self.action in ['create', 'update', 'partial_update']:
-            return ObjectifLongTermeCreateSerializer
-        return ObjectifLongTermeSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                id_etat_actuel__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
-            ).distinct()
-
-        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
-        return queryset.filter(
-            Q(id_etat_actuel__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_etat_actuel__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_etat_actuel__id_enjeu__id_pg__statut='valide')
-        ).distinct()
-
-    def perform_create(self, serializer):
-        serializer.save(id_utilisateur_ajout=self.request.user)
-
-    def perform_update(self, serializer):
-        serializer.save(id_utilisateur_maj=self.request.user)
-
-    @action(detail=False, methods=['get'], url_path=r'by-etat-actuel/(?P<etat_actuel_id>\d+)')
-    def by_etat_actuel(self, request, etat_actuel_id=None):
-        """
-        Récupérer les objectifs à long terme d'un état actuel.
-
-        GET /api/plans/objectifs-long-terme/by-etat-actuel/{etat_actuel_id}/
-        """
-        etat_actuel = get_object_or_404(EtatActuel, id_etat_actuel=etat_actuel_id)
-        olts = self.get_queryset().filter(id_etat_actuel=etat_actuel)
-        return Response({
-            'etat_actuel_id': int(etat_actuel_id),
-            'etat_actuel_libelle': etat_actuel.libelle,
             'objectifs_long_terme': ObjectifLongTermeSerializer(olts, many=True).data,
             'total': olts.count()
         })
@@ -791,14 +715,14 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_olt__id_etat_actuel__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_olt__id_etat_actuel__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_olt__id_etat_actuel__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_olt__id_etat_actuel__id_enjeu__id_pg__statut='valide')
+            Q(id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_olt__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):

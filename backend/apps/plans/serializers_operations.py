@@ -271,11 +271,11 @@ class OperationListSerializer(serializers.ModelSerializer):
         return obj.finances.count()
 
     def _get_enjeu_via_ne(self, indicateur):
-        """Traverse NE path: Indicateur → NE → OLT → EtatActuel → Enjeu."""
+        """Traverse NE path: Indicateur → NE → OLT → Enjeu."""
         try:
             ne = indicateur.id_ne
-            if ne and ne.id_olt and ne.id_olt.id_etat_actuel and ne.id_olt.id_etat_actuel.id_enjeu:
-                return ne.id_olt.id_etat_actuel.id_enjeu
+            if ne and ne.id_olt and ne.id_olt.id_enjeu:
+                return ne.id_olt.id_enjeu
         except AttributeError:
             pass
         return None
