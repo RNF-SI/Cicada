@@ -41,6 +41,7 @@ BEGIN
         'taxonomie', 'ref_habitats', 'ref_inpg', 'ref_campanule'
     ])
     LOOP
+        EXECUTE format('ALTER SCHEMA %I OWNER TO cicada_user', schema_name);
         EXECUTE format('GRANT USAGE, CREATE ON SCHEMA %I TO cicada_user', schema_name);
         EXECUTE format('GRANT ALL ON ALL TABLES IN SCHEMA %I TO cicada_user', schema_name);
         EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO cicada_user', schema_name);
