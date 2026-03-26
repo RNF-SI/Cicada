@@ -329,6 +329,8 @@ export class OperationFormComponent implements OnInit {
               this.selectedSiteIds[site.id_site] = false;
             }
           }
+          // Load operation data AFTER sites are initialized to avoid race condition
+          this.loadOperationIfEdit();
           // Load enjeux after plan is loaded
           this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
             next: (response) => {
@@ -361,11 +363,13 @@ export class OperationFormComponent implements OnInit {
         },
         error: () => {
           this.computeYears(null, null);
+          this.loadOperationIfEdit();
         }
       });
     } else {
       // No plan slug found: generate default years so tables render
       this.computeYears(null, null);
+      this.loadOperationIfEdit();
     }
 
     this.adminService.getNomenclaturesByType('TYPE_ACTION').subscribe({
@@ -411,8 +415,6 @@ export class OperationFormComponent implements OnInit {
       next: (options) => this.outilSaisieOptions.set(options),
       error: () => this.outilSaisieOptions.set([])
     });
-
-    this.loadOperationIfEdit();
   }
 
   private computeYears(anneeDebut: number | null | undefined, anneeFin: number | null | undefined): void {
