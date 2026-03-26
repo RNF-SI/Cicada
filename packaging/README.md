@@ -42,10 +42,10 @@ export TRACKING_API_URL="https://tracking.cicada.reserves-naturelles.org/api"
 cd packaging
 ./build-deb.sh
 # Ou pour une autre version (ex. release) :
-VERSION=0.1.14 ./build-deb.sh
+VERSION=0.1.15 ./build-deb.sh
 ```
 
-Le package sera créé dans `packaging/build/cicada_0.1.14_amd64.deb` (ou la version passée via `VERSION=...`)
+Le package sera créé dans `packaging/build/cicada_0.1.15_amd64.deb` (ou la version passée via `VERSION=...`)
 
 ### Installation du package
 
@@ -74,7 +74,7 @@ En résumé, il existe 6 scripts de test :
 ./test-install-quick.sh
 
 # Test d’upgrade complet (VM Multipass, avant release)
-./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14
+./test-upgrade-vm.sh --from 0.1.13 --to 0.1.15
 ```
 
 ## Fichiers importants

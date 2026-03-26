@@ -14,7 +14,7 @@
 #
 # Usage :
 #   ./test-upgrade-vm.sh                                    # Versions par défaut
-#   ./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14         # Versions spécifiques
+#   ./test-upgrade-vm.sh --from 0.1.14 --to 0.1.15         # Versions spécifiques
 #   ./test-upgrade-vm.sh --skip-install                     # Réutiliser une VM existante
 #   ./test-upgrade-vm.sh --cleanup                          # Supprimer la VM de test
 #   ./test-upgrade-vm.sh --test option2                     # Tester uniquement l'option 2
@@ -35,8 +35,8 @@ VM_MEMORY="2G"
 VM_DISK="10G"
 
 # Versions par défaut
-FROM_VERSION="0.1.13"
-TO_VERSION="0.1.14"
+FROM_VERSION="0.1.14"
+TO_VERSION="0.1.15"
 SKIP_INSTALL=false
 CLEANUP_ONLY=false
 TEST_TARGET="all"

@@ -141,20 +141,20 @@ Ce test est conçu pour être lancé **avant un déploiement en production**. Il
 ```bash
 cd packaging
 
-# Test avec les versions par défaut (0.1.13 → 0.1.14)
+# Test avec les versions par défaut (0.1.13 → 0.1.15)
 ./test-upgrade-vm.sh
 
 # Versions spécifiques (adapter selon la release en cours)
-./test-upgrade-vm.sh --from 0.1.14 --to 0.1.15
+./test-upgrade-vm.sh --from 0.1.15 --to 0.1.15
 
 # Tester uniquement l'option 2 (apt install automatique)
-./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14 --test option2
+./test-upgrade-vm.sh --from 0.1.13 --to 0.1.15 --test option2
 
 # Tester uniquement l'option 3 (commandes manuelles)
-./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14 --test option3
+./test-upgrade-vm.sh --from 0.1.13 --to 0.1.15 --test option3
 
 # Relancer rapidement (réutiliser la VM existante)
-./test-upgrade-vm.sh --skip-install --from 0.1.13 --to 0.1.14
+./test-upgrade-vm.sh --skip-install --from 0.1.13 --to 0.1.15
 
 # Nettoyer la VM après les tests
 ./test-upgrade-vm.sh --cleanup
@@ -184,7 +184,7 @@ ls /var/log/cicada/                  # Logs
 systemctl status cicada-*            # Services
 
 # Relancer le postinst manuellement
-sudo dpkg -i /home/ubuntu/cicada_0.1.14.deb
+sudo dpkg -i /home/ubuntu/cicada_0.1.15.deb
 ```
 
 ### Limitations

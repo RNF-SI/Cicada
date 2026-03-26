@@ -108,7 +108,7 @@ Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) so
 
 ## 🏗️ Architecture
 
-### État actuel du projet (v0.1.14)
+### État actuel du projet (v0.1.15)
 
 - Backend Django complet : API REST (utilisateurs, organismes, sites, plans, enjeux, opérations, suivis)
 - Frontend Angular 19 avec Design System custom (Kit UI CICADA)
@@ -213,7 +213,7 @@ Le déploiement se fait via un package Debian (.deb) avec un installeur web int�
 
 ```bash
 # 1. Installer le package
-sudo dpkg -i cicada_0.1.14_amd64.deb
+sudo dpkg -i cicada_0.1.15_amd64.deb
 
 # 2. (Optionnel) Préparer une base PostgreSQL externe
 sudo cicada-prepare-db

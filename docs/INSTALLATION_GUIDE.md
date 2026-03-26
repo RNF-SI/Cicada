@@ -268,7 +268,7 @@ C'est la méthode la plus simple en ligne de commande. Le script `postinst` du p
 
 ```bash
 sudo apt-get update
-sudo apt-get install cicada=<version>   # ex: cicada=0.1.14
+sudo apt-get install cicada=<version>   # ex: cicada=0.1.15
 ```
 
 C'est tout. Le package :
@@ -302,7 +302,7 @@ pg_dump -h <host> -U <user> <db_name> > backup_cicada_$(date +%Y%m%d_%H%M%S).sql
 
 ```bash
 sudo apt-get update
-sudo apt-get install cicada=<version>   # ex: cicada=0.1.14
+sudo apt-get install cicada=<version>   # ex: cicada=0.1.15
 ```
 
 #### Étape 3 — Mettre à jour la version dans le .env
@@ -519,10 +519,10 @@ sudo snap install multipass
 cd packaging
 
 # Test complet (adapter les versions à la release en cours)
-./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14
+./test-upgrade-vm.sh --from 0.1.14 --to 0.1.15
 
 # Relancer rapidement (réutilise la VM existante)
-./test-upgrade-vm.sh --skip-install --from 0.1.13 --to 0.1.14
+./test-upgrade-vm.sh --skip-install --from 0.1.14 --to 0.1.15
 
 # Nettoyer après les tests
 ./test-upgrade-vm.sh --cleanup
