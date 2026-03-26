@@ -34,9 +34,10 @@ VM_CPUS="2"
 VM_MEMORY="2G"
 VM_DISK="10G"
 
-# Versions par défaut
-FROM_VERSION="0.1.14"
-TO_VERSION="0.1.15"
+# Versions par défaut : TO_VERSION lue depuis version.txt
+CURRENT_VERSION="$(cat "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/version.txt" 2>/dev/null | tr -d '[:space:]' || echo "0.1.15")"
+FROM_VERSION="${CURRENT_VERSION%.*}.$((${CURRENT_VERSION##*.} - 1))"
+TO_VERSION="$CURRENT_VERSION"
 SKIP_INSTALL=false
 CLEANUP_ONLY=false
 TEST_TARGET="all"
