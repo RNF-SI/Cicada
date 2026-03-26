@@ -618,7 +618,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
         const pression = facteur.locator('.pression-card').first();
         const form = pression.locator('.inline-form, .edit-inline-form').first();
         await expect(form).toBeVisible();
-        const inputValue = await form.locator('input[matInput]').inputValue();
+        const inputValue = await form.locator('input[matInput]').first().inputValue();
         expect(inputValue.length).toBeGreaterThan(0);
       }
     }
@@ -1032,19 +1032,20 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     // Expand first OLT (flat structure: OLTs are top-level)
     await page.locator('.olt-content .olt-section-header').first().click();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     const initialNeCount = await page.locator('.ne-card').count();
 
-    // Click add NE button inside expanded OLT
-    await page.locator('.olt-expanded-content .add-item-btn').first().click();
-    await page.waitForTimeout(300);
+    // Click add NE button (target by text to avoid hitting other add buttons)
+    const addNeBtn = page.locator('.add-item-btn').filter({ hasText: /niveau.*exigence/i });
+    await addNeBtn.first().click();
+    await page.waitForTimeout(500);
 
     const form = page.locator('.ne-inline-form');
-    await expect(form).toBeVisible();
+    await expect(form).toBeVisible({ timeout: 5000 });
     await form.locator('input[matInput]').fill('E2E Temp NE');
     await form.locator('button[mat-flat-button]').click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     const newNeCount = await page.locator('.ne-card').count();
     expect(newNeCount).toBe(initialNeCount + 1);
