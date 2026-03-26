@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,10 +7,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../core/models/admin.model';
 import { UserRole } from '../../core/models/user.model';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import {
   LinkUserOrganismeModalComponent,
   LinkUserSiteModalComponent,
@@ -72,12 +75,13 @@ interface DisplayOrganisme {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    TranslateModule
+    TranslateModule,
+    PaginationComponent
   ],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'
 })
-export class AdminUsersComponent implements OnInit {
+export class AdminUsersComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
   private readonly validationService = inject(ValidationService);
@@ -97,9 +101,16 @@ export class AdminUsersComponent implements OnInit {
   filterStatus = '';
   isLoading = signal(false);
 
+  // Pagination state
+  currentPage = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 20;
+
   users = signal<DisplayUser[]>([]);
   organismes = signal<DisplayOrganisme[]>([]);
-  filteredUsers = signal<DisplayUser[]>([]);
+
+  private searchSubject = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   // Track previous user ID to detect user changes (e.g., after stopping impersonation)
   private previousUserId: number | null = null;
@@ -136,7 +147,20 @@ export class AdminUsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.initialized = true;
+
+    this.searchSubject.pipe(
+      debounceTime(300),
+    ).subscribe(() => {
+      this.currentPage.set(1);
+      this.loadUsers();
+    });
+
     this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadData(): void {
@@ -152,17 +176,23 @@ export class AdminUsersComponent implements OnInit {
       }
     });
 
-    // Load users
     this.loadUsers();
   }
 
   loadUsers(): void {
     this.isLoading.set(true);
-    this.adminService.getUsers({ search: this.searchQuery || undefined, page_size: 1000 }).subscribe({
-      next: (response) => {
-        const mapped = response.results.map(user => this.mapUser(user));
+    this.adminService.getUsers({
+      search: this.searchQuery || undefined,
+      page: this.currentPage(),
+      page_size: this.pageSize,
+      role: this.filterRole || undefined,
+      organisme: this.filterOrganisme ? parseInt(this.filterOrganisme) : undefined,
+      active: this.filterStatus === 'active' ? true : this.filterStatus === 'inactive' ? false : undefined
+    }).subscribe({
+      next: (response: any) => {
+        const mapped = response.results.map((user: any) => this.mapUser(user));
         this.users.set(mapped);
-        this.applyFilters();
+        this.totalItems.set(response.pagination?.count ?? response.count ?? 0);
         this.isLoading.set(false);
       },
       error: (error: Error) => {
@@ -170,6 +200,20 @@ export class AdminUsersComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next();
+  }
+
+  onFilterChange(): void {
+    this.currentPage.set(1);
+    this.loadUsers();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+    this.loadUsers();
   }
 
   private mapUser(user: ApiUser): DisplayUser {
@@ -226,53 +270,6 @@ export class AdminUsersComponent implements OnInit {
     return plans.slice(2).map(p => p.nom).join(', ');
   }
 
-  filterUsers(): void {
-    this.applyFilters();
-  }
-
-  private applyFilters(): void {
-    let result = this.users();
-
-    // Filter by search query
-    if (this.searchQuery) {
-      const query = this.searchQuery.toLowerCase();
-      result = result.filter(user =>
-        user.nom.toLowerCase().includes(query) ||
-        user.prenom.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by role
-    if (this.filterRole) {
-      result = result.filter(user => user.role === this.filterRole);
-    }
-
-    // Filter by organisme (super admin only)
-    if (this.filterOrganisme) {
-      result = result.filter(user => user.organismeId === parseInt(this.filterOrganisme));
-    }
-
-    // Filter by status
-    if (this.filterStatus) {
-      if (this.filterStatus === 'deletion_pending') {
-        result = result.filter(user => user.deletionRequestedAt != null);
-      } else {
-        const isActive = this.filterStatus === 'active';
-        result = result.filter(user => user.isActive === isActive && !user.deletionRequestedAt);
-      }
-    }
-
-    // For non-super admin, only show users from their organisme
-    if (!this.isSuperAdmin()) {
-      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-      if (currentOrgId) {
-        result = result.filter(user => user.organismeId === currentOrgId);
-      }
-    }
-
-    this.filteredUsers.set(result);
-  }
 
   getInitials(user: DisplayUser): string {
     const first = user.prenom?.charAt(0) || '';

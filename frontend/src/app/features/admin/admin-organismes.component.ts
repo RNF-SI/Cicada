@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -6,9 +6,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminOrganisme } from '../../core/models/admin.model';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import {
   OrganismeFormModalComponent,
   LinkUserOrganismeModalComponent,
@@ -16,7 +19,6 @@ import {
   SiteFormModalComponent
 } from '../../shared/components/modals';
 
-// Interface for display (mapping from API model)
 interface DisplayOrganisme {
   id: number;
   uuid?: string;
@@ -44,12 +46,13 @@ interface DisplayOrganisme {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    TranslateModule
+    TranslateModule,
+    PaginationComponent
   ],
   templateUrl: './admin-organismes.component.html',
   styleUrl: './admin-organismes.component.scss'
 })
-export class AdminOrganismesComponent implements OnInit {
+export class AdminOrganismesComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
@@ -62,18 +65,23 @@ export class AdminOrganismesComponent implements OnInit {
   searchQuery = '';
   isLoading = signal(false);
 
+  // Pagination state
+  currentPage = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 20;
+
   organismes = signal<DisplayOrganisme[]>([]);
-  filteredOrganismes = signal<DisplayOrganisme[]>([]);
+
+  private searchSubject = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   currentOrganisme = computed(() => {
     const user = this.currentUser();
     if (!user?.organisme) return null;
 
-    // Find organisme in list or create from user data
     const found = this.organismes().find(org => org.id === user.organisme!.id_organisme);
     if (found) return found;
 
-    // Fallback: create from user data
     return {
       id: user.organisme.id_organisme,
       nom: user.organisme.nom_organisme,
@@ -90,16 +98,32 @@ export class AdminOrganismesComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.searchSubject.pipe(
+      debounceTime(300),
+    ).subscribe(() => {
+      this.currentPage.set(1);
+      this.loadOrganismes();
+    });
+
     this.loadOrganismes();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadOrganismes(): void {
     this.isLoading.set(true);
-    this.adminService.getOrganismes({ search: this.searchQuery || undefined, page_size: 1000 }).subscribe({
-      next: (response) => {
-        const mapped = response.results.map(org => this.mapOrganisme(org));
+    this.adminService.getOrganismes({
+      search: this.searchQuery || undefined,
+      page: this.currentPage(),
+      page_size: this.pageSize
+    }).subscribe({
+      next: (response: any) => {
+        const mapped = response.results.map((org: AdminOrganisme) => this.mapOrganisme(org));
         this.organismes.set(mapped);
-        this.filteredOrganismes.set(mapped);
+        this.totalItems.set(response.pagination?.count ?? response.count ?? 0);
         this.isLoading.set(false);
       },
       error: (error: Error) => {
@@ -107,6 +131,15 @@ export class AdminOrganismesComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+    this.loadOrganismes();
   }
 
   private mapOrganisme(org: AdminOrganisme): DisplayOrganisme {
@@ -123,23 +156,9 @@ export class AdminOrganismesComponent implements OnInit {
       parentId: org.id_parent,
       nbUtilisateurs: org.users_count || 0,
       nbSites: org.sites_count || 0,
-      nbPlans: 0, // Will be added later
+      nbPlans: 0,
       isActive: true
     };
-  }
-
-  filterOrganismes(): void {
-    if (!this.searchQuery) {
-      this.filteredOrganismes.set(this.organismes());
-      return;
-    }
-
-    const query = this.searchQuery.toLowerCase();
-    const result = this.organismes().filter(org =>
-      org.nom.toLowerCase().includes(query) ||
-      org.ville?.toLowerCase().includes(query)
-    );
-    this.filteredOrganismes.set(result);
   }
 
   openAddOrganismeModal(): void {
@@ -232,10 +251,6 @@ export class AdminOrganismesComponent implements OnInit {
     });
   }
 
-  /**
-   * Open site creation modal (for admin_og)
-   * The site will be automatically linked to their organisme
-   */
   openCreateSiteModal(org: DisplayOrganisme): void {
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
       width: '1300px',
@@ -243,7 +258,7 @@ export class AdminOrganismesComponent implements OnInit {
       maxHeight: '90vh',
       data: {
         organismeId: org.id,
-        principal: true // New site is principal by default for admin_og
+        principal: true
       }
     });
 
@@ -264,7 +279,6 @@ export class AdminOrganismesComponent implements OnInit {
   }
 
   viewOrganismeDetails(org: DisplayOrganisme): void {
-    // For now, just show edit modal - detail page to be implemented later
     this.editOrganisme(org);
   }
 }

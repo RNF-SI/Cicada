@@ -28,7 +28,7 @@
           type="text"
           [placeholder]="'admin.organismes.search' | translate"
           [(ngModel)]="searchQuery"
-          (ngModelChange)="filterOrganismes()"
+          (ngModelChange)="onSearchChange()"
         />
       </div>
     </div>
@@ -45,7 +45,7 @@
     @if (isSuperAdmin()) {
       <!-- Grid view for super admin -->
       <div class="organismes-grid">
-        @for (org of filteredOrganismes(); track org.id) {
+        @for (org of organismes(); track org.id) {
           <div class="organisme-card">
             <div class="card-header">
               <h3>{{ org.nom }}</h3>
@@ -105,12 +105,19 @@
           </div>
         }
 
-        @if (filteredOrganismes().length === 0) {
+        @if (organismes().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-building"></i>
             <p>{{ 'admin.organismes.empty.noOrganismes' | translate }}</p>
           </div>
         }
+        <!-- Pagination -->
+        <app-pagination
+          [totalItems]="totalItems()"
+          [pageSize]="pageSize"
+          [currentPage]="currentPage()"
+          (pageChange)="onPageChange($event)"
+        ></app-pagination>
       </div>
     } @else {
       <!-- Single organisme view for admin_og -->
