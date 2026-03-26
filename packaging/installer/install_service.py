@@ -103,11 +103,15 @@ class InstallService:
             self.update_status('in_progress', 'Démarrage des conteneurs Docker...')
             self.start_docker()
 
-            # 5. Créer le superutilisateur
+            # 5. Attendre que les migrations soient terminées
+            self.update_status('in_progress', 'Attente des migrations de base de données...')
+            self.wait_for_migrations()
+
+            # 6. Créer le superutilisateur
             self.update_status('in_progress', 'Création du compte administrateur...')
             self.create_superuser(data)
 
-            # 6. Enregistrer l'instance (non bloquant - ne doit jamais bloquer l'installation)
+            # 7. Enregistrer l'instance (non bloquant - ne doit jamais bloquer l'installation)
             self.update_status('in_progress', 'Enregistrement de l\'instance (optionnel)...')
             try:
                 self.register_instance(data)
@@ -116,7 +120,7 @@ class InstallService:
                 # L'enregistrement pourra se faire plus tard via le heartbeat
                 pass
 
-            # 7. Finaliser
+            # 8. Finaliser
             self.update_status('completed', 'Installation terminée !')
             self.lock_file.touch()
 
@@ -503,6 +507,54 @@ TRACKING_API_URL={tracking_api_url}
                 f"Derniers logs:\n{logs_output}"
             )
             raise Exception(error_msg)
+
+    def wait_for_migrations(self):
+        """
+        Attend que les migrations Django soient terminées dans le conteneur web.
+        L'entrypoint.sh exécute les migrations avant de lancer gunicorn.
+        On attend que la table t_roles existe (dernière migration critique).
+        """
+        import time
+
+        docker_cmd = self._find_docker_command()
+        if not docker_cmd:
+            raise Exception("Docker n'est pas disponible")
+
+        docker_compose_file = '/usr/share/cicada/docker-compose.yml'
+        env_file = '/var/lib/cicada/.env'
+
+        max_wait = 300  # 5 minutes max
+        wait_interval = 10
+        elapsed = 0
+
+        while elapsed < max_wait:
+            # Vérifier si les migrations sont terminées en testant l'existence de la table t_roles
+            check_result = subprocess.run(
+                [docker_cmd, 'compose', '-f', docker_compose_file,
+                 '--env-file', env_file,
+                 'exec', '-T', 'web', 'python', 'manage.py', 'shell', '-c',
+                 'from apps.users.models import Role; print(f"OK: {Role.objects.count()} users")'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if check_result.returncode == 0 and 'OK:' in check_result.stdout:
+                self.update_status('in_progress', 'Migrations terminées', 'web', 'completed')
+                return
+
+            self.update_status(
+                'in_progress',
+                f'Migrations en cours... ({elapsed}s)',
+                'web', 'running'
+            )
+            time.sleep(wait_interval)
+            elapsed += wait_interval
+
+        raise Exception(
+            f"Les migrations n'ont pas terminé après {max_wait} secondes. "
+            "Vérifiez les logs : docker logs cicada_prod_web"
+        )
 
     def create_superuser(self, data):
         docker_cmd = self._find_docker_command()

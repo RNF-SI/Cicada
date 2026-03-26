@@ -91,14 +91,17 @@
                 </div>
                 <div id="db_existing_fields" class="hidden">
                     <div class="info-box">
-                        <p><strong>Important :</strong> La base de données et l'utilisateur doivent déjà exister sur l'instance PostgreSQL. Assurez-vous d'avoir créé la base et l'utilisateur avec les permissions nécessaires avant de continuer.</p>
+                        <p><strong>Important :</strong> La base de données et l'utilisateur doivent déjà exister. Exécutez <code>sudo cicada-prepare-db</code> avant de remplir ce formulaire.</p>
                     </div>
                 </div>
                 <div id="db_connection_fields">
                     <div class="form-group">
-                        <label for="db_host">Hôte PostgreSQL *</label>
+                        <label for="db_host">
+                            Hôte PostgreSQL *
+                            <span class="tooltip-icon" title="Pour Docker intégré : laissez 'db'.&#10;&#10;Pour PostgreSQL installé sur ce serveur : utilisez l'IP de l'interface Docker (généralement 172.17.0.1). Les conteneurs ne peuvent pas accéder à 'localhost' du serveur — ils doivent utiliser cette IP.&#10;&#10;Trouvez-la avec : ip addr show docker0 | grep inet&#10;&#10;Pour PostgreSQL sur un autre serveur : utilisez son IP ou hostname.">&#9432;</span>
+                        </label>
                         <input type="text" id="db_host" name="db_host" value="db">
-                        <small class="form-help">Pour instance existante : adresse IP ou hostname</small>
+                        <small class="form-help" id="db_host_help">Nom du conteneur Docker (par défaut)</small>
                     </div>
                     <div class="form-group">
                         <label for="db_port">Port PostgreSQL *</label>

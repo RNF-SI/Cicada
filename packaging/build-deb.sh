@@ -7,7 +7,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Configuration (VERSION doit correspondre au tag des images sur ghcr.io/rnf-si/cicada-*)
 PACKAGE_NAME="cicada"
-VERSION="${VERSION:-0.1.14}"
+# Version : depuis env var, ou depuis version.txt à la racine du projet
+VERSION="${VERSION:-$(cat "$PROJECT_ROOT/version.txt" 2>/dev/null | tr -d '[:space:]' || echo "0.0.0")}"
 ARCH="amd64"
 DEB_DIR="$SCRIPT_DIR/debian"
 BUILD_DIR="$SCRIPT_DIR/build"

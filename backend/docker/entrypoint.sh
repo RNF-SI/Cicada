@@ -51,9 +51,9 @@ if [ -n "$REDIS_URL" ]; then
     export REDIS_PORT=$(echo $REDIS_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
 fi
 
-# Valeurs par défaut
-export DB_HOST=${DB_HOST:-db}
-export DB_PORT=${DB_PORT:-5432}
+# Valeurs par défaut (POSTGRES_HOST/POSTGRES_PORT du docker-compose, sinon DB_HOST/DB_PORT)
+export DB_HOST=${DB_HOST:-${POSTGRES_HOST:-db}}
+export DB_PORT=${DB_PORT:-${POSTGRES_PORT:-5432}}
 export REDIS_HOST=${REDIS_HOST:-redis}
 export REDIS_PORT=${REDIS_PORT:-6379}
 

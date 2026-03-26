@@ -92,4 +92,4 @@ frontend/e2e-results.xml
 backend/static/
 backend/celerybeat-schedule
 
-packaging/installer/venv/
+packaging/installer/venv/cicada_0.1.14_amd64.deb
