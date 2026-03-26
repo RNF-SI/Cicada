@@ -46,27 +46,57 @@ En production, il est **fortement recommandé** d’utiliser un PostgreSQL insta
 
 > **Alternative** : si vous préférez tout dans Docker (développement, test), vous pouvez passer cette étape et choisir "Nouvelle instance Docker" dans le formulaire (étape 5).
 
-##### Prérequis
-
-- PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
-- `pg_hba.conf` autorisant les connexions depuis le réseau Docker (par défaut `172.17.0.0/16`)
-- `listen_addresses = ‘*’` dans `postgresql.conf` (ou au minimum l’IP Docker `172.17.0.1`)
-
-##### Vérifications
+##### Installer PostgreSQL et PostGIS (si pas déjà fait)
 
 ```bash
-# Vérifier PostgreSQL et PostGIS
-psql --version                              # PostgreSQL 17+
-apt list --installed 2>/dev/null | grep postgis  # postgis-3 installé
+# Ajouter le repository PostgreSQL officiel (pour avoir la version 17)
+sudo apt-get install -y curl ca-certificates gnupg
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
 
-# Vérifier que PostgreSQL écoute sur toutes les interfaces
-sudo -u postgres psql -c "SHOW listen_addresses;"
-# Doit retourner ‘*’ ou inclure l’IP Docker
-
-# Trouver l’IP Docker (les conteneurs utiliseront cette IP pour se connecter)
-ip addr show docker0 | grep ‘inet ‘
-# Typiquement : 172.17.0.1
+# Installer PostgreSQL 17 + PostGIS
+sudo apt-get update
+sudo apt-get install -y postgresql-17 postgresql-17-postgis-3
 ```
+
+##### Configurer PostgreSQL pour Docker
+
+Les conteneurs Docker doivent pouvoir se connecter au PostgreSQL du serveur. Deux fichiers à vérifier :
+
+```bash
+# 1. Écouter sur toutes les interfaces (pas juste localhost)
+sudo -u postgres psql -c "SHOW listen_addresses;"
+# Si ce n’est pas ‘*’, modifier postgresql.conf :
+# sudo nano /etc/postgresql/17/main/postgresql.conf
+# → listen_addresses = ‘*’
+# Puis : sudo systemctl restart postgresql
+
+# 2. Autoriser les connexions depuis Docker
+# Vérifier que pg_hba.conf contient une ligne comme :
+#   host    all    all    172.17.0.0/16    md5
+# ou plus permissif :
+#   host    all    all    0.0.0.0/0    md5
+sudo cat /etc/postgresql/17/main/pg_hba.conf | grep -v ‘^#’ | grep -v ‘^$’
+```
+
+##### Lancer cicada-prepare-db
+
+Le script fait tout le reste automatiquement :
+
+```bash
+sudo cicada-prepare-db
+```
+
+Il va :
+1. Vérifier que PostgreSQL et PostGIS sont installés et actifs
+2. Vous demander un mot de passe pour l’utilisateur de la base
+3. Créer l’utilisateur `cicada_user` et la base `cicada`
+4. Créer les extensions (PostGIS, etc.) et les 12 schémas applicatifs
+5. Configurer les permissions
+6. Vérifier que tout fonctionne
+7. Afficher les paramètres à utiliser dans le formulaire web (étape 5)
+
+**Notez bien le mot de passe choisi** — il sera demandé dans le formulaire d’installation.
 
 ##### Créer la base et initialiser les schémas
 
