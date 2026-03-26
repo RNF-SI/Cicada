@@ -744,12 +744,11 @@ class ValidationService:
             )
             validators.update(admin_ogs)
 
-        # Si pas d'admin_og, super_admin
-        if not validators:
-            validators.update(Role.objects.filter(
-                role_level='super_admin',
-                active=True
-            ))
+        # Toujours notifier les super_admins
+        validators.update(Role.objects.filter(
+            role_level='super_admin',
+            active=True
+        ))
 
         return validators
 
