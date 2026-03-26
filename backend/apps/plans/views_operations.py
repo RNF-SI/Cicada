@@ -44,7 +44,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
     ).prefetch_related(
         'sites',
-        Prefetch('operation_annees', queryset=OperationAnnee.objects.select_related('id_operateur').prefetch_related(
+        Prefetch('operation_annees', queryset=OperationAnnee.objects.prefetch_related(
             Prefetch('organismes', queryset=OperationAnneeOrganisme.objects.select_related('id_organisme'))
         )),
         Prefetch('finances', queryset=FinanceOperation.objects.select_related('id_categorie')),

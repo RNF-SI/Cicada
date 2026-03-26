@@ -1787,9 +1787,9 @@ export class EnjeuxListComponent implements OnInit {
     const org = annee.organismes.find(o => o.id_organisme === orgId);
     if (!org) return { fonct: null, invest: null, etp: null };
     return {
-      fonct: org.budget_fonctionnement,
-      invest: org.budget_investissement,
-      etp: org.etp
+      fonct: org.budget_fonctionnement != null ? parseFloat(String(org.budget_fonctionnement)) : null,
+      invest: org.budget_investissement != null ? parseFloat(String(org.budget_investissement)) : null,
+      etp: org.etp != null ? parseFloat(String(org.etp)) : null
     };
   }
 
@@ -1802,17 +1802,21 @@ export class EnjeuxListComponent implements OnInit {
   /**
    * Format budget value for display.
    */
-  formatBudget(value: number | null | undefined): string {
+  formatBudget(value: number | string | null | undefined): string {
     if (value == null) return '-';
-    return value.toLocaleString('fr-FR') + '€';
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '-';
+    return num.toLocaleString('fr-FR') + '€';
   }
 
   /**
    * Format ETP/travail value for display.
    */
-  formatTravail(value: number | null | undefined): string {
+  formatTravail(value: number | string | null | undefined): string {
     if (value == null) return '-';
-    return value.toString();
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '-';
+    return num.toString();
   }
 
   /**

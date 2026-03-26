@@ -412,6 +412,34 @@ $form-side-margin: $spacing-xxl;
   padding: $spacing-xs;
 }
 
+.programmation-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+
+  .field-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    color: $black;
+  }
+}
+
+.direct-mode-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+  padding: $spacing-xs 0;
+
+  i {
+    font-size: 14px;
+    color: $info-color;
+  }
+}
+
 .duplicate-btn {
   display: inline-flex;
   align-items: center;

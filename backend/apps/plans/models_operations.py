@@ -646,15 +646,6 @@ class OperationAnnee(models.Model):
         max_digits=8, decimal_places=2,
         null=True, blank=True
     )
-    id_operateur = models.ForeignKey(
-        'core.Nomenclature',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='operation_annees_operateur',
-        db_column='id_operateur',
-        verbose_name=_("Type d'opérateur"),
-        limit_choices_to={'id_type__mnemonique': 'OPERATEUR_TYPE'}
-    )
     periodicite_mensuelle = models.JSONField(
         _("Périodicité mensuelle"),
         default=dict, blank=True,

@@ -3779,10 +3779,6 @@ class EnjeuxSeeder(BaseSeeder):
         type_action_ip1 = self._get_nomenclature('TYPE_ACTION', 'IP1')    # Restauration d'habitats naturels
         type_action_sp1 = self._get_nomenclature('TYPE_ACTION', 'SP1')    # Surveillance et police
         type_action_pa1 = self._get_nomenclature('TYPE_ACTION', 'PA1')    # Éducation à la nature
-        operateur_agent = self._get_nomenclature('OPERATEUR_TYPE', 'AGENT_RESERVE')
-        operateur_presta = self._get_nomenclature('OPERATEUR_TYPE', 'PRESTATAIRE')
-        operateur_benevole = self._get_nomenclature('OPERATEUR_TYPE', 'BENEVOLE')
-        operateur_stagiaire = self._get_nomenclature('OPERATEUR_TYPE', 'STAGIAIRE')
         cat_finance_region = self._get_nomenclature('CATEGORIE_FINANCE', 'REGION')
         cat_finance_dept = self._get_nomenclature('CATEGORIE_FINANCE', 'DEPARTEMENT')
         cat_finance_etat = self._get_nomenclature('CATEGORIE_FINANCE', 'ETAT')
@@ -3944,7 +3940,6 @@ class EnjeuxSeeder(BaseSeeder):
             {'base': 500, 'var': 100},    # 4
         ]
         etp_profiles = [5, 3, 10, 8, 2, 15, 6, 4, 12, 7]
-        operateur_cycle = [operateur_agent, operateur_presta, operateur_benevole, operateur_stagiaire]
 
         for idx, op in enumerate(operations_created):
             # Set type_action based on id_referentiel_operations
@@ -3984,15 +3979,12 @@ class EnjeuxSeeder(BaseSeeder):
                     year_offset = year - op.annee_min
                     budget = bp['base'] + (bp['var'] if year_offset % 2 == 0 else -bp['var'])
                     etp = etp_profiles[(idx + year_offset) % len(etp_profiles)]
-                    op_type = operateur_cycle[(idx + year_offset) % len(operateur_cycle)]
-
                     oa, _ = OperationAnnee.objects.update_or_create(
                         id_operation=op, annee=year,
                         defaults={
                             'periodicite': True,
                             'budget': budget,
                             'etp': etp,
-                            'id_operateur': op_type,
                             'periodicite_mensuelle': mens,
                         }
                     )

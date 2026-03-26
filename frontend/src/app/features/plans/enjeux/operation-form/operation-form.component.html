@@ -65,16 +65,18 @@
             }
           </mat-form-field>
 
-          <!-- Intitulé de l'action (optionnel, auto-rempli avec le type d'action si vide) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
-            <input matInput formControlName="libelle"
-                   [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
-            <mat-hint>{{ 'enjeux.operations.libelleHint' | translate }}</mat-hint>
-            @if (form.get('libelle')?.hasError('maxlength')) {
-              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
-            }
-          </mat-form-field>
+          <!-- Intitulé de l'action : contrôle formulaire (caché quand CS, affiché en position basse) -->
+          <div [style.display]="isCSAction() ? 'none' : ''">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
+              <input matInput formControlName="libelle"
+                     [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
+              <mat-hint>{{ 'enjeux.operations.libelleHint' | translate }}</mat-hint>
+              @if (form.get('libelle')?.hasError('maxlength')) {
+                <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
 
           <!-- Question suivi existant (visible uniquement pour les actions CS) -->
           @if (isCSAction()) {
@@ -116,6 +118,14 @@
                 }
               </mat-form-field>
             }
+
+            <!-- Intitulé de l'action (lecture seule, synchronisé avec l'inventaire) -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
+              <input matInput [value]="libelleDisplay()" disabled
+                     [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
+              <mat-hint>{{ 'enjeux.operations.libelleAutoFilledHint' | translate }}</mat-hint>
+            </mat-form-field>
           }
 
           <!-- Métrique associée -->
@@ -535,6 +545,23 @@
                 </div>
               }
 
+              <!-- Toggle ventilation / totaux directs -->
+              @if (availableOrganismes().length > 0) {
+                <div class="programmation-mode-toggle">
+                  <span class="field-label">{{ 'enjeux.operations.modeVentilationLabel' | translate }}</span>
+                  <mat-button-toggle-group
+                    [value]="directTotalMode() ? 'direct' : 'ventilation'"
+                    (change)="onModeToggle($event.value)">
+                    <mat-button-toggle value="ventilation">
+                      {{ 'enjeux.operations.modeVentilation' | translate }}
+                    </mat-button-toggle>
+                    <mat-button-toggle value="direct">
+                      {{ 'enjeux.operations.modeTotauxDirects' | translate }}
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
+                </div>
+              }
+
               <!-- Programmation annuelle (OperationAnnee[]) -->
               @if (operationAnnees.length > 0) {
                 <div class="programmation-section">
@@ -563,8 +590,8 @@
                           }
                         </tr>
 
-                        <!-- Per-organisme groups -->
-                        @if (availableOrganismes().length > 0) {
+                        <!-- MODE A: Ventilation par organisme -->
+                        @if (availableOrganismes().length > 0 && !directTotalMode()) {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <!-- Org group header -->
                             <tr class="org-group-header">
@@ -628,7 +655,7 @@
                             </tr>
                           }
 
-                          <!-- TOTAL cross-organismes -->
+                          <!-- TOTAL cross-organismes (computed) -->
                           <tr class="total-group-header">
                             <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
                               {{ 'enjeux.operations.totalLabel' | translate }}
@@ -649,6 +676,50 @@
                                 {{ getYearTotalEtp(i) | number:'1.0-2' }} j
                               </td>
                             }
+                          </tr>
+
+                        <!-- MODE B: Totaux directs -->
+                        } @else if (availableOrganismes().length > 0 && directTotalMode()) {
+                          <tr class="total-group-header">
+                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              {{ 'enjeux.operations.totalLabel' | translate }}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="getDirectTotal(i).budget"
+                                         (change)="updateDirectBudget(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="getDirectTotal(i).etp"
+                                         (change)="updateDirectEtp(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">j</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell" [attr.colspan]="operationAnnees.length + 1">
+                              <span class="direct-mode-hint">
+                                <i class="fi fi-rr-info"></i>
+                                {{ 'enjeux.operations.directModeHint' | translate }}
+                              </span>
+                            </td>
                           </tr>
                         } @else {
                           <!-- Fallback: flat budget/travail rows when no sites selected -->
@@ -682,23 +753,6 @@
                           </tr>
                         }
 
-                        <!-- Row: Opérateur -->
-                        <tr>
-                          <td class="label-cell">{{ 'enjeux.operations.operateurTypeLabel' | translate }}</td>
-                          @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                            <td>
-                              <select class="prog-select"
-                                      [ngModel]="annee.id_operateur"
-                                      [ngModelOptions]="{standalone: true}"
-                                      (ngModelChange)="updateOperateur(i, $event)">
-                                <option [ngValue]="null">—</option>
-                                @for (opt of operateurOptions(); track opt.id_nomenclature) {
-                                  <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
-                                }
-                              </select>
-                            </td>
-                          }
-                        </tr>
                         <!-- Row: Dupliquer -->
                         <tr class="duplicate-row">
                           <td class="label-cell"></td>

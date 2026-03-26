@@ -396,8 +396,6 @@ export interface OperationAnnee {
   periodicite: boolean;
   budget: number | null;
   etp: number | null;
-  id_operateur?: number | null;
-  operateur_label?: string;
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
   organismes?: OperationAnneeOrganisme[];
@@ -482,7 +480,7 @@ export interface OperationCreatePayload {
   id_metrique?: number;
   site_ids?: number[];
   // Nested relational data
-  operation_annees?: Omit<OperationAnnee, 'id_operation_annee' | 'operateur_label'>[];
+  operation_annees?: Omit<OperationAnnee, 'id_operation_annee'>[];
   finances?: Omit<FinanceOperation, 'id_finance_operation' | 'categorie_label'>[];
 }
 
