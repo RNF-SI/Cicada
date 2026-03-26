@@ -328,6 +328,8 @@ function toggleDbFields() {
     const dbNameHelp = document.getElementById('db_name_help');
     const dbUserHelp = document.getElementById('db_user_help');
     
+    const dbHostHelp = document.getElementById('db_host_help');
+
     if (dbType === 'docker') {
         dockerFields.classList.remove('hidden');
         existingFields.classList.add('hidden');
@@ -340,15 +342,18 @@ function toggleDbFields() {
         dbPort.readOnly = true;
         if (dbNameHelp) dbNameHelp.textContent = 'Sera créée automatiquement si nouvelle instance Docker';
         if (dbUserHelp) dbUserHelp.textContent = 'Sera créé automatiquement si nouvelle instance Docker';
+        if (dbHostHelp) dbHostHelp.textContent = 'Nom du conteneur Docker (par défaut)';
     } else {
         dockerFields.classList.add('hidden');
         existingFields.classList.remove('hidden');
         if (dbConnectionFields) dbConnectionFields.classList.remove('hidden');
+        dbHost.value = '172.17.0.1';
         dbHost.required = true;
         dbPort.required = true;
         dbHost.readOnly = false;
         dbPort.readOnly = false;
         if (dbNameHelp) dbNameHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
         if (dbUserHelp) dbUserHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
+        if (dbHostHelp) dbHostHelp.textContent = 'IP Docker du serveur (voir sudo cicada-prepare-db). Ne pas utiliser localhost.';
     }
 }
