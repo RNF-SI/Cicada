@@ -124,7 +124,7 @@ export class AdminPlansComponent implements OnInit {
     this.isLoading.set(true);
 
     // Load organismes for filter dropdown
-    this.adminService.getOrganismes().subscribe({
+    this.adminService.getOrganismes({ page_size: 1000 }).subscribe({
       next: (response) => {
         this.organismes.set(response.results.map(org => ({
           id: org.id_organisme,
@@ -152,6 +152,7 @@ export class AdminPlansComponent implements OnInit {
 
     this.adminService.getPlans({
       search: this.searchQuery || undefined,
+      page_size: 1000,
       statut: this.filterStatut || undefined,
       organisme: organismeFilter,
       scope

@@ -143,7 +143,7 @@ export class AdminUsersComponent implements OnInit {
     this.isLoading.set(true);
 
     // Load organismes for filter dropdown
-    this.adminService.getOrganismes().subscribe({
+    this.adminService.getOrganismes({ page_size: 1000 }).subscribe({
       next: (response) => {
         this.organismes.set(response.results.map(org => ({
           id: org.id_organisme,
@@ -158,7 +158,7 @@ export class AdminUsersComponent implements OnInit {
 
   loadUsers(): void {
     this.isLoading.set(true);
-    this.adminService.getUsers({ search: this.searchQuery || undefined }).subscribe({
+    this.adminService.getUsers({ search: this.searchQuery || undefined, page_size: 1000 }).subscribe({
       next: (response) => {
         const mapped = response.results.map(user => this.mapUser(user));
         this.users.set(mapped);

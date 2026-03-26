@@ -95,7 +95,7 @@ export class AdminOrganismesComponent implements OnInit {
 
   loadOrganismes(): void {
     this.isLoading.set(true);
-    this.adminService.getOrganismes({ search: this.searchQuery || undefined }).subscribe({
+    this.adminService.getOrganismes({ search: this.searchQuery || undefined, page_size: 1000 }).subscribe({
       next: (response) => {
         const mapped = response.results.map(org => this.mapOrganisme(org));
         this.organismes.set(mapped);

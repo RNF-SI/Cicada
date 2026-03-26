@@ -108,7 +108,7 @@ export class AdminSitesComponent implements OnInit {
     this.isLoading.set(true);
 
     // Load organismes first (for filter dropdown)
-    this.adminService.getOrganismes().subscribe({
+    this.adminService.getOrganismes({ page_size: 1000 }).subscribe({
       next: (response) => {
         this.organismes.set(response.results.map(org => ({
           id: org.id_organisme,
@@ -123,7 +123,7 @@ export class AdminSitesComponent implements OnInit {
 
   loadSites(): void {
     this.isLoading.set(true);
-    this.adminService.getSites({ search: this.searchQuery || undefined }).subscribe({
+    this.adminService.getSites({ search: this.searchQuery || undefined, page_size: 1000 }).subscribe({
       next: (response) => {
         const mapped = response.results.map(site => this.mapSite(site));
         this.sites.set(mapped);
