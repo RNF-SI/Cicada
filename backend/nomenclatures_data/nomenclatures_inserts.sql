@@ -261,9 +261,9 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (752, 46, 'REPONSE', 'REPONSE', 'Réponse', 'Indicateur de réponse', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
 
 -- TYPE_METRIQUE (id_type=48) - Type de métrique
-INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (760, 48, 'NUMERIQUE', 'NUMERIQUE', 'Numérique', 'Métrique de type numérique', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
-INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (761, 48, 'QUALITATIF', 'QUALITATIF', 'Qualitatif', 'Métrique de type qualitatif', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
-INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (762, 48, 'BOOLEEN', 'BOOLEEN', 'Booléen', 'Métrique de type booléen (oui/non)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (760, 48, 'NUMERIQUE', 'NUMERIQUE', 'Intervalle numérique', 'Métrique de type intervalle numérique (min-max)', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1351, 48, 'CHIFFRE', 'CHIFFRE', 'Chiffre', 'Métrique de type chiffre (valeur unique)', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1352, 48, 'TEXTE', 'TEXTE', 'Texte', 'Métrique de type texte (description libre)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
 
 -- ============================================
 -- NOMENCLATURES POUR OPÉRATIONS (ACTIONS)

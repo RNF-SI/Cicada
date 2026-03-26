@@ -796,14 +796,30 @@
                                                             <span class="score-header-value">= {{level}}</span>
                                                           </div>
                                                           <div class="score-column-inputs">
-                                                            <mat-form-field appearance="outline" class="score-input">
-                                                              <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                              <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                            </mat-form-field>
-                                                            <mat-form-field appearance="outline" class="score-input">
-                                                              <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                              <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                            </mat-form-field>
+                                                            @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
+                                                              @case ('CHIFFRE') {
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].val">
+                                                                </mat-form-field>
+                                                              }
+                                                              @case ('TEXTE') {
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                                  <input matInput [(ngModel)]="met.scores[level].label">
+                                                                </mat-form-field>
+                                                              }
+                                                              @default {
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                                </mat-form-field>
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                                </mat-form-field>
+                                                              }
+                                                            }
                                                           </div>
                                                         </div>
                                                       }
@@ -1195,14 +1211,30 @@
                                                           <span class="score-header-value">= {{level}}</span>
                                                         </div>
                                                         <div class="score-column-inputs">
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
-                                                          </mat-form-field>
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
-                                                          </mat-form-field>
+                                                          @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
+                                                            @case ('CHIFFRE') {
+                                                              <mat-form-field appearance="outline" class="score-input">
+                                                                <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
+                                                              </mat-form-field>
+                                                            }
+                                                            @case ('TEXTE') {
+                                                              <mat-form-field appearance="outline" class="score-input">
+                                                                <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                                <input matInput [(ngModel)]="standaloneMetriqueForm.scores[level].label">
+                                                              </mat-form-field>
+                                                            }
+                                                            @default {
+                                                              <mat-form-field appearance="outline" class="score-input">
+                                                                <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
+                                                              </mat-form-field>
+                                                              <mat-form-field appearance="outline" class="score-input">
+                                                                <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
+                                                              </mat-form-field>
+                                                            }
+                                                          }
                                                         </div>
                                                       </div>
                                                     }
@@ -1304,14 +1336,30 @@
                                                       <span class="score-header-value">= {{level}}</span>
                                                     </div>
                                                     <div class="score-column-inputs">
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                      </mat-form-field>
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                      </mat-form-field>
+                                                      @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
+                                                        @case ('CHIFFRE') {
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="met.scores[level].val">
+                                                          </mat-form-field>
+                                                        }
+                                                        @case ('TEXTE') {
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                            <input matInput [(ngModel)]="met.scores[level].label">
+                                                          </mat-form-field>
+                                                        }
+                                                        @default {
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                          </mat-form-field>
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                          </mat-form-field>
+                                                        }
+                                                      }
                                                     </div>
                                                   </div>
                                                 }
@@ -1649,14 +1697,30 @@
                                                     <span class="score-header-value">= {{level}}</span>
                                                   </div>
                                                   <div class="score-column-inputs">
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                    </mat-form-field>
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                    </mat-form-field>
+                                                    @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
+                                                      @case ('CHIFFRE') {
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                          <input matInput type="number" [(ngModel)]="met.scores[level].val">
+                                                        </mat-form-field>
+                                                      }
+                                                      @case ('TEXTE') {
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                          <input matInput [(ngModel)]="met.scores[level].label">
+                                                        </mat-form-field>
+                                                      }
+                                                      @default {
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                          <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                        </mat-form-field>
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                          <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                        </mat-form-field>
+                                                      }
+                                                    }
                                                   </div>
                                                 </div>
                                               }
@@ -2035,14 +2099,30 @@
                                                   <span class="score-header-value">= {{level}}</span>
                                                 </div>
                                                 <div class="score-column-inputs">
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                    <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
-                                                  </mat-form-field>
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                    <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
-                                                  </mat-form-field>
+                                                  @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
+                                                    @case ('CHIFFRE') {
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
+                                                      </mat-form-field>
+                                                    }
+                                                    @case ('TEXTE') {
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                        <input matInput [(ngModel)]="standaloneMetriqueForm.scores[level].label">
+                                                      </mat-form-field>
+                                                    }
+                                                    @default {
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
+                                                      </mat-form-field>
+                                                      <mat-form-field appearance="outline" class="score-input">
+                                                        <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
+                                                      </mat-form-field>
+                                                    }
+                                                  }
                                                 </div>
                                               </div>
                                             }
@@ -2137,14 +2217,30 @@
                                               <span class="score-header-value">= {{level}}</span>
                                             </div>
                                             <div class="score-column-inputs">
-                                              <mat-form-field appearance="outline" class="score-input">
-                                                <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                              </mat-form-field>
-                                              <mat-form-field appearance="outline" class="score-input">
-                                                <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                              </mat-form-field>
+                                              @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
+                                                @case ('CHIFFRE') {
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
+                                                    <input matInput type="number" [(ngModel)]="met.scores[level].val">
+                                                  </mat-form-field>
+                                                }
+                                                @case ('TEXTE') {
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
+                                                    <input matInput [(ngModel)]="met.scores[level].label">
+                                                  </mat-form-field>
+                                                }
+                                                @default {
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                    <input matInput type="number" [(ngModel)]="met.scores[level].inf">
+                                                  </mat-form-field>
+                                                  <mat-form-field appearance="outline" class="score-input">
+                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                    <input matInput type="number" [(ngModel)]="met.scores[level].sup">
+                                                  </mat-form-field>
+                                                }
+                                              }
                                             </div>
                                           </div>
                                         }

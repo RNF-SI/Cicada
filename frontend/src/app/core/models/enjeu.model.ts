@@ -279,14 +279,15 @@ export interface Metrique {
   description?: string;
   type_metrique?: number;
   type_metrique_label?: string;
+  type_metrique_mnemonique?: string;
   unite?: string;
   ponderation?: number;
   etat_reference?: string;
-  score_1_inf?: number; score_1_sup?: number; score_1_label?: string;
-  score_2_inf?: number; score_2_sup?: number; score_2_label?: string;
-  score_3_inf?: number; score_3_sup?: number; score_3_label?: string;
-  score_4_inf?: number; score_4_sup?: number; score_4_label?: string;
-  score_5_inf?: number; score_5_sup?: number; score_5_label?: string;
+  score_1_inf?: number; score_1_sup?: number; score_1_val?: number; score_1_label?: string;
+  score_2_inf?: number; score_2_sup?: number; score_2_val?: number; score_2_label?: string;
+  score_3_inf?: number; score_3_sup?: number; score_3_val?: number; score_3_label?: string;
+  score_4_inf?: number; score_4_sup?: number; score_4_val?: number; score_4_label?: string;
+  score_5_inf?: number; score_5_sup?: number; score_5_val?: number; score_5_label?: string;
   mesures?: Mesure[];
   nb_mesures?: number;
   operations?: Operation[];
@@ -494,7 +495,7 @@ export interface MetriqueFormData {
   unite: string;
   ponderation: number | null;
   etat_reference: string;
-  scores: { [level: number]: { inf: number | null; sup: number | null } };
+  scores: { [level: number]: { inf: number | null; sup: number | null; val: number | null; label: string } };
   _deleted?: boolean;  // marked for deletion
 }
 
@@ -539,11 +540,11 @@ export interface MetriqueCreatePayload {
   unite?: string;
   ponderation?: number;
   etat_reference?: string;
-  score_1_inf?: number; score_1_sup?: number; score_1_label?: string;
-  score_2_inf?: number; score_2_sup?: number; score_2_label?: string;
-  score_3_inf?: number; score_3_sup?: number; score_3_label?: string;
-  score_4_inf?: number; score_4_sup?: number; score_4_label?: string;
-  score_5_inf?: number; score_5_sup?: number; score_5_label?: string;
+  score_1_inf?: number; score_1_sup?: number; score_1_val?: number; score_1_label?: string;
+  score_2_inf?: number; score_2_sup?: number; score_2_val?: number; score_2_label?: string;
+  score_3_inf?: number; score_3_sup?: number; score_3_val?: number; score_3_label?: string;
+  score_4_inf?: number; score_4_sup?: number; score_4_val?: number; score_4_label?: string;
+  score_5_inf?: number; score_5_sup?: number; score_5_val?: number; score_5_label?: string;
 }
 
 /**

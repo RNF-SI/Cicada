@@ -2376,6 +2376,8 @@
       "seuilsTitle": "Seuils de scores",
       "min": "Min",
       "max": "Max",
+      "valeur": "Valeur",
+      "texte": "Texte",
       "partialError": "L'indicateur a été créé mais certaines métriques n'ont pas pu être enregistrées",
       "sectionTitle": "MÉTRIQUES",
       "createSuccess": "Métrique créée avec succès",

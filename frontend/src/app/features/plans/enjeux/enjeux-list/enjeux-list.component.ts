@@ -1189,11 +1189,11 @@ export class EnjeuxListComponent implements OnInit {
       ponderation: null,
       etat_reference: '',
       scores: {
-        1: { inf: null, sup: null },
-        2: { inf: null, sup: null },
-        3: { inf: null, sup: null },
-        4: { inf: null, sup: null },
-        5: { inf: null, sup: null }
+        1: { inf: null, sup: null, val: null, label: '' },
+        2: { inf: null, sup: null, val: null, label: '' },
+        3: { inf: null, sup: null, val: null, label: '' },
+        4: { inf: null, sup: null, val: null, label: '' },
+        5: { inf: null, sup: null, val: null, label: '' }
       }
     };
   }
@@ -1206,6 +1206,12 @@ export class EnjeuxListComponent implements OnInit {
     this.indicateurFormMetriques = this.indicateurFormMetriques.filter((_, i) => i !== index);
   }
 
+  getMetriqueTypeMnemonique(typeMetriqueId: number | null): string {
+    if (!typeMetriqueId) return 'NUMERIQUE';
+    const opt = this.typeMetriqueOptions().find(o => o.id_nomenclature === typeMetriqueId);
+    return opt?.mnemonique || 'NUMERIQUE';
+  }
+
   buildMetriquePayload(indicateurId: number, met: MetriqueFormData): MetriqueCreatePayload {
     const payload: MetriqueCreatePayload = {
       id_indicateur: indicateurId,
@@ -1215,10 +1221,18 @@ export class EnjeuxListComponent implements OnInit {
     if (met.unite.trim()) payload.unite = met.unite.trim();
     if (met.ponderation != null) payload.ponderation = met.ponderation;
     if (met.etat_reference.trim()) payload.etat_reference = met.etat_reference.trim();
+
+    const mnemonique = this.getMetriqueTypeMnemonique(met.type_metrique);
     for (let level = 1; level <= 5; level++) {
       const s = met.scores[level];
-      if (s?.inf != null) (payload as any)[`score_${level}_inf`] = s.inf;
-      if (s?.sup != null) (payload as any)[`score_${level}_sup`] = s.sup;
+      if (mnemonique === 'CHIFFRE') {
+        if (s?.val != null) (payload as any)[`score_${level}_val`] = s.val;
+      } else if (mnemonique === 'TEXTE') {
+        if (s?.label?.trim()) (payload as any)[`score_${level}_label`] = s.label.trim();
+      } else {
+        if (s?.inf != null) (payload as any)[`score_${level}_inf`] = s.inf;
+        if (s?.sup != null) (payload as any)[`score_${level}_sup`] = s.sup;
+      }
     }
     return payload;
   }
@@ -1358,11 +1372,11 @@ export class EnjeuxListComponent implements OnInit {
       ponderation: met.ponderation ?? null,
       etat_reference: met.etat_reference || '',
       scores: {
-        1: { inf: met.score_1_inf ?? null, sup: met.score_1_sup ?? null },
-        2: { inf: met.score_2_inf ?? null, sup: met.score_2_sup ?? null },
-        3: { inf: met.score_3_inf ?? null, sup: met.score_3_sup ?? null },
-        4: { inf: met.score_4_inf ?? null, sup: met.score_4_sup ?? null },
-        5: { inf: met.score_5_inf ?? null, sup: met.score_5_sup ?? null }
+        1: { inf: met.score_1_inf ?? null, sup: met.score_1_sup ?? null, val: met.score_1_val ?? null, label: met.score_1_label || '' },
+        2: { inf: met.score_2_inf ?? null, sup: met.score_2_sup ?? null, val: met.score_2_val ?? null, label: met.score_2_label || '' },
+        3: { inf: met.score_3_inf ?? null, sup: met.score_3_sup ?? null, val: met.score_3_val ?? null, label: met.score_3_label || '' },
+        4: { inf: met.score_4_inf ?? null, sup: met.score_4_sup ?? null, val: met.score_4_val ?? null, label: met.score_4_label || '' },
+        5: { inf: met.score_5_inf ?? null, sup: met.score_5_sup ?? null, val: met.score_5_val ?? null, label: met.score_5_label || '' }
       }
     } as MetriqueFormData));
   }
@@ -1543,6 +1557,17 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   getScoreRange(met: any, level: number): string {
+    const mnemonique = met.type_metrique_mnemonique || 'NUMERIQUE';
+
+    if (mnemonique === 'CHIFFRE') {
+      const val = met[`score_${level}_val`];
+      return val != null ? val.toString() : '-';
+    }
+    if (mnemonique === 'TEXTE') {
+      const label = met[`score_${level}_label`];
+      return label?.trim() || '-';
+    }
+    // NUMERIQUE / default: interval
     const inf = met[`score_${level}_inf`];
     const sup = met[`score_${level}_sup`];
     if (inf != null && sup != null) {
@@ -2192,7 +2217,7 @@ export class EnjeuxListComponent implements OnInit {
       unite: '',
       ponderation: null,
       etat_reference: '',
-      scores: { 1: { inf: null, sup: null }, 2: { inf: null, sup: null }, 3: { inf: null, sup: null }, 4: { inf: null, sup: null }, 5: { inf: null, sup: null } }
+      scores: { 1: { inf: null, sup: null, val: null, label: '' }, 2: { inf: null, sup: null, val: null, label: '' }, 3: { inf: null, sup: null, val: null, label: '' }, 4: { inf: null, sup: null, val: null, label: '' }, 5: { inf: null, sup: null, val: null, label: '' } }
     });
   }
 
@@ -2283,11 +2308,11 @@ export class EnjeuxListComponent implements OnInit {
       ponderation: m.ponderation || null,
       etat_reference: m.etat_reference || '',
       scores: {
-        1: { inf: m.score_1_inf ?? null, sup: m.score_1_sup ?? null },
-        2: { inf: m.score_2_inf ?? null, sup: m.score_2_sup ?? null },
-        3: { inf: m.score_3_inf ?? null, sup: m.score_3_sup ?? null },
-        4: { inf: m.score_4_inf ?? null, sup: m.score_4_sup ?? null },
-        5: { inf: m.score_5_inf ?? null, sup: m.score_5_sup ?? null },
+        1: { inf: m.score_1_inf ?? null, sup: m.score_1_sup ?? null, val: m.score_1_val ?? null, label: m.score_1_label || '' },
+        2: { inf: m.score_2_inf ?? null, sup: m.score_2_sup ?? null, val: m.score_2_val ?? null, label: m.score_2_label || '' },
+        3: { inf: m.score_3_inf ?? null, sup: m.score_3_sup ?? null, val: m.score_3_val ?? null, label: m.score_3_label || '' },
+        4: { inf: m.score_4_inf ?? null, sup: m.score_4_sup ?? null, val: m.score_4_val ?? null, label: m.score_4_label || '' },
+        5: { inf: m.score_5_inf ?? null, sup: m.score_5_sup ?? null, val: m.score_5_val ?? null, label: m.score_5_label || '' },
       }
     }));
   }
