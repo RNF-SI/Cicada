@@ -13,12 +13,14 @@
 
 #### 1. Ajouter le repository APT
 
+Si le repository APT est déjà configuré sur le serveur, passez directement à l'étape 2.
+
 ```bash
-# Ajouter la clé GPG
-curl -fsSL https://apt.cicada.example.org/cicada-repo-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
+# Ajouter la clé GPG (remplacez l'URL par celle fournie par votre administrateur)
+curl -fsSL https://apt.cicada.reserves-naturelles.org/cicada-repo-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
 
 # Ajouter le repository
-echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.example.org stable main" | sudo tee /etc/apt/sources.list.d/cicada.list
+echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.reserves-naturelles.org stable main" | sudo tee /etc/apt/sources.list.d/cicada.list
 
 # Mettre à jour la liste des packages
 sudo apt update
@@ -27,27 +29,22 @@ sudo apt update
 #### 2. Installer CICADA
 
 ```bash
-sudo apt install cicada
+sudo apt-get update
+sudo apt-get install cicada
 ```
 
 L'installation va :
-- Installer les fichiers nécessaires
+- Installer les fichiers nécessaires (scripts, docker-compose, installeur web)
 - Générer un token d'instance unique
-- Démarrer le serveur d'installation web
+- Démarrer le serveur d'installation web sur le port 4567
 
-#### 3. Accéder à l'interface d'installation
+> **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
 
-Ouvrez votre navigateur et accédez à :
+#### 3. Préparer la base PostgreSQL (recommandé en production)
 
-```
-http://localhost:4567
-```
+En production, il est **fortement recommandé** d’utiliser un PostgreSQL installé nativement sur le serveur plutôt que dans un conteneur Docker. Ainsi les données survivent à toute mise à jour, suppression ou recréation des conteneurs.
 
-#### 4. (Optionnel) Préparer une base PostgreSQL externe
-
-Par défaut, l’installeur lance un conteneur PostgreSQL/PostGIS dans Docker. Si vous préférez utiliser un **PostgreSQL déjà installé** sur le serveur (recommandé en production pour la persistance des données), préparez-le avant de remplir le formulaire.
-
-**Pourquoi une base externe ?** Les données sont stockées directement sur le serveur, pas dans un volume Docker. Elles survivent à toute mise à jour, suppression ou recréation des conteneurs.
+> **Alternative** : si vous préférez tout dans Docker (développement, test), vous pouvez passer cette étape et choisir "Nouvelle instance Docker" dans le formulaire (étape 5).
 
 ##### Prérequis
 
@@ -88,42 +85,70 @@ sudo cicada-prepare-db --password SECRET              # Mode non-interactif
 sudo cicada-prepare-db --db-name mabase --db-user monuser  # Noms personnalisés
 ```
 
-Le script affichera à la fin les paramètres à utiliser dans le formulaire d’installation web.
+Le script affichera à la fin les paramètres exacts à utiliser dans le formulaire d’installation web. **Notez bien le mot de passe**, il vous sera demandé à l’étape suivante.
 
-**Schémas créés** : `utilisateurs`, `referentiels`, `ref_nomenclatures`, `ref_geo`, `general`, `fichiers`, `ccd_commons`, `ccd_notifications`, `taxonomie`, `ref_habitats`, `ref_inpg`, `ref_campanule`
+#### 4. Accéder à l’interface d’installation
 
-**Extensions créées** : `postgis`, `postgis_topology`, `fuzzystrmatch`, `postgis_tiger_geocoder`, `uuid-ossp`, `pg_trgm`, `unaccent`
+Ouvrez votre navigateur :
+
+```
+http://votre-serveur:4567
+```
+
+> **Si la page est inaccessible** : vérifiez que le service tourne avec `sudo systemctl status cicada-installer`. Si inactif, relancez-le : `sudo systemctl restart cicada-installer`.
 
 #### 5. Remplir le formulaire d’installation
 
-Le formulaire vous demande :
+Le formulaire comporte 5 sections :
 
-- **Compte administrateur** : email, mot de passe, nom, prénom
-- **Configuration du site** : nom de domaine, **présence d’Apache/Nginx** sur le serveur, puis selon le cas : port d’exposition du frontend ou email Let’s Encrypt
-- **Base de données PostgreSQL** : type (Docker ou existante), hôte, port, nom, utilisateur, mot de passe
-- **Redis** : hôte, port, mot de passe (optionnel)
-- **Consentement RGPD** (optionnel) : pour partager vos données nominatives avec les mainteneurs
+**Compte administrateur :**
+- Email, mot de passe, nom, prénom du premier administrateur
 
-**Si vous avez préparé une base externe (étape 4)** : choisissez "Base de données existante" et indiquez l’IP Docker du serveur (typiquement `172.17.0.1`) comme hôte, port `5432`, et les identifiants créés ci-dessus.
+**Configuration du site :**
+- Nom de domaine (ex. `cicada.mon-organisme.org`)
+- Présence d’Apache/Nginx (voir détails ci-dessous)
+- Port du frontend si Apache/Nginx (ex. `8080`)
 
-**Question « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? »**  
-- **Si vous ne cochez pas** : Traefik est utilisé sur les ports 80 et 443 (HTTPS avec Let's Encrypt). Aucune configuration Apache/Nginx à prévoir.
-- **Si vous cochez** : pas de Traefik. Le frontend est exposé sur un port que vous choisissez (ex. 8080). Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (et éventuellement `/api` vers le backend).
+**Base de données PostgreSQL :**
+- **Type** : "Instance existante" (si étape 3 faite) ou "Docker" (sinon)
+- **Hôte** : l’IP Docker affichée par `cicada-prepare-db` (typiquement `172.17.0.1`). **Ne pas mettre `localhost`** — les conteneurs Docker ne peuvent pas accéder au `localhost` du serveur hôte.
+- **Port** : `5432`
+- **Nom, utilisateur, mot de passe** : ceux définis à l’étape 3
 
-#### 6. Lancer l'installation
+**Redis :** laisser les valeurs par défaut (Redis est géré dans Docker)
 
-Cliquez sur "Installer" et attendez la fin du processus. L'installation va :
+**Email (SMTP) :** si vous souhaitez que CICADA envoie des emails (notifications, inscriptions) :
+- Serveur SMTP, port, TLS, authentification, adresse d’expéditeur
+- Si non configuré, les emails seront affichés dans les logs (pas d’envoi réel)
+
+**RGPD (optionnel) :** consentement pour partager les infos de l’instance avec les mainteneurs
+
+**Question « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? »**
+- **Si vous ne cochez pas** : Traefik est utilisé sur les ports 80 et 443 (HTTPS avec Let’s Encrypt). Aucune configuration Apache/Nginx à prévoir.
+- **Si vous cochez** : pas de Traefik. Le frontend est exposé sur un port que vous choisissez (ex. 8080). Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port.
+
+#### 6. Lancer l’installation
+
+Cliquez sur "Installer" et attendez la fin du processus (~2–5 minutes). L’installation va :
 
 1. Valider les données
-2. Générer les secrets (clés, mots de passe)
-3. Configurer l'environnement Docker
-4. Démarrer les conteneurs Docker
-5. Créer le compte administrateur
-6. Enregistrer l'instance auprès de l'API de suivi
+2. Générer les secrets (SECRET_KEY Django, mot de passe Redis)
+3. Télécharger les images Docker
+4. Démarrer les conteneurs (web, frontend, redis, celery)
+5. Exécuter les migrations de base de données
+6. Importer les nomenclatures et référentiels
+7. Créer le compte administrateur
 
-#### 7. Accéder à l'application
+#### 7. Accéder à l’application
 
-Une fois l'installation terminée, vous serez redirigé vers l'URL de l'application (ex. `http://votre-domaine` si port 80, ou `http://votre-domaine:8080` si vous avez choisi le port 8080). Connectez-vous avec les identifiants administrateur que vous avez définis.
+Une fois l’installation terminée, accédez à :
+
+```
+http://votre-domaine:8080    (si Apache/Nginx)
+https://votre-domaine        (si Traefik)
+```
+
+Connectez-vous avec l’email et le mot de passe administrateur définis à l’étape 5.
 
 ### Sans Apache/Nginx sur le serveur : Traefik (tout en un clic)
 
