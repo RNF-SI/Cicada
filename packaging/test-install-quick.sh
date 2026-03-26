@@ -3,7 +3,10 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
-PACKAGE_FILE="$BUILD_DIR/cicada_0.1.12_amd64.deb"
+
+# Version dynamique : lire depuis cicada.conf ou utiliser VERSION env var
+VERSION="${VERSION:-$(awk -F= '/^VERSION=/{print $2; exit}' "$SCRIPT_DIR/debian/etc/cicada/cicada.conf" 2>/dev/null || echo "0.1.14")}"
+PACKAGE_FILE="$BUILD_DIR/cicada_${VERSION}_amd64.deb"
 CONTAINER_NAME="cicada-test-quick"
 
 RED='\033[0;31m'
@@ -11,10 +14,11 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${GREEN}=== Test rapide d'installation CICADA ===${NC}"
+echo -e "${GREEN}=== Test rapide d'installation CICADA v${VERSION} ===${NC}"
 
 if [ ! -f "$PACKAGE_FILE" ]; then
     echo -e "${RED}Erreur : Le package $PACKAGE_FILE n'existe pas${NC}"
+    echo "Exécutez d'abord : ./build-deb.sh"
     exit 1
 fi
 
@@ -71,6 +75,43 @@ docker exec "$CONTAINER_NAME" bash -c "
     test -f /usr/share/cicada/docker-compose.traefik.yml && echo '  ✓ docker-compose.traefik.yml' || echo '  ✗ docker-compose.traefik.yml'
     test -f /usr/share/cicada/docker-compose.frontend-ports.yml && echo '  ✓ docker-compose.frontend-ports.yml' || echo '  ✗ docker-compose.frontend-ports.yml'
     test -f /usr/share/cicada/docker/postgres/init.sql && echo '  ✓ docker/postgres/init.sql' || echo '  ✗ docker/postgres/init.sql'
+"
+
+# Vérifier que init.sql contient tous les schémas requis
+echo -e "${GREEN}Vérification de init.sql (schémas) :${NC}"
+docker exec "$CONTAINER_NAME" bash -c "
+    INIT_SQL='/usr/share/cicada/docker/postgres/init.sql'
+    if [ ! -f \"\$INIT_SQL\" ]; then
+        echo '  ✗ init.sql introuvable'
+        exit 1
+    fi
+    PASS=0
+    FAIL=0
+    for schema in utilisateurs referentiels ref_nomenclatures ref_geo general fichiers ccd_commons ccd_notifications taxonomie ref_habitats ref_inpg ref_campanule; do
+        if grep -q \"CREATE SCHEMA IF NOT EXISTS \$schema\" \"\$INIT_SQL\"; then
+            echo \"  ✓ Schéma \$schema\"
+            PASS=\$((PASS + 1))
+        else
+            echo \"  ✗ Schéma \$schema MANQUANT\"
+            FAIL=\$((FAIL + 1))
+        fi
+    done
+    echo \"\"
+    echo \"  Schémas: \$PASS/12 trouvés\"
+    [ \$FAIL -eq 0 ] && echo '  ✓ Tous les schémas sont présents' || echo '  ✗ Des schémas manquent !'
+"
+
+# Vérifier que init.sql contient les extensions requises
+echo -e "${GREEN}Vérification de init.sql (extensions) :${NC}"
+docker exec "$CONTAINER_NAME" bash -c "
+    INIT_SQL='/usr/share/cicada/docker/postgres/init.sql'
+    for ext in postgis uuid-ossp pg_trgm unaccent; do
+        if grep -q \"\$ext\" \"\$INIT_SQL\"; then
+            echo \"  ✓ Extension \$ext\"
+        else
+            echo \"  ✗ Extension \$ext MANQUANTE\"
+        fi
+    done
 "
 
 # Afficher la configuration

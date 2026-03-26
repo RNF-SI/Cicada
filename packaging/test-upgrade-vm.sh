@@ -14,7 +14,7 @@
 #
 # Usage :
 #   ./test-upgrade-vm.sh                                    # Versions par défaut
-#   ./test-upgrade-vm.sh --from 0.1.12 --to 0.1.13         # Versions spécifiques
+#   ./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14         # Versions spécifiques
 #   ./test-upgrade-vm.sh --skip-install                     # Réutiliser une VM existante
 #   ./test-upgrade-vm.sh --cleanup                          # Supprimer la VM de test
 #   ./test-upgrade-vm.sh --test option2                     # Tester uniquement l'option 2
@@ -35,8 +35,8 @@ VM_MEMORY="2G"
 VM_DISK="10G"
 
 # Versions par défaut
-FROM_VERSION="0.1.12"
-TO_VERSION="0.1.13"
+FROM_VERSION="0.1.13"
+TO_VERSION="0.1.14"
 SKIP_INSTALL=false
 CLEANUP_ONLY=false
 TEST_TARGET="all"
@@ -245,6 +245,23 @@ multipass exec "$VM_NAME" -- bash -c "
     echo ''
     echo '>>> Version installée :'
     grep '^VERSION=' /etc/cicada/cicada.conf
+
+    echo ''
+    echo '>>> Vérification de init.sql (12 schémas attendus) :'
+    INIT_SQL='/usr/share/cicada/docker/postgres/init.sql'
+    if [ -f \"\$INIT_SQL\" ]; then
+        SCHEMA_COUNT=0
+        for schema in utilisateurs referentiels ref_nomenclatures ref_geo general fichiers ccd_commons ccd_notifications taxonomie ref_habitats ref_inpg ref_campanule; do
+            if grep -q \"CREATE SCHEMA IF NOT EXISTS \$schema\" \"\$INIT_SQL\"; then
+                SCHEMA_COUNT=\$((SCHEMA_COUNT + 1))
+            else
+                echo \"  MANQUANT: \$schema\"
+            fi
+        done
+        echo \"  Schémas trouvés: \$SCHEMA_COUNT/12\"
+    else
+        echo '  ERREUR: init.sql introuvable'
+    fi
 "
 
 # --- Simulation d'un environnement déjà configuré (comme en production) ---
@@ -353,6 +370,17 @@ test_option2() {
         run_test "Message 'version déjà à jour' affiché (même version réinstallée)" 0
     else
         run_test "Message de mise à jour affiché" 1
+    fi
+
+    # Vérification 5 : init.sql contient les 12 schémas
+    local schema_count
+    schema_count=$(multipass exec "$VM_NAME" -- bash -c "
+        grep -c 'CREATE SCHEMA IF NOT EXISTS' /usr/share/cicada/docker/postgres/init.sql 2>/dev/null || echo 0
+    " | tr -d '\r')
+    if [ "$schema_count" -ge 12 ]; then
+        run_test "init.sql contient les 12 schémas ($schema_count trouvés)" 0
+    else
+        run_test "init.sql contient les 12 schémas ($schema_count trouvés)" 1
     fi
 
     log_info "Option 2 terminée."

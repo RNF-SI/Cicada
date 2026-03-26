@@ -141,11 +141,11 @@ Ce test est conçu pour être lancé **avant un déploiement en production**. Il
 ```bash
 cd packaging
 
-# Test avec les versions par défaut (0.1.12 → 0.1.13)
+# Test avec les versions par défaut (0.1.13 → 0.1.14)
 ./test-upgrade-vm.sh
 
 # Versions spécifiques (adapter selon la release en cours)
-./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14
+./test-upgrade-vm.sh --from 0.1.14 --to 0.1.15
 
 # Tester uniquement l'option 2 (apt install automatique)
 ./test-upgrade-vm.sh --from 0.1.13 --to 0.1.14 --test option2

@@ -94,6 +94,11 @@ class InstallService:
             self.update_status('in_progress', 'Configuration de Docker Compose...')
             self.generate_docker_compose(data)
 
+            # 3.6. Initialiser la base de données externe (si db_type=existing)
+            if data.get('db_type') == 'existing':
+                self.update_status('in_progress', 'Initialisation de la base de données externe...')
+                self.initialize_external_db(data, secrets_data)
+
             # 4. Lancer Docker Compose
             self.update_status('in_progress', 'Démarrage des conteneurs Docker...')
             self.start_docker()
@@ -202,13 +207,94 @@ TRACKING_API_URL={tracking_api_url}
         Si db_type=existing, on n'utilise pas le profile with-db pour ne pas démarrer le conteneur db.
         """
         db_type = data.get('db_type', 'docker')
-        
+
         # Le docker-compose.yml de base utilise déjà des profiles
         # On n'a qu'à s'assurer d'utiliser le bon profile lors du démarrage
         # Pas besoin de modifier le fichier, on utilisera --profile avec-db ou non
-        
+
         # Sauvegarder le type de DB pour le démarrage
         Path("/var/lib/cicada/db_type").write_text(db_type)
+
+    def initialize_external_db(self, data, secrets_data):
+        """
+        Initialise une base de données PostgreSQL externe en exécutant init.sql.
+        Crée les extensions, schémas et permissions nécessaires.
+        Appelé uniquement quand db_type=existing.
+        """
+        db_host = data.get('db_host', 'localhost')
+        db_port = data.get('db_port', 5432)
+        db_name = data.get('db_name', 'cicada')
+        db_user = data.get('db_user', 'cicada_user')
+        db_password = secrets_data.get('db_password', '')
+
+        # Chemin vers init.sql (copié par le package .deb)
+        init_sql = Path("/usr/share/cicada/docker/postgres/init.sql")
+        if not init_sql.exists():
+            raise Exception(
+                f"Le fichier d'initialisation {init_sql} est introuvable. "
+                "Vérifiez l'installation du package."
+            )
+
+        # Tester la connectivité à la base
+        self.update_status('in_progress', 'Vérification de la connexion à PostgreSQL...', 'db', 'running')
+
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_password
+
+        test_cmd = [
+            'psql', '-h', str(db_host), '-p', str(db_port),
+            '-U', str(db_user), '-d', str(db_name),
+            '-c', 'SELECT 1'
+        ]
+        test_result = subprocess.run(
+            test_cmd, capture_output=True, text=True, timeout=10, env=env
+        )
+        if test_result.returncode != 0:
+            raise Exception(
+                f"Impossible de se connecter à PostgreSQL ({db_host}:{db_port}/{db_name}) "
+                f"avec l'utilisateur {db_user}.\n"
+                f"Erreur : {test_result.stderr}\n"
+                "Vérifiez que la base de données existe et que l'utilisateur a les droits."
+            )
+
+        # Exécuter init.sql sur la base externe
+        self.update_status('in_progress', 'Création des schémas et extensions...', 'db', 'running')
+
+        init_cmd = [
+            'psql', '-h', str(db_host), '-p', str(db_port),
+            '-U', str(db_user), '-d', str(db_name),
+            '-f', str(init_sql)
+        ]
+        init_result = subprocess.run(
+            init_cmd, capture_output=True, text=True, timeout=60, env=env
+        )
+        if init_result.returncode != 0:
+            # Certaines commandes (GRANT, ALTER DEFAULT PRIVILEGES) peuvent nécessiter
+            # un superuser PostgreSQL. Tenter avec sudo -u postgres si disponible.
+            self.update_status(
+                'in_progress',
+                'Permissions insuffisantes, tentative avec le superuser PostgreSQL...',
+                'db', 'running'
+            )
+
+            fallback_cmd = [
+                'sudo', '-u', 'postgres',
+                'psql', '-d', str(db_name),
+                '-f', str(init_sql)
+            ]
+            fallback_result = subprocess.run(
+                fallback_cmd, capture_output=True, text=True, timeout=60
+            )
+            if fallback_result.returncode != 0:
+                raise Exception(
+                    "Échec de l'initialisation de la base de données.\n"
+                    f"Erreur (utilisateur {db_user}) : {init_result.stderr}\n"
+                    f"Erreur (superuser postgres) : {fallback_result.stderr}\n"
+                    "Exécutez manuellement : "
+                    f"sudo -u postgres psql -d {db_name} -f {init_sql}"
+                )
+
+        self.update_status('in_progress', 'Base de données initialisée', 'db', 'completed')
 
     def start_docker(self):
         # Vérifier que Docker est disponible

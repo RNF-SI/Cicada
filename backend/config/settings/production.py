@@ -5,6 +5,14 @@ Production settings for CICADA project.
 from .base import *
 import os
 
+# Vérifier que SECRET_KEY a été définie explicitement (pas la valeur par défaut insécure)
+if SECRET_KEY == 'django-insecure-change-me':
+    raise ValueError(
+        "SECRET_KEY non configurée ! "
+        "Définissez la variable d'environnement SECRET_KEY avec une clé secrète unique. "
+        "Générez-en une avec : python -c \"import secrets; print(secrets.token_urlsafe(50))\""
+    )
+
 # Security settings
 DEBUG = False
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')

@@ -9,6 +9,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
+
+from .throttles import AuthRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
@@ -27,6 +29,7 @@ class CustomTokenObtainPairView(APIView):
     Body: {"username": "email_ou_identifiant", "password": "mot_de_passe"}
     """
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
         serializer = CustomTokenObtainPairSerializer(data=request.data)
