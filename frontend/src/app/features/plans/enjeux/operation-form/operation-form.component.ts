@@ -12,6 +12,7 @@ import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, F
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
@@ -52,6 +53,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatSelectModule,
     MatCheckboxModule,
     MatRadioModule,
@@ -117,7 +119,6 @@ export class OperationFormComponent implements OnInit {
 
   /** Inventaires existants chargés (filtrés par type d'action) */
   availableInventaires = signal<{ id_suivi_inventaire: number; intitule: string; type_action_code?: string }[]>([]);
-  operateurOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
 
   // Objectif/Cible nomenclatures
@@ -157,6 +158,12 @@ export class OperationFormComponent implements OnInit {
   // Per-organisme budget data: key = `${yearIndex}-${organismeId}`
   orgBudgets: Record<string, { fonct: number | null; invest: number | null; etp: number | null }> = {};
 
+  /** true = user enters totals directly; false = totals computed from per-organisme breakdown */
+  directTotalMode = signal(false);
+
+  /** Direct-entered totals per year when in direct total mode: key = yearIndex */
+  directTotals: Record<number, { budget: number | null; etp: number | null }> = {};
+
   // Available organismes derived from selected sites
   availableOrganismes = computed(() => {
     this.selectedSiteIdsVersion(); // dependency trigger
@@ -180,6 +187,9 @@ export class OperationFormComponent implements OnInit {
 
   // Suivi existant toggle
   estSuiviExistant = signal(false);
+  /** Mirror of the libelle form control value, for the read-only display in CS mode */
+  libelleDisplay = signal('');
+
 
   // CAMPanule autocomplete
   campanuleSearchCtrl = new FormControl('');
@@ -208,6 +218,7 @@ export class OperationFormComponent implements OnInit {
   ngOnInit(): void {
     this.initFrequenceLabels();
     this.initForm();
+    this.initSuiviLibelleSync();
     this.initTypeActionAutocomplete();
     this.initCampanuleAutocomplete();
     this.loadRouteParams();
@@ -318,6 +329,8 @@ export class OperationFormComponent implements OnInit {
               this.selectedSiteIds[site.id_site] = false;
             }
           }
+          // Load operation data AFTER sites are initialized to avoid race condition
+          this.loadOperationIfEdit();
           // Load enjeux after plan is loaded
           this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
             next: (response) => {
@@ -350,11 +363,13 @@ export class OperationFormComponent implements OnInit {
         },
         error: () => {
           this.computeYears(null, null);
+          this.loadOperationIfEdit();
         }
       });
     } else {
       // No plan slug found: generate default years so tables render
       this.computeYears(null, null);
+      this.loadOperationIfEdit();
     }
 
     this.adminService.getNomenclaturesByType('TYPE_ACTION').subscribe({
@@ -374,10 +389,7 @@ export class OperationFormComponent implements OnInit {
       error: () => this.prioriteOptions.set([])
     });
 
-    this.adminService.getNomenclaturesByType('OPERATEUR_TYPE').subscribe({
-      next: (options) => this.operateurOptions.set(options),
-      error: () => this.operateurOptions.set([])
-    });
+
 
     this.adminService.getNomenclaturesByType('CATEGORIE_FINANCE').subscribe({
       next: (options) => this.categorieFinanceOptions.set(options),
@@ -403,8 +415,6 @@ export class OperationFormComponent implements OnInit {
       next: (options) => this.outilSaisieOptions.set(options),
       error: () => this.outilSaisieOptions.set([])
     });
-
-    this.loadOperationIfEdit();
   }
 
   private computeYears(anneeDebut: number | null | undefined, anneeFin: number | null | undefined): void {
@@ -419,7 +429,6 @@ export class OperationFormComponent implements OnInit {
         periodicite: false,
         budget: null,
         etp: null,
-        id_operateur: null,
         periodicite_mensuelle: this.emptyMensuelle()
       });
     }
@@ -469,6 +478,7 @@ export class OperationFormComponent implements OnInit {
     this.form.patchValue({
       libelle: op.libelle,
       id_type_action: op.id_type_action || null,
+      id_suivi: op.id_suivi || null,
       id_priorite: op.id_priorite || null,
       code_operation: op.code_operation || '',
       id_referentiel_operations: op.id_referentiel_operations || '',
@@ -552,6 +562,17 @@ export class OperationFormComponent implements OnInit {
       this.setSuiviFieldsEnabled(false);
     }
 
+    // For CS actions, libelle is synced with inventaire title
+    if (op.id_type_action) {
+      const opts = this.typeActionOptions();
+      const match = opts.find(o => o.id_nomenclature === op.id_type_action);
+      const code = match?.cd_nomenclature || match?.mnemonique || '';
+      if (code.startsWith('CS')) {
+        this.form.get('libelle')?.disable();
+        this.libelleDisplay.set(op.libelle || '');
+      }
+    }
+
     // Restore site selections
     if (op.site_ids) {
       for (const siteId of op.site_ids) {
@@ -567,9 +588,19 @@ export class OperationFormComponent implements OnInit {
         const idx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
         if (idx >= 0) {
           this.operationAnnees[idx] = { ...serverAnnee };
+          // Parse decimal strings from DRF (DecimalField serializes as string)
+          if (this.operationAnnees[idx].budget != null) {
+            this.operationAnnees[idx].budget = parseFloat(String(this.operationAnnees[idx].budget));
+          }
+          if (this.operationAnnees[idx].etp != null) {
+            this.operationAnnees[idx].etp = parseFloat(String(this.operationAnnees[idx].etp));
+          }
         } else {
           // Year from server not in plan range: add it
-          this.operationAnnees.push({ ...serverAnnee });
+          const parsed = { ...serverAnnee };
+          if (parsed.budget != null) parsed.budget = parseFloat(String(parsed.budget));
+          if (parsed.etp != null) parsed.etp = parseFloat(String(parsed.etp));
+          this.operationAnnees.push(parsed);
           this.years.push(serverAnnee.annee);
         }
       }
@@ -583,9 +614,27 @@ export class OperationFormComponent implements OnInit {
         if (yearIdx >= 0 && serverAnnee.organismes) {
           for (const org of serverAnnee.organismes) {
             this.orgBudgets[this.orgKey(yearIdx, org.id_organisme)] = {
-              fonct: org.budget_fonctionnement,
-              invest: org.budget_investissement,
-              etp: org.etp,
+              fonct: org.budget_fonctionnement != null ? parseFloat(String(org.budget_fonctionnement)) : null,
+              invest: org.budget_investissement != null ? parseFloat(String(org.budget_investissement)) : null,
+              etp: org.etp != null ? parseFloat(String(org.etp)) : null,
+            };
+          }
+        }
+      }
+    }
+
+    // Infer direct total mode: if years have budget/etp but no organismes
+    if (op.operation_annees && op.operation_annees.length > 0) {
+      const hasOrganismes = op.operation_annees.some(a => a.organismes && a.organismes.length > 0);
+      const hasBudgetOrEtp = op.operation_annees.some(a => a.budget != null || a.etp != null);
+      if (hasBudgetOrEtp && !hasOrganismes && op.site_ids && op.site_ids.length > 0) {
+        this.directTotalMode.set(true);
+        for (const serverAnnee of op.operation_annees) {
+          const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+          if (yearIdx >= 0) {
+            this.directTotals[yearIdx] = {
+              budget: serverAnnee.budget != null ? parseFloat(String(serverAnnee.budget)) : null,
+              etp: serverAnnee.etp != null ? parseFloat(String(serverAnnee.etp)) : null,
             };
           }
         }
@@ -618,8 +667,8 @@ export class OperationFormComponent implements OnInit {
     // getRawValue() includes disabled fields (for readonly suivi mode)
     const rawFv = this.form.getRawValue();
 
-    // Auto-remplir le libellé avec le type d'action si vide
-    let libelle = fv.libelle?.trim() || '';
+    // Use rawFv for libelle since it may be disabled (auto-filled from inventaire)
+    let libelle = rawFv.libelle?.trim() || '';
     if (!libelle) {
       const selected = this.selectedTypeAction();
       if (selected) {
@@ -714,8 +763,21 @@ export class OperationFormComponent implements OnInit {
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
+    const isDirectMode = this.directTotalMode() && orgs.length > 0;
     const anneesToSave = this.operationAnnees.map((a, idx) => {
-      // Build per-organisme array for this year
+      if (isDirectMode) {
+        // Direct total mode: use directly-entered values, no per-organisme data
+        const directData = this.getDirectTotal(idx);
+        return {
+          annee: a.annee,
+          periodicite: a.periodicite,
+          budget: directData.budget,
+          etp: directData.etp,
+          periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
+          organismes: [] as { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null }[],
+        };
+      }
+      // Ventilation mode: build per-organisme array for this year
       const orgEntries: { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null }[] = [];
       for (const org of orgs) {
         const data = this.getOrgBudget(idx, org.id_organisme);
@@ -736,14 +798,13 @@ export class OperationFormComponent implements OnInit {
         periodicite: a.periodicite,
         budget: orgEntries.length > 0 ? totalBudget : a.budget,
         etp: orgEntries.length > 0 ? totalEtp : a.etp,
-        id_operateur: a.id_operateur || undefined,
         periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
         organismes: orgEntries,
       };
     });
 
     const hasAnneeData = anneesToSave.some(
-      a => a.periodicite || a.budget != null || a.etp != null || a.id_operateur != null ||
+      a => a.periodicite || a.budget != null || a.etp != null ||
         a.organismes.length > 0 ||
         Object.values(a.periodicite_mensuelle).some(v => v)
     );
@@ -837,12 +898,50 @@ export class OperationFormComponent implements OnInit {
       this.setSuiviFieldsEnabled(false);
       this.form.get('intitule_suivi')?.clearValidators();
       this.form.get('intitule_suivi')?.updateValueAndValidity();
+      // Sync libelle from selected inventaire
+      this.updateLibelle(this.getSelectedSuiviIntitule());
     } else {
       // "New suivi" mode: enable suivi fields, intitule_suivi required
       this.setSuiviFieldsEnabled(true);
       this.form.get('intitule_suivi')?.setValidators([Validators.required]);
       this.form.get('intitule_suivi')?.updateValueAndValidity();
+      // Sync libelle from intitule_suivi text
+      this.updateLibelle(this.form.get('intitule_suivi')?.value || '');
     }
+  }
+
+  /**
+   * For CS actions, libelle = intitulé de l'inventaire (existing or new).
+   * Subscribe to id_suivi changes and intitule_suivi keystrokes.
+   */
+  private initSuiviLibelleSync(): void {
+    // Existing suivi selected → sync libelle
+    this.form.get('id_suivi')?.valueChanges.subscribe(() => {
+      if (this.isCSAction() && this.estSuiviExistant()) {
+        this.updateLibelle(this.getSelectedSuiviIntitule());
+      }
+    });
+
+    // New suivi typed → sync libelle as user types
+    this.form.get('intitule_suivi')?.valueChanges.subscribe((val) => {
+      if (this.isCSAction() && !this.estSuiviExistant()) {
+        this.updateLibelle(val || '');
+      }
+    });
+  }
+
+  /** Get the intitule of the currently selected existing inventaire. */
+  private getSelectedSuiviIntitule(): string {
+    const idSuivi = this.form.get('id_suivi')?.value;
+    if (!idSuivi) return '';
+    const inv = this.availableInventaires().find(i => i.id_suivi_inventaire === idSuivi);
+    return inv?.intitule || '';
+  }
+
+  /** Update the libelle form control and its display signal. */
+  private updateLibelle(value: string): void {
+    this.form.get('libelle')?.setValue(value, { emitEvent: false });
+    this.libelleDisplay.set(value);
   }
 
   // ════════════════════════════════════════════════
@@ -863,13 +962,15 @@ export class OperationFormComponent implements OnInit {
     this.selectedTypeAction.set(option);
     this.form.get('id_type_action')?.setValue(option.id_nomenclature);
 
-    // Si c'est un code CS, charger les inventaires correspondants
+    // Si c'est un code CS, charger les inventaires correspondants et griser le libellé
     const code = option.cd_nomenclature || option.mnemonique || '';
     if (code.startsWith('CS')) {
       this.loadInventairesByTypeAction(code);
+      this.form.get('libelle')?.disable();
     } else {
       this.availableInventaires.set([]);
       this.estSuiviExistant.set(false);
+      this.form.get('libelle')?.enable();
     }
   }
 
@@ -879,6 +980,7 @@ export class OperationFormComponent implements OnInit {
     this.form.get('id_type_action')?.setValue(null);
     this.availableInventaires.set([]);
     this.estSuiviExistant.set(false);
+    this.form.get('libelle')?.enable();
   }
 
   /** Charge les inventaires existants filtrés par préfixe du type d'action CS */
@@ -1147,7 +1249,6 @@ export class OperationFormComponent implements OnInit {
     if (!annee.periodicite) {
       annee.budget = null;
       annee.etp = null;
-      annee.id_operateur = null;
     }
   }
 
@@ -1159,10 +1260,6 @@ export class OperationFormComponent implements OnInit {
     this.operationAnnees[index].etp = value ? parseFloat(value) : null;
   }
 
-  updateOperateur(index: number, value: number | null): void {
-    this.operationAnnees[index].id_operateur = value;
-  }
-
   duplicateFirstColumn(): void {
     if (this.operationAnnees.length < 2) return;
     const first = this.operationAnnees[0];
@@ -1172,7 +1269,6 @@ export class OperationFormComponent implements OnInit {
         periodicite: first.periodicite,
         budget: first.budget,
         etp: first.etp,
-        id_operateur: first.id_operateur,
         periodicite_mensuelle: { ...first.periodicite_mensuelle }
       };
       // Duplicate per-organisme data
@@ -1180,7 +1276,34 @@ export class OperationFormComponent implements OnInit {
         const srcData = this.getOrgBudget(0, org.id_organisme);
         this.orgBudgets[this.orgKey(i, org.id_organisme)] = { ...srcData };
       }
+      // Duplicate direct totals
+      if (this.directTotalMode()) {
+        this.directTotals[i] = { ...this.getDirectTotal(0) };
+      }
     }
+  }
+
+  // ════════════════════════════════════════════════
+  // Mode totaux directs
+  // ════════════════════════════════════════════════
+
+  onModeToggle(mode: string): void {
+    this.directTotalMode.set(mode === 'direct');
+  }
+
+  getDirectTotal(yearIdx: number): { budget: number | null; etp: number | null } {
+    if (!this.directTotals[yearIdx]) {
+      this.directTotals[yearIdx] = { budget: null, etp: null };
+    }
+    return this.directTotals[yearIdx];
+  }
+
+  updateDirectBudget(yearIdx: number, value: string): void {
+    this.getDirectTotal(yearIdx).budget = value ? parseFloat(value) : null;
+  }
+
+  updateDirectEtp(yearIdx: number, value: string): void {
+    this.getDirectTotal(yearIdx).etp = value ? parseFloat(value) : null;
   }
 
   // ════════════════════════════════════════════════

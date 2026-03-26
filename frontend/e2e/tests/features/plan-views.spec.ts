@@ -13,6 +13,14 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { findPlan } from '../../helpers/plan.helper';
 
+/** Wait for plan page to finish loading (spinner gone or content visible). */
+async function waitForPageLoad(page: import('@playwright/test').Page, timeout = 30000) {
+  // Wait for the loading indicator to disappear
+  await page.locator('text=Chargement').first().waitFor({ state: 'hidden', timeout }).catch(() => {});
+  // Extra stability wait
+  await page.waitForTimeout(1000);
+}
+
 // =========================================================================
 // MINDMAP
 // =========================================================================
@@ -20,7 +28,7 @@ test.describe('Plan Views - Mindmap', () => {
   test('should display the mindmap page with hero and title', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const heroSection = referentPage.locator('.hero-section');
     await expect(heroSection).toBeVisible();
@@ -44,9 +52,11 @@ test.describe('Plan Views - Mindmap', () => {
   test('should display view toggle buttons (Enjeux / Actions)', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
+    // Wait for the view toggle to appear (rendered after data loads)
     const viewToggle = referentPage.locator('.view-toggle button, .toggle-btn');
+    await viewToggle.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const btnCount = await viewToggle.count();
     expect(btnCount).toBeGreaterThanOrEqual(2);
   });
@@ -54,7 +64,7 @@ test.describe('Plan Views - Mindmap', () => {
   test('should display color legend', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const legend = referentPage.locator('.mindmap-legend, .legend');
     await expect(legend).toBeVisible();
@@ -73,7 +83,7 @@ test.describe('Plan Views - Mindmap', () => {
     const toggleBtns = referentPage.locator('.view-toggle button, .toggle-btn');
     if (await toggleBtns.count() >= 2) {
       await toggleBtns.nth(1).click();
-      await referentPage.waitForTimeout(3000);
+      await waitForPageLoad(referentPage);
 
       // SVG should still be visible (re-rendered with inverse data)
       const svg = referentPage.locator('svg');
@@ -84,9 +94,10 @@ test.describe('Plan Views - Mindmap', () => {
   test('should display control buttons (reset zoom, focus)', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const controlBtns = referentPage.locator('.mindmap-controls button');
+    await controlBtns.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const btnCount = await controlBtns.count();
     expect(btnCount).toBeGreaterThanOrEqual(1);
   });
@@ -94,7 +105,7 @@ test.describe('Plan Views - Mindmap', () => {
   test('should display sidebar navigation', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
@@ -103,7 +114,7 @@ test.describe('Plan Views - Mindmap', () => {
   test('super admin should access mindmap', async ({ superAdminPage }) => {
     const plan = await findPlan(superAdminPage, 'Camargue');
     await superAdminPage.goto(`/plans/${plan.slug}/mindmap`);
-    await superAdminPage.waitForTimeout(3000);
+    await waitForPageLoad(superAdminPage);
 
     const heroSection = superAdminPage.locator('.hero-section');
     await expect(heroSection).toBeVisible();
@@ -117,7 +128,7 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display the tableau de bord page', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const heroSection = referentPage.locator('.hero-section');
     await expect(heroSection).toBeVisible();
@@ -126,9 +137,10 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display Etat/Pression toggle tabs', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const toggleBtns = referentPage.locator('.view-toggle .toggle-btn');
+    await toggleBtns.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const btnCount = await toggleBtns.count();
     expect(btnCount).toBeGreaterThanOrEqual(2);
   });
@@ -136,7 +148,7 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display score legend with 6 levels', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const legend = referentPage.locator('.legend');
     await expect(legend).toBeVisible();
@@ -149,10 +161,11 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display indicator table or empty state', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const table = referentPage.locator('.tdb-table');
     const emptyState = referentPage.locator('.empty-state');
+    await table.or(emptyState).first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const hasContent = (await table.count()) > 0 || (await emptyState.count()) > 0;
     expect(hasContent).toBeTruthy();
   });
@@ -160,7 +173,7 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display OLT header rows in table', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const oltHeaders = referentPage.locator('.olt-header-row');
     const count = await oltHeaders.count();
@@ -171,7 +184,7 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should expand indicator row to show metriques', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const indicatorRows = referentPage.locator('.indicator-row');
     if (await indicatorRows.count() > 0) {
@@ -189,7 +202,7 @@ test.describe('Plan Views - Tableau de Bord', () => {
   test('should display breadcrumb with sidebar', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/tableau-de-bord`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
@@ -206,7 +219,7 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display the suivi actions page', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const heroSection = referentPage.locator('.hero-section');
     await expect(heroSection).toBeVisible();
@@ -215,9 +228,10 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display Global/Annuel view toggle', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const toggleBtns = referentPage.locator('.view-toggle .toggle-btn');
+    await toggleBtns.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const btnCount = await toggleBtns.count();
     expect(btnCount).toBeGreaterThanOrEqual(2);
   });
@@ -225,7 +239,7 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display filter bar with dropdowns', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const filterBar = referentPage.locator('.filter-bar');
     await expect(filterBar).toBeVisible();
@@ -238,7 +252,7 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display action status legend', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const legend = referentPage.locator('.legend');
     await expect(legend).toBeVisible();
@@ -251,10 +265,11 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display actions table or empty state', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const table = referentPage.locator('.actions-table');
     const emptyState = referentPage.locator('.empty-state');
+    await table.or(emptyState).first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const hasContent = (await table.count()) > 0 || (await emptyState.count()) > 0;
     expect(hasContent).toBeTruthy();
   });
@@ -262,7 +277,7 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display year columns in actions table', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(3000);
+    await waitForPageLoad(referentPage);
 
     const table = referentPage.locator('.actions-table');
     if (await table.count() > 0) {
@@ -276,7 +291,7 @@ test.describe('Plan Views - Suivi Actions', () => {
   test('should display export button', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const exportBtn = referentPage.locator('.export-btn, .btn-generate');
     await expect(exportBtn.first()).toBeVisible();
@@ -290,7 +305,7 @@ test.describe('Plan Views - Bilan', () => {
   test('should display bilan page with coming soon', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/bilan`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const heroSection = referentPage.locator('.hero-section');
     await expect(heroSection).toBeVisible();
@@ -304,7 +319,7 @@ test.describe('Plan Views - Bilan', () => {
   test('should display sidebar on bilan page', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/bilan`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
@@ -318,7 +333,7 @@ test.describe('Plan Views - Sidebar Navigation', () => {
   test('should navigate between plan pages via sidebar', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
@@ -334,7 +349,7 @@ test.describe('Plan Views - Sidebar Navigation', () => {
   test('should show enjeux submenu in sidebar', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/enjeux`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
@@ -348,7 +363,7 @@ test.describe('Plan Views - Sidebar Navigation', () => {
   test('should show suivis submenu with links', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
 
@@ -363,7 +378,7 @@ test.describe('Plan Views - Sidebar Navigation', () => {
   test('should highlight active page in sidebar', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(2000);
+    await waitForPageLoad(referentPage);
 
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     const activeItem = sidebar.locator('.menu-item.active, .sidebar-menu-item.active');

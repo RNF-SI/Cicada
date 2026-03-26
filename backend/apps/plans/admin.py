@@ -1305,14 +1305,14 @@ class MetriqueAdmin(admin.ModelAdmin):
         }),
         ('Seuils de scores', {
             'fields': (
-                ('score_1_inf', 'score_1_sup', 'score_1_label'),
-                ('score_2_inf', 'score_2_sup', 'score_2_label'),
-                ('score_3_inf', 'score_3_sup', 'score_3_label'),
-                ('score_4_inf', 'score_4_sup', 'score_4_label'),
-                ('score_5_inf', 'score_5_sup', 'score_5_label'),
+                ('score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label'),
+                ('score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label'),
+                ('score_3_inf', 'score_3_sup', 'score_3_val', 'score_3_label'),
+                ('score_4_inf', 'score_4_sup', 'score_4_val', 'score_4_label'),
+                ('score_5_inf', 'score_5_sup', 'score_5_val', 'score_5_label'),
             ),
             'classes': ['collapse'],
-            'description': 'Seuils numériques et labels qualitatifs pour les 5 niveaux de score'
+            'description': 'Seuils numériques, valeurs simples et labels qualitatifs pour les 5 niveaux de score'
         }),
         ('Métadonnées', {
             'fields': (

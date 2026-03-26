@@ -82,20 +82,21 @@ class MetriqueSerializer(serializers.ModelSerializer):
     nb_operations = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_metrique_label = serializers.CharField(source='type_metrique.label', read_only=True)
+    type_metrique_mnemonique = serializers.CharField(source='type_metrique.mnemonique', read_only=True)
 
     class Meta:
         model = Metrique
         fields = [
             'id_metrique', 'id_indicateur',
             'nom_metrique', 'description',
-            'type_metrique', 'type_metrique_label',
+            'type_metrique', 'type_metrique_label', 'type_metrique_mnemonique',
             'unite', 'ponderation', 'etat_reference',
             # Seuils de scores
-            'score_1_inf', 'score_1_sup', 'score_1_label',
-            'score_2_inf', 'score_2_sup', 'score_2_label',
-            'score_3_inf', 'score_3_sup', 'score_3_label',
-            'score_4_inf', 'score_4_sup', 'score_4_label',
-            'score_5_inf', 'score_5_sup', 'score_5_label',
+            'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
+            'score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label',
+            'score_3_inf', 'score_3_sup', 'score_3_val', 'score_3_label',
+            'score_4_inf', 'score_4_sup', 'score_4_val', 'score_4_label',
+            'score_5_inf', 'score_5_sup', 'score_5_val', 'score_5_label',
             # Relations
             'mesures', 'nb_mesures',
             'operations', 'nb_operations',
@@ -147,11 +148,11 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'nom_metrique', 'description',
             'type_metrique', 'unite', 'ponderation', 'etat_reference',
             # Seuils de scores
-            'score_1_inf', 'score_1_sup', 'score_1_label',
-            'score_2_inf', 'score_2_sup', 'score_2_label',
-            'score_3_inf', 'score_3_sup', 'score_3_label',
-            'score_4_inf', 'score_4_sup', 'score_4_label',
-            'score_5_inf', 'score_5_sup', 'score_5_label',
+            'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
+            'score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label',
+            'score_3_inf', 'score_3_sup', 'score_3_val', 'score_3_label',
+            'score_4_inf', 'score_4_sup', 'score_4_val', 'score_4_label',
+            'score_5_inf', 'score_5_sup', 'score_5_val', 'score_5_label',
         ]
         read_only_fields = ['id_metrique']
 

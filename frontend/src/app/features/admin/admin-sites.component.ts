@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -6,11 +6,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, debounceTime } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminSite as ApiSite, AdminOrganisme } from '../../core/models/admin.model';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import {
   LinkUserSiteModalComponent,
   LinkSiteOrganismeModalComponent,
@@ -19,14 +20,12 @@ import {
   ExistingOrganismeData
 } from '../../shared/components/modals';
 
-// Interface for linked organisme display
 interface DisplayOrganismeLie {
   id: number;
   nom: string;
   principal: boolean;
 }
 
-// Interface for linked user display
 interface DisplayUserLie {
   id: number;
   nom: string;
@@ -34,7 +33,6 @@ interface DisplayUserLie {
   isReferent: boolean;
 }
 
-// Interface for display (mapping from API model)
 interface DisplaySite {
   id: number;
   slug: string;
@@ -66,12 +64,13 @@ interface DisplayOrganisme {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    TranslateModule
+    TranslateModule,
+    PaginationComponent
   ],
   templateUrl: './admin-sites.component.html',
   styleUrl: './admin-sites.component.scss'
 })
-export class AdminSitesComponent implements OnInit {
+export class AdminSitesComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
   private readonly dialog = inject(MatDialog);
@@ -88,27 +87,46 @@ export class AdminSitesComponent implements OnInit {
   filterOrganisme = '';
   isLoading = signal(false);
 
+  // Pagination state
+  currentPage = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 20;
+
   sites = signal<DisplaySite[]>([]);
   organismes = signal<DisplayOrganisme[]>([]);
-  filteredSites = signal<DisplaySite[]>([]);
+
+  private searchSubject = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   currentOrganismeName = computed(() => {
     return this.currentUser()?.organisme?.nom_organisme || '';
   });
 
   totalSurface = computed(() => {
-    return this.filteredSites().reduce((sum, site) => sum + (site.surface || 0), 0);
+    return this.sites().reduce((sum, site) => sum + (site.surface || 0), 0);
   });
 
   ngOnInit(): void {
+    this.searchSubject.pipe(
+      debounceTime(300),
+    ).subscribe(() => {
+      this.currentPage.set(1);
+      this.loadSites();
+    });
+
     this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadData(): void {
     this.isLoading.set(true);
 
-    // Load organismes first (for filter dropdown)
-    this.adminService.getOrganismes().subscribe({
+    // Load organismes for filter dropdown (all of them)
+    this.adminService.getOrganismes({ page_size: 1000 }).subscribe({
       next: (response) => {
         this.organismes.set(response.results.map(org => ({
           id: org.id_organisme,
@@ -117,19 +135,24 @@ export class AdminSitesComponent implements OnInit {
       }
     });
 
-    // Load sites
     this.loadSites();
   }
 
   loadSites(): void {
     this.isLoading.set(true);
-    this.adminService.getSites({ search: this.searchQuery || undefined }).subscribe({
-      next: (response) => {
-        const mapped = response.results.map(site => this.mapSite(site));
+    this.adminService.getSites({
+      search: this.searchQuery || undefined,
+      page: this.currentPage(),
+      page_size: this.pageSize,
+      type: this.filterType || undefined,
+      organisme: this.filterOrganisme ? parseInt(this.filterOrganisme) : undefined
+    }).subscribe({
+      next: (response: any) => {
+        const mapped = response.results.map((site: ApiSite) => this.mapSite(site));
         this.sites.set(mapped);
-        this.applyFilters();
+        this.totalItems.set(response.pagination?.count ?? response.count ?? 0);
 
-        // Load related data for each site
+        // Load related data for current page only
         this.loadRelatedDataForSites(mapped);
       },
       error: (error: Error) => {
@@ -139,13 +162,26 @@ export class AdminSitesComponent implements OnInit {
     });
   }
 
+  onSearchChange(): void {
+    this.searchSubject.next();
+  }
+
+  onFilterChange(): void {
+    this.currentPage.set(1);
+    this.loadSites();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+    this.loadSites();
+  }
+
   private loadRelatedDataForSites(sites: DisplaySite[]): void {
     if (sites.length === 0) {
       this.isLoading.set(false);
       return;
     }
 
-    // Create observables for all sites
     const observables = sites.map(site =>
       forkJoin({
         siteId: of(site.id),
@@ -183,7 +219,6 @@ export class AdminSitesComponent implements OnInit {
         });
 
         this.sites.set(currentSites);
-        this.applyFilters();
         this.isLoading.set(false);
       },
       error: () => {
@@ -201,60 +236,13 @@ export class AdminSitesComponent implements OnInit {
       organisme: site.organismes?.[0]?.nom_organisme || 'Non assigne',
       organismeId: site.organismes?.[0]?.id_organisme || 0,
       surface: site.surf_off,
-      commune: undefined, // Will need to be added to API if needed
+      commune: undefined,
       departement: undefined,
       nbPlans: site.plans_count ?? 0,
       isActive: site.active ?? true,
       organismes: [],
       users: []
     };
-  }
-
-  filterSites(): void {
-    this.applyFilters();
-  }
-
-  private applyFilters(): void {
-    let result = this.sites();
-
-    // Filter by search query
-    if (this.searchQuery) {
-      const query = this.searchQuery.toLowerCase();
-      result = result.filter(site =>
-        site.nom.toLowerCase().includes(query) ||
-        site.commune?.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by type
-    if (this.filterType) {
-      result = result.filter(site => site.type === this.filterType);
-    }
-
-    // Filter by organisme (super admin filter dropdown)
-    if (this.filterOrganisme) {
-      const filterOrgId = parseInt(this.filterOrganisme);
-      result = result.filter(site =>
-        site.organismeId === filterOrgId ||
-        site.organismes.some(org => org.id === filterOrgId)
-      );
-    }
-
-    // For admin_og (not super_admin), filter by their organisme
-    // Note: The backend already filters sites, but this ensures consistency
-    // For referents (is_referent && niveau_role === 'utilisateur'), the backend
-    // returns only their assigned sites, so no additional filtering needed
-    if (!this.isSuperAdmin() && this.isAdminOrganisme()) {
-      const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-      if (currentOrgId) {
-        result = result.filter(site =>
-          site.organismeId === currentOrgId ||
-          site.organismes.some(org => org.id === currentOrgId)
-        );
-      }
-    }
-
-    this.filteredSites.set(result);
   }
 
   openAddSiteModal(): void {
@@ -289,7 +277,7 @@ export class AdminSitesComponent implements OnInit {
         site: {
           id_site: site.id,
           nom_site: site.nom,
-          id_type_site: null, // We would need to store this in DisplaySite
+          id_type_site: null,
           surf_off: site.surface,
           active: site.isActive
         }
@@ -305,7 +293,6 @@ export class AdminSitesComponent implements OnInit {
   }
 
   openAddReferentModal(site: DisplaySite): void {
-    // Convert existing users to the format expected by the modal
     const existingUsers: ExistingUserData[] = site.users.map(u => ({
       id_role: u.id,
       nom_complet: u.nom,
@@ -335,7 +322,6 @@ export class AdminSitesComponent implements OnInit {
   }
 
   openAssignOrganismeModal(site: DisplaySite): void {
-    // Convert existing organismes to the format expected by the modal
     const existingOrganismes: ExistingOrganismeData[] = site.organismes.map(o => ({
       id_organisme: o.id,
       nom_organisme: o.nom,
@@ -364,11 +350,9 @@ export class AdminSitesComponent implements OnInit {
   }
 
   deleteSite(site: DisplaySite): void {
-    // For now, show a message - site deletion is sensitive
     this.snackBar.open(this.translate.instant('admin.sites.messages.deletionNotAvailable'), 'OK', { duration: 5000 });
   }
 
-  // Helper methods for display
   getUserRoles(user: DisplayUserLie): string {
     return user.isReferent ? 'Referent' : '';
   }

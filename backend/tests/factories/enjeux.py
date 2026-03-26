@@ -263,9 +263,9 @@ class NomenclatureTypeMetriqueFactory(NomenclatureFactory):
     """Factory for a specific metrique type nomenclature."""
 
     id_type = factory.SubFactory(TypeMetriqueTypeFactory)
-    cd_nomenclature = factory.Iterator(['NUMERIQUE', 'QUALITATIF', 'BOOLEEN'])
-    mnemonique = factory.Iterator(['NUMERIQUE', 'QUALITATIF', 'BOOLEEN'])
-    label = factory.Iterator(['Numérique', 'Qualitatif', 'Booléen'])
+    cd_nomenclature = factory.Iterator(['NUMERIQUE', 'CHIFFRE', 'TEXTE'])
+    mnemonique = factory.Iterator(['NUMERIQUE', 'CHIFFRE', 'TEXTE'])
+    label = factory.Iterator(['Intervalle numérique', 'Chiffre', 'Texte'])
 
 
 class IndicateurFactory(DjangoModelFactory):

@@ -76,6 +76,15 @@ python manage.py import_nomenclatures || echo "WARN: import_nomenclatures a éch
 echo "=== Import HabRef ==="
 python manage.py import_habref || echo "WARN: import_habref a échoué (non bloquant)"
 
+echo "=== Import TaxRef ==="
+python manage.py import_taxref ${TAXREF_IMPORT_OPTS:-} || echo "WARN: import_taxref a échoué (non bloquant)"
+
+echo "=== Import INPG ==="
+python manage.py import_inpg || echo "WARN: import_inpg a échoué (non bloquant)"
+
+echo "=== Import CAMPanule ==="
+python manage.py import_campanule || echo "WARN: import_campanule a échoué (non bloquant)"
+
 echo "=== Collecte des fichiers statiques ==="
 python manage.py collectstatic --noinput --clear
 

@@ -77,13 +77,16 @@ test.describe('Operations - Navigation and Form Display', () => {
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
 
-    // Check always-visible section headers
-    // Note: sectionDetailsSuivi is only visible when a CS-type action is selected
-    await expect(formPage.sectionProtocole).toBeVisible();
-    await expect(formPage.sectionBancarisation).toBeVisible();
+    // Always-visible sections
     await expect(formPage.sectionProgrammation).toBeVisible();
     await expect(formPage.sectionDetails).toBeVisible();
     await expect(formPage.sectionEmprise).toBeVisible();
+
+    // Protocole and Bancarisation are only visible for CS-type actions
+    await expect(formPage.sectionProtocole).not.toBeVisible();
+    await formPage.selectCSAction();
+    await expect(formPage.sectionProtocole).toBeVisible();
+    await expect(formPage.sectionBancarisation).toBeVisible();
   });
 
   test('should display type action select with options', async ({ referentPage }) => {
@@ -177,6 +180,9 @@ test.describe('Operations - Create', () => {
 
     const uniqueName = `E2E Op Protocole ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
+
+    // Select a CS action type to reveal protocole section
+    await formPage.selectCSAction();
 
     // Fill protocole
     await formPage.fillProtocoleNonCampanule('Protocole E2E Test', {
@@ -417,15 +423,15 @@ test.describe('Operations - Form Interactions', () => {
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
 
-    // Use the protocole section (always visible) to test toggle
-    await expect(formPage.sectionProtocole).toBeVisible();
+    // Use the Programmation section (always visible) to test toggle
+    await expect(formPage.sectionProgrammation).toBeVisible();
 
-    // Click to collapse the protocole section
-    await formPage.sectionProtocole.click();
+    // Click to collapse the Programmation section
+    await formPage.sectionProgrammation.click();
     await referentPage.waitForTimeout(300);
 
     // Click to re-expand
-    await formPage.sectionProtocole.click();
+    await formPage.sectionProgrammation.click();
     await referentPage.waitForTimeout(300);
   });
 
@@ -434,6 +440,9 @@ test.describe('Operations - Form Interactions', () => {
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
+
+    // Select CS action to reveal protocole section
+    await formPage.selectCSAction();
 
     // Initially, nom_protocole should not be visible (no radio selected)
     await expect(formPage.nomProtocoleInput).not.toBeVisible();
@@ -453,6 +462,9 @@ test.describe('Operations - Form Interactions', () => {
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
 
+    // Select CS action to reveal protocole section
+    await formPage.selectCSAction();
+
     // Select non-campanule first
     await formPage.protocoleCampanuleNon.click();
     await referentPage.waitForTimeout(300);
@@ -470,6 +482,9 @@ test.describe('Operations - Form Interactions', () => {
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
+
+    // Select CS action to reveal protocole section with frequency controls
+    await formPage.selectCSAction();
 
     // Need to select a protocole mode for frequency controls to appear
     await formPage.protocoleCampanuleNon.click();

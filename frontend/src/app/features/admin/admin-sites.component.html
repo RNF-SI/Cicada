@@ -29,12 +29,12 @@
         type="text"
         [placeholder]="'admin.sites.search' | translate"
         [(ngModel)]="searchQuery"
-        (ngModelChange)="filterSites()"
+        (ngModelChange)="onSearchChange()"
       />
     </div>
 
     <div class="filters">
-      <select [(ngModel)]="filterType" (ngModelChange)="filterSites()">
+      <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()">
         <option value="">{{ 'common.filters.allTypes' | translate }}</option>
         <option value="RNN">{{ 'admin.sites.types.RNN' | translate }}</option>
         <option value="RNR">{{ 'admin.sites.types.RNR' | translate }}</option>
@@ -43,7 +43,7 @@
       </select>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterSites()">
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
           <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
           @for (org of organismes(); track org.id) {
             <option [value]="org.id">{{ org.nom }}</option>
@@ -75,7 +75,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (site of filteredSites(); track site.id; let odd = $odd) {
+          @for (site of sites(); track site.id; let odd = $odd) {
             <tr [class.odd]="odd">
               <td class="name-cell">
                 <i class="fi fi-rr-marker site-icon"></i>
@@ -169,7 +169,7 @@
             </tr>
           }
 
-          @if (filteredSites().length === 0) {
+          @if (sites().length === 0) {
             <tr>
               <td colspan="7" class="empty-cell">
                 {{ 'admin.sites.empty.noSites' | translate }}
@@ -180,11 +180,12 @@
       </table>
     </div>
 
-    <!-- Summary -->
-    <div class="summary">
-      <span class="summary-text">
-        {{ 'admin.sites.summary' | translate:{ count: filteredSites().length, surface: (totalSurface() | number:'1.0-0') } }}
-      </span>
-    </div>
+    <!-- Pagination -->
+    <app-pagination
+      [totalItems]="totalItems()"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage()"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
   }
 </div>

@@ -68,7 +68,7 @@
     </div>
 
     <div class="filters">
-      <select [(ngModel)]="filterStatut" (ngModelChange)="filterPlans()">
+      <select [(ngModel)]="filterStatut" (ngModelChange)="onFilterChange()">
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="draft">{{ 'admin.plans.status.draft' | translate }}</option>
         <option value="valide">{{ 'admin.plans.status.valide' | translate }}</option>
@@ -76,7 +76,7 @@
       </select>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterPlans()">
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
           <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
           @for (org of organismes(); track org.id) {
             <option [value]="org.id">{{ org.nom }}</option>
@@ -108,7 +108,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (plan of filteredPlans(); track plan.id; let odd = $odd) {
+          @for (plan of plans(); track plan.id; let odd = $odd) {
             <tr [class.odd]="odd">
               <!-- Nom -->
               <td class="name-cell">
@@ -234,7 +234,7 @@
             </tr>
           }
 
-          @if (filteredPlans().length === 0) {
+          @if (plans().length === 0) {
             <tr>
               <td colspan="7" class="empty-cell">
                 {{ 'admin.plans.empty.noPlans' | translate }}
@@ -245,11 +245,12 @@
       </table>
     </div>
 
-    <!-- Summary -->
-    <div class="summary">
-      <span class="summary-text">
-        {{ 'admin.plans.summary' | translate:{ count: filteredPlans().length } }}
-      </span>
-    </div>
+    <!-- Pagination -->
+    <app-pagination
+      [totalItems]="totalItems()"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage()"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
   }
 </div>

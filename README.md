@@ -108,7 +108,7 @@ Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) so
 
 ## 🏗️ Architecture
 
-### État actuel du projet (v0.1.15)
+### État actuel du projet (v0.1.18)
 
 - Backend Django complet : API REST (utilisateurs, organismes, sites, plans, enjeux, opérations, suivis)
 - Frontend Angular 19 avec Design System custom (Kit UI CICADA)

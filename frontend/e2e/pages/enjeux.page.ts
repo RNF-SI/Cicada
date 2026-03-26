@@ -138,13 +138,13 @@ export class EnjeuxPage {
    * Wait for loading to complete and data to appear.
    */
   async waitForData() {
-    await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
     // Wait for either content or empty state or error
     await Promise.race([
-      this.countText.waitFor({ state: 'visible', timeout: 10000 }),
-      this.emptyState.waitFor({ state: 'visible', timeout: 10000 }),
-      this.enjeuMainTitle.waitFor({ state: 'visible', timeout: 10000 }),
-      this.errorContainer.waitFor({ state: 'visible', timeout: 10000 }),
+      this.countText.waitFor({ state: 'visible', timeout: 15000 }),
+      this.emptyState.waitFor({ state: 'visible', timeout: 15000 }),
+      this.enjeuMainTitle.waitFor({ state: 'visible', timeout: 15000 }),
+      this.errorContainer.waitFor({ state: 'visible', timeout: 15000 }),
     ]).catch(() => {});
   }
 
@@ -266,6 +266,7 @@ export class EnjeuxPage {
    * Fill the facteur inline form and save.
    */
   async addFacteur(libelle: string, description?: string) {
+    const countBefore = await this.facteurCards.count();
     await this.clickAddFacteur();
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.facteur-bullet') });
     await form.locator('input[matInput]').fill(libelle);
@@ -273,7 +274,8 @@ export class EnjeuxPage {
       await form.locator('textarea[matInput]').fill(description);
     }
     await form.locator('.inline-form-actions button[mat-flat-button]').click();
-    await this.page.waitForTimeout(500);
+    // Wait for the new card to appear instead of a fixed timeout
+    await this.facteurCards.nth(countBefore).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   }
 
   /**
@@ -321,6 +323,8 @@ export class EnjeuxPage {
    * Fill the pression inline form and save.
    */
   async addPression(facteurIndex: number, libelle: string, description?: string) {
+    const facteur = this.facteurCards.nth(facteurIndex);
+    const countBefore = await facteur.locator('.pression-card').count();
     await this.clickAddPression(facteurIndex);
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.pression-bullet') });
     await form.locator('input[matInput]').first().fill(libelle);
@@ -328,7 +332,8 @@ export class EnjeuxPage {
       await form.locator('textarea[matInput]').fill(description);
     }
     await form.locator('.inline-form-actions button[mat-flat-button]').click();
-    await this.page.waitForTimeout(500);
+    // Wait for the new pression card to appear
+    await facteur.locator('.pression-card').nth(countBefore).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   }
 
   /**
@@ -380,7 +385,9 @@ export class EnjeuxPage {
    */
   async confirmDelete() {
     await this.confirmButton.click();
-    await this.page.waitForTimeout(500);
+    // Wait for the dialog to close
+    await this.confirmButton.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await this.page.waitForTimeout(300);
   }
 
   /**

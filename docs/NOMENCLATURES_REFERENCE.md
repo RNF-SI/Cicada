@@ -521,9 +521,9 @@ Type de donnée pour les métriques d'indicateurs.
 
 | ID | Mnémonique | Libellé |
 |----|------------|---------|
-| 760 | `NUMERIQUE` | Numérique |
-| 761 | `QUALITATIF` | Qualitatif |
-| 762 | `BOOLEEN` | Booléen |
+| 760 | `NUMERIQUE` | Intervalle numérique |
+| 1351 | `CHIFFRE` | Chiffre |
+| 1352 | `TEXTE` | Texte |
 
 ### 36. Priorité d'opération (id_type=50)
 

@@ -478,8 +478,8 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
     await enjeuxPage.waitForData();
 
     // First create a temporary facteur so we don't delete seeded data
+    // addFacteur now waits for the new card to appear
     await enjeuxPage.addFacteur('E2E Temp Facteur - À Supprimer');
-    await page.waitForTimeout(1000);
 
     const countAfterAdd = await enjeuxPage.getFacteurCount();
 
@@ -488,12 +488,10 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
     await enjeuxPage.expandFacteur(lastIndex);
     await enjeuxPage.deleteFacteur(lastIndex);
 
-    // Confirm deletion
+    // Confirm deletion — confirmDelete waits for dialog to close
     await enjeuxPage.confirmDelete();
-    await page.waitForTimeout(1000);
-
-    const countAfterDelete = await enjeuxPage.getFacteurCount();
-    expect(countAfterDelete).toBe(countAfterAdd - 1);
+    // Wait for the deleted card to be removed from DOM
+    await expect(enjeuxPage.facteurCards).toHaveCount(countAfterAdd - 1, { timeout: 10000 });
   });
 });
 
@@ -548,8 +546,8 @@ test.describe('Enjeux - CRUD Pressions', () => {
       await enjeuxPage.expandFacteur(0);
       const initialPressionCount = await enjeuxPage.getPressionCount(0);
 
+      // addPression now waits for the new card to appear
       await enjeuxPage.addPression(0, 'E2E Test - Pression temporaire', 'Description pression E2E');
-      await page.waitForTimeout(1000);
 
       const newPressionCount = await enjeuxPage.getPressionCount(0);
       expect(newPressionCount).toBe(initialPressionCount + 1);
@@ -618,7 +616,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
         const pression = facteur.locator('.pression-card').first();
         const form = pression.locator('.inline-form, .edit-inline-form').first();
         await expect(form).toBeVisible();
-        const inputValue = await form.locator('input[matInput]').inputValue();
+        const inputValue = await form.locator('input[matInput]').first().inputValue();
         expect(inputValue.length).toBeGreaterThan(0);
       }
     }
@@ -635,9 +633,8 @@ test.describe('Enjeux - CRUD Pressions', () => {
     if (facteurCount > 0) {
       await enjeuxPage.expandFacteur(0);
 
-      // Create a temp pression to edit
+      // Create a temp pression to edit — addPression waits for card to appear
       await enjeuxPage.addPression(0, 'E2E Pression à modifier', 'Description initiale');
-      await page.waitForTimeout(1000);
 
       const pressionCount = await enjeuxPage.getPressionCount(0);
       const lastIndex = pressionCount - 1;
@@ -671,9 +668,8 @@ test.describe('Enjeux - CRUD Pressions', () => {
     if (facteurCount > 0) {
       await enjeuxPage.expandFacteur(0);
 
-      // Create a temp pression first
+      // Create a temp pression first — addPression waits for card to appear
       await enjeuxPage.addPression(0, 'E2E Temp Pression - À Supprimer');
-      await page.waitForTimeout(1000);
 
       const countAfterAdd = await enjeuxPage.getPressionCount(0);
 
@@ -682,12 +678,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
       await lastPression.locator('.pression-card-actions button:has(i.fi-rr-trash)').click();
       await page.waitForTimeout(300);
 
-      // Confirm
+      // Confirm — confirmDelete waits for dialog to close
       await enjeuxPage.confirmDelete();
-      await page.waitForTimeout(1000);
-
-      const countAfterDelete = await enjeuxPage.getPressionCount(0);
-      expect(countAfterDelete).toBe(countAfterAdd - 1);
+      // Wait for the deleted card to be removed from DOM
+      await expect(enjeuxPage.facteurCards.first().locator('.pression-card')).toHaveCount(countAfterAdd - 1, { timeout: 10000 });
     }
   });
 
@@ -1032,19 +1026,21 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     // Expand first OLT (flat structure: OLTs are top-level)
     await page.locator('.olt-content .olt-section-header').first().click();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     const initialNeCount = await page.locator('.ne-card').count();
 
-    // Click add NE button inside expanded OLT
-    await page.locator('.olt-expanded-content .add-item-btn').first().click();
-    await page.waitForTimeout(300);
+    // Click add NE button (target by text to avoid hitting other add buttons)
+    const addNeBtn = page.locator('.add-item-btn').filter({ hasText: /niveau.*exigence/i });
+    await addNeBtn.first().click();
+    await page.waitForTimeout(500);
 
     const form = page.locator('.ne-inline-form');
-    await expect(form).toBeVisible();
+    await expect(form).toBeVisible({ timeout: 5000 });
     await form.locator('input[matInput]').fill('E2E Temp NE');
     await form.locator('button[mat-flat-button]').click();
-    await page.waitForTimeout(1000);
+    // Wait for the new NE card to appear
+    await page.locator('.ne-card').nth(initialNeCount).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
 
     const newNeCount = await page.locator('.ne-card').count();
     expect(newNeCount).toBe(initialNeCount + 1);

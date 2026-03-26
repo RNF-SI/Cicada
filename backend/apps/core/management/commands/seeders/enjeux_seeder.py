@@ -1993,8 +1993,8 @@ class EnjeuxSeeder(BaseSeeder):
         type_ind_pression = self._get_nomenclature('TYPE_INDICATEUR', 'PRESSION')
         type_ind_reponse = self._get_nomenclature('TYPE_INDICATEUR', 'REPONSE')
         type_met_numerique = self._get_nomenclature('TYPE_METRIQUE', 'NUMERIQUE')
-        type_met_qualitatif = self._get_nomenclature('TYPE_METRIQUE', 'QUALITATIF')
-        type_met_booleen = self._get_nomenclature('TYPE_METRIQUE', 'BOOLEEN')
+        type_met_chiffre = self._get_nomenclature('TYPE_METRIQUE', 'CHIFFRE')
+        type_met_texte = self._get_nomenclature('TYPE_METRIQUE', 'TEXTE')
 
         from datetime import date
 
@@ -2062,7 +2062,7 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind,
                 nom_metrique='État de la végétation halophile',
                 defaults={
-                    'type_metrique': type_met_qualitatif,
+                    'type_metrique': type_met_texte,
                     'score_1_label': 'Absente',
                     'score_2_label': 'Résiduelle',
                     'score_3_label': 'Partielle',
@@ -2197,14 +2197,14 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind,
                 nom_metrique='Nombre de stations actives',
                 defaults={
-                    'type_metrique': type_met_numerique,
+                    'type_metrique': type_met_chiffre,
                     'unite': 'stations',
                     'etat_reference': 'Référence : 24 stations en 2015',
-                    'score_1_inf': 0, 'score_1_sup': 10,
-                    'score_2_inf': 10, 'score_2_sup': 16,
-                    'score_3_inf': 16, 'score_3_sup': 20,
-                    'score_4_inf': 20, 'score_4_sup': 24,
-                    'score_5_inf': 24, 'score_5_sup': 50,
+                    'score_1_val': 5,
+                    'score_2_val': 13,
+                    'score_3_val': 18,
+                    'score_4_val': 22,
+                    'score_5_val': 27,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -2242,7 +2242,7 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind,
                 nom_metrique='Respect des zones de quiétude',
                 defaults={
-                    'type_metrique': type_met_booleen,
+                    'type_metrique': type_met_texte,
                     'score_1_label': 'Non respecté',
                     'score_2_label': 'Peu respecté',
                     'score_3_label': 'Partiellement respecté',
@@ -2432,7 +2432,7 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind_veg,
                 nom_metrique='Recouvrement des sphaignes',
                 defaults={
-                    'type_metrique': type_met_qualitatif,
+                    'type_metrique': type_met_texte,
                     'unite': '%',
                     'score_1_label': 'Absent (0%)',
                     'score_2_label': 'Résiduel (<10%)',
@@ -2476,18 +2476,13 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind,
                 nom_metrique='Nombre maximum d\'individus simultanés en halte',
                 defaults={
-                    'type_metrique': type_met_numerique,
+                    'type_metrique': type_met_chiffre,
                     'unite': 'individus',
-                    'score_1_inf': 0, 'score_1_sup': 1,
-                    'score_1_label': 'Absent ou exceptionnel',
-                    'score_2_inf': 1, 'score_2_sup': 2,
-                    'score_2_label': 'Occasionnel',
-                    'score_3_inf': 2, 'score_3_sup': 3,
-                    'score_3_label': 'Régulier faible',
-                    'score_4_inf': 3, 'score_4_sup': 5,
-                    'score_4_label': 'Régulier',
-                    'score_5_inf': 5, 'score_5_sup': 20,
-                    'score_5_label': 'Site majeur',
+                    'score_1_val': 0,
+                    'score_2_val': 1,
+                    'score_3_val': 3,
+                    'score_4_val': 5,
+                    'score_5_val': 10,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -2627,19 +2622,14 @@ class EnjeuxSeeder(BaseSeeder):
                 id_indicateur=ind,
                 nom_metrique='Nombre moyen d\'espèces par relevé',
                 defaults={
-                    'type_metrique': type_met_numerique,
+                    'type_metrique': type_met_chiffre,
                     'unite': 'espèces/relevé',
                     'etat_reference': 'Référence : 32 espèces/relevé en 2010',
-                    'score_1_inf': 0, 'score_1_sup': 10,
-                    'score_1_label': 'Très pauvre',
-                    'score_2_inf': 10, 'score_2_sup': 18,
-                    'score_2_label': 'Pauvre',
-                    'score_3_inf': 18, 'score_3_sup': 25,
-                    'score_3_label': 'Moyen',
-                    'score_4_inf': 25, 'score_4_sup': 35,
-                    'score_4_label': 'Riche',
-                    'score_5_inf': 35, 'score_5_sup': 60,
-                    'score_5_label': 'Très riche',
+                    'score_1_val': 8,
+                    'score_2_val': 15,
+                    'score_3_val': 22,
+                    'score_4_val': 30,
+                    'score_5_val': 40,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -3779,10 +3769,6 @@ class EnjeuxSeeder(BaseSeeder):
         type_action_ip1 = self._get_nomenclature('TYPE_ACTION', 'IP1')    # Restauration d'habitats naturels
         type_action_sp1 = self._get_nomenclature('TYPE_ACTION', 'SP1')    # Surveillance et police
         type_action_pa1 = self._get_nomenclature('TYPE_ACTION', 'PA1')    # Éducation à la nature
-        operateur_agent = self._get_nomenclature('OPERATEUR_TYPE', 'AGENT_RESERVE')
-        operateur_presta = self._get_nomenclature('OPERATEUR_TYPE', 'PRESTATAIRE')
-        operateur_benevole = self._get_nomenclature('OPERATEUR_TYPE', 'BENEVOLE')
-        operateur_stagiaire = self._get_nomenclature('OPERATEUR_TYPE', 'STAGIAIRE')
         cat_finance_region = self._get_nomenclature('CATEGORIE_FINANCE', 'REGION')
         cat_finance_dept = self._get_nomenclature('CATEGORIE_FINANCE', 'DEPARTEMENT')
         cat_finance_etat = self._get_nomenclature('CATEGORIE_FINANCE', 'ETAT')
@@ -3944,7 +3930,6 @@ class EnjeuxSeeder(BaseSeeder):
             {'base': 500, 'var': 100},    # 4
         ]
         etp_profiles = [5, 3, 10, 8, 2, 15, 6, 4, 12, 7]
-        operateur_cycle = [operateur_agent, operateur_presta, operateur_benevole, operateur_stagiaire]
 
         for idx, op in enumerate(operations_created):
             # Set type_action based on id_referentiel_operations
@@ -3984,15 +3969,12 @@ class EnjeuxSeeder(BaseSeeder):
                     year_offset = year - op.annee_min
                     budget = bp['base'] + (bp['var'] if year_offset % 2 == 0 else -bp['var'])
                     etp = etp_profiles[(idx + year_offset) % len(etp_profiles)]
-                    op_type = operateur_cycle[(idx + year_offset) % len(operateur_cycle)]
-
                     oa, _ = OperationAnnee.objects.update_or_create(
                         id_operation=op, annee=year,
                         defaults={
                             'periodicite': True,
                             'budget': budget,
                             'etp': etp,
-                            'id_operateur': op_type,
                             'periodicite_mensuelle': mens,
                         }
                     )

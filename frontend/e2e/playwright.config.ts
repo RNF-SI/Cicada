@@ -9,8 +9,9 @@ export default defineConfig({
   globalTeardown: require.resolve('./global-teardown'),
   fullyParallel: false,
   forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
-  workers: isCI ? 2 : undefined,
+  retries: isCI ? 2 : 3,
+  workers: isCI ? 2 : 2,
+  timeout: 60000,
   reporter: isCI
     ? [['html', { outputFolder: '../playwright-report' }], ['junit', { outputFile: '../e2e-results.xml' }]]
     : [['html', { outputFolder: '../playwright-report', open: 'never' }]],

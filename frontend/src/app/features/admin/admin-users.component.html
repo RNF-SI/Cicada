@@ -22,12 +22,12 @@
         type="text"
         [placeholder]="'admin.users.search' | translate"
         [(ngModel)]="searchQuery"
-        (ngModelChange)="filterUsers()"
+        (ngModelChange)="onSearchChange()"
       />
     </div>
 
     <div class="filters">
-      <select [(ngModel)]="filterRole" (ngModelChange)="filterUsers()">
+      <select [(ngModel)]="filterRole" (ngModelChange)="onFilterChange()">
         <option value="">{{ 'common.filters.allRoles' | translate }}</option>
         <option value="super_admin">{{ 'admin.users.roles.super_admin' | translate }}</option>
         <option value="admin_og">{{ 'admin.users.roles.admin_og' | translate }}</option>
@@ -35,7 +35,7 @@
       </select>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="filterUsers()">
+        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
           <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
           @for (org of organismes(); track org.id) {
             <option [value]="org.id">{{ org.nom }}</option>
@@ -43,7 +43,7 @@
         </select>
       }
 
-      <select [(ngModel)]="filterStatus" (ngModelChange)="filterUsers()">
+      <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()">
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="active">{{ 'common.status.active' | translate }}</option>
         <option value="inactive">{{ 'common.status.inactive' | translate }}</option>
@@ -78,7 +78,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (user of filteredUsers(); track user.id; let odd = $odd) {
+          @for (user of users(); track user.id; let odd = $odd) {
             <tr [class.odd]="odd">
               <td class="user-cell">
                 <div class="user-avatar">{{ getInitials(user) }}</div>
@@ -231,7 +231,7 @@
             </tr>
           }
 
-          @if (filteredUsers().length === 0) {
+          @if (users().length === 0) {
             <tr>
               <td [attr.colspan]="isSuperAdmin() ? 9 : 8" class="empty-cell">
                 {{ 'admin.users.messages.noUsers' | translate }}
@@ -243,10 +243,11 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination">
-      <span class="pagination-info">
-        {{ 'admin.users.pagination' | translate:{ count: filteredUsers().length, total: users().length } }}
-      </span>
-    </div>
+    <app-pagination
+      [totalItems]="totalItems()"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage()"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
   }
 </div>

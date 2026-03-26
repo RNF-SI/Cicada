@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -7,11 +7,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, AdminOrganisme } from '../../core/models/admin.model';
 import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-plan-site-modal/link-plan-site-modal.component';
 import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 // Interface for linked site display
 interface DisplaySiteLie {
@@ -76,12 +79,13 @@ interface DisplayOrganisme {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    TranslateModule
+    TranslateModule,
+    PaginationComponent
   ],
   templateUrl: './admin-plans.component.html',
   styleUrl: './admin-plans.component.scss'
 })
-export class AdminPlansComponent implements OnInit {
+export class AdminPlansComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
@@ -106,25 +110,44 @@ export class AdminPlansComponent implements OnInit {
   filterOrganisme = '';
   isLoading = signal(false);
 
+  // Pagination state
+  currentPage = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 20;
+
   plans = signal<DisplayPlan[]>([]);
   organismes = signal<DisplayOrganisme[]>([]);
-  filteredPlans = signal<DisplayPlan[]>([]);
 
-  // Statistics
-  totalPlans = computed(() => this.filteredPlans().length);
-  plansValides = computed(() => this.filteredPlans().filter(p => p.statut === 'valide').length);
-  plansBrouillon = computed(() => this.filteredPlans().filter(p => p.statut === 'draft').length);
-  plansArchives = computed(() => this.filteredPlans().filter(p => p.statut === 'archive').length);
+  private searchSubject = new Subject<void>();
+  private destroy$ = new Subject<void>();
+
+  // Statistics - based on current page data
+  totalPlans = computed(() => this.totalItems());
+  plansValides = computed(() => this.plans().filter(p => p.statut === 'valide').length);
+  plansBrouillon = computed(() => this.plans().filter(p => p.statut === 'draft').length);
+  plansArchives = computed(() => this.plans().filter(p => p.statut === 'archive').length);
 
   ngOnInit(): void {
+    this.searchSubject.pipe(
+      debounceTime(300),
+    ).subscribe(() => {
+      this.currentPage.set(1);
+      this.loadPlans();
+    });
+
     this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadData(): void {
     this.isLoading.set(true);
 
     // Load organismes for filter dropdown
-    this.adminService.getOrganismes().subscribe({
+    this.adminService.getOrganismes({ page_size: 1000 }).subscribe({
       next: (response) => {
         this.organismes.set(response.results.map(org => ({
           id: org.id_organisme,
@@ -133,33 +156,31 @@ export class AdminPlansComponent implements OnInit {
       }
     });
 
-    // Load plans
     this.loadPlans();
   }
 
   loadPlans(): void {
     this.isLoading.set(true);
 
-    // For admin_og (not super_admin), filter by their organisme
-    // For referents, the backend handles filtering to show their assigned plans
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const organismeFilter = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId
       ? currentOrgId
       : undefined;
 
-    // For non-admin users (referents), use scope=mine to exclude org plans they're not linked to
     const scope = !this.isSuperAdmin() && !this.isAdminOrganisme() ? 'mine' as const : undefined;
 
     this.adminService.getPlans({
       search: this.searchQuery || undefined,
+      page: this.currentPage(),
+      page_size: this.pageSize,
       statut: this.filterStatut || undefined,
       organisme: organismeFilter,
       scope
     }).subscribe({
-      next: (response) => {
-        const mapped = response.results.map(plan => this.mapPlan(plan));
+      next: (response: any) => {
+        const mapped = response.results.map((plan: any) => this.mapPlan(plan));
         this.plans.set(mapped);
-        this.applyFilters();
+        this.totalItems.set(response.pagination?.count ?? response.count ?? 0);
         this.isLoading.set(false);
       },
       error: (error: Error) => {
@@ -214,34 +235,18 @@ export class AdminPlansComponent implements OnInit {
     };
   }
 
-  filterPlans(): void {
-    this.applyFilters();
+  onSearchChange(): void {
+    this.searchSubject.next();
   }
 
-  onSearchChange(): void {
-    // Reload from API when search changes
+  onFilterChange(): void {
+    this.currentPage.set(1);
     this.loadPlans();
   }
 
-  private applyFilters(): void {
-    let result = this.plans();
-
-    // Filter by search query (already applied by API, but add local filtering for other fields)
-    if (this.searchQuery) {
-      const query = this.searchQuery.toLowerCase();
-      result = result.filter(plan =>
-        plan.nom.toLowerCase().includes(query) ||
-        plan.redacteurNom?.toLowerCase().includes(query) ||
-        plan.sites.some(s => s.nom.toLowerCase().includes(query))
-      );
-    }
-
-    // Filter by status
-    if (this.filterStatut) {
-      result = result.filter(plan => plan.statut === this.filterStatut);
-    }
-
-    this.filteredPlans.set(result);
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+    this.loadPlans();
   }
 
   // Actions

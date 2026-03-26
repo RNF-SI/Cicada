@@ -30,14 +30,13 @@ class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
 
 class OperationAnneeSerializer(serializers.ModelSerializer):
     """Serializer pour la programmation annuelle d'une opération."""
-    operateur_label = serializers.CharField(source='id_operateur.label', read_only=True)
     organismes = OperationAnneeOrganismeSerializer(many=True, read_only=True)
 
     class Meta:
         model = OperationAnnee
         fields = [
             'id_operation_annee', 'annee', 'periodicite',
-            'budget', 'etp', 'id_operateur', 'operateur_label',
+            'budget', 'etp',
             'periodicite_mensuelle', 'geom', 'organismes'
         ]
         read_only_fields = ['id_operation_annee']
@@ -332,7 +331,6 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     periodicite = serializers.BooleanField(default=False)
     budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
-    id_operateur = serializers.IntegerField(required=False, allow_null=True)
     periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
     geom = serializers.JSONField(required=False, allow_null=True, default=None)
     organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])
@@ -377,9 +375,6 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             return
         for annee_data in annees_data:
             organismes_data = annee_data.pop('organismes', [])
-            # Convert FK integer to _id field
-            if 'id_operateur' in annee_data:
-                annee_data['id_operateur_id'] = annee_data.pop('id_operateur')
             annee_obj = OperationAnnee.objects.create(id_operation=operation, **annee_data)
             if organismes_data:
                 OperationAnneeOrganisme.objects.bulk_create([

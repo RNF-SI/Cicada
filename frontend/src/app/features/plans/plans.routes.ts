@@ -21,11 +21,6 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: ':slug',
-    component: PlanDetailComponent,
-    canActivate: [authGuard]
-  },
-  {
     path: ':slug/enjeux',
     loadChildren: () => import('./enjeux/enjeux.routes').then(m => m.ENJEUX_ROUTES),
     canActivate: [authGuard]
@@ -48,6 +43,11 @@ export const PLANS_ROUTES: Routes = [
   {
     path: ':slug/mindmap',
     loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: ':slug',
+    component: PlanDetailComponent,
     canActivate: [authGuard]
   }
 ];

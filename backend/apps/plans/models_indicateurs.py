@@ -319,6 +319,23 @@ class Metrique(models.Model):
         max_digits=12, decimal_places=4, null=True, blank=True
     )
 
+    # Valeurs simples (type CHIFFRE)
+    score_1_val = models.DecimalField(
+        _("Score 1 - Valeur"), max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    score_2_val = models.DecimalField(
+        _("Score 2 - Valeur"), max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    score_3_val = models.DecimalField(
+        _("Score 3 - Valeur"), max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    score_4_val = models.DecimalField(
+        _("Score 4 - Valeur"), max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    score_5_val = models.DecimalField(
+        _("Score 5 - Valeur"), max_digits=12, decimal_places=4, null=True, blank=True
+    )
+
     # Labels qualitatifs pour chaque niveau de score
     score_1_label = models.CharField(
         _("Label score 1"), max_length=255, blank=True, null=True,
