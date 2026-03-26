@@ -108,21 +108,18 @@ Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) so
 
 ## 🏗️ Architecture
 
-### État actuel du projet
+### État actuel du projet (v0.1.14)
 
-✅ **Implémenté :**
-- Modèles de données Django (Users, Organisations, Sites, Plans, Nomenclatures)  
-- Interface d'administration Django complète
-- Authentification JWT complète avec API REST
-- Système de rôles et permissions hiérarchiques
-- **Référentiels de nomenclatures standardisés** (28 types, 261 valeurs)
-- Middleware de sécurité et audit intégré
-- Base de données PostgreSQL avec PostGIS
-- Support Docker avec migrations automatiques
-
-🔄 **En cours :**
-- API REST CRUD utilisateurs et organismes (prochaine étape)
-- Interface Angular (à venir)
+- Backend Django complet : API REST (utilisateurs, organismes, sites, plans, enjeux, opérations, suivis)
+- Frontend Angular 19 avec Design System custom (Kit UI CICADA)
+- Authentification JWT, rôles hiérarchiques, permissions objet
+- Référentiels INPN intégrés : nomenclatures, TaxRef, HabRef, CAMPanule
+- Cycle de vie des plans : brouillon, validé, archivé, évaluation mi-parcours
+- Notifications, validations, historique d'activité
+- Inscription publique avec workflow de validation
+- Import en masse de sites (GeoJSON/CSV)
+- Package Debian (.deb) avec installeur web et mise à jour automatique
+- PostgreSQL 17 + PostGIS, Redis, Celery
 
 ### Services Docker
 
@@ -210,11 +207,28 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - **[Release Pipeline](docs/RELEASE_PIPELINE.md)** - Conventional commits, versioning, Docker, deploiement
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 
-## 🛠️ Technologies
+## Installation en production
 
-- **Backend** : Django 5.0+, PostgreSQL + PostGIS, Redis
-- **Frontend** : Angular 19+ *(à venir)*
-- **Infrastructure** : Docker & Docker Compose
+Le déploiement se fait via un package Debian (.deb) avec un installeur web intégré.
+
+```bash
+# 1. Installer le package
+sudo dpkg -i cicada_0.1.14_amd64.deb
+
+# 2. (Optionnel) Préparer une base PostgreSQL externe
+sudo cicada-prepare-db
+
+# 3. Ouvrir l'installeur web
+# http://votre-serveur:4567
+```
+
+**[Guide d'installation complet](docs/INSTALLATION_GUIDE.md)** - Prérequis, configuration Apache/Nginx, base externe, mise à jour
+
+## Technologies
+
+- **Backend** : Django 5.0+, DRF, PostgreSQL 17+ / PostGIS, Redis, Celery
+- **Frontend** : Angular 19+, Angular Material, Leaflet
+- **Infrastructure** : Docker, package Debian (.deb), systemd
 
 ## 🚢 Release et deploiement
 
