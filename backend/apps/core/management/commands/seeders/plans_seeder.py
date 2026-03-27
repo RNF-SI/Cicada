@@ -55,6 +55,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Equipe Camargue',
                 'redacteurs': 'Marie Dupont, Jean-Pierre Martin (RNF)',
                 'relecteurs': 'CSRPN PACA, Commission Biodiversite RNF',
+                'autres_contributeurs': 'Tour du Valat, SNPN, Amis des Marais du Vigueirat',
                 'date_validation_cspn': date(2020, 3, 15),
                 'commentaire': 'Plan de gestion valide pour la periode 2020-2030. '
                                '3eme plan successif, faisant suite au plan 2010-2020. '
@@ -86,6 +87,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'Cabinet Natura Consulting',
                 'redacteurs': 'Cabinet Natura Consulting (F. Leroy, A. Bernard)',
                 'relecteurs': 'CSRPN Auvergne-Rhone-Alpes, DREAL ARA',
+                'autres_contributeurs': 'ASTERS, LPO Haute-Savoie',
                 'date_validation_cspn': date(2018, 6, 20),
                 'commentaire': 'Plan de gestion en vigueur. Evaluation finale positive. '
                                'Enjeux centres sur les pelouses alpines, la faune '

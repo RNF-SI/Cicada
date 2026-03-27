@@ -1035,6 +1035,50 @@ describe('EnjeuxListComponent', () => {
       expect(mockEnjeuService.createObjectifLongTerme).not.toHaveBeenCalled();
     });
 
+    it('should show confirmation dialog when OLT already exists for enjeu', () => {
+      // Simuler un enjeu avec un OLT existant
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      const enjeu = component.selectedEnjeu();
+      if (enjeu) {
+        enjeu.objectifs_long_terme = [mockOlt];
+      }
+
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+
+      component.startAddOlt();
+
+      expect(mockDialogOpen).toHaveBeenCalled();
+    });
+
+    it('should not open form when OLT confirmation dialog is cancelled', () => {
+      // Simuler un enjeu avec un OLT existant
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      const enjeu = component.selectedEnjeu();
+      if (enjeu) {
+        enjeu.objectifs_long_terme = [mockOlt];
+      }
+
+      const mockDialogRef = { afterClosed: () => of(false) } as MatDialogRef<any>;
+      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+
+      component.startAddOlt();
+
+      expect(component.addingOlt()).toBe(false);
+    });
+
+    it('should open form directly when no OLT exists', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      const enjeu = component.selectedEnjeu();
+      if (enjeu) {
+        enjeu.objectifs_long_terme = [];
+      }
+
+      component.startAddOlt();
+
+      expect(component.addingOlt()).toBe(true);
+    });
+
     it('should start editing OLT with pre-filled values', () => {
       component.startEditOlt(mockOlt);
       expect(component.editingOltId()).toBe(501);
