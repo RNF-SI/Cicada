@@ -346,7 +346,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     )
     operation_annees = OperationAnneeWriteSerializer(many=True, required=False, default=[])
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
-    suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True)
+    suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = Operation
@@ -357,7 +357,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'description',
             'annee_min', 'annee_max',
             # Suivi/inventaire
-            'est_suivi_existant', 'suivi_inventaire',
+            'est_suivi_existant', 'id_suivi', 'suivi_inventaire',
             # Fréquence & acteurs
             'frequence_nombre', 'frequence_unite',
             'operateurs', 'partenaires', 'financeurs',
@@ -368,6 +368,13 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'operation_annees', 'finances'
         ]
         read_only_fields = ['id_operation']
+        extra_kwargs = {
+            'id_suivi': {'required': False, 'allow_null': True},
+        }
+
+    def to_representation(self, instance):
+        """Use the read serializer for the response."""
+        return OperationSerializer(instance, context=self.context).data
 
     def _create_operation_annees(self, operation, annees_data):
         """Create OperationAnnee objects with nested organismes."""

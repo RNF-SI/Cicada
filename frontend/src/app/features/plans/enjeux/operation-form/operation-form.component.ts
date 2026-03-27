@@ -30,6 +30,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
+import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
 import { Operation, OperationCreatePayload, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
@@ -915,10 +916,13 @@ export class OperationFormComponent implements OnInit {
    * Subscribe to id_suivi changes and intitule_suivi keystrokes.
    */
   private initSuiviLibelleSync(): void {
-    // Existing suivi selected → sync libelle
-    this.form.get('id_suivi')?.valueChanges.subscribe(() => {
+    // Existing suivi selected → sync libelle + fetch full details
+    this.form.get('id_suivi')?.valueChanges.subscribe((idSuivi) => {
       if (this.isCSAction() && this.estSuiviExistant()) {
         this.updateLibelle(this.getSelectedSuiviIntitule());
+        if (idSuivi) {
+          this.fetchAndPopulateSuiviDetails(idSuivi);
+        }
       }
     });
 
@@ -942,6 +946,71 @@ export class OperationFormComponent implements OnInit {
   private updateLibelle(value: string): void {
     this.form.get('libelle')?.setValue(value, { emitEvent: false });
     this.libelleDisplay.set(value);
+  }
+
+  /** Fetch full inventaire details and populate the suivi/protocole form fields. */
+  private fetchAndPopulateSuiviDetails(idSuivi: number): void {
+    this.inventaireService.getInventaire(idSuivi).subscribe({
+      next: (detail: SuiviInventaireDetail) => {
+        // Populate taxon/habitat reference lists
+        if (detail.taxon_taxref) {
+          this.taxonItems = detail.taxon_taxref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
+            cd_nom: 0,
+            nom_complet: name,
+          }));
+        } else {
+          this.taxonItems = [];
+        }
+        if (detail.habitat_ref) {
+          this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
+            cd_hab: '',
+            lb_hab_fr: name,
+          }));
+        } else {
+          this.habitatItems = [];
+        }
+
+        // Populate suivi fields
+        this.form.patchValue({
+          objectif_principal: detail.objectif_principal || '',
+          objectif_secondaire: detail.objectif_secondaire || '',
+          cibles_principales: detail.cibles_principales || null,
+          cible_secondaire: detail.cible_secondaire || '',
+          date_lancement_suivi: detail.date_lancement_suivi ? new Date(detail.date_lancement_suivi) : null,
+          outil_bancarisation: detail.outil_bancarisation || null,
+          outil_saisie: detail.outil_saisie || null,
+          transmission_donnee: detail.transmission_donnee ?? null,
+        });
+
+        // Populate protocole fields
+        const proto = detail.protocole;
+        if (proto) {
+          this.form.patchValue({
+            protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
+            protocole_campanule_nom: proto.protocole_campanule_nom || '',
+            cd_protocole_campanule: proto.cd_protocole_campanule || null,
+            nb_etp_cycle: proto.nb_etp_cycle || null,
+            nom_protocole: proto.nom_protocole || '',
+            respect_protocole: proto.respect_protocole ?? null,
+            justification_non_respect: proto.justification_non_respect || '',
+            differences_protocole: proto.differences_protocole || '',
+            description_protocole: proto.description_protocole || '',
+            objectif_protocole: proto.objectif_protocole || '',
+            periode_echantillonnage: proto.periode_echantillonnage || '',
+          });
+
+          // Restore CAMPanule autocomplete state
+          if (proto.cd_protocole_campanule && proto.protocole_campanule_nom) {
+            this.campanuleSearchCtrl.setValue(proto.protocole_campanule_nom, { emitEvent: false });
+            this.selectedCampanule.set({
+              cd_protocole: proto.cd_protocole_campanule,
+              search_name: proto.protocole_campanule_nom,
+              lb_protocole_court: proto.protocole_campanule_nom,
+            });
+          }
+        }
+      },
+    });
   }
 
   // ════════════════════════════════════════════════
