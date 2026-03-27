@@ -1577,12 +1577,16 @@ export class EnjeuxListComponent implements OnInit {
     return val != null ? val.toString() : '-';
   }
 
+  private formatNum(val: number): string {
+    return parseFloat(val.toFixed(2)).toString();
+  }
+
   getScoreRange(met: any, level: number): string {
     const mnemonique = met.type_metrique_mnemonique || 'NUMERIQUE';
 
     if (mnemonique === 'CHIFFRE') {
       const val = met[`score_${level}_val`];
-      return val != null ? val.toString() : '-';
+      return val != null ? this.formatNum(Number(val)) : '-';
     }
     if (mnemonique === 'TEXTE') {
       const label = met[`score_${level}_label`];
@@ -1592,10 +1596,10 @@ export class EnjeuxListComponent implements OnInit {
     const inf = met[`score_${level}_inf`];
     const sup = met[`score_${level}_sup`];
     if (inf != null && sup != null) {
-      return `${inf} - ${sup}`;
+      return `${this.formatNum(Number(inf))} - ${this.formatNum(Number(sup))}`;
     }
-    if (inf != null) return `≥ ${inf}`;
-    if (sup != null) return `≤ ${sup}`;
+    if (inf != null) return `≥ ${this.formatNum(Number(inf))}`;
+    if (sup != null) return `≤ ${this.formatNum(Number(sup))}`;
     return '- - -';
   }
 

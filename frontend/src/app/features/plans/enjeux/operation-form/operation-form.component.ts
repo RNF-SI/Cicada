@@ -966,10 +966,12 @@ export class OperationFormComponent implements OnInit {
       // Sync libelle from selected inventaire
       this.updateLibelle(this.getSelectedSuiviIntitule());
     } else {
-      // "New suivi" mode: enable suivi fields, intitule_suivi required
+      // "New suivi" mode: enable suivi fields, reset values, intitule_suivi required
+      this.resetSuiviFields();
       this.setSuiviFieldsEnabled(true);
       this.form.get('intitule_suivi')?.setValidators([Validators.required]);
       this.form.get('intitule_suivi')?.updateValueAndValidity();
+      this.form.get('id_suivi')?.setValue(null);
       // Sync libelle from intitule_suivi text
       this.updateLibelle(this.form.get('intitule_suivi')?.value || '');
     }
@@ -1294,6 +1296,22 @@ export class OperationFormComponent implements OnInit {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  private resetSuiviFields(): void {
+    const fields = [
+      'objectif_principal', 'objectif_secondaire',
+      'cibles_principales', 'cible_secondaire',
+      'date_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
+      'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
+      'respect_protocole', 'justification_non_respect', 'differences_protocole',
+      'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+      'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+      'intitule_suivi'
+    ];
+    for (const field of fields) {
+      this.form.get(field)?.reset();
+    }
   }
 
   private setSuiviFieldsEnabled(enabled: boolean): void {

@@ -128,7 +128,7 @@ describe('PlanSidebarComponent', () => {
   });
 
   it('should call getPlanEnjeux on init with planId', () => {
-    expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10);
+    expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10, true);
   });
 
   it('should populate enjeux signal from response', () => {
