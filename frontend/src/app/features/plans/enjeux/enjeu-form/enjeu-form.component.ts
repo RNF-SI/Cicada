@@ -84,7 +84,7 @@ export class EnjeuFormComponent implements OnInit {
   private initForm(): void {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
-      intitule_court: ['', [Validators.maxLength(50)]],
+      intitule_court: ['', [Validators.maxLength(25)]],
       rang: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
       categorie_ecologique: [true, Validators.required],
       // Checkboxes écologiques

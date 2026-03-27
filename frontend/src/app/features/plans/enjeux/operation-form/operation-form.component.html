@@ -528,8 +528,8 @@
 
           @if (sectionsOpen['programmation']) {
             <div class="section-content">
-              <!-- L'action est liée au/aux -->
-              @if (planSites().length > 0) {
+              <!-- L'action est liée au/aux (masqué si plan mono-site) -->
+              @if (planSites().length > 1) {
                 <div class="sites-selection">
                   <span class="field-label">{{ 'enjeux.operations.actionLieeAux' | translate }}</span>
                   <div class="sites-checkboxes">

@@ -256,7 +256,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     setTimeout(() => clearInterval(interval), 10000);
   }
 
-  private openEditModal(plan: AdminPlan): void {
+  openEditModal(plan: AdminPlan): void {
     const data: PlanFormModalData = { plan };
     const dialogRef = this.dialog.open(PlanFormModalComponent, {
       width: '1300px',

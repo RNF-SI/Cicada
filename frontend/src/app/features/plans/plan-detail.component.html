@@ -101,6 +101,11 @@
 
               <div class="plan-actions">
                 @if (canManageLifecycle()) {
+                  <!-- Modifier les métadonnées -->
+                  <button class="btn-lifecycle btn-lifecycle-edit" (click)="openEditModal(p)">
+                    <i class="fi fi-rr-pencil"></i>
+                    <span>{{ 'plans.detail.actions.editMetadata' | translate }}</span>
+                  </button>
                   <!-- Draft → Valider -->
                   @if (p.statut === 'draft') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">

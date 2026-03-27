@@ -326,8 +326,9 @@ export class OperationFormComponent implements OnInit {
           // Extract plan sites
           if (plan.sites) {
             this.planSites.set(plan.sites);
+            const isSingleSite = plan.sites.length === 1;
             for (const site of plan.sites) {
-              this.selectedSiteIds[site.id_site] = false;
+              this.selectedSiteIds[site.id_site] = isSingleSite;
             }
           }
           // Load operation data AFTER sites are initialized to avoid race condition

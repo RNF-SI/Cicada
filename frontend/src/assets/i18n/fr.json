@@ -1226,11 +1226,13 @@
     },
     "requestAccess": {
       "title": "Demander l'accès à un plan",
-      "description": "Demandez l'accès aux plans de gestion de votre organisme.",
+      "description": "Cette liste affiche les plans de gestion rattachés à votre organisme auxquels vous n'avez pas encore accès.",
       "searchPlaceholder": "Rechercher un plan...",
       "noResults": "Aucun plan disponible pour votre organisme",
       "button": "Demander l'accès",
+      "buttonTooltip": "Vous êtes déjà lié à un site de ce plan. Seul l'accès au plan sera demandé.",
       "buttonWithSite": "Demander le lien et l'accès",
+      "buttonWithSiteTooltip": "Vous n'êtes pas encore lié au site de ce plan. Une demande d'accès au site et au plan sera envoyée.",
       "pending": "Demande en attente",
       "rejected": "Refusé",
       "retry": "Redemander"
@@ -1318,6 +1320,9 @@
         "objectifsLT": "Objectifs long terme",
         "objectifsOP": "Objectifs opérationnels",
         "actions": "Actions et suivis"
+      },
+      "actions": {
+        "editMetadata": "Modifier les métadonnées"
       },
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
@@ -2145,7 +2150,10 @@
       "descriptionLabel": "Détails / commentaires",
       "createSuccess": "Objectif à long terme créé avec succès",
       "updateSuccess": "Objectif à long terme mis à jour avec succès",
-      "deleteSuccess": "Objectif à long terme supprimé avec succès"
+      "deleteSuccess": "Objectif à long terme supprimé avec succès",
+      "alreadyExistsTitle": "OLT déjà existant",
+      "alreadyExistsMessage": "Attention, un OLT a déjà été saisi pour cet enjeu. Souhaitez-vous bien ajouter un autre OLT pour cet enjeu ?",
+      "alreadyExistsConfirm": "Oui, ajouter un OLT"
     },
     "niveauExigence": {
       "label": "Niveau d'exigence",

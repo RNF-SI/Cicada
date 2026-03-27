@@ -115,7 +115,7 @@ class Enjeu(models.Model):
     )
     intitule_court = models.CharField(
         _("Intitulé court"),
-        max_length=50,
+        max_length=25,
         blank=True,
         null=True,
         help_text=_("Max 25 caractères pour affichage")

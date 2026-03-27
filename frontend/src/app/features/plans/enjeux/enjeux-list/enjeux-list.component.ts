@@ -904,9 +904,30 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   startAddOlt(): void {
-    this.addingOlt.set(true);
-    this.newOltLibelle = '';
-    this.newOltDescription = '';
+    if (this.totalOltCount() > 0) {
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: '500px',
+        data: {
+          title: this.translate.instant('enjeux.olt.alreadyExistsTitle'),
+          message: this.translate.instant('enjeux.olt.alreadyExistsMessage'),
+          confirmText: this.translate.instant('enjeux.olt.alreadyExistsConfirm'),
+          cancelText: this.translate.instant('common.actions.cancel'),
+          confirmColor: 'primary'
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(confirmed => {
+        if (confirmed) {
+          this.addingOlt.set(true);
+          this.newOltLibelle = '';
+          this.newOltDescription = '';
+        }
+      });
+    } else {
+      this.addingOlt.set(true);
+      this.newOltLibelle = '';
+      this.newOltDescription = '';
+    }
   }
 
   cancelAddOlt(): void {
