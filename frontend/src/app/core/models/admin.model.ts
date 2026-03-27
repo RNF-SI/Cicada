@@ -19,6 +19,9 @@ export interface AdminOrganisme {
   url_logo?: string;
   id_parent?: number;
   parent?: AdminOrganisme;
+  id_type_organisme?: number;
+  type_organisme_code?: string;
+  type_organisme_label?: string;
   users_count?: number;
   sites_count?: number;
 }
@@ -329,6 +332,7 @@ export interface PlanSiteOrganisme {
   id_organisme: number;
   nom_organisme: string;
   principal: boolean;
+  type_organisme_code?: string;
 }
 
 export interface PlanSite {
@@ -415,6 +419,7 @@ export interface AdminPlan {
   redacteur_nom?: string;
   redacteurs?: string;
   relecteurs?: string;
+  autres_contributeurs?: string;
   commentaire?: string;
   date_ajout?: string;
   date_maj?: string;
@@ -459,6 +464,7 @@ export interface PlanCreatePayload {
   redacteur_nom?: string;
   redacteurs?: string;
   relecteurs?: string;
+  autres_contributeurs?: string;
   commentaire?: string;
   referents_ids?: number[];
 }

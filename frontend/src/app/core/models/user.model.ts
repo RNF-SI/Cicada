@@ -30,6 +30,8 @@ export interface Organisme {
   ville_organisme?: string;
   tel_organisme?: string;
   email_organisme?: string;
+  type_organisme_code?: string;
+  type_organisme_label?: string;
 }
 
 /**

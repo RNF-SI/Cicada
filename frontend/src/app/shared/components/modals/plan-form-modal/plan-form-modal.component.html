@@ -160,11 +160,13 @@
           <mat-datepicker #cspnPicker></mat-datepicker>
         </mat-form-field>
 
-        <!-- ID Doc'Gestion FCEN -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
-          <input matInput formControlName="id_docgestion_fcen">
-        </mat-form-field>
+        <!-- ID Doc'Gestion FCEN (visible uniquement pour les organismes CEN) -->
+        @if (hasCenOrganisme()) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
+            <input matInput formControlName="id_docgestion_fcen">
+          </mat-form-field>
+        }
 
         <!-- Type organisme rédacteur -->
         <mat-form-field appearance="outline" class="full-width">
@@ -202,6 +204,17 @@
             formControlName="relecteurs"
             rows="2"
             [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
+          ></textarea>
+        </mat-form-field>
+
+        <!-- Autres contributeurs -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
+          <textarea
+            matInput
+            formControlName="autres_contributeurs"
+            rows="2"
+            [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
           ></textarea>
         </mat-form-field>
       </form>

@@ -300,6 +300,17 @@ class BibOrganismes(models.Model):
         blank=True,
         verbose_name=_("Organisme parent")
     )
+    id_type_organisme = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'id_type__mnemonique': 'TYPE_ORGANISME'},
+        db_column='id_type_organisme',
+        verbose_name=_("Type d'organisme"),
+        help_text=_("CEN, RNF, DREAL, PNR, OFB, etc."),
+        related_name='organismes_type'
+    )
     additional_data = models.JSONField(default=dict, null=True, blank=True)
     meta_create_date = models.DateTimeField(auto_now_add=True)
     meta_update_date = models.DateTimeField(auto_now=True)

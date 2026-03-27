@@ -141,8 +141,9 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
                 'id_organisme': cor.uuid_og.id_organisme,
                 'nom_organisme': cor.uuid_og.nom_organisme if cor.uuid_og else '',
                 'principal': cor.principal,
+                'type_organisme_code': cor.uuid_og.id_type_organisme.cd_nomenclature if cor.uuid_og and cor.uuid_og.id_type_organisme else None,
             }
-            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og')
+            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og', 'uuid_og__id_type_organisme')
         ]
 
 
@@ -252,11 +253,13 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         """Retourne la liste des noms des organismes gestionnaires."""
         organismes = []
         for site in obj.get_sites():
-            for cor_og_site in site.corogsite_set.select_related('uuid_og'):
+            for cor_og_site in site.corogsite_set.select_related('uuid_og', 'uuid_og__id_type_organisme'):
                 if cor_og_site.uuid_og:
+                    org = cor_og_site.uuid_og
                     organismes.append({
-                        'id_organisme': cor_og_site.uuid_og.id_organisme,
-                        'nom_organisme': cor_og_site.uuid_og.nom_organisme
+                        'id_organisme': org.id_organisme,
+                        'nom_organisme': org.nom_organisme,
+                        'type_organisme_code': org.id_type_organisme.cd_nomenclature if org.id_type_organisme else None
                     })
         # Remove duplicates by id
         seen = set()
@@ -286,7 +289,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_id', 'evaluation_display', 'redacteur_type_id', 'redacteur_type_display',
-            'redacteur_nom', 'redacteurs', 'relecteurs',
+            'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'statut_display', 'version',
             'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
             'type_document_display', 'children_count', 'version_chain',

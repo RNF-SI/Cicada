@@ -137,6 +137,12 @@ class PlanGestion(models.Model):
         null=True, blank=True
     )
 
+    autres_contributeurs = models.TextField(
+        _("Autres contributeurs"),
+        null=True, blank=True,
+        help_text=_("Autres contributeurs au plan de gestion")
+    )
+
     # Relations vers nomenclatures
     id_evaluation = models.ForeignKey(
         'core.Nomenclature',

@@ -160,6 +160,19 @@ export class PlanFormModalComponent implements OnInit {
     );
   });
 
+  // Détecter si un organisme CEN est lié (pour afficher id_docgestion_fcen)
+  hasCenOrganisme = computed(() => {
+    const plan = this.data?.plan;
+    if (plan?.sites) {
+      return plan.sites.some(site =>
+        site.organismes?.some(org => org.type_organisme_code === 'CEN')
+      );
+    }
+    // En mode création, vérifier l'organisme de l'utilisateur
+    const user = this.currentUser();
+    return user?.organisme?.type_organisme_code === 'CEN';
+  });
+
   // Current year for validation
   currentYear = new Date().getFullYear();
 
@@ -195,6 +208,7 @@ export class PlanFormModalComponent implements OnInit {
       redacteur_nom: [plan?.redacteur_nom || '', Validators.maxLength(255)],
       redacteurs: [plan?.redacteurs || ''],
       relecteurs: [plan?.relecteurs || ''],
+      autres_contributeurs: [plan?.autres_contributeurs || ''],
 
       // Champs existants gardés mais non affichés dans le formulaire principal
       statut: [plan?.statut || 'draft'],
@@ -399,6 +413,7 @@ export class PlanFormModalComponent implements OnInit {
       redacteur_nom: formValue.redacteur_nom || undefined,
       redacteurs: formValue.redacteurs || undefined,
       relecteurs: formValue.relecteurs || undefined,
+      autres_contributeurs: formValue.autres_contributeurs || undefined,
 
       // Champs additionnels
       statut: formValue.statut,

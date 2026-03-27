@@ -1014,6 +1014,7 @@
         "editorName": "Nom organisme rédacteur",
         "redacteurs": "Rédacteurs",
         "relecteurs": "Relecteurs",
+        "autresContributeurs": "Autres contributeurs",
         "status": "Statut",
         "version": "Version",
         "sharedManagement": "Gestion partagée",
@@ -1035,7 +1036,8 @@
         "searchUser": "Rechercher un utilisateur...",
         "comment": "Informations complémentaires...",
         "redacteurs": "Rechercher ou ajouter un rédacteur...",
-        "relecteurs": "Rechercher ou ajouter un relecteur..."
+        "relecteurs": "Rechercher ou ajouter un relecteur...",
+        "autresContributeurs": "Saisir les autres contributeurs..."
       },
       "ct88Options": {
         "yes": "Oui",
