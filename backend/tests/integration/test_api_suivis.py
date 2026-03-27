@@ -480,7 +480,7 @@ class TestSuivisTypeAction:
     def import_nomenclatures(self, db):
         """Import nomenclatures pour les tests type_action."""
         from django.core.management import call_command
-        call_command('import_nomenclatures', verbosity=0)
+        call_command('import_nomenclatures', '--force', verbosity=0)
 
     def test_create_suivi_with_type_action(self, api_client, suivi_test_data):
         """Test création d'un suivi avec un type d'action CS."""
