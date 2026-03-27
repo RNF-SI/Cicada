@@ -107,6 +107,10 @@ export class PlanFormModalComponent implements OnInit {
   availableSites = signal<SelectableSite[]>([]);
   availableUsers = signal<SelectableUser[]>([]);
 
+  // Available organismes for rédacteur selection
+  availableOrganismes = signal<{ id_organisme: number; nom_organisme: string }[]>([]);
+  selectedOrganismesRedacteursIds = signal<number[]>([]);
+
   // Selected items
   selectedSiteIds = signal<number[]>([]);
   selectedReferentIds = signal<number[]>([]);
@@ -259,6 +263,24 @@ export class PlanFormModalComponent implements OnInit {
       error: () => this.availableSites.set([])
     });
 
+    // Load organismes (pour sélection rédacteurs)
+    this.adminService.getOrganismes({ page: 1, page_size: 200 }).subscribe({
+      next: (response) => {
+        this.availableOrganismes.set(
+          response.results.map(o => ({ id_organisme: o.id_organisme, nom_organisme: o.nom_organisme }))
+        );
+      },
+      error: () => this.availableOrganismes.set([])
+    });
+
+    // Pré-sélectionner les organismes rédacteurs en mode édition
+    const plan = this.data?.plan;
+    if (plan?.organismes_redacteurs_list) {
+      this.selectedOrganismesRedacteursIds.set(
+        plan.organismes_redacteurs_list.map(o => o.id_organisme)
+      );
+    }
+
     // Load users (referents potentiels) - if not super_admin, filter by organisme
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const userParams = (!this.isSuperAdmin() && currentOrgId)
@@ -282,6 +304,15 @@ export class PlanFormModalComponent implements OnInit {
         this.isLoadingData.set(false);
       }
     });
+  }
+
+  toggleOrganismeRedacteur(orgId: number): void {
+    const current = this.selectedOrganismesRedacteursIds();
+    if (current.includes(orgId)) {
+      this.selectedOrganismesRedacteursIds.set(current.filter(id => id !== orgId));
+    } else {
+      this.selectedOrganismesRedacteursIds.set([...current, orgId]);
+    }
   }
 
   private getRoleLabel(roleLevel?: string): string {
@@ -422,7 +453,8 @@ export class PlanFormModalComponent implements OnInit {
       risque_incendie: formValue.risque_incendie,
       id_evaluation: formValue.id_evaluation || undefined,
       commentaire: formValue.commentaire || undefined,
-      referents_ids: this.selectedReferentIds()
+      referents_ids: this.selectedReferentIds(),
+      organismes_redacteurs_ids: this.selectedOrganismesRedacteursIds()
     };
 
     const request$ = this.isEditMode

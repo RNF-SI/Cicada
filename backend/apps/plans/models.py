@@ -487,6 +487,42 @@ class CorRolePlan(models.Model):
         return f"{self.id_role.email} - {self.plan_de_gestion.nom} ({role_type})"
 
 
+class CorRedacteurPlan(models.Model):
+    """
+    Table de liaison entre Plans de Gestion et Organismes Rédacteurs.
+    Un organisme rédacteur peut éditer le plan mais n'apparaît pas
+    dans la ventilation budgétaire (réservée aux organismes gestionnaires).
+    """
+
+    plan_de_gestion = models.ForeignKey(
+        PlanGestion,
+        on_delete=models.CASCADE,
+        verbose_name=_("Plan de gestion"),
+        related_name='organismes_redacteurs'
+    )
+    uuid_og = models.ForeignKey(
+        'users.BibOrganismes',
+        on_delete=models.CASCADE,
+        to_field='uuid_organisme',
+        db_column='uuid_og',
+        verbose_name=_("Organisme rédacteur")
+    )
+    date_association = models.DateTimeField(
+        _("Date d'association"),
+        auto_now_add=True
+    )
+
+    class Meta:
+        db_table = '"general"."cor_redacteur_plan"'
+        db_table_comment = 'Organismes rédacteurs des plans de gestion'
+        verbose_name = _("Organisme rédacteur - Plan")
+        verbose_name_plural = _("Organismes rédacteurs - Plans")
+        unique_together = ['plan_de_gestion', 'uuid_og']
+
+    def __str__(self):
+        return f"{self.uuid_og.nom_organisme} - {self.plan_de_gestion.nom}"
+
+
 class CorPgFichier(models.Model):
     """
     Table de liaison entre Plans de Gestion et fichiers joints.

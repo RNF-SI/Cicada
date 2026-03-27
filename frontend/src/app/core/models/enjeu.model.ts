@@ -397,6 +397,8 @@ export interface OperationAnnee {
   periodicite: boolean;
   budget: number | null;
   etp: number | null;
+  budget_fonctionnement?: number | null;
+  budget_investissement?: number | null;
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
   organismes?: OperationAnneeOrganisme[];

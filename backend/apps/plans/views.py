@@ -45,10 +45,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     """
 
     def _can_manage_plan(self, user, plan):
-        """Vérifie si l'utilisateur peut gérer ce plan (admin_og+ ou référent du plan)."""
+        """Vérifie si l'utilisateur peut gérer ce plan (admin_og+, référent, ou organisme rédacteur)."""
         if user.is_admin_organisme():
             return True
-        return plan.referents.filter(pk=user.pk).exists()
+        if plan.referents.filter(pk=user.pk).exists():
+            return True
+        # Utilisateur d'un organisme rédacteur du plan
+        if user.id_organisme and plan.organismes_redacteurs.filter(uuid_og=user.id_organisme).exists():
+            return True
+        return False
 
     queryset = PlanGestion.objects.all().select_related(
         'id_evaluation', 'id_redacteur_type',
@@ -105,10 +110,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
-        # Admin organisme : voir les plans des sites de son organisme
+        # Admin organisme : voir les plans des sites de son organisme + plans rédacteur
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                sites__site__corogsite__uuid_og=user.id_organisme
+                Q(sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(organismes_redacteurs__uuid_og=user.id_organisme)
             ).distinct()
 
         # Référent / Utilisateur : plans personnels + plans de l'organisme
@@ -122,6 +128,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         # Plans dont il est membre direct (CorRolePlan)
         conditions |= Q(membres__id_role=user)
+
+        # Plans dont son organisme est rédacteur
+        if user.id_organisme:
+            conditions |= Q(organismes_redacteurs__uuid_og=user.id_organisme)
 
         # Plans de son organisme (pour pouvoir en demander l'accès)
         # Exclus si scope=mine (ex: page de duplication)

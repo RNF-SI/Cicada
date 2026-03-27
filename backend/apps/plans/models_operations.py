@@ -646,6 +646,18 @@ class OperationAnnee(models.Model):
         max_digits=8, decimal_places=2,
         null=True, blank=True
     )
+    budget_fonctionnement = models.DecimalField(
+        _("Budget fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé en mode ventilation par type de budget (sans organismes)")
+    )
+    budget_investissement = models.DecimalField(
+        _("Budget investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé en mode ventilation par type de budget (sans organismes)")
+    )
     periodicite_mensuelle = models.JSONField(
         _("Périodicité mensuelle"),
         default=dict, blank=True,

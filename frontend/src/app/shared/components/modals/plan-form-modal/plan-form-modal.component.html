@@ -217,6 +217,24 @@
             [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
           ></textarea>
         </mat-form-field>
+
+        <!-- Organismes rédacteurs -->
+        @if (availableOrganismes().length > 0) {
+          <div class="form-section">
+            <label class="form-label">{{ 'modals.planForm.fields.organismesRedacteurs' | translate }}</label>
+            <p class="form-hint">{{ 'modals.planForm.hints.organismesRedacteurs' | translate }}</p>
+            <div class="organismes-redacteurs-list">
+              @for (org of availableOrganismes(); track org.id_organisme) {
+                <mat-checkbox
+                  [checked]="selectedOrganismesRedacteursIds().includes(org.id_organisme)"
+                  (change)="toggleOrganismeRedacteur(org.id_organisme)"
+                  color="primary">
+                  {{ org.nom_organisme }}
+                </mat-checkbox>
+              }
+            </div>
+          </div>
+        }
       </form>
     }
   </mat-dialog-content>

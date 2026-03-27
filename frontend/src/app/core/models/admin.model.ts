@@ -420,6 +420,7 @@ export interface AdminPlan {
   redacteurs?: string;
   relecteurs?: string;
   autres_contributeurs?: string;
+  organismes_redacteurs_list?: Array<{ id_organisme: number; nom_organisme: string }>;
   commentaire?: string;
   date_ajout?: string;
   date_maj?: string;
@@ -465,6 +466,7 @@ export interface PlanCreatePayload {
   redacteurs?: string;
   relecteurs?: string;
   autres_contributeurs?: string;
+  organismes_redacteurs_ids?: number[];
   commentaire?: string;
   referents_ids?: number[];
 }

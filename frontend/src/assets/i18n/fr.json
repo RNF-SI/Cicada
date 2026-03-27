@@ -1015,6 +1015,7 @@
         "redacteurs": "Rédacteurs",
         "relecteurs": "Relecteurs",
         "autresContributeurs": "Autres contributeurs",
+        "organismesRedacteurs": "Organismes rédacteurs",
         "status": "Statut",
         "version": "Version",
         "sharedManagement": "Gestion partagée",
@@ -1027,7 +1028,8 @@
         "surface": "Saisissez un nombre",
         "editorName": "Sélectionnez un organisme existant ou saisissez un texte libre",
         "redacteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
-        "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)"
+        "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
+        "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)"
       },
       "placeholders": {
         "name": "Plan de gestion 2024-2034 - Site XYZ",
@@ -1835,9 +1837,9 @@
       "cancel": "Annuler",
       "roleLabel": "Type d'accès demandé",
       "roleMember": "Membre",
-      "roleMemberDesc": "Accès en lecture seule aux données du plan",
+      "roleMemberDesc": "Demander l'accès en lecture : consultation des données du plan sans possibilité de modification",
       "roleReferent": "Référent",
-      "roleReferentDesc": "Accès complet : modification, validation, gestion des utilisateurs"
+      "roleReferentDesc": "Demander le droit d'édition du PG : modification des données, gestion du cycle de vie et des utilisateurs"
     },
     "success": "Votre demande a été envoyée et est en attente de validation",
     "successBoth": "Vos demandes de lien au site et d'accès au plan ont été envoyées.",
@@ -2269,7 +2271,11 @@
       "travailPrevisionnel": "Travail prévisionnel (jours)",
       "totalLabel": "TOTAL",
       "duplicateFirstCol": "Dupliquer valeurs de la 1ère colonne",
-      "modeVentilationLabel": "Mode de saisie des budgets",
+      "modeVentilationLabel": "Mode de ventilation budgétaire",
+      "modeNone": "Pas de ventilation",
+      "modeByOrg": "Par organisme",
+      "modeByType": "Par type de budget",
+      "modeByOrgType": "Par organisme + type",
       "modeVentilation": "Ventilation par organisme",
       "modeTotauxDirects": "Totaux directs",
       "directModeHint": "En mode totaux directs, seuls les montants totaux sont pris en compte (pas de ventilation par organisme).",

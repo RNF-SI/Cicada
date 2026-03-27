@@ -36,7 +36,7 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
         model = OperationAnnee
         fields = [
             'id_operation_annee', 'annee', 'periodicite',
-            'budget', 'etp',
+            'budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
             'periodicite_mensuelle', 'geom', 'organismes'
         ]
         read_only_fields = ['id_operation_annee']

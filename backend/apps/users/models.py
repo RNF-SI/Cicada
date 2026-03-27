@@ -502,6 +502,42 @@ class CorOgSite(models.Model):
             return None
 
 
+class CorRedacteurSite(models.Model):
+    """
+    Table de liaison entre sites et organismes rédacteurs.
+    Distinct de CorOgSite (organismes gestionnaires).
+    L'organisme rédacteur n'est pas gestionnaire mais peut contribuer à la rédaction.
+    """
+
+    id_site = models.ForeignKey(
+        Site,
+        on_delete=models.CASCADE,
+        db_column='id_site',
+        related_name='organismes_redacteurs'
+    )
+    uuid_og = models.ForeignKey(
+        BibOrganismes,
+        on_delete=models.CASCADE,
+        to_field='uuid_organisme',
+        db_column='uuid_organisme',
+        verbose_name=_("Organisme rédacteur")
+    )
+    date_association = models.DateTimeField(
+        _("Date d'association"),
+        auto_now_add=True
+    )
+
+    class Meta:
+        db_table = '"referentiels"."cor_redacteur_site"'
+        db_table_comment = 'Organismes rédacteurs des sites'
+        verbose_name = _("Site - Organisme rédacteur")
+        verbose_name_plural = _("Sites - Organismes rédacteurs")
+        unique_together = ['id_site', 'uuid_og']
+
+    def __str__(self):
+        return f"{self.id_site} - {self.uuid_og} (rédacteur)"
+
+
 class BulkImportJob(models.Model):
     """
     Suivi des imports en masse de sites.
