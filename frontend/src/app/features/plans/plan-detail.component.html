@@ -65,19 +65,17 @@
                 <div class="meta-row">
                   <span class="meta-label">{{ 'modals.planForm.fields.startYear' | translate }} :</span>
                   <span class="meta-value">{{ p.annee_debut }}-{{ p.annee_fin }}</span>
-                  @if (p.redacteur_nom) {
-                    <span class="meta-separator">|</span>
-                    <span class="meta-label">{{ 'modals.planForm.fields.editorName' | translate }} :</span>
-                    <span class="meta-value">{{ p.redacteur_nom }}</span>
-                  }
-                  @if (p.organismes_redacteurs_list && p.organismes_redacteurs_list.length > 0) {
-                    <span class="meta-separator">|</span>
-                    <span class="meta-label">{{ 'modals.planForm.fields.organismesRedacteurs' | translate }} :</span>
+                </div>
+                @if (p.organismes_redacteurs_list && p.organismes_redacteurs_list.length > 0) {
+                  <div class="meta-row">
+                    <i class="fi fi-rr-pencil meta-icon"></i>
+                    <span class="meta-label">{{ 'plans.detail.organismesRedacteurs' | translate }} :</span>
                     @for (org of p.organismes_redacteurs_list; track org.id_organisme; let last = $last) {
                       <span class="meta-value">{{ org.nom_organisme }}{{ last ? '' : ', ' }}</span>
                     }
-                  }
-                </div>
+                    <span class="meta-hint">{{ 'plans.detail.organismesRedacteursHint' | translate }}</span>
+                  </div>
+                }
                 <div class="meta-row">
                   @if (p.evaluation_label) {
                     <span class="meta-label">{{ 'modals.planForm.fields.evaluationType' | translate }} :</span>
@@ -256,7 +254,6 @@
                                       @if (enjeu.rang) {
                                         <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
                                       }
-                                      <i class="fi fi-rr-arrow-right synthese-item-arrow"></i>
                                     </div>
                                     <!-- OLT sous l'enjeu -->
                                     @if (enjeu.objectifs_long_terme && enjeu.objectifs_long_terme.length > 0) {

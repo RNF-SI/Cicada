@@ -256,6 +256,7 @@ export interface SiteOrganisme {
   email_organisme?: string;
   /** Indique si c'est l'organisme principal/gestionnaire du site */
   principal?: boolean;
+  type_organisme_code?: string;
 }
 
 /**

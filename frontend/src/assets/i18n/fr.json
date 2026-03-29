@@ -1031,6 +1031,8 @@
         "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
         "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)"
       },
+      "createOrganisme": "Créer un organisme",
+      "createOrganismePrompt": "Nom du nouvel organisme :",
       "placeholders": {
         "name": "Plan de gestion 2024-2034 - Site XYZ",
         "editorName": "Rechercher un organisme ou saisir un nom...",
@@ -1328,6 +1330,8 @@
       "actions": {
         "editMetadata": "Modifier les métadonnées"
       },
+      "organismesRedacteurs": "Organismes rédacteurs",
+      "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",

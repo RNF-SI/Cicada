@@ -15,6 +15,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -45,6 +46,7 @@ interface SelectableSite {
   selected: boolean;
   accessType?: string;
   accessLabel?: string;
+  organismes?: Array<{ id_organisme: number; nom_organisme: string; principal: boolean; type_organisme_code?: string }>;
 }
 
 interface SelectableUser {
@@ -76,6 +78,7 @@ interface SelectableUser {
     MatDatepickerModule,
     MatNativeDateModule,
     MatTooltipModule,
+    MatSnackBarModule,
     TranslateModule,
     RouterModule,
     ViewScopeToggleComponent
@@ -89,6 +92,7 @@ export class PlanFormModalComponent implements OnInit {
   private readonly authService = inject(AuthService);
   readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
   private readonly translate = inject(TranslateService);
+  private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<PlanFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -110,6 +114,13 @@ export class PlanFormModalComponent implements OnInit {
   // Available organismes for rédacteur selection
   availableOrganismes = signal<{ id_organisme: number; nom_organisme: string }[]>([]);
   selectedOrganismesRedacteursIds = signal<number[]>([]);
+  organismeSearchFilter = signal('');
+  filteredOrganismes = computed(() => {
+    const filter = this.organismeSearchFilter().toLowerCase().trim();
+    const orgs = this.availableOrganismes();
+    if (!filter) return orgs;
+    return orgs.filter(o => o.nom_organisme.toLowerCase().includes(filter));
+  });
 
   // Selected items
   selectedSiteIds = signal<number[]>([]);
@@ -164,17 +175,14 @@ export class PlanFormModalComponent implements OnInit {
     );
   });
 
-  // Détecter si un organisme CEN est lié (pour afficher id_docgestion_fcen)
+  // Détecter si un organisme CEN est lié (réactif aux sites sélectionnés)
   hasCenOrganisme = computed(() => {
-    const plan = this.data?.plan;
-    if (plan?.sites) {
-      return plan.sites.some(site =>
-        site.organismes?.some(org => org.type_organisme_code === 'CEN')
-      );
-    }
-    // En mode création, vérifier l'organisme de l'utilisateur
-    const user = this.currentUser();
-    return user?.organisme?.type_organisme_code === 'CEN';
+    const selectedIds = this.selectedSiteIds();
+    const sites = this.availableSites();
+    // Vérifier si l'un des sites sélectionnés a un organisme CEN
+    return sites
+      .filter(s => selectedIds.includes(s.id))
+      .some(s => s.organismes?.some(org => org.type_organisme_code === 'CEN'));
   });
 
   // Current year for validation
@@ -256,7 +264,8 @@ export class PlanFormModalComponent implements OnInit {
           type: s.type_site_label,
           selected: this.selectedSiteIds().includes(s.id_site),
           accessType: s.current_user_access?.access_type,
-          accessLabel: s.current_user_access?.role_label
+          accessLabel: s.current_user_access?.role_label,
+          organismes: s.organismes || []
         }));
         this.availableSites.set(sites);
       },
@@ -306,12 +315,27 @@ export class PlanFormModalComponent implements OnInit {
     });
   }
 
-  toggleOrganismeRedacteur(orgId: number): void {
-    const current = this.selectedOrganismesRedacteursIds();
-    if (current.includes(orgId)) {
-      this.selectedOrganismesRedacteursIds.set(current.filter(id => id !== orgId));
-    } else {
-      this.selectedOrganismesRedacteursIds.set([...current, orgId]);
+  onOrganismesRedacteursChange(ids: number[]): void {
+    this.selectedOrganismesRedacteursIds.set(ids);
+  }
+
+  openCreateOrganismeDialog(): void {
+    const nom = prompt(this.translate.instant('modals.planForm.createOrganismePrompt'));
+    if (nom && nom.trim()) {
+      this.adminService.createOrganisme({ nom_organisme: nom.trim() }).subscribe({
+        next: (org) => {
+          // Ajouter le nouvel organisme à la liste et le sélectionner
+          this.availableOrganismes.update(orgs => [...orgs, { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme }]);
+          this.selectedOrganismesRedacteursIds.update(ids => [...ids, org.id_organisme]);
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translate.instant('common.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+        }
+      });
     }
   }
 

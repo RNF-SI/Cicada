@@ -487,3 +487,26 @@ mat-dialog-actions {
     justify-content: flex-start;
   }
 }
+
+// Recherche intégrée dans mat-select
+.select-search-box {
+  padding: 8px 16px;
+  border-bottom: 1px solid $gray-light;
+  position: sticky;
+  top: 0;
+  background: $white;
+  z-index: 1;
+
+  input {
+    width: 100%;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+      border-color: $primary-color;
+    }
+  }
+}

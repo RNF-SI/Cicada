@@ -215,11 +215,12 @@ class SiteListSerializer(serializers.ModelSerializer):
 
     def get_organismes(self, obj):
         """Organismes gestionnaires du site."""
-        cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
+        cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og', 'uuid_og__id_type_organisme')
         return [{
             'id_organisme': cor.uuid_og.id_organisme,
             'nom_organisme': cor.uuid_og.nom_organisme,
-            'principal': cor.principal
+            'principal': cor.principal,
+            'type_organisme_code': cor.uuid_og.id_type_organisme.cd_nomenclature if cor.uuid_og.id_type_organisme else None,
         } for cor in cor_orgs]
 
     def get_users(self, obj):

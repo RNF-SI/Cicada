@@ -226,6 +226,7 @@ export class OperationFormComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     this.initFrequenceLabels();
     this.initForm();
     this.initSuiviLibelleSync();
