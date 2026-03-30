@@ -46,7 +46,7 @@ interface SelectableSite {
   selected: boolean;
   accessType?: string;
   accessLabel?: string;
-  organismes?: Array<{ id_organisme: number; nom_organisme: string; principal: boolean; type_organisme_code?: string }>;
+  organismes?: Array<{ id_organisme: number; nom_organisme: string; principal?: boolean; type_organisme_code?: string }>;
 }
 
 interface SelectableUser {
