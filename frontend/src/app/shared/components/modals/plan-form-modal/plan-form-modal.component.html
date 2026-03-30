@@ -188,6 +188,7 @@
             rows="2"
             [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
           ></textarea>
+          <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
         </mat-form-field>
 
         <!-- Relecteurs -->
@@ -199,9 +200,10 @@
             rows="2"
             [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
           ></textarea>
+          <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
         </mat-form-field>
 
-        <!-- Autres contributeurs -->
+        <!-- Autres rédacteurs -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
           <textarea

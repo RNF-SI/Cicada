@@ -452,7 +452,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
-            'redacteurs', 'relecteurs',
+            'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'version', 'geometrie',
             'sites_ids', 'referents_ids'
         ]

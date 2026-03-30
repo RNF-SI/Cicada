@@ -4,8 +4,8 @@
  *
  * Fonctionnalités:
  * - Création de site via modal
- * - Rédacteurs/Relecteurs: sélection d'utilisateurs ou saisie libre
- * - Organisme rédacteur: sélection d'organisme ou saisie libre
+ * - Rédacteurs/Relecteurs: champs texte libre
+ * - Organisme rédacteur principal: sélection d'organisme ou saisie libre
  */
 import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -26,7 +26,6 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Observable, map, startWith, debounceTime, distinctUntilChanged } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
@@ -36,7 +35,6 @@ import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/vie
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
   PlanCreatePayload,
-  AdminUser,
   AdminOrganisme
 } from '../../core/models/admin.model';
 
@@ -54,14 +52,6 @@ interface SelectableSite {
   pendingValidation?: boolean;
   accessType?: string;
   accessLabel?: string;
-}
-
-/** Représente un rédacteur ou relecteur (utilisateur ou texte libre) */
-interface PersonEntry {
-  type: 'user' | 'text';
-  userId?: number;
-  displayName: string;
-  email?: string;
 }
 
 /** Représente un organisme (existant ou texte libre) */
@@ -102,8 +92,6 @@ interface OrganismeEntry {
   styleUrl: './plan-create.component.scss'
 })
 export class PlanCreateComponent implements OnInit {
-  @ViewChild('redacteursInput') redacteursInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('relecteursInput') relecteursInput!: ElementRef<HTMLInputElement>;
   @ViewChild('organismeInput') organismeInput!: ElementRef<HTMLInputElement>;
 
   private readonly elRef = inject(ElementRef);
@@ -170,20 +158,6 @@ export class PlanCreateComponent implements OnInit {
   // Current year for validation
   currentYear = new Date().getFullYear();
 
-  // Separator keys for chips
-  readonly separatorKeysCodes = [ENTER, COMMA] as const;
-
-  // === Rédacteurs (hybrid: users + free text) ===
-  redacteurs = signal<PersonEntry[]>([]);
-  redacteursCtrl = new FormControl('');
-  availableUsers = signal<AdminUser[]>([]);
-  filteredUsers$!: Observable<AdminUser[]>;
-
-  // === Relecteurs (hybrid: users + free text) ===
-  relecteurs = signal<PersonEntry[]>([]);
-  relecteursCtrl = new FormControl('');
-  filteredUsersForRelecteurs$!: Observable<AdminUser[]>;
-
   // === Organisme rédacteur (hybrid: organisme + free text) ===
   selectedOrganisme = signal<OrganismeEntry | null>(null);
   organismeCtrl = new FormControl('');
@@ -218,6 +192,9 @@ export class PlanCreateComponent implements OnInit {
       date_validation_cspn: [null],
       id_docgestion_fcen: [''],
       id_redacteur_type: [null],
+      redacteurs: [''],
+      relecteurs: [''],
+      autres_contributeurs: [''],
 
       // Champs additionnels non affichés
       statut: ['draft'],
@@ -227,22 +204,6 @@ export class PlanCreateComponent implements OnInit {
   }
 
   private setupAutocomplete(): void {
-    // Autocomplete pour rédacteurs
-    this.filteredUsers$ = this.redacteursCtrl.valueChanges.pipe(
-      startWith(''),
-      debounceTime(200),
-      distinctUntilChanged(),
-      map(value => this.filterUsers(value || ''))
-    );
-
-    // Autocomplete pour relecteurs
-    this.filteredUsersForRelecteurs$ = this.relecteursCtrl.valueChanges.pipe(
-      startWith(''),
-      debounceTime(200),
-      distinctUntilChanged(),
-      map(value => this.filterUsers(value || ''))
-    );
-
     // Autocomplete pour organisme
     this.filteredOrganismes$ = this.organismeCtrl.valueChanges.pipe(
       startWith(''),
@@ -250,16 +211,6 @@ export class PlanCreateComponent implements OnInit {
       distinctUntilChanged(),
       map(value => this.filterOrganismes(value || ''))
     );
-  }
-
-  private filterUsers(value: string): AdminUser[] {
-    const filterValue = value.toLowerCase().trim();
-    if (!filterValue) return this.availableUsers().slice(0, 10);
-
-    return this.availableUsers().filter(user => {
-      const fullName = `${user.prenom_role || ''} ${user.nom_role || ''}`.toLowerCase();
-      return fullName.includes(filterValue) || user.email.toLowerCase().includes(filterValue);
-    }).slice(0, 10);
   }
 
   private filterOrganismes(value: string): AdminOrganisme[] {
@@ -278,12 +229,6 @@ export class PlanCreateComponent implements OnInit {
     this.adminService.getRedacteurTypes().subscribe({
       next: (types) => this.redacteurTypes.set(types),
       error: () => this.redacteurTypes.set([])
-    });
-
-    // Load users for autocomplete
-    this.adminService.getUsers({ page: 1, page_size: 200 }).subscribe({
-      next: (response) => this.availableUsers.set(response.results),
-      error: () => this.availableUsers.set([])
     });
 
     // Load organismes for autocomplete
@@ -410,98 +355,6 @@ export class PlanCreateComponent implements OnInit {
     });
   }
 
-  // ==================== REDACTEURS ====================
-
-  /** Ajoute un utilisateur comme rédacteur */
-  addRedacteurFromUser(event: MatAutocompleteSelectedEvent): void {
-    const user = event.option.value as AdminUser;
-    const entry: PersonEntry = {
-      type: 'user',
-      userId: user.id_role,
-      displayName: `${user.prenom_role || ''} ${user.nom_role || ''}`.trim() || user.email,
-      email: user.email
-    };
-
-    // Éviter les doublons
-    if (!this.redacteurs().some(r => r.type === 'user' && r.userId === user.id_role)) {
-      this.redacteurs.update(list => [...list, entry]);
-    }
-
-    this.redacteursCtrl.setValue('');
-    if (this.redacteursInput) {
-      this.redacteursInput.nativeElement.value = '';
-    }
-  }
-
-  /** Ajoute un texte libre comme rédacteur */
-  addRedacteurFromText(event: any): void {
-    const value = (event.value || '').trim();
-    if (value) {
-      const entry: PersonEntry = {
-        type: 'text',
-        displayName: value
-      };
-
-      // Éviter les doublons
-      if (!this.redacteurs().some(r => r.type === 'text' && r.displayName === value)) {
-        this.redacteurs.update(list => [...list, entry]);
-      }
-    }
-
-    event.chipInput?.clear();
-    this.redacteursCtrl.setValue('');
-  }
-
-  /** Supprime un rédacteur */
-  removeRedacteur(entry: PersonEntry): void {
-    this.redacteurs.update(list => list.filter(r => r !== entry));
-  }
-
-  // ==================== RELECTEURS ====================
-
-  /** Ajoute un utilisateur comme relecteur */
-  addRelecteurFromUser(event: MatAutocompleteSelectedEvent): void {
-    const user = event.option.value as AdminUser;
-    const entry: PersonEntry = {
-      type: 'user',
-      userId: user.id_role,
-      displayName: `${user.prenom_role || ''} ${user.nom_role || ''}`.trim() || user.email,
-      email: user.email
-    };
-
-    if (!this.relecteurs().some(r => r.type === 'user' && r.userId === user.id_role)) {
-      this.relecteurs.update(list => [...list, entry]);
-    }
-
-    this.relecteursCtrl.setValue('');
-    if (this.relecteursInput) {
-      this.relecteursInput.nativeElement.value = '';
-    }
-  }
-
-  /** Ajoute un texte libre comme relecteur */
-  addRelecteurFromText(event: any): void {
-    const value = (event.value || '').trim();
-    if (value) {
-      const entry: PersonEntry = {
-        type: 'text',
-        displayName: value
-      };
-
-      if (!this.relecteurs().some(r => r.type === 'text' && r.displayName === value)) {
-        this.relecteurs.update(list => [...list, entry]);
-      }
-    }
-
-    event.chipInput?.clear();
-    this.relecteursCtrl.setValue('');
-  }
-
-  /** Supprime un relecteur */
-  removeRelecteur(entry: PersonEntry): void {
-    this.relecteurs.update(list => list.filter(r => r !== entry));
-  }
-
   // ==================== ORGANISME REDACTEUR ====================
 
   /** Sélectionne un organisme existant ou texte libre */
@@ -557,12 +410,6 @@ export class PlanCreateComponent implements OnInit {
     this.organismeCtrl.setValue('');
   }
 
-  /** Affiche le nom de l'utilisateur pour l'autocomplete */
-  displayUserFn(user: AdminUser): string {
-    if (!user) return '';
-    return `${user.prenom_role || ''} ${user.nom_role || ''}`.trim() || user.email;
-  }
-
   /** Affiche le nom de l'organisme pour l'autocomplete */
   displayOrganismeFn(org: any): string {
     if (!org) return '';
@@ -598,22 +445,6 @@ export class PlanCreateComponent implements OnInit {
       dateValidationCspn = date.toISOString().split('T')[0];
     }
 
-    // Formater les rédacteurs (JSON string)
-    const redacteursData = this.redacteurs().map(r => ({
-      type: r.type,
-      user_id: r.userId,
-      name: r.displayName,
-      email: r.email
-    }));
-
-    // Formater les relecteurs (JSON string)
-    const relecteursData = this.relecteurs().map(r => ({
-      type: r.type,
-      user_id: r.userId,
-      name: r.displayName,
-      email: r.email
-    }));
-
     // Formater l'organisme rédacteur
     const orgEntry = this.selectedOrganisme();
     let redacteurNom: string | undefined;
@@ -636,9 +467,9 @@ export class PlanCreateComponent implements OnInit {
       id_docgestion_fcen: formValue.id_docgestion_fcen || undefined,
       id_redacteur_type: formValue.id_redacteur_type || undefined,
       redacteur_nom: redacteurNom,
-      // Stocker les rédacteurs/relecteurs comme JSON strings
-      redacteurs: redacteursData.length > 0 ? JSON.stringify(redacteursData) : undefined,
-      relecteurs: relecteursData.length > 0 ? JSON.stringify(relecteursData) : undefined,
+      redacteurs: formValue.redacteurs || undefined,
+      relecteurs: formValue.relecteurs || undefined,
+      autres_contributeurs: formValue.autres_contributeurs || undefined,
 
       // Champs additionnels
       statut: formValue.statut,
