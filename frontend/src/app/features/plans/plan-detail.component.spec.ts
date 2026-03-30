@@ -278,6 +278,7 @@ describe('PlanDetailComponent', () => {
       currentUser: currentUserSignal.asReadonly(),
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
       isAdminOrganisme: isAdminOrganismeSignal.asReadonly(),
+      isRedacteurPrincipal: jest.fn().mockReturnValue(false),
       canAccessAdmin: signal(true).asReadonly(),
       isReferent: signal(false).asReadonly(),
       isImpersonating: signal(false).asReadonly(),
