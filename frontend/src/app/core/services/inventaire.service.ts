@@ -37,7 +37,6 @@ export class InventaireService {
     if (filters) {
       if (filters.actif !== undefined) params = params.set('actif', filters.actif.toString());
       if (filters.id_statut) params = params.set('id_statut', filters.id_statut.toString());
-      if (filters.id_type_suivi) params = params.set('id_type_suivi', filters.id_type_suivi.toString());
       if (filters.id_pg) params = params.set('id_pg', filters.id_pg.toString());
       if (filters.annee_min) params = params.set('annee_min', filters.annee_min.toString());
       if (filters.annee_max) params = params.set('annee_max', filters.annee_max.toString());

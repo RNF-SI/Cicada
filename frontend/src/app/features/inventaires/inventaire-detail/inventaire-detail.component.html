@@ -34,10 +34,10 @@
       <!-- Meta row -->
       @if (suivi()) {
         <div class="hero-meta">
-          @if (suivi()?.type_label) {
+          @if (suivi()?.type_action_label) {
             <span class="meta-item">
               <i class="fi fi-rr-test-tube"></i>
-              {{ suivi()?.type_label }}
+              {{ suivi()?.type_action_code }} — {{ suivi()?.type_action_label }}
             </span>
           }
           @if (periode()) {
@@ -96,10 +96,10 @@
             <span class="field-value">{{ suivi()?.intitule || '—' }}</span>
           </div>
 
-          <!-- Type de suivi -->
+          <!-- Type d'action -->
           <div class="field">
-            <span class="field-label">{{ 'inventaires.form.typeSuivi' | translate }}</span>
-            <span class="field-value">{{ suivi()?.type_label || '—' }}</span>
+            <span class="field-label">{{ 'inventaires.form.typeAction' | translate }}</span>
+            <span class="field-value">{{ suivi()?.type_action_code ? (suivi()?.type_action_code + ' — ' + suivi()?.type_action_label) : '—' }}</span>
           </div>
 
           <!-- Intégré dans le plan de gestion -->

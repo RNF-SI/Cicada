@@ -19,6 +19,12 @@ from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
 @pytest.fixture
 def suivi_test_data(db):
     """Fixture providing common test data for suivis tests."""
+    from django.core.management import call_command
+    from apps.core.models import Nomenclature
+
+    # Import nomenclatures (needed for id_type_action required field)
+    call_command('import_nomenclatures', '--force', verbosity=0)
+
     organisme = OrganismeFactory()
     site = SiteFactory()
     CorOgSiteFactory(id_site=site, uuid_og=organisme)
@@ -33,6 +39,11 @@ def suivi_test_data(db):
     CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
     plan.referents.add(referent)
     user = RoleFactory()
+
+    # Get a CS type_action nomenclature for test suivis
+    cs8 = Nomenclature.objects.filter(
+        id_type__mnemonique='TYPE_ACTION', cd_nomenclature='CS8'
+    ).first()
 
     # Suivis/Inventaires
     suivi1 = SuiviInventaireFactory(
@@ -74,6 +85,7 @@ def suivi_test_data(db):
         'suivi1': suivi1,
         'suivi2': suivi2,
         'suivi3': suivi3,
+        'type_action_cs8': cs8,
     }
 
 
@@ -168,6 +180,7 @@ class TestSuivisCreateEndpoint:
             'objectif_principal': 'OBJ_RISQUES_ECOLOGIQUES',
             'cibles_principales': 'HABITATS_VEGETATIONS',
             'date_lancement_suivi': '2025-01-01',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         assert SuiviInventaire.objects.filter(intitule='Nouveau suivi SA').exists()
@@ -179,6 +192,7 @@ class TestSuivisCreateEndpoint:
             'intitule': 'Suivi avec protocole',
             'objectif_principal': 'OBJ_ETAT_CONSERVATION',
             'cibles_principales': 'ESPECES',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
             'protocole': {
                 'protocole_dans_campanule': True,
                 'protocole_campanule_nom': 'Proto Test',
@@ -198,6 +212,7 @@ class TestSuivisCreateEndpoint:
             'intitule': 'Suivi Campanule',
             'objectif_principal': 'OBJ_ETAT_CONSERVATION',
             'cibles_principales': 'ESPECES',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
             'protocole': {
                 'protocole_dans_campanule': True,
                 'protocole_campanule_nom': 'STOC-EPS',
@@ -225,6 +240,7 @@ class TestSuivisCreateEndpoint:
             'intitule': 'Suivi Custom',
             'objectif_principal': 'OBJ_RISQUES_ECOLOGIQUES',
             'cibles_principales': 'HABITATS_VEGETATIONS',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
             'protocole': {
                 'protocole_dans_campanule': False,
                 'nom_protocole': 'Mon protocole maison',
@@ -250,10 +266,11 @@ class TestSuivisCreateEndpoint:
         assert proto.differences_protocole == 'Quadrats plus grands'
 
     def test_create_with_minimal_fields(self, api_client, suivi_test_data):
-        """Test create with only intitule."""
+        """Test create with intitule and id_type_action (required)."""
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Suivi Minimal',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -262,6 +279,7 @@ class TestSuivisCreateEndpoint:
         api_client.force_authenticate(user=suivi_test_data['super_admin'])
         response = api_client.post('/api/inventaires/suivis/', {
             'intitule': 'Suivi Audit',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         suivi = SuiviInventaire.objects.get(intitule='Suivi Audit')
@@ -323,6 +341,7 @@ class TestSuivisDetailEndpoint:
             'intitule': 'Suivi roundtrip complet',
             'prix_indicatif': 1500,
             'integre_plan_gestion': True,
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
             'objectif_principal': 'OBJ_ETAT_CONSERVATION',
             'objectif_secondaire': 'OBJ_DYNAMIQUE_MILIEUX',
             'cibles_principales': 'ESPECES',
@@ -391,7 +410,7 @@ class TestSuivisDetailEndpoint:
         assert 'nb_operations' in data
         assert 'createur_nom' in data
         assert 'statut_label' in data
-        assert 'type_label' in data
+        assert 'type_action_label' in data
         assert 'date_ajout' in data
 
 
@@ -475,12 +494,6 @@ class TestSuivisDeleteEndpoint:
 @pytest.mark.integration
 class TestSuivisTypeAction:
     """Tests pour le champ id_type_action et le filtre type_action_prefix."""
-
-    @pytest.fixture(autouse=True)
-    def import_nomenclatures(self, db):
-        """Import nomenclatures pour les tests type_action."""
-        from django.core.management import call_command
-        call_command('import_nomenclatures', '--force', verbosity=0)
 
     def test_create_suivi_with_type_action(self, api_client, suivi_test_data):
         """Test création d'un suivi avec un type d'action CS."""

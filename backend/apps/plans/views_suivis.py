@@ -31,7 +31,7 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
     """
 
     queryset = SuiviInventaire.objects.select_related(
-        'id_statut', 'id_type_suivi', 'id_type_action', 'id_protocole',
+        'id_statut', 'id_type_action', 'id_protocole',
         'id_pg', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('operations')
 
@@ -55,6 +55,9 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
 
         if user.is_super_admin():
+            return queryset
+
+        if user.is_redacteur_principal():
             return queryset
 
         if user.is_admin_organisme() and user.id_organisme:

@@ -174,17 +174,6 @@ class SuiviInventaire(models.Model):
         blank=True,
         help_text=_("Prix indicatif en euros par an")
     )
-    id_type_suivi = models.ForeignKey(
-        'core.Nomenclature',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='suivis_type',
-        db_column='id_type_suivi',
-        verbose_name=_("Type de suivi"),
-        help_text=_("Type : Suivi, Inventaire, ou Suivi et inventaire"),
-        limit_choices_to={'id_type__mnemonique': 'TYPE_SUIVI'}
-    )
     id_type_action = models.ForeignKey(
         'core.Nomenclature',
         on_delete=models.SET_NULL,

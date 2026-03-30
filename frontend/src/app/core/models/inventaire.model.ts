@@ -14,8 +14,6 @@ export interface SuiviInventaireList {
   annee_fin_suivi?: number;
   id_statut?: number;
   statut_label?: string;
-  id_type_suivi?: number;
-  type_label?: string;
   id_type_action?: number;
   type_action_code?: string;
   type_action_label?: string;
@@ -34,8 +32,6 @@ export interface SuiviInventaireDetail {
   id_suivi_inventaire: number;
   // Standalone fields
   intitule: string;
-  id_type_suivi?: number;
-  type_label?: string;
   id_type_action?: number;
   type_action_code?: string;
   type_action_label?: string;
@@ -81,8 +77,7 @@ export interface SuiviInventaireDetail {
  */
 export interface SuiviInventaireCreatePayload {
   intitule: string;
-  id_type_suivi?: number;
-  id_type_action?: number;
+  id_type_action: number;
   integre_plan_gestion?: boolean;
   suit_indicateur?: boolean;
   type_indicateur?: string;
@@ -116,7 +111,6 @@ export interface SuiviInventaireCreatePayload {
 export interface InventaireFilters {
   actif?: boolean;
   id_statut?: number;
-  id_type_suivi?: number;
   id_type_action?: number;
   type_action_prefix?: string;
   id_pg?: number;

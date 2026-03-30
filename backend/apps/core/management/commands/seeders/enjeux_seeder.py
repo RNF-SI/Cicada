@@ -4022,6 +4022,17 @@ class EnjeuxSeeder(BaseSeeder):
         _statut_termine = self._get_nomenclature('STATUT_SUIVI', 'TERMINE')
         _statut_a_venir = self._get_nomenclature('STATUT_SUIVI', 'A_VENIR')
 
+        # Get TYPE_ACTION CS nomenclatures for operation-linked suivis
+        _ta_cs3 = self._get_nomenclature('TYPE_ACTION', 'CS3')       # Suivi des végétations
+        _ta_cs3_2 = self._get_nomenclature('TYPE_ACTION', 'CS3_2')   # Suivi évolution habitats
+        _ta_cs3_3 = self._get_nomenclature('TYPE_ACTION', 'CS3_3')   # Suivi évolution états conservation
+        _ta_cs9_2 = self._get_nomenclature('TYPE_ACTION', 'CS9_2')   # Suivi des oiseaux
+        _ta_cs9_6 = self._get_nomenclature('TYPE_ACTION', 'CS9_6')   # Suivi des insectes
+        _ta_cs12_op = self._get_nomenclature('TYPE_ACTION', 'CS12')   # Suivi photographique
+        _ta_cs14 = self._get_nomenclature('TYPE_ACTION', 'CS14')     # Suivi facteurs abiotiques
+        _ta_cs14_1_op = self._get_nomenclature('TYPE_ACTION', 'CS14_1')  # Suivi qualité eau
+        _ta_cs14_2 = self._get_nomenclature('TYPE_ACTION', 'CS14_2') # Suivi niveaux eau
+
         suivi_configs = [
             {
                 'op_match': 'Restauration hydraulique du marais sud',
@@ -4031,6 +4042,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Coléoptères, Carabidae',
                 'date_lancement_suivi': '1998-03-15',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs9_6,
+
                 'outil_bancarisation': 'BDD_INTERNE',
                 'outil_saisie': 'NON_ADAPTE',
                 'transmission_donnee': True,
@@ -4052,6 +4065,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Phoenicopterus roseus',
                 'date_lancement_suivi': '2010-06-01',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs9_2,
+
                 'outil_bancarisation': 'CENTRALISEE_NATIONALE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4076,6 +4091,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': None,
                 'id_statut': _statut_a_venir,
+                'id_type_action': _ta_cs3_2,
+
                 'outil_bancarisation': '',
                 'outil_saisie': '',
                 'transmission_donnee': None,
@@ -4089,6 +4106,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Pandion haliaetus',
                 'date_lancement_suivi': '2018-04-01',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs9_2,
+
                 'outil_bancarisation': 'CENTRALISEE_NATIONALE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4112,6 +4131,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2012-01-10',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs14_2,
+
                 'outil_bancarisation': 'CENTRALISEE_NATIONALE',
                 'outil_saisie': 'NON_ADAPTE',
                 'transmission_donnee': True,
@@ -4138,6 +4159,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2020-09-15',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs3,
+
                 'outil_bancarisation': 'FORMAT_UNIQUE',
                 'outil_saisie': 'NON_ADAPTE',
                 'transmission_donnee': False,
@@ -4165,6 +4188,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Sphagnum spp., Drosera rotundifolia, Menyanthes trifoliata',
                 'date_lancement_suivi': '2015-05-20',
                 'id_statut': _statut_termine,
+                'id_type_action': _ta_cs3_2,
+
                 'outil_bancarisation': 'CENTRALISEE_REFERENT',
                 'outil_saisie': 'NON_ADAPTE',
                 'transmission_donnee': True,
@@ -4189,6 +4214,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2022-07-01',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs12_op,
+
                 'outil_bancarisation': 'BDD_INTERNE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4217,6 +4244,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Sphagnum spp.',
                 'date_lancement_suivi': '2024-06-01',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs3,
+
                 'outil_bancarisation': 'BDD_INTERNE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4243,6 +4272,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2025-01-15',
                 'id_statut': _statut_a_venir,
+                'id_type_action': _ta_cs14_2,
+
                 'outil_bancarisation': 'CENTRALISEE_NATIONALE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4268,6 +4299,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2025-10-01',
                 'id_statut': _statut_a_venir,
+                'id_type_action': _ta_cs3_3,
+
                 'outil_bancarisation': 'CENTRALISEE_REFERENT',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4293,6 +4326,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2015-01-10',
                 'id_statut': _statut_en_cours,
+                'id_type_action': _ta_cs14_1_op,
+
                 'outil_bancarisation': 'CENTRALISEE_NATIONALE',
                 'outil_saisie': 'ADAPTE',
                 'transmission_donnee': True,
@@ -4320,6 +4355,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': '',
                 'date_lancement_suivi': '2025-03-01',
                 'id_statut': _statut_a_venir,
+                'id_type_action': _ta_cs14,
+
                 'outil_bancarisation': 'BDD_INTERNE',
                 'outil_saisie': 'NON_ADAPTE',
                 'transmission_donnee': False,
@@ -4371,6 +4408,8 @@ class EnjeuxSeeder(BaseSeeder):
                 taxon_taxref=config.get('taxon_taxref', ''),
                 date_lancement_suivi=config.get('date_lancement_suivi'),
                 id_statut=config.get('id_statut'),
+                id_type_action=config.get('id_type_action'),
+
                 id_protocole=protocole,
                 outil_bancarisation=config.get('outil_bancarisation', ''),
                 outil_saisie=config.get('outil_saisie', ''),
@@ -4599,9 +4638,6 @@ class EnjeuxSeeder(BaseSeeder):
         standalone_suivis_created = 0
 
         # Get nomenclatures for standalone suivis
-        type_suivi = self._get_nomenclature('TYPE_SUIVI', 'SUIVI')
-        type_inventaire = self._get_nomenclature('TYPE_SUIVI', 'INVENTAIRE')
-        type_suivi_inv = self._get_nomenclature('TYPE_SUIVI', 'SUIVI_INVENTAIRE')
         statut_en_cours = self._get_nomenclature('STATUT_SUIVI', 'EN_COURS')
         statut_termine = self._get_nomenclature('STATUT_SUIVI', 'TERMINE')
         statut_a_venir = self._get_nomenclature('STATUT_SUIVI', 'A_VENIR')
@@ -4625,7 +4661,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Orchidaceae',
                 'date_lancement_suivi': '2022-04-01',
                 'actif': True,
-                'id_type_suivi': type_suivi,
+
                 'id_type_action': ta_cs5,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': True,
@@ -4641,7 +4677,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Chiroptera',
                 'date_lancement_suivi': '2019-06-01',
                 'actif': True,
-                'id_type_suivi': type_inventaire,
+
                 'id_type_action': ta_cs8_1,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': False,
@@ -4656,7 +4692,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2015-01-15',
                 'annee_fin_suivi': 2025,
                 'actif': True,
-                'id_type_suivi': type_suivi,
+
                 'id_type_action': ta_cs14_1,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': True,
@@ -4673,7 +4709,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2020-03-01',
                 'annee_fin_suivi': 2022,
                 'actif': False,
-                'id_type_suivi': type_inventaire,
+
                 'id_type_action': ta_cs6_2,
                 'id_statut': statut_termine,
                 'commentaires': 'Inventaire terminé, rapport final disponible',
@@ -4685,7 +4721,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'taxon_taxref': 'Amphibia',
                 'date_lancement_suivi': '2024-02-15',
                 'actif': True,
-                'id_type_suivi': type_suivi_inv,
+
                 'id_type_action': ta_cs9_4,
                 'id_statut': statut_en_cours,
                 'integre_plan_gestion': False,
@@ -4700,7 +4736,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'STRUCTURES_PAYSAGE',
                 'date_lancement_suivi': '2026-04-01',
                 'actif': True,
-                'id_type_suivi': type_suivi,
+
                 'id_type_action': ta_cs12,
                 'id_statut': statut_a_venir,
                 'commentaires': 'Points de vue fixes, photographies saisonnières',
@@ -4714,7 +4750,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2016-05-01',
                 'annee_fin_suivi': 2019,
                 'actif': False,
-                'id_type_suivi': type_inventaire,
+
                 'id_type_action': ta_cs8_6,
                 'id_statut': statut_termine,
                 'commentaires': 'Étude terminée, résultats publiés',
