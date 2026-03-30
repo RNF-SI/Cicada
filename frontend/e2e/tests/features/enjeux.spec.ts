@@ -24,6 +24,20 @@ async function findPlanByName(page: import('@playwright/test').Page, nameFragmen
 }
 
 /**
+ * Helper: click add OLT button and handle the confirmation dialog if it appears
+ * (dialog shows when an OLT already exists for the enjeu).
+ */
+async function clickAddOltWithConfirm(page: import('@playwright/test').Page) {
+  await page.locator('.olt-content > .add-item-btn').click();
+  await page.waitForTimeout(300);
+  const confirmBtn = page.locator('mat-dialog-container button[mat-flat-button]');
+  if (await confirmBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await confirmBtn.click();
+    await page.waitForTimeout(300);
+  }
+}
+
+/**
  * Helper: switch to OLT tab.
  * In the new flat structure (Enjeu -> OLT -> NE), there is no EtatActuel level.
  */
@@ -899,9 +913,8 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     await enjeuxPage.switchTab('olt');
 
-    // Click add OLT
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    // Click add OLT (with confirmation dialog handling)
+    await clickAddOltWithConfirm(page);
 
     // Form should appear
     const form = page.locator('.olt-inline-form');
@@ -921,8 +934,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     const initialCount = await page.locator('.olt-content .olt-section-header').count();
 
     // Click add then cancel
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
     await form.locator('button[mat-stroked-button]').click();
     await page.waitForTimeout(300);
@@ -945,8 +957,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     const initialCount = await page.locator('.olt-content .olt-section-header').count();
 
     // Fill and submit the form
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
     await form.locator('input[matInput]').fill('E2E Temp OLT Direct');
     await form.locator('button[mat-flat-button]').click();
@@ -984,9 +995,8 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     const initialOltCount = await page.locator('.olt-content .olt-section-header').count();
 
-    // Click add OLT button (top-level, flat structure)
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    // Click add OLT button (with confirmation dialog handling)
+    await clickAddOltWithConfirm(page);
 
     const form = page.locator('.olt-inline-form');
     await expect(form).toBeVisible();
@@ -1056,8 +1066,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await switchToOltTab(page, enjeuxPage);
 
     // First create a temp OLT so we don't delete seeded data
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
     await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer');
     await form.locator('button[mat-flat-button]').click();
@@ -1088,8 +1097,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     await enjeuxPage.switchTab('olt');
 
     // First create a temp OLT
-    await page.locator('.olt-content > .add-item-btn').click();
-    await page.waitForTimeout(300);
+    await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
     await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer 2');
     await form.locator('button[mat-flat-button]').click();

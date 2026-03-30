@@ -327,7 +327,8 @@ export class EnjeuxPage {
     const countBefore = await facteur.locator('.pression-card').count();
     await this.clickAddPression(facteurIndex);
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.pression-bullet') });
-    await form.locator('input[matInput]').first().fill(libelle);
+    // Le libellé est le 2e input (après le PressRef autocomplete)
+    await form.locator('input[matInput]').nth(1).fill(libelle);
     if (description) {
       await form.locator('textarea[matInput]').fill(description);
     }
