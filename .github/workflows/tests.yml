@@ -286,6 +286,9 @@ jobs:
             sleep 2
           done
 
+      - name: Force import nomenclatures
+        run: docker compose exec -T web python manage.py import_nomenclatures --force
+
       - name: Seed test data
         run: docker compose exec -T web python manage.py seed_testdata
 
