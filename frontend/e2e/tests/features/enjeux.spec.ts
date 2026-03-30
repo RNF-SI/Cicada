@@ -654,13 +654,10 @@ test.describe('Enjeux - CRUD Pressions', () => {
       const lastIndex = pressionCount - 1;
 
       await enjeuxPage.editPression(0, lastIndex, 'E2E Pression modifiée', 'Description modifiée');
-      await page.waitForTimeout(1000);
 
-      // Verify the title was updated
+      // Wait for the data to reload and the updated title to appear
       const facteur = enjeuxPage.facteurCards.first();
-      const titles = await facteur.locator('.pression-card-title').allInnerTexts();
-      const hasModified = titles.some(t => t.includes('E2E Pression modifiée'));
-      expect(hasModified).toBe(true);
+      await expect(facteur.locator('.pression-card-title').filter({ hasText: 'E2E Pression modifiée' })).toBeVisible({ timeout: 10000 });
 
       // Clean up
       const lastPression = facteur.locator('.pression-card').last();

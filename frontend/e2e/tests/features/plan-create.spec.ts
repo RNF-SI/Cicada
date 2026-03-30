@@ -233,9 +233,8 @@ test.describe('Plan Create - Optional and Hybrid Fields', () => {
       await options.first().click();
     }
 
-    // Verify the select is no longer showing the placeholder
-    const selectedText = await createPage.redacteurTypeSelect.textContent();
-    expect(selectedText?.trim()).not.toBe('');
+    // Verify the select is no longer showing the placeholder (use auto-retrying assertion)
+    await expect(createPage.redacteurTypeSelect).not.toHaveText('', { timeout: 3000 });
   });
 
   test('should fill redacteurs textarea', async ({ superAdminPage: page }) => {
