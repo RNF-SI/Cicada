@@ -52,9 +52,9 @@
             <mat-label>{{ 'enjeux.fcrForm.intituleCourt' | translate }} <span class="required-star">*</span></mat-label>
             <input matInput
                    formControlName="intitule_court"
-                   maxlength="50"
+                   maxlength="25"
                    [placeholder]="'enjeux.fcrForm.intituleCourtPlaceholder' | translate">
-            <mat-hint align="end">{{ intituleCourtLength }}/50</mat-hint>
+            <mat-hint align="end">{{ intituleCourtLength }}/25</mat-hint>
             <button mat-icon-button matSuffix type="button"
                     [matTooltip]="'enjeux.fcrForm.intituleCourtHint' | translate"
                     matTooltipPosition="above">

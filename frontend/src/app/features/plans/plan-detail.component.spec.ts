@@ -278,6 +278,7 @@ describe('PlanDetailComponent', () => {
       currentUser: currentUserSignal.asReadonly(),
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
       isAdminOrganisme: isAdminOrganismeSignal.asReadonly(),
+      isRedacteurPrincipal: jest.fn().mockReturnValue(false),
       canAccessAdmin: signal(true).asReadonly(),
       isReferent: signal(false).asReadonly(),
       isImpersonating: signal(false).asReadonly(),
@@ -561,9 +562,9 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly one lifecycle button (validate)', () => {
+      it('should show exactly two lifecycle buttons (edit + validate)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(1);
+        expect(buttons.length).toBe(2);
       });
 
       it('should show the btn-lifecycle-success class (validate action)', () => {
@@ -588,9 +589,9 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly two lifecycle buttons (toDraft + archive)', () => {
+      it('should show exactly three lifecycle buttons (edit + toDraft + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(3);
       });
 
       it('should show warning button (toDraft) and neutral button (archive)', () => {
@@ -615,9 +616,9 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly one lifecycle button (reactivate)', () => {
+      it('should show exactly two lifecycle buttons (edit + reactivate)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(1);
+        expect(buttons.length).toBe(2);
       });
 
       it('should show the btn-lifecycle-success class (reactivate action)', () => {
@@ -655,6 +656,59 @@ describe('PlanDetailComponent', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
         expect(buttons.length).toBe(0);
       });
+    });
+  });
+
+  // =========================================================================
+  // Edit metadata button
+  // =========================================================================
+
+  describe('edit metadata button', () => {
+    it('should show edit button when canManageLifecycle is true', () => {
+      setup({
+        isSuperAdmin: true,
+        plan: createMockPlan({ statut: 'draft' }),
+      });
+      fixture.detectChanges();
+
+      const editBtn = fixture.nativeElement.querySelector('.btn-lifecycle-edit');
+      expect(editBtn).toBeTruthy();
+    });
+
+    it('should NOT show edit button when canManageLifecycle is false', () => {
+      setup({
+        isSuperAdmin: false,
+        isAdminOrganisme: false,
+        plan: createMockPlan({
+          statut: 'draft',
+          referents: [{ id_role: 999, email: 'other@test.fr', nom_complet: 'Other' }],
+        }),
+        currentUser: {
+          id: 50,
+          email: 'nobody@test.fr',
+          niveau_role: 'utilisateur',
+          is_staff: false,
+          is_active: true,
+        },
+      });
+      fixture.detectChanges();
+
+      const editBtn = fixture.nativeElement.querySelector('.btn-lifecycle-edit');
+      expect(editBtn).toBeNull();
+    });
+
+    it('should call openEditModal when edit button is clicked', () => {
+      setup({
+        isSuperAdmin: true,
+        plan: createMockPlan({ statut: 'valide' }),
+      });
+      fixture.detectChanges();
+
+      const spy = jest.spyOn(component, 'openEditModal');
+      const editBtn = fixture.nativeElement.querySelector('.btn-lifecycle-edit') as HTMLButtonElement;
+      editBtn.click();
+
+      expect(spy).toHaveBeenCalled();
     });
   });
 

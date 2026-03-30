@@ -528,8 +528,8 @@
 
           @if (sectionsOpen['programmation']) {
             <div class="section-content">
-              <!-- L'action est liée au/aux -->
-              @if (planSites().length > 0) {
+              <!-- L'action est liée au/aux (masqué si plan mono-site) -->
+              @if (planSites().length > 1) {
                 <div class="sites-selection">
                   <span class="field-label">{{ 'enjeux.operations.actionLieeAux' | translate }}</span>
                   <div class="sites-checkboxes">
@@ -545,22 +545,30 @@
                 </div>
               }
 
-              <!-- Toggle ventilation / totaux directs -->
-              @if (availableOrganismes().length > 0) {
-                <div class="programmation-mode-toggle">
-                  <span class="field-label">{{ 'enjeux.operations.modeVentilationLabel' | translate }}</span>
-                  <mat-button-toggle-group
-                    [value]="directTotalMode() ? 'direct' : 'ventilation'"
-                    (change)="onModeToggle($event.value)">
-                    <mat-button-toggle value="ventilation">
-                      {{ 'enjeux.operations.modeVentilation' | translate }}
+              <!-- Sélecteur mode de ventilation budgétaire (4 modes) -->
+              <div class="programmation-mode-toggle">
+                <span class="field-label">{{ 'enjeux.operations.modeVentilationLabel' | translate }}</span>
+                <mat-button-toggle-group
+                  [value]="ventilationMode()"
+                  (change)="onModeToggle($event.value)">
+                  <mat-button-toggle value="none">
+                    {{ 'enjeux.operations.modeNone' | translate }}
+                  </mat-button-toggle>
+                  @if (availableOrganismes().length > 0) {
+                    <mat-button-toggle value="by_org">
+                      {{ 'enjeux.operations.modeByOrg' | translate }}
                     </mat-button-toggle>
-                    <mat-button-toggle value="direct">
-                      {{ 'enjeux.operations.modeTotauxDirects' | translate }}
+                  }
+                  <mat-button-toggle value="by_type">
+                    {{ 'enjeux.operations.modeByType' | translate }}
+                  </mat-button-toggle>
+                  @if (availableOrganismes().length > 0) {
+                    <mat-button-toggle value="by_org_type">
+                      {{ 'enjeux.operations.modeByOrgType' | translate }}
                     </mat-button-toggle>
-                  </mat-button-toggle-group>
-                </div>
-              }
+                  }
+                </mat-button-toggle-group>
+              </div>
 
               <!-- Programmation annuelle (OperationAnnee[]) -->
               @if (operationAnnees.length > 0) {
@@ -590,8 +598,8 @@
                           }
                         </tr>
 
-                        <!-- MODE A: Ventilation par organisme -->
-                        @if (availableOrganismes().length > 0 && !directTotalMode()) {
+                        <!-- MODE 4: Ventilation par organisme + type budget -->
+                        @if (ventilationMode() === 'by_org_type') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <!-- Org group header -->
                             <tr class="org-group-header">
@@ -678,13 +686,123 @@
                             }
                           </tr>
 
-                        <!-- MODE B: Totaux directs -->
-                        } @else if (availableOrganismes().length > 0 && directTotalMode()) {
+                        <!-- MODE 2: Par organisme (totaux uniquement) -->
+                        } @else if (ventilationMode() === 'by_org') {
+                          @for (org of availableOrganismes(); track org.id_organisme) {
+                            <tr class="org-group-header">
+                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                                {{ org.nom_organisme }}
+                              </td>
+                            </tr>
+                            <!-- Budget total par organisme -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="number"
+                                           class="prog-input prog-input-suffixed"
+                                           [value]="getOrgByOrgData(i, org.id_organisme).budget"
+                                           (change)="updateOrgByOrgBudget(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <!-- Travail par organisme -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="number"
+                                           class="prog-input prog-input-suffixed"
+                                           [value]="getOrgByOrgData(i, org.id_organisme).etp"
+                                           (change)="updateOrgByOrgEtp(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">j</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                          }
+                          <!-- TOTAL cross-organismes -->
                           <tr class="total-group-header">
                             <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
                               {{ 'enjeux.operations.totalLabel' | translate }}
                             </td>
                           </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ getByOrgYearTotalBudget(i) | number:'1.0-2' }} €
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ getByOrgYearTotalEtp(i) | number:'1.0-2' }} j
+                              </td>
+                            }
+                          </tr>
+
+                        <!-- MODE 3: Par type de budget (global) -->
+                        } @else if (ventilationMode() === 'by_type') {
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="getTypeBudget(i).fonct"
+                                         (change)="updateTypeFonct(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="getTypeBudget(i).invest"
+                                         (change)="updateTypeInvest(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ (getTypeBudget(i).fonct || 0) + (getTypeBudget(i).invest || 0) | number:'1.0-2' }} €
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="number"
+                                         class="prog-input prog-input-suffixed"
+                                         [value]="getTypeBudget(i).etp"
+                                         (change)="updateTypeEtp(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">j</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+
+                        <!-- MODE 1: Pas de ventilation (totaux directs) -->
+                        } @else if (ventilationMode() === 'none') {
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progBudget' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
@@ -713,14 +831,7 @@
                               </td>
                             }
                           </tr>
-                          <tr>
-                            <td class="label-cell" [attr.colspan]="operationAnnees.length + 1">
-                              <span class="direct-mode-hint">
-                                <i class="fi fi-rr-info"></i>
-                                {{ 'enjeux.operations.directModeHint' | translate }}
-                              </span>
-                            </td>
-                          </tr>
+
                         } @else {
                           <!-- Fallback: flat budget/travail rows when no sites selected -->
                           <tr>

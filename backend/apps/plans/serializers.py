@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
-from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
+from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan, CorRedacteurPlan
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
 
 
@@ -141,8 +141,9 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
                 'id_organisme': cor.uuid_og.id_organisme,
                 'nom_organisme': cor.uuid_og.nom_organisme if cor.uuid_og else '',
                 'principal': cor.principal,
+                'type_organisme_code': cor.uuid_og.id_type_organisme.cd_nomenclature if cor.uuid_og and cor.uuid_og.id_type_organisme else None,
             }
-            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og')
+            for cor in CorOgSite.objects.filter(id_site=obj.site).select_related('uuid_og', 'uuid_og__id_type_organisme')
         ]
 
 
@@ -247,16 +248,20 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     redacteur_type_id = serializers.IntegerField(source='id_redacteur_type.id_nomenclature', write_only=True, required=False, allow_null=True)
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
 
     def get_organismes_gestionnaires(self, obj):
         """Retourne la liste des noms des organismes gestionnaires."""
         organismes = []
         for site in obj.get_sites():
-            for cor_og_site in site.corogsite_set.select_related('uuid_og'):
+            for cor_og_site in site.corogsite_set.select_related('uuid_og', 'uuid_og__id_type_organisme'):
                 if cor_og_site.uuid_og:
+                    org = cor_og_site.uuid_og
                     organismes.append({
-                        'id_organisme': cor_og_site.uuid_og.id_organisme,
-                        'nom_organisme': cor_og_site.uuid_og.nom_organisme
+                        'id_organisme': org.id_organisme,
+                        'nom_organisme': org.nom_organisme,
+                        'type_organisme_code': org.id_type_organisme.cd_nomenclature if org.id_type_organisme else None
                     })
         # Remove duplicates by id
         seen = set()
@@ -278,6 +283,19 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         """Retourne la chaîne complète de versions."""
         return obj.get_version_chain()
 
+    def get_organismes_redacteurs_list(self, obj):
+        """Retourne la liste des organismes rédacteurs du plan."""
+        from apps.plans.models import CorRedacteurPlan
+        return [
+            {
+                'id_organisme': cor.uuid_og.id_organisme,
+                'nom_organisme': cor.uuid_og.nom_organisme,
+            }
+            for cor in CorRedacteurPlan.objects.filter(
+                plan_de_gestion=obj
+            ).select_related('uuid_og')
+        ]
+
     class Meta:
         model = PlanGestion
         fields = [
@@ -286,11 +304,12 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'evaluation_id', 'evaluation_display', 'redacteur_type_id', 'redacteur_type_display',
-            'redacteur_nom', 'redacteurs', 'relecteurs',
+            'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'statut_display', 'version',
             'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
             'type_document_display', 'children_count', 'version_chain',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
+            'organismes_redacteurs_list', 'organismes_redacteurs_ids',
             'sites', 'fichiers', 'referents', 'membres', 'sites_ids', 'referents_ids',
             'utilisateur_ajout', 'utilisateur_maj',
             'date_ajout', 'date_maj'
@@ -303,6 +322,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         """Créer un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', [])
         referents_ids = validated_data.pop('referents_ids', [])
+        organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', [])
 
         # Résoudre les IDs des nomenclatures
         if 'id_evaluation' in validated_data:
@@ -334,12 +354,20 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             referents = Role.objects.filter(id_role__in=referents_ids)
             plan.referents.set(referents)
 
+        # Ajouter les organismes rédacteurs
+        if organismes_redacteurs_ids:
+            from apps.users.models import BibOrganismes
+            for org_id in organismes_redacteurs_ids:
+                org = BibOrganismes.objects.get(id_organisme=org_id)
+                CorRedacteurPlan.objects.get_or_create(plan_de_gestion=plan, uuid_og=org)
+
         return plan
 
     def update(self, instance, validated_data):
         """Mettre à jour un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', None)
         referents_ids = validated_data.pop('referents_ids', None)
+        organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', None)
 
         # Résoudre les IDs des nomenclatures
         if 'id_evaluation' in validated_data:
@@ -373,6 +401,14 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             from apps.users.models import Role
             referents = Role.objects.filter(id_role__in=referents_ids)
             plan.referents.set(referents)
+
+        # Mettre à jour les organismes rédacteurs si fournis
+        if organismes_redacteurs_ids is not None:
+            from apps.users.models import BibOrganismes
+            CorRedacteurPlan.objects.filter(plan_de_gestion=plan).delete()
+            for org_id in organismes_redacteurs_ids:
+                org = BibOrganismes.objects.get(id_organisme=org_id)
+                CorRedacteurPlan.objects.create(plan_de_gestion=plan, uuid_og=org)
 
         return plan
 
@@ -416,7 +452,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
-            'redacteurs', 'relecteurs',
+            'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'version', 'geometrie',
             'sites_ids', 'referents_ids'
         ]

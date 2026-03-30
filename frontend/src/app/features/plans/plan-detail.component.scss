@@ -338,6 +338,12 @@
     background-color: $white;
     color: $primary-color;
   }
+
+  &-edit {
+    background-color: $white;
+    color: $primary-color;
+    border: 1px solid $primary-color;
+  }
 }
 
 // ============================================

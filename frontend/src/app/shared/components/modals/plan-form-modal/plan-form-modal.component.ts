@@ -15,6 +15,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -45,6 +46,7 @@ interface SelectableSite {
   selected: boolean;
   accessType?: string;
   accessLabel?: string;
+  organismes?: Array<{ id_organisme: number; nom_organisme: string; principal?: boolean; type_organisme_code?: string }>;
 }
 
 interface SelectableUser {
@@ -76,6 +78,7 @@ interface SelectableUser {
     MatDatepickerModule,
     MatNativeDateModule,
     MatTooltipModule,
+    MatSnackBarModule,
     TranslateModule,
     RouterModule,
     ViewScopeToggleComponent
@@ -89,6 +92,7 @@ export class PlanFormModalComponent implements OnInit {
   private readonly authService = inject(AuthService);
   readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
   private readonly translate = inject(TranslateService);
+  private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<PlanFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -106,6 +110,17 @@ export class PlanFormModalComponent implements OnInit {
   // Available sites and users
   availableSites = signal<SelectableSite[]>([]);
   availableUsers = signal<SelectableUser[]>([]);
+
+  // Available organismes for rédacteur selection
+  availableOrganismes = signal<{ id_organisme: number; nom_organisme: string }[]>([]);
+  selectedOrganismesRedacteursIds = signal<number[]>([]);
+  organismeSearchFilter = signal('');
+  filteredOrganismes = computed(() => {
+    const filter = this.organismeSearchFilter().toLowerCase().trim();
+    const orgs = this.availableOrganismes();
+    if (!filter) return orgs;
+    return orgs.filter(o => o.nom_organisme.toLowerCase().includes(filter));
+  });
 
   // Selected items
   selectedSiteIds = signal<number[]>([]);
@@ -160,6 +175,16 @@ export class PlanFormModalComponent implements OnInit {
     );
   });
 
+  // Détecter si un organisme CEN est lié (réactif aux sites sélectionnés)
+  hasCenOrganisme = computed(() => {
+    const selectedIds = this.selectedSiteIds();
+    const sites = this.availableSites();
+    // Vérifier si l'un des sites sélectionnés a un organisme CEN
+    return sites
+      .filter(s => selectedIds.includes(s.id))
+      .some(s => s.organismes?.some(org => org.type_organisme_code === 'CEN'));
+  });
+
   // Current year for validation
   currentYear = new Date().getFullYear();
 
@@ -195,6 +220,7 @@ export class PlanFormModalComponent implements OnInit {
       redacteur_nom: [plan?.redacteur_nom || '', Validators.maxLength(255)],
       redacteurs: [plan?.redacteurs || ''],
       relecteurs: [plan?.relecteurs || ''],
+      autres_contributeurs: [plan?.autres_contributeurs || ''],
 
       // Champs existants gardés mais non affichés dans le formulaire principal
       statut: [plan?.statut || 'draft'],
@@ -238,12 +264,31 @@ export class PlanFormModalComponent implements OnInit {
           type: s.type_site_label,
           selected: this.selectedSiteIds().includes(s.id_site),
           accessType: s.current_user_access?.access_type,
-          accessLabel: s.current_user_access?.role_label
+          accessLabel: s.current_user_access?.role_label,
+          organismes: s.organismes || []
         }));
         this.availableSites.set(sites);
       },
       error: () => this.availableSites.set([])
     });
+
+    // Load organismes (pour sélection rédacteurs)
+    this.adminService.getOrganismes({ page: 1, page_size: 200 }).subscribe({
+      next: (response) => {
+        this.availableOrganismes.set(
+          response.results.map(o => ({ id_organisme: o.id_organisme, nom_organisme: o.nom_organisme }))
+        );
+      },
+      error: () => this.availableOrganismes.set([])
+    });
+
+    // Pré-sélectionner les organismes rédacteurs en mode édition
+    const plan = this.data?.plan;
+    if (plan?.organismes_redacteurs_list) {
+      this.selectedOrganismesRedacteursIds.set(
+        plan.organismes_redacteurs_list.map(o => o.id_organisme)
+      );
+    }
 
     // Load users (referents potentiels) - if not super_admin, filter by organisme
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
@@ -268,6 +313,30 @@ export class PlanFormModalComponent implements OnInit {
         this.isLoadingData.set(false);
       }
     });
+  }
+
+  onOrganismesRedacteursChange(ids: number[]): void {
+    this.selectedOrganismesRedacteursIds.set(ids);
+  }
+
+  openCreateOrganismeDialog(): void {
+    const nom = prompt(this.translate.instant('modals.planForm.createOrganismePrompt'));
+    if (nom && nom.trim()) {
+      this.adminService.createOrganisme({ nom_organisme: nom.trim() }).subscribe({
+        next: (org) => {
+          // Ajouter le nouvel organisme à la liste et le sélectionner
+          this.availableOrganismes.update(orgs => [...orgs, { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme }]);
+          this.selectedOrganismesRedacteursIds.update(ids => [...ids, org.id_organisme]);
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translate.instant('common.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+        }
+      });
+    }
   }
 
   private getRoleLabel(roleLevel?: string): string {
@@ -399,6 +468,7 @@ export class PlanFormModalComponent implements OnInit {
       redacteur_nom: formValue.redacteur_nom || undefined,
       redacteurs: formValue.redacteurs || undefined,
       relecteurs: formValue.relecteurs || undefined,
+      autres_contributeurs: formValue.autres_contributeurs || undefined,
 
       // Champs additionnels
       statut: formValue.statut,
@@ -407,7 +477,8 @@ export class PlanFormModalComponent implements OnInit {
       risque_incendie: formValue.risque_incendie,
       id_evaluation: formValue.id_evaluation || undefined,
       commentaire: formValue.commentaire || undefined,
-      referents_ids: this.selectedReferentIds()
+      referents_ids: this.selectedReferentIds(),
+      organismes_redacteurs_ids: this.selectedOrganismesRedacteursIds()
     };
 
     const request$ = this.isEditMode

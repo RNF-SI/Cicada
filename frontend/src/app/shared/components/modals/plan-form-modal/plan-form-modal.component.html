@@ -160,11 +160,13 @@
           <mat-datepicker #cspnPicker></mat-datepicker>
         </mat-form-field>
 
-        <!-- ID Doc'Gestion FCEN -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
-          <input matInput formControlName="id_docgestion_fcen">
-        </mat-form-field>
+        <!-- ID Doc'Gestion FCEN (visible uniquement pour les organismes CEN) -->
+        @if (hasCenOrganisme()) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
+            <input matInput formControlName="id_docgestion_fcen">
+          </mat-form-field>
+        }
 
         <!-- Type organisme rédacteur -->
         <mat-form-field appearance="outline" class="full-width">
@@ -177,12 +179,6 @@
           </mat-select>
         </mat-form-field>
 
-        <!-- Nom organisme rédacteur -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.planForm.fields.editorName' | translate }}</mat-label>
-          <input matInput formControlName="redacteur_nom" [placeholder]="'modals.planForm.placeholders.editorName' | translate">
-        </mat-form-field>
-
         <!-- Rédacteurs -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
@@ -192,6 +188,7 @@
             rows="2"
             [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
           ></textarea>
+          <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
         </mat-form-field>
 
         <!-- Relecteurs -->
@@ -203,7 +200,43 @@
             rows="2"
             [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
           ></textarea>
+          <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
         </mat-form-field>
+
+        <!-- Autres rédacteurs -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
+          <textarea
+            matInput
+            formControlName="autres_contributeurs"
+            rows="2"
+            [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
+          ></textarea>
+        </mat-form-field>
+
+        <!-- Organismes rédacteurs (mat-select multiple avec recherche) -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'modals.planForm.fields.organismesRedacteurs' | translate }}</mat-label>
+          <mat-select multiple [value]="selectedOrganismesRedacteursIds()" (selectionChange)="onOrganismesRedacteursChange($event.value)">
+            <!-- Champ de recherche intégré -->
+            <div class="select-search-box">
+              <input matInput
+                     type="text"
+                     [placeholder]="'common.actions.search' | translate"
+                     (input)="organismeSearchFilter.set($any($event.target).value)"
+                     (keydown)="$event.stopPropagation()">
+            </div>
+            @for (org of filteredOrganismes(); track org.id_organisme) {
+              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'modals.planForm.hints.organismesRedacteurs' | translate }}</mat-hint>
+        </mat-form-field>
+        <!-- Bouton créer un nouvel organisme -->
+        <button mat-stroked-button type="button" class="btn-sm" (click)="openCreateOrganismeDialog()">
+          <i class="fi fi-rr-plus"></i>
+          {{ 'modals.planForm.createOrganisme' | translate }}
+        </button>
       </form>
     }
   </mat-dialog-content>

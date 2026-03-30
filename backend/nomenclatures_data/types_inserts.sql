@@ -55,3 +55,5 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (63, 'OUTIL_SAISIE', 'Outil de saisie', 'Existence d''un outil de saisie pour le protocole', 'CICADA', 'Validé', NOW(), NOW());
 -- Types pour Pressions (PressRef CARET V1)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (64, 'TYPE_PRESSION', 'Type de pression', 'Référentiel PressRef CARET V1 - Types de pressions sur les espaces protégés', 'CICADA/CARET', 'Validé', NOW(), NOW());
+-- Type d'organisme (CICADA - Issue #118)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (65, 'TYPE_ORGANISME', 'Type d''organisme', 'Type de structure gestionnaire (CEN, RNF, DREAL, PNR, OFB, etc.)', 'CICADA', 'Validé', NOW(), NOW());

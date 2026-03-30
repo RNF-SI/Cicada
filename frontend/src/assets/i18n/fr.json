@@ -1010,10 +1010,12 @@
         "endYear": "Année de fin",
         "cspnDate": "Date de validation CSPN",
         "docGestion": "ID_Doc'Gestion FCEN",
-        "editorType": "Type organisme rédacteur",
-        "editorName": "Nom organisme rédacteur",
+        "editorType": "Type d'organisme rédacteur principal",
+        "editorName": "Organisme rédacteur principal",
         "redacteurs": "Rédacteurs",
         "relecteurs": "Relecteurs",
+        "autresContributeurs": "Autres Contributeurs",
+        "organismesRedacteurs": "Organismes rédacteurs",
         "status": "Statut",
         "version": "Version",
         "sharedManagement": "Gestion partagée",
@@ -1025,17 +1027,21 @@
         "rang": "Saisissez un nombre entier",
         "surface": "Saisissez un nombre",
         "editorName": "Sélectionnez un organisme existant ou saisissez un texte libre",
-        "redacteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)",
-        "relecteurs": "Sélectionnez des utilisateurs existants ou saisissez des noms (appuyez Entrée pour valider)"
+        "redacteurs": "Si plusieurs, séparez les noms par une virgule",
+        "relecteurs": "Si plusieurs, séparez les noms par une virgule",
+        "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)"
       },
+      "createOrganisme": "Créer un organisme",
+      "createOrganismePrompt": "Nom du nouvel organisme :",
       "placeholders": {
         "name": "Plan de gestion 2024-2034 - Site XYZ",
         "editorName": "Rechercher un organisme ou saisir un nom...",
         "searchSite": "Rechercher un site...",
         "searchUser": "Rechercher un utilisateur...",
         "comment": "Informations complémentaires...",
-        "redacteurs": "Rechercher ou ajouter un rédacteur...",
-        "relecteurs": "Rechercher ou ajouter un relecteur..."
+        "redacteurs": "Saisir les noms des rédacteurs...",
+        "relecteurs": "Saisir les noms des relecteurs...",
+        "autresContributeurs": "Saisir les autres contributeurs..."
       },
       "ct88Options": {
         "yes": "Oui",
@@ -1226,11 +1232,13 @@
     },
     "requestAccess": {
       "title": "Demander l'accès à un plan",
-      "description": "Demandez l'accès aux plans de gestion de votre organisme.",
+      "description": "Cette liste affiche les plans de gestion rattachés à votre organisme auxquels vous n'avez pas encore accès.",
       "searchPlaceholder": "Rechercher un plan...",
       "noResults": "Aucun plan disponible pour votre organisme",
       "button": "Demander l'accès",
+      "buttonTooltip": "Vous êtes déjà lié à un site de ce plan. Seul l'accès au plan sera demandé.",
       "buttonWithSite": "Demander le lien et l'accès",
+      "buttonWithSiteTooltip": "Vous n'êtes pas encore lié au site de ce plan. Une demande d'accès au site et au plan sera envoyée.",
       "pending": "Demande en attente",
       "rejected": "Refusé",
       "retry": "Redemander"
@@ -1319,6 +1327,11 @@
         "objectifsOP": "Objectifs opérationnels",
         "actions": "Actions et suivis"
       },
+      "actions": {
+        "editMetadata": "Modifier les métadonnées"
+      },
+      "organismesRedacteurs": "Organismes rédacteurs",
+      "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
@@ -1828,9 +1841,9 @@
       "cancel": "Annuler",
       "roleLabel": "Type d'accès demandé",
       "roleMember": "Membre",
-      "roleMemberDesc": "Accès en lecture seule aux données du plan",
+      "roleMemberDesc": "Demander l'accès en lecture : consultation des données du plan sans possibilité de modification",
       "roleReferent": "Référent",
-      "roleReferentDesc": "Accès complet : modification, validation, gestion des utilisateurs"
+      "roleReferentDesc": "Demander le droit d'édition du PG : modification des données, gestion du cycle de vie et des utilisateurs"
     },
     "success": "Votre demande a été envoyée et est en attente de validation",
     "successBoth": "Vos demandes de lien au site et d'accès au plan ont été envoyées.",
@@ -2145,7 +2158,10 @@
       "descriptionLabel": "Détails / commentaires",
       "createSuccess": "Objectif à long terme créé avec succès",
       "updateSuccess": "Objectif à long terme mis à jour avec succès",
-      "deleteSuccess": "Objectif à long terme supprimé avec succès"
+      "deleteSuccess": "Objectif à long terme supprimé avec succès",
+      "alreadyExistsTitle": "OLT déjà existant",
+      "alreadyExistsMessage": "Attention, un OLT a déjà été saisi pour cet enjeu. Souhaitez-vous bien ajouter un autre OLT pour cet enjeu ?",
+      "alreadyExistsConfirm": "Oui, ajouter un OLT"
     },
     "niveauExigence": {
       "label": "Niveau d'exigence",
@@ -2259,7 +2275,11 @@
       "travailPrevisionnel": "Travail prévisionnel (jours)",
       "totalLabel": "TOTAL",
       "duplicateFirstCol": "Dupliquer valeurs de la 1ère colonne",
-      "modeVentilationLabel": "Mode de saisie des budgets",
+      "modeVentilationLabel": "Mode de ventilation budgétaire",
+      "modeNone": "Pas de ventilation",
+      "modeByOrg": "Par organisme",
+      "modeByType": "Par type de budget",
+      "modeByOrgType": "Par organisme + type",
       "modeVentilation": "Ventilation par organisme",
       "modeTotauxDirects": "Totaux directs",
       "directModeHint": "En mode totaux directs, seuls les montants totaux sont pris en compte (pas de ventilation par organisme).",

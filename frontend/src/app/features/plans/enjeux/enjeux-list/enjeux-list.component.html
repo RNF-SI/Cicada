@@ -184,6 +184,9 @@
                     <button class="icon-btn-flat" (click)="navigateToEdit(enjeu); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                       <i class="fi fi-rr-pencil"></i>
                     </button>
+                    <button class="icon-btn-flat" (click)="navigateToEnjeuDetail(enjeu); $event.stopPropagation()" [title]="'common.actions.view' | translate">
+                      <i class="fi fi-rr-eye"></i>
+                    </button>
                     <button class="icon-btn-flat" (click)="toggleEnjeuDetail(); $event.stopPropagation()">
                       <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
                     </button>
@@ -499,11 +502,7 @@
                               <h4 class="inline-form-title">{{ 'enjeux.pression.newTitle' | translate }}</h4>
                             </div>
                             <div class="inline-form-body">
-                              <mat-form-field appearance="outline" class="full-width">
-                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="newPressionLibelle">
-                              </mat-form-field>
-                              <!-- PressRef autocomplete -->
+                              <!-- PressRef autocomplete (au-dessus du libellé pour éviter d'écraser la saisie) -->
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
                                 <input matInput
@@ -536,6 +535,11 @@
                                   }
                                 </mat-autocomplete>
                                 <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
+                              </mat-form-field>
+                              <!-- Libellé de la pression -->
+                              <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
+                                <input matInput [(ngModel)]="newPressionLibelle">
                               </mat-form-field>
                               <mat-form-field appearance="outline" class="full-width">
                                 <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>

@@ -14,12 +14,19 @@ class BibOrganismesSerializer(serializers.ModelSerializer):
     """
     Serializer pour les organismes (lecture seule dans le contexte users).
     """
+    type_organisme_code = serializers.CharField(
+        source='id_type_organisme.cd_nomenclature', read_only=True, default=None
+    )
+    type_organisme_label = serializers.CharField(
+        source='id_type_organisme.label', read_only=True, default=None
+    )
 
     class Meta:
         model = BibOrganismes
         fields = [
             'id_organisme', 'uuid_organisme', 'nom_organisme', 'ville_organisme',
-            'email_organisme', 'tel_organisme', 'url_organisme'
+            'email_organisme', 'tel_organisme', 'url_organisme',
+            'id_type_organisme', 'type_organisme_code', 'type_organisme_label'
         ]
         read_only_fields = ['id_organisme', 'uuid_organisme']
 

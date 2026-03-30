@@ -1,4 +1,4 @@
-import { type Page, type Locator } from '@playwright/test';
+import { type Page, type Locator, expect } from '@playwright/test';
 
 export class PlanCreatePage {
   readonly page: Page;
@@ -182,6 +182,8 @@ export class PlanCreatePage {
     const siteItem = this.siteItems.filter({ hasText: name }).first();
     await siteItem.waitFor({ state: 'visible', timeout: 5000 });
     await siteItem.click();
+    // Wait for the selection to be visually confirmed (selected class) before clearing search
+    await expect(siteItem).toHaveClass(/selected/, { timeout: 3000 });
     // Clear search to show all sites again
     await this.siteSearchInput.fill('');
   }

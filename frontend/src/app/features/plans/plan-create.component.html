@@ -272,107 +272,42 @@
             }
           </div>
 
-          <!-- Rédacteurs (hybrid: utilisateurs ou texte libre) -->
-          <div class="form-section-box">
-            <label class="field-label">
-              {{ 'modals.planForm.fields.redacteurs' | translate }}
-              @if (redacteurs().length > 0) {
-                <span class="count-badge small">{{ redacteurs().length }}</span>
-              }
-            </label>
+          <!-- Rédacteurs (texte libre) -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
+            <textarea
+              matInput
+              formControlName="redacteurs"
+              rows="2"
+              [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
+              data-testid="redacteurs-input"
+            ></textarea>
+            <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
+          </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width chips-field">
-              <mat-chip-grid #redacteursChipGrid>
-                @for (person of redacteurs(); track person.displayName) {
-                  <mat-chip-row (removed)="removeRedacteur(person)">
-                    @if (person.type === 'user') {
-                      <i class="fi fi-rr-user chip-icon"></i>
-                    } @else {
-                      <i class="fi fi-rr-user-pen chip-icon"></i>
-                    }
-                    {{ person.displayName }}
-                    <button matChipRemove>
-                      <i class="fi fi-rr-cross-small"></i>
-                    </button>
-                  </mat-chip-row>
-                }
-                <input
-                  #redacteursInput
-                  [formControl]="redacteursCtrl"
-                  [matChipInputFor]="redacteursChipGrid"
-                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-                  (matChipInputTokenEnd)="addRedacteurFromText($event)"
-                  [matAutocomplete]="redacteursAuto"
-                  [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
-                  data-testid="redacteurs-input"
-                />
-              </mat-chip-grid>
-              <mat-autocomplete
-                #redacteursAuto="matAutocomplete"
-                (optionSelected)="addRedacteurFromUser($event)"
-              >
-                @for (user of filteredUsers$ | async; track user.id_role) {
-                  <mat-option [value]="user">
-                    <i class="fi fi-rr-user option-icon"></i>
-                    <span class="option-name">{{ user.prenom_role }} {{ user.nom_role }}</span>
-                    <span class="option-email">{{ user.email }}</span>
-                  </mat-option>
-                }
-              </mat-autocomplete>
-              <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
-            </mat-form-field>
-          </div>
+          <!-- Relecteurs (texte libre) -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.relecteurs' | translate }}</mat-label>
+            <textarea
+              matInput
+              formControlName="relecteurs"
+              rows="2"
+              [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
+              data-testid="relecteurs-input"
+            ></textarea>
+            <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
+          </mat-form-field>
 
-          <!-- Relecteurs (hybrid: utilisateurs ou texte libre) -->
-          <div class="form-section-box">
-            <label class="field-label">
-              {{ 'modals.planForm.fields.relecteurs' | translate }}
-              @if (relecteurs().length > 0) {
-                <span class="count-badge small">{{ relecteurs().length }}</span>
-              }
-            </label>
-
-            <mat-form-field appearance="outline" class="full-width chips-field">
-              <mat-chip-grid #relecteursChipGrid>
-                @for (person of relecteurs(); track person.displayName) {
-                  <mat-chip-row (removed)="removeRelecteur(person)">
-                    @if (person.type === 'user') {
-                      <i class="fi fi-rr-user chip-icon"></i>
-                    } @else {
-                      <i class="fi fi-rr-user-pen chip-icon"></i>
-                    }
-                    {{ person.displayName }}
-                    <button matChipRemove>
-                      <i class="fi fi-rr-cross-small"></i>
-                    </button>
-                  </mat-chip-row>
-                }
-                <input
-                  #relecteursInput
-                  [formControl]="relecteursCtrl"
-                  [matChipInputFor]="relecteursChipGrid"
-                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-                  (matChipInputTokenEnd)="addRelecteurFromText($event)"
-                  [matAutocomplete]="relecteursAuto"
-                  [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
-                  data-testid="relecteurs-input"
-                />
-              </mat-chip-grid>
-              <mat-autocomplete
-                #relecteursAuto="matAutocomplete"
-                (optionSelected)="addRelecteurFromUser($event)"
-              >
-                @for (user of filteredUsersForRelecteurs$ | async; track user.id_role) {
-                  <mat-option [value]="user">
-                    <i class="fi fi-rr-user option-icon"></i>
-                    <span class="option-name">{{ user.prenom_role }} {{ user.nom_role }}</span>
-                    <span class="option-email">{{ user.email }}</span>
-                  </mat-option>
-                }
-              </mat-autocomplete>
-              <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
-            </mat-form-field>
-          </div>
+          <!-- Autres rédacteurs (texte libre) -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
+            <textarea
+              matInput
+              formControlName="autres_contributeurs"
+              rows="2"
+              [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
+            ></textarea>
+          </mat-form-field>
         </form>
       </div>
     }

@@ -55,7 +55,9 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Equipe Camargue',
                 'redacteurs': 'Marie Dupont, Jean-Pierre Martin (RNF)',
                 'relecteurs': 'CSRPN PACA, Commission Biodiversite RNF',
+                'autres_contributeurs': 'Tour du Valat, SNPN, Amis des Marais du Vigueirat',
                 'date_validation_cspn': date(2020, 3, 15),
+                'organismes_redacteurs_lookup': ['CEN'],
                 'commentaire': 'Plan de gestion valide pour la periode 2020-2030. '
                                '3eme plan successif, faisant suite au plan 2010-2020. '
                                'Enjeux principaux : habitats humides, flamant rose, '
@@ -86,7 +88,9 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'Cabinet Natura Consulting',
                 'redacteurs': 'Cabinet Natura Consulting (F. Leroy, A. Bernard)',
                 'relecteurs': 'CSRPN Auvergne-Rhone-Alpes, DREAL ARA',
+                'autres_contributeurs': 'ASTERS, LPO Haute-Savoie',
                 'date_validation_cspn': date(2018, 6, 20),
+                'organismes_redacteurs_lookup': ['Reserves Naturelles'],
                 'commentaire': 'Plan de gestion en vigueur. Evaluation finale positive. '
                                'Enjeux centres sur les pelouses alpines, la faune '
                                'de haute montagne et la maitrise de la frequentation.',
@@ -300,14 +304,21 @@ class PlansSeeder(BaseSeeder):
 
         users = self.context.require('users')
         sites = self.context.require('sites')
+        organismes = self.context.get('organismes', [])
 
         admin = users[0]  # Pour id_utilisateur_ajout
         plans_data = self._get_plans_data(users, sites)
+
+        # Récupérer les organismes par nom pour les organismes rédacteurs
+        from apps.users.models import BibOrganismes
+        org_cen = BibOrganismes.objects.filter(nom_organisme__icontains='CEN').first()
+        org_rnf = BibOrganismes.objects.filter(nom_organisme__icontains='Reserves Naturelles').first()
 
         plans = []
         for plan_data in plans_data:
             plan_sites = plan_data.pop('sites')
             plan_membres = plan_data.pop('membres')
+            redacteur_config = plan_data.pop('organismes_redacteurs_lookup', [])
 
             plan, created = PlanGestion.objects.update_or_create(
                 nom=plan_data['nom'],
@@ -340,15 +351,31 @@ class PlansSeeder(BaseSeeder):
             # Aussi mettre à jour le ManyToMany referents pour compatibilité
             plan.referents.set(referents_list)
 
+            # Ajouter les organismes rédacteurs pour certains plans
+            redacteur_lookups = redacteur_config
+            redacteur_orgs = []
+            for lookup in redacteur_lookups:
+                org = BibOrganismes.objects.filter(nom_organisme__icontains=lookup).first()
+                if org:
+                    from apps.plans.models import CorRedacteurPlan
+                    CorRedacteurPlan.objects.get_or_create(
+                        plan_de_gestion=plan,
+                        uuid_og=org
+                    )
+                    redacteur_orgs.append(org)
+
             plans.append(plan)
             status = "cree" if created else "mis a jour"
             sites_names = ", ".join([s.nom_site[:20] for s in plan_sites])
             membres_count = len(plan_membres)
             referents_count = len(referents_list)
+            redacteur_count = len(redacteur_orgs)
             self.log_item(status, f"{plan.nom[:50]}... ({plan.statut})")
             if self.verbosity >= 2:
                 self.stdout.write(f"              Sites: {sites_names}")
                 self.stdout.write(f"              Membres: {membres_count} (dont {referents_count} referents)")
+                if redacteur_count:
+                    self.stdout.write(f"              Organismes redacteurs: {redacteur_count}")
 
         # =====================================================================
         # Chaînes de versions complètes

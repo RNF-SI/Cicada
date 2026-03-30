@@ -15,7 +15,14 @@ class Migration(migrations.Migration):
         # 4) Supprimer QUALITATIF et BOOLEEN
         migrations.RunSQL(
             sql="""
-            -- Renommer NUMERIQUE
+            -- S'assurer que le type TYPE_METRIQUE existe (nécessaire pour les tests)
+            INSERT INTO ref_nomenclatures.bib_nomenclatures_types
+                (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj)
+            VALUES
+                (48, 'TYPE_METRIQUE', 'Type de métrique', 'Type de métrique (numérique, qualitatif, booléen)', 'CICADA', 'Validé', NOW(), NOW())
+            ON CONFLICT (id_type) DO NOTHING;
+
+            -- Renommer NUMERIQUE (seulement si elle existe)
             UPDATE ref_nomenclatures.t_nomenclatures
             SET label = 'Intervalle numérique',
                 definition = 'Métrique de type intervalle numérique (min-max)',

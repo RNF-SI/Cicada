@@ -98,6 +98,7 @@ describe('PlanFormModalComponent', () => {
       getSites: getSitesMock,
       getOrganismeSites: getOrganismeSitesMock,
       getUsers: getUsersMock,
+      getOrganismes: jest.fn().mockReturnValue(of({ count: 0, results: [] })),
       createPlan: createPlanMock,
       updatePlan: updatePlanMock
     };

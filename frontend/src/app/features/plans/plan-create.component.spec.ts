@@ -255,10 +255,9 @@ describe('PlanCreateComponent', () => {
       expect(component.availableSites().length).toBe(3);
     });
 
-    it('should load users for autocomplete', () => {
+    it('should load organismes for rédacteurs autocomplete', () => {
       setup();
-      expect(mockAdminService.getUsers).toHaveBeenCalled();
-      expect(component.availableUsers().length).toBe(2);
+      expect(mockAdminService.getOrganismes).toHaveBeenCalled();
     });
 
     it('should load organismes for autocomplete', () => {
@@ -533,70 +532,25 @@ describe('PlanCreateComponent', () => {
   // Redacteurs / Relecteurs
   // =========================================================================
 
-  describe('redacteurs management', () => {
+  describe('redacteurs/relecteurs fields', () => {
     beforeEach(() => setup());
 
-    it('should add a free text redacteur', () => {
-      component.addRedacteurFromText({
-        value: 'Dupont externe',
-        chipInput: { clear: jest.fn() },
-      });
-      expect(component.redacteurs().length).toBe(1);
-      expect(component.redacteurs()[0].type).toBe('text');
-      expect(component.redacteurs()[0].displayName).toBe('Dupont externe');
+    it('should have redacteurs form control', () => {
+      expect(component.form.get('redacteurs')).toBeTruthy();
     });
 
-    it('should not add duplicate text redacteur', () => {
-      component.addRedacteurFromText({
-        value: 'Dupont',
-        chipInput: { clear: jest.fn() },
-      });
-      component.addRedacteurFromText({
-        value: 'Dupont',
-        chipInput: { clear: jest.fn() },
-      });
-      expect(component.redacteurs().length).toBe(1);
+    it('should accept redacteurs text', () => {
+      component.form.get('redacteurs')?.setValue('Marie Dupont, Jean Martin');
+      expect(component.form.get('redacteurs')?.value).toBe('Marie Dupont, Jean Martin');
     });
 
-    it('should remove a redacteur', () => {
-      component.addRedacteurFromText({
-        value: 'Dupont',
-        chipInput: { clear: jest.fn() },
-      });
-      const entry = component.redacteurs()[0];
-      component.removeRedacteur(entry);
-      expect(component.redacteurs().length).toBe(0);
+    it('should have relecteurs form control', () => {
+      expect(component.form.get('relecteurs')).toBeTruthy();
     });
 
-    it('should ignore empty text input', () => {
-      component.addRedacteurFromText({
-        value: '   ',
-        chipInput: { clear: jest.fn() },
-      });
-      expect(component.redacteurs().length).toBe(0);
-    });
-  });
-
-  describe('relecteurs management', () => {
-    beforeEach(() => setup());
-
-    it('should add a free text relecteur', () => {
-      component.addRelecteurFromText({
-        value: 'Martin relecteur',
-        chipInput: { clear: jest.fn() },
-      });
-      expect(component.relecteurs().length).toBe(1);
-      expect(component.relecteurs()[0].displayName).toBe('Martin relecteur');
-    });
-
-    it('should remove a relecteur', () => {
-      component.addRelecteurFromText({
-        value: 'Martin',
-        chipInput: { clear: jest.fn() },
-      });
-      const entry = component.relecteurs()[0];
-      component.removeRelecteur(entry);
-      expect(component.relecteurs().length).toBe(0);
+    it('should accept relecteurs text', () => {
+      component.form.get('relecteurs')?.setValue('Dr. Bernard');
+      expect(component.form.get('relecteurs')?.value).toBe('Dr. Bernard');
     });
   });
 

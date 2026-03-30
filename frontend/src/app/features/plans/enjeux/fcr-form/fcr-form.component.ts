@@ -84,7 +84,7 @@ export class FcrFormComponent implements OnInit {
   private initForm(): void {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
-      intitule_court: ['', [Validators.maxLength(50)]],
+      intitule_court: ['', [Validators.maxLength(25)]],
       id_categorie_fcr: [null, Validators.required],
       description: ['']
     });

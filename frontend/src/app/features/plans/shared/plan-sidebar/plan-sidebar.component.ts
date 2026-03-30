@@ -1,4 +1,4 @@
-import { Component, OnInit, input, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, input, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -33,11 +33,22 @@ export class PlanSidebarComponent implements OnInit {
 
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
-  ngOnInit(): void {
-    this.enjeuService.getPlanEnjeux(this.planId()).subscribe(response => {
-      this.enjeux.set(response.enjeux);
-      this.fcr.set(response.fcr);
+  constructor() {
+    // Re-charger les enjeux à chaque changement de planId ou activePage
+    effect(() => {
+      const planId = this.planId();
+      this.activePage(); // track pour rafraîchir quand on revient sur la page
+      if (planId) {
+        this.enjeuService.getPlanEnjeux(planId, true).subscribe(response => {
+          this.enjeux.set(response.enjeux);
+          this.fcr.set(response.fcr);
+        });
+      }
     });
+  }
+
+  ngOnInit(): void {
+    // Le chargement initial est géré par l'effect dans le constructeur
   }
 
   toggleDetailsMenu(): void {

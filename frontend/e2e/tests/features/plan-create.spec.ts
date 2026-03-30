@@ -233,43 +233,28 @@ test.describe('Plan Create - Optional and Hybrid Fields', () => {
       await options.first().click();
     }
 
-    // Verify the select is no longer showing the placeholder
-    const selectedText = await createPage.redacteurTypeSelect.textContent();
-    expect(selectedText?.trim()).not.toBe('');
+    // Verify the select is no longer showing the placeholder (use auto-retrying assertion)
+    await expect(createPage.redacteurTypeSelect).not.toHaveText('', { timeout: 3000 });
   });
 
-  test('should add a free text redacteur and display chip', async ({ superAdminPage: page }) => {
+  test('should fill redacteurs textarea', async ({ superAdminPage: page }) => {
     const createPage = new PlanCreatePage(page);
     await createPage.goto();
     await createPage.waitForForm();
 
-    await createPage.addRedacteurFreeText('Consultant Externe');
-    await expect(createPage.redacteursChips.first()).toBeVisible();
-    const chips = await createPage.getChipTexts(createPage.redacteursChips);
-    expect(chips.some(t => t.includes('Consultant Externe'))).toBe(true);
+    const redacteursField = page.locator('textarea[formControlName="redacteurs"]');
+    await redacteursField.fill('Consultant Externe, Marie Dupont');
+    await expect(redacteursField).toHaveValue('Consultant Externe, Marie Dupont');
   });
 
-  test('should remove a redacteur chip', async ({ superAdminPage: page }) => {
+  test('should fill relecteurs textarea', async ({ superAdminPage: page }) => {
     const createPage = new PlanCreatePage(page);
     await createPage.goto();
     await createPage.waitForForm();
 
-    await createPage.addRedacteurFreeText('A Supprimer');
-    await expect(createPage.redacteursChips.first()).toBeVisible();
-
-    await createPage.removeChip(createPage.redacteursChips.first());
-    await expect(createPage.redacteursChips).toHaveCount(0);
-  });
-
-  test('should add a free text relecteur and display chip', async ({ superAdminPage: page }) => {
-    const createPage = new PlanCreatePage(page);
-    await createPage.goto();
-    await createPage.waitForForm();
-
-    await createPage.addRelecteurFreeText('Relecteur Test');
-    await expect(createPage.relecteursChips.first()).toBeVisible();
-    const chips = await createPage.getChipTexts(createPage.relecteursChips);
-    expect(chips.some(t => t.includes('Relecteur Test'))).toBe(true);
+    const relecteursField = page.locator('textarea[formControlName="relecteurs"]');
+    await relecteursField.fill('Relecteur Test');
+    await expect(relecteursField).toHaveValue('Relecteur Test');
   });
 
   test('should set and clear organisme free text', async ({ superAdminPage: page }) => {

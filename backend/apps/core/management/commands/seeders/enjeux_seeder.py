@@ -107,7 +107,7 @@ class EnjeuxSeeder(BaseSeeder):
         niveau_international = self._get_nomenclature('NIVEAU_RESPONSABILITE', 'INTERNATIONAL')
 
         if not cat_enjeu or not cat_fcr:
-            self.stderr.write('  Nomenclatures CATEGORIE_ENJEU non trouvées, seeder ignoré')
+            self.stdout.write('  Nomenclatures CATEGORIE_ENJEU non trouvées, seeder ignoré')
             return {'enjeux': [], 'fcr': [], 'responsabilites': []}
 
         # Plans de référence
@@ -2450,6 +2450,40 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
+            # Métrique type CHIFFRE - Nombre d'espèces turficoles caractéristiques
+            met_chiffre_turb, created = Metrique.objects.update_or_create(
+                id_indicateur=ind_veg,
+                nom_metrique='Nombre d\'espèces turficoles caractéristiques',
+                defaults={
+                    'type_metrique': type_met_chiffre,
+                    'unite': 'espèces',
+                    'etat_reference': 'Référence : 15 espèces caractéristiques en 2010',
+                    'score_1_val': 3,
+                    'score_2_val': 6,
+                    'score_3_val': 9,
+                    'score_4_val': 12,
+                    'score_5_val': 15,
+                    'score_1_label': 'Très dégradé',
+                    'score_2_label': 'Dégradé',
+                    'score_3_label': 'Moyen',
+                    'score_4_label': 'Bon',
+                    'score_5_label': 'Très bon',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_chiffre_turb)
+
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_chiffre_turb, date_mesure=date(2022, 7, 20),
+                defaults={'valeur': '13', 'commentaire': 'Relevé été 2022 - bon état végétation turficole', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_chiffre_turb, date_mesure=date(2023, 7, 15),
+                defaults={'valeur': '11', 'commentaire': 'Relevé été 2023 - légère baisse par rapport à 2022', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
         # --- Remoray - NE "Présence régulière ≥ 3 individus" (Balbuzard) ---
         ne_balbuzard = next((ne for ne in nes_created if 'balbuzard' in ne.libelle.lower() or '3 individus' in ne.libelle), None)
         if ne_balbuzard and type_ind_etat:
@@ -4072,7 +4106,7 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'op_match': 'Suivi piézométrique mensuel des tourbières',
-                'intitule': 'Réseau piézométrique des tourbières du Haut-Doubs',
+                'intitule': 'Suivi piézométrique mensuel des tourbières',
                 'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
                 'cibles_principales': 'ABIOTIQUE',
                 'taxon_taxref': '',
@@ -4098,7 +4132,7 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'op_match': 'Débroussaillage sélectif des bouleaux sur tourbières',
-                'intitule': 'Suivi post-intervention débroussaillage tourbières',
+                'intitule': 'Débroussaillage sélectif des bouleaux sur tourbières',
                 'objectif_principal': 'OBJ_EFFICACITE_GESTION',
                 'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
@@ -4125,7 +4159,7 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'op_match': 'Relevés phytosociologiques des communautés turficoles',
-                'intitule': 'Suivi phytosociologique des tourbières du bassin de Remoray',
+                'intitule': 'Relevés phytosociologiques des communautés turficoles',
                 'objectif_principal': 'OBJ_ETAT_CONSERVATION',
                 'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': 'Sphagnum spp., Drosera rotundifolia, Menyanthes trifoliata',
@@ -4149,7 +4183,7 @@ class EnjeuxSeeder(BaseSeeder):
             },
             {
                 'op_match': 'Suivi photographique par drone des tourbières',
-                'intitule': 'Télédétection par drone des tourbières du Haut-Doubs',
+                'intitule': 'Suivi photographique par drone des tourbières',
                 'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
                 'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
@@ -4172,6 +4206,135 @@ class EnjeuxSeeder(BaseSeeder):
                     'periode_suivi': 'SEPTEMBRE',
                     'documentation_disponible': True,
                     'url_documentation': 'https://example.org/protocole-drone-tourbieres',
+                },
+            },
+            # --- Opérations CS non encore liées à des SuiviInventaire ---
+            {
+                'op_match': 'Cartographie annuelle des sphaignes et végétation tourbeuse',
+                'intitule': 'Cartographie annuelle des sphaignes et végétation tourbeuse',
+                'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
+                'taxon_taxref': 'Sphagnum spp.',
+                'date_lancement_suivi': '2024-06-01',
+                'id_statut': _statut_en_cours,
+                'outil_bancarisation': 'BDD_INTERNE',
+                'outil_saisie': 'ADAPTE',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom_protocole': 'Protocole cartographie sphaignes',
+                    'nb_etp_cycle': 1.5,
+                    'description': 'Cartographie par drone et relevés terrain de la couverture '
+                                   'en sphaignes et végétation tourbeuse. Classification '
+                                   'supervisée sur ortho-mosaïque haute résolution.',
+                    'objectif': 'Suivre la dynamique spatiale des sphaignes et détecter '
+                                'les zones de régression ou de recolonisation',
+                    'periode': 'Juin - Août',
+                    'respect': True,
+                    'periode_suivi': 'JUILLET',
+                    'documentation_disponible': False,
+                },
+            },
+            {
+                'op_match': 'Analyse inter-annuelle des chroniques piézométriques',
+                'intitule': 'Analyse inter-annuelle des chroniques piézométriques',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
+                'taxon_taxref': '',
+                'date_lancement_suivi': '2025-01-15',
+                'id_statut': _statut_a_venir,
+                'outil_bancarisation': 'CENTRALISEE_NATIONALE',
+                'outil_saisie': 'ADAPTE',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom_protocole': 'Protocole analyse chroniques piézométriques',
+                    'nb_etp_cycle': 3.0,
+                    'description': 'Traitement statistique des chroniques piézométriques '
+                                   'depuis 2012. Modélisation des tendances, corrélation '
+                                   'avec les données climatiques (ETP, précipitations).',
+                    'objectif': 'Détecter les seuils critiques d\'assèchement et modéliser '
+                                'les tendances à long terme du fonctionnement hydrologique',
+                    'periode': 'Janvier - Mars, Novembre - Décembre',
+                    'respect': True,
+                    'documentation_disponible': False,
+                },
+            },
+            {
+                'op_match': 'Évaluation globale de l\'état de conservation des tourbières',
+                'intitule': 'Évaluation globale de l\'état de conservation des tourbières',
+                'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+                'cibles_principales': 'HABITATS_VEGETATIONS',
+                'taxon_taxref': '',
+                'date_lancement_suivi': '2025-10-01',
+                'id_statut': _statut_a_venir,
+                'outil_bancarisation': 'CENTRALISEE_REFERENT',
+                'outil_saisie': 'ADAPTE',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom_protocole': 'Protocole évaluation conservation tourbières',
+                    'nb_etp_cycle': 5.0,
+                    'description': 'Synthèse triennale croisant données piézométriques, '
+                                   'phytosociologiques et télédétection. Diagnostic global '
+                                   'par tourbière selon la grille Natura 2000.',
+                    'objectif': 'Produire un diagnostic de l\'état de conservation de chacune '
+                                'des 8 tourbières pour le CSRPN et la DREAL',
+                    'periode': 'Octobre - Décembre',
+                    'respect': True,
+                    'documentation_disponible': False,
+                },
+            },
+            {
+                'op_match': 'Prélèvements mensuels qualité eau lac',
+                'intitule': 'Prélèvements mensuels qualité eau lac',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
+                'taxon_taxref': '',
+                'date_lancement_suivi': '2015-01-10',
+                'id_statut': _statut_en_cours,
+                'outil_bancarisation': 'CENTRALISEE_NATIONALE',
+                'outil_saisie': 'ADAPTE',
+                'transmission_donnee': True,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom_protocole': 'Protocole qualité physico-chimique lac',
+                    'nb_etp_cycle': 1.0,
+                    'description': 'Prélèvements mensuels sur 3 points du lac (littoral, '
+                                   'pélagique, profond). Paramètres : phosphore total, '
+                                   'nitrates, chlorophylle a, oxygène dissous, turbidité.',
+                    'objectif': 'Suivre l\'état trophique du lac et détecter les épisodes '
+                                'd\'eutrophisation',
+                    'periode': 'Toute l\'année (mensuel)',
+                    'respect': True,
+                    'periode_suivi': 'JANVIER',
+                    'documentation_disponible': True,
+                    'url_documentation': 'https://example.org/protocole-qualite-lac',
+                },
+            },
+            {
+                'op_match': 'Étude globale du fonctionnement hydrologique du bassin',
+                'intitule': 'Étude globale du fonctionnement hydrologique du bassin',
+                'objectif_principal': 'OBJ_PHYSICO_CHIMIQUES',
+                'cibles_principales': 'ABIOTIQUE',
+                'taxon_taxref': '',
+                'date_lancement_suivi': '2025-03-01',
+                'id_statut': _statut_a_venir,
+                'outil_bancarisation': 'BDD_INTERNE',
+                'outil_saisie': 'NON_ADAPTE',
+                'transmission_donnee': False,
+                'protocole': {
+                    'dans_campanule': False,
+                    'nom_protocole': 'Protocole étude hydrologique intégrée',
+                    'nb_etp_cycle': 8.0,
+                    'description': 'Étude hydrologique intégrée du bassin versant : bilan '
+                                   'hydrologique, modélisation des flux, cartographie des '
+                                   'zones contributives aux apports en nutriments.',
+                    'objectif': 'Comprendre les flux de nutriments et la dynamique de la '
+                                'qualité des eaux pour orienter les actions de gestion',
+                    'periode': 'Toute l\'année',
+                    'respect': True,
+                    'documentation_disponible': False,
                 },
             },
         ]
@@ -4378,6 +4541,22 @@ class EnjeuxSeeder(BaseSeeder):
                 CorOperationSite.objects.get_or_create(
                     id_operation_id=op_id, id_site=site
                 )
+
+        # Lier certaines opérations Remoray à Grand-Voyeux (multi-sites → multi-organismes)
+        site_grand_voyeux = sites[2] if len(sites) > 2 else None
+        if site_grand_voyeux:
+            multi_site_op_labels = [
+                'Suivi piézométrique mensuel des tourbières',
+                'Évaluation globale de l\'état de conservation des tourbières',
+                'Cartographie annuelle des sphaignes et végétation tourbeuse',
+                'Relevés phytosociologiques des communautés turficoles',
+                'Débroussaillage sélectif des bouleaux sur tourbières',
+            ]
+            for op in operations_created:
+                if op.libelle in multi_site_op_labels:
+                    CorOperationSite.objects.get_or_create(
+                        id_operation_id=op.id_operation, id_site=site_grand_voyeux
+                    )
 
         # Create per-organisme breakdown for OperationAnnee entries
         from apps.users.models import CorOgSite

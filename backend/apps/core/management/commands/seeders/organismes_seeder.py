@@ -5,6 +5,7 @@ from typing import Any, List
 
 from apps.users.models import BibOrganismes, Role, CorOgSite
 from apps.notifications.models import PendingUser, ValidationRequest
+from apps.core.models import Nomenclature
 
 from .base import BaseSeeder
 
@@ -93,6 +94,15 @@ class OrganismesSeeder(BaseSeeder):
                     old_org.save()
                     self.log(f"  [RENOMME] '{old_name}' -> '{canonical_name}'")
 
+    # Mapping nom_organisme -> cd_nomenclature TYPE_ORGANISME
+    TYPE_ORGANISME_MAP = {
+        'Reserves Naturelles de France': 'RNF',
+        'CEN Auvergne-Rhone-Alpes': 'CEN',
+        'DREAL Nouvelle-Aquitaine': 'DREAL',
+        'Parc National des Ecrins': 'PNX',
+        'Office Francais de la Biodiversite': 'OFB',
+    }
+
     def seed(self) -> List[BibOrganismes]:
         """
         Cree les organismes de test.
@@ -105,16 +115,30 @@ class OrganismesSeeder(BaseSeeder):
         # Nettoyer les doublons potentiels
         self._clean_duplicates()
 
+        # Charger les nomenclatures TYPE_ORGANISME
+        type_nomenclatures = {
+            n.cd_nomenclature: n
+            for n in Nomenclature.objects.filter(id_type__mnemonique='TYPE_ORGANISME')
+        }
+
         organismes = []
         for org_data in self.ORGANISMES_DATA:
             org, created = BibOrganismes.objects.get_or_create(
                 nom_organisme=org_data['nom_organisme'],
                 defaults=org_data
             )
+
+            # Assigner le type d'organisme si disponible
+            type_code = self.TYPE_ORGANISME_MAP.get(org_data['nom_organisme'])
+            if type_code and type_code in type_nomenclatures:
+                if not org.id_type_organisme or org.id_type_organisme != type_nomenclatures[type_code]:
+                    org.id_type_organisme = type_nomenclatures[type_code]
+                    org.save(update_fields=['id_type_organisme'])
+
             organismes.append(org)
 
             status = "cree" if created else "existant"
-            self.log_item(status, org.nom_organisme)
+            self.log_item(status, f"{org.nom_organisme} ({type_code or '?'})")
 
         self.log_summary(len(organismes), 'organismes')
         self.context.set('organismes', organismes)

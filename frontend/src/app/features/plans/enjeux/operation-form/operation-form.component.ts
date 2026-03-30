@@ -30,6 +30,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
+import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
 import { Operation, OperationCreatePayload, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
@@ -158,11 +159,20 @@ export class OperationFormComponent implements OnInit {
   // Per-organisme budget data: key = `${yearIndex}-${organismeId}`
   orgBudgets: Record<string, { fonct: number | null; invest: number | null; etp: number | null }> = {};
 
-  /** true = user enters totals directly; false = totals computed from per-organisme breakdown */
-  directTotalMode = signal(false);
+  /** Mode de ventilation budgétaire : none, by_org, by_type, by_org_type */
+  ventilationMode = signal<'none' | 'by_org' | 'by_type' | 'by_org_type'>('none');
 
-  /** Direct-entered totals per year when in direct total mode: key = yearIndex */
+  /** Raccourci pour rétrocompatibilité avec le code existant */
+  directTotalMode = computed(() => this.ventilationMode() === 'none');
+
+  /** Direct-entered totals per year when in mode 'none': key = yearIndex */
   directTotals: Record<number, { budget: number | null; etp: number | null }> = {};
+
+  /** Budget par type (mode 'by_type') : key = yearIndex */
+  typeBudgets: Record<number, { fonct: number | null; invest: number | null; etp: number | null }> = {};
+
+  /** Budget par organisme (mode 'by_org', totaux) : key = `${yearIndex}-${organismeId}` */
+  orgByOrgData: Record<string, { budget: number | null; etp: number | null }> = {};
 
   // Available organismes derived from selected sites
   availableOrganismes = computed(() => {
@@ -216,6 +226,7 @@ export class OperationFormComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     this.initFrequenceLabels();
     this.initForm();
     this.initSuiviLibelleSync();
@@ -325,8 +336,9 @@ export class OperationFormComponent implements OnInit {
           // Extract plan sites
           if (plan.sites) {
             this.planSites.set(plan.sites);
+            const isSingleSite = plan.sites.length === 1;
             for (const site of plan.sites) {
-              this.selectedSiteIds[site.id_site] = false;
+              this.selectedSiteIds[site.id_site] = isSingleSite;
             }
           }
           // Load operation data AFTER sites are initialized to avoid race condition
@@ -623,12 +635,47 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
-    // Infer direct total mode: if years have budget/etp but no organismes
+    // Infer ventilation mode from existing data
     if (op.operation_annees && op.operation_annees.length > 0) {
       const hasOrganismes = op.operation_annees.some(a => a.organismes && a.organismes.length > 0);
-      const hasBudgetOrEtp = op.operation_annees.some(a => a.budget != null || a.etp != null);
-      if (hasBudgetOrEtp && !hasOrganismes && op.site_ids && op.site_ids.length > 0) {
-        this.directTotalMode.set(true);
+      const hasBudgetType = op.operation_annees.some(a => a.budget_fonctionnement != null || a.budget_investissement != null);
+      const hasOrgInvestNonNull = op.operation_annees.some(a =>
+        a.organismes?.some(o => o.budget_investissement != null && o.budget_investissement !== 0)
+      );
+
+      if (hasOrganismes && hasOrgInvestNonNull) {
+        // Mode 4: by_org_type — organismes avec fonct ET invest
+        this.ventilationMode.set('by_org_type');
+      } else if (hasOrganismes) {
+        // Mode 2: by_org — organismes avec totaux uniquement
+        this.ventilationMode.set('by_org');
+        for (const serverAnnee of op.operation_annees) {
+          const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+          if (yearIdx >= 0 && serverAnnee.organismes) {
+            for (const org of serverAnnee.organismes) {
+              this.orgByOrgData[`${yearIdx}-${org.id_organisme}`] = {
+                budget: org.budget_fonctionnement != null ? parseFloat(String(org.budget_fonctionnement)) : null,
+                etp: org.etp != null ? parseFloat(String(org.etp)) : null,
+              };
+            }
+          }
+        }
+      } else if (hasBudgetType) {
+        // Mode 3: by_type — fonct/invest global, pas d'organismes
+        this.ventilationMode.set('by_type');
+        for (const serverAnnee of op.operation_annees) {
+          const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+          if (yearIdx >= 0) {
+            this.typeBudgets[yearIdx] = {
+              fonct: serverAnnee.budget_fonctionnement != null ? parseFloat(String(serverAnnee.budget_fonctionnement)) : null,
+              invest: serverAnnee.budget_investissement != null ? parseFloat(String(serverAnnee.budget_investissement)) : null,
+              etp: serverAnnee.etp != null ? parseFloat(String(serverAnnee.etp)) : null,
+            };
+          }
+        }
+      } else {
+        // Mode 1: none — totaux directs
+        this.ventilationMode.set('none');
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
@@ -763,22 +810,49 @@ export class OperationFormComponent implements OnInit {
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
-    const isDirectMode = this.directTotalMode() && orgs.length > 0;
+    const mode = this.ventilationMode();
+    type OrgEntry = { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null };
     const anneesToSave = this.operationAnnees.map((a, idx) => {
-      if (isDirectMode) {
-        // Direct total mode: use directly-entered values, no per-organisme data
+      const base = {
+        annee: a.annee,
+        periodicite: a.periodicite,
+        periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
+      };
+
+      if (mode === 'none') {
+        // Mode 1: Pas de ventilation — totaux directs
         const directData = this.getDirectTotal(idx);
-        return {
-          annee: a.annee,
-          periodicite: a.periodicite,
-          budget: directData.budget,
-          etp: directData.etp,
-          periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
-          organismes: [] as { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null }[],
-        };
+        return { ...base, budget: directData.budget, etp: directData.etp, budget_fonctionnement: null, budget_investissement: null, organismes: [] as OrgEntry[] };
       }
-      // Ventilation mode: build per-organisme array for this year
-      const orgEntries: { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null }[] = [];
+
+      if (mode === 'by_type') {
+        // Mode 3: Par type de budget (global, sans organismes)
+        const typeData = this.getTypeBudget(idx);
+        const totalBudget = (typeData.fonct || 0) + (typeData.invest || 0);
+        return { ...base, budget: totalBudget || null, etp: typeData.etp, budget_fonctionnement: typeData.fonct, budget_investissement: typeData.invest, organismes: [] as OrgEntry[] };
+      }
+
+      if (mode === 'by_org') {
+        // Mode 2: Par organisme (totaux, sans fonct/invest)
+        const orgEntries: OrgEntry[] = [];
+        for (const org of orgs) {
+          const data = this.getOrgByOrgData(idx, org.id_organisme);
+          if (data.budget != null || data.etp != null) {
+            orgEntries.push({
+              id_organisme: org.id_organisme,
+              budget_fonctionnement: data.budget,
+              budget_investissement: null,
+              etp: data.etp,
+            });
+          }
+        }
+        const totalBudget = orgEntries.reduce((sum, o) => sum + (o.budget_fonctionnement || 0), 0);
+        const totalEtp = orgEntries.reduce((sum, o) => sum + (o.etp || 0), 0);
+        return { ...base, budget: orgEntries.length > 0 ? totalBudget : null, etp: orgEntries.length > 0 ? totalEtp : null, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
+      }
+
+      // Mode 4: by_org_type — Par organisme + type (mode actuel ventilation)
+      const orgEntries: OrgEntry[] = [];
       for (const org of orgs) {
         const data = this.getOrgBudget(idx, org.id_organisme);
         if (data.fonct != null || data.invest != null || data.etp != null) {
@@ -790,17 +864,9 @@ export class OperationFormComponent implements OnInit {
           });
         }
       }
-      // Compute totals from per-organisme data
       const totalBudget = orgEntries.reduce((sum, o) => sum + (o.budget_fonctionnement || 0) + (o.budget_investissement || 0), 0);
       const totalEtp = orgEntries.reduce((sum, o) => sum + (o.etp || 0), 0);
-      return {
-        annee: a.annee,
-        periodicite: a.periodicite,
-        budget: orgEntries.length > 0 ? totalBudget : a.budget,
-        etp: orgEntries.length > 0 ? totalEtp : a.etp,
-        periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
-        organismes: orgEntries,
-      };
+      return { ...base, budget: orgEntries.length > 0 ? totalBudget : a.budget, etp: orgEntries.length > 0 ? totalEtp : a.etp, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
     });
 
     const hasAnneeData = anneesToSave.some(
@@ -901,10 +967,12 @@ export class OperationFormComponent implements OnInit {
       // Sync libelle from selected inventaire
       this.updateLibelle(this.getSelectedSuiviIntitule());
     } else {
-      // "New suivi" mode: enable suivi fields, intitule_suivi required
+      // "New suivi" mode: enable suivi fields, reset values, intitule_suivi required
+      this.resetSuiviFields();
       this.setSuiviFieldsEnabled(true);
       this.form.get('intitule_suivi')?.setValidators([Validators.required]);
       this.form.get('intitule_suivi')?.updateValueAndValidity();
+      this.form.get('id_suivi')?.setValue(null);
       // Sync libelle from intitule_suivi text
       this.updateLibelle(this.form.get('intitule_suivi')?.value || '');
     }
@@ -915,10 +983,13 @@ export class OperationFormComponent implements OnInit {
    * Subscribe to id_suivi changes and intitule_suivi keystrokes.
    */
   private initSuiviLibelleSync(): void {
-    // Existing suivi selected → sync libelle
-    this.form.get('id_suivi')?.valueChanges.subscribe(() => {
+    // Existing suivi selected → sync libelle + fetch full details
+    this.form.get('id_suivi')?.valueChanges.subscribe((idSuivi) => {
       if (this.isCSAction() && this.estSuiviExistant()) {
         this.updateLibelle(this.getSelectedSuiviIntitule());
+        if (idSuivi) {
+          this.fetchAndPopulateSuiviDetails(idSuivi);
+        }
       }
     });
 
@@ -942,6 +1013,71 @@ export class OperationFormComponent implements OnInit {
   private updateLibelle(value: string): void {
     this.form.get('libelle')?.setValue(value, { emitEvent: false });
     this.libelleDisplay.set(value);
+  }
+
+  /** Fetch full inventaire details and populate the suivi/protocole form fields. */
+  private fetchAndPopulateSuiviDetails(idSuivi: number): void {
+    this.inventaireService.getInventaire(idSuivi).subscribe({
+      next: (detail: SuiviInventaireDetail) => {
+        // Populate taxon/habitat reference lists
+        if (detail.taxon_taxref) {
+          this.taxonItems = detail.taxon_taxref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
+            cd_nom: 0,
+            nom_complet: name,
+          }));
+        } else {
+          this.taxonItems = [];
+        }
+        if (detail.habitat_ref) {
+          this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
+            cd_hab: '',
+            lb_hab_fr: name,
+          }));
+        } else {
+          this.habitatItems = [];
+        }
+
+        // Populate suivi fields
+        this.form.patchValue({
+          objectif_principal: detail.objectif_principal || '',
+          objectif_secondaire: detail.objectif_secondaire || '',
+          cibles_principales: detail.cibles_principales || null,
+          cible_secondaire: detail.cible_secondaire || '',
+          date_lancement_suivi: detail.date_lancement_suivi ? new Date(detail.date_lancement_suivi) : null,
+          outil_bancarisation: detail.outil_bancarisation || null,
+          outil_saisie: detail.outil_saisie || null,
+          transmission_donnee: detail.transmission_donnee ?? null,
+        });
+
+        // Populate protocole fields
+        const proto = detail.protocole;
+        if (proto) {
+          this.form.patchValue({
+            protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
+            protocole_campanule_nom: proto.protocole_campanule_nom || '',
+            cd_protocole_campanule: proto.cd_protocole_campanule || null,
+            nb_etp_cycle: proto.nb_etp_cycle || null,
+            nom_protocole: proto.nom_protocole || '',
+            respect_protocole: proto.respect_protocole ?? null,
+            justification_non_respect: proto.justification_non_respect || '',
+            differences_protocole: proto.differences_protocole || '',
+            description_protocole: proto.description_protocole || '',
+            objectif_protocole: proto.objectif_protocole || '',
+            periode_echantillonnage: proto.periode_echantillonnage || '',
+          });
+
+          // Restore CAMPanule autocomplete state
+          if (proto.cd_protocole_campanule && proto.protocole_campanule_nom) {
+            this.campanuleSearchCtrl.setValue(proto.protocole_campanule_nom, { emitEvent: false });
+            this.selectedCampanule.set({
+              cd_protocole: proto.cd_protocole_campanule,
+              search_name: proto.protocole_campanule_nom,
+              lb_protocole_court: proto.protocole_campanule_nom,
+            });
+          }
+        }
+      },
+    });
   }
 
   // ════════════════════════════════════════════════
@@ -1163,6 +1299,22 @@ export class OperationFormComponent implements OnInit {
     return `${y}-${m}-${d}`;
   }
 
+  private resetSuiviFields(): void {
+    const fields = [
+      'objectif_principal', 'objectif_secondaire',
+      'cibles_principales', 'cible_secondaire',
+      'date_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
+      'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
+      'respect_protocole', 'justification_non_respect', 'differences_protocole',
+      'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+      'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
+      'intitule_suivi'
+    ];
+    for (const field of fields) {
+      this.form.get(field)?.reset();
+    }
+  }
+
   private setSuiviFieldsEnabled(enabled: boolean): void {
     const fields = [
       'objectif_principal', 'objectif_secondaire',
@@ -1276,9 +1428,16 @@ export class OperationFormComponent implements OnInit {
         const srcData = this.getOrgBudget(0, org.id_organisme);
         this.orgBudgets[this.orgKey(i, org.id_organisme)] = { ...srcData };
       }
-      // Duplicate direct totals
-      if (this.directTotalMode()) {
+      // Duplicate direct totals / type budgets / org totals
+      const mode = this.ventilationMode();
+      if (mode === 'none') {
         this.directTotals[i] = { ...this.getDirectTotal(0) };
+      } else if (mode === 'by_type') {
+        this.typeBudgets[i] = { ...this.getTypeBudget(0) };
+      } else if (mode === 'by_org') {
+        for (const org of this.availableOrganismes()) {
+          this.orgByOrgData[`${i}-${org.id_organisme}`] = { ...this.getOrgByOrgData(0, org.id_organisme) };
+        }
       }
     }
   }
@@ -1288,7 +1447,7 @@ export class OperationFormComponent implements OnInit {
   // ════════════════════════════════════════════════
 
   onModeToggle(mode: string): void {
-    this.directTotalMode.set(mode === 'direct');
+    this.ventilationMode.set(mode as 'none' | 'by_org' | 'by_type' | 'by_org_type');
   }
 
   getDirectTotal(yearIdx: number): { budget: number | null; etp: number | null } {
@@ -1304,6 +1463,65 @@ export class OperationFormComponent implements OnInit {
 
   updateDirectEtp(yearIdx: number, value: string): void {
     this.getDirectTotal(yearIdx).etp = value ? parseFloat(value) : null;
+  }
+
+  // ════════════════════════════════════════════════
+  // Mode 'by_type' helpers (ventilation par type budget global)
+  // ════════════════════════════════════════════════
+
+  getTypeBudget(yearIdx: number): { fonct: number | null; invest: number | null; etp: number | null } {
+    if (!this.typeBudgets[yearIdx]) {
+      this.typeBudgets[yearIdx] = { fonct: null, invest: null, etp: null };
+    }
+    return this.typeBudgets[yearIdx];
+  }
+
+  updateTypeFonct(yearIdx: number, value: string): void {
+    this.getTypeBudget(yearIdx).fonct = value ? parseFloat(value) : null;
+  }
+
+  updateTypeInvest(yearIdx: number, value: string): void {
+    this.getTypeBudget(yearIdx).invest = value ? parseFloat(value) : null;
+  }
+
+  updateTypeEtp(yearIdx: number, value: string): void {
+    this.getTypeBudget(yearIdx).etp = value ? parseFloat(value) : null;
+  }
+
+  // ════════════════════════════════════════════════
+  // Mode 'by_org' helpers (ventilation par organisme, totaux)
+  // ════════════════════════════════════════════════
+
+  getOrgByOrgData(yearIdx: number, orgId: number): { budget: number | null; etp: number | null } {
+    const key = `${yearIdx}-${orgId}`;
+    if (!this.orgByOrgData[key]) {
+      this.orgByOrgData[key] = { budget: null, etp: null };
+    }
+    return this.orgByOrgData[key];
+  }
+
+  updateOrgByOrgBudget(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgByOrgData(yearIdx, orgId).budget = value ? parseFloat(value) : null;
+  }
+
+  updateOrgByOrgEtp(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgByOrgData(yearIdx, orgId).etp = value ? parseFloat(value) : null;
+  }
+
+  getByOrgYearTotalBudget(yearIdx: number): number {
+    let total = 0;
+    for (const org of this.availableOrganismes()) {
+      total += this.getOrgByOrgData(yearIdx, org.id_organisme).budget || 0;
+    }
+    return total;
+  }
+
+  getByOrgYearTotalEtp(yearIdx: number): number {
+    let total = 0;
+    for (const org of this.availableOrganismes()) {
+      total += this.getOrgByOrgData(yearIdx, org.id_organisme).etp || 0;
+    }
+    return total;
   }
 
   // ════════════════════════════════════════════════
