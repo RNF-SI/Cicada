@@ -93,3 +93,9 @@ backend/static/
 backend/celerybeat-schedule
 
 packaging/installer/venv/cicada_0.1.14_amd64.deb
+
+# Scripts utilitaires locaux
+scripts/
+
+# Packages Debian
+cicada_*.deb
