@@ -253,7 +253,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         # Log d'activité
         from apps.core.services import ActivityService
-        ActivityService.log(
+        ActivityService.log_activity(
             actor=request.user,
             action='status_change',
             entity_type='user',
@@ -298,7 +298,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         # Log d'activité
         from apps.core.services import ActivityService
-        ActivityService.log(
+        ActivityService.log_activity(
             actor=request.user,
             action='status_change',
             entity_type='user',
