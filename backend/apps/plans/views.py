@@ -110,6 +110,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        # Rédacteur principal : voir tous les plans
+        if user.is_redacteur_principal():
+            return queryset
+
         # Admin organisme : voir les plans des sites de son organisme + plans rédacteur
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
@@ -921,9 +925,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """
         plan = self.get_object()
 
-        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+)
+        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+ hors rédacteur principal)
         user = request.user
-        if not user.is_admin_organisme() and not plan.referents.filter(pk=user.pk).exists():
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
             return Response(
                 {'error': 'Vous devez être référent de ce plan pour modifier son statut.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -995,9 +999,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """
         plan = self.get_object()
 
-        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+)
+        # Vérifier que l'utilisateur est référent de CE plan (ou admin_og+ hors rédacteur principal)
         user = request.user
-        if not user.is_admin_organisme() and not plan.referents.filter(pk=user.pk).exists():
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
             return Response(
                 {'error': 'Vous devez être référent de ce plan pour créer une évaluation.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1142,7 +1146,7 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         """Filtrer les fichiers selon les permissions sur les plans."""
         user = self.request.user
 
-        if user.is_super_admin():
+        if user.is_super_admin() or user.is_redacteur_principal():
             return self.queryset
 
         # Filtrer selon les plans accessibles à l'utilisateur

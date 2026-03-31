@@ -11,7 +11,6 @@ class SuiviInventaireFilter(django_filters.FilterSet):
 
     actif = django_filters.BooleanFilter(field_name='actif')
     id_statut = django_filters.NumberFilter(field_name='id_statut')
-    id_type_suivi = django_filters.NumberFilter(field_name='id_type_suivi')
     id_type_action = django_filters.NumberFilter(field_name='id_type_action')
     type_action_prefix = django_filters.CharFilter(
         method='filter_type_action_prefix',
@@ -23,7 +22,7 @@ class SuiviInventaireFilter(django_filters.FilterSet):
 
     class Meta:
         model = SuiviInventaire
-        fields = ['actif', 'id_statut', 'id_type_suivi', 'id_type_action', 'id_pg']
+        fields = ['actif', 'id_statut', 'id_type_action', 'id_pg']
 
     def filter_type_action_prefix(self, queryset, name, value):
         """Filtre les inventaires dont le type_action commence par le préfixe donné."""

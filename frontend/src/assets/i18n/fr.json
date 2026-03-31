@@ -243,6 +243,7 @@
       },
       "roles": {
         "super_admin": "Super Admin",
+        "redacteur_principal": "Réd. Principal",
         "admin_og": "Admin Org.",
         "utilisateur": "Utilisateur"
       },
@@ -441,6 +442,18 @@
         "email": "Email",
         "phone": "Téléphone",
         "address": "Adresse"
+      }
+    },
+    "redacteursPrincipaux": {
+      "title": "Rédacteurs principaux",
+      "subtitle": "Utilisateurs ayant accès en édition à tous les plans de gestion",
+      "add": "Ajouter un rédacteur principal",
+      "remove": "Retirer le rôle",
+      "confirmRemove": "Retirer le rôle de rédacteur principal à {{name}} ? L'utilisateur redeviendra simple utilisateur.",
+      "empty": "Aucun rédacteur principal défini",
+      "messages": {
+        "added": "{{name}} est maintenant rédacteur principal",
+        "removed": "{{name}} n'est plus rédacteur principal"
       }
     },
     "validations": {
@@ -1174,6 +1187,9 @@
   "plans": {
     "title": "Plans de gestion",
     "newPlan": "NOUVEAU PLAN DE GESTION",
+    "redacteurPrincipal": {
+      "banner": "Vous avez le rôle de rédacteur principal de l'instance de Cicada, vous pouvez éditer tous les plans de gestion."
+    },
     "scope": {
       "mine": "Mes plans",
       "sites": "Plans de mes sites",
@@ -2505,7 +2521,6 @@
       "type": "Type",
       "typeAction": "Type d'action",
       "typeActionPlaceholder": "Rechercher un type CS...",
-      "typeSuivi": "Type de suivi",
       "integrePG": "L'inventaire ou le suivi est inscrit dans le plan de gestion",
       "suitIndicateur": "Le suivi/inventaire permet-il de suivre un indicateur ?",
       "typeIndicateur": "Type d'indicateur",

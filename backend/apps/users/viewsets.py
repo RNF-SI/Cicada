@@ -56,7 +56,11 @@ class RoleViewSet(viewsets.ModelViewSet):
         # Super admin voit tous les utilisateurs
         if user.is_super_admin():
             return Role.objects.select_related('id_organisme').prefetch_related('groups')
-        
+
+        # Rédacteur principal voit tous les utilisateurs
+        if user.is_redacteur_principal():
+            return Role.objects.select_related('id_organisme').prefetch_related('groups')
+
         # Admin organisme voit les utilisateurs de son organisme
         elif user.is_admin_organisme() and user.id_organisme:
             return Role.objects.filter(
@@ -127,17 +131,17 @@ class RoleViewSet(viewsets.ModelViewSet):
         new_user_organisme = serializer.validated_data.get('id_organisme')
         new_user_role_level = serializer.validated_data.get('role_level', 'utilisateur')
         
+        # Seul super_admin peut attribuer redacteur_principal ou super_admin
+        if new_user_role_level in ('super_admin', 'redacteur_principal') and not user.is_super_admin():
+            raise serializers.ValidationError({
+                'role_level': 'Seul un Super Administrateur peut attribuer ce rôle.'
+            })
+
         # Admin organisme ne peut créer que dans son organisme
         if user.is_admin_organisme() and not user.is_super_admin():
             if new_user_organisme != user.id_organisme:
                 raise serializers.ValidationError({
                     'organisme_id': 'Vous ne pouvez créer des utilisateurs que dans votre organisme.'
-                })
-            
-            # Admin organisme ne peut pas créer de Super Admin
-            if new_user_role_level == 'super_admin':
-                raise serializers.ValidationError({
-                    'role_level': 'Vous ne pouvez pas créer de Super Administrateur.'
                 })
         
         # Sauvegarder l'utilisateur
@@ -165,9 +169,9 @@ class RoleViewSet(viewsets.ModelViewSet):
                 if target_user.id_organisme != user.id_organisme:
                     raise PermissionError('Vous ne pouvez modifier que les utilisateurs de votre organisme.')
                 
-                # Ne peut pas créer de Super Admin
-                if serializer.validated_data.get('role_level') == 'super_admin':
-                    raise PermissionError('Vous ne pouvez pas promouvoir un utilisateur en Super Admin.')
+                # Ne peut pas créer de Super Admin ni Rédacteur Principal
+                if serializer.validated_data.get('role_level') in ('super_admin', 'redacteur_principal'):
+                    raise PermissionError('Vous ne pouvez pas attribuer ce rôle.')
         
         serializer.save()
     
@@ -211,6 +215,104 @@ class RoleViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=True, methods=['post'], url_path='set-redacteur-principal',
+            permission_classes=[IsSuperAdmin])
+    def set_redacteur_principal(self, request, pk=None):
+        """
+        Promouvoir un utilisateur en Rédacteur Principal.
+        POST /api/users/{id}/set-redacteur-principal/
+        Réservé au super_admin.
+        """
+        target_user = self.get_object()
+
+        if target_user.role_level == 'redacteur_principal':
+            return Response(
+                {'error': 'Cet utilisateur est déjà Rédacteur Principal.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if target_user.is_super_admin():
+            return Response(
+                {'error': 'Impossible de rétrograder un Super Administrateur.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_role = target_user.role_level
+        target_user.role_level = 'redacteur_principal'
+        target_user.is_staff = True
+        target_user.save(update_fields=['role_level', 'is_staff'])
+
+        # Mettre à jour le groupe Django
+        from django.contrib.auth.models import Group
+        target_user.groups.clear()
+        try:
+            group = Group.objects.get(name='Rédacteurs Principaux')
+            target_user.groups.add(group)
+        except Group.DoesNotExist:
+            pass
+
+        # Log d'activité
+        from apps.core.services import ActivityService
+        ActivityService.log(
+            actor=request.user,
+            action='status_change',
+            entity_type='user',
+            entity_id=target_user.pk,
+            entity_name=target_user.nom_complet,
+            description=f'Promu Rédacteur Principal (était {old_role})',
+            related_user=target_user,
+        )
+
+        return Response({
+            'message': f'{target_user.nom_complet} est maintenant Rédacteur Principal.',
+            'user': RoleDetailSerializer(target_user, context={'request': request}).data,
+        })
+
+    @action(detail=True, methods=['post'], url_path='remove-redacteur-principal',
+            permission_classes=[IsSuperAdmin])
+    def remove_redacteur_principal(self, request, pk=None):
+        """
+        Retirer le rôle de Rédacteur Principal (retour à utilisateur).
+        POST /api/users/{id}/remove-redacteur-principal/
+        Réservé au super_admin.
+        """
+        target_user = self.get_object()
+
+        if target_user.role_level != 'redacteur_principal':
+            return Response(
+                {'error': "Cet utilisateur n'est pas Rédacteur Principal."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        target_user.role_level = 'utilisateur'
+        target_user.save(update_fields=['role_level'])
+
+        # Mettre à jour le groupe Django
+        from django.contrib.auth.models import Group
+        target_user.groups.clear()
+        try:
+            group = Group.objects.get(name='Utilisateurs')
+            target_user.groups.add(group)
+        except Group.DoesNotExist:
+            pass
+
+        # Log d'activité
+        from apps.core.services import ActivityService
+        ActivityService.log(
+            actor=request.user,
+            action='status_change',
+            entity_type='user',
+            entity_id=target_user.pk,
+            entity_name=target_user.nom_complet,
+            description='Rétrogradé de Rédacteur Principal à Utilisateur',
+            related_user=target_user,
+        )
+
+        return Response({
+            'message': f"{target_user.nom_complet} n'est plus Rédacteur Principal.",
+            'user': RoleDetailSerializer(target_user, context={'request': request}).data,
+        })
+
     @action(detail=True, methods=['post'])
     def assign_site(self, request, pk=None):
         """

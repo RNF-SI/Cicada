@@ -47,19 +47,20 @@ export class AuthService {
 
   // Computed properties for role checks
   readonly isSuperAdmin = computed(() => this.currentUser()?.niveau_role === 'super_admin');
+  readonly isRedacteurPrincipal = computed(() => this.currentUser()?.niveau_role === 'redacteur_principal');
   readonly isAdminOrganisme = computed(() => {
     const role = this.currentUser()?.niveau_role;
-    return role === 'admin_og' || role === 'super_admin';
+    return role === 'admin_og' || role === 'redacteur_principal' || role === 'super_admin';
   });
   readonly isReferent = computed(() => {
     const user = this.currentUser();
     // is_referent is computed by backend: true if user is site or plan referent
-    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'super_admin';
+    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'redacteur_principal' || user?.niveau_role === 'super_admin';
   });
   readonly canAccessAdmin = computed(() => {
     const user = this.currentUser();
     // Referents can access admin for managing plans/validations
-    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'super_admin';
+    return user?.is_referent === true || user?.niveau_role === 'admin_og' || user?.niveau_role === 'redacteur_principal' || user?.niveau_role === 'super_admin';
   });
 
   // Original user info (when impersonating)
@@ -236,10 +237,10 @@ export class AuthService {
 
     // Special case: 'referent' is an access level, not a role
     if (requiredRole === 'referent') {
-      return user.is_referent === true || user.niveau_role === 'admin_og' || user.niveau_role === 'super_admin';
+      return user.is_referent === true || user.niveau_role === 'admin_og' || user.niveau_role === 'redacteur_principal' || user.niveau_role === 'super_admin';
     }
 
-    const roleHierarchy: UserRole[] = ['utilisateur', 'admin_og', 'super_admin'];
+    const roleHierarchy: UserRole[] = ['utilisateur', 'admin_og', 'redacteur_principal', 'super_admin'];
     const userRoleIndex = roleHierarchy.indexOf(user.niveau_role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
 

@@ -71,6 +71,9 @@ class OperationViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme

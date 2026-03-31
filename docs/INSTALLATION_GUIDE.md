@@ -248,6 +248,99 @@ Pour tester sur votre machine sans domaine ni DNS :
 
 Vous pouvez aussi utiliser un nom personnalisé via le fichier hosts : ajoutez par exemple `127.0.0.1 cicada.local` dans `/etc/hosts`, puis utilisez **Nom de domaine** = `cicada.local` et accédez à **http://cicada.local:8080**. Le trafic reste en HTTP, sans certificat.
 
+## Import des référentiels (base externe)
+
+Lorsque la base PostgreSQL est externe (installée nativement sur le serveur), les référentiels ne sont pas toujours importés automatiquement au premier démarrage. Si les tables sont vides, lancez les imports manuellement :
+
+### Vérifier l'état des référentiels
+
+```bash
+# Nomenclatures (données de référence)
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_nomenclatures.t_nomenclatures;"
+
+# TaxRef (taxonomie)
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM taxonomie.taxref;"
+
+# HabRef (habitats)
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_habitats.habref;"
+
+# Extensions PostgreSQL (nécessaires pour l'autocomplete)
+sudo -u postgres psql -d cicada -c "SELECT extname FROM pg_extension WHERE extname IN ('pg_trgm', 'unaccent');"
+```
+
+### Corriger la propriété de la fonction unaccent
+
+Si l'extension `unaccent` a été créée par l'utilisateur `postgres`, les commandes d'import échoueront avec l'erreur `doit être le propriétaire de la fonction public.unaccent`. Corrigez avec :
+
+```bash
+sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"
+```
+
+### Lancer les imports
+
+```bash
+# Nomenclatures (si 0 résultat)
+docker compose -f docker-compose.prod.yml exec web python manage.py import_nomenclatures
+
+# HabRef — habitats (~29 000 entrées)
+docker compose -f docker-compose.prod.yml exec web python manage.py import_habref
+
+# TaxRef — taxonomie (~700 000 taxons, peut prendre plusieurs minutes)
+docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref
+# Variante allégée pour les environnements de test (~8 000 taxons) :
+# docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref --lite
+
+# CAMPanule — protocoles (optionnel, ~224 protocoles)
+docker compose -f docker-compose.prod.yml exec web python manage.py import_campanule
+```
+
+### Vérifier après import
+
+```bash
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) as taxons FROM taxonomie.taxref;"
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) as habitats FROM ref_habitats.habref;"
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM taxonomie.vm_taxref_list_forautocomplete;"
+sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_habitats.autocomplete_habitat;"
+```
+
+Résultats attendus :
+- TaxRef : ~708 000 taxons (complet) ou ~8 000 (--lite)
+- HabRef : ~29 000 habitats
+- Autocomplete TaxRef : ~300 000 entrées
+- Autocomplete HabRef : ~29 000 entrées
+
+## Rappel : configuration Apache avec HTTPS (Let's Encrypt)
+
+Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP mais **commente parfois les directives `ProxyPass`** pour `/api`. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées** :
+
+```apache
+# Fichier : /etc/apache2/sites-enabled/cicada-prod-le-ssl.conf (ou similaire)
+<VirtualHost *:443>
+    ServerName cicada.example.org
+
+    ProxyPreserveHost On
+    ProxyRequests Off
+
+    # API Django — IMPORTANT : ne pas commenter ces lignes
+    ProxyPass /api http://127.0.0.1:8000/api
+    ProxyPassReverse /api http://127.0.0.1:8000/api
+
+    # Frontend Angular
+    ProxyPass / http://127.0.0.1:8080/
+    ProxyPassReverse / http://127.0.0.1:8080/
+
+    SSLCertificateFile /etc/letsencrypt/live/cicada.example.org/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/cicada.example.org/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</VirtualHost>
+```
+
+Après modification, rechargez Apache :
+
+```bash
+sudo systemctl reload apache2
+```
+
 ## Configuration post-installation
 
 ### Modifier l'URL de l'API de suivi

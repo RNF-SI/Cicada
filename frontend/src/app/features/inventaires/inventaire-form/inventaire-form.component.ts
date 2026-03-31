@@ -83,7 +83,6 @@ export class InventaireFormComponent implements OnInit {
   existingSuivi = signal<SuiviInventaireDetail | null>(null);
 
   // Nomenclatures
-  typeSuiviOptions = signal<NomenclatureOption[]>([]);
   typeActionCSOptions = signal<NomenclatureOption[]>([]);
   statutSuiviOptions = signal<NomenclatureOption[]>([]);
 
@@ -136,7 +135,6 @@ export class InventaireFormComponent implements OnInit {
       // Main card
       intitule: ['', [Validators.required, Validators.maxLength(500)]],
       id_type_action: [null],
-      id_type_suivi: [null],
       integre_plan_gestion: [null],
       suit_indicateur: [null],
       type_indicateur: [''],
@@ -241,9 +239,6 @@ export class InventaireFormComponent implements OnInit {
           this.restoreTypeActionAutocomplete(suivi.id_type_action, data);
         }
       },
-    });
-    this.adminService.getNomenclaturesByType('TYPE_SUIVI').subscribe({
-      next: (data) => this.typeSuiviOptions.set(data),
     });
     this.adminService.getNomenclaturesByType('STATUT_SUIVI').subscribe({
       next: (data) => this.statutSuiviOptions.set(data),
@@ -386,7 +381,6 @@ export class InventaireFormComponent implements OnInit {
 
     this.form.patchValue({
       intitule: suivi.intitule || '',
-      id_type_suivi: suivi.id_type_suivi,
       integre_plan_gestion: suivi.integre_plan_gestion,
       suit_indicateur: suivi.suit_indicateur ?? null,
       type_indicateur: suivi.type_indicateur || '',
@@ -573,10 +567,10 @@ export class InventaireFormComponent implements OnInit {
 
     const payload: SuiviInventaireCreatePayload = {
       intitule: fv.intitule,
+      id_type_action: fv.id_type_action,
     };
 
     // Main fields
-    if (fv.id_type_suivi) payload.id_type_suivi = fv.id_type_suivi;
     if (fv.integre_plan_gestion != null) payload.integre_plan_gestion = fv.integre_plan_gestion;
     if (fv.integre_plan_gestion === true && fv.suit_indicateur != null) payload.suit_indicateur = fv.suit_indicateur;
     if (fv.integre_plan_gestion === true && fv.suit_indicateur === true && fv.type_indicateur?.trim()) {

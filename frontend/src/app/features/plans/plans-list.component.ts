@@ -94,9 +94,10 @@ export class PlansListComponent implements OnInit {
 
   // Permissions pour le toggle
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isRedacteurPrincipal = this.authService.isRedacteurPrincipal;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
-  // Afficher le toggle si admin_og ou super_admin (sinon seul 'mine' disponible)
+  // Afficher le toggle si admin_og, redacteur_principal ou super_admin
   readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
 
   // Tab state pour "Mes plans"

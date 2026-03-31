@@ -149,7 +149,11 @@ class HasPlanGestionAccess(BasePermission):
         # Super admin a accès à tout
         if user.is_super_admin():
             return True
-        
+
+        # Rédacteur principal a accès à tous les plans
+        if user.is_redacteur_principal():
+            return True
+
         # Pour un plan de gestion, vérifier les sites associés
         if hasattr(obj, 'sites'):
             # Si l'utilisateur peut gérer au moins un des sites du plan

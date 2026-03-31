@@ -66,6 +66,9 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
@@ -157,6 +160,9 @@ class MetriqueViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
 
         if user.is_super_admin():
+            return queryset
+
+        if user.is_redacteur_principal():
             return queryset
 
         if user.is_admin_organisme() and user.id_organisme:

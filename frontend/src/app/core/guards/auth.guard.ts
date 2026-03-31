@@ -109,8 +109,8 @@ export const notAdminOgOnlyGuard: CanActivateFn = (
 
   const user = authService.currentUser();
 
-  // If user is admin_og (but not super_admin), redirect to organismes
-  if (user && user.niveau_role === 'admin_og') {
+  // If user is admin_og or redacteur_principal (but not super_admin), redirect to organismes
+  if (user && (user.niveau_role === 'admin_og' || user.niveau_role === 'redacteur_principal')) {
     router.navigate(['/administration/organismes']);
     return false;
   }

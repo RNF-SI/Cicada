@@ -1,0 +1,122 @@
+<div class="admin-redacteurs">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>{{ 'admin.redacteursPrincipaux.title' | translate }}</h1>
+      <p class="subtitle">{{ 'admin.redacteursPrincipaux.subtitle' | translate }}</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-add" (click)="openAddDialog()">
+        <i class="fi fi-rr-plus-small"></i>
+        <span>{{ 'admin.redacteursPrincipaux.add' | translate }}</span>
+      </button>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (redacteurs().length === 0) {
+    <div class="empty-state">
+      <i class="fi fi-rr-pen-nib"></i>
+      <p>{{ 'admin.redacteursPrincipaux.empty' | translate }}</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ 'admin.users.table.user' | translate }}</th>
+            <th>{{ 'admin.users.table.email' | translate }}</th>
+            <th>{{ 'admin.users.table.organisme' | translate }}</th>
+            <th>{{ 'admin.users.table.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of redacteurs(); track user.id) {
+            <tr>
+              <td class="user-name">{{ user.nom }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.organisme }}</td>
+              <td>
+                <button class="btn-remove" (click)="askRemove(user)"
+                        [title]="'admin.redacteursPrincipaux.remove' | translate">
+                  <i class="fi fi-rr-cross-circle"></i>
+                  <span>{{ 'admin.redacteursPrincipaux.remove' | translate }}</span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Add Dialog (overlay) -->
+  @if (showAddDialog()) {
+    <div class="dialog-overlay" (click)="closeAddDialog()">
+      <div class="dialog" (click)="$event.stopPropagation()">
+        <div class="dialog-header">
+          <h2>{{ 'admin.redacteursPrincipaux.add' | translate }}</h2>
+          <button class="btn-close" (click)="closeAddDialog()">
+            <i class="fi fi-rr-cross-small"></i>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <div class="search-box">
+            <i class="fi fi-rr-search"></i>
+            <input
+              type="text"
+              [placeholder]="'admin.users.search' | translate"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event); onSearch()"
+            />
+          </div>
+
+          @if (isSearching()) {
+            <div class="search-loading">
+              <mat-spinner diameter="24"></mat-spinner>
+            </div>
+          } @else if (searchResults().length > 0) {
+            <div class="search-results">
+              @for (user of searchResults(); track user.id_role) {
+                <div class="search-result-item" (click)="promoteUser(user)">
+                  <div class="user-info">
+                    <span class="user-name">{{ user.nom_complet || user.prenom_role + ' ' + user.nom_role }}</span>
+                    <span class="user-email">{{ user.email }}</span>
+                  </div>
+                  <span class="role-badge">{{ user.role_level }}</span>
+                </div>
+              }
+            </div>
+          } @else if (searchQuery().length >= 2) {
+            <p class="no-results">{{ 'admin.users.messages.noUsers' | translate }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Confirm Remove Dialog -->
+  @if (confirmRemoveUser()) {
+    <div class="dialog-overlay" (click)="cancelRemove()">
+      <div class="dialog dialog-sm" (click)="$event.stopPropagation()">
+        <div class="dialog-header">
+          <h2>{{ 'admin.redacteursPrincipaux.remove' | translate }}</h2>
+        </div>
+        <div class="dialog-body">
+          <p>{{ 'admin.redacteursPrincipaux.confirmRemove' | translate:{ name: confirmRemoveUser()!.nom } }}</p>
+        </div>
+        <div class="dialog-actions">
+          <button mat-stroked-button (click)="cancelRemove()">
+            {{ 'common.actions.cancel' | translate }}
+          </button>
+          <button class="btn-danger" (click)="confirmRemove()">
+            {{ 'admin.redacteursPrincipaux.remove' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

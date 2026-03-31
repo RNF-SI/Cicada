@@ -1,0 +1,251 @@
+@import 'variables';
+
+.admin-redacteurs {
+  padding: $spacing-lg;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    margin: 0;
+    color: $primary-color;
+  }
+
+  .subtitle {
+    color: $gray-dark;
+    margin-top: $spacing-xs;
+  }
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xxl;
+}
+
+.empty-state {
+  text-align: center;
+  padding: $spacing-xxl;
+  color: $gray-dark;
+
+  i {
+    font-size: 48px;
+    display: block;
+    margin-bottom: $spacing-md;
+    opacity: 0.4;
+  }
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $gray-lighter;
+  }
+
+  th {
+    font-weight: 600;
+    color: $primary-color;
+    background: rgba($primary-color, 0.04);
+  }
+
+  .user-name {
+    font-weight: 600;
+  }
+}
+
+.btn-remove {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: none;
+  border: 1px solid $error-color;
+  color: $error-color;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-size: 0.85rem;
+
+  &:hover {
+    background: rgba($error-color, 0.08);
+  }
+}
+
+// Dialog overlay
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: $white;
+  border-radius: $border-radius-md;
+  width: 600px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+
+  &.dialog-sm {
+    width: 450px;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $gray-lighter;
+
+  h2 {
+    margin: 0;
+    color: $primary-color;
+    font-size: 1.1rem;
+  }
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-dark;
+  font-size: 1.2rem;
+}
+
+.dialog-body {
+  padding: $spacing-md $spacing-lg;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  border-top: 1px solid $gray-lighter;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-md;
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+  }
+
+  i {
+    color: $gray;
+  }
+}
+
+.search-loading {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-md;
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba($primary-color, 0.06);
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+
+    .user-name {
+      font-weight: 600;
+    }
+
+    .user-email {
+      font-size: 0.85rem;
+      color: $gray-dark;
+    }
+  }
+
+  .role-badge {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: $border-radius-pill;
+    background: $gray-lighter;
+    color: $gray-dark;
+  }
+}
+
+.no-results {
+  text-align: center;
+  color: $gray-dark;
+  padding: $spacing-md;
+}
+
+.btn-danger {
+  padding: $spacing-sm $spacing-md;
+  background: $error-color;
+  color: $white;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
