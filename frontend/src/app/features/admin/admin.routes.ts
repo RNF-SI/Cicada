@@ -15,6 +15,7 @@ import { AdminLogsComponent } from './admin-logs/admin-logs.component';
 import { AdminSettingsComponent } from './admin-settings/admin-settings.component';
 import { AdminRgpdComponent } from './admin-rgpd/admin-rgpd.component';
 import { AdminUpdateComponent } from './admin-update/admin-update.component';
+import { AdminRedacteursPrincipauxComponent } from './admin-redacteurs-principaux.component';
 
 /**
  * Admin Routes Configuration
@@ -45,8 +46,8 @@ export const ADMIN_ROUTES: Routes = [
           if (user?.is_referent && user?.niveau_role === 'utilisateur') {
             router.navigate(['/administration/validations']);
           }
-          // admin_og goes to utilisateurs (their main view)
-          else if (user?.niveau_role === 'admin_og') {
+          // admin_og and redacteur_principal go to utilisateurs (their main view)
+          else if (user?.niveau_role === 'admin_og' || user?.niveau_role === 'redacteur_principal') {
             router.navigate(['/administration/utilisateurs']);
           } else {
             // super_admin goes to dashboard
@@ -110,6 +111,11 @@ export const ADMIN_ROUTES: Routes = [
         path: 'parametres',
         component: AdminSettingsComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage settings
+      },
+      {
+        path: 'redacteurs-principaux',
+        component: AdminRedacteursPrincipauxComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin
       },
       {
         path: 'mise-a-jour',

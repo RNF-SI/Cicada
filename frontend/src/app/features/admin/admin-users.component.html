@@ -30,6 +30,7 @@
       <select [(ngModel)]="filterRole" (ngModelChange)="onFilterChange()">
         <option value="">{{ 'common.filters.allRoles' | translate }}</option>
         <option value="super_admin">{{ 'admin.users.roles.super_admin' | translate }}</option>
+        <option value="redacteur_principal">{{ 'admin.users.roles.redacteur_principal' | translate }}</option>
         <option value="admin_og">{{ 'admin.users.roles.admin_og' | translate }}</option>
         <option value="utilisateur">{{ 'admin.users.roles.utilisateur' | translate }}</option>
       </select>

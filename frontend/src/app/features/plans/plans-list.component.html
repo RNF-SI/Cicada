@@ -79,7 +79,7 @@
         [currentScope]="viewScope()"
         [showSitesOption]="false"
         [showOrganismeOption]="isAdminOrganisme()"
-        [showAllOption]="isSuperAdmin()"
+        [showAllOption]="isSuperAdmin() || isRedacteurPrincipal()"
         [mineLabel]="'plans.scope.mine' | translate"
         [organismeLabel]="'plans.scope.organisme' | translate"
         [allLabel]="'plans.scope.all' | translate"
@@ -87,6 +87,13 @@
       </app-view-scope-toggle>
     }
   </div>
+
+  @if (isRedacteurPrincipal()) {
+    <div class="info-block info-block-info" style="margin: 16px 24px 0;">
+      <i class="fi fi-rr-info"></i>
+      <span>{{ 'plans.redacteurPrincipal.banner' | translate }}</span>
+    </div>
+  }
 
   @if (loading()) {
     <div class="loading-container">
@@ -220,9 +227,11 @@
                         <span class="status-tag" [class]="getStatutClass(plan.statut)">
                           {{ getStatutLabel(plan.statut) }}
                         </span>
-                        <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
+                        @if (!isRedacteurPrincipal()) {
+                          <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
+                            <i class="fi fi-rr-pencil"></i>
+                          </button>
+                        }
                       </div>
                     </td>
                     <td class="col-actions">
@@ -424,6 +433,8 @@
                       <button
                         mat-stroked-button
                         color="primary"
+                        [matTooltip]="'plans.requestAccess.buttonTooltip' | translate"
+                        matTooltipPosition="left"
                         (click)="openAccessRequestDialog(plan)"
                       >
                         <i class="fi fi-rr-lock"></i>
@@ -434,6 +445,8 @@
                       <button
                         mat-stroked-button
                         color="primary"
+                        [matTooltip]="'plans.requestAccess.buttonWithSiteTooltip' | translate"
+                        matTooltipPosition="left"
                         (click)="openAccessRequestDialog(plan)"
                       >
                         <i class="fi fi-rr-link-alt"></i>

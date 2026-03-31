@@ -282,8 +282,8 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   canManageUser(user: DisplayUser): boolean {
-    // Cannot manage super admin unless you are super admin
-    if (user.role === 'super_admin' && !this.isSuperAdmin()) {
+    // Cannot manage super admin or redacteur_principal unless you are super admin
+    if ((user.role === 'super_admin' || user.role === 'redacteur_principal') && !this.isSuperAdmin()) {
       return false;
     }
     // Cannot manage yourself

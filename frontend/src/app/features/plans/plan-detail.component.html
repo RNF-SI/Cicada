@@ -105,12 +105,14 @@
               </div>
 
               <div class="plan-actions">
-                @if (canManageLifecycle()) {
+                @if (canEditPlan()) {
                   <!-- Modifier les métadonnées -->
                   <button class="btn-lifecycle btn-lifecycle-edit" (click)="openEditModal(p)">
                     <i class="fi fi-rr-pencil"></i>
                     <span>{{ 'plans.detail.actions.editMetadata' | translate }}</span>
                   </button>
+                }
+                @if (canManageLifecycle()) {
                   <!-- Draft → Valider -->
                   @if (p.statut === 'draft') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">
@@ -373,7 +375,7 @@
                 size="md"
                 [showLine]="true">
               </app-section-title>
-              @if (canManageLifecycle()) {
+              @if (canEditPlan()) {
                 <button class="btn-manage-inline" (click)="managePlanSites()"
                         [title]="'plans.detail.manageSites' | translate">
                   <i class="fi fi-rr-pencil"></i>
@@ -394,7 +396,7 @@
                         </div>
                         <i class="fi fi-rr-angle-right"></i>
                       </a>
-                      @if (canManageLifecycle()) {
+                      @if (canEditPlan()) {
                         <button class="btn-remove-inline"
                                 [title]="'plans.detail.removeSite' | translate"
                                 (click)="removeSiteFromPlan(site)">
@@ -454,7 +456,7 @@
                 size="md"
                 [showLine]="true">
               </app-section-title>
-              @if (canManageLifecycle()) {
+              @if (canEditPlan()) {
                 <button class="btn-manage-inline" (click)="managePlanUsers()"
                         [title]="'plans.detail.manageUsers' | translate">
                   <i class="fi fi-rr-pencil"></i>
@@ -540,7 +542,7 @@
                           (click)="downloadFichier(fichier)">
                     <i class="fi fi-rr-download"></i>
                   </button>
-                  @if (canManageLifecycle()) {
+                  @if (canEditPlan()) {
                     <button class="btn-delete-doc"
                             [title]="'plans.detail.documents.delete' | translate"
                             (click)="deleteFichier(fichier)">
@@ -554,7 +556,7 @@
                   <span>{{ 'plans.detail.documents.empty' | translate }}</span>
                 </div>
               }
-              @if (canManageLifecycle()) {
+              @if (canEditPlan()) {
                 <button class="btn-add-document" (click)="openUploadDialog()">
                   <i class="fi fi-rr-plus"></i>
                   <span>{{ 'plans.detail.documents.add' | translate }}</span>

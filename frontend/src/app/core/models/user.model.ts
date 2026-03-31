@@ -40,7 +40,7 @@ export interface Organisme {
  * "referent" s'il est referent d'au moins un site ou plan de gestion.
  * Ceci est verifie cote backend via is_referent().
  */
-export type UserRole = 'utilisateur' | 'admin_og' | 'super_admin';
+export type UserRole = 'utilisateur' | 'admin_og' | 'redacteur_principal' | 'super_admin';
 
 /**
  * Authentication tokens from JWT

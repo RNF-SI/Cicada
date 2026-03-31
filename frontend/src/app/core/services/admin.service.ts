@@ -366,6 +366,22 @@ export class AdminService {
   }
 
   /**
+   * Promote user to Rédacteur Principal
+   */
+  setRedacteurPrincipal(userId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/users/${userId}/set-redacteur-principal/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Remove Rédacteur Principal role from user
+   */
+  removeRedacteurPrincipal(userId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/users/${userId}/remove-redacteur-principal/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Toggle user active status
    */
   toggleUserStatus(userId: number, active: boolean): Observable<AdminUser> {

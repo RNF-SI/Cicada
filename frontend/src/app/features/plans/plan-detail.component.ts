@@ -177,9 +177,21 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Pending site link requests for this plan
   pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
-  // Permissions: référent du plan, admin_og ou super_admin
+  // Permissions cycle de vie: référent du plan, admin_og ou super_admin (PAS redacteur_principal)
   canManageLifecycle = computed(() => {
+    if (this.authService.isRedacteurPrincipal()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isAdminOrganisme()) {
+      return true;
+    }
+    const p = this.plan();
+    const currentUser = this.authService.currentUser();
+    if (!p || !currentUser) return false;
+    return p.referents?.some(r => r.id_role === currentUser.id) || false;
+  });
+
+  // Permissions édition: tout ce que canManageLifecycle fait + redacteur_principal
+  canEditPlan = computed(() => {
+    if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
     const p = this.plan();

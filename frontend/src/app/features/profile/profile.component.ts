@@ -65,6 +65,7 @@ export class ProfileComponent {
 
     const labels: Record<string, string> = {
       'super_admin': 'Super Administrateur',
+      'redacteur_principal': 'Rédacteur Principal',
       'admin_og': 'Administrateur Organisme',
       'utilisateur': 'Utilisateur'
     };
