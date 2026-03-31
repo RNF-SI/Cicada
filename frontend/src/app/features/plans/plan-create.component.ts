@@ -215,11 +215,11 @@ export class PlanCreateComponent implements OnInit {
 
   private filterOrganismes(value: string): AdminOrganisme[] {
     const filterValue = value.toLowerCase().trim();
-    if (!filterValue) return this.availableOrganismes().slice(0, 10);
+    if (!filterValue) return this.availableOrganismes().slice(0, 20);
 
     return this.availableOrganismes().filter(org =>
       org.nom_organisme.toLowerCase().includes(filterValue)
-    ).slice(0, 10);
+    ).slice(0, 20);
   }
 
   private loadData(): void {
@@ -232,7 +232,7 @@ export class PlanCreateComponent implements OnInit {
     });
 
     // Load organismes for autocomplete
-    this.adminService.getOrganismes({ page: 1 }).subscribe({
+    this.adminService.getOrganismes({ page: 1, page_size: 1000 }).subscribe({
       next: (response) => this.availableOrganismes.set(response.results),
       error: () => this.availableOrganismes.set([])
     });

@@ -83,7 +83,6 @@ export class InventaireFormComponent implements OnInit {
   existingSuivi = signal<SuiviInventaireDetail | null>(null);
 
   // Nomenclatures
-  typeSuiviOptions = signal<NomenclatureOption[]>([]);
   typeActionCSOptions = signal<NomenclatureOption[]>([]);
   statutSuiviOptions = signal<NomenclatureOption[]>([]);
 
@@ -240,9 +239,6 @@ export class InventaireFormComponent implements OnInit {
           this.restoreTypeActionAutocomplete(suivi.id_type_action, data);
         }
       },
-    });
-    this.adminService.getNomenclaturesByType('TYPE_SUIVI').subscribe({
-      next: (data) => this.typeSuiviOptions.set(data),
     });
     this.adminService.getNomenclaturesByType('STATUT_SUIVI').subscribe({
       next: (data) => this.statutSuiviOptions.set(data),
@@ -571,6 +567,7 @@ export class InventaireFormComponent implements OnInit {
 
     const payload: SuiviInventaireCreatePayload = {
       intitule: fv.intitule,
+      id_type_action: fv.id_type_action,
     };
 
     // Main fields

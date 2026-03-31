@@ -273,7 +273,7 @@ export class PlanFormModalComponent implements OnInit {
     });
 
     // Load organismes (pour sélection rédacteurs)
-    this.adminService.getOrganismes({ page: 1, page_size: 200 }).subscribe({
+    this.adminService.getOrganismes({ page: 1, page_size: 1000 }).subscribe({
       next: (response) => {
         this.availableOrganismes.set(
           response.results.map(o => ({ id_organisme: o.id_organisme, nom_organisme: o.nom_organisme }))
