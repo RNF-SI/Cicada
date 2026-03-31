@@ -322,12 +322,14 @@ class RoleAdmin(BaseUserAdmin):
         """Affiche le rôle métier avec icône et couleur."""
         role_colors = {
             'super_admin': 'red',
-            'admin_og': 'orange', 
+            'redacteur_principal': 'purple',
+            'admin_og': 'orange',
             'referent': 'blue',
             'utilisateur': 'green'
         }
         role_icons = {
             'super_admin': '👑',
+            'redacteur_principal': '✏️',
             'admin_og': '🔧',
             'referent': '👤',
             'utilisateur': '👥'

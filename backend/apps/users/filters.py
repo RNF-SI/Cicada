@@ -88,6 +88,7 @@ class RoleFilter(django_filters.FilterSet):
         if value:
             return queryset.filter(
                 Q(role_level='super_admin') |
+                Q(role_level='redacteur_principal') |
                 Q(role_level='admin_og') |
                 Q(is_staff=True) |
                 Q(is_superuser=True)
@@ -95,6 +96,7 @@ class RoleFilter(django_filters.FilterSet):
         else:
             return queryset.exclude(
                 Q(role_level='super_admin') |
+                Q(role_level='redacteur_principal') |
                 Q(role_level='admin_og') |
                 Q(is_staff=True) |
                 Q(is_superuser=True)

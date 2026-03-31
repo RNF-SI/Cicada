@@ -220,11 +220,12 @@ class RoleCreateSerializer(serializers.ModelSerializer):
         from django.contrib.auth.models import Group
         role_group_mapping = {
             'super_admin': 'Super Administrateurs',
+            'redacteur_principal': 'Rédacteurs Principaux',
             'admin_og': 'Administrateurs Organisme',
             'referent': 'Référents',
             'utilisateur': 'Utilisateurs',
         }
-        
+
         group_name = role_group_mapping.get(user.role_level)
         if group_name:
             try:
@@ -232,7 +233,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
                 user.groups.add(group)
             except Group.DoesNotExist:
                 pass
-        
+
         return user
 
 
@@ -286,7 +287,8 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
             
             role_group_mapping = {
                 'super_admin': 'Super Administrateurs',
-                'admin_og': 'Administrateurs Organisme', 
+                'redacteur_principal': 'Rédacteurs Principaux',
+                'admin_og': 'Administrateurs Organisme',
                 'referent': 'Référents',
                 'utilisateur': 'Utilisateurs',
             }

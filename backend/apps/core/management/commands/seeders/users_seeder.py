@@ -22,7 +22,7 @@ class UsersSeeder(BaseSeeder):
     """
     Cree les utilisateurs de test avec differents roles.
 
-    Utilisateurs actifs (8):
+    Utilisateurs actifs (9):
     - admin@test.fr (super_admin)
     - admin.rnf@test.fr (admin_og)
     - admin.cen@test.fr (admin_og)
@@ -31,6 +31,7 @@ class UsersSeeder(BaseSeeder):
     - user.rnf@test.fr (utilisateur)
     - user.cen@test.fr (utilisateur)
     - test@example.com (utilisateur) - Pour tests email
+    - redacteur.principal@test.fr (redacteur_principal) - Accès global plans
 
     Utilisateurs inactifs (3):
     - ancien.rnf@test.fr
@@ -156,6 +157,20 @@ class UsersSeeder(BaseSeeder):
                 'id_organisme': organismes[0],  # RNF
                 'groups': ['Utilisateurs'],
                 'sites_referent': [sites[0]],  # Camargue - pour tester notifications site
+                'active': True
+            },
+            # Rédacteur principal (accès global plans)
+            {
+                'email': 'redacteur.principal@test.fr',
+                'nom_role': 'Laurent',
+                'prenom_role': 'Claire',
+                'identifiant': 'red_principal',
+                'role_level': 'redacteur_principal',
+                'is_staff': True,
+                'is_superuser': False,
+                'id_organisme': organismes[0],  # RNF
+                'groups': ['Rédacteurs Principaux'],
+                'sites_referent': [],
                 'active': True
             },
             # Utilisateurs inactifs

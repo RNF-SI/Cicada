@@ -120,6 +120,10 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
         if user.is_super_admin():
             return True
 
+        # Rédacteur principal a accès à tout
+        if user.is_redacteur_principal():
+            return True
+
         from apps.users.models import CorRoleSite, CorOgSite
 
         # Accès direct via assignation personnelle (tous rôles)

@@ -538,6 +538,10 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        # Rédacteur principal voit tout
+        if user.is_redacteur_principal():
+            return queryset
+
         # Admin organisme voit public + admin de son organisme
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(

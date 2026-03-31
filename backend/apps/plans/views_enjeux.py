@@ -113,6 +113,10 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        # Rédacteur principal : voir tous les enjeux
+        if user.is_redacteur_principal():
+            return queryset
+
         # Admin organisme : voir les enjeux des plans de son organisme
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
@@ -146,7 +150,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
 
         # Vérifier les permissions
-        if not request.user.is_super_admin():
+        if not request.user.is_super_admin() and not request.user.is_redacteur_principal():
             if request.user.is_admin_organisme() and request.user.id_organisme:
                 if not plan.sites.filter(site__corogsite__uuid_og=request.user.id_organisme).exists():
                     return Response(
@@ -354,6 +358,10 @@ class ResponsabiliteViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        # Rédacteur principal : voir toutes les responsabilités
+        if user.is_redacteur_principal():
+            return queryset
+
         # Admin organisme : voir les responsabilités des sites de son organisme
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
@@ -387,7 +395,7 @@ class ResponsabiliteViewSet(viewsets.ModelViewSet):
         site = get_object_or_404(Site, id_site=site_id)
 
         # Vérifier les permissions
-        if not request.user.is_super_admin():
+        if not request.user.is_super_admin() and not request.user.is_redacteur_principal():
             if request.user.is_admin_organisme() and request.user.id_organisme:
                 if not site.corogsite_set.filter(uuid_og=request.user.id_organisme).exists():
                     return Response(
@@ -488,6 +496,9 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
@@ -569,6 +580,9 @@ class PressionViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
@@ -643,6 +657,9 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
@@ -711,6 +728,9 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
 
         if user.is_super_admin():
+            return queryset
+
+        if user.is_redacteur_principal():
             return queryset
 
         if user.is_admin_organisme() and user.id_organisme:
@@ -794,6 +814,9 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        if user.is_redacteur_principal():
+            return queryset
+
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
@@ -862,6 +885,9 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
 
         if user.is_super_admin():
+            return queryset
+
+        if user.is_redacteur_principal():
             return queryset
 
         if user.is_admin_organisme() and user.id_organisme:

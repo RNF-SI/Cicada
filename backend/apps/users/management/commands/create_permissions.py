@@ -113,6 +113,21 @@ class Command(BaseCommand):
                 ]
             },
             {
+                'name': 'Rédacteurs Principaux',
+                'permissions': [
+                    # Mêmes permissions qu'admin organisme + accès global plans
+                    'add_role', 'change_role', 'view_role',
+                    'view_biborganismes', 'change_biborganismes',
+                    'add_site', 'change_site', 'view_site',
+                    'add_corrolesite', 'change_corrolesite', 'view_corrolesite',
+                    'add_corogsite', 'change_corogsite', 'view_corogsite',
+                    # Permissions personnalisées
+                    'view_all_users', 'view_all_organismes', 'view_all_sites',
+                    'manage_organisme_users', 'manage_own_organisme', 'manage_organisme_sites',
+                    'manage_assigned_sites', 'access_admin_interface', 'export_data',
+                ]
+            },
+            {
                 'name': 'Administrateurs Organisme',
                 'permissions': [
                     # Permissions de base sur les modèles
@@ -180,6 +195,7 @@ class Command(BaseCommand):
         self.stdout.write('\n👥 Attribution des groupes aux utilisateurs existants...')
         role_group_mapping = {
             'super_admin': 'Super Administrateurs',
+            'redacteur_principal': 'Rédacteurs Principaux',
             'admin_og': 'Administrateurs Organisme',
             'referent': 'Référents',
             'utilisateur': 'Utilisateurs',

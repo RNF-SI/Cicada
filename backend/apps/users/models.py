@@ -52,6 +52,7 @@ class Role(AbstractUser):
     ROLE_CHOICES = [
         ('utilisateur', _('Utilisateur')),
         ('admin_og', _('Administrateur Organisme')),
+        ('redacteur_principal', _('Rédacteur Principal')),
         ('super_admin', _('Super Administrateur')),
     ]
     
@@ -160,9 +161,20 @@ class Role(AbstractUser):
         """Vérifie si l'utilisateur est Super Administrateur."""
         return self.role_level == 'super_admin' or self.is_superuser
     
+    def is_redacteur_principal(self):
+        """Vérifie si l'utilisateur est Rédacteur Principal."""
+        return self.role_level == 'redacteur_principal'
+
     def is_admin_organisme(self):
-        """Vérifie si l'utilisateur est Administrateur d'organisme."""
-        return self.role_level in ['admin_og', 'super_admin'] or self.is_superuser
+        """Vérifie si l'utilisateur est Administrateur d'organisme (ou rôle supérieur)."""
+        return self.role_level in ['admin_og', 'redacteur_principal', 'super_admin'] or self.is_superuser
+
+    def can_manage_plan_lifecycle(self):
+        """Vérifie si l'utilisateur peut gérer le cycle de vie des plans (valider/archiver/évaluation).
+        Le Rédacteur Principal est exclu — il peut éditer les plans mais pas gérer leur cycle de vie."""
+        if self.is_redacteur_principal():
+            return False
+        return self.is_admin_organisme()
     
     def is_referent(self):
         """
