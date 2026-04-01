@@ -41,7 +41,7 @@ export class NotificationService implements OnDestroy {
   readonly totalBadgeCount = computed(() => this.unreadCountSignal() + this.pendingValidationsSignal());
 
   // Gestion du polling
-  private pollingInterval = 30000; // 30 secondes
+  private pollingInterval = 60000; // 60 secondes
   private pollingDestroy$ = new Subject<void>();
   private isPolling = false;
 
@@ -111,7 +111,13 @@ export class NotificationService implements OnDestroy {
         }
       }),
       catchError(error => {
-        console.error('Polling error:', error);
+        // Stopper le polling sur 429 (rate limit) pour ne pas aggraver la situation
+        if (error.status === 429) {
+          console.warn('Rate limited (429). Stopping notification polling.');
+          this.stopPolling();
+        } else {
+          console.error('Polling error:', error);
+        }
         // En cas d'erreur, conserver les valeurs actuelles (ne pas forcer a 0)
         return of({
           notifications: this.notificationsSignal(),

@@ -19,12 +19,14 @@ export class ModuleService {
   private readonly _allModules = signal<Module[]>([]);
   private readonly _modulesRequiringAccess = signal<Module[]>([]);
   private readonly _isLoading = signal(false);
+  private readonly _loadError = signal(false);
 
   // Signaux publics en lecture seule
   readonly accessibleModules = this._accessibleModules.asReadonly();
   readonly allModules = this._allModules.asReadonly();
   readonly modulesRequiringAccess = this._modulesRequiringAccess.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
+  readonly loadError = this._loadError.asReadonly();
 
   /**
    * Recupere tous les modules actifs.
@@ -98,6 +100,7 @@ export class ModuleService {
    */
   getMyAccessibleModules(): Observable<Module[]> {
     this._isLoading.set(true);
+    this._loadError.set(false);
     return this.http.get<Module[]>(`${this.apiUrl}/my_accessible/`).pipe(
       tap(modules => {
         this._accessibleModules.set(modules);
@@ -106,6 +109,7 @@ export class ModuleService {
       catchError(error => {
         console.error('Erreur chargement modules accessibles:', error);
         this._isLoading.set(false);
+        this._loadError.set(true);
         return of([]);
       })
     );

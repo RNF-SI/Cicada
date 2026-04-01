@@ -120,6 +120,13 @@
           <div class="modules-loading">
             <span class="loading-text">Chargement des modules...</span>
           </div>
+        } @else if (modulesError()) {
+          <div class="modules-error">
+            <p>Impossible de charger les modules. Veuillez rafraîchir la page.</p>
+            <button mat-stroked-button (click)="retryLoadModules()">
+              <i class="fi fi-rr-refresh"></i> Réessayer
+            </button>
+          </div>
         } @else {
           <div class="tiles-grid" [class.tiles-grid--three]="accessibleModules().length === 3" [class.tiles-grid--four]="accessibleModules().length >= 4">
             @for (module of accessibleModules(); track module.code) {
