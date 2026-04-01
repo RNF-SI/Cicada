@@ -53,10 +53,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      # Redis & Celery
+      # Redis & Celery (DB séparées : broker=0, results=1, cache=2)
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - REDIS_CACHE_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/2
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
       # Email - Mailpit par défaut en développement
@@ -133,7 +134,7 @@ services:
       - POSTGRES_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
       # Email - Mailpit par défaut en développement
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
@@ -189,7 +190,7 @@ services:
       - POSTGRES_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
     volumes:
       - ./backend:/app
