@@ -3066,11 +3066,10 @@ class EnjeuxSeeder(BaseSeeder):
         operations_created = []
 
         def _link_op_to_indicateur(operation, indicateur):
-            """Set operation.id_metrique to the first metrique of the indicateur."""
+            """Add the first metrique of the indicateur to operation.metriques M2M."""
             met = Metrique.objects.filter(id_indicateur=indicateur).first()
-            if met and not operation.id_metrique:
-                operation.id_metrique = met
-                operation.save(update_fields=['id_metrique'])
+            if met and not operation.metriques.filter(id_metrique=met.id_metrique).exists():
+                operation.metriques.add(met)
 
         # Récupérer nomenclatures de priorité d'opération
         prio_op_1 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_1')
@@ -3790,6 +3789,91 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'Opération Tourbières NE: {op.libelle[:50]}')
 
         # ============================================
+        # Opérations partagées entre enjeux différents (M2M multi-métriques)
+        # Démonstration de la fonctionnalité issue #136
+        # ============================================
+        self.log_header('Opérations partagées entre enjeux (multi-métriques)')
+
+        # Camargue : une opération de suivi hydrologique transversale
+        # liée à la fois aux habitats humides (ind_surface) et à la qualité de l'eau (ind_debit)
+        if ind_surface and ind_debit and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Suivi hydrologique intégré du bassin versant',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'CAM-TRANS01',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Suivi transversal combinant le monitoring des niveaux d\'eau '
+                                   '(surfaces inondées) et des débits de prélèvement. '
+                                   'Cette action est partagée entre l\'enjeu "habitats humides" '
+                                   'et l\'enjeu "ressource en eau" car elle contribue aux deux.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'frequence_nombre': 1,
+                    'frequence_unite': 'mois',
+                    'operateurs': 'Tour du Valat, SNPN',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            _link_op_to_indicateur(op, ind_surface)
+            _link_op_to_indicateur(op, ind_debit)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération transversale: {op.libelle[:50]}')
+
+        # Remoray : une opération de sensibilisation partagée entre
+        # les prairies (ind_prairies) et la lutte contre la Renouée (ind_renouee)
+        if ind_prairies and ind_renouee and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                libelle='Sensibilisation agriculteurs – gestion extensive et espèces invasives',
+                defaults={
+                    'id_priorite': prio_op_2,
+                    'code_operation': 'REM-TRANS01',
+                    'id_referentiel_operations': 'CC',
+                    'description': 'Programme de sensibilisation des exploitants agricoles riverains '
+                                   'sur la gestion extensive des prairies ET la lutte contre '
+                                   'les espèces invasives (Renouée du Japon). Action transversale '
+                                   'car elle contribue à la fois à la préservation des prairies '
+                                   'et au contrôle des invasives.',
+                    'annee_min': 2025,
+                    'annee_max': 2028,
+                    'frequence_nombre': 2,
+                    'frequence_unite': 'an',
+                    'operateurs': 'Réserve naturelle du lac de Remoray',
+                    'partenaires': 'Chambre d\'agriculture du Doubs, FREDON BFC',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            _link_op_to_indicateur(op, ind_prairies)
+            _link_op_to_indicateur(op, ind_renouee)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération transversale: {op.libelle[:50]}')
+
+        # Remoray : opération partagée entre 3 métriques (phosphore + nutriments + prairies)
+        if ind_phosphore and ind_nutriments and ind_prairies and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                libelle='Diagnostic agro-environnemental du bassin versant',
+                defaults={
+                    'id_priorite': prio_op_1,
+                    'code_operation': 'REM-TRANS02',
+                    'id_referentiel_operations': 'CS',
+                    'description': 'Diagnostic complet des pratiques agricoles et de leur impact '
+                                   'sur la qualité de l\'eau (phosphore, nutriments) et sur le '
+                                   'maintien des prairies extensives. Action liée à 3 métriques '
+                                   'dans 3 enjeux/OO différents.',
+                    'annee_min': 2024,
+                    'annee_max': 2025,
+                    'operateurs': 'Bureau d\'études environnement',
+                    'financeurs': 'Agence de l\'eau Rhône-Méditerranée-Corse',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            _link_op_to_indicateur(op, ind_phosphore)
+            _link_op_to_indicateur(op, ind_nutriments)
+            _link_op_to_indicateur(op, ind_prairies)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération transversale: {op.libelle[:50]}')
+
+        # ============================================
         # Enrichir les opérations avec données détaillées
         # (programmation annuelle, finances, suivi, fréquence, etc.)
         # ============================================
@@ -3992,6 +4076,12 @@ class EnjeuxSeeder(BaseSeeder):
             op.save()
 
             # Create OperationAnnee entries with varied data
+            # Alternate ventilation modes across operations
+            ventilation_modes = ['none', 'by_org', 'by_type', 'by_org_type']
+            v_mode = ventilation_modes[idx % 4]
+            op.ventilation_mode = v_mode
+            op.save(update_fields=['ventilation_mode'])
+
             if op.annee_min and op.annee_max:
                 mens = enrich['mens'] if enrich else (
                     op.programmation_mensuelle_defaut
@@ -4003,14 +4093,28 @@ class EnjeuxSeeder(BaseSeeder):
                     year_offset = year - op.annee_min
                     budget = bp['base'] + (bp['var'] if year_offset % 2 == 0 else -bp['var'])
                     etp = etp_profiles[(idx + year_offset) % len(etp_profiles)]
+
+                    # Adapt fields based on ventilation mode
+                    defaults = {
+                        'periodicite': True,
+                        'periodicite_mensuelle': mens,
+                    }
+                    if v_mode == 'none':
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+                    elif v_mode == 'by_type':
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+                        defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
+                        defaults['budget_investissement'] = round(budget * 0.4, 2)
+                    else:
+                        # by_org / by_org_type: budget total is sum of org data
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+
                     oa, _ = OperationAnnee.objects.update_or_create(
                         id_operation=op, annee=year,
-                        defaults={
-                            'periodicite': True,
-                            'budget': budget,
-                            'etp': etp,
-                            'periodicite_mensuelle': mens,
-                        }
+                        defaults=defaults,
                     )
                     annees_created += 1
 
@@ -4598,9 +4702,12 @@ class EnjeuxSeeder(BaseSeeder):
                     )
 
         # Create per-organisme breakdown for OperationAnnee entries
+        # Only for operations with ventilation_mode 'by_org' or 'by_org_type'
         from apps.users.models import CorOgSite
         orgs_created = 0
         for op in operations_created:
+            if op.ventilation_mode not in ('by_org', 'by_org_type'):
+                continue
             plan_sites = op.sites.all()
             if not plan_sites.exists():
                 continue
@@ -4621,14 +4728,24 @@ class EnjeuxSeeder(BaseSeeder):
                 per_org_budget = budget / nb_orgs
                 per_org_etp = etp / nb_orgs
                 for org in org_list:
-                    OperationAnneeOrganisme.objects.update_or_create(
-                        id_operation_annee=oa,
-                        id_organisme=org,
-                        defaults={
+                    if op.ventilation_mode == 'by_org':
+                        # by_org: total budget per org (stored in budget_fonctionnement)
+                        defaults = {
+                            'budget_fonctionnement': round(per_org_budget, 2),
+                            'budget_investissement': None,
+                            'etp': round(per_org_etp, 2),
+                        }
+                    else:
+                        # by_org_type: split fonct/invest per org
+                        defaults = {
                             'budget_fonctionnement': round(per_org_budget * 0.6, 2),
                             'budget_investissement': round(per_org_budget * 0.4, 2),
                             'etp': round(per_org_etp, 2),
                         }
+                    OperationAnneeOrganisme.objects.update_or_create(
+                        id_operation_annee=oa,
+                        id_organisme=org,
+                        defaults=defaults,
                     )
                     orgs_created += 1
 

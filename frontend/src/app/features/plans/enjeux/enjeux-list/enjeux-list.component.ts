@@ -25,11 +25,12 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
-  ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
+  ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, MetriqueRef,
   MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee,
   ObjectifOperationnel, ResultatAttendu
 } from '../../../../core/models/enjeu.model';
@@ -194,7 +195,7 @@ export class EnjeuxListComponent implements OnInit {
   editingOoId = signal<number | null>(null);
   newOoLibelle = '';
   newOoDescription = '';
-  newOoFacteurFilterId: number | null = null;
+  newOoFacteurFilterId = signal<number | null>(null);
   newOoPressionId: number | null = null;
   editOoLibelle = '';
   editOoDescription = '';
@@ -405,7 +406,25 @@ export class EnjeuxListComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    // Charger les infos du plan par slug
+    const existingPlanId = this.planId();
+
+    // Si on a déjà le planId, skip getPlanBySlug et charger directement les enjeux
+    if (existingPlanId) {
+      this.enjeuService.getPlanEnjeux(existingPlanId, true).subscribe({
+        next: (response) => {
+          this.planEnjeuxData.set(response);
+          this.isLoading.set(false);
+          this.expandAndScrollToOperation();
+        },
+        error: () => {
+          this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+          this.isLoading.set(false);
+        }
+      });
+      return;
+    }
+
+    // Premier chargement : résoudre le slug → planId
     this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
         this.planId.set(plan.id_pg);
@@ -413,7 +432,6 @@ export class EnjeuxListComponent implements OnInit {
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(plan.annee_fin || null);
 
-        // Charger les enjeux et FCR (forceRefresh pour éviter le cache stale)
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
             this.planEnjeuxData.set(response);
@@ -421,9 +439,7 @@ export class EnjeuxListComponent implements OnInit {
             this.expandAndScrollToOperation();
           },
           error: () => {
-            this.errorMessage.set(
-              this.translate.instant('enjeux.messages.loadError')
-            );
+            this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
             this.isLoading.set(false);
           }
         });
@@ -457,6 +473,62 @@ export class EnjeuxListComponent implements OnInit {
       enjeux: data.enjeux.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
       fcr: data.fcr.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
     };
+  }
+
+  /**
+   * Met à jour les opérations d'une métrique dans l'arbre local des enjeux.
+   * Parcourt les deux branches (NE et OO) pour trouver la métrique cible.
+   */
+  private updateMetriqueOperations(
+    metriqueId: number,
+    updater: (ops: Operation[]) => Operation[]
+  ): void {
+    this.patchPlanEnjeuxData(data => {
+      const mapMetriques = (metriques: any[]): any[] =>
+        metriques.map(met =>
+          met.id_metrique === metriqueId
+            ? { ...met, operations: updater(met.operations || []) }
+            : met
+        );
+
+      const mapEnjeu = (enjeu: Enjeu): Enjeu => ({
+        ...enjeu,
+        // Branche NE
+        objectifs_long_terme: (enjeu.objectifs_long_terme || []).map(olt => ({
+          ...olt,
+          niveaux_exigence: (olt.niveaux_exigence || []).map(ne => ({
+            ...ne,
+            indicateurs: (ne.indicateurs || []).map(ind => ({
+              ...ind,
+              metriques: mapMetriques(ind.metriques || []),
+            })),
+          })),
+        })),
+        // Branche OO
+        facteurs_influence: (enjeu.facteurs_influence || []).map(fi => ({
+          ...fi,
+          pressions: (fi.pressions || []).map(pr => ({
+            ...pr,
+            objectifs_operationnels: (pr.objectifs_operationnels || []).map(oo => ({
+              ...oo,
+              resultats_attendus: (oo.resultats_attendus || []).map(ra => ({
+                ...ra,
+                indicateurs: (ra.indicateurs || []).map(ind => ({
+                  ...ind,
+                  metriques: mapMetriques(ind.metriques || []),
+                })),
+              })),
+            })),
+          })),
+        })),
+      });
+
+      return {
+        ...data,
+        enjeux: data.enjeux.map(mapEnjeu),
+        fcr: data.fcr.map(mapEnjeu),
+      };
+    });
   }
 
   // Navigation
@@ -1872,15 +1944,16 @@ export class EnjeuxListComponent implements OnInit {
   /**
    * Format frequency display.
    */
+  private readonly frequenceLabels: Record<string, string> = {
+    'jour': 'jour', 'semaine': 'semaine', 'mois': 'mois', 'an': 'an',
+    'trimestre': 'trimestre', 'semestre': 'semestre',
+    '2_ans': '2 ans', '5_ans': '5 ans', '10_ans': '10 ans', 'autre': 'autre'
+  };
+
   getFrequenceDisplay(op: Operation): string {
     if (!op.frequence_nombre || !op.frequence_unite) return '';
-    const unite = this.translate.instant('enjeux.operations.unite' + this.capitalizeFirst(op.frequence_unite));
+    const unite = this.frequenceLabels[op.frequence_unite.toLowerCase()] || op.frequence_unite;
     return `${op.frequence_nombre} ${this.translate.instant('enjeux.operations.foisPar')} ${unite}`;
-  }
-
-  private capitalizeFirst(s: string): string {
-    if (!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
 
   // ============================================
@@ -1896,10 +1969,110 @@ export class EnjeuxListComponent implements OnInit {
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
 
+  openAddActionDialog(metriqueId: number, metriqueNom: string): void {
+    const planId = this.planId();
+    if (!planId) return;
+
+    const dialogRef = this.dialog.open(LinkOperationDialogComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        planId,
+        metriqueId,
+        metriqueNom,
+      } as LinkOperationDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result: LinkOperationDialogResult | undefined) => {
+      if (!result || result.action === 'cancel') return;
+
+      if (result.action === 'create') {
+        this.navigateToOperationForm(metriqueId);
+      } else if (result.action === 'link' && result.operationId) {
+        this.enjeuService.addMetriqueToOperation(result.operationId, metriqueId).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: (updatedOp) => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.linkSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            // Mise à jour locale : ajouter l'opération à la métrique
+            this.updateMetriqueOperations(metriqueId, ops => {
+              if (ops.some(o => o.id_operation === updatedOp.id_operation)) return ops;
+              return [...ops, updatedOp];
+            });
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.linkError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  unlinkOperation(operation: Operation, metriqueId: number): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.operations.unlinkTitle'),
+        message: this.translate.instant('enjeux.operations.unlinkConfirm'),
+        confirmText: this.translate.instant('enjeux.operations.unlinkTitle'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      }
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.removeMetriqueFromOperation(operation.id_operation, metriqueId).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.unlinkSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            // Mise à jour locale : retirer l'opération de cette métrique
+            this.updateMetriqueOperations(metriqueId, ops =>
+              ops.filter(o => o.id_operation !== operation.id_operation)
+            );
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.unlinkError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  getOtherMetriques(op: Operation, currentMetriqueId: number): MetriqueRef[] {
+    if (!op.metriques) return [];
+    return op.metriques.filter(m => m.id_metrique !== currentMetriqueId);
+  }
+
   navigateToEditOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
-    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId, 'modifier']);
+    const enjeuSlug = this.selectedEnjeuSlug();
+    this.router.navigate(
+      ['/plans', slug, 'enjeux', 'operations', operationId, 'modifier'],
+      { queryParams: enjeuSlug ? { returnEnjeu: enjeuSlug } : {} }
+    );
   }
 
   deleteOperation(operation: Operation): void {
@@ -1971,9 +2144,10 @@ export class EnjeuxListComponent implements OnInit {
 
   // Computed pour filtrer les pressions par facteur d'influence sélectionné
   filteredPressionsForNewOo = computed(() => {
-    if (!this.newOoFacteurFilterId) return [];
+    const facteurId = this.newOoFacteurFilterId();
+    if (!facteurId) return [];
     return this.selectedPressions().filter(
-      p => p.id_facteur_influence === this.newOoFacteurFilterId
+      p => p.id_facteur_influence === facteurId
     );
   });
 
@@ -1981,7 +2155,7 @@ export class EnjeuxListComponent implements OnInit {
     this.addingOo.set(true);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId = null;
+    this.newOoFacteurFilterId.set(null);
     this.newOoPressionId = null;
   }
 
@@ -1989,7 +2163,7 @@ export class EnjeuxListComponent implements OnInit {
     this.addingOo.set(false);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId = null;
+    this.newOoFacteurFilterId.set(null);
     this.newOoPressionId = null;
   }
 

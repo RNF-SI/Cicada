@@ -574,6 +574,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validation métier selon le type (Enjeu ou FCR)."""
         id_categorie = attrs.get('id_categorie')
+        id_categorie_fcr = attrs.get('id_categorie_fcr')
 
         if id_categorie:
             mnemonique = id_categorie.mnemonique if hasattr(id_categorie, 'mnemonique') else None
@@ -587,6 +588,23 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
                 # Pour un FCR, la catégorie FCR est recommandée
                 # On ne force pas la validation pour permettre la flexibilité
                 pass
+
+        # Si id_categorie_fcr est fourni, s'assurer que id_categorie est bien FCR
+        if id_categorie_fcr and id_categorie:
+            mnemonique = id_categorie.mnemonique if hasattr(id_categorie, 'mnemonique') else None
+            if mnemonique != 'FCR':
+                # Corriger automatiquement : chercher la nomenclature FCR
+                from apps.core.models import Nomenclature
+                try:
+                    fcr_nomenclature = Nomenclature.objects.get(
+                        id_type__mnemonique='CATEGORIE_ENJEU',
+                        mnemonique='FCR'
+                    )
+                    attrs['id_categorie'] = fcr_nomenclature
+                except Nomenclature.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"id_categorie": _("Catégorie FCR introuvable dans les nomenclatures.")}
+                    )
 
         return attrs
 

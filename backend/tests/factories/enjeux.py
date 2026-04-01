@@ -402,5 +402,12 @@ class OperationFactory(DjangoModelFactory):
     id_referentiel_operations = factory.Sequence(lambda n: f'REF-{n:03d}')
     annee_min = 2024
     annee_max = 2030
-    id_metrique = None
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+    @factory.post_generation
+    def metriques(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            for metrique in extracted:
+                self.metriques.add(metrique)

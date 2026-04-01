@@ -128,11 +128,10 @@
             </mat-form-field>
           }
 
-          <!-- Métrique associée -->
+          <!-- Métriques associées -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.metriqueAssocieeLabel' | translate }}</mat-label>
-            <mat-select formControlName="id_metrique">
-              <mat-option [value]="null">--</mat-option>
+            <mat-label>{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</mat-label>
+            <mat-select formControlName="metrique_ids" multiple>
               @for (met of planMetriques(); track met.id_metrique) {
                 <mat-option [value]="met.id_metrique">
                   {{ met.nom_metrique }} ({{ met.indicateur_nom }})
@@ -554,19 +553,15 @@
                   <mat-button-toggle value="none">
                     {{ 'enjeux.operations.modeNone' | translate }}
                   </mat-button-toggle>
-                  @if (availableOrganismes().length > 0) {
-                    <mat-button-toggle value="by_org">
-                      {{ 'enjeux.operations.modeByOrg' | translate }}
-                    </mat-button-toggle>
-                  }
+                  <mat-button-toggle value="by_org" [disabled]="availableOrganismes().length === 0">
+                    {{ 'enjeux.operations.modeByOrg' | translate }}
+                  </mat-button-toggle>
                   <mat-button-toggle value="by_type">
                     {{ 'enjeux.operations.modeByType' | translate }}
                   </mat-button-toggle>
-                  @if (availableOrganismes().length > 0) {
-                    <mat-button-toggle value="by_org_type">
-                      {{ 'enjeux.operations.modeByOrgType' | translate }}
-                    </mat-button-toggle>
-                  }
+                  <mat-button-toggle value="by_org_type" [disabled]="availableOrganismes().length === 0">
+                    {{ 'enjeux.operations.modeByOrgType' | translate }}
+                  </mat-button-toggle>
                 </mat-button-toggle-group>
               </div>
 
@@ -613,9 +608,9 @@
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
-                                           [value]="getOrgBudget(i, org.id_organisme).fonct"
+                                           [value]="getOrgBudget(i, org.id_organisme).fonct ?? ''"
                                            (change)="updateOrgBudgetFonct(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
                                   </div>
@@ -628,9 +623,9 @@
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
-                                           [value]="getOrgBudget(i, org.id_organisme).invest"
+                                           [value]="getOrgBudget(i, org.id_organisme).invest ?? ''"
                                            (change)="updateOrgBudgetInvest(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
                                   </div>
@@ -652,9 +647,9 @@
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
-                                           [value]="getOrgBudget(i, org.id_organisme).etp"
+                                           [value]="getOrgBudget(i, org.id_organisme).etp ?? ''"
                                            (change)="updateOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
                                   </div>
@@ -700,9 +695,9 @@
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
-                                           [value]="getOrgByOrgData(i, org.id_organisme).budget"
+                                           [value]="getOrgByOrgData(i, org.id_organisme).budget ?? ''"
                                            (change)="updateOrgByOrgBudget(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
                                   </div>
@@ -715,9 +710,9 @@
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
-                                           [value]="getOrgByOrgData(i, org.id_organisme).etp"
+                                           [value]="getOrgByOrgData(i, org.id_organisme).etp ?? ''"
                                            (change)="updateOrgByOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
                                   </div>
@@ -755,9 +750,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="getTypeBudget(i).fonct"
+                                         [value]="getTypeBudget(i).fonct ?? ''"
                                          (change)="updateTypeFonct(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>
@@ -769,9 +764,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="getTypeBudget(i).invest"
+                                         [value]="getTypeBudget(i).invest ?? ''"
                                          (change)="updateTypeInvest(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>
@@ -791,9 +786,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="getTypeBudget(i).etp"
+                                         [value]="getTypeBudget(i).etp ?? ''"
                                          (change)="updateTypeEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
                                 </div>
@@ -808,9 +803,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="getDirectTotal(i).budget"
+                                         [value]="getDirectTotal(i).budget ?? ''"
                                          (change)="updateDirectBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>
@@ -822,9 +817,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="getDirectTotal(i).etp"
+                                         [value]="getDirectTotal(i).etp ?? ''"
                                          (change)="updateDirectEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
                                 </div>
@@ -839,9 +834,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="annee.budget"
+                                         [value]="annee.budget ?? ''"
                                          (change)="updateBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>
@@ -853,9 +848,9 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
-                                  <input type="number"
+                                  <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="annee.etp"
+                                         [value]="annee.etp ?? ''"
                                          (change)="updateEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
                                 </div>

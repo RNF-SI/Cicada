@@ -95,8 +95,9 @@ export class OperationFormComponent implements OnInit {
   isEditMode = signal(false);
   existingOperation = signal<Operation | null>(null);
 
-  // Query param: pré-lier une métrique
+  // Query params
   prelinkedMetriqueId = signal<number | null>(null);
+  returnEnjeuSlug = signal<string | null>(null);
 
   // Nomenclatures
   typeActionOptions = signal<NomenclatureOption[]>([]);
@@ -217,17 +218,12 @@ export class OperationFormComponent implements OnInit {
     indicateurs_reponse: true
   };
 
-  // Frequency units
-  frequenceUnites = [
-    { value: 'jour', label: '' },
-    { value: 'semaine', label: '' },
-    { value: 'mois', label: '' },
-    { value: 'an', label: '' }
-  ];
+  // Frequency units (loaded from nomenclature FREQUENCE_EMBOITEMENT)
+  frequenceUnites: { value: string; label: string }[] = [];
 
   ngOnInit(): void {
     window.scrollTo({ top: 0, behavior: 'instant' });
-    this.initFrequenceLabels();
+    this.loadFrequenceNomenclature();
     this.initForm();
     this.initSuiviLibelleSync();
     this.initTypeActionAutocomplete();
@@ -235,13 +231,26 @@ export class OperationFormComponent implements OnInit {
     this.loadRouteParams();
   }
 
-  private initFrequenceLabels(): void {
-    this.frequenceUnites = [
-      { value: 'jour', label: this.translate.instant('enjeux.operations.uniteJour') },
-      { value: 'semaine', label: this.translate.instant('enjeux.operations.uniteSemaine') },
-      { value: 'mois', label: this.translate.instant('enjeux.operations.uniteMois') },
-      { value: 'an', label: this.translate.instant('enjeux.operations.uniteAn') }
-    ];
+  private loadFrequenceNomenclature(): void {
+    this.adminService.getNomenclaturesByType('FREQUENCE_EMBOITEMENT').subscribe({
+      next: (nomenclatures) => {
+        this.frequenceUnites = nomenclatures
+          .sort((a, b) => (a.hierarchy || '').localeCompare(b.hierarchy || ''))
+          .map(n => ({
+            value: (n.mnemonique || '').toLowerCase(),
+            label: n.label
+          }));
+      },
+      error: () => {
+        // Fallback si la nomenclature n'est pas chargée
+        this.frequenceUnites = [
+          { value: 'jour', label: 'Jour' },
+          { value: 'semaine', label: 'Semaine' },
+          { value: 'mois', label: 'Mois' },
+          { value: 'an', label: 'Ans' }
+        ];
+      }
+    });
   }
 
   private initForm(): void {
@@ -251,7 +260,7 @@ export class OperationFormComponent implements OnInit {
       id_type_action: [null],
       id_suivi: [null],
       intitule_suivi: [''],
-      id_metrique: [null],
+      metrique_ids: [[] as number[]],
       id_priorite: [null],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
@@ -305,6 +314,11 @@ export class OperationFormComponent implements OnInit {
     const metriqueIdStr = this.route.snapshot.queryParamMap.get('metriqueId');
     if (metriqueIdStr) {
       this.prelinkedMetriqueId.set(parseInt(metriqueIdStr, 10));
+    }
+
+    const returnEnjeu = this.route.snapshot.queryParamMap.get('returnEnjeu');
+    if (returnEnjeu) {
+      this.returnEnjeuSlug.set(returnEnjeu);
     }
 
     this.loadData();
@@ -462,7 +476,7 @@ export class OperationFormComponent implements OnInit {
       const prelinkedId = this.prelinkedMetriqueId();
       if (prelinkedId) {
         // prelinkedId is now expected to be a metrique ID
-        this.form.patchValue({ id_metrique: prelinkedId });
+        this.form.patchValue({ metrique_ids: [prelinkedId] });
       }
       this.isLoadingData.set(false);
       return;
@@ -503,7 +517,7 @@ export class OperationFormComponent implements OnInit {
       operateurs: op.operateurs || '',
       partenaires: op.partenaires || '',
       financeurs: op.financeurs || '',
-      id_metrique: op.id_metrique || null
+      metrique_ids: op.metrique_ids || []
     });
 
     // Restore type action autocomplete
@@ -635,20 +649,12 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
-    // Infer ventilation mode from existing data
-    if (op.operation_annees && op.operation_annees.length > 0) {
-      const hasOrganismes = op.operation_annees.some(a => a.organismes && a.organismes.length > 0);
-      const hasBudgetType = op.operation_annees.some(a => a.budget_fonctionnement != null || a.budget_investissement != null);
-      const hasOrgInvestNonNull = op.operation_annees.some(a =>
-        a.organismes?.some(o => o.budget_investissement != null && o.budget_investissement !== 0)
-      );
+    // Restore ventilation mode from backend (or infer for legacy data)
+    const savedMode = op.ventilation_mode || 'none';
+    this.ventilationMode.set(savedMode);
 
-      if (hasOrganismes && hasOrgInvestNonNull) {
-        // Mode 4: by_org_type — organismes avec fonct ET invest
-        this.ventilationMode.set('by_org_type');
-      } else if (hasOrganismes) {
-        // Mode 2: by_org — organismes avec totaux uniquement
-        this.ventilationMode.set('by_org');
+    if (op.operation_annees && op.operation_annees.length > 0) {
+      if (savedMode === 'by_org') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0 && serverAnnee.organismes) {
@@ -660,9 +666,7 @@ export class OperationFormComponent implements OnInit {
             }
           }
         }
-      } else if (hasBudgetType) {
-        // Mode 3: by_type — fonct/invest global, pas d'organismes
-        this.ventilationMode.set('by_type');
+      } else if (savedMode === 'by_type') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
@@ -673,9 +677,7 @@ export class OperationFormComponent implements OnInit {
             };
           }
         }
-      } else {
-        // Mode 1: none — totaux directs
-        this.ventilationMode.set('none');
+      } else if (savedMode === 'none') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
@@ -686,6 +688,7 @@ export class OperationFormComponent implements OnInit {
           }
         }
       }
+      // Mode by_org_type: orgBudgets already populated above (lines 634-638)
     }
 
     // Restore default monthly template
@@ -797,7 +800,7 @@ export class OperationFormComponent implements OnInit {
     if (fv.operateurs?.trim()) payload.operateurs = fv.operateurs.trim();
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
-    if (fv.id_metrique != null) payload.id_metrique = fv.id_metrique;
+    if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)
@@ -808,9 +811,12 @@ export class OperationFormComponent implements OnInit {
     // Template mensuel (mêmes mois chaque année)
     payload.programmation_mensuelle_defaut = { ...this.programmationMensuelleDefaut };
 
+    // Mode de ventilation du budget
+    const mode = this.ventilationMode();
+    payload.ventilation_mode = mode;
+
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
-    const mode = this.ventilationMode();
     type OrgEntry = { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null };
     const anneesToSave = this.operationAnnees.map((a, idx) => {
       const base = {
@@ -946,10 +952,20 @@ export class OperationFormComponent implements OnInit {
 
   goBack(): void {
     const slug = this.planSlug();
-    if (slug) {
-      this.router.navigate(['/plans', slug, 'enjeux']);
-    } else {
+    if (!slug) {
       this.router.navigate(['/plans']);
+      return;
+    }
+
+    const returnEnjeu = this.returnEnjeuSlug();
+    const opId = this.operationId();
+    if (returnEnjeu) {
+      this.router.navigate(
+        ['/plans', slug, 'enjeux', returnEnjeu],
+        { queryParams: { tab: 'operations', ...(opId ? { expandOperation: opId } : {}) } }
+      );
+    } else {
+      this.router.navigate(['/plans', slug, 'enjeux']);
     }
   }
 
@@ -1359,15 +1375,15 @@ export class OperationFormComponent implements OnInit {
   }
 
   updateOrgBudgetFonct(yearIdx: number, orgId: number, value: string): void {
-    this.getOrgBudget(yearIdx, orgId).fonct = value ? parseFloat(value) : null;
+    this.getOrgBudget(yearIdx, orgId).fonct = this.parseDecimal(value);
   }
 
   updateOrgBudgetInvest(yearIdx: number, orgId: number, value: string): void {
-    this.getOrgBudget(yearIdx, orgId).invest = value ? parseFloat(value) : null;
+    this.getOrgBudget(yearIdx, orgId).invest = this.parseDecimal(value);
   }
 
   updateOrgEtp(yearIdx: number, orgId: number, value: string): void {
-    this.getOrgBudget(yearIdx, orgId).etp = value ? parseFloat(value) : null;
+    this.getOrgBudget(yearIdx, orgId).etp = this.parseDecimal(value);
   }
 
   getOrgTotal(yearIdx: number, orgId: number): number {
@@ -1405,11 +1421,11 @@ export class OperationFormComponent implements OnInit {
   }
 
   updateBudget(index: number, value: string): void {
-    this.operationAnnees[index].budget = value ? parseFloat(value) : null;
+    this.operationAnnees[index].budget = this.parseDecimal(value);
   }
 
   updateEtp(index: number, value: string): void {
-    this.operationAnnees[index].etp = value ? parseFloat(value) : null;
+    this.operationAnnees[index].etp = this.parseDecimal(value);
   }
 
   duplicateFirstColumn(): void {
@@ -1446,6 +1462,14 @@ export class OperationFormComponent implements OnInit {
   // Mode totaux directs
   // ════════════════════════════════════════════════
 
+  /** Parse une valeur décimale en acceptant la virgule comme séparateur. */
+  private parseDecimal(value: string): number | null {
+    if (!value) return null;
+    const normalized = String(value).replace(',', '.');
+    const parsed = parseFloat(normalized);
+    return isNaN(parsed) ? null : parsed;
+  }
+
   onModeToggle(mode: string): void {
     this.ventilationMode.set(mode as 'none' | 'by_org' | 'by_type' | 'by_org_type');
   }
@@ -1458,11 +1482,11 @@ export class OperationFormComponent implements OnInit {
   }
 
   updateDirectBudget(yearIdx: number, value: string): void {
-    this.getDirectTotal(yearIdx).budget = value ? parseFloat(value) : null;
+    this.getDirectTotal(yearIdx).budget = this.parseDecimal(value);
   }
 
   updateDirectEtp(yearIdx: number, value: string): void {
-    this.getDirectTotal(yearIdx).etp = value ? parseFloat(value) : null;
+    this.getDirectTotal(yearIdx).etp = this.parseDecimal(value);
   }
 
   // ════════════════════════════════════════════════
@@ -1477,15 +1501,15 @@ export class OperationFormComponent implements OnInit {
   }
 
   updateTypeFonct(yearIdx: number, value: string): void {
-    this.getTypeBudget(yearIdx).fonct = value ? parseFloat(value) : null;
+    this.getTypeBudget(yearIdx).fonct = this.parseDecimal(value);
   }
 
   updateTypeInvest(yearIdx: number, value: string): void {
-    this.getTypeBudget(yearIdx).invest = value ? parseFloat(value) : null;
+    this.getTypeBudget(yearIdx).invest = this.parseDecimal(value);
   }
 
   updateTypeEtp(yearIdx: number, value: string): void {
-    this.getTypeBudget(yearIdx).etp = value ? parseFloat(value) : null;
+    this.getTypeBudget(yearIdx).etp = this.parseDecimal(value);
   }
 
   // ════════════════════════════════════════════════
@@ -1501,11 +1525,11 @@ export class OperationFormComponent implements OnInit {
   }
 
   updateOrgByOrgBudget(yearIdx: number, orgId: number, value: string): void {
-    this.getOrgByOrgData(yearIdx, orgId).budget = value ? parseFloat(value) : null;
+    this.getOrgByOrgData(yearIdx, orgId).budget = this.parseDecimal(value);
   }
 
   updateOrgByOrgEtp(yearIdx: number, orgId: number, value: string): void {
-    this.getOrgByOrgData(yearIdx, orgId).etp = value ? parseFloat(value) : null;
+    this.getOrgByOrgData(yearIdx, orgId).etp = this.parseDecimal(value);
   }
 
   getByOrgYearTotalBudget(yearIdx: number): number {

@@ -1,7 +1,7 @@
 """
 Vues API REST pour les Enjeux, FCR et Responsabilités.
 """
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, status, permissions
@@ -73,6 +73,18 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         'objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur',
         'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
         'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
+        # Prefetch operations M2M pour éviter N+1 sur les métriques NE
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_priorite',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_type_action',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_utilisateur_ajout',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__metriques',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__metriques__id_indicateur',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__sites',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__operation_annees',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__operation_annees__organismes',
+        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__finances',
         'objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
         'facteurs_influence__pressions__objectifs_operationnels',
         'facteurs_influence__pressions__objectifs_operationnels__id_utilisateur_ajout',
@@ -82,6 +94,18 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
+        # Prefetch operations M2M pour éviter N+1 sur les métriques OO
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_priorite',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_type_action',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_utilisateur_ajout',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__metriques',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__metriques__id_indicateur',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__sites',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__operation_annees',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__operation_annees__organismes',
+        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__finances',
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
@@ -479,8 +503,8 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_facteur_influence']
+    ordering = ['id_facteur_influence']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -565,8 +589,8 @@ class PressionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_pression']
+    ordering = ['id_pression']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

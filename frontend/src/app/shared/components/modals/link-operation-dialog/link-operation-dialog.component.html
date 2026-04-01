@@ -1,0 +1,98 @@
+<h2 mat-dialog-title>{{ 'enjeux.operations.linkDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  @if (mode() === 'choose') {
+    <!-- Phase 1 : Choix entre créer ou lier -->
+    <p class="dialog-subtitle">
+      {{ 'enjeux.operations.linkDialog.subtitle' | translate:{ metriqueName: data.metriqueNom } }}
+    </p>
+
+    <div class="actions-list">
+      <button class="action-card action-primary" (click)="selectCreate()">
+        <div class="action-icon">
+          <i class="fi fi-rr-plus-small"></i>
+        </div>
+        <div class="action-content">
+          <span class="action-label">{{ 'enjeux.operations.linkDialog.createLabel' | translate }}</span>
+          <span class="action-description">{{ 'enjeux.operations.linkDialog.createDescription' | translate }}</span>
+        </div>
+        <i class="fi fi-rr-angle-right action-arrow"></i>
+      </button>
+
+      <button class="action-card action-link" (click)="selectLink()">
+        <div class="action-icon">
+          <i class="fi fi-rr-link-alt"></i>
+        </div>
+        <div class="action-content">
+          <span class="action-label">{{ 'enjeux.operations.linkDialog.linkLabel' | translate }}</span>
+          <span class="action-description">{{ 'enjeux.operations.linkDialog.linkDescription' | translate }}</span>
+        </div>
+        <i class="fi fi-rr-angle-right action-arrow"></i>
+      </button>
+    </div>
+  } @else {
+    <!-- Phase 2 : Recherche et sélection d'une action existante -->
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'enjeux.operations.linkDialog.searchPlaceholder' | translate }}</mat-label>
+      <input matInput
+             [ngModel]="searchTerm()"
+             (ngModelChange)="onSearchChange($event)">
+      <i matPrefix class="fi fi-rr-search search-icon"></i>
+    </mat-form-field>
+
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else {
+      <div class="operations-list">
+        @for (op of filteredOperations(); track op.id_operation) {
+          <div class="operation-item"
+               [class.selected]="selectedOperationId() === op.id_operation"
+               (click)="selectOperation(op.id_operation)">
+            <div class="operation-item-radio">
+              <span class="radio-dot" [class.active]="selectedOperationId() === op.id_operation"></span>
+            </div>
+            <div class="operation-item-content">
+              <span class="operation-item-libelle">{{ op.libelle }}</span>
+              <div class="operation-item-meta">
+                @if (op.type_action_label) {
+                  <span class="meta-tag">{{ op.type_action_label }}</span>
+                }
+                @if (op.priorite_label) {
+                  <span class="meta-tag">{{ op.priorite_label }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            @if (allOperations().length === 0) {
+              <span>{{ 'enjeux.operations.linkDialog.noResults' | translate }}</span>
+            } @else {
+              <span>{{ 'enjeux.operations.linkDialog.allAlreadyLinked' | translate }}</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (mode() === 'link') {
+    <button mat-stroked-button (click)="goBack()">
+      {{ 'enjeux.operations.linkDialog.back' | translate }}
+    </button>
+    <button mat-flat-button color="primary"
+            [disabled]="!selectedOperationId()"
+            (click)="confirmLink()">
+      {{ 'enjeux.operations.linkDialog.confirmLink' | translate }}
+    </button>
+  } @else {
+    <button mat-stroked-button (click)="cancel()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+  }
+</mat-dialog-actions>

@@ -231,9 +231,18 @@ export class FcrFormComponent implements OnInit {
       return;
     }
 
+    if (!categorieId) {
+      this.errorMessage.set(
+        this.translate.instant('enjeux.messages.fcrCategorieNotLoaded')
+      );
+      this.isLoading.set(false);
+      this.scrollToError();
+      return;
+    }
+
     const payload: FcrCreatePayload = {
       id_pg: planId,
-      id_categorie: categorieId || 0, // Le backend devrait trouver l'ID si 0
+      id_categorie: categorieId,
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
       id_categorie_fcr: formValue.id_categorie_fcr,

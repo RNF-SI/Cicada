@@ -4,7 +4,7 @@ Vues API REST pour les Opérations (Actions).
 from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,8 +12,8 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from collections import defaultdict
 
-from .models_operations import Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
-from .models_indicateurs import Indicateur
+from .models_operations import Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
+from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
 from apps.users.permissions import IsReferent
 from .serializers_operations import (
@@ -37,12 +37,12 @@ class OperationViewSet(viewsets.ModelViewSet):
 
     queryset = Operation.objects.select_related(
         'id_priorite', 'id_type_action', 'id_utilisateur_ajout', 'id_utilisateur_maj',
-        'id_metrique', 'id_metrique__id_indicateur',
-        # NE path: Indicateur → NE → OLT → Enjeu
-        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu',
-        # RA path: Indicateur → RA → OO → Pression → FI → Enjeu
-        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
     ).prefetch_related(
+        Prefetch('metriques', queryset=Metrique.objects.select_related(
+            'id_indicateur',
+            'id_indicateur__id_ne__id_olt__id_enjeu',
+            'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
+        )),
         'sites',
         Prefetch('operation_annees', queryset=OperationAnnee.objects.prefetch_related(
             Prefetch('organismes', queryset=OperationAnneeOrganisme.objects.select_related('id_organisme'))
@@ -76,14 +76,14 @@ class OperationViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -100,7 +100,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-indicateur/{indicateur_id}/
         """
         indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
-        operations = self.get_queryset().filter(id_metrique__id_indicateur=indicateur)
+        operations = self.get_queryset().filter(metriques__id_indicateur=indicateur).distinct()
         return Response({
             'indicateur_id': int(indicateur_id),
             'indicateur_nom': indicateur.nom_indicateur,
@@ -117,8 +117,8 @@ class OperationViewSet(viewsets.ModelViewSet):
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
         ).distinct()
 
         grouped = defaultdict(list)
@@ -137,3 +137,51 @@ class OperationViewSet(viewsets.ModelViewSet):
             'groups': groups,
             'total': operations.count()
         })
+
+    @action(detail=True, methods=['post'], url_path='add-metrique')
+    def add_metrique(self, request, pk=None):
+        """
+        Ajouter une métrique à une opération (lien M2M, idempotent).
+
+        POST /api/plans/operations/{id}/add-metrique/
+        Body: { "metrique_id": 123 }
+        """
+        operation = self.get_object()
+        metrique_id = request.data.get('metrique_id')
+        if not metrique_id:
+            return Response(
+                {'detail': 'metrique_id est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        metrique = get_object_or_404(Metrique, id_metrique=metrique_id)
+        _, created = CorOperationMetrique.objects.get_or_create(
+            id_operation=operation, id_metrique=metrique
+        )
+        # Clear prefetch cache so serializer sees the updated M2M
+        operation = Operation.objects.get(pk=operation.pk)
+        return Response(
+            OperationSerializer(operation).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'], url_path='remove-metrique')
+    def remove_metrique(self, request, pk=None):
+        """
+        Retirer une métrique d'une opération (lien M2M, idempotent).
+
+        POST /api/plans/operations/{id}/remove-metrique/
+        Body: { "metrique_id": 123 }
+        """
+        operation = self.get_object()
+        metrique_id = request.data.get('metrique_id')
+        if not metrique_id:
+            return Response(
+                {'detail': 'metrique_id est requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        CorOperationMetrique.objects.filter(
+            id_operation=operation, id_metrique_id=metrique_id
+        ).delete()
+        # Clear prefetch cache so serializer sees the updated M2M
+        operation = Operation.objects.get(pk=operation.pk)
+        return Response(OperationSerializer(operation).data)

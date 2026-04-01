@@ -403,7 +403,7 @@ class FacteurInfluence(models.Model):
         db_table_comment = "Facteurs d'influence des enjeux"
         verbose_name = _("Facteur d'influence")
         verbose_name_plural = _("Facteurs d'influence")
-        ordering = ['libelle']
+        ordering = ['id_facteur_influence']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
@@ -478,7 +478,7 @@ class Pression(models.Model):
         db_table_comment = 'Pressions sur les facteurs d\'influence'
         verbose_name = _("Pression")
         verbose_name_plural = _("Pressions")
-        ordering = ['libelle']
+        ordering = ['id_pression']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_facteur_influence})"

@@ -721,40 +721,32 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
         )
+        from django.db.models import Q, Prefetch
         from .models_indicateurs import Indicateur, Metrique
         from .models_operations import Operation
 
-        # Collect all operations belonging to this plan, with their full ancestry
+        # Collect all operations belonging to this plan (via M2M metriques)
         operations = (
             Operation.objects
             .filter(
-                id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan
+                Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
             )
-            .select_related(
-                'id_metrique',
-                'id_metrique__id_indicateur',
-                'id_metrique__id_indicateur__id_ne',
-                'id_metrique__id_indicateur__id_ne__id_olt',
-                'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu',
-                'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_categorie',
-            )
-        )
-
-        # Also collect operations from the OO branch
-        operations_oo = (
-            Operation.objects
-            .filter(
-                id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan
-            )
-            .select_related(
-                'id_metrique',
-                'id_metrique__id_indicateur',
-                'id_metrique__id_indicateur__id_resultat_attendu',
-                'id_metrique__id_indicateur__id_resultat_attendu__id_oo',
-                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression',
-                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence',
-                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
-                'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_categorie',
+            .distinct()
+            .prefetch_related(
+                Prefetch('metriques', queryset=Metrique.objects.select_related(
+                    'id_indicateur',
+                    'id_indicateur__id_ne',
+                    'id_indicateur__id_ne__id_olt',
+                    'id_indicateur__id_ne__id_olt__id_enjeu',
+                    'id_indicateur__id_ne__id_olt__id_enjeu__id_categorie',
+                    'id_indicateur__id_resultat_attendu',
+                    'id_indicateur__id_resultat_attendu__id_oo',
+                    'id_indicateur__id_resultat_attendu__id_oo__id_pression',
+                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence',
+                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
+                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_categorie',
+                ))
             )
         )
 
@@ -765,9 +757,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             'children': []
         }
 
-        def build_olt_ancestry(op):
-            """Build inverted path: Operation → Métrique → Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
-            met = op.id_metrique
+        def build_olt_ancestry(met):
+            """Build inverted path: Métrique → Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
             ind = met.id_indicateur
             ne = ind.id_ne
             olt = ne.id_olt
@@ -805,9 +796,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 }]
             }
 
-        def build_oo_ancestry(op):
-            """Build inverted path: Operation → Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu"""
-            met = op.id_metrique
+        def build_oo_ancestry(met):
+            """Build inverted path: Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu"""
             ind = met.id_indicateur
             ra = ind.id_resultat_attendu
             oo = ra.id_oo
@@ -852,24 +842,25 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 }]
             }
 
-        # Build operation nodes with their ancestry as children
+        # Build operation nodes — group all métriques under each operation
         for op in operations:
-            op_node = {
-                'name': op.libelle,
-                'entityType': 'operation',
-                'id': op.id_operation,
-                'children': [build_olt_ancestry(op)]
-            }
-            root['children'].append(op_node)
-
-        for op in operations_oo:
-            op_node = {
-                'name': op.libelle,
-                'entityType': 'operation',
-                'id': op.id_operation,
-                'children': [build_oo_ancestry(op)]
-            }
-            root['children'].append(op_node)
+            metrique_children = []
+            for met in op.metriques.all():
+                ind = met.id_indicateur
+                if not ind:
+                    continue
+                if ind.id_ne:
+                    metrique_children.append(build_olt_ancestry(met))
+                elif ind.id_resultat_attendu:
+                    metrique_children.append(build_oo_ancestry(met))
+            if metrique_children:
+                op_node = {
+                    'name': op.libelle,
+                    'entityType': 'operation',
+                    'id': op.id_operation,
+                    'children': metrique_children
+                }
+                root['children'].append(op_node)
 
         return Response(root)
 

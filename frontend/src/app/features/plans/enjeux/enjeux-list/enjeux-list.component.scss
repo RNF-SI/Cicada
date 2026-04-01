@@ -1757,6 +1757,24 @@
   .detail-value {
     color: $black;
   }
+
+  &.linked-metriques-info {
+    background: rgba($secondary-pale-green, 0.3);
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-sm;
+    font-size: 0.85rem;
+
+    .detail-label {
+      font-weight: $font-weight-semibold;
+      color: $primary-color;
+    }
+
+    .detail-value {
+      color: $gray-dark;
+      font-style: italic;
+    }
+  }
 }
 
 .operation-actors-section {
