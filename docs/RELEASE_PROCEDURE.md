@@ -105,7 +105,7 @@ Cette section décrit la procédure complète pour déployer une nouvelle versio
 
 ### 7.1 Prérequis
 
-- Accès SSH au serveur de production (ex. `waterwiseadmin@ns324`)
+- Accès SSH au serveur de production (voir `DEPLOY_SERVERS.md` local pour les identifiants)
 - Le `.env` de production est dans `~/Cicada/.env`
 - Le `docker-compose.prod.yml` est dans `~/Cicada/`
 - PostgreSQL tourne nativement sur le serveur (pas dans Docker)
@@ -121,12 +121,12 @@ gh run download <run_id> --dir /tmp/cicada-deb-X.Y.Z
 
 # 3. Copier le .deb sur le serveur du dépôt APT
 #    Note : le fichier est dans un sous-dossier cicada-deb-X.Y.Z/
-scp /tmp/cicada-deb-X.Y.Z/cicada-deb-X.Y.Z/cicada_X.Y.Z_amd64.deb geonatureadmin@<serveur-apt>:/home/geonatureadmin/
+scp /tmp/cicada-deb-X.Y.Z/cicada-deb-X.Y.Z/cicada_X.Y.Z_amd64.deb <apt-user>@<serveur-apt>:<home-dir>/
 
 # 4. Sur le serveur APT : publier dans le dépôt
-ssh geonatureadmin@<serveur-apt>
+ssh <apt-user>@<serveur-apt>
 cd /var/www/repos/cicada
-reprepro includedeb stable /home/geonatureadmin/cicada_X.Y.Z_amd64.deb
+reprepro includedeb stable <home-dir>/cicada_X.Y.Z_amd64.deb
 ```
 
 ### 7.3 Mettre à jour le serveur de production
