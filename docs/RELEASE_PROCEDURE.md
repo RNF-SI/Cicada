@@ -10,18 +10,26 @@ Cette note décrit les étapes pour publier une nouvelle version : images Docker
 
 ## 1. Préparer la version
 
-- Décider du numéro de version (ex. `0.1.13`).
-- Les fichiers `packaging/debian/DEBIAN/control` et `packaging/debian/etc/cicada/cicada.conf` contiennent une version par défaut ; le script `build-deb.sh` et la CI **écrasent** cette version au moment du build via la variable `VERSION`. Inutile de les modifier à la main pour une release.
+- Décider du numéro de version (ex. `0.1.21`).
+- **`version.txt`** : doit être mis à jour manuellement. Ce fichier est lu par le backend Django (endpoint `/api/health/`, etc.). Committer le changement sur `main` avant de créer le tag.
+- **`packaging/debian/DEBIAN/control`** et **`packaging/debian/etc/cicada/cicada.conf`** : écrasés automatiquement par la CI lors du build .deb. Les mettre à jour est optionnel (utile uniquement pour les builds locaux).
 
-## 2. Créer le tag et pousser (Docker + .deb en CI)
+## 2. Bumper la version et créer le tag
 
 Une fois les changements mergés sur `main` :
 
 ```bash
 git checkout main
 git pull
-git tag v0.1.13   # remplacer par la version choisie
-git push origin v0.1.13
+
+# Mettre à jour version.txt
+echo "0.1.21" > version.txt
+git add version.txt
+git commit -m "chore: bump version 0.1.21"
+
+# Créer et pousser le tag
+git tag v0.1.21
+git push origin main --tags
 ```
 
 **Effets :**
