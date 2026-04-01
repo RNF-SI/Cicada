@@ -406,7 +406,25 @@ export class EnjeuxListComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    // Charger les infos du plan par slug
+    const existingPlanId = this.planId();
+
+    // Si on a déjà le planId, skip getPlanBySlug et charger directement les enjeux
+    if (existingPlanId) {
+      this.enjeuService.getPlanEnjeux(existingPlanId, true).subscribe({
+        next: (response) => {
+          this.planEnjeuxData.set(response);
+          this.isLoading.set(false);
+          this.expandAndScrollToOperation();
+        },
+        error: () => {
+          this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+          this.isLoading.set(false);
+        }
+      });
+      return;
+    }
+
+    // Premier chargement : résoudre le slug → planId
     this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
         this.planId.set(plan.id_pg);
@@ -414,7 +432,6 @@ export class EnjeuxListComponent implements OnInit {
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(plan.annee_fin || null);
 
-        // Charger les enjeux et FCR (forceRefresh pour éviter le cache stale)
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
             this.planEnjeuxData.set(response);
@@ -422,9 +439,7 @@ export class EnjeuxListComponent implements OnInit {
             this.expandAndScrollToOperation();
           },
           error: () => {
-            this.errorMessage.set(
-              this.translate.instant('enjeux.messages.loadError')
-            );
+            this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
             this.isLoading.set(false);
           }
         });
@@ -458,6 +473,62 @@ export class EnjeuxListComponent implements OnInit {
       enjeux: data.enjeux.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
       fcr: data.fcr.map(e => e.id_enjeu === enjeuId ? transform(e) : e),
     };
+  }
+
+  /**
+   * Met à jour les opérations d'une métrique dans l'arbre local des enjeux.
+   * Parcourt les deux branches (NE et OO) pour trouver la métrique cible.
+   */
+  private updateMetriqueOperations(
+    metriqueId: number,
+    updater: (ops: Operation[]) => Operation[]
+  ): void {
+    this.patchPlanEnjeuxData(data => {
+      const mapMetriques = (metriques: any[]): any[] =>
+        metriques.map(met =>
+          met.id_metrique === metriqueId
+            ? { ...met, operations: updater(met.operations || []) }
+            : met
+        );
+
+      const mapEnjeu = (enjeu: Enjeu): Enjeu => ({
+        ...enjeu,
+        // Branche NE
+        objectifs_long_terme: (enjeu.objectifs_long_terme || []).map(olt => ({
+          ...olt,
+          niveaux_exigence: (olt.niveaux_exigence || []).map(ne => ({
+            ...ne,
+            indicateurs: (ne.indicateurs || []).map(ind => ({
+              ...ind,
+              metriques: mapMetriques(ind.metriques || []),
+            })),
+          })),
+        })),
+        // Branche OO
+        facteurs_influence: (enjeu.facteurs_influence || []).map(fi => ({
+          ...fi,
+          pressions: (fi.pressions || []).map(pr => ({
+            ...pr,
+            objectifs_operationnels: (pr.objectifs_operationnels || []).map(oo => ({
+              ...oo,
+              resultats_attendus: (oo.resultats_attendus || []).map(ra => ({
+                ...ra,
+                indicateurs: (ra.indicateurs || []).map(ind => ({
+                  ...ind,
+                  metriques: mapMetriques(ind.metriques || []),
+                })),
+              })),
+            })),
+          })),
+        })),
+      });
+
+      return {
+        ...data,
+        enjeux: data.enjeux.map(mapEnjeu),
+        fcr: data.fcr.map(mapEnjeu),
+      };
+    });
   }
 
   // Navigation
@@ -1923,13 +1994,17 @@ export class EnjeuxListComponent implements OnInit {
         this.enjeuService.addMetriqueToOperation(result.operationId, metriqueId).pipe(
           takeUntilDestroyed(this.destroyRef)
         ).subscribe({
-          next: () => {
+          next: (updatedOp) => {
             this.snackBar.open(
               this.translate.instant('enjeux.operations.linkSuccess'),
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            // Mise à jour locale : ajouter l'opération à la métrique
+            this.updateMetriqueOperations(metriqueId, ops => {
+              if (ops.some(o => o.id_operation === updatedOp.id_operation)) return ops;
+              return [...ops, updatedOp];
+            });
           },
           error: () => {
             this.snackBar.open(
@@ -1967,7 +2042,10 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            // Mise à jour locale : retirer l'opération de cette métrique
+            this.updateMetriqueOperations(metriqueId, ops =>
+              ops.filter(o => o.id_operation !== operation.id_operation)
+            );
           },
           error: () => {
             this.snackBar.open(
