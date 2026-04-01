@@ -113,16 +113,18 @@ Cette section décrit la procédure complète pour déployer une nouvelle versio
 ### 7.2 Récupérer et publier le .deb
 
 ```bash
-# Sur votre machine locale : trouver le run_id du build déclenché par le tag
+# 1. Sur votre machine locale : trouver le run_id du build déclenché par le tag
 gh run list --workflow=build-deb.yml --limit=3
 
-# Télécharger l'artefact .deb (remplacer <run_id> par l'ID du run)
+# 2. Télécharger l'artefact .deb en local
 gh run download <run_id> --dir /tmp/cicada-deb-X.Y.Z
 
-# Copier le .deb sur le serveur du dépôt APT
-scp /tmp/cicada-deb-X.Y.Z/cicada-deb/cicada_X.Y.Z_amd64.deb geonatureadmin@<serveur-apt>:/home/geonatureadmin/
+# 3. Copier le .deb sur le serveur du dépôt APT
+#    Note : le fichier est dans un sous-dossier cicada-deb-X.Y.Z/
+scp /tmp/cicada-deb-X.Y.Z/cicada-deb-X.Y.Z/cicada_X.Y.Z_amd64.deb geonatureadmin@<serveur-apt>:/home/geonatureadmin/
 
-# Sur le serveur APT : publier dans le dépôt
+# 4. Sur le serveur APT : publier dans le dépôt
+ssh geonatureadmin@<serveur-apt>
 cd /var/www/repos/cicada
 reprepro includedeb stable /home/geonatureadmin/cicada_X.Y.Z_amd64.deb
 ```
