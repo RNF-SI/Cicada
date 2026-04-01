@@ -79,14 +79,14 @@ def operation_test_data(db):
         id_utilisateur_ajout=referent
     )
 
-    # Operations linked via id_metrique FK
+    # Operations linked via metriques M2M
     op1 = OperationFactory(
         libelle='Restauration des berges',
         id_priorite=priorite_1,
         code_operation='OP-001',
         description='Restauration écologique des berges du cours d\'eau',
         annee_min=2024, annee_max=2028,
-        id_metrique=metrique1,
+        metriques=[metrique1],
         id_utilisateur_ajout=referent
     )
 
@@ -95,7 +95,7 @@ def operation_test_data(db):
         id_priorite=priorite_2,
         code_operation='OP-002',
         annee_min=2024, annee_max=2030,
-        id_metrique=metrique1,
+        metriques=[metrique1],
         id_utilisateur_ajout=referent
     )
 
@@ -161,13 +161,13 @@ class TestOperationListEndpoint:
         assert 'results' in response.data
 
     def test_list_includes_metrique_info(self, api_client, operation_test_data):
-        """Test list response includes id_metrique and metrique_nom."""
+        """Test list response includes metriques and metrique_ids."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.get('/api/plans/operations/')
         assert response.status_code == status.HTTP_200_OK
         for item in response.data['results']:
-            assert 'id_metrique' in item
-            assert 'metrique_nom' in item
+            assert 'metriques' in item
+            assert 'metrique_ids' in item
 
     def test_list_includes_priorite_label(self, api_client, operation_test_data):
         """Test list response includes priorite_label."""
@@ -204,7 +204,7 @@ class TestOperationCreateEndpoint:
         """Test unauthenticated create returns 401."""
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération',
-            'id_metrique': operation_test_data['metrique1'].id_metrique,
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
         }, format='json')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -213,7 +213,7 @@ class TestOperationCreateEndpoint:
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération SA',
-            'id_metrique': operation_test_data['metrique1'].id_metrique,
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         assert Operation.objects.filter(libelle='Nouvelle opération SA').exists()
@@ -223,7 +223,7 @@ class TestOperationCreateEndpoint:
         api_client.force_authenticate(user=operation_test_data['referent'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Nouvelle opération Ref',
-            'id_metrique': operation_test_data['metrique1'].id_metrique,
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -238,14 +238,14 @@ class TestOperationCreateEndpoint:
             'description': 'Description complète de l\'opération',
             'annee_min': 2025,
             'annee_max': 2030,
-            'id_metrique': operation_test_data['metrique1'].id_metrique,
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Complète')
         assert op.code_operation == 'OP-COMP'
         assert op.annee_min == 2025
         assert op.annee_max == 2030
-        assert op.id_metrique == operation_test_data['metrique1']
+        assert list(op.metriques.values_list('id_metrique', flat=True)) == [operation_test_data['metrique1'].id_metrique]
 
     def test_create_with_minimal_fields(self, api_client, operation_test_data):
         """Test create with only required field (libelle)."""
@@ -255,7 +255,7 @@ class TestOperationCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Minimale')
-        assert op.id_metrique is None
+        assert op.metriques.count() == 0
 
     def test_create_missing_libelle_returns_400(self, api_client, operation_test_data):
         """Test create without required libelle returns 400."""
@@ -266,23 +266,23 @@ class TestOperationCreateEndpoint:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_create_with_metrique(self, api_client, operation_test_data):
-        """Test id_metrique FK is properly set."""
+        """Test metrique_ids M2M is properly set."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         met_id = operation_test_data['metrique1'].id_metrique
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Opération avec Métrique',
-            'id_metrique': met_id,
+            'metrique_ids': [met_id],
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération avec Métrique')
-        assert op.id_metrique_id == met_id
+        assert list(op.metriques.values_list('id_metrique', flat=True)) == [met_id]
 
     def test_audit_field_set_on_create(self, api_client, operation_test_data):
         """Test id_utilisateur_ajout is set on create."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Opération Audit',
-            'id_metrique': operation_test_data['metrique1'].id_metrique,
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         op = Operation.objects.get(libelle='Opération Audit')
@@ -350,15 +350,16 @@ class TestOperationDetailEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
     def test_detail_includes_metrique_info(self, api_client, operation_test_data):
-        """Test detail includes id_metrique, metrique_nom, indicateur_id, indicateur_nom."""
+        """Test detail includes metriques list and metrique_ids."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         op_id = operation_test_data['op1'].id_operation
         response = api_client.get(f'/api/plans/operations/{op_id}/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['id_metrique'] == operation_test_data['metrique1'].id_metrique
-        assert response.data['metrique_nom'] == operation_test_data['metrique1'].nom_metrique
-        assert response.data['indicateur_id'] == operation_test_data['indicateur1'].id_indicateur
-        assert response.data['indicateur_nom'] == operation_test_data['indicateur1'].nom_indicateur
+        assert response.data['metrique_ids'] == [operation_test_data['metrique1'].id_metrique]
+        assert len(response.data['metriques']) == 1
+        assert response.data['metriques'][0]['nom_metrique'] == operation_test_data['metrique1'].nom_metrique
+        assert response.data['metriques'][0]['indicateur_id'] == operation_test_data['indicateur1'].id_indicateur
+        assert response.data['metriques'][0]['indicateur_nom'] == operation_test_data['indicateur1'].nom_indicateur
 
     def test_detail_includes_priorite_label(self, api_client, operation_test_data):
         """Test detail includes priorite_label."""
@@ -606,19 +607,19 @@ class TestOperationUpdateEndpoint:
         assert operation_test_data['op1'].id_priorite == operation_test_data['priorite_2']
 
     def test_update_metrique_replaces(self, api_client, operation_test_data):
-        """Test updating id_metrique replaces existing FK."""
+        """Test updating metrique_ids replaces existing M2M links."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         op_id = operation_test_data['op1'].id_operation
         met2_id = operation_test_data['metrique2'].id_metrique
 
         # op1 currently linked to metrique1
         response = api_client.patch(f'/api/plans/operations/{op_id}/', {
-            'id_metrique': met2_id
+            'metrique_ids': [met2_id]
         }, format='json')
         assert response.status_code == status.HTTP_200_OK
 
-        operation_test_data['op1'].refresh_from_db()
-        assert operation_test_data['op1'].id_metrique_id == met2_id
+        op = Operation.objects.get(id_operation=op_id)
+        assert list(op.metriques.values_list('id_metrique', flat=True)) == [met2_id]
 
     def test_update_annee_range(self, api_client, operation_test_data):
         """Test updating year range."""
@@ -678,9 +679,9 @@ class TestOperationDeleteEndpoint:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_delete_does_not_cascade_to_metrique(self, api_client, operation_test_data):
-        """Test deleting operation does not cascade to metrique (SET_NULL)."""
+        """Test deleting operation does not cascade to metrique (M2M link deleted, metrique preserved)."""
         op_id = operation_test_data['op2'].id_operation
-        met_id = operation_test_data['op2'].id_metrique_id
+        met_id = operation_test_data['metrique1'].id_metrique
 
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.delete(f'/api/plans/operations/{op_id}/')
@@ -812,3 +813,157 @@ class TestOperationFilters:
         response = api_client.get('/api/plans/operations/?search=ZZZNoMatchXXX')
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data['results']) == 0
+
+
+# =============================================================================
+# TestOperationAddRemoveMetrique
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationAddRemoveMetrique:
+    """Tests for POST /api/plans/operations/{id}/add-metrique/ and remove-metrique/"""
+
+    def test_add_metrique_creates_link(self, api_client, operation_test_data):
+        """Test adding a metrique creates the M2M link."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        met2_id = operation_test_data['metrique2'].id_metrique
+
+        # op1 initially has metrique1 only
+        assert operation_test_data['op1'].metriques.count() == 1
+
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/add-metrique/',
+            {'metrique_id': met2_id},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert met2_id in response.data['metrique_ids']
+
+        # Verify in DB
+        operation_test_data['op1'].refresh_from_db()
+        assert operation_test_data['op1'].metriques.count() == 2
+
+    def test_add_metrique_idempotent(self, api_client, operation_test_data):
+        """Test adding same metrique twice is idempotent (200 on second call)."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        met1_id = operation_test_data['metrique1'].id_metrique
+
+        # op1 already has metrique1
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/add-metrique/',
+            {'metrique_id': met1_id},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert operation_test_data['op1'].metriques.count() == 1
+
+    def test_add_metrique_missing_id_returns_400(self, api_client, operation_test_data):
+        """Test missing metrique_id returns 400."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/add-metrique/',
+            {},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_add_metrique_nonexistent_returns_404(self, api_client, operation_test_data):
+        """Test adding nonexistent metrique returns 404."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/add-metrique/',
+            {'metrique_id': 99999},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_add_metrique_unauthenticated_returns_401(self, api_client, operation_test_data):
+        """Test unauthenticated add-metrique returns 401."""
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/add-metrique/',
+            {'metrique_id': operation_test_data['metrique2'].id_metrique},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_remove_metrique_deletes_link(self, api_client, operation_test_data):
+        """Test removing a metrique deletes the M2M link."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        met1_id = operation_test_data['metrique1'].id_metrique
+
+        assert op.metriques.count() == 1
+
+        response = api_client.post(
+            f'/api/plans/operations/{op.id_operation}/remove-metrique/',
+            {'metrique_id': met1_id},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert met1_id not in response.data['metrique_ids']
+
+        op.refresh_from_db()
+        assert op.metriques.count() == 0
+
+    def test_remove_metrique_idempotent(self, api_client, operation_test_data):
+        """Test removing a non-linked metrique is a no-op."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        met2_id = operation_test_data['metrique2'].id_metrique
+
+        # op1 is not linked to metrique2
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/remove-metrique/',
+            {'metrique_id': met2_id},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_remove_metrique_missing_id_returns_400(self, api_client, operation_test_data):
+        """Test missing metrique_id returns 400."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.post(
+            f'/api/plans/operations/{op_id}/remove-metrique/',
+            {},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_create_with_multiple_metriques(self, api_client, operation_test_data):
+        """Test creating an operation with multiple metriques at once."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        met1_id = operation_test_data['metrique1'].id_metrique
+        met2_id = operation_test_data['metrique2'].id_metrique
+
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Opération Multi-Métriques',
+            'metrique_ids': [met1_id, met2_id],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert len(response.data['metrique_ids']) == 2
+        assert met1_id in response.data['metrique_ids']
+        assert met2_id in response.data['metrique_ids']
+
+    def test_update_replaces_all_metriques(self, api_client, operation_test_data):
+        """Test PATCH with metrique_ids replaces all existing links."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        met2_id = operation_test_data['metrique2'].id_metrique
+
+        # op1 has metrique1, replace with metrique2
+        response = api_client.patch(
+            f'/api/plans/operations/{op.id_operation}/',
+            {'metrique_ids': [met2_id]},
+            format='json'
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        op.refresh_from_db()
+        assert list(op.metriques.values_list('id_metrique', flat=True)) == [met2_id]

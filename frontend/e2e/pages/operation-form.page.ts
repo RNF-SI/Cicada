@@ -91,7 +91,7 @@ export class OperationFormPage {
     this.libelleInput = page.locator('input[formControlName="libelle"]');
     this.typeActionInput = page.locator('input[placeholder*="Rechercher par code"]');
     this.typeActionClearBtn = page.locator('mat-form-field').filter({ hasText: /type d'action/i }).locator('button[matSuffix]');
-    this.metriqueSelect = page.locator('mat-select[formControlName="id_metrique"]');
+    this.metriqueSelect = page.locator('mat-select[formControlName="metrique_ids"]');
     this.prioriteRadioGroup = page.locator('mat-radio-group[formControlName="id_priorite"]');
 
     // Suivi existant toggle (radio buttons in .radio-field-row)

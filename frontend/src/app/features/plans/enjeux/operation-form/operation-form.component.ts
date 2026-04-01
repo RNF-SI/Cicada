@@ -251,7 +251,7 @@ export class OperationFormComponent implements OnInit {
       id_type_action: [null],
       id_suivi: [null],
       intitule_suivi: [''],
-      id_metrique: [null],
+      metrique_ids: [[] as number[]],
       id_priorite: [null],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
@@ -462,7 +462,7 @@ export class OperationFormComponent implements OnInit {
       const prelinkedId = this.prelinkedMetriqueId();
       if (prelinkedId) {
         // prelinkedId is now expected to be a metrique ID
-        this.form.patchValue({ id_metrique: prelinkedId });
+        this.form.patchValue({ metrique_ids: [prelinkedId] });
       }
       this.isLoadingData.set(false);
       return;
@@ -503,7 +503,7 @@ export class OperationFormComponent implements OnInit {
       operateurs: op.operateurs || '',
       partenaires: op.partenaires || '',
       financeurs: op.financeurs || '',
-      id_metrique: op.id_metrique || null
+      metrique_ids: op.metrique_ids || []
     });
 
     // Restore type action autocomplete
@@ -797,7 +797,7 @@ export class OperationFormComponent implements OnInit {
     if (fv.operateurs?.trim()) payload.operateurs = fv.operateurs.trim();
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
-    if (fv.id_metrique != null) payload.id_metrique = fv.id_metrique;
+    if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)

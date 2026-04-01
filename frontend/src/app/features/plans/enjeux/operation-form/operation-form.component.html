@@ -128,11 +128,10 @@
             </mat-form-field>
           }
 
-          <!-- Métrique associée -->
+          <!-- Métriques associées -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.metriqueAssocieeLabel' | translate }}</mat-label>
-            <mat-select formControlName="id_metrique">
-              <mat-option [value]="null">--</mat-option>
+            <mat-label>{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</mat-label>
+            <mat-select formControlName="metrique_ids" multiple>
               @for (met of planMetriques(); track met.id_metrique) {
                 <mat-option [value]="met.id_metrique">
                   {{ met.nom_metrique }} ({{ met.indicateur_nom }})

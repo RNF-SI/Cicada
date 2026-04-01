@@ -215,7 +215,7 @@ class IndicateurListSerializer(serializers.ModelSerializer):
 
     def get_nb_operations(self, obj):
         from .models_operations import Operation
-        return Operation.objects.filter(id_metrique__id_indicateur=obj).count()
+        return Operation.objects.filter(metriques__id_indicateur=obj).distinct().count()
 
 
 class IndicateurCreateSerializer(serializers.ModelSerializer):

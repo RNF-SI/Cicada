@@ -25,11 +25,12 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
   Enjeu, FacteurInfluence, Pression, PlanEnjeuxResponse,
-  ObjectifLongTerme, NiveauExigence, Indicateur, Metrique,
+  ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, MetriqueRef,
   MetriqueFormData, MetriqueCreatePayload, Operation, OperationAnnee,
   ObjectifOperationnel, ResultatAttendu
 } from '../../../../core/models/enjeu.model';
@@ -1894,6 +1895,95 @@ export class EnjeuxListComponent implements OnInit {
     if (metriqueId) queryParams.metriqueId = metriqueId;
     const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
+  }
+
+  openAddActionDialog(metriqueId: number, metriqueNom: string): void {
+    const planId = this.planId();
+    if (!planId) return;
+
+    const dialogRef = this.dialog.open(LinkOperationDialogComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        planId,
+        metriqueId,
+        metriqueNom,
+      } as LinkOperationDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((result: LinkOperationDialogResult | undefined) => {
+      if (!result || result.action === 'cancel') return;
+
+      if (result.action === 'create') {
+        this.navigateToOperationForm(metriqueId);
+      } else if (result.action === 'link' && result.operationId) {
+        this.enjeuService.addMetriqueToOperation(result.operationId, metriqueId).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.linkSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.linkError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  unlinkOperation(operation: Operation, metriqueId: number): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.operations.unlinkTitle'),
+        message: this.translate.instant('enjeux.operations.unlinkConfirm'),
+        confirmText: this.translate.instant('enjeux.operations.unlinkTitle'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      }
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.removeMetriqueFromOperation(operation.id_operation, metriqueId).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.unlinkSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.operations.unlinkError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          }
+        });
+      }
+    });
+  }
+
+  getOtherMetriques(op: Operation, currentMetriqueId: number): MetriqueRef[] {
+    if (!op.metriques) return [];
+    return op.metriques.filter(m => m.id_metrique !== currentMetriqueId);
   }
 
   navigateToEditOperation(operationId: number): void {

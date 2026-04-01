@@ -528,16 +528,14 @@ class Operation(models.Model):
         help_text=_("Emprise géographique de l'opération")
     )
 
-    # FK vers Métrique (une opération est liée à une seule métrique)
-    id_metrique = models.ForeignKey(
+    # M2M vers Métriques (une opération peut être liée à plusieurs métriques)
+    metriques = models.ManyToManyField(
         'plans.Metrique',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        through='CorOperationMetrique',
         related_name='operations',
-        db_column='id_metrique',
-        verbose_name=_("Métrique"),
-        help_text=_("Métrique associée à cette opération")
+        blank=True,
+        verbose_name=_("Métriques"),
+        help_text=_("Métriques associées à cette opération")
     )
 
     # M2M vers Site (zones d'application)
@@ -607,6 +605,36 @@ class CorOperationSite(models.Model):
 
     def __str__(self):
         return f"Opération {self.id_operation_id} - Site {self.id_site_id}"
+
+
+class CorOperationMetrique(models.Model):
+    """
+    Table de liaison entre Opérations et Métriques.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_operation = models.ForeignKey(
+        Operation,
+        on_delete=models.CASCADE,
+        db_column='id_operation',
+        verbose_name=_("Opération")
+    )
+    id_metrique = models.ForeignKey(
+        'plans.Metrique',
+        on_delete=models.CASCADE,
+        db_column='id_metrique',
+        verbose_name=_("Métrique")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_operation_metrique"'
+        db_table_comment = "Liaison opérations - métriques"
+        verbose_name = _("Opération - Métrique")
+        verbose_name_plural = _("Opérations - Métriques")
+        unique_together = ['id_operation', 'id_metrique']
+
+    def __str__(self):
+        return f"Opération {self.id_operation_id} - Métrique {self.id_metrique_id}"
 
 
 class OperationAnnee(models.Model):

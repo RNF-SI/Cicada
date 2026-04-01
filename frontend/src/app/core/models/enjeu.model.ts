@@ -414,6 +414,13 @@ export interface FinanceOperation {
   categorie_label?: string;
 }
 
+export interface MetriqueRef {
+  id_metrique: number;
+  nom_metrique: string;
+  indicateur_id: number;
+  indicateur_nom: string;
+}
+
 export interface Operation {
   id_operation: number;
   libelle: string;
@@ -440,11 +447,9 @@ export interface Operation {
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
   geom?: GeoJSONGeometry;
-  // FK to Metrique (indicateur accessed via metrique.id_indicateur)
-  id_metrique?: number;
-  metrique_nom?: string;
-  indicateur_id?: number;
-  indicateur_nom?: string;
+  // M2M to Metriques
+  metriques?: MetriqueRef[];
+  metrique_ids?: number[];
   site_ids?: number[];
   nb_sites?: number;
   // Nested relational data
@@ -480,7 +485,7 @@ export interface OperationCreatePayload {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
-  id_metrique?: number;
+  metrique_ids?: number[];
   site_ids?: number[];
   // Nested relational data
   operation_annees?: Omit<OperationAnnee, 'id_operation_annee'>[];

@@ -467,6 +467,20 @@ export class EnjeuService {
     return this.http.get<any>(`${this.apiUrl}/operations/by-plan/${planId}/`);
   }
 
+  addMetriqueToOperation(operationId: number, metriqueId: number): Observable<Operation> {
+    return this.http.post<Operation>(
+      `${this.apiUrl}/operations/${operationId}/add-metrique/`,
+      { metrique_id: metriqueId }
+    );
+  }
+
+  removeMetriqueFromOperation(operationId: number, metriqueId: number): Observable<Operation> {
+    return this.http.post<Operation>(
+      `${this.apiUrl}/operations/${operationId}/remove-metrique/`,
+      { metrique_id: metriqueId }
+    );
+  }
+
   getMetriquesByIndicateur(indicateurId: number): Observable<Metrique[]> {
     return this.http.get<any>(`${this.apiUrl}/indicateurs/${indicateurId}/`).pipe(
       tap(() => {}),
