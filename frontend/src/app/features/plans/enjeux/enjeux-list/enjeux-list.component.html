@@ -2330,7 +2330,7 @@
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
                       <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }}</mat-label>
-                      <mat-select [(ngModel)]="newOoFacteurFilterId" (ngModelChange)="newOoPressionId = null">
+                      <mat-select [ngModel]="newOoFacteurFilterId()" (ngModelChange)="newOoFacteurFilterId.set($event); newOoPressionId = null">
                         @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                           <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
                         }
@@ -2338,7 +2338,7 @@
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
                       <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
-                      <mat-select [(ngModel)]="newOoPressionId" required [disabled]="!newOoFacteurFilterId">
+                      <mat-select [(ngModel)]="newOoPressionId" required [disabled]="!newOoFacteurFilterId()">
                         @for (p of filteredPressionsForNewOo(); track p.id_pression) {
                           <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
                         }

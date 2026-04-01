@@ -194,7 +194,7 @@ export class EnjeuxListComponent implements OnInit {
   editingOoId = signal<number | null>(null);
   newOoLibelle = '';
   newOoDescription = '';
-  newOoFacteurFilterId: number | null = null;
+  newOoFacteurFilterId = signal<number | null>(null);
   newOoPressionId: number | null = null;
   editOoLibelle = '';
   editOoDescription = '';
@@ -1971,9 +1971,10 @@ export class EnjeuxListComponent implements OnInit {
 
   // Computed pour filtrer les pressions par facteur d'influence sélectionné
   filteredPressionsForNewOo = computed(() => {
-    if (!this.newOoFacteurFilterId) return [];
+    const facteurId = this.newOoFacteurFilterId();
+    if (!facteurId) return [];
     return this.selectedPressions().filter(
-      p => p.id_facteur_influence === this.newOoFacteurFilterId
+      p => p.id_facteur_influence === facteurId
     );
   });
 
@@ -1981,7 +1982,7 @@ export class EnjeuxListComponent implements OnInit {
     this.addingOo.set(true);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId = null;
+    this.newOoFacteurFilterId.set(null);
     this.newOoPressionId = null;
   }
 
@@ -1989,7 +1990,7 @@ export class EnjeuxListComponent implements OnInit {
     this.addingOo.set(false);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId = null;
+    this.newOoFacteurFilterId.set(null);
     this.newOoPressionId = null;
   }
 
