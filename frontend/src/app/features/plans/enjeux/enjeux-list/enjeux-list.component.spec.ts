@@ -159,7 +159,17 @@ const mockEnjeu1: Enjeu = {
       ],
       nb_pressions: 1,
     },
-    { id_facteur_influence: 102, id_enjeu: 1, libelle: 'Agriculture', date_ajout: '', date_maj: '' },
+    {
+      id_facteur_influence: 102, id_enjeu: 1, libelle: 'Agriculture', date_ajout: '', date_maj: '',
+      pressions: [
+        {
+          id_pression: 302, id_facteur_influence: 102, libelle: 'Pression Agricole', date_ajout: '', date_maj: '',
+          objectifs_operationnels: [],
+          nb_objectifs_operationnels: 0,
+        }
+      ],
+      nb_pressions: 1,
+    },
   ],
   date_ajout: '2024-01-01T00:00:00Z',
   date_maj: '2024-01-15T00:00:00Z',
@@ -1429,18 +1439,51 @@ describe('EnjeuxListComponent', () => {
       expect(component.isOoExpanded(1001)).toBe(false);
     });
 
-    it('should start adding OO', () => {
+    it('should start adding OO and reset facteur signal', () => {
+      component.newOoFacteurFilterId.set(101);
       component.startAddOo();
       expect(component.addingOo()).toBe(true);
       expect(component.newOoLibelle).toBe('');
+      expect(component.newOoFacteurFilterId()).toBeNull();
     });
 
-    it('should cancel adding OO', () => {
+    it('should cancel adding OO and reset facteur signal', () => {
       component.startAddOo();
       component.newOoLibelle = 'Test';
+      component.newOoFacteurFilterId.set(101);
       component.cancelAddOo();
       expect(component.addingOo()).toBe(false);
       expect(component.newOoLibelle).toBe('');
+      expect(component.newOoFacteurFilterId()).toBeNull();
+    });
+
+    it('should return empty pressions when no facteur selected', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      expect(component.filteredPressionsForNewOo()).toEqual([]);
+    });
+
+    it('should filter pressions by selected facteur', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.newOoFacteurFilterId.set(101);
+      const pressions = component.filteredPressionsForNewOo();
+      expect(pressions.length).toBe(1);
+      expect(pressions[0].id_pression).toBe(301);
+      expect(pressions[0].libelle).toBe('Pression Urbaine');
+    });
+
+    it('should update filtered pressions when facteur changes', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+
+      component.newOoFacteurFilterId.set(101);
+      expect(component.filteredPressionsForNewOo().length).toBe(1);
+      expect(component.filteredPressionsForNewOo()[0].id_pression).toBe(301);
+
+      component.newOoFacteurFilterId.set(102);
+      expect(component.filteredPressionsForNewOo().length).toBe(1);
+      expect(component.filteredPressionsForNewOo()[0].id_pression).toBe(302);
+
+      component.newOoFacteurFilterId.set(null);
+      expect(component.filteredPressionsForNewOo()).toEqual([]);
     });
 
     it('should call createObjectifOperationnel on save', () => {
