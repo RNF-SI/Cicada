@@ -2,6 +2,7 @@ import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { MatButtonModule } from '@angular/material/button';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { NavigationTileComponent } from '../../shared/components/navigation-tile/navigation-tile.component';
 import { AuthService } from '../../core/services/auth.service';
@@ -17,7 +18,8 @@ import { SettingsService } from '../../core/services/settings.service';
     RouterModule,
     TranslateModule,
     HeaderComponent,
-    NavigationTileComponent
+    NavigationTileComponent,
+    MatButtonModule
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
@@ -38,6 +40,7 @@ export class HomeComponent implements OnInit {
   // Modules accessibles par l'utilisateur (depuis l'API)
   readonly accessibleModules = this.moduleService.accessibleModules;
   readonly modulesLoading = this.moduleService.isLoading;
+  readonly modulesError = this.moduleService.loadError;
 
   // Homepage image (for guest view)
   readonly homepageImage = computed(() => this.settingsService.getHomepageImageUrl());
@@ -63,5 +66,9 @@ export class HomeComponent implements OnInit {
       // Charger les modules accessibles pour l'utilisateur connecte
       this.moduleService.getMyAccessibleModules().subscribe();
     }
+  }
+
+  retryLoadModules(): void {
+    this.moduleService.getMyAccessibleModules().subscribe();
   }
 }

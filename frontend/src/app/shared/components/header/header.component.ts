@@ -108,9 +108,7 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.isAuthenticated()) {
-      this.loadAccessibleModules();
-    }
+    // Pas besoin de charger ici : l'effect() du constructor s'en charge
   }
 
   private loadAccessibleModules(): void {
