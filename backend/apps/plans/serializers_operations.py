@@ -170,6 +170,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
+            'ventilation_mode',
             'geom',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites',
@@ -378,6 +379,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
+            'ventilation_mode',
             'geom',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'

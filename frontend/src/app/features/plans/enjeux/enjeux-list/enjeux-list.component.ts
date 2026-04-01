@@ -1944,15 +1944,16 @@ export class EnjeuxListComponent implements OnInit {
   /**
    * Format frequency display.
    */
+  private readonly frequenceLabels: Record<string, string> = {
+    'jour': 'jour', 'semaine': 'semaine', 'mois': 'mois', 'an': 'an',
+    'trimestre': 'trimestre', 'semestre': 'semestre',
+    '2_ans': '2 ans', '5_ans': '5 ans', '10_ans': '10 ans', 'autre': 'autre'
+  };
+
   getFrequenceDisplay(op: Operation): string {
     if (!op.frequence_nombre || !op.frequence_unite) return '';
-    const unite = this.translate.instant('enjeux.operations.unite' + this.capitalizeFirst(op.frequence_unite));
+    const unite = this.frequenceLabels[op.frequence_unite.toLowerCase()] || op.frequence_unite;
     return `${op.frequence_nombre} ${this.translate.instant('enjeux.operations.foisPar')} ${unite}`;
-  }
-
-  private capitalizeFirst(s: string): string {
-    if (!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
 
   // ============================================
@@ -2067,7 +2068,11 @@ export class EnjeuxListComponent implements OnInit {
   navigateToEditOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
-    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId, 'modifier']);
+    const enjeuSlug = this.selectedEnjeuSlug();
+    this.router.navigate(
+      ['/plans', slug, 'enjeux', 'operations', operationId, 'modifier'],
+      { queryParams: enjeuSlug ? { returnEnjeu: enjeuSlug } : {} }
+    );
   }
 
   deleteOperation(operation: Operation): void {

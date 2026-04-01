@@ -519,6 +519,21 @@ class Operation(models.Model):
                      'Format: {"1": true, "2": false, ..., "12": true}')
     )
 
+    # Mode de ventilation du budget
+    VENTILATION_CHOICES = [
+        ('none', _("Aucune")),
+        ('by_org', _("Par organisme")),
+        ('by_type', _("Par type de budget")),
+        ('by_org_type', _("Par organisme et type de budget")),
+    ]
+    ventilation_mode = models.CharField(
+        _("Mode de ventilation"),
+        max_length=20,
+        choices=VENTILATION_CHOICES,
+        default='none',
+        help_text=_("Mode de ventilation du budget (aucune, par organisme, par type, les deux)")
+    )
+
     # Emprise spatiale (PostGIS)
     geom = models.GeometryField(
         _("Emprise spatiale"),

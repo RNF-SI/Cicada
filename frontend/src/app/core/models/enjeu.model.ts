@@ -446,6 +446,7 @@ export interface Operation {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
+  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
   geom?: GeoJSONGeometry;
   // M2M to Metriques
   metriques?: MetriqueRef[];
@@ -485,6 +486,7 @@ export interface OperationCreatePayload {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
+  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
   metrique_ids?: number[];
   site_ids?: number[];
   // Nested relational data

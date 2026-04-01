@@ -109,7 +109,7 @@
       <button class="btn-action-cancel" type="button" (click)="onCancel()" [disabled]="isLoading()">
         {{ 'common.actions.cancel' | translate }}
       </button>
-      <button class="btn-action-validate" type="button" (click)="onSubmit()" [disabled]="isLoading()">
+      <button class="btn-action-validate" type="button" (click)="onSubmit()" [disabled]="isLoading() || !fcrCategorieId()">
         @if (isLoading()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {
