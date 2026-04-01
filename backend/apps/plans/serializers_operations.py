@@ -184,24 +184,25 @@ class OperationSerializer(serializers.ModelSerializer):
         return None
 
     def get_metriques(self, obj):
+        # Use prefetched data if available — avoids extra query
         return [
             {
                 'id_metrique': m.id_metrique,
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
-                'indicateur_nom': m.id_indicateur.nom_indicateur if m.id_indicateur else None,
+                'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
             }
-            for m in obj.metriques.select_related('id_indicateur').all()
+            for m in obj.metriques.all()
         ]
 
     def get_metrique_ids(self, obj):
-        return list(obj.metriques.values_list('id_metrique', flat=True))
+        return [m.id_metrique for m in obj.metriques.all()]
 
     def get_site_ids(self, obj):
-        return list(obj.sites.values_list('id_site', flat=True))
+        return [s.id_site for s in obj.sites.all()]
 
     def get_nb_sites(self, obj):
-        return obj.sites.count()
+        return len(obj.sites.all()) if hasattr(obj, '_prefetched_objects_cache') and 'sites' in obj._prefetched_objects_cache else obj.sites.count()
 
 
 # =============================================================================
@@ -256,22 +257,22 @@ class OperationListSerializer(serializers.ModelSerializer):
                 'id_metrique': m.id_metrique,
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
-                'indicateur_nom': m.id_indicateur.nom_indicateur if m.id_indicateur else None,
+                'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
             }
-            for m in obj.metriques.select_related('id_indicateur').all()
+            for m in obj.metriques.all()
         ]
 
     def get_metrique_ids(self, obj):
-        return list(obj.metriques.values_list('id_metrique', flat=True))
+        return [m.id_metrique for m in obj.metriques.all()]
 
     def get_nb_sites(self, obj):
-        return obj.sites.count()
+        return len(obj.sites.all()) if hasattr(obj, '_prefetched_objects_cache') and 'sites' in obj._prefetched_objects_cache else obj.sites.count()
 
     def get_nb_operation_annees(self, obj):
-        return obj.operation_annees.count()
+        return len(obj.operation_annees.all()) if hasattr(obj, '_prefetched_objects_cache') and 'operation_annees' in obj._prefetched_objects_cache else obj.operation_annees.count()
 
     def get_nb_finances(self, obj):
-        return obj.finances.count()
+        return len(obj.finances.all()) if hasattr(obj, '_prefetched_objects_cache') and 'finances' in obj._prefetched_objects_cache else obj.finances.count()
 
     def _get_enjeu_via_ne(self, indicateur):
         """Traverse NE path: Indicateur → NE → OLT → Enjeu."""
@@ -297,8 +298,8 @@ class OperationListSerializer(serializers.ModelSerializer):
 
     def get_enjeu_slug(self, obj):
         """Retourne le slug du premier enjeu trouvé via les métriques."""
-        for met in obj.metriques.select_related('id_indicateur').all():
-            if not met.id_indicateur:
+        for met in obj.metriques.all():
+            if not met.id_indicateur_id:
                 continue
             indicateur = met.id_indicateur
             enjeu = self._get_enjeu_via_ne(indicateur)
@@ -311,8 +312,8 @@ class OperationListSerializer(serializers.ModelSerializer):
 
     def get_oo_id(self, obj):
         """Retourne l'id du premier OO trouvé via les métriques."""
-        for met in obj.metriques.select_related('id_indicateur').all():
-            if not met.id_indicateur:
+        for met in obj.metriques.all():
+            if not met.id_indicateur_id:
                 continue
             indicateur = met.id_indicateur
             _, oo_id = self._get_enjeu_and_oo_via_ra(indicateur)

@@ -157,6 +157,8 @@ class OperationViewSet(viewsets.ModelViewSet):
         _, created = CorOperationMetrique.objects.get_or_create(
             id_operation=operation, id_metrique=metrique
         )
+        # Clear prefetch cache so serializer sees the updated M2M
+        operation = Operation.objects.get(pk=operation.pk)
         return Response(
             OperationSerializer(operation).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
@@ -180,4 +182,6 @@ class OperationViewSet(viewsets.ModelViewSet):
         CorOperationMetrique.objects.filter(
             id_operation=operation, id_metrique_id=metrique_id
         ).delete()
+        # Clear prefetch cache so serializer sees the updated M2M
+        operation = Operation.objects.get(pk=operation.pk)
         return Response(OperationSerializer(operation).data)

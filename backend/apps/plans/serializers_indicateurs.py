@@ -106,13 +106,20 @@ class MetriqueSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_metrique', 'date_ajout', 'date_maj']
 
     def get_nb_mesures(self, obj):
+        # Use prefetched data if available (avoids COUNT query)
+        if hasattr(obj, '_prefetched_objects_cache') and 'mesures' in obj._prefetched_objects_cache:
+            return len(obj.mesures.all())
         return obj.mesures.count()
 
     def get_operations(self, obj):
-        from .serializers_operations import OperationSerializer
-        return OperationSerializer(obj.operations.all(), many=True).data
+        from .serializers_operations import OperationListSerializer
+        # Use prefetched data — obj.operations.all() won't hit DB if prefetched
+        return OperationListSerializer(obj.operations.all(), many=True).data
 
     def get_nb_operations(self, obj):
+        # Use prefetched data if available (avoids COUNT query)
+        if hasattr(obj, '_prefetched_objects_cache') and 'operations' in obj._prefetched_objects_cache:
+            return len(obj.operations.all())
         return obj.operations.count()
 
 
@@ -211,9 +218,19 @@ class IndicateurListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_indicateur', 'date_ajout', 'date_maj']
 
     def get_nb_metriques(self, obj):
+        if hasattr(obj, '_prefetched_objects_cache') and 'metriques' in obj._prefetched_objects_cache:
+            return len(obj.metriques.all())
         return obj.metriques.count()
 
     def get_nb_operations(self, obj):
+        # Use prefetched data if available to avoid N+1
+        if hasattr(obj, '_prefetched_objects_cache') and 'metriques' in obj._prefetched_objects_cache:
+            seen = set()
+            for met in obj.metriques.all():
+                if hasattr(met, '_prefetched_objects_cache') and 'operations' in met._prefetched_objects_cache:
+                    for op in met.operations.all():
+                        seen.add(op.id_operation)
+            return len(seen)
         from .models_operations import Operation
         return Operation.objects.filter(metriques__id_indicateur=obj).distinct().count()
 
