@@ -86,13 +86,16 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [origin for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
 
 # Cache configuration
+# DB 2 pour le cache Django (séparé du broker Celery DB 0 et results DB 1)
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
+        'LOCATION': os.environ.get('REDIS_CACHE_URL', 'redis://redis:6379/2'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'IGNORE_EXCEPTIONS': True,
+        },
+        'KEY_PREFIX': 'cicada',
     }
 }
 
