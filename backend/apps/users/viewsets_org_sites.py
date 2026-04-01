@@ -71,8 +71,8 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         user = self.request.user
         for_invite = self.request.query_params.get('for_invite', '').lower() == 'true'
 
-        if user.is_super_admin():
-            # Super admin voit tous les organismes
+        if user.is_super_admin() or user.is_redacteur_principal():
+            # Super admin et rédacteur principal voient tous les organismes
             return BibOrganismes.objects.all().select_related('id_parent')
 
         elif user.is_admin_organisme() and user.id_organisme:
@@ -440,10 +440,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         """Filtrage selon le rôle de l'utilisateur."""
         user = self.request.user
         
-        if user.is_super_admin():
-            # Super admin voit tous les sites
+        if user.is_super_admin() or user.is_redacteur_principal():
+            # Super admin et rédacteur principal voient tous les sites
             return Site.objects.all().select_related('id_type_site')
-        
+
         elif user.is_admin_organisme() and user.id_organisme:
             # Admin organisme voit les sites de son organisme + ses sites personnellement assignés
             org_sites = CorOgSite.objects.filter(

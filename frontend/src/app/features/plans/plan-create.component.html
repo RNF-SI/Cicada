@@ -75,7 +75,7 @@
                 <app-view-scope-toggle
                   [currentScope]="siteScope()"
                   [showOrganismeOption]="true"
-                  [showAllOption]="isSuperAdmin()"
+                  [showAllOption]="isSuperAdmin() || isRedacteurPrincipal()"
                   [mineLabel]="'modals.planForm.sitesScopeMine' | translate"
                   [organismeLabel]="'modals.planForm.sitesScopeOrg' | translate"
                   [allLabel]="'modals.planForm.sitesScopeAll' | translate"

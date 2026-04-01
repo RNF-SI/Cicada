@@ -811,14 +811,17 @@ OPTIONS = {
 
 ### Authentication & Permissions
 
-- **User Roles**: Super Admin > Admin Organisme > Utilisateur
+- **User Roles**: Super Admin > Rédacteur Principal > Admin Organisme > Utilisateur
+- **Rédacteur Principal** : Rôle intermédiaire entre super_admin et admin_og. Accès global en lecture/écriture à tous les plans, enjeux, opérations, indicateurs, fichiers, **sites et organismes** (cross-organisme). Peut lier directement un site à un plan (sans validation). **Ne peut PAS** gérer le cycle de vie des plans (valider/archiver/évaluation). Seul le super_admin peut attribuer ce rôle (endpoints `set-redacteur-principal` / `remove-redacteur-principal`). Méthodes : `user.is_redacteur_principal()`, `user.can_manage_plan_lifecycle()`. Frontend : `authService.isRedacteurPrincipal()`, `authService.hasGlobalAccess()`, distinction `canEditPlan` vs `canManageLifecycle` dans plan-detail. Page admin dédiée : `/administration/redacteurs-principaux`.
+  - **Pattern backend (IMPORTANT)** : `is_admin_organisme()` retourne `True` pour le RP. Dans tout `get_queryset()`, toujours vérifier `is_redacteur_principal()` **AVANT** `is_admin_organisme()` pour éviter un scoping incorrect à l'organisme. Pattern : `if user.is_super_admin() or user.is_redacteur_principal(): return queryset_global`.
+  - **Pattern frontend (IMPORTANT)** : Ne jamais utiliser `!isSuperAdmin() && isAdminOrganisme()` pour scoper par organisme — le RP serait inclus. Utiliser `!hasGlobalAccess() && isAdminOrganisme()` via le signal `authService.hasGlobalAccess` (= `isSuperAdmin() || isRedacteurPrincipal()`).
 - **Référent** (access level, not a role): User is "referent" if assigned as site referent (`CorRoleSite.referent=True`) or plan referent (`PlanGestion.referents`)
-- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og et super_admin. Permission DRF `IsReferent` + vérification objet dans la vue.
+- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og et super_admin. Le rédacteur principal est **exclu** du cycle de vie (`can_manage_plan_lifecycle()` retourne `False`). Permission DRF `IsReferent` + vérification objet dans la vue.
 - **Permission Model**: Role-based with hierarchical access and Django groups
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
 - **API Protection**: All endpoints protected by default except `/api/auth/`
-- **Permission check methods**: `user.is_super_admin()`, `user.is_referent()`, `user.can_manage_site(site)`
+- **Permission check methods**: `user.is_super_admin()`, `user.is_redacteur_principal()`, `user.can_manage_plan_lifecycle()`, `user.is_referent()`, `user.can_manage_site(site)`
 - **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
 - **Decorators**: `@require_super_admin`, `@require_admin_organisme`
 
@@ -844,6 +847,7 @@ OPTIONS = {
 4. **Testing**: Voir section "Testing" pour les détails. CI/CD via GitHub Actions.
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
+7. **Déploiement production** : Voir [docs/RELEASE_PROCEDURE.md](docs/RELEASE_PROCEDURE.md) pour la procédure complète (tag, build .deb, publication APT, déploiement serveur, pièges courants). Voir [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) pour l'installation initiale et l'import des référentiels (TaxRef, HabRef, nomenclatures) sur base PostgreSQL externe.
 
 ## Django Administration Interface
 

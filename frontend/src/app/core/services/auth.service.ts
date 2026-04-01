@@ -52,6 +52,7 @@ export class AuthService {
     const role = this.currentUser()?.niveau_role;
     return role === 'admin_og' || role === 'redacteur_principal' || role === 'super_admin';
   });
+  readonly hasGlobalAccess = computed(() => this.isSuperAdmin() || this.isRedacteurPrincipal());
   readonly isReferent = computed(() => {
     const user = this.currentUser();
     // is_referent is computed by backend: true if user is site or plan referent

@@ -104,6 +104,7 @@ export class PlanCreateComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
+  readonly isRedacteurPrincipal = this.authService.isRedacteurPrincipal;
   readonly currentUser = this.authService.currentUser;
 
   form!: FormGroup;
@@ -167,6 +168,10 @@ export class PlanCreateComponent implements OnInit {
   ngOnInit(): void {
     // Super admin defaults to 'all' scope to see every site
     if (this.authService.isSuperAdmin()) {
+      this.siteScope.set('all');
+    }
+    // Rédacteur principal defaults to 'all' scope (accès global)
+    else if (this.authService.isRedacteurPrincipal()) {
       this.siteScope.set('all');
     }
     // Admin organisme defaults to 'organisme' scope to see all their org's sites

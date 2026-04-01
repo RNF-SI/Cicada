@@ -662,6 +662,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         # ou referent du plan ET du site
         can_link_directly = (
             user.is_super_admin() or
+            user.is_redacteur_principal() or
             (user.is_admin_organisme() and is_site_referent) or
             (is_plan_referent and is_site_referent)
         )

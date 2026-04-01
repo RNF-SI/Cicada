@@ -68,6 +68,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
 
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+  readonly hasGlobalAccess = this.authService.hasGlobalAccess;
   readonly currentUser = this.authService.currentUser;
 
   isLoading = signal(false);
@@ -112,7 +113,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
     this.isLoadingData.set(true);
 
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const filterByOrg = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId;
+    const filterByOrg = !this.hasGlobalAccess() && this.isAdminOrganisme() && currentOrgId;
 
     // Load users - if admin_org, only load users from their organisme
     const params = filterByOrg ? { organisme: currentOrgId, page_size: 500 } : { page_size: 500 };

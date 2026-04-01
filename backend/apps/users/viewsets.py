@@ -253,18 +253,18 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         # Log d'activité
         from apps.core.services import ActivityService
-        ActivityService.log(
+        ActivityService.log_activity(
             actor=request.user,
             action='status_change',
             entity_type='user',
             entity_id=target_user.pk,
-            entity_name=target_user.nom_complet,
+            entity_name=target_user.get_full_name(),
             description=f'Promu Rédacteur Principal (était {old_role})',
             related_user=target_user,
         )
 
         return Response({
-            'message': f'{target_user.nom_complet} est maintenant Rédacteur Principal.',
+            'message': f'{target_user.get_full_name()} est maintenant Rédacteur Principal.',
             'user': RoleDetailSerializer(target_user, context={'request': request}).data,
         })
 
@@ -298,18 +298,18 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         # Log d'activité
         from apps.core.services import ActivityService
-        ActivityService.log(
+        ActivityService.log_activity(
             actor=request.user,
             action='status_change',
             entity_type='user',
             entity_id=target_user.pk,
-            entity_name=target_user.nom_complet,
+            entity_name=target_user.get_full_name(),
             description='Rétrogradé de Rédacteur Principal à Utilisateur',
             related_user=target_user,
         )
 
         return Response({
-            'message': f"{target_user.nom_complet} n'est plus Rédacteur Principal.",
+            'message': f"{target_user.get_full_name()} n'est plus Rédacteur Principal.",
             'user': RoleDetailSerializer(target_user, context={'request': request}).data,
         })
 
