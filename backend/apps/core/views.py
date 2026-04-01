@@ -574,7 +574,7 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         user = request.user
 
         # Recuperer les sites de l'utilisateur
-        if user.is_super_admin():
+        if user.is_super_admin() or user.is_redacteur_principal():
             queryset = self.get_queryset().filter(entity_type='site')
         elif user.is_admin_organisme() and user.id_organisme:
             # Sites de l'organisme
@@ -613,7 +613,7 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = request.user
 
-        if user.is_super_admin():
+        if user.is_super_admin() or user.is_redacteur_principal():
             queryset = self.get_queryset().filter(entity_type='plan')
         elif user.is_admin_organisme() and user.id_organisme:
             # Plans lies aux sites de l'organisme
@@ -813,7 +813,7 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         all_count = base_queryset.count()
 
         # Sites
-        if user.is_super_admin():
+        if user.is_super_admin() or user.is_redacteur_principal():
             sites_count = base_queryset.filter(entity_type='site').count()
             plans_count = base_queryset.filter(entity_type='plan').count()
         elif user.is_admin_organisme() and user.id_organisme:

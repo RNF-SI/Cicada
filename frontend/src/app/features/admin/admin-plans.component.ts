@@ -96,6 +96,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
+  readonly hasGlobalAccess = this.authService.hasGlobalAccess;
 
   /** Vérifie si l'utilisateur peut gérer un plan (référent du plan, admin_og ou super_admin). */
   canManagePlan(plan: DisplayPlan): boolean {
@@ -163,7 +164,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
 
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const organismeFilter = !this.isSuperAdmin() && this.isAdminOrganisme() && currentOrgId
+    const organismeFilter = !this.hasGlobalAccess() && this.isAdminOrganisme() && currentOrgId
       ? currentOrgId
       : undefined;
 
