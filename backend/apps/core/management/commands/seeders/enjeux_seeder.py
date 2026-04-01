@@ -4076,6 +4076,12 @@ class EnjeuxSeeder(BaseSeeder):
             op.save()
 
             # Create OperationAnnee entries with varied data
+            # Alternate ventilation modes across operations
+            ventilation_modes = ['none', 'by_org', 'by_type', 'by_org_type']
+            v_mode = ventilation_modes[idx % 4]
+            op.ventilation_mode = v_mode
+            op.save(update_fields=['ventilation_mode'])
+
             if op.annee_min and op.annee_max:
                 mens = enrich['mens'] if enrich else (
                     op.programmation_mensuelle_defaut
@@ -4087,14 +4093,28 @@ class EnjeuxSeeder(BaseSeeder):
                     year_offset = year - op.annee_min
                     budget = bp['base'] + (bp['var'] if year_offset % 2 == 0 else -bp['var'])
                     etp = etp_profiles[(idx + year_offset) % len(etp_profiles)]
+
+                    # Adapt fields based on ventilation mode
+                    defaults = {
+                        'periodicite': True,
+                        'periodicite_mensuelle': mens,
+                    }
+                    if v_mode == 'none':
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+                    elif v_mode == 'by_type':
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+                        defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
+                        defaults['budget_investissement'] = round(budget * 0.4, 2)
+                    else:
+                        # by_org / by_org_type: budget total is sum of org data
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+
                     oa, _ = OperationAnnee.objects.update_or_create(
                         id_operation=op, annee=year,
-                        defaults={
-                            'periodicite': True,
-                            'budget': budget,
-                            'etp': etp,
-                            'periodicite_mensuelle': mens,
-                        }
+                        defaults=defaults,
                     )
                     annees_created += 1
 
@@ -4682,9 +4702,12 @@ class EnjeuxSeeder(BaseSeeder):
                     )
 
         # Create per-organisme breakdown for OperationAnnee entries
+        # Only for operations with ventilation_mode 'by_org' or 'by_org_type'
         from apps.users.models import CorOgSite
         orgs_created = 0
         for op in operations_created:
+            if op.ventilation_mode not in ('by_org', 'by_org_type'):
+                continue
             plan_sites = op.sites.all()
             if not plan_sites.exists():
                 continue
@@ -4705,14 +4728,24 @@ class EnjeuxSeeder(BaseSeeder):
                 per_org_budget = budget / nb_orgs
                 per_org_etp = etp / nb_orgs
                 for org in org_list:
-                    OperationAnneeOrganisme.objects.update_or_create(
-                        id_operation_annee=oa,
-                        id_organisme=org,
-                        defaults={
+                    if op.ventilation_mode == 'by_org':
+                        # by_org: total budget per org (stored in budget_fonctionnement)
+                        defaults = {
+                            'budget_fonctionnement': round(per_org_budget, 2),
+                            'budget_investissement': None,
+                            'etp': round(per_org_etp, 2),
+                        }
+                    else:
+                        # by_org_type: split fonct/invest per org
+                        defaults = {
                             'budget_fonctionnement': round(per_org_budget * 0.6, 2),
                             'budget_investissement': round(per_org_budget * 0.4, 2),
                             'etp': round(per_org_etp, 2),
                         }
+                    OperationAnneeOrganisme.objects.update_or_create(
+                        id_operation_annee=oa,
+                        id_organisme=org,
+                        defaults=defaults,
                     )
                     orgs_created += 1
 

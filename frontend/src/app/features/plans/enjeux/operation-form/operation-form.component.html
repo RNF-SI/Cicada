@@ -553,19 +553,15 @@
                   <mat-button-toggle value="none">
                     {{ 'enjeux.operations.modeNone' | translate }}
                   </mat-button-toggle>
-                  @if (availableOrganismes().length > 0) {
-                    <mat-button-toggle value="by_org">
-                      {{ 'enjeux.operations.modeByOrg' | translate }}
-                    </mat-button-toggle>
-                  }
+                  <mat-button-toggle value="by_org" [disabled]="availableOrganismes().length === 0">
+                    {{ 'enjeux.operations.modeByOrg' | translate }}
+                  </mat-button-toggle>
                   <mat-button-toggle value="by_type">
                     {{ 'enjeux.operations.modeByType' | translate }}
                   </mat-button-toggle>
-                  @if (availableOrganismes().length > 0) {
-                    <mat-button-toggle value="by_org_type">
-                      {{ 'enjeux.operations.modeByOrgType' | translate }}
-                    </mat-button-toggle>
-                  }
+                  <mat-button-toggle value="by_org_type" [disabled]="availableOrganismes().length === 0">
+                    {{ 'enjeux.operations.modeByOrgType' | translate }}
+                  </mat-button-toggle>
                 </mat-button-toggle-group>
               </div>
 
