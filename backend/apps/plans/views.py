@@ -842,23 +842,23 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 }]
             }
 
-        # Build operation nodes — one node per (operation, metrique) pair
+        # Build operation nodes — group all métriques under each operation
         for op in operations:
+            metrique_children = []
             for met in op.metriques.all():
                 ind = met.id_indicateur
                 if not ind:
                     continue
                 if ind.id_ne:
-                    ancestry = build_olt_ancestry(met)
+                    metrique_children.append(build_olt_ancestry(met))
                 elif ind.id_resultat_attendu:
-                    ancestry = build_oo_ancestry(met)
-                else:
-                    continue
+                    metrique_children.append(build_oo_ancestry(met))
+            if metrique_children:
                 op_node = {
                     'name': op.libelle,
                     'entityType': 'operation',
                     'id': op.id_operation,
-                    'children': [ancestry]
+                    'children': metrique_children
                 }
                 root['children'].append(op_node)
 
