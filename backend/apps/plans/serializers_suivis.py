@@ -143,7 +143,7 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_suivi_inventaire']
         extra_kwargs = {
-            'id_type_action': {'required': True, 'allow_null': False},
+            'id_type_action': {'required': False, 'allow_null': True},
         }
 
     def create(self, validated_data):

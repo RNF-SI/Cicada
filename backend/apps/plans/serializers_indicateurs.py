@@ -112,9 +112,9 @@ class MetriqueSerializer(serializers.ModelSerializer):
         return obj.mesures.count()
 
     def get_operations(self, obj):
-        from .serializers_operations import OperationSerializer
-        # Use full serializer to include operation_annees and finances
-        return OperationSerializer(obj.operations.all(), many=True).data
+        from .serializers_operations import OperationNestedSerializer
+        # Nested serializer: operation_annees + finances, sans les lookups coûteux (enjeu_slug/oo_id)
+        return OperationNestedSerializer(obj.operations.all(), many=True).data
 
     def get_nb_operations(self, obj):
         # Use prefetched data if available (avoids COUNT query)
