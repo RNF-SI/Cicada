@@ -113,8 +113,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EnjeuFilter
     search_fields = ['libelle', 'intitule_court', 'description', 'etat_enjeu']
-    ordering_fields = ['rang', 'libelle', 'date_ajout', 'date_maj']
-    ordering = ['rang', 'libelle']
+    ordering_fields = ['rang', 'libelle', 'date_ajout', 'date_maj', 'id_enjeu']
+    ordering = ['id_enjeu']
 
     def get_serializer_class(self):
         """Choisir le serializer selon l'action."""
@@ -664,8 +664,8 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_olt']
+    ordering = ['id_olt']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -739,8 +739,8 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ne']
+    ordering = ['id_ne']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -821,8 +821,8 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_oo']
+    ordering = ['id_oo']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -896,8 +896,8 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ra']
+    ordering = ['id_ra']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

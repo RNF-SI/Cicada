@@ -1538,6 +1538,8 @@
 .score-column {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 
   &:not(:last-child) {
     border-right: 1px solid $gray-light;
@@ -1577,6 +1579,18 @@
   flex-direction: column;
   padding: $spacing-xs;
   gap: $spacing-xxs;
+  flex: 1;
+
+  // Container for Min/Max fields — reverses order in descending mode
+  .score-fields {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+
+    &.descending {
+      flex-direction: column-reverse;
+    }
+  }
 
   .score-input {
     width: 100%;
@@ -1600,10 +1614,137 @@
         font-size: 13px;
       }
 
+      // Disabled/auto-filled fields: distinct visual style
+      input:disabled {
+        color: $gray;
+        background-color: $gray-lighter;
+        cursor: not-allowed;
+      }
+
+      // Ensure floating label stays visible on disabled fields with a value
+      .mdc-text-field--disabled .mdc-floating-label {
+        color: $gray !important;
+      }
+
       .mat-mdc-form-field-subscript-wrapper {
         display: none;
       }
     }
+  }
+}
+
+// Fixed-height slots for consistent column alignment
+.optional-bound-slot {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.boundary-toggle-slot {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Direction selector
+.direction-selector {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+  margin-bottom: $spacing-xxs;
+
+  .direction-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    white-space: nowrap;
+  }
+
+  ::ng-deep {
+    .mat-button-toggle-group {
+      height: 32px;
+      border: 1px solid $gray-light;
+      border-radius: $border-radius-pill;
+      overflow: hidden;
+    }
+
+    .mat-button-toggle-appearance-standard {
+      background-color: $white;
+      color: $black;
+
+      .mat-button-toggle-label-content {
+        font-family: 'Nunito', sans-serif;
+        font-size: $font-size-small;
+        font-weight: $font-weight-medium;
+        line-height: 32px;
+        padding: 0 14px;
+      }
+
+      &.mat-button-toggle-checked {
+        background-color: $primary-color;
+        color: $white;
+
+        .mat-button-toggle-label-content {
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      // Remove internal borders between toggles
+      + .mat-button-toggle-appearance-standard {
+        border-left: none;
+      }
+    }
+
+    .mat-button-toggle-button {
+      height: 100%;
+    }
+
+    // Hide the default separator
+    .mat-button-toggle-separator {
+      display: none;
+    }
+  }
+}
+
+// Optional bound checkbox — keep Material defaults intact for click behavior
+.optional-bound-checkbox {
+  ::ng-deep .mdc-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px;
+    color: $gray-dark;
+  }
+}
+
+// Boundary inclusivity toggle
+.boundary-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 26px;
+  height: 20px;
+  margin-top: 2px;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $white;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &.inclusive {
+    color: $primary-color;
+    border-color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
   }
 }
 

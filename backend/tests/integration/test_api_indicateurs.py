@@ -203,6 +203,25 @@ class TestIndicateurDetail:
         assert 'metriques' in response.data
         assert len(response.data['metriques']) >= 2
 
+    def test_detail_metriques_include_direction_fields(self, api_client, indicateur_test_data):
+        """Test detail metriques include sens_variation and inclusivity fields."""
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        ind_id = indicateur_test_data['indicateur1'].id_indicateur
+        response = api_client.get(f'/api/plans/indicateurs/{ind_id}/')
+        metrique_data = response.data['metriques'][0]
+        assert 'sens_variation' in metrique_data
+        assert 'score_1_sup_inclusive' in metrique_data
+        assert 'score_2_sup_inclusive' in metrique_data
+        assert 'score_3_sup_inclusive' in metrique_data
+        assert 'score_4_sup_inclusive' in metrique_data
+        assert 'has_borne_score1' in metrique_data
+        assert 'has_borne_score5' in metrique_data
+        # Defaults should be returned
+        assert metrique_data['sens_variation'] == 'CROISSANT'
+        assert metrique_data['score_1_sup_inclusive'] is True
+        assert metrique_data['has_borne_score1'] is False
+        assert metrique_data['has_borne_score5'] is False
+
     def test_nb_metriques_correct(self, api_client, indicateur_test_data):
         """Test nb_metriques is correct."""
         api_client.force_authenticate(user=indicateur_test_data['super_admin'])
@@ -348,16 +367,16 @@ class TestMetriqueCreate:
             'score_1_inf': '0.0000',
             'score_1_sup': '20.0000',
             'score_1_label': 'Très mauvais',
-            'score_2_inf': '20.0001',
+            'score_2_inf': '20.0000',
             'score_2_sup': '40.0000',
             'score_2_label': 'Mauvais',
-            'score_3_inf': '40.0001',
+            'score_3_inf': '40.0000',
             'score_3_sup': '60.0000',
             'score_3_label': 'Moyen',
-            'score_4_inf': '60.0001',
+            'score_4_inf': '60.0000',
             'score_4_sup': '80.0000',
             'score_4_label': 'Bon',
-            'score_5_inf': '80.0001',
+            'score_5_inf': '80.0000',
             'score_5_sup': '100.0000',
             'score_5_label': 'Très bon',
         })
@@ -365,6 +384,43 @@ class TestMetriqueCreate:
         metrique = Metrique.objects.get(nom_metrique='Métrique Seuils')
         assert metrique.score_1_label == 'Très mauvais'
         assert metrique.score_5_label == 'Très bon'
+        # New fields should have defaults
+        assert metrique.sens_variation == 'CROISSANT'
+        assert metrique.score_1_sup_inclusive is True
+        assert metrique.score_2_sup_inclusive is True
+        assert metrique.score_3_sup_inclusive is True
+        assert metrique.score_4_sup_inclusive is True
+        assert metrique.has_borne_score1 is False
+        assert metrique.has_borne_score5 is False
+
+    def test_create_with_direction_and_inclusivity(self, api_client, indicateur_test_data):
+        """Test create a metrique with explicit sens_variation and inclusivity fields."""
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Métrique Décroissante',
+            'unite': 'mg/L',
+            'sens_variation': 'DECROISSANT',
+            'score_1_sup_inclusive': False,
+            'score_2_sup_inclusive': True,
+            'score_3_sup_inclusive': False,
+            'score_4_sup_inclusive': True,
+            'has_borne_score1': True,
+            'has_borne_score5': False,
+            'score_1_inf': '0.0000',
+            'score_1_sup': '10.0000',
+            'score_2_inf': '10.0000',
+            'score_2_sup': '25.0000',
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+        metrique = Metrique.objects.get(nom_metrique='Métrique Décroissante')
+        assert metrique.sens_variation == 'DECROISSANT'
+        assert metrique.score_1_sup_inclusive is False
+        assert metrique.score_2_sup_inclusive is True
+        assert metrique.score_3_sup_inclusive is False
+        assert metrique.score_4_sup_inclusive is True
+        assert metrique.has_borne_score1 is True
+        assert metrique.has_borne_score5 is False
 
     def test_non_referent_denied(self, api_client, indicateur_test_data):
         """Test non-referent cannot create."""

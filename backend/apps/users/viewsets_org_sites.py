@@ -599,10 +599,6 @@ class SiteViewSet(viewsets.ModelViewSet):
         """Retourne tous les sites visibles au format GeoJSON."""
         queryset = self.filter_queryset(self.get_queryset())
 
-        # Limiter à 100 sites pour les performances
-        if queryset.count() > 100:
-            queryset = queryset[:100]
-
         # Sérialiser chaque site individuellement pour obtenir une vraie liste
         # GeoFeatureModelSerializer avec many=True retourne un OrderedDict
         features = []
@@ -615,8 +611,7 @@ class SiteViewSet(viewsets.ModelViewSet):
             'type': 'FeatureCollection',
             'features': features,
             'properties': {
-                'count': len(features),
-                'note': 'Limité à 100 sites pour les performances'
+                'count': len(features)
             }
         }
 

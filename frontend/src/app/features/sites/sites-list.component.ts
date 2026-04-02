@@ -261,7 +261,7 @@ export class SitesListComponent implements OnInit {
     this.loading.set(true);
 
     forkJoin({
-      sites: this.adminService.getSites({ page_size: 100 }),
+      sites: this.adminService.getSites({ page_size: 1000 }),
       geojson: this.adminService.getSitesGeoJSON().pipe(catchError(() => of(null))),
       requests: this.validationService.getMyRequests().pipe(catchError(() => of([])))
     }).subscribe({

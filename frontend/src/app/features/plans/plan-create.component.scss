@@ -510,7 +510,7 @@
 .chip-icon {
   font-size: $font-size-small;
   margin-right: $spacing-xxs;
-  color: $primary-color;
+  color: $white;
 }
 
 // Chip row dans les formulaires (redacteurs, relecteurs, organisme)
@@ -518,20 +518,20 @@
 .chips-field {
   ::ng-deep {
     .mat-mdc-chip-row {
-      background-color: $gray-lighter !important;
-      color: $black !important;
+      background-color: $primary-color !important;
+      color: $white !important;
 
       .mdc-evolution-chip__text-label,
       .mat-mdc-chip-action-label {
-        color: $black !important;
+        color: $white !important;
         font-family: $font-family;
       }
 
       .mat-mdc-chip-remove {
-        color: $gray-dark !important;
+        color: rgba($white, 0.7) !important;
 
         &:hover {
-          color: $error-color !important;
+          color: $white !important;
         }
       }
     }

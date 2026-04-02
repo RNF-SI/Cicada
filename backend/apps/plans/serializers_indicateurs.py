@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST Indicateurs, Métriques et Mesures.
 """
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models_indicateurs import (
@@ -97,6 +98,11 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'score_3_inf', 'score_3_sup', 'score_3_val', 'score_3_label',
             'score_4_inf', 'score_4_sup', 'score_4_val', 'score_4_label',
             'score_5_inf', 'score_5_sup', 'score_5_val', 'score_5_label',
+            # Direction et inclusivité des bornes
+            'sens_variation',
+            'score_1_sup_inclusive', 'score_2_sup_inclusive',
+            'score_3_sup_inclusive', 'score_4_sup_inclusive',
+            'has_borne_score1', 'has_borne_score5',
             # Relations
             'mesures', 'nb_mesures',
             'operations', 'nb_operations',
@@ -112,9 +118,9 @@ class MetriqueSerializer(serializers.ModelSerializer):
         return obj.mesures.count()
 
     def get_operations(self, obj):
-        from .serializers_operations import OperationSerializer
-        # Use full serializer to include operation_annees and finances
-        return OperationSerializer(obj.operations.all(), many=True).data
+        from .serializers_operations import OperationNestedSerializer
+        # Nested serializer: operation_annees + finances, sans les lookups coûteux (enjeu_slug/oo_id)
+        return OperationNestedSerializer(obj.operations.all(), many=True).data
 
     def get_nb_operations(self, obj):
         # Use prefetched data if available (avoids COUNT query)
@@ -160,8 +166,64 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'score_3_inf', 'score_3_sup', 'score_3_val', 'score_3_label',
             'score_4_inf', 'score_4_sup', 'score_4_val', 'score_4_label',
             'score_5_inf', 'score_5_sup', 'score_5_val', 'score_5_label',
+            # Direction et inclusivité des bornes
+            'sens_variation',
+            'score_1_sup_inclusive', 'score_2_sup_inclusive',
+            'score_3_sup_inclusive', 'score_4_sup_inclusive',
+            'has_borne_score1', 'has_borne_score5',
         ]
         read_only_fields = ['id_metrique']
+
+    def validate(self, attrs):
+        """Validate interval consistency for NUMERIQUE metrics."""
+        type_met = attrs.get('type_metrique', getattr(self.instance, 'type_metrique', None) if self.instance else None)
+
+        # Only validate for NUMERIQUE type
+        is_numerique = True
+        if type_met and hasattr(type_met, 'mnemonique'):
+            is_numerique = type_met.mnemonique == 'NUMERIQUE'
+        elif type_met and hasattr(type_met, 'pk'):
+            from apps.core.models import Nomenclature
+            try:
+                is_numerique = Nomenclature.objects.get(pk=type_met.pk).mnemonique == 'NUMERIQUE'
+            except Nomenclature.DoesNotExist:
+                is_numerique = False
+
+        if not is_numerique:
+            return attrs
+
+        sens = attrs.get(
+            'sens_variation',
+            getattr(self.instance, 'sens_variation', 'CROISSANT') if self.instance else 'CROISSANT'
+        )
+
+        # Validate inf < sup for each level (always true regardless of direction)
+        for level in range(1, 6):
+            inf_val = attrs.get(f'score_{level}_inf')
+            sup_val = attrs.get(f'score_{level}_sup')
+            if inf_val is not None and sup_val is not None and inf_val >= sup_val:
+                raise serializers.ValidationError({
+                    f'score_{level}_sup': _("La borne sup doit être strictement supérieure à la borne inf.")
+                })
+
+        # Validate continuity between adjacent levels
+        # Ascending: score_N_sup == score_(N+1)_inf (boundary = upper end of N)
+        # Descending: score_N_inf == score_(N+1)_sup (boundary = lower end of N)
+        for n in range(1, 5):
+            if sens == 'DECROISSANT':
+                val_n = attrs.get(f'score_{n}_inf')
+                val_next = attrs.get(f'score_{n + 1}_sup')
+            else:
+                val_n = attrs.get(f'score_{n}_sup')
+                val_next = attrs.get(f'score_{n + 1}_inf')
+
+            if val_n is not None and val_next is not None and val_n != val_next:
+                raise serializers.ValidationError(
+                    _("Les bornes entre les scores %(n)s et %(next)s doivent être égales pour assurer la continuité.")
+                    % {'n': n, 'next': n + 1}
+                )
+
+        return attrs
 
 
 # =============================================================================

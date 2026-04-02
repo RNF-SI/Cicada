@@ -211,7 +211,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
       gestionPartagee: plan.gestion_partagee,
       ct88: plan.ct88,
       risqueIncendie: plan.risque_incendie,
-      evaluationLabel: plan.evaluation_label,
+      evaluationLabel: plan.evaluation_display,
       redacteurNom: plan.redacteur_nom,
       commentaire: plan.commentaire,
       dateAjout: plan.date_ajout ? new Date(plan.date_ajout) : undefined,

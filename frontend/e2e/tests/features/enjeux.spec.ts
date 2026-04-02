@@ -747,7 +747,7 @@ test.describe('Enjeux - Tab Navigation', () => {
     await expect(oltContent).toBeVisible();
   });
 
-  test('should switch to Operations tab and show empty state', async ({ referentPage: page }) => {
+  test('should switch to Operations tab and show content', async ({ referentPage: page }) => {
     const plan = await findPlanByName(page, 'Camargue');
     const enjeu = await findFirstEnjeu(page, plan.id_pg);
     const enjeuxPage = new EnjeuxPage(page);
@@ -757,8 +757,8 @@ test.describe('Enjeux - Tab Navigation', () => {
     await enjeuxPage.switchTab('operations');
     await expect(enjeuxPage.tabOperations).toHaveClass(/active/);
 
-    // Operations tab shows info-block when empty (not .tab-empty-state)
-    const tabContent = page.locator('.oo-content .info-block, .operations-content .info-block, .tab-empty-state').first();
+    // Operations tab shows either operations data or info-block/empty state
+    const tabContent = page.locator('.oo-content, .operations-content, .tab-empty-state').first();
     await expect(tabContent).toBeVisible();
   });
 

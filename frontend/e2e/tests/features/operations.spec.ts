@@ -226,7 +226,10 @@ test.describe('Operations - Create', () => {
 
     // Select first available metrique
     await formPage.metriqueSelect.click();
-    await referentPage.locator('mat-option').filter({ hasNotText: '--' }).first().click();
+    await referentPage.locator('mat-option').filter({ hasNotText: '--' }).first().click({ timeout: 10000 });
+    // Wait for dropdown to close
+    await referentPage.locator('.cdk-overlay-backdrop').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    await referentPage.waitForTimeout(300);
 
     await formPage.submit();
     await formPage.waitForSnackbar();

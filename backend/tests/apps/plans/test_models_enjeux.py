@@ -615,6 +615,37 @@ class TestMetriqueModel:
         MesureFactory(id_metrique=metrique)
         assert metrique.mesures.count() == 2
 
+    def test_sens_variation_default_croissant(self):
+        """Test sens_variation defaults to CROISSANT."""
+        metrique = MetriqueFactory()
+        assert metrique.sens_variation == 'CROISSANT'
+
+    def test_sens_variation_decroissant(self):
+        """Test sens_variation accepts DECROISSANT."""
+        metrique = MetriqueFactory(sens_variation='DECROISSANT')
+        assert metrique.sens_variation == 'DECROISSANT'
+
+    def test_score_sup_inclusive_defaults_true(self):
+        """Test score_X_sup_inclusive fields default to True."""
+        metrique = MetriqueFactory()
+        assert metrique.score_1_sup_inclusive is True
+        assert metrique.score_2_sup_inclusive is True
+        assert metrique.score_3_sup_inclusive is True
+        assert metrique.score_4_sup_inclusive is True
+
+    def test_score_sup_inclusive_can_be_false(self):
+        """Test score_X_sup_inclusive fields can be set to False."""
+        metrique = MetriqueFactory(
+            score_1_sup_inclusive=False,
+            score_2_sup_inclusive=False,
+            score_3_sup_inclusive=False,
+            score_4_sup_inclusive=False,
+        )
+        assert metrique.score_1_sup_inclusive is False
+        assert metrique.score_2_sup_inclusive is False
+        assert metrique.score_3_sup_inclusive is False
+        assert metrique.score_4_sup_inclusive is False
+
     def test_ordering_by_nom(self):
         """Test default ordering is by nom_metrique."""
         from apps.plans.models_indicateurs import Metrique

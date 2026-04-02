@@ -1348,6 +1348,7 @@
       },
       "organismesRedacteurs": "Organismes rédacteurs",
       "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
+      "organismeRedacteur": "Organisme rédacteur principal",
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
@@ -2448,7 +2449,14 @@
         "moyen": "Moyen",
         "bon": "Bon",
         "tresBon": "Très bon"
-      }
+      },
+      "direction": "Sens de variation",
+      "croissant": "Croissant",
+      "decroissant": "Décroissant",
+      "borneMin": "Borne min",
+      "borneMax": "Borne max",
+      "inclusif": "≤ (inclus)",
+      "exclusif": "< (exclus)"
     },
     "mesures": {
       "label": "Mesure",

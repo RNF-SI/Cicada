@@ -160,6 +160,42 @@ class TestHabrefAutocompleteEndpoint:
         cd_habs = [r['cd_hab'] for r in response.data]
         assert 1000 in cd_habs
 
+    def test_autocomplete_exact_code_match_first(self):
+        """Le match exact du code doit apparaître en premier (#146)."""
+        # Créer des habitats avec des codes similaires
+        Habref.objects.create(
+            cd_hab=4000, cd_typo=7, lb_code='E1.262',
+            lb_hab_fr='Pelouses semi-sèches médio-européennes',
+            niveau=4, fg_validite='NR',
+        )
+        Habref.objects.create(
+            cd_hab=4001, cd_typo=7, lb_code='E1.2621',
+            lb_hab_fr='Pelouses à Bromus sous-type 1',
+            niveau=5, fg_validite='NR',
+        )
+        Habref.objects.create(
+            cd_hab=4002, cd_typo=7, lb_code='E1.2622',
+            lb_hab_fr='Pelouses à Bromus sous-type 2',
+            niveau=5, fg_validite='NR',
+        )
+        for hab in Habref.objects.filter(cd_hab__in=[4000, 4001, 4002]):
+            AutocompleteHabitat.objects.create(
+                cd_hab=hab.cd_hab, cd_typo=hab.cd_typo,
+                lb_code=hab.lb_code,
+                search_name=f'{hab.lb_code} {hab.lb_hab_fr}',
+                lb_hab_fr=hab.lb_hab_fr, lb_typo='EUNIS',
+                niveau=hab.niveau,
+            )
+
+        response = self.client.get(
+            '/api/habref/autocomplete/', {'search': 'E1.262'}
+        )
+        assert response.status_code == 200
+        assert len(response.data) >= 3
+        # Le match exact "E1.262" doit être le premier résultat
+        assert response.data[0]['lb_code'] == 'E1.262'
+        assert response.data[0]['cd_hab'] == 4000
+
     def test_autocomplete_filter_by_cd_typo(self):
         response = self.client.get(
             '/api/habref/autocomplete/',

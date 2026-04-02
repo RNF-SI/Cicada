@@ -179,6 +179,53 @@
           </mat-select>
         </mat-form-field>
 
+        <!-- Organisme rédacteur principal -->
+        <div class="form-section organisme-section">
+          <label class="field-label">{{ 'modals.planForm.fields.editorName' | translate }}</label>
+
+          @if (selectedOrganisme(); as org) {
+            <!-- Organisme sélectionné -->
+            <div class="selected-organisme">
+              <mat-chip-row (removed)="clearOrganisme()">
+                <i class="fi fi-rr-building chip-icon"></i>
+                {{ org.displayName }}
+                <button matChipRemove>
+                  <i class="fi fi-rr-cross-small"></i>
+                </button>
+              </mat-chip-row>
+            </div>
+          } @else {
+            <!-- Input avec autocomplete -->
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                #organismeInput
+                [formControl]="organismeCtrl"
+                [matAutocomplete]="organismeAuto"
+                [placeholder]="'modals.planForm.placeholders.editorName' | translate"
+              />
+              <mat-autocomplete
+                #organismeAuto="matAutocomplete"
+                (optionSelected)="selectOrganisme($event)"
+                [displayWith]="displayOrganismeFn"
+              >
+                @for (org of filteredOrganismes$ | async; track org.id_organisme) {
+                  <mat-option [value]="org">
+                    <i class="fi fi-rr-building option-icon"></i>
+                    {{ org.nom_organisme }}
+                  </mat-option>
+                }
+              </mat-autocomplete>
+              <mat-hint>{{ 'modals.planForm.hints.editorName' | translate }}</mat-hint>
+            </mat-form-field>
+            <!-- Bouton créer un nouvel organisme -->
+            <button mat-stroked-button type="button" class="btn-sm" (click)="openCreateOrganismeDialog()">
+              <i class="fi fi-rr-plus"></i>
+              {{ 'modals.planForm.createOrganisme' | translate }}
+            </button>
+          }
+        </div>
+
         <!-- Rédacteurs -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
@@ -214,29 +261,6 @@
           ></textarea>
         </mat-form-field>
 
-        <!-- Organismes rédacteurs (mat-select multiple avec recherche) -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.planForm.fields.organismesRedacteurs' | translate }}</mat-label>
-          <mat-select multiple [value]="selectedOrganismesRedacteursIds()" (selectionChange)="onOrganismesRedacteursChange($event.value)">
-            <!-- Champ de recherche intégré -->
-            <div class="select-search-box">
-              <input matInput
-                     type="text"
-                     [placeholder]="'common.actions.search' | translate"
-                     (input)="organismeSearchFilter.set($any($event.target).value)"
-                     (keydown)="$event.stopPropagation()">
-            </div>
-            @for (org of filteredOrganismes(); track org.id_organisme) {
-              <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
-            }
-          </mat-select>
-          <mat-hint>{{ 'modals.planForm.hints.organismesRedacteurs' | translate }}</mat-hint>
-        </mat-form-field>
-        <!-- Bouton créer un nouvel organisme -->
-        <button mat-stroked-button type="button" class="btn-sm" (click)="openCreateOrganismeDialog()">
-          <i class="fi fi-rr-plus"></i>
-          {{ 'modals.planForm.createOrganisme' | translate }}
-        </button>
       </form>
     }
   </mat-dialog-content>

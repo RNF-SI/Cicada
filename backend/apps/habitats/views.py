@@ -61,10 +61,12 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
                 params.append(int(cd_typo))
 
             sql += """
-                ORDER BY similarity(unaccent(search_name), unaccent(%s)) DESC
+                ORDER BY
+                    CASE WHEN lower(lb_code) = lower(%s) THEN 0 ELSE 1 END,
+                    similarity(unaccent(search_name), unaccent(%s)) DESC
                 LIMIT %s
             """
-            params.extend([search, limit])
+            params.extend([search, search, limit])
 
             cursor.execute(sql, params)
             columns = [col[0] for col in cursor.description]

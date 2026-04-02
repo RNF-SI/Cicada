@@ -17,10 +17,12 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+from django.db.models import Count
+
 from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from .serializers import (
     PlanGestionListSerializer, PlanGestionDetailSerializer,
-    PlanGestionGeoJSONSerializer, PlanGestionCreateSerializer,
+    PlanGestionGeoJSONSerializer,
     PlanDuplicateOptionsSerializer,
     CorSitePgSerializer, CorPgFichierSerializer
 )
@@ -29,6 +31,7 @@ from .filters import PlanGestionFilter, CorPgFichierFilter
 from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
 )
+from apps.users.pagination import StandardPagination
 
 
 class PlanGestionViewSet(viewsets.ModelViewSet):
@@ -61,6 +64,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         'plan_parent', 'id_type_document'
     ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children')
 
+    pagination_class = StandardPagination
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
@@ -82,10 +86,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """Choisir le serializer selon l'action."""
         if self.action == 'list':
             return PlanGestionListSerializer
-        elif self.action == 'create':
-            return PlanGestionCreateSerializer
-        else:
-            return PlanGestionDetailSerializer
+        return PlanGestionDetailSerializer
     
     def get_queryset(self):
         """Filtrer selon les permissions utilisateur.
@@ -103,7 +104,18 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
 
         user = self.request.user
-        queryset = self.queryset
+
+        # Queryset léger pour la liste (pas de fichiers, évaluations, etc.)
+        if getattr(self, 'action', None) == 'list':
+            queryset = PlanGestion.objects.select_related(
+                'plan_parent', 'id_type_document'
+            ).prefetch_related(
+                'sites__site', 'referents', 'membres'
+            ).annotate(
+                children_count=Count('children')
+            )
+        else:
+            queryset = self.queryset
         scope = self.request.query_params.get('scope')
 
         # Super admin : voir tous les plans

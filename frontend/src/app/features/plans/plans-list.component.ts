@@ -300,7 +300,7 @@ export class PlansListComponent implements OnInit {
 
     // Charger en parallèle : plans, sites de l'utilisateur, et demandes
     forkJoin({
-      plans: this.adminService.getPlans(),
+      plans: this.adminService.getPlans({ page_size: 1000 }),
       sites: this.adminService.getSites({ page_size: 500 }).pipe(catchError(() => of({ results: [] }))),
       requests: this.validationService.getMyRequests().pipe(catchError(() => of([])))
     }).subscribe({

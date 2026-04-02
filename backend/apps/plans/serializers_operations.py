@@ -323,6 +323,23 @@ class OperationListSerializer(serializers.ModelSerializer):
         return None
 
 
+class OperationNestedSerializer(OperationListSerializer):
+    """Serializer pour les opérations imbriquées dans les métriques.
+
+    Étend OperationListSerializer avec operation_annees et finances
+    pour afficher les données de programmation dans la vue détail,
+    sans les champs coûteux (enjeu_slug, oo_id) du serializer complet.
+    """
+    operation_annees = OperationAnneeSerializer(many=True, read_only=True)
+    finances = FinanceOperationSerializer(many=True, read_only=True)
+
+    class Meta(OperationListSerializer.Meta):
+        fields = [
+            f for f in OperationListSerializer.Meta.fields
+            if f not in ('nb_operation_annees', 'nb_finances')
+        ] + ['operation_annees', 'finances', 'ventilation_mode']
+
+
 # =============================================================================
 # Serializer de création/modification
 # =============================================================================
@@ -341,6 +358,8 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     periodicite = serializers.BooleanField(default=False)
     budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
+    budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
     geom = serializers.JSONField(required=False, allow_null=True, default=None)
     organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])
