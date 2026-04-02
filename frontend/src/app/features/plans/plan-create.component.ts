@@ -243,7 +243,7 @@ export class PlanCreateComponent implements OnInit {
     });
 
     // Load all accessible sites (backend filters by role, client filters by scope)
-    this.adminService.getSites({ page: 1, page_size: 200 }).subscribe({
+    this.adminService.getSites({ page: 1, page_size: 1000 }).subscribe({
       next: (response) => {
         const sites = response.results.map(s => ({
           id: s.id_site,

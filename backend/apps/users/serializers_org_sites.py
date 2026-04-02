@@ -268,9 +268,10 @@ class SiteListSerializer(serializers.ModelSerializer):
         except CorRoleSite.DoesNotExist:
             pass
 
-        # Super admin sans relation directe
-        if is_super:
-            # Vérifier si le site appartient à l'organisme du super_admin
+        # Super admin ou rédacteur principal sans relation directe
+        is_redacteur_principal = user.is_redacteur_principal() if hasattr(user, 'is_redacteur_principal') else False
+        if is_super or is_redacteur_principal:
+            # Vérifier si le site appartient à l'organisme de l'utilisateur
             if user.id_organisme:
                 is_own_org_site = CorOgSite.objects.filter(
                     id_site=obj,
@@ -287,9 +288,10 @@ class SiteListSerializer(serializers.ModelSerializer):
                 id_site=obj, principal=True
             ).select_related('uuid_og').first()
             org_label = principal_org.uuid_og.nom_organisme if principal_org else 'Tous les sites'
+            access_type = 'super_admin' if is_super else 'redacteur_principal'
             return {
                 'has_access': True,
-                'access_type': 'super_admin',
+                'access_type': access_type,
                 'role_label': org_label
             }
 
