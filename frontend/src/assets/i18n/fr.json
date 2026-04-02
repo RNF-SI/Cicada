@@ -2448,7 +2448,14 @@
         "moyen": "Moyen",
         "bon": "Bon",
         "tresBon": "Très bon"
-      }
+      },
+      "direction": "Sens de variation",
+      "croissant": "Croissant",
+      "decroissant": "Décroissant",
+      "borneMin": "Borne min",
+      "borneMax": "Borne max",
+      "inclusif": "≤ (inclus)",
+      "exclusif": "< (exclus)"
     },
     "mesures": {
       "label": "Mesure",

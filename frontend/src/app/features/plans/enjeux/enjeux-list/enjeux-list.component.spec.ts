@@ -1369,6 +1369,14 @@ describe('EnjeuxListComponent', () => {
       expect(met.nom_metrique).toBe('');
       expect(met.type_metrique).toBeNull();
       expect(met.scores[1].inf).toBeNull();
+      // New direction and inclusivity defaults
+      expect(met.sens_variation).toBe('CROISSANT');
+      expect(met.score_1_sup_inclusive).toBe(true);
+      expect(met.score_2_sup_inclusive).toBe(true);
+      expect(met.score_3_sup_inclusive).toBe(true);
+      expect(met.score_4_sup_inclusive).toBe(true);
+      expect(met.has_score1_optional_bound).toBe(false);
+      expect(met.has_score5_optional_bound).toBe(false);
     });
 
     it('should add metrique to form', () => {
@@ -1398,21 +1406,43 @@ describe('EnjeuxListComponent', () => {
       expect(payload.nom_metrique).toBe('Test');
       expect(payload.unite).toBe('kg');
       expect(payload.ponderation).toBe(0.5);
+      // Direction and inclusivity fields included for NUMERIQUE
+      expect(payload.sens_variation).toBe('CROISSANT');
+      expect(payload.score_1_sup_inclusive).toBe(true);
+      expect(payload.score_2_sup_inclusive).toBe(true);
+      expect(payload.score_3_sup_inclusive).toBe(true);
+      expect(payload.score_4_sup_inclusive).toBe(true);
     });
 
-    it('should return score range formatted', () => {
+    it('should return score range with bracket notation', () => {
+      // Level 1: leftBracket always '[', rightBracket ']' when sup_inclusive defaults to true
       const met = { score_1_inf: 0, score_1_sup: 2 };
-      expect(component.getScoreRange(met, 1)).toBe('0 - 2');
+      expect(component.getScoreRange(met, 1)).toBe('[0\u00A0;\u00A02]');
     });
 
-    it('should return >= for inf only', () => {
+    it('should return bracket notation with exclusive sup', () => {
+      // Level 1 with score_1_sup_inclusive=false -> rightBracket = '['
+      const met = { score_1_inf: 0, score_1_sup: 20, score_1_sup_inclusive: false };
+      expect(component.getScoreRange(met, 1)).toBe('[0\u00A0;\u00A020[');
+    });
+
+    it('should return bracket notation for level 2 with previous inclusive', () => {
+      // Level 2: leftBracket depends on score_1_sup_inclusive
+      // score_1_sup_inclusive=true -> leftBracket = ']' (exclusive inf)
+      const met = { score_2_inf: 20, score_2_sup: 40, score_1_sup_inclusive: true };
+      expect(component.getScoreRange(met, 2)).toBe(']20\u00A0;\u00A040]');
+    });
+
+    it('should return open interval for inf only', () => {
+      // Level 1, inf only: [5 ; +infinity[
       const met = { score_1_inf: 5 };
-      expect(component.getScoreRange(met, 1)).toBe('≥ 5');
+      expect(component.getScoreRange(met, 1)).toBe('[5\u00A0;\u00A0+\u221E[');
     });
 
-    it('should return <= for sup only', () => {
+    it('should return open interval for sup only', () => {
+      // Level 1, sup only: ]-infinity ; 10]
       const met = { score_1_sup: 10 };
-      expect(component.getScoreRange(met, 1)).toBe('≤ 10');
+      expect(component.getScoreRange(met, 1)).toBe(']-\u221E\u00A0;\u00A010]');
     });
 
     it('should return dash for no scores', () => {

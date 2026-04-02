@@ -358,6 +358,40 @@ class Metrique(models.Model):
         help_text=_("Label qualitatif pour le score 5 (Très bon)")
     )
 
+    # Direction des intervalles
+    sens_variation = models.CharField(
+        _("Sens de variation"),
+        max_length=20,
+        choices=[('CROISSANT', _('Croissant')), ('DECROISSANT', _('Décroissant'))],
+        default='CROISSANT',
+        help_text=_("Croissant = plus c'est haut mieux c'est, Décroissant = plus c'est bas mieux c'est")
+    )
+
+    # Inclusivité des bornes entre niveaux (4 frontières pour 5 niveaux)
+    score_1_sup_inclusive = models.BooleanField(
+        _("Borne sup score 1 inclusive"), default=True,
+        help_text=_("True: score 1 ≤ seuil, score 2 > seuil. False: score 1 < seuil, score 2 ≥ seuil")
+    )
+    score_2_sup_inclusive = models.BooleanField(
+        _("Borne sup score 2 inclusive"), default=True
+    )
+    score_3_sup_inclusive = models.BooleanField(
+        _("Borne sup score 3 inclusive"), default=True
+    )
+    score_4_sup_inclusive = models.BooleanField(
+        _("Borne sup score 4 inclusive"), default=True
+    )
+
+    # Bornes extrêmes optionnelles (persiste l'état des checkboxes)
+    has_borne_score1 = models.BooleanField(
+        _("Borne extrême score 1 active"), default=False,
+        help_text=_("Croissant: borne inf score 1 active. Décroissant: borne sup score 1 active.")
+    )
+    has_borne_score5 = models.BooleanField(
+        _("Borne extrême score 5 active"), default=False,
+        help_text=_("Croissant: borne sup score 5 active. Décroissant: borne inf score 5 active.")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

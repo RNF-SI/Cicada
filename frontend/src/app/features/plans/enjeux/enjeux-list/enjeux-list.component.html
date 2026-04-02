@@ -792,6 +792,16 @@
                                                       </mat-form-field>
                                                     </div>
 
+                                                    <!-- Direction selector (NUMERIQUE only) -->
+                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                                      <div class="direction-selector">
+                                                        <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                                        <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
+                                                          <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                                          <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                                        </mat-button-toggle-group>
+                                                      </div>
+                                                    }
                                                     <div class="score-threshold-grid">
                                                       @for (level of scoreLevels; track level) {
                                                         <div class="score-column">
@@ -814,14 +824,47 @@
                                                                 </mat-form-field>
                                                               }
                                                               @default {
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                                </mat-form-field>
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                                </mat-form-field>
+                                                                <!-- Fixed-height slot for optional bound checkbox -->
+                                                                <div class="optional-bound-slot">
+                                                                  @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                                    <mat-checkbox [(ngModel)]="met.has_score1_optional_bound"
+                                                                      (ngModelChange)="onOptionalBoundToggle(met, 1)"
+                                                                      class="optional-bound-checkbox">
+                                                                      {{ getOptionalBoundLabel(met, 1) }}
+                                                                    </mat-checkbox>
+                                                                  }
+                                                                  @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                                    <mat-checkbox [(ngModel)]="met.has_score5_optional_bound"
+                                                                      (ngModelChange)="onOptionalBoundToggle(met, 5)"
+                                                                      class="optional-bound-checkbox">
+                                                                      {{ getOptionalBoundLabel(met, 5) }}
+                                                                    </mat-checkbox>
+                                                                  }
+                                                                </div>
+                                                                <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
+                                                                  <mat-form-field appearance="outline" class="score-input">
+                                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                                    <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                                      [disabled]="isScoreFieldDisabled(met, level, 'inf')"
+                                                                      (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
+                                                                  </mat-form-field>
+                                                                  <mat-form-field appearance="outline" class="score-input">
+                                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                                    <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+                                                                      [disabled]="isScoreFieldDisabled(met, level, 'sup')"
+                                                                      (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
+                                                                  </mat-form-field>
+                                                                </div>
+                                                                <!-- Fixed-height slot for boundary toggle -->
+                                                                <div class="boundary-toggle-slot">
+                                                                  @if (level < 5) {
+                                                                    <button type="button" class="boundary-toggle"
+                                                                      (click)="toggleBoundaryInclusive(met, level)"
+                                                                      [class.inclusive]="isSupInclusive(met, level)">
+                                                                      {{ isSupInclusive(met, level) ? '≤' : '<' }}
+                                                                    </button>
+                                                                  }
+                                                                </div>
                                                               }
                                                             }
                                                           </div>
@@ -1223,6 +1266,16 @@
                                                       <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
                                                     </mat-form-field>
                                                   </div>
+                                                  <!-- Direction selector (NUMERIQUE only) -->
+                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
+                                                    <div class="direction-selector">
+                                                      <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                                      <mat-button-toggle-group [(ngModel)]="standaloneMetriqueForm.sens_variation" (ngModelChange)="onDirectionChange(standaloneMetriqueForm)">
+                                                        <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                                        <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                                      </mat-button-toggle-group>
+                                                    </div>
+                                                  }
                                                   <div class="score-threshold-grid">
                                                     @for (level of scoreLevels; track level) {
                                                       <div class="score-column">
@@ -1245,14 +1298,47 @@
                                                               </mat-form-field>
                                                             }
                                                             @default {
-                                                              <mat-form-field appearance="outline" class="score-input">
-                                                                <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
-                                                              </mat-form-field>
-                                                              <mat-form-field appearance="outline" class="score-input">
-                                                                <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
-                                                              </mat-form-field>
+                                                              <!-- Fixed-height slot for optional bound checkbox -->
+                                                              <div class="optional-bound-slot">
+                                                                @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                                  <mat-checkbox [(ngModel)]="standaloneMetriqueForm.has_score1_optional_bound"
+                                                                    (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 1)"
+                                                                    class="optional-bound-checkbox">
+                                                                    {{ getOptionalBoundLabel(standaloneMetriqueForm, 1) }}
+                                                                  </mat-checkbox>
+                                                                }
+                                                                @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                                  <mat-checkbox [(ngModel)]="standaloneMetriqueForm.has_score5_optional_bound"
+                                                                    (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 5)"
+                                                                    class="optional-bound-checkbox">
+                                                                    {{ getOptionalBoundLabel(standaloneMetriqueForm, 5) }}
+                                                                  </mat-checkbox>
+                                                                }
+                                                              </div>
+                                                              <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                                  <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
+                                                                    [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
+                                                                    (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
+                                                                </mat-form-field>
+                                                                <mat-form-field appearance="outline" class="score-input">
+                                                                  <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                                  <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
+                                                                    [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
+                                                                    (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
+                                                                </mat-form-field>
+                                                              </div>
+                                                              <!-- Fixed-height slot for boundary toggle -->
+                                                              <div class="boundary-toggle-slot">
+                                                                @if (level < 5) {
+                                                                  <button type="button" class="boundary-toggle"
+                                                                    (click)="toggleBoundaryInclusive(standaloneMetriqueForm, level)"
+                                                                    [class.inclusive]="isSupInclusive(standaloneMetriqueForm, level)">
+                                                                    {{ isSupInclusive(standaloneMetriqueForm, level) ? '≤' : '<' }}
+                                                                  </button>
+                                                                }
+                                                              </div>
                                                             }
                                                           }
                                                         </div>
@@ -1348,6 +1434,16 @@
                                               </div>
 
                                               <!-- Score threshold grid -->
+                                              <!-- Direction selector (NUMERIQUE only) -->
+                                              @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                                <div class="direction-selector">
+                                                  <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                                  <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
+                                                    <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                                    <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                                  </mat-button-toggle-group>
+                                                </div>
+                                              }
                                               <div class="score-threshold-grid">
                                                 @for (level of scoreLevels; track level) {
                                                   <div class="score-column">
@@ -1370,14 +1466,47 @@
                                                           </mat-form-field>
                                                         }
                                                         @default {
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                          </mat-form-field>
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                          </mat-form-field>
+                                                          <!-- Fixed-height slot for optional bound checkbox -->
+                                                          <div class="optional-bound-slot">
+                                                            @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                              <mat-checkbox [(ngModel)]="met.has_score1_optional_bound"
+                                                                (ngModelChange)="onOptionalBoundToggle(met, 1)"
+                                                                class="optional-bound-checkbox">
+                                                                {{ getOptionalBoundLabel(met, 1) }}
+                                                              </mat-checkbox>
+                                                            }
+                                                            @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                              <mat-checkbox [(ngModel)]="met.has_score5_optional_bound"
+                                                                (ngModelChange)="onOptionalBoundToggle(met, 5)"
+                                                                class="optional-bound-checkbox">
+                                                                {{ getOptionalBoundLabel(met, 5) }}
+                                                              </mat-checkbox>
+                                                            }
+                                                          </div>
+                                                          <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
+                                                            <mat-form-field appearance="outline" class="score-input">
+                                                              <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                              <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                                [disabled]="isScoreFieldDisabled(met, level, 'inf')"
+                                                                (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
+                                                            </mat-form-field>
+                                                            <mat-form-field appearance="outline" class="score-input">
+                                                              <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                              <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+                                                                [disabled]="isScoreFieldDisabled(met, level, 'sup')"
+                                                                (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
+                                                            </mat-form-field>
+                                                          </div>
+                                                          <!-- Fixed-height slot for boundary toggle -->
+                                                          <div class="boundary-toggle-slot">
+                                                            @if (level < 5) {
+                                                              <button type="button" class="boundary-toggle"
+                                                                (click)="toggleBoundaryInclusive(met, level)"
+                                                                [class.inclusive]="isSupInclusive(met, level)">
+                                                                {{ isSupInclusive(met, level) ? '≤' : '<' }}
+                                                              </button>
+                                                            }
+                                                          </div>
                                                         }
                                                       }
                                                     </div>
@@ -1709,6 +1838,16 @@
                                               </mat-form-field>
                                             </div>
 
+                                            <!-- Direction selector (NUMERIQUE only) -->
+                                            @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                              <div class="direction-selector">
+                                                <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                                <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
+                                                  <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                                  <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                                </mat-button-toggle-group>
+                                              </div>
+                                            }
                                             <div class="score-threshold-grid">
                                               @for (level of scoreLevels; track level) {
                                                 <div class="score-column">
@@ -1731,14 +1870,47 @@
                                                         </mat-form-field>
                                                       }
                                                       @default {
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                          <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                        </mat-form-field>
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                          <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                        </mat-form-field>
+                                                        <!-- Fixed-height slot for optional bound checkbox -->
+                                                        <div class="optional-bound-slot">
+                                                          @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                            <mat-checkbox [(ngModel)]="met.has_score1_optional_bound"
+                                                              (ngModelChange)="onOptionalBoundToggle(met, 1)"
+                                                              class="optional-bound-checkbox">
+                                                              {{ getOptionalBoundLabel(met, 1) }}
+                                                            </mat-checkbox>
+                                                          }
+                                                          @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                            <mat-checkbox [(ngModel)]="met.has_score5_optional_bound"
+                                                              (ngModelChange)="onOptionalBoundToggle(met, 5)"
+                                                              class="optional-bound-checkbox">
+                                                              {{ getOptionalBoundLabel(met, 5) }}
+                                                            </mat-checkbox>
+                                                          }
+                                                        </div>
+                                                        <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                              [disabled]="isScoreFieldDisabled(met, level, 'inf')"
+                                                              (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
+                                                          </mat-form-field>
+                                                          <mat-form-field appearance="outline" class="score-input">
+                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                            <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+                                                              [disabled]="isScoreFieldDisabled(met, level, 'sup')"
+                                                              (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
+                                                          </mat-form-field>
+                                                        </div>
+                                                        <!-- Fixed-height slot for boundary toggle -->
+                                                        <div class="boundary-toggle-slot">
+                                                          @if (level < 5) {
+                                                            <button type="button" class="boundary-toggle"
+                                                              (click)="toggleBoundaryInclusive(met, level)"
+                                                              [class.inclusive]="isSupInclusive(met, level)">
+                                                              {{ isSupInclusive(met, level) ? '≤' : '<' }}
+                                                            </button>
+                                                          }
+                                                        </div>
                                                       }
                                                     }
                                                   </div>
@@ -2127,6 +2299,16 @@
                                               <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
                                             </mat-form-field>
                                           </div>
+                                          <!-- Direction selector (NUMERIQUE only) -->
+                                          @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
+                                            <div class="direction-selector">
+                                              <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                              <mat-button-toggle-group [(ngModel)]="standaloneMetriqueForm.sens_variation" (ngModelChange)="onDirectionChange(standaloneMetriqueForm)">
+                                                <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                                <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                              </mat-button-toggle-group>
+                                            </div>
+                                          }
                                           <div class="score-threshold-grid">
                                             @for (level of scoreLevels; track level) {
                                               <div class="score-column">
@@ -2149,14 +2331,47 @@
                                                       </mat-form-field>
                                                     }
                                                     @default {
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf">
-                                                      </mat-form-field>
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup">
-                                                      </mat-form-field>
+                                                      <!-- Fixed-height slot for optional bound checkbox -->
+                                                      <div class="optional-bound-slot">
+                                                        @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                          <mat-checkbox [(ngModel)]="standaloneMetriqueForm.has_score1_optional_bound"
+                                                            (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 1)"
+                                                            class="optional-bound-checkbox">
+                                                            {{ getOptionalBoundLabel(standaloneMetriqueForm, 1) }}
+                                                          </mat-checkbox>
+                                                        }
+                                                        @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                          <mat-checkbox [(ngModel)]="standaloneMetriqueForm.has_score5_optional_bound"
+                                                            (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 5)"
+                                                            class="optional-bound-checkbox">
+                                                            {{ getOptionalBoundLabel(standaloneMetriqueForm, 5) }}
+                                                          </mat-checkbox>
+                                                        }
+                                                      </div>
+                                                      <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                          <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
+                                                            [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
+                                                            (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
+                                                        </mat-form-field>
+                                                        <mat-form-field appearance="outline" class="score-input">
+                                                          <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                          <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
+                                                            [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
+                                                            (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
+                                                        </mat-form-field>
+                                                      </div>
+                                                      <!-- Fixed-height slot for boundary toggle -->
+                                                      <div class="boundary-toggle-slot">
+                                                        @if (level < 5) {
+                                                          <button type="button" class="boundary-toggle"
+                                                            (click)="toggleBoundaryInclusive(standaloneMetriqueForm, level)"
+                                                            [class.inclusive]="isSupInclusive(standaloneMetriqueForm, level)">
+                                                            {{ isSupInclusive(standaloneMetriqueForm, level) ? '≤' : '<' }}
+                                                          </button>
+                                                        }
+                                                      </div>
                                                     }
                                                   }
                                                 </div>
@@ -2245,6 +2460,16 @@
                                         </mat-form-field>
                                       </div>
 
+                                      <!-- Direction selector (NUMERIQUE only) -->
+                                      @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                        <div class="direction-selector">
+                                          <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
+                                          <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
+                                            <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
+                                            <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
+                                          </mat-button-toggle-group>
+                                        </div>
+                                      }
                                       <div class="score-threshold-grid">
                                         @for (level of scoreLevels; track level) {
                                           <div class="score-column">
@@ -2267,14 +2492,47 @@
                                                   </mat-form-field>
                                                 }
                                                 @default {
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                    <input matInput type="number" [(ngModel)]="met.scores[level].inf">
-                                                  </mat-form-field>
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                    <input matInput type="number" [(ngModel)]="met.scores[level].sup">
-                                                  </mat-form-field>
+                                                  <!-- Fixed-height slot for optional bound checkbox -->
+                                                  <div class="optional-bound-slot">
+                                                    @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
+                                                      <mat-checkbox [(ngModel)]="met.has_score1_optional_bound"
+                                                        (ngModelChange)="onOptionalBoundToggle(met, 1)"
+                                                        class="optional-bound-checkbox">
+                                                        {{ getOptionalBoundLabel(met, 1) }}
+                                                      </mat-checkbox>
+                                                    }
+                                                    @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
+                                                      <mat-checkbox [(ngModel)]="met.has_score5_optional_bound"
+                                                        (ngModelChange)="onOptionalBoundToggle(met, 5)"
+                                                        class="optional-bound-checkbox">
+                                                        {{ getOptionalBoundLabel(met, 5) }}
+                                                      </mat-checkbox>
+                                                    }
+                                                  </div>
+                                                  <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
+                                                    <mat-form-field appearance="outline" class="score-input">
+                                                      <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
+                                                      <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                        [disabled]="isScoreFieldDisabled(met, level, 'inf')"
+                                                        (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
+                                                    </mat-form-field>
+                                                    <mat-form-field appearance="outline" class="score-input">
+                                                      <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
+                                                      <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+                                                        [disabled]="isScoreFieldDisabled(met, level, 'sup')"
+                                                        (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
+                                                    </mat-form-field>
+                                                  </div>
+                                                  <!-- Fixed-height slot for boundary toggle -->
+                                                  <div class="boundary-toggle-slot">
+                                                    @if (level < 5) {
+                                                      <button type="button" class="boundary-toggle"
+                                                        (click)="toggleBoundaryInclusive(met, level)"
+                                                        [class.inclusive]="isSupInclusive(met, level)">
+                                                        {{ isSupInclusive(met, level) ? '≤' : '<' }}
+                                                      </button>
+                                                    }
+                                                  </div>
                                                 }
                                               }
                                             </div>

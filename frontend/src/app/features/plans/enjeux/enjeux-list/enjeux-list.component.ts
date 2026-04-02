@@ -18,6 +18,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -64,6 +66,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     MatInputModule,
     MatSelectModule,
     MatRadioModule,
+    MatCheckboxModule,
+    MatButtonToggleModule,
     MatDialogModule,
     MatSnackBarModule,
     TranslateModule,
@@ -1287,7 +1291,53 @@ export class EnjeuxListComponent implements OnInit {
         3: { inf: null, sup: null, val: null, label: '' },
         4: { inf: null, sup: null, val: null, label: '' },
         5: { inf: null, sup: null, val: null, label: '' }
-      }
+      },
+      sens_variation: 'CROISSANT',
+      score_1_sup_inclusive: true,
+      score_2_sup_inclusive: true,
+      score_3_sup_inclusive: true,
+      score_4_sup_inclusive: true,
+      has_score1_optional_bound: false,
+      has_score5_optional_bound: false,
+    };
+  }
+
+  /**
+   * Convert a Metrique API object to a MetriqueFormData for editing.
+   */
+  /**
+   * Clean a numeric value: strip trailing decimal zeros (40.0000 → 40, 20.50 → 20.5).
+   */
+  private cleanNum(val: number | null | undefined): number | null {
+    if (val == null) return null;
+    return parseFloat(Number(val).toPrecision(12));
+  }
+
+  metriqueToFormData(met: Metrique): MetriqueFormData {
+    const sensVariation = met.sens_variation || 'CROISSANT';
+
+    const c = (v: number | null | undefined) => this.cleanNum(v);
+    return {
+      id_metrique: met.id_metrique,
+      nom_metrique: met.nom_metrique,
+      type_metrique: met.type_metrique || null,
+      unite: met.unite || '',
+      ponderation: met.ponderation ?? null,
+      etat_reference: met.etat_reference || '',
+      scores: {
+        1: { inf: c(met.score_1_inf), sup: c(met.score_1_sup), val: c(met.score_1_val), label: met.score_1_label || '' },
+        2: { inf: c(met.score_2_inf), sup: c(met.score_2_sup), val: c(met.score_2_val), label: met.score_2_label || '' },
+        3: { inf: c(met.score_3_inf), sup: c(met.score_3_sup), val: c(met.score_3_val), label: met.score_3_label || '' },
+        4: { inf: c(met.score_4_inf), sup: c(met.score_4_sup), val: c(met.score_4_val), label: met.score_4_label || '' },
+        5: { inf: c(met.score_5_inf), sup: c(met.score_5_sup), val: c(met.score_5_val), label: met.score_5_label || '' },
+      },
+      sens_variation: sensVariation,
+      score_1_sup_inclusive: met.score_1_sup_inclusive ?? true,
+      score_2_sup_inclusive: met.score_2_sup_inclusive ?? true,
+      score_3_sup_inclusive: met.score_3_sup_inclusive ?? true,
+      score_4_sup_inclusive: met.score_4_sup_inclusive ?? true,
+      has_score1_optional_bound: met.has_borne_score1 ?? false,
+      has_score5_optional_bound: met.has_borne_score5 ?? false,
     };
   }
 
@@ -1323,11 +1373,152 @@ export class EnjeuxListComponent implements OnInit {
       } else if (mnemonique === 'TEXTE') {
         if (s?.label?.trim()) (payload as any)[`score_${level}_label`] = s.label.trim();
       } else {
-        if (s?.inf != null) (payload as any)[`score_${level}_inf`] = s.inf;
-        if (s?.sup != null) (payload as any)[`score_${level}_sup`] = s.sup;
+        // NUMERIQUE: handle optional extreme bounds
+        const isOptionalInf = this.isOptionalBound(met, level, 'inf');
+        const isOptionalSup = this.isOptionalBound(met, level, 'sup');
+
+        if (isOptionalInf) {
+          const hasOptional = level === 1 ? met.has_score1_optional_bound : met.has_score5_optional_bound;
+          // Envoyer explicitement null si checkbox décochée (pour effacer en base)
+          (payload as any)[`score_${level}_inf`] = (hasOptional && s?.inf != null) ? s.inf : null;
+        } else {
+          if (s?.inf != null) (payload as any)[`score_${level}_inf`] = s.inf;
+        }
+
+        if (isOptionalSup) {
+          const hasOptional = level === 5 ? met.has_score5_optional_bound : met.has_score1_optional_bound;
+          (payload as any)[`score_${level}_sup`] = (hasOptional && s?.sup != null) ? s.sup : null;
+        } else {
+          if (s?.sup != null) (payload as any)[`score_${level}_sup`] = s.sup;
+        }
       }
     }
+
+    // Direction, inclusivité et bornes extrêmes (NUMERIQUE only)
+    if (mnemonique === 'NUMERIQUE') {
+      payload.sens_variation = met.sens_variation;
+      payload.score_1_sup_inclusive = met.score_1_sup_inclusive;
+      payload.score_2_sup_inclusive = met.score_2_sup_inclusive;
+      payload.score_3_sup_inclusive = met.score_3_sup_inclusive;
+      payload.score_4_sup_inclusive = met.score_4_sup_inclusive;
+      payload.has_borne_score1 = met.has_score1_optional_bound;
+      payload.has_borne_score5 = met.has_score5_optional_bound;
+    }
+
     return payload;
+  }
+
+  /**
+   * Determine if a bound field is the optional extreme bound for a given level/direction.
+   * Returns true if this is the outer bound that can be toggled off via checkbox.
+   */
+  isOptionalBound(met: MetriqueFormData, level: number, field: 'inf' | 'sup'): boolean {
+    if (met.sens_variation === 'CROISSANT') {
+      return (level === 1 && field === 'inf') || (level === 5 && field === 'sup');
+    } else {
+      return (level === 1 && field === 'sup') || (level === 5 && field === 'inf');
+    }
+  }
+
+  /**
+   * Auto-fill adjacent boundary when a boundary value changes.
+   * Ascending: changing SUP of level N → auto-fills INF of level N+1
+   * Descending: changing INF of level N → auto-fills SUP of level N+1
+   */
+  onScoreBoundaryChange(met: MetriqueFormData, level: number, field: 'inf' | 'sup'): void {
+    if (met.sens_variation === 'CROISSANT' && field === 'sup' && level < 5) {
+      met.scores[level + 1].inf = met.scores[level].sup;
+    } else if (met.sens_variation === 'DECROISSANT' && field === 'inf' && level < 5) {
+      met.scores[level + 1].sup = met.scores[level].inf;
+    }
+  }
+
+  /**
+   * Check if a score field should be disabled (auto-filled or optional unchecked).
+   */
+  isScoreFieldDisabled(met: MetriqueFormData, level: number, field: 'inf' | 'sup'): boolean {
+    // Optional extreme bound: disabled if checkbox unchecked
+    if (this.isOptionalBound(met, level, field)) {
+      return level === 1 ? !met.has_score1_optional_bound : !met.has_score5_optional_bound;
+    }
+    // Auto-filled fields: INF of levels 2-5 (ascending) or SUP of levels 2-5 (descending)
+    if (met.sens_variation === 'CROISSANT' && field === 'inf' && level > 1) return true;
+    if (met.sens_variation === 'DECROISSANT' && field === 'sup' && level > 1) return true;
+    return false;
+  }
+
+  /**
+   * Handle direction change: reset auto-filled values and recalculate optional bounds.
+   */
+  onDirectionChange(met: MetriqueFormData): void {
+    // Mirror score values: swap 1↔5, 2↔4, 3 stays
+    const swap = (a: number, b: number) => {
+      const tmp = { ...met.scores[a] };
+      met.scores[a] = { ...met.scores[b] };
+      met.scores[b] = tmp;
+    };
+    swap(1, 5);
+    swap(2, 4);
+
+    // Swap inclusivity toggles (boundary 1-2 ↔ 4-5, boundary 2-3 ↔ 3-4)
+    const tmpIncl1 = met.score_1_sup_inclusive;
+    met.score_1_sup_inclusive = met.score_4_sup_inclusive;
+    met.score_4_sup_inclusive = tmpIncl1;
+    const tmpIncl2 = met.score_2_sup_inclusive;
+    met.score_2_sup_inclusive = met.score_3_sup_inclusive;
+    met.score_3_sup_inclusive = tmpIncl2;
+
+    // Swap optional bound checkboxes
+    const tmpOpt = met.has_score1_optional_bound;
+    met.has_score1_optional_bound = met.has_score5_optional_bound;
+    met.has_score5_optional_bound = tmpOpt;
+  }
+
+  /**
+   * Toggle inclusivity for a boundary between level N and N+1.
+   */
+  toggleBoundaryInclusive(met: MetriqueFormData, boundaryLevel: number): void {
+    const key = `score_${boundaryLevel}_sup_inclusive` as keyof MetriqueFormData;
+    (met as any)[key] = !(met as any)[key];
+  }
+
+  /**
+   * Handle optional bound checkbox change: clear value when unchecked.
+   */
+  onOptionalBoundToggle(met: MetriqueFormData, scoreLevel: 1 | 5): void {
+    const hasOptional = scoreLevel === 1 ? met.has_score1_optional_bound : met.has_score5_optional_bound;
+    if (!hasOptional) {
+      // Clear the optional field value
+      if (met.sens_variation === 'CROISSANT') {
+        if (scoreLevel === 1) met.scores[1].inf = null;
+        else met.scores[5].sup = null;
+      } else {
+        if (scoreLevel === 1) met.scores[1].sup = null;
+        else met.scores[5].inf = null;
+      }
+    }
+  }
+
+  /**
+   * Check if a boundary's upper bound is inclusive (for template use).
+   */
+  isSupInclusive(met: MetriqueFormData, level: number): boolean {
+    return (met as any)[`score_${level}_sup_inclusive`] ?? true;
+  }
+
+  /**
+   * Get the label for the optional extreme bound checkbox.
+   */
+  getOptionalBoundLabel(met: MetriqueFormData, level: number): string {
+    if (met.sens_variation === 'CROISSANT') {
+      return level === 1
+        ? this.translate.instant('enjeux.metriques.borneMin')
+        : this.translate.instant('enjeux.metriques.borneMax');
+    } else {
+      return level === 1
+        ? this.translate.instant('enjeux.metriques.borneMax')
+        : this.translate.instant('enjeux.metriques.borneMin');
+    }
   }
 
   saveIndicateur(ne: any): void {
@@ -1457,21 +1648,9 @@ export class EnjeuxListComponent implements OnInit {
     this.loadTypeMetriqueOptions();
 
     // Load existing metriques into edit form
-    this.editIndicateurMetriques = (ind.metriques || []).map((met: Metrique) => ({
-      id_metrique: met.id_metrique,
-      nom_metrique: met.nom_metrique,
-      type_metrique: met.type_metrique || null,
-      unite: met.unite || '',
-      ponderation: met.ponderation ?? null,
-      etat_reference: met.etat_reference || '',
-      scores: {
-        1: { inf: met.score_1_inf ?? null, sup: met.score_1_sup ?? null, val: met.score_1_val ?? null, label: met.score_1_label || '' },
-        2: { inf: met.score_2_inf ?? null, sup: met.score_2_sup ?? null, val: met.score_2_val ?? null, label: met.score_2_label || '' },
-        3: { inf: met.score_3_inf ?? null, sup: met.score_3_sup ?? null, val: met.score_3_val ?? null, label: met.score_3_label || '' },
-        4: { inf: met.score_4_inf ?? null, sup: met.score_4_sup ?? null, val: met.score_4_val ?? null, label: met.score_4_label || '' },
-        5: { inf: met.score_5_inf ?? null, sup: met.score_5_sup ?? null, val: met.score_5_val ?? null, label: met.score_5_label || '' }
-      }
-    } as MetriqueFormData));
+    this.editIndicateurMetriques = (ind.metriques || []).map((met: Metrique) =>
+      this.metriqueToFormData(met)
+    );
   }
 
   cancelEditIndicateur(): void {
@@ -1664,15 +1843,41 @@ export class EnjeuxListComponent implements OnInit {
       const label = met[`score_${level}_label`];
       return label?.trim() || '-';
     }
-    // NUMERIQUE / default: interval
+    // NUMERIQUE
     const inf = met[`score_${level}_inf`];
     const sup = met[`score_${level}_sup`];
-    if (inf != null && sup != null) {
-      return `${this.formatNum(Number(inf))} - ${this.formatNum(Number(sup))}`;
+
+    if (inf == null && sup == null) return '- - -';
+
+    // Determine inclusivity for the inf side (from previous level's boundary)
+    let infInclusive = true; // level 1: inclusive by default
+    if (level > 1) {
+      const prevSupInclusive = met[`score_${level - 1}_sup_inclusive`];
+      // If prev sup is inclusive (≤), this level's inf is exclusive (>)
+      infInclusive = !(prevSupInclusive === true || prevSupInclusive == null);
     }
-    if (inf != null) return `≥ ${this.formatNum(Number(inf))}`;
-    if (sup != null) return `≤ ${this.formatNum(Number(sup))}`;
-    return '- - -';
+
+    // Determine inclusivity for the sup side
+    let supInclusive = true; // level 5: inclusive by default
+    if (level < 5) {
+      const si = met[`score_${level}_sup_inclusive`];
+      supInclusive = (si === true || si == null);
+    }
+
+    // Open interval: only one bound → compact notation (< 10, > 10, ≤ 10, ≥ 10)
+    if (inf != null && sup == null) {
+      const op = infInclusive ? '≥' : '>';
+      return `${op}\u00A0${this.formatNum(Number(inf))}`;
+    }
+    if (inf == null && sup != null) {
+      const op = supInclusive ? '≤' : '<';
+      return `${op}\u00A0${this.formatNum(Number(sup))}`;
+    }
+
+    // Both bounds: bracket notation [0 ; 20], ]20 ; 40[
+    const leftBracket = infInclusive ? '[' : ']';
+    const rightBracket = supInclusive ? ']' : '[';
+    return `${leftBracket}${this.formatNum(Number(inf))}\u00A0;\u00A0${this.formatNum(Number(sup))}${rightBracket}`;
   }
 
   /**
@@ -2410,14 +2615,7 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   addOoMetriqueRow(): void {
-    this.ooIndicateurFormMetriques.push({
-      nom_metrique: '',
-      type_metrique: null,
-      unite: '',
-      ponderation: null,
-      etat_reference: '',
-      scores: { 1: { inf: null, sup: null, val: null, label: '' }, 2: { inf: null, sup: null, val: null, label: '' }, 3: { inf: null, sup: null, val: null, label: '' }, 4: { inf: null, sup: null, val: null, label: '' }, 5: { inf: null, sup: null, val: null, label: '' } }
-    });
+    this.ooIndicateurFormMetriques.push(this.createEmptyMetrique());
   }
 
   removeOoMetriqueRow(index: number): void {
@@ -2439,25 +2637,9 @@ export class EnjeuxListComponent implements OnInit {
         // Create metriques if any
         const metriquesToCreate = this.ooIndicateurFormMetriques.filter(m => m.nom_metrique.trim());
         if (metriquesToCreate.length > 0) {
-          const metriqueRequests: Observable<any>[] = metriquesToCreate.map(m => {
-            const payload: MetriqueCreatePayload = {
-              id_indicateur: indicateur.id_indicateur,
-              nom_metrique: m.nom_metrique.trim(),
-              type_metrique: m.type_metrique || undefined,
-              unite: m.unite || undefined,
-              ponderation: m.ponderation || undefined,
-              etat_reference: m.etat_reference || undefined,
-            };
-            // Add score thresholds
-            for (let level = 1; level <= 5; level++) {
-              const score = m.scores[level];
-              if (score) {
-                (payload as any)[`score_${level}_inf`] = score.inf;
-                (payload as any)[`score_${level}_sup`] = score.sup;
-              }
-            }
-            return this.enjeuService.createMetrique(payload);
-          });
+          const metriqueRequests: Observable<any>[] = metriquesToCreate.map(m =>
+            this.enjeuService.createMetrique(this.buildMetriquePayload(indicateur.id_indicateur, m))
+          );
 
           forkJoin(metriqueRequests).subscribe({
             next: () => {
@@ -2499,21 +2681,9 @@ export class EnjeuxListComponent implements OnInit {
     this.editOoIndicateurType = indicateur.type_indicateur || null;
     this.editOoIndicateurStandardise = indicateur.est_standardise;
     this.editOoIndicateurDescription = indicateur.description || '';
-    this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m => ({
-      id_metrique: m.id_metrique,
-      nom_metrique: m.nom_metrique,
-      type_metrique: m.type_metrique || null,
-      unite: m.unite || '',
-      ponderation: m.ponderation || null,
-      etat_reference: m.etat_reference || '',
-      scores: {
-        1: { inf: m.score_1_inf ?? null, sup: m.score_1_sup ?? null, val: m.score_1_val ?? null, label: m.score_1_label || '' },
-        2: { inf: m.score_2_inf ?? null, sup: m.score_2_sup ?? null, val: m.score_2_val ?? null, label: m.score_2_label || '' },
-        3: { inf: m.score_3_inf ?? null, sup: m.score_3_sup ?? null, val: m.score_3_val ?? null, label: m.score_3_label || '' },
-        4: { inf: m.score_4_inf ?? null, sup: m.score_4_sup ?? null, val: m.score_4_val ?? null, label: m.score_4_label || '' },
-        5: { inf: m.score_5_inf ?? null, sup: m.score_5_sup ?? null, val: m.score_5_val ?? null, label: m.score_5_label || '' },
-      }
-    }));
+    this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m =>
+      this.metriqueToFormData(m)
+    );
   }
 
   cancelEditOoIndicateur(): void {

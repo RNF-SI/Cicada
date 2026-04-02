@@ -510,7 +510,15 @@ class TestCopySubElements:
         olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
-        MetriqueFactory(id_indicateur=ind, nom_metrique='Met A', id_utilisateur_ajout=user)
+        MetriqueFactory(
+            id_indicateur=ind, nom_metrique='Met A',
+            sens_variation='DECROISSANT',
+            score_1_sup_inclusive=False,
+            score_2_sup_inclusive=True,
+            score_3_sup_inclusive=False,
+            score_4_sup_inclusive=True,
+            id_utilisateur_ajout=user,
+        )
 
         new_plan = PlanDuplicationService.duplicate_plan(
             source_plan=source_plan, user=user,
@@ -524,7 +532,14 @@ class TestCopySubElements:
         new_ind = Indicateur.objects.get(id_ne=new_ne)
         mets = Metrique.objects.filter(id_indicateur=new_ind)
         assert mets.count() == 1
-        assert mets.first().nom_metrique == 'Met A'
+        new_met = mets.first()
+        assert new_met.nom_metrique == 'Met A'
+        # Verify direction and inclusivity fields are copied
+        assert new_met.sens_variation == 'DECROISSANT'
+        assert new_met.score_1_sup_inclusive is False
+        assert new_met.score_2_sup_inclusive is True
+        assert new_met.score_3_sup_inclusive is False
+        assert new_met.score_4_sup_inclusive is True
 
     def test_indicateur_m2m_taxon_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)

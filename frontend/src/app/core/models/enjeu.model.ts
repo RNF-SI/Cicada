@@ -288,6 +288,14 @@ export interface Metrique {
   score_3_inf?: number; score_3_sup?: number; score_3_val?: number; score_3_label?: string;
   score_4_inf?: number; score_4_sup?: number; score_4_val?: number; score_4_label?: string;
   score_5_inf?: number; score_5_sup?: number; score_5_val?: number; score_5_label?: string;
+  // Direction et inclusivité des bornes
+  sens_variation?: 'CROISSANT' | 'DECROISSANT';
+  score_1_sup_inclusive?: boolean;
+  score_2_sup_inclusive?: boolean;
+  score_3_sup_inclusive?: boolean;
+  score_4_sup_inclusive?: boolean;
+  has_borne_score1?: boolean;
+  has_borne_score5?: boolean;
   mesures?: Mesure[];
   nb_mesures?: number;
   operations?: Operation[];
@@ -505,6 +513,14 @@ export interface MetriqueFormData {
   ponderation: number | null;
   etat_reference: string;
   scores: { [level: number]: { inf: number | null; sup: number | null; val: number | null; label: string } };
+  // Direction et inclusivité des bornes (NUMERIQUE only)
+  sens_variation: 'CROISSANT' | 'DECROISSANT';
+  score_1_sup_inclusive: boolean;
+  score_2_sup_inclusive: boolean;
+  score_3_sup_inclusive: boolean;
+  score_4_sup_inclusive: boolean;
+  has_score1_optional_bound: boolean;  // checkbox: borne extrême score 1 (inf si croissant, sup si décroissant)
+  has_score5_optional_bound: boolean;  // checkbox: borne extrême score 5 (sup si croissant, inf si décroissant)
   _deleted?: boolean;  // marked for deletion
 }
 
@@ -554,6 +570,14 @@ export interface MetriqueCreatePayload {
   score_3_inf?: number; score_3_sup?: number; score_3_val?: number; score_3_label?: string;
   score_4_inf?: number; score_4_sup?: number; score_4_val?: number; score_4_label?: string;
   score_5_inf?: number; score_5_sup?: number; score_5_val?: number; score_5_label?: string;
+  // Direction et inclusivité des bornes
+  sens_variation?: 'CROISSANT' | 'DECROISSANT';
+  score_1_sup_inclusive?: boolean;
+  score_2_sup_inclusive?: boolean;
+  score_3_sup_inclusive?: boolean;
+  score_4_sup_inclusive?: boolean;
+  has_borne_score1?: boolean;
+  has_borne_score5?: boolean;
 }
 
 /**
