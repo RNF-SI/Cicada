@@ -183,37 +183,50 @@ class CorRolePlanSerializer(serializers.ModelSerializer):
         ]
 
 
-class PlanGestionListSerializer(serializers.ModelSerializer):
-    """Serializer pour la liste des Plans de Gestion."""
+class PlanSiteMinimalSerializer(serializers.ModelSerializer):
+    """Serializer minimal pour les sites dans la liste des plans (pas d'organismes ni access check)."""
+    id_site = serializers.IntegerField(source='site.id_site')
+    nom_site = serializers.CharField(source='site.nom_site')
 
-    periode_gestion = serializers.CharField(source='get_periode_gestion', read_only=True)
-    nb_sites = serializers.IntegerField(source='sites.count', read_only=True)
-    nb_fichiers = serializers.IntegerField(source='fichiers.count', read_only=True)
+    class Meta:
+        model = CorSitePg
+        fields = ['id_site', 'nom_site']
+
+
+class PlanGestionListSerializer(serializers.ModelSerializer):
+    """Serializer léger pour la liste des Plans de Gestion.
+
+    Optimisé pour le chargement rapide : pas d'organismes imbriqués,
+    pas de vérification d'accès par site, juste les IDs nécessaires
+    au filtrage côté frontend.
+    """
+
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
-    evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
-    redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
 
     # Version chain fields
     plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
     type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
-    children_count = serializers.IntegerField(source='children.count', read_only=True)
+    children_count = serializers.IntegerField(read_only=True)
 
-    # Include sites and referents details for admin display
-    sites = PlanSiteListSerializer(many=True, read_only=True)
-    referents = PlanReferentListSerializer(many=True, read_only=True)
-    membres = CorRolePlanSerializer(many=True, read_only=True)
+    # Nested — minimal
+    sites = PlanSiteMinimalSerializer(many=True, read_only=True)
+    referents = serializers.SerializerMethodField()
+    membres = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin', 'periode_gestion',
-            'surface', 'gestion_partagee', 'ct88', 'risque_incendie', 'statut', 'statut_display', 'version',
-            'date_validation_cspn', 'id_docgestion_fcen',
-            'evaluation_display', 'redacteur_type_display', 'redacteur_nom',
-            'redacteurs', 'relecteurs',
+            'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
+            'annee_debut', 'annee_fin',
             'plan_parent_id', 'type_document_display', 'children_count',
-            'nb_sites', 'nb_fichiers', 'sites', 'referents', 'membres', 'date_ajout', 'date_maj'
+            'sites', 'referents', 'membres',
         ]
+
+    def get_referents(self, obj):
+        return [{'id_role': r.id_role} for r in obj.referents.all()]
+
+    def get_membres(self, obj):
+        return [{'id_role': m.id_role_id, 'referent': m.referent} for m in obj.membres.all()]
 
 
 class PlanGestionDetailSerializer(serializers.ModelSerializer):
@@ -431,6 +444,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
 
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=True, min_length=1)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
 
     class Meta:
         model = PlanGestion
@@ -441,7 +455,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
             'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'version', 'geometrie',
-            'sites_ids', 'referents_ids'
+            'sites_ids', 'referents_ids', 'organismes_redacteurs_ids'
         ]
         read_only_fields = ['id_pg', 'slug']
         extra_kwargs = {
@@ -450,15 +464,16 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'annee_debut': {'required': True},
             'annee_fin': {'required': True},
         }
-    
+
     def create(self, validated_data):
-        """Créer un plan avec sites et référents."""
+        """Créer un plan avec sites, référents et organisme rédacteur."""
         sites_ids = validated_data.pop('sites_ids', [])
         referents_ids = validated_data.pop('referents_ids', [])
-        
+        organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', [])
+
         # Créer le plan
         plan = super().create(validated_data)
-        
+
         # Associer les sites
         if sites_ids:
             from apps.users.models import Site
@@ -469,11 +484,18 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
                     site=site,
                     rang=i
                 )
-        
+
         # Associer les référents
         if referents_ids:
             from apps.users.models import Role
             referents = Role.objects.filter(id_role__in=referents_ids)
             plan.referents.set(referents)
-        
+
+        # Associer l'organisme rédacteur
+        if organismes_redacteurs_ids:
+            from apps.users.models import BibOrganismes
+            for org_id in organismes_redacteurs_ids:
+                org = BibOrganismes.objects.get(id_organisme=org_id)
+                CorRedacteurPlan.objects.get_or_create(plan_de_gestion=plan, uuid_og=org)
+
         return plan

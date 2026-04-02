@@ -69,11 +69,14 @@
                 @if (p.organismes_redacteurs_list && p.organismes_redacteurs_list.length > 0) {
                   <div class="meta-row">
                     <i class="fi fi-rr-pencil meta-icon"></i>
-                    <span class="meta-label">{{ 'plans.detail.organismesRedacteurs' | translate }} :</span>
-                    @for (org of p.organismes_redacteurs_list; track org.id_organisme; let last = $last) {
-                      <span class="meta-value">{{ org.nom_organisme }}{{ last ? '' : ', ' }}</span>
-                    }
-                    <span class="meta-hint">{{ 'plans.detail.organismesRedacteursHint' | translate }}</span>
+                    <span class="meta-label">{{ 'plans.detail.organismeRedacteur' | translate }} :</span>
+                    <span class="meta-value">{{ p.organismes_redacteurs_list[0].nom_organisme }}</span>
+                  </div>
+                } @else if (p.redacteur_nom) {
+                  <div class="meta-row">
+                    <i class="fi fi-rr-pencil meta-icon"></i>
+                    <span class="meta-label">{{ 'plans.detail.organismeRedacteur' | translate }} :</span>
+                    <span class="meta-value">{{ p.redacteur_nom }}</span>
                   </div>
                 }
                 <div class="meta-row">

@@ -137,8 +137,9 @@ class TestPlansFilters:
         response = api_client.get('/api/plans/plans/?gestion_partagee=true')
 
         assert response.status_code == status.HTTP_200_OK
-        for plan in response.data['results']:
-            assert plan['gestion_partagee'] is True
+        result_ids = [p['id_pg'] for p in response.data['results']]
+        assert plan_shared.id_pg in result_ids
+        assert plan_single.id_pg not in result_ids
 
     def test_filter_ct88(self, api_client):
         """Test filtering CT88 plans."""
@@ -150,8 +151,9 @@ class TestPlansFilters:
         response = api_client.get('/api/plans/plans/?ct88=true')
 
         assert response.status_code == status.HTTP_200_OK
-        for plan in response.data['results']:
-            assert plan['ct88'] is True
+        result_ids = [p['id_pg'] for p in response.data['results']]
+        assert plan_ct88.id_pg in result_ids
+        assert plan_normal.id_pg not in result_ids
 
     def test_filter_by_annee_debut(self, api_client):
         """Test filtering by start year."""
@@ -1606,15 +1608,16 @@ class TestPlansBooleanFilters:
     def test_filter_risque_incendie(self, api_client):
         """Test filtering by risque_incendie=true."""
         admin = SuperAdminFactory()
-        PlanGestionFactory(nom='Incendie Plan', risque_incendie=True)
-        PlanGestionFactory(nom='Safe Plan', risque_incendie=False)
+        plan_incendie = PlanGestionFactory(nom='Incendie Plan', risque_incendie=True)
+        plan_safe = PlanGestionFactory(nom='Safe Plan', risque_incendie=False)
 
         api_client.force_authenticate(user=admin)
         response = api_client.get('/api/plans/plans/?risque_incendie=true')
 
         assert response.status_code == status.HTTP_200_OK
-        for plan in response.data['results']:
-            assert plan['risque_incendie'] is True
+        result_ids = [p['id_pg'] for p in response.data['results']]
+        assert plan_incendie.id_pg in result_ids
+        assert plan_safe.id_pg not in result_ids
 
     def test_filter_a_geometrie(self, api_client):
         """Test filtering plans by a_geometrie=true/false."""

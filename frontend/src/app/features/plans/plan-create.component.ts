@@ -27,7 +27,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Observable, map, startWith, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -37,6 +37,7 @@ import {
   PlanCreatePayload,
   AdminOrganisme
 } from '../../core/models/admin.model';
+import { OrganismeFormModalComponent } from '../../shared/components/modals/organisme-form-modal/organisme-form-modal.component';
 
 interface NomenclatureItem {
   id_nomenclature: number;
@@ -213,7 +214,6 @@ export class PlanCreateComponent implements OnInit {
     this.filteredOrganismes$ = this.organismeCtrl.valueChanges.pipe(
       startWith(''),
       debounceTime(200),
-      distinctUntilChanged(),
       map(value => this.filterOrganismes(value || ''))
     );
   }
@@ -362,27 +362,9 @@ export class PlanCreateComponent implements OnInit {
 
   // ==================== ORGANISME REDACTEUR ====================
 
-  /** Sélectionne un organisme existant ou texte libre */
+  /** Sélectionne un organisme existant */
   selectOrganisme(event: MatAutocompleteSelectedEvent): void {
-    const value = event.option.value;
-
-    // Free text option
-    if (value?.freeText) {
-      const text = (value.freeText as string).trim();
-      if (text) {
-        this.selectedOrganisme.set({
-          type: 'text',
-          displayName: text
-        });
-      }
-      this.organismeCtrl.setValue('');
-      if (this.organismeInput) {
-        this.organismeInput.nativeElement.value = '';
-      }
-      return;
-    }
-
-    const org = value as AdminOrganisme;
+    const org = event.option.value as AdminOrganisme;
     if (org) {
       this.selectedOrganisme.set({
         type: 'organisme',
@@ -390,22 +372,9 @@ export class PlanCreateComponent implements OnInit {
         displayName: org.nom_organisme
       });
     }
-
     this.organismeCtrl.setValue('');
     if (this.organismeInput) {
       this.organismeInput.nativeElement.value = '';
-    }
-  }
-
-  /** Définit un organisme en texte libre */
-  setOrganismeFromText(): void {
-    const value = this.organismeCtrl.value?.trim();
-    if (value) {
-      this.selectedOrganisme.set({
-        type: 'text',
-        displayName: value
-      });
-      this.organismeCtrl.setValue('');
     }
   }
 
@@ -413,6 +382,29 @@ export class PlanCreateComponent implements OnInit {
   clearOrganisme(): void {
     this.selectedOrganisme.set(null);
     this.organismeCtrl.setValue('');
+  }
+
+  /** Ouvre le modal de création d'organisme */
+  openCreateOrganismeDialog(): void {
+    const dialogRef = this.dialog.open(OrganismeFormModalComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      data: { parentOrganismes: this.availableOrganismes() }
+    });
+
+    dialogRef.afterClosed().subscribe((org: any) => {
+      if (org?.id_organisme) {
+        this.availableOrganismes.update(orgs => [
+          ...orgs,
+          { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme } as AdminOrganisme
+        ]);
+        this.selectedOrganisme.set({
+          type: 'organisme',
+          organismeId: org.id_organisme,
+          displayName: org.nom_organisme
+        });
+      }
+    });
   }
 
   /** Affiche le nom de l'organisme pour l'autocomplete */
@@ -479,7 +471,10 @@ export class PlanCreateComponent implements OnInit {
       // Champs additionnels
       statut: formValue.statut,
       version: formValue.version || undefined,
-      commentaire: formValue.commentaire || undefined
+      commentaire: formValue.commentaire || undefined,
+      organismes_redacteurs_ids: orgEntry?.organismeId
+        ? [orgEntry.organismeId]
+        : []
     };
 
     this.adminService.createPlan(payload).subscribe({

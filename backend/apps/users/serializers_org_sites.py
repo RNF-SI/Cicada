@@ -108,11 +108,12 @@ class OrganismeCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BibOrganismes
         fields = [
-            'nom_organisme', 'adresse_organisme', 'cp_organisme',
+            'id_organisme', 'nom_organisme', 'adresse_organisme', 'cp_organisme',
             'ville_organisme', 'tel_organisme', 'fax_organisme',
             'email_organisme', 'url_organisme', 'url_logo',
             'parent_id'
         ]
+        read_only_fields = ['id_organisme']
     
     def validate_parent_id(self, value):
         """Valide l'organisme parent."""

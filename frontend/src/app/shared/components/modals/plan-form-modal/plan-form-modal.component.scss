@@ -486,6 +486,50 @@ mat-dialog-actions {
   }
 }
 
+// Organisme section
+.organisme-section {
+  .selected-organisme {
+    margin-top: $spacing-sm;
+  }
+}
+
+.chip-icon {
+  font-size: $font-size-small;
+  margin-right: $spacing-xxs;
+  color: $white;
+}
+
+// Chip row dans les formulaires (organisme rédacteur)
+.selected-organisme {
+  ::ng-deep {
+    .mat-mdc-chip-row {
+      background-color: $primary-color !important;
+      color: $white !important;
+
+      .mdc-evolution-chip__text-label,
+      .mat-mdc-chip-action-label {
+        color: $white !important;
+        font-family: $font-family;
+      }
+
+      .mat-mdc-chip-remove {
+        color: rgba($white, 0.7) !important;
+
+        &:hover {
+          color: $white !important;
+        }
+      }
+    }
+  }
+}
+
+// Autocomplete options
+.option-icon {
+  font-size: $font-size-base;
+  margin-right: $spacing-sm;
+  color: $gray-dark;
+}
+
 // Recherche intégrée dans mat-select
 .select-search-box {
   padding: 8px 16px;

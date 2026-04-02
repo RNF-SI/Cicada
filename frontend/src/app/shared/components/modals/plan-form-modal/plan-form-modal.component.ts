@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { MatDialogModule, MatDialogRef, MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +10,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -18,7 +18,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterModule } from '@angular/router';
+import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
+import { OrganismeFormModalComponent } from '../organisme-form-modal/organisme-form-modal.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
 import {
@@ -55,6 +57,13 @@ interface SelectableUser {
   email: string;
   role?: string;
   selected: boolean;
+}
+
+/** Représente un organisme (existant ou texte libre) */
+interface OrganismeEntry {
+  type: 'organisme' | 'text';
+  organismeId?: number;
+  displayName: string;
 }
 
 @Component({
@@ -113,14 +122,13 @@ export class PlanFormModalComponent implements OnInit {
 
   // Available organismes for rédacteur selection
   availableOrganismes = signal<{ id_organisme: number; nom_organisme: string }[]>([]);
-  selectedOrganismesRedacteursIds = signal<number[]>([]);
-  organismeSearchFilter = signal('');
-  filteredOrganismes = computed(() => {
-    const filter = this.organismeSearchFilter().toLowerCase().trim();
-    const orgs = this.availableOrganismes();
-    if (!filter) return orgs;
-    return orgs.filter(o => o.nom_organisme.toLowerCase().includes(filter));
-  });
+
+  // Organisme rédacteur principal (hybrid: organisme + free text)
+  @ViewChild('organismeInput') organismeInput!: ElementRef<HTMLInputElement>;
+  private readonly dialog = inject(MatDialog);
+  selectedOrganisme = signal<OrganismeEntry | null>(null);
+  organismeCtrl = new FormControl('');
+  filteredOrganismes$!: Observable<{ id_organisme: number; nom_organisme: string }[]>;
 
   // Selected items
   selectedSiteIds = signal<number[]>([]);
@@ -199,6 +207,23 @@ export class PlanFormModalComponent implements OnInit {
   ngOnInit(): void {
     this.initForm();
     this.loadData();
+    this.setupAutocomplete();
+  }
+
+  private setupAutocomplete(): void {
+    this.filteredOrganismes$ = this.organismeCtrl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(200),
+      map(value => this.filterOrganismesForAutocomplete(value || ''))
+    );
+  }
+
+  private filterOrganismesForAutocomplete(value: string): { id_organisme: number; nom_organisme: string }[] {
+    const filterValue = value.toLowerCase().trim();
+    if (!filterValue) return this.availableOrganismes().slice(0, 20);
+    return this.availableOrganismes().filter(org =>
+      org.nom_organisme.toLowerCase().includes(filterValue)
+    ).slice(0, 20);
   }
 
   private initForm(): void {
@@ -237,6 +262,21 @@ export class PlanFormModalComponent implements OnInit {
     }
     if (plan?.referents) {
       this.selectedReferentIds.set(plan.referents.map(r => r.id_role));
+    }
+
+    // Pre-populate organisme rédacteur in edit mode
+    if (plan?.organismes_redacteurs_list?.length) {
+      const firstOrg = plan.organismes_redacteurs_list[0];
+      this.selectedOrganisme.set({
+        type: 'organisme',
+        organismeId: firstOrg.id_organisme,
+        displayName: firstOrg.nom_organisme
+      });
+    } else if (plan?.redacteur_nom) {
+      this.selectedOrganisme.set({
+        type: 'text',
+        displayName: plan.redacteur_nom
+      });
     }
   }
 
@@ -282,14 +322,6 @@ export class PlanFormModalComponent implements OnInit {
       error: () => this.availableOrganismes.set([])
     });
 
-    // Pré-sélectionner les organismes rédacteurs en mode édition
-    const plan = this.data?.plan;
-    if (plan?.organismes_redacteurs_list) {
-      this.selectedOrganismesRedacteursIds.set(
-        plan.organismes_redacteurs_list.map(o => o.id_organisme)
-      );
-    }
-
     // Load users (referents potentiels) - if not super_admin, filter by organisme
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     const userParams = (!this.isSuperAdmin() && currentOrgId)
@@ -315,28 +347,56 @@ export class PlanFormModalComponent implements OnInit {
     });
   }
 
-  onOrganismesRedacteursChange(ids: number[]): void {
-    this.selectedOrganismesRedacteursIds.set(ids);
-  }
+  // ==================== ORGANISME REDACTEUR ====================
 
-  openCreateOrganismeDialog(): void {
-    const nom = prompt(this.translate.instant('modals.planForm.createOrganismePrompt'));
-    if (nom && nom.trim()) {
-      this.adminService.createOrganisme({ nom_organisme: nom.trim() }).subscribe({
-        next: (org) => {
-          // Ajouter le nouvel organisme à la liste et le sélectionner
-          this.availableOrganismes.update(orgs => [...orgs, { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme }]);
-          this.selectedOrganismesRedacteursIds.update(ids => [...ids, org.id_organisme]);
-        },
-        error: () => {
-          this.snackBar.open(
-            this.translate.instant('common.messages.error'),
-            this.translate.instant('common.actions.close'),
-            { duration: 3000 }
-          );
-        }
+  /** Sélectionne un organisme existant */
+  selectOrganisme(event: MatAutocompleteSelectedEvent): void {
+    const org = event.option.value;
+    if (org) {
+      this.selectedOrganisme.set({
+        type: 'organisme',
+        organismeId: org.id_organisme,
+        displayName: org.nom_organisme
       });
     }
+    this.organismeCtrl.setValue('');
+    if (this.organismeInput) this.organismeInput.nativeElement.value = '';
+  }
+
+  /** Supprime l'organisme sélectionné */
+  clearOrganisme(): void {
+    this.selectedOrganisme.set(null);
+    this.organismeCtrl.setValue('');
+  }
+
+  /** Affiche le nom de l'organisme pour l'autocomplete */
+  displayOrganismeFn(org: any): string {
+    if (!org) return '';
+    if (org.freeText) return org.freeText;
+    return org.nom_organisme || '';
+  }
+
+  /** Ouvre le modal de création d'organisme */
+  openCreateOrganismeDialog(): void {
+    const dialogRef = this.dialog.open(OrganismeFormModalComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      data: { parentOrganismes: this.availableOrganismes() }
+    });
+
+    dialogRef.afterClosed().subscribe((org: any) => {
+      if (org?.id_organisme) {
+        this.availableOrganismes.update(orgs => [
+          ...orgs,
+          { id_organisme: org.id_organisme, nom_organisme: org.nom_organisme }
+        ]);
+        this.selectedOrganisme.set({
+          type: 'organisme',
+          organismeId: org.id_organisme,
+          displayName: org.nom_organisme
+        });
+      }
+    });
   }
 
   private getRoleLabel(roleLevel?: string): string {
@@ -465,7 +525,7 @@ export class PlanFormModalComponent implements OnInit {
       date_validation_cspn: dateValidationCspn,
       id_docgestion_fcen: formValue.id_docgestion_fcen || undefined,
       id_redacteur_type: formValue.id_redacteur_type || undefined,
-      redacteur_nom: formValue.redacteur_nom || undefined,
+      redacteur_nom: this.selectedOrganisme()?.displayName || formValue.redacteur_nom || undefined,
       redacteurs: formValue.redacteurs || undefined,
       relecteurs: formValue.relecteurs || undefined,
       autres_contributeurs: formValue.autres_contributeurs || undefined,
@@ -478,7 +538,9 @@ export class PlanFormModalComponent implements OnInit {
       id_evaluation: formValue.id_evaluation || undefined,
       commentaire: formValue.commentaire || undefined,
       referents_ids: this.selectedReferentIds(),
-      organismes_redacteurs_ids: this.selectedOrganismesRedacteursIds()
+      organismes_redacteurs_ids: this.selectedOrganisme()?.organismeId
+        ? [this.selectedOrganisme()!.organismeId!]
+        : []
     };
 
     const request$ = this.isEditMode

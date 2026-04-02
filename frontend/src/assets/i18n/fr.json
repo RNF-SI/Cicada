@@ -1348,6 +1348,7 @@
       },
       "organismesRedacteurs": "Organismes rédacteurs",
       "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
+      "organismeRedacteur": "Organisme rédacteur principal",
       "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
