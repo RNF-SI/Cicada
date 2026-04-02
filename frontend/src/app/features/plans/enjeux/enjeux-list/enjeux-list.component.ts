@@ -2605,6 +2605,7 @@ export class EnjeuxListComponent implements OnInit {
     this.newOoIndicateurStandardise = false;
     this.newOoIndicateurDescription = '';
     this.ooIndicateurFormMetriques = [];
+    this.loadTypeMetriqueOptions();
   }
 
   cancelAddIndicateurForRa(): void {
@@ -2683,6 +2684,7 @@ export class EnjeuxListComponent implements OnInit {
     this.editOoIndicateurType = indicateur.type_indicateur || null;
     this.editOoIndicateurStandardise = indicateur.est_standardise;
     this.editOoIndicateurDescription = indicateur.description || '';
+    this.loadTypeMetriqueOptions();
     this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m =>
       this.metriqueToFormData(m)
     );
