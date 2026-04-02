@@ -49,8 +49,8 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = IndicateurFilter
     search_fields = ['nom_indicateur', 'description']
-    ordering_fields = ['nom_indicateur', 'date_ajout', 'date_maj']
-    ordering = ['nom_indicateur']
+    ordering_fields = ['nom_indicateur', 'date_ajout', 'date_maj', 'id_indicateur']
+    ordering = ['id_indicateur']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -145,8 +145,8 @@ class MetriqueViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MetriqueFilter
     search_fields = ['nom_metrique', 'description']
-    ordering_fields = ['nom_metrique', 'date_ajout', 'date_maj']
-    ordering = ['nom_metrique']
+    ordering_fields = ['nom_metrique', 'date_ajout', 'date_maj', 'id_metrique']
+    ordering = ['id_metrique']
 
     def get_serializer_class(self):
         if self.action == 'list':

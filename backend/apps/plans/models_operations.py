@@ -586,7 +586,7 @@ class Operation(models.Model):
         db_table_comment = "Opérations (actions) des plans de gestion"
         verbose_name = _("Opération")
         verbose_name_plural = _("Opérations")
-        ordering = ['libelle']
+        ordering = ['id_operation']
 
     def __str__(self):
         return self.libelle

@@ -54,8 +54,8 @@ class OperationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = OperationFilter
     search_fields = ['libelle', 'description', 'code_operation']
-    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'annee_min']
-    ordering = ['libelle']
+    ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'annee_min', 'id_operation']
+    ordering = ['id_operation']
 
     def get_serializer_class(self):
         if self.action == 'list':

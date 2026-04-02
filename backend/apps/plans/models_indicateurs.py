@@ -88,7 +88,7 @@ class Indicateur(models.Model):
         db_table_comment = "Indicateurs des niveaux d'exigence et résultats attendus"
         verbose_name = _("Indicateur")
         verbose_name_plural = _("Indicateurs")
-        ordering = ['nom_indicateur']
+        ordering = ['id_indicateur']
 
     def clean(self):
         """Valider qu'au moins un parent est défini."""
@@ -417,7 +417,7 @@ class Metrique(models.Model):
         db_table_comment = "Métriques des indicateurs"
         verbose_name = _("Métrique")
         verbose_name_plural = _("Métriques")
-        ordering = ['nom_metrique']
+        ordering = ['id_metrique']
 
     def __str__(self):
         return f"{self.nom_metrique} ({self.id_indicateur})"

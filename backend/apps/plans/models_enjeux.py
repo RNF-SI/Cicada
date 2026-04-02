@@ -304,7 +304,7 @@ class Enjeu(models.Model):
         db_table_comment = 'Enjeux et Facteurs Clés de Réussite des plans de gestion'
         verbose_name = _("Enjeu / FCR")
         verbose_name_plural = _("Enjeux / FCR")
-        ordering = ['rang', 'libelle']
+        ordering = ['id_enjeu']
         unique_together = [('id_pg', 'slug'), ('id_pg', 'libelle')]
 
     @property
@@ -540,7 +540,7 @@ class ObjectifLongTerme(models.Model):
         db_table_comment = "Objectifs à long terme des enjeux"
         verbose_name = _("Objectif à long terme")
         verbose_name_plural = _("Objectifs à long terme")
-        ordering = ['libelle']
+        ordering = ['id_olt']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
@@ -597,7 +597,7 @@ class NiveauExigence(models.Model):
         db_table_comment = "Niveaux d'exigence des objectifs à long terme"
         verbose_name = _("Niveau d'exigence")
         verbose_name_plural = _("Niveaux d'exigence")
-        ordering = ['libelle']
+        ordering = ['id_ne']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_olt})"
@@ -656,7 +656,7 @@ class ObjectifOperationnel(models.Model):
         db_table_comment = "Objectifs opérationnels des pressions"
         verbose_name = _("Objectif opérationnel")
         verbose_name_plural = _("Objectifs opérationnels")
-        ordering = ['libelle']
+        ordering = ['id_oo']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_pression})"
@@ -714,7 +714,7 @@ class ResultatAttendu(models.Model):
         db_table_comment = "Résultats attendus des objectifs opérationnels"
         verbose_name = _("Résultat attendu")
         verbose_name_plural = _("Résultats attendus")
-        ordering = ['libelle']
+        ordering = ['id_ra']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_oo})"
