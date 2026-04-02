@@ -414,9 +414,9 @@ export interface AdminPlan {
   date_validation_cspn?: string;
   id_docgestion_fcen?: string;
   id_evaluation?: number;
-  evaluation_label?: string;
+  evaluation_display?: string;
   id_redacteur_type?: number;
-  redacteur_type_label?: string;
+  redacteur_type_display?: string;
   redacteur_nom?: string;
   redacteurs?: string;
   relecteurs?: string;

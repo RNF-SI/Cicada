@@ -20,7 +20,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from .serializers import (
     PlanGestionListSerializer, PlanGestionDetailSerializer,
-    PlanGestionGeoJSONSerializer, PlanGestionCreateSerializer,
+    PlanGestionGeoJSONSerializer,
     PlanDuplicateOptionsSerializer,
     CorSitePgSerializer, CorPgFichierSerializer
 )
@@ -82,10 +82,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """Choisir le serializer selon l'action."""
         if self.action == 'list':
             return PlanGestionListSerializer
-        elif self.action == 'create':
-            return PlanGestionCreateSerializer
-        else:
-            return PlanGestionDetailSerializer
+        return PlanGestionDetailSerializer
     
     def get_queryset(self):
         """Filtrer selon les permissions utilisateur.

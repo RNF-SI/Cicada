@@ -4,6 +4,7 @@ Serializers pour l'API REST Plans de Gestion.
 from rest_framework import serializers
 from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from django.utils.translation import gettext_lazy as _
 
 from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan, CorRedacteurPlan
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
@@ -248,8 +249,6 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     utilisateur_maj = RoleBasicSerializer(source='id_utilisateur_maj', read_only=True)
 
     # IDs pour création/modification
-    evaluation_id = serializers.IntegerField(source='id_evaluation.id_nomenclature', write_only=True, required=False, allow_null=True)
-    redacteur_type_id = serializers.IntegerField(source='id_redacteur_type.id_nomenclature', write_only=True, required=False, allow_null=True)
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
@@ -307,7 +306,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'annee_debut', 'annee_fin', 'periode_gestion',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
-            'evaluation_id', 'evaluation_display', 'redacteur_type_id', 'redacteur_type_display',
+            'id_evaluation', 'evaluation_display', 'id_redacteur_type', 'redacteur_type_display',
             'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'statut_display', 'version',
             'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
@@ -322,22 +321,17 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'id_pg', 'slug', 'date_ajout', 'date_maj'
         ]
     
+    def validate(self, data):
+        """Validation spécifique à la création (sites obligatoires)."""
+        if not self.instance and not data.get('sites_ids'):
+            raise serializers.ValidationError({'sites_ids': _("Au moins un site est requis.")})
+        return data
+
     def create(self, validated_data):
         """Créer un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', [])
         referents_ids = validated_data.pop('referents_ids', [])
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', [])
-
-        # Résoudre les IDs des nomenclatures
-        if 'id_evaluation' in validated_data:
-            from apps.core.models import Nomenclature
-            eval_id = validated_data['id_evaluation']['id_nomenclature']
-            validated_data['id_evaluation'] = Nomenclature.objects.get(id_nomenclature=eval_id)
-
-        if 'id_redacteur_type' in validated_data:
-            from apps.core.models import Nomenclature
-            red_id = validated_data['id_redacteur_type']['id_nomenclature']
-            validated_data['id_redacteur_type'] = Nomenclature.objects.get(id_nomenclature=red_id)
 
         plan = super().create(validated_data)
 
@@ -372,17 +366,6 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         sites_ids = validated_data.pop('sites_ids', None)
         referents_ids = validated_data.pop('referents_ids', None)
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', None)
-
-        # Résoudre les IDs des nomenclatures
-        if 'id_evaluation' in validated_data:
-            from apps.core.models import Nomenclature
-            eval_id = validated_data['id_evaluation']['id_nomenclature']
-            validated_data['id_evaluation'] = Nomenclature.objects.get(id_nomenclature=eval_id)
-
-        if 'id_redacteur_type' in validated_data:
-            from apps.core.models import Nomenclature
-            red_id = validated_data['id_redacteur_type']['id_nomenclature']
-            validated_data['id_redacteur_type'] = Nomenclature.objects.get(id_nomenclature=red_id)
 
         plan = super().update(instance, validated_data)
 
