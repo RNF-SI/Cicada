@@ -214,9 +214,13 @@ class TestIndicateurDetail:
         assert 'score_2_sup_inclusive' in metrique_data
         assert 'score_3_sup_inclusive' in metrique_data
         assert 'score_4_sup_inclusive' in metrique_data
+        assert 'has_borne_score1' in metrique_data
+        assert 'has_borne_score5' in metrique_data
         # Defaults should be returned
         assert metrique_data['sens_variation'] == 'CROISSANT'
         assert metrique_data['score_1_sup_inclusive'] is True
+        assert metrique_data['has_borne_score1'] is False
+        assert metrique_data['has_borne_score5'] is False
 
     def test_nb_metriques_correct(self, api_client, indicateur_test_data):
         """Test nb_metriques is correct."""
@@ -386,6 +390,8 @@ class TestMetriqueCreate:
         assert metrique.score_2_sup_inclusive is True
         assert metrique.score_3_sup_inclusive is True
         assert metrique.score_4_sup_inclusive is True
+        assert metrique.has_borne_score1 is False
+        assert metrique.has_borne_score5 is False
 
     def test_create_with_direction_and_inclusivity(self, api_client, indicateur_test_data):
         """Test create a metrique with explicit sens_variation and inclusivity fields."""
@@ -399,6 +405,8 @@ class TestMetriqueCreate:
             'score_2_sup_inclusive': True,
             'score_3_sup_inclusive': False,
             'score_4_sup_inclusive': True,
+            'has_borne_score1': True,
+            'has_borne_score5': False,
             'score_1_inf': '0.0000',
             'score_1_sup': '10.0000',
             'score_2_inf': '10.0000',
@@ -411,6 +419,8 @@ class TestMetriqueCreate:
         assert metrique.score_2_sup_inclusive is True
         assert metrique.score_3_sup_inclusive is False
         assert metrique.score_4_sup_inclusive is True
+        assert metrique.has_borne_score1 is True
+        assert metrique.has_borne_score5 is False
 
     def test_non_referent_denied(self, api_client, indicateur_test_data):
         """Test non-referent cannot create."""

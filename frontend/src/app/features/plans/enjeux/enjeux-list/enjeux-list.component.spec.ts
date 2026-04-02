@@ -1406,12 +1406,14 @@ describe('EnjeuxListComponent', () => {
       expect(payload.nom_metrique).toBe('Test');
       expect(payload.unite).toBe('kg');
       expect(payload.ponderation).toBe(0.5);
-      // Direction and inclusivity fields included for NUMERIQUE
+      // Direction, inclusivity and bound checkboxes included for NUMERIQUE
       expect(payload.sens_variation).toBe('CROISSANT');
       expect(payload.score_1_sup_inclusive).toBe(true);
       expect(payload.score_2_sup_inclusive).toBe(true);
       expect(payload.score_3_sup_inclusive).toBe(true);
       expect(payload.score_4_sup_inclusive).toBe(true);
+      expect(payload.has_borne_score1).toBe(false);
+      expect(payload.has_borne_score5).toBe(false);
     });
 
     it('should return score range with bracket notation', () => {
@@ -1433,16 +1435,22 @@ describe('EnjeuxListComponent', () => {
       expect(component.getScoreRange(met, 2)).toBe(']20\u00A0;\u00A040]');
     });
 
-    it('should return open interval for inf only', () => {
-      // Level 1, inf only: [5 ; +infinity[
+    it('should return compact notation for inf only (open upper bound)', () => {
+      // Level 1, inf only: ≥ 5
       const met = { score_1_inf: 5 };
-      expect(component.getScoreRange(met, 1)).toBe('[5\u00A0;\u00A0+\u221E[');
+      expect(component.getScoreRange(met, 1)).toBe('≥\u00A05');
     });
 
-    it('should return open interval for sup only', () => {
-      // Level 1, sup only: ]-infinity ; 10]
+    it('should return compact notation for sup only (open lower bound)', () => {
+      // Level 1, sup only: ≤ 10
       const met = { score_1_sup: 10 };
-      expect(component.getScoreRange(met, 1)).toBe(']-\u221E\u00A0;\u00A010]');
+      expect(component.getScoreRange(met, 1)).toBe('≤\u00A010');
+    });
+
+    it('should return compact notation with exclusive sup', () => {
+      // Level 1, sup only, exclusive: < 10
+      const met = { score_1_sup: 10, score_1_sup_inclusive: false };
+      expect(component.getScoreRange(met, 1)).toBe('<\u00A010');
     });
 
     it('should return dash for no scores', () => {
