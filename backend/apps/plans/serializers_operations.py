@@ -358,6 +358,8 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     periodicite = serializers.BooleanField(default=False)
     budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
+    budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
     geom = serializers.JSONField(required=False, allow_null=True, default=None)
     organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])

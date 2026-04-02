@@ -2080,6 +2080,13 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   /**
+   * Check if an operation uses by_type ventilation (fonctionnement/investissement without organismes).
+   */
+  isTypeBudgetMode(op: Operation): boolean {
+    return op.ventilation_mode === 'by_type';
+  }
+
+  /**
    * Check if an operation has per-organisme data in any of its annees.
    */
   hasOrganismeData(op: Operation): boolean {

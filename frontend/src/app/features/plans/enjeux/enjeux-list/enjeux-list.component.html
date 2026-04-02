@@ -1144,6 +1144,32 @@
                                                                   <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
                                                                 }
                                                               </tr>
+                                                            } @else if (isTypeBudgetMode(op)) {
+                                                              <!-- By type: fonctionnement/investissement without organismes -->
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
                                                             } @else {
                                                               <!-- Flat budget/travail (no per-org data) -->
                                                               <tr>
@@ -2179,6 +2205,32 @@
                                                         <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
                                                         @for (year of getPlanYears(); track year) {
                                                           <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                        }
+                                                      </tr>
+                                                    } @else if (isTypeBudgetMode(op)) {
+                                                      <!-- By type: fonctionnement/investissement without organismes -->
+                                                      <tr>
+                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
+                                                        }
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
+                                                        }
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                        }
+                                                      </tr>
+                                                      <tr>
+                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                        @for (year of getPlanYears(); track year) {
+                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
                                                         }
                                                       </tr>
                                                     } @else {
