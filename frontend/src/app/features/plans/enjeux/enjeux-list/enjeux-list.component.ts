@@ -2170,6 +2170,8 @@ export class EnjeuxListComponent implements OnInit {
     if (!slug) return;
     const queryParams: any = {};
     if (metriqueId) queryParams.metriqueId = metriqueId;
+    const enjeuSlug = this.selectedEnjeuSlug();
+    if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
     const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
