@@ -407,10 +407,10 @@ class TestMetriqueCreate:
             'score_4_sup_inclusive': True,
             'has_borne_score1': True,
             'has_borne_score5': False,
-            'score_1_inf': '0.0000',
-            'score_1_sup': '10.0000',
-            'score_2_inf': '10.0000',
-            'score_2_sup': '25.0000',
+            'score_1_inf': '10.0000',
+            'score_1_sup': '25.0000',
+            'score_2_inf': '0.0000',
+            'score_2_sup': '10.0000',
         })
         assert response.status_code == status.HTTP_201_CREATED
         metrique = Metrique.objects.get(nom_metrique='Métrique Décroissante')

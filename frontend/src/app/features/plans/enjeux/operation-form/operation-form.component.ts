@@ -1214,7 +1214,7 @@ export class OperationFormComponent implements OnInit {
   onCampanuleSelected(event: any): void {
     const selected: CampanuleAutocomplete = event.option.value;
     this.selectedCampanule.set(selected);
-    this.campanuleSearchCtrl.setValue(selected.lb_protocole_court, { emitEvent: false });
+    // Ne pas appeler setValue ici : Angular Material gère l'affichage via displayWith
 
     this.form.patchValue({
       protocole_campanule_nom: selected.lb_protocole_court,
