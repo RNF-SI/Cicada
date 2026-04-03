@@ -1737,7 +1737,6 @@ class EnjeuxSeeder(BaseSeeder):
 
             pression_urbain = Pression.objects.filter(id_facteur_influence=facteur_urbain).first()
             oo, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_urbain,
                 libelle='Réduire la pression urbaine sur les zones humides',
                 defaults={
                     'description': 'Mettre en place des mesures de protection et de gestion '
@@ -1745,6 +1744,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_urbain:
+                oo.pressions.add(pression_urbain)
             oos_created.append(oo)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo.libelle[:50]}')
 
@@ -1774,7 +1775,6 @@ class EnjeuxSeeder(BaseSeeder):
 
             pression_hydro = Pression.objects.filter(id_facteur_influence=facteur_hydro).first()
             oo2, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_hydro,
                 libelle='Restaurer le régime hydrologique naturel',
                 defaults={
                     'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
@@ -1782,6 +1782,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_hydro:
+                oo2.pressions.add(pression_hydro)
             oos_created.append(oo2)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo2.libelle[:50]}')
 
@@ -1803,7 +1805,6 @@ class EnjeuxSeeder(BaseSeeder):
         if enjeu_tourbieres:
             pression_assechement = Pression.objects.filter(id_facteur_influence=facteur_assechement).first()
             oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_assechement,
                 libelle='Maintenir le niveau piézométrique des tourbières',
                 defaults={
                     'description': 'Surveiller et maintenir le niveau piézométrique '
@@ -1811,6 +1812,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_assechement:
+                oo_tourb.pressions.add(pression_assechement)
             oos_created.append(oo_tourb)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_tourb.libelle[:50]}')
 
@@ -1864,7 +1867,6 @@ class EnjeuxSeeder(BaseSeeder):
                 )
                 pressions_created.append(pression_colonisation)
             oo_veg, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_colonisation,
                 libelle='Restaurer les communautés végétales turficoles',
                 defaults={
                     'description': 'Favoriser la recolonisation par les sphaignes et espèces '
@@ -1872,6 +1874,11 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_colonisation:
+                oo_veg.pressions.add(pression_colonisation)
+            # Also link to assechement pression to test M2M multi-link
+            if pression_assechement:
+                oo_veg.pressions.add(pression_assechement)
             oos_created.append(oo_veg)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_veg.libelle[:50]}')
 
@@ -1893,7 +1900,6 @@ class EnjeuxSeeder(BaseSeeder):
         if enjeu_qualite:
             pression_agricole = Pression.objects.filter(id_facteur_influence=facteur_agricole).first()
             oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_agricole,
                 libelle='Réduire les apports en nutriments d\'origine agricole',
                 defaults={
                     'description': 'Réduire de 30% les flux de phosphore et d\'azote '
@@ -1901,6 +1907,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_agricole:
+                oo_qualite.pressions.add(pression_agricole)
             oos_created.append(oo_qualite)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_qualite.libelle[:50]}')
 
@@ -1955,7 +1963,6 @@ class EnjeuxSeeder(BaseSeeder):
                 )
                 pressions_created.append(pression_eee)
             oo_eee, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_eee,
                 libelle='Contenir l\'expansion de la Renouée du Japon',
                 defaults={
                     'description': 'Empêcher la progression des 3 stations connues de Renouée '
@@ -1963,6 +1970,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_eee:
+                oo_eee.pressions.add(pression_eee)
             oos_created.append(oo_eee)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_eee.libelle[:50]}')
 

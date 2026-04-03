@@ -1688,15 +1688,19 @@
                       </mat-form-field>
                       <mat-form-field class="full-width" appearance="outline">
                         <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
-                        <mat-select [(ngModel)]="editOoPressionId" required>
-                          @for (p of selectedPressions(); track p.id_pression) {
-                            <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                        <mat-select [(ngModel)]="editOoPressionIds" multiple required>
+                          @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
+                            <mat-optgroup [label]="fi.libelle">
+                              @for (p of fi.pressions || []; track p.id_pression) {
+                                <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                              }
+                            </mat-optgroup>
                           }
                         </mat-select>
                       </mat-form-field>
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || !editOoPressionId">
+                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || editOoPressionIds.length === 0">
                         {{ 'common.actions.save' | translate }}
                       </button>
                       <button mat-stroked-button (click)="cancelEditOo()">
@@ -1733,16 +1737,19 @@
                         <p class="olt-description">{{ oo.description }}</p>
                       }
 
-                      <!-- Facteur d'influence et pression associés -->
-                      @if (oo.facteur_influence_libelle) {
-                        <p class="oo-facteur-info">
-                          {{ 'enjeux.oo.facteurDescription' | translate }} : <strong>{{ oo.facteur_influence_libelle }}</strong>
-                        </p>
-                      }
-                      @if (oo.pression_libelle) {
-                        <p class="oo-facteur-info">
-                          {{ 'enjeux.oo.pressionLabel' | translate }} : <strong>{{ oo.pression_libelle }}</strong>
-                        </p>
+                      <!-- Pressions associées (M2M) -->
+                      @if (oo.pressions && oo.pressions.length > 0) {
+                        <div class="oo-pressions-chips">
+                          <span class="oo-pressions-label">{{ 'enjeux.oo.pressionLabel' | translate }} :</span>
+                          @for (p of oo.pressions; track p.id_pression) {
+                            <span class="oo-pression-chip" [title]="p.facteur_influence_libelle ? ('enjeux.oo.facteurDescription' | translate) + ' : ' + p.facteur_influence_libelle : ''">
+                              @if (p.facteur_influence_libelle) {
+                                <span class="oo-pression-chip-facteur">{{ p.facteur_influence_libelle }} ›</span>
+                              }
+                              {{ p.libelle }}
+                            </span>
+                          }
+                        </div>
                       }
 
                       <!-- Résultats attendus -->
@@ -2671,24 +2678,20 @@
                       <textarea matInput [(ngModel)]="newOoDescription" rows="2"></textarea>
                     </mat-form-field>
                     <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.facteurLabel' | translate }}</mat-label>
-                      <mat-select [ngModel]="newOoFacteurFilterId()" (ngModelChange)="newOoFacteurFilterId.set($event); newOoPressionId = null">
-                        @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
-                          <mat-option [value]="fi.id_facteur_influence">{{ fi.libelle }}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                    <mat-form-field class="full-width" appearance="outline">
                       <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
-                      <mat-select [(ngModel)]="newOoPressionId" required [disabled]="!newOoFacteurFilterId()">
-                        @for (p of filteredPressionsForNewOo(); track p.id_pression) {
-                          <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                      <mat-select [(ngModel)]="newOoPressionIds" multiple required>
+                        @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
+                          <mat-optgroup [label]="fi.libelle">
+                            @for (p of fi.pressions || []; track p.id_pression) {
+                              <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                            }
+                          </mat-optgroup>
                         }
                       </mat-select>
                     </mat-form-field>
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || !newOoPressionId">
+                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || newOoPressionIds.length === 0">
                       {{ 'common.actions.save' | translate }}
                     </button>
                     <button mat-stroked-button (click)="cancelAddOo()">

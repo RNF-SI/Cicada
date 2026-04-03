@@ -286,13 +286,13 @@ class OperationListSerializer(serializers.ModelSerializer):
         return None
 
     def _get_enjeu_and_oo_via_ra(self, indicateur):
-        """Traverse RA path: Indicateur → RA → OO → Pression → FI → Enjeu."""
+        """Traverse RA path: Indicateur → RA → OO → Pressions (M2M) → FI → Enjeu."""
         try:
             ra = indicateur.id_resultat_attendu
-            if ra and ra.id_oo and ra.id_oo.id_pression and ra.id_oo.id_pression.id_facteur_influence:
-                fi = ra.id_oo.id_pression.id_facteur_influence
-                if fi.id_enjeu:
-                    return fi.id_enjeu, ra.id_oo.id_oo
+            if ra and ra.id_oo:
+                pression = ra.id_oo.pressions.select_related('id_facteur_influence__id_enjeu').first()
+                if pression and pression.id_facteur_influence and pression.id_facteur_influence.id_enjeu:
+                    return pression.id_facteur_influence.id_enjeu, ra.id_oo.id_oo
         except AttributeError:
             pass
         return None, None

@@ -199,11 +199,10 @@ export class EnjeuxListComponent implements OnInit {
   editingOoId = signal<number | null>(null);
   newOoLibelle = '';
   newOoDescription = '';
-  newOoFacteurFilterId = signal<number | null>(null);
-  newOoPressionId: number | null = null;
+  newOoPressionIds: number[] = [];
   editOoLibelle = '';
   editOoDescription = '';
-  editOoPressionId: number | null = null;
+  editOoPressionIds: number[] = [];
 
   // Résultat Attendu state
   addingRaForOo = signal<number | null>(null);
@@ -605,9 +604,16 @@ export class EnjeuxListComponent implements OnInit {
     return (enjeu.facteurs_influence || []).flatMap(fi => fi.pressions || []);
   });
 
-  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions)
+  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions, dédupliqués)
   selectedOos = computed(() => {
-    return this.selectedPressions().flatMap(p => p.objectifs_operationnels || []);
+    const seen = new Set<number>();
+    return this.selectedPressions()
+      .flatMap(p => p.objectifs_operationnels || [])
+      .filter(oo => {
+        if (seen.has(oo.id_oo)) return false;
+        seen.add(oo.id_oo);
+        return true;
+      });
   });
 
   totalOoCount = computed(() => {
@@ -2356,37 +2362,26 @@ export class EnjeuxListComponent implements OnInit {
     return this.expandedOoIds().has(id);
   }
 
-  // Computed pour filtrer les pressions par facteur d'influence sélectionné
-  filteredPressionsForNewOo = computed(() => {
-    const facteurId = this.newOoFacteurFilterId();
-    if (!facteurId) return [];
-    return this.selectedPressions().filter(
-      p => p.id_facteur_influence === facteurId
-    );
-  });
-
   startAddOo(): void {
     this.addingOo.set(true);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId.set(null);
-    this.newOoPressionId = null;
+    this.newOoPressionIds = [];
   }
 
   cancelAddOo(): void {
     this.addingOo.set(false);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId.set(null);
-    this.newOoPressionId = null;
+    this.newOoPressionIds = [];
   }
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim() || !this.newOoPressionId) return;
+    if (!enjeu || !this.newOoLibelle.trim() || this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({
-      id_pression: this.newOoPressionId,
+      pression_ids: this.newOoPressionIds,
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -2409,21 +2404,21 @@ export class EnjeuxListComponent implements OnInit {
     this.editingOoId.set(oo.id_oo);
     this.editOoLibelle = oo.libelle;
     this.editOoDescription = oo.description || '';
-    this.editOoPressionId = oo.id_pression;
+    this.editOoPressionIds = [...(oo.pression_ids || [])];
   }
 
   cancelEditOo(): void {
     this.editingOoId.set(null);
     this.editOoLibelle = '';
     this.editOoDescription = '';
-    this.editOoPressionId = null;
+    this.editOoPressionIds = [];
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim() || !this.editOoPressionId) return;
+    if (!this.editOoLibelle.trim() || this.editOoPressionIds.length === 0) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      id_pression: this.editOoPressionId,
+      pression_ids: this.editOoPressionIds,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({

@@ -17,6 +17,7 @@ from .models_enjeux import (
     NiveauExigence,
     ObjectifOperationnel,
     ResultatAttendu,
+    CorOoPression,
     CorResponsabiliteTaxon,
     CorResponsabiliteHabitat,
     CorResponsabiliteGeologie,

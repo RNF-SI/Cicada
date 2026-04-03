@@ -578,9 +578,9 @@ class TestOOPressionRemap:
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
         pression = PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
         ObjectifOperationnelFactory(
-            id_pression=pression,
             libelle='OO linked',
             id_utilisateur_ajout=user,
+            pressions=[pression],
         )
 
         new_plan = PlanDuplicationService.duplicate_plan(
@@ -592,16 +592,17 @@ class TestOOPressionRemap:
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
         new_pression = Pression.objects.get(id_facteur_influence=new_fi)
-        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
-        # The FK must point to the NEW pression, not the old one
-        assert new_oo.id_pression == new_pression
-        assert new_oo.id_pression_id != pression.id_pression
+        new_oo = new_pression.objectifs_operationnels.first()
+        assert new_oo is not None
+        assert new_oo.libelle == 'OO linked'
+        assert new_pression in new_oo.pressions.all()
+        assert pression not in new_oo.pressions.all()
 
     def test_oo_resultat_attendu_indicateur_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
         pression = PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
-        oo = ObjectifOperationnelFactory(id_pression=pression, id_utilisateur_ajout=user)
+        oo = ObjectifOperationnelFactory(id_utilisateur_ajout=user, pressions=[pression])
         ra = ResultatAttenduFactory(id_oo=oo, libelle='RA A', id_utilisateur_ajout=user)
         ind = IndicateurPressionFactory(id_resultat_attendu=ra, nom_indicateur='Ind OO', id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind, nom_metrique='Met OO', id_utilisateur_ajout=user)
@@ -615,7 +616,8 @@ class TestOOPressionRemap:
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
         new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
         new_pression = Pression.objects.get(id_facteur_influence=new_fi)
-        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
+        new_oo = new_pression.objectifs_operationnels.first()
+        assert new_oo is not None
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         assert new_ra.libelle == 'RA A'
 
@@ -817,7 +819,7 @@ class TestFullHierarchyDuplication:
         # OO linked to Pression under FI + RA + Indicateur (on RA) + Metrique
         pression = Pression.objects.filter(id_facteur_influence=fi).first()
         oo = ObjectifOperationnelFactory(
-            id_pression=pression, id_utilisateur_ajout=user
+            id_utilisateur_ajout=user, pressions=[pression]
         )
         ra = ResultatAttenduFactory(id_oo=oo, id_utilisateur_ajout=user)
         ind_ra = IndicateurPressionFactory(id_resultat_attendu=ra, id_utilisateur_ajout=user)
@@ -862,9 +864,10 @@ class TestFullHierarchyDuplication:
         assert Metrique.objects.filter(id_indicateur=new_ind_ne).count() == 1
         assert CorIndicateurTaxon.objects.filter(id_indicateur=new_ind_ne).count() == 1
 
-        # Verify OO chain under pression
+        # Verify OO chain under pression (M2M)
         new_pression = Pression.objects.filter(id_facteur_influence=new_fi).first()
-        new_oo = ObjectifOperationnel.objects.get(id_pression=new_pression)
+        new_oo = new_pression.objectifs_operationnels.first()
+        assert new_oo is not None
         new_ra = ResultatAttendu.objects.get(id_oo=new_oo)
         new_ind_ra = Indicateur.objects.get(id_resultat_attendu=new_ra)
         assert Metrique.objects.filter(id_indicateur=new_ind_ra).count() == 1

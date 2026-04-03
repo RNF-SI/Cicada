@@ -176,10 +176,16 @@ class ObjectifOperationnelFactory(DjangoModelFactory):
     class Meta:
         model = ObjectifOperationnel
 
-    id_pression = factory.SubFactory(PressionFactory)
     libelle = factory.Sequence(lambda n: f'OO Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+    @factory.post_generation
+    def pressions(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            self.pressions.set(extracted)
 
 
 class ResultatAttenduFactory(DjangoModelFactory):

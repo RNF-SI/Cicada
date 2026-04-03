@@ -60,13 +60,15 @@ def oo_test_data(db):
         id_utilisateur_ajout=referent
     )
     oo1 = ObjectifOperationnelFactory(
-        id_pression=pression1, libelle='OO Réduire pressions',
+        libelle='OO Réduire pressions',
         description='Réduire les pressions anthropiques',
-        id_utilisateur_ajout=referent
+        id_utilisateur_ajout=referent,
+        pressions=[pression1]
     )
     oo2 = ObjectifOperationnelFactory(
-        id_pression=pression2, libelle='OO Restaurer habitats',
-        id_utilisateur_ajout=referent
+        libelle='OO Restaurer habitats',
+        id_utilisateur_ajout=referent,
+        pressions=[pression2]
     )
     ra1 = ResultatAttenduFactory(
         id_oo=oo1, libelle='RA Surface restaurée',
@@ -156,40 +158,42 @@ class TestObjectifOperationnelCreate:
         """Test referent can create an OO."""
         api_client.force_authenticate(user=oo_test_data['referent'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_pression': oo_test_data['pression1'].id_pression,
+            'pression_ids': [oo_test_data['pression1'].id_pression],
             'libelle': 'Nouvel OO',
             'description': 'Description test',
-        })
+        }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         assert ObjectifOperationnel.objects.filter(libelle='Nouvel OO').exists()
 
-    def test_referent_creates_with_pression(self, api_client, oo_test_data):
-        """Test referent can create an OO linked to a pression."""
+    def test_referent_creates_with_multiple_pressions(self, api_client, oo_test_data):
+        """Test referent can create an OO linked to multiple pressions."""
         api_client.force_authenticate(user=oo_test_data['referent'])
+        p1_id = oo_test_data['pression1'].id_pression
+        p2_id = oo_test_data['pression2'].id_pression
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_pression': oo_test_data['pression1'].id_pression,
-            'libelle': 'OO avec Pression',
-        })
+            'pression_ids': [p1_id, p2_id],
+            'libelle': 'OO Multi-Pression',
+        }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
-        oo = ObjectifOperationnel.objects.get(libelle='OO avec Pression')
-        assert oo.id_pression == oo_test_data['pression1']
+        oo = ObjectifOperationnel.objects.get(libelle='OO Multi-Pression')
+        assert set(oo.pressions.values_list('id_pression', flat=True)) == {p1_id, p2_id}
 
     def test_non_referent_denied(self, api_client, oo_test_data):
         """Test non-referent cannot create."""
         api_client.force_authenticate(user=oo_test_data['user'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_pression': oo_test_data['pression1'].id_pression,
+            'pression_ids': [oo_test_data['pression1'].id_pression],
             'libelle': 'Should Fail',
-        })
+        }, format='json')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_audit_fields_set(self, api_client, oo_test_data):
         """Test audit fields are set on create."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
-            'id_pression': oo_test_data['pression1'].id_pression,
+            'pression_ids': [oo_test_data['pression1'].id_pression],
             'libelle': 'OO Audit',
-        })
+        }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         oo = ObjectifOperationnel.objects.get(libelle='OO Audit')
         assert oo.id_utilisateur_ajout == oo_test_data['super_admin']
@@ -216,12 +220,16 @@ class TestObjectifOperationnelDetail:
         assert 'resultats_attendus' in response.data
         assert len(response.data['resultats_attendus']) >= 2
 
-    def test_detail_includes_facteur_libelle(self, api_client, oo_test_data):
-        """Test detail includes facteur d'influence libelle."""
+    def test_detail_includes_pressions(self, api_client, oo_test_data):
+        """Test detail includes pressions M2M with facteur libelle."""
         api_client.force_authenticate(user=oo_test_data['super_admin'])
         oo_id = oo_test_data['oo1'].id_oo
         response = api_client.get(f'/api/plans/objectifs-operationnels/{oo_id}/')
-        assert response.data['facteur_influence_libelle'] == 'Facteur Urbanisation'
+        assert 'pressions' in response.data
+        assert len(response.data['pressions']) >= 1
+        assert response.data['pressions'][0]['facteur_influence_libelle'] == 'Facteur Urbanisation'
+        assert 'pression_ids' in response.data
+        assert oo_test_data['pression1'].id_pression in response.data['pression_ids']
 
     def test_nb_resultats_attendus_correct(self, api_client, oo_test_data):
         """Test nb_resultats_attendus is correct."""
