@@ -364,17 +364,41 @@ export class OperationFormComponent implements OnInit {
               const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string }[] = [];
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
+              const seenIndicateurs = new Set<number>();
+              const seenMetriques = new Set<number>();
+
+              const collectIndicateursMetriques = (ind: any) => {
+                if (!ind || seenIndicateurs.has(ind.id_indicateur)) return;
+                seenIndicateurs.add(ind.id_indicateur);
+                indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
+                for (const met of ind.metriques || []) {
+                  if (seenMetriques.has(met.id_metrique)) continue;
+                  seenMetriques.add(met.id_metrique);
+                  metriques.push({
+                    id_metrique: met.id_metrique,
+                    nom_metrique: met.nom_metrique,
+                    indicateur_nom: ind.nom_indicateur
+                  });
+                }
+              };
+
               for (const enjeu of allEnjeux) {
+                // Chemin OLT : Enjeu → OLT → NE → Indicateur → Métrique
                 for (const olt of enjeu.objectifs_long_terme || []) {
                   for (const ne of olt.niveaux_exigence || []) {
                     for (const ind of ne.indicateurs || []) {
-                      indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
-                      for (const met of ind.metriques || []) {
-                        metriques.push({
-                          id_metrique: met.id_metrique,
-                          nom_metrique: met.nom_metrique,
-                          indicateur_nom: ind.nom_indicateur
-                        });
+                      collectIndicateursMetriques(ind);
+                    }
+                  }
+                }
+                // Chemin OO : Enjeu → FI → Pression → OO → RA → Indicateur → Métrique
+                for (const fi of enjeu.facteurs_influence || []) {
+                  for (const pression of fi.pressions || []) {
+                    for (const oo of pression.objectifs_operationnels || []) {
+                      for (const ra of oo.resultats_attendus || []) {
+                        for (const ind of ra.indicateurs || []) {
+                          collectIndicateursMetriques(ind);
+                        }
                       }
                     }
                   }
