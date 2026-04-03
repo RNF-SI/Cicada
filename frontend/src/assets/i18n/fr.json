@@ -2441,6 +2441,8 @@
       "sectionTitle": "MÉTRIQUES",
       "createSuccess": "Métrique créée avec succès",
       "updateSuccess": "Métrique mise à jour avec succès",
+      "deleteTitle": "Supprimer la métrique",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette métrique ?",
       "deleteSuccess": "Métrique supprimée avec succès",
       "actionsTitle": "Actions liées à cette métrique",
       "scores": {

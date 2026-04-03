@@ -160,14 +160,16 @@
                       {{ 'enjeux.types.enjeu' | translate }} {{ selectedDisplayIndex() }} : {{ enjeu.libelle }}
                     }
                   </h2>
-                  <div class="enjeu-header-actions">
-                    <button class="icon-btn-flat" (click)="navigateToEdit(enjeu)" [title]="'common.actions.edit' | translate">
-                      <i class="fi fi-rr-pencil"></i>
-                    </button>
-                    <button class="icon-btn-flat" (click)="onEnjeuDelete(enjeu)" [title]="'common.actions.delete' | translate">
-                      <i class="fi fi-rr-minus-circle"></i>
-                    </button>
-                  </div>
+                  @if (canEditPlan()) {
+                    <div class="enjeu-header-actions">
+                      <button class="icon-btn-flat" (click)="navigateToEdit(enjeu)" [title]="'common.actions.edit' | translate">
+                        <i class="fi fi-rr-pencil"></i>
+                      </button>
+                      <button class="icon-btn-flat" (click)="onEnjeuDelete(enjeu)" [title]="'common.actions.delete' | translate">
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
               <div class="enjeu-header-divider"></div>
@@ -181,9 +183,11 @@
                     <h3 class="card-section-name">{{ enjeu.intitule_court || enjeu.libelle }}</h3>
                   </div>
                   <div class="card-section-actions">
-                    <button class="icon-btn-flat" (click)="navigateToEdit(enjeu); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                      <i class="fi fi-rr-pencil"></i>
-                    </button>
+                    @if (canEditPlan()) {
+                      <button class="icon-btn-flat" (click)="navigateToEdit(enjeu); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                        <i class="fi fi-rr-pencil"></i>
+                      </button>
+                    }
                     <button class="icon-btn-flat" (click)="navigateToEnjeuDetail(enjeu); $event.stopPropagation()" [title]="'common.actions.view' | translate">
                       <i class="fi fi-rr-eye"></i>
                     </button>
@@ -350,12 +354,14 @@
                         </h3>
                       </div>
                       <div class="facteur-card-actions">
-                        <button class="icon-btn-flat" (click)="startEditFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
-                        <button class="icon-btn-flat" (click)="deleteFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                          <i class="fi fi-rr-trash"></i>
-                        </button>
+                        @if (canEditPlan()) {
+                          <button class="icon-btn-flat" (click)="startEditFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                            <i class="fi fi-rr-pencil"></i>
+                          </button>
+                          <button class="icon-btn-flat" (click)="deleteFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                            <i class="fi fi-rr-trash"></i>
+                          </button>
+                        }
                         <button class="icon-btn-flat" (click)="$event.stopPropagation(); toggleFacteur(facteur.id_facteur_influence)">
                           <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
                         </button>
@@ -454,12 +460,14 @@
                                 </div>
                               </div>
                               <div class="pression-card-actions">
-                                <button class="icon-btn-flat" (click)="startEditPression(pression); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                  <i class="fi fi-rr-pencil"></i>
-                                </button>
-                                <button class="icon-btn-flat" (click)="deletePression(pression); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                  <i class="fi fi-rr-trash"></i>
-                                </button>
+                                @if (canEditPlan()) {
+                                  <button class="icon-btn-flat" (click)="startEditPression(pression); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                    <i class="fi fi-rr-pencil"></i>
+                                  </button>
+                                  <button class="icon-btn-flat" (click)="deletePression(pression); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                    <i class="fi fi-rr-trash"></i>
+                                  </button>
+                                }
                                 <button class="icon-btn-flat" (click)="$event.stopPropagation(); togglePression(pression.id_pression)">
                                   <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-minus-circle' : 'fi-rr-plus'"></i>
                                 </button>
@@ -555,7 +563,7 @@
                               </button>
                             </div>
                           </div>
-                        } @else {
+                        } @else if (canEditPlan()) {
                           <button class="add-item-btn" (click)="startAddPression(facteur.id_facteur_influence)">
                             <i class="fi fi-rr-plus-small"></i>
                             {{ 'enjeux.pression.addButton' | translate }}
@@ -593,7 +601,7 @@
                       </button>
                     </div>
                   </div>
-                } @else {
+                } @else if (canEditPlan()) {
                   <button class="add-item-btn" (click)="startAddFacteur()">
                     <i class="fi fi-rr-plus-small"></i>
                     {{ 'enjeux.facteurInfluence.addButton' | translate }}
@@ -654,12 +662,14 @@
                               size="md"
                               [showLine]="true">
                               <div sectionActions class="olt-header-actions">
-                                <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                  <i class="fi fi-rr-pencil"></i>
-                                </button>
-                                <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-olt">
-                                  <i class="fi fi-rr-minus-circle"></i>
-                                </button>
+                                @if (canEditPlan()) {
+                                  <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                    <i class="fi fi-rr-pencil"></i>
+                                  </button>
+                                  <button class="icon-btn-flat" (click)="deleteOlt(olt); $event.stopPropagation()" [title]="'common.actions.delete' | translate" data-testid="delete-olt">
+                                    <i class="fi fi-rr-trash"></i>
+                                  </button>
+                                }
                                 <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOltExpanded(olt.id_olt)" [class.fi-rr-angle-small-up]="isOltExpanded(olt.id_olt)"></i>
                               </div>
                             </app-section-title>
@@ -704,14 +714,16 @@
                                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                         <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
                                       </div>
-                                      <div class="ne-card-actions">
-                                        <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
-                                          <i class="fi fi-rr-pencil"></i>
-                                        </button>
-                                        <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
-                                          <i class="fi fi-rr-trash"></i>
-                                        </button>
-                                      </div>
+                                      @if (canEditPlan()) {
+                                        <div class="ne-card-actions">
+                                          <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                                            <i class="fi fi-rr-pencil"></i>
+                                          </button>
+                                          <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
+                                            <i class="fi fi-rr-trash"></i>
+                                          </button>
+                                        </div>
+                                      }
                                     </div>
                                     @if (ne.description) {
                                       <p class="ne-description">{{ ne.description }}</p>
@@ -906,12 +918,14 @@
                                               }
                                             </div>
                                             <div class="indicateur-actions">
-                                              <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
-                                                <i class="fi fi-rr-pencil"></i>
-                                              </button>
-                                              <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
-                                                <i class="fi fi-rr-trash"></i>
-                                              </button>
+                                              @if (canEditPlan()) {
+                                                <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
+                                                  <i class="fi fi-rr-pencil"></i>
+                                                </button>
+                                                <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
+                                                  <i class="fi fi-rr-trash"></i>
+                                                </button>
+                                              }
                                               <i class="fi" [class.fi-rr-angle-down]="!isIndicateurExpanded(ind.id_indicateur)" [class.fi-rr-angle-up]="isIndicateurExpanded(ind.id_indicateur)"></i>
                                             </div>
                                           </div>
@@ -956,11 +970,13 @@
                                                             <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
                                                             <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
                                                             <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
-                                                            <td class="actions-col">
-                                                              <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
-                                                                <i class="fi fi-rr-trash"></i>
-                                                              </button>
-                                                            </td>
+                                                            @if (canEditPlan()) {
+                                                              <td class="actions-col">
+                                                                <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                                  <i class="fi fi-rr-trash"></i>
+                                                                </button>
+                                                              </td>
+                                                            }
                                                           </tr>
                                                         </tbody>
                                                       </table>
@@ -980,17 +996,19 @@
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                                 </div>
                                                 <div class="operation-header-right">
-                                                  <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                                    <i class="fi fi-rr-pencil"></i>
-                                                  </button>
-                                                  @if (op.metriques && op.metriques.length > 1) {
-                                                    <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                                      <i class="fi fi-rr-link-slash"></i>
+                                                  @if (canEditPlan()) {
+                                                    <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                                      <i class="fi fi-rr-pencil"></i>
+                                                    </button>
+                                                    @if (op.metriques && op.metriques.length > 1) {
+                                                      <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
+                                                        <i class="fi fi-rr-link-slash"></i>
+                                                      </button>
+                                                    }
+                                                    <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                                      <i class="fi fi-rr-trash"></i>
                                                     </button>
                                                   }
-                                                  <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                                    <i class="fi fi-rr-minus-circle"></i>
-                                                  </button>
                                                   <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
                                                 </div>
                                               </div>
@@ -1560,7 +1578,7 @@
                                           </button>
                                         </div>
                                       </div>
-                                    } @else {
+                                    } @else if (canEditPlan()) {
                                       <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
                                         <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
                                       </button>
@@ -1594,7 +1612,7 @@
                                     </button>
                                   </div>
                                 </div>
-                              } @else {
+                              } @else if (canEditPlan()) {
                                 <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
                                   <i class="fi fi-rr-plus-small"></i>
                                   {{ 'enjeux.niveauExigence.addButton' | translate }}
@@ -1632,8 +1650,8 @@
                 </div>
               }
 
-              <!-- Bouton ajouter un OLT (toujours visible) -->
-              @if (!addingOlt()) {
+              <!-- Bouton ajouter un OLT -->
+              @if (!addingOlt() && canEditPlan()) {
                 <button class="add-item-btn" (click)="startAddOlt()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.olt.addButton' | translate }}
@@ -1718,12 +1736,14 @@
                       size="md"
                       [showLine]="true">
                       <div sectionActions class="olt-header-actions">
-                        <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
-                        <button class="icon-btn-flat" (click)="deleteOo(oo); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                          <i class="fi fi-rr-minus-circle"></i>
-                        </button>
+                        @if (canEditPlan()) {
+                          <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                            <i class="fi fi-rr-pencil"></i>
+                          </button>
+                          <button class="icon-btn-flat" (click)="deleteOo(oo); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                            <i class="fi fi-rr-trash"></i>
+                          </button>
+                        }
                         <i class="fi expand-arrow-olt" [class.fi-rr-angle-small-down]="!isOoExpanded(oo.id_oo)" [class.fi-rr-angle-small-up]="isOoExpanded(oo.id_oo)"></i>
                       </div>
                     </app-section-title>
@@ -1783,14 +1803,16 @@
                                 <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                 <h3 class="ne-card-title">{{ 'enjeux.resultatAttendu.label' | translate }} : {{ ra.libelle }}</h3>
                               </div>
-                              <div class="ne-card-actions">
-                                <button class="icon-btn-flat" (click)="startEditRa(ra)" [title]="'common.actions.edit' | translate">
-                                  <i class="fi fi-rr-pencil"></i>
-                                </button>
-                                <button class="icon-btn-flat" (click)="deleteRa(ra)" [title]="'common.actions.delete' | translate">
-                                  <i class="fi fi-rr-trash"></i>
-                                </button>
-                              </div>
+                              @if (canEditPlan()) {
+                                <div class="ne-card-actions">
+                                  <button class="icon-btn-flat" (click)="startEditRa(ra)" [title]="'common.actions.edit' | translate">
+                                    <i class="fi fi-rr-pencil"></i>
+                                  </button>
+                                  <button class="icon-btn-flat" (click)="deleteRa(ra)" [title]="'common.actions.delete' | translate">
+                                    <i class="fi fi-rr-trash"></i>
+                                  </button>
+                                </div>
+                              }
                             </div>
                             @if (ra.description) {
                               <p class="ne-description">{{ ra.description }}</p>
@@ -1985,12 +2007,14 @@
                                       }
                                     </div>
                                     <div class="indicateur-actions">
-                                      <button class="icon-btn-flat" (click)="startEditOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
-                                        <i class="fi fi-rr-pencil"></i>
-                                      </button>
-                                      <button class="icon-btn-flat" (click)="deleteOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
-                                        <i class="fi fi-rr-trash"></i>
-                                      </button>
+                                      @if (canEditPlan()) {
+                                        <button class="icon-btn-flat" (click)="startEditOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
+                                          <i class="fi fi-rr-pencil"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" (click)="deleteOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
+                                          <i class="fi fi-rr-trash"></i>
+                                        </button>
+                                      }
                                       <i class="fi" [class.fi-rr-angle-down]="!isOoIndicateurExpanded(ind.id_indicateur)" [class.fi-rr-angle-up]="isOoIndicateurExpanded(ind.id_indicateur)"></i>
                                     </div>
                                   </div>
@@ -2035,11 +2059,13 @@
                                                     <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
                                                     <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
                                                     <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
-                                                    <td class="actions-col">
-                                                      <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
-                                                        <i class="fi fi-rr-trash"></i>
-                                                      </button>
-                                                    </td>
+                                                    @if (canEditPlan()) {
+                                                      <td class="actions-col">
+                                                        <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
+                                                          <i class="fi fi-rr-trash"></i>
+                                                        </button>
+                                                      </td>
+                                                    }
                                                   </tr>
                                                 </tbody>
                                               </table>
@@ -2058,17 +2084,19 @@
                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                         </div>
                                         <div class="operation-header-right">
-                                          <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                            <i class="fi fi-rr-pencil"></i>
-                                          </button>
-                                          @if (op.metriques && op.metriques.length > 1) {
-                                            <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                              <i class="fi fi-rr-link-slash"></i>
+                                          @if (canEditPlan()) {
+                                            <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
+                                              <i class="fi fi-rr-pencil"></i>
+                                            </button>
+                                            @if (op.metriques && op.metriques.length > 1) {
+                                              <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
+                                                <i class="fi fi-rr-link-slash"></i>
+                                              </button>
+                                            }
+                                            <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
+                                              <i class="fi fi-rr-trash"></i>
                                             </button>
                                           }
-                                          <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                            <i class="fi fi-rr-minus-circle"></i>
-                                          </button>
                                           <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
                                         </div>
                                       </div>
@@ -2617,7 +2645,7 @@
                                   </button>
                                 </div>
                               </div>
-                            } @else {
+                            } @else if (canEditPlan()) {
                               <button class="add-item-btn" (click)="startAddIndicateurForRa(ra.id_ra)">
                                 <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurPression.addButton' | translate }}
                               </button>
@@ -2651,7 +2679,7 @@
                             </button>
                           </div>
                         </div>
-                      } @else {
+                      } @else if (canEditPlan()) {
                         <button class="add-item-btn" (click)="startAddRa(oo.id_oo)">
                           <i class="fi fi-rr-plus-small"></i>
                           {{ 'enjeux.resultatAttendu.addButton' | translate }}
@@ -2702,7 +2730,7 @@
               }
 
               <!-- Bouton ajouter un OO (visible seulement si au moins une pression existe) -->
-              @if (!addingOo() && selectedPressions().length > 0) {
+              @if (!addingOo() && selectedPressions().length > 0 && canEditPlan()) {
                 <button class="add-item-btn" (click)="startAddOo()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
@@ -2777,20 +2805,22 @@
               <!-- Barre haut : compteur + bouton ajouter -->
               <div class="list-top-bar">
                 <p class="count-text">{{ totalCount() }} {{ 'enjeux.countSuffix' | translate }}</p>
-                <button mat-stroked-button [matMenuTriggerFor]="addMenu">
-                  <i class="fi fi-rr-plus-small"></i>
-                  {{ 'enjeux.addButton' | translate }}
-                </button>
-                <mat-menu #addMenu="matMenu">
-                  <button mat-menu-item (click)="navigateToNewEnjeu()">
-                    <i class="fi fi-rr-bullseye-arrow"></i>
-                    <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                @if (canEditPlan()) {
+                  <button mat-stroked-button [matMenuTriggerFor]="addMenu">
+                    <i class="fi fi-rr-plus-small"></i>
+                    {{ 'enjeux.addButton' | translate }}
                   </button>
-                  <button mat-menu-item (click)="navigateToNewFcr()">
-                    <i class="fi fi-rr-key"></i>
-                    <span>{{ 'enjeux.types.fcr' | translate }}</span>
-                  </button>
-                </mat-menu>
+                  <mat-menu #addMenu="matMenu">
+                    <button mat-menu-item (click)="navigateToNewEnjeu()">
+                      <i class="fi fi-rr-bullseye-arrow"></i>
+                      <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                    </button>
+                    <button mat-menu-item (click)="navigateToNewFcr()">
+                      <i class="fi fi-rr-key"></i>
+                      <span>{{ 'enjeux.types.fcr' | translate }}</span>
+                    </button>
+                  </mat-menu>
+                }
               </div>
 
               <!-- Liste plate : enjeux d'abord, puis FCR -->
@@ -2801,6 +2831,7 @@
                     [enjeu]="enjeu"
                     [displayIndex]="idx + 1"
                     [initiallyExpanded]="selectedEnjeuId() === enjeu.id_enjeu"
+                    [canEdit]="canEditPlan()"
                     (edit)="navigateToEdit(enjeu)"
                     (delete)="onEnjeuDelete(enjeu)"
                     (navigateToDetail)="navigateToEnjeuDetail($event)">
@@ -2813,6 +2844,7 @@
                     [isFcr]="true"
                     [displayIndex]="idx + 1"
                     [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
+                    [canEdit]="canEditPlan()"
                     (edit)="navigateToEdit(item)"
                     (delete)="onEnjeuDelete(item)">
                   </app-enjeu-accordion>
