@@ -216,15 +216,23 @@ export interface NiveauExigence {
 }
 
 /**
+ * Pression légère pour affichage dans un OO (M2M)
+ */
+export interface PressionLight {
+  id_pression: number;
+  libelle: string;
+  facteur_influence_libelle?: string;
+}
+
+/**
  * Objectif Opérationnel (OO)
  */
 export interface ObjectifOperationnel {
   id_oo: number;
-  id_pression: number;
+  pressions: PressionLight[];
+  pression_ids: number[];
   libelle: string;
   description?: string;
-  pression_libelle?: string;
-  facteur_influence_libelle?: string;
   resultats_attendus?: ResultatAttendu[];
   nb_resultats_attendus?: number;
   date_ajout: string;
@@ -540,7 +548,7 @@ export interface IndicateurCreatePayload {
  * Payload for creating an ObjectifOperationnel
  */
 export interface ObjectifOperationnelCreatePayload {
-  id_pression: number;
+  pression_ids: number[];
   libelle: string;
   description?: string;
 }

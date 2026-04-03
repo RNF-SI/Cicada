@@ -873,17 +873,36 @@
   gap: $spacing-md;
 }
 
-.oo-facteur-info {
+.oo-pressions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-md 0;
+}
+
+.oo-pressions-label {
   color: $gray-dark;
   font-size: $font-size-small;
   font-style: italic;
-  margin: 0 0 $spacing-md 0;
-  line-height: $line-height-base;
+  margin-right: $spacing-xxs;
+}
 
-  strong {
-    color: $black;
-    font-style: normal;
-  }
+.oo-pression-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background-color: $beige;
+  color: $black;
+  font-size: $font-size-small;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  border: 1px solid $gray-light;
+}
+
+.oo-pression-chip-facteur {
+  color: $gray-dark;
+  font-size: $font-size-small;
 }
 
 // Note d'usage en haut de l'onglet

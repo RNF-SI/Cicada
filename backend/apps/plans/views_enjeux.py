@@ -576,7 +576,7 @@ class PressionViewSet(viewsets.ModelViewSet):
         'id_type_pression'
     ).prefetch_related(
         'objectifs_operationnels', 'objectifs_operationnels__id_utilisateur_ajout',
-        'objectifs_operationnels__id_pression',
+        'objectifs_operationnels__pressions', 'objectifs_operationnels__pressions__id_facteur_influence',
         'objectifs_operationnels__resultats_attendus',
         'objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
         'objectifs_operationnels__resultats_attendus__indicateurs',
@@ -806,10 +806,10 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     """
 
     queryset = ObjectifOperationnel.objects.select_related(
-        'id_pression', 'id_pression__id_facteur_influence',
-        'id_pression__id_facteur_influence__id_enjeu',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
+        'pressions', 'pressions__id_facteur_influence',
+        'pressions__id_facteur_influence__id_enjeu',
         'resultats_attendus', 'resultats_attendus__id_utilisateur_ajout',
         'resultats_attendus__indicateurs',
         'resultats_attendus__indicateurs__type_indicateur',
@@ -843,14 +843,14 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_pression__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -867,7 +867,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         GET /api/plans/objectifs-operationnels/by-pression/{pression_id}/
         """
         pression = get_object_or_404(Pression, id_pression=pression_id)
-        oos = self.get_queryset().filter(id_pression=pression)
+        oos = self.get_queryset().filter(pressions=pression)
         return Response({
             'pression_id': int(pression_id),
             'pression_libelle': pression.libelle,
@@ -916,14 +916,14 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):

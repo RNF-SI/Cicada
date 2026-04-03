@@ -561,23 +561,27 @@ describe('PlanCreateComponent', () => {
   describe('organisme rédacteur', () => {
     beforeEach(() => setup());
 
-    it('should set organisme from text', () => {
-      component.organismeCtrl.setValue('Mon organisme');
-      component.setOrganismeFromText();
-      expect(component.selectedOrganisme()?.type).toBe('text');
+    it('should set organisme from autocomplete selection', () => {
+      component.selectedOrganisme.set({
+        type: 'organisme',
+        organismeId: 1,
+        displayName: 'Mon organisme'
+      });
+      expect(component.selectedOrganisme()?.type).toBe('organisme');
       expect(component.selectedOrganisme()?.displayName).toBe('Mon organisme');
     });
 
     it('should clear selected organisme', () => {
-      component.organismeCtrl.setValue('Mon organisme');
-      component.setOrganismeFromText();
+      component.selectedOrganisme.set({
+        type: 'organisme',
+        organismeId: 1,
+        displayName: 'Mon organisme'
+      });
       component.clearOrganisme();
       expect(component.selectedOrganisme()).toBeNull();
     });
 
-    it('should not set organisme from empty text', () => {
-      component.organismeCtrl.setValue('   ');
-      component.setOrganismeFromText();
+    it('should have null organisme by default', () => {
       expect(component.selectedOrganisme()).toBeNull();
     });
   });

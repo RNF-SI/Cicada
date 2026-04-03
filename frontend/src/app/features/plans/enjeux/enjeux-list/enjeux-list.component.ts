@@ -24,6 +24,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import { AuthService } from '../../../../core/services/auth.service';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -89,14 +90,26 @@ export class EnjeuxListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   planAnneeDebut = signal<number | null>(null);
   planAnneeFin = signal<number | null>(null);
+  planReferentIds = signal<number[]>([]);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
+
+  // Permissions édition: super_admin, redacteur_principal, admin_og, ou référent du plan
+  canEditPlan = computed(() => {
+    if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
+      return true;
+    }
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) return false;
+    return this.planReferentIds().includes(currentUser.id);
+  });
 
   planEnjeuxData = signal<PlanEnjeuxResponse | null>(null);
 
@@ -199,11 +212,10 @@ export class EnjeuxListComponent implements OnInit {
   editingOoId = signal<number | null>(null);
   newOoLibelle = '';
   newOoDescription = '';
-  newOoFacteurFilterId = signal<number | null>(null);
-  newOoPressionId: number | null = null;
+  newOoPressionIds: number[] = [];
   editOoLibelle = '';
   editOoDescription = '';
-  editOoPressionId: number | null = null;
+  editOoPressionIds: number[] = [];
 
   // Résultat Attendu state
   addingRaForOo = signal<number | null>(null);
@@ -435,6 +447,7 @@ export class EnjeuxListComponent implements OnInit {
         this.planNom.set(plan.nom);
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(plan.annee_fin || null);
+        this.planReferentIds.set((plan.referents || []).map(r => r.id_role));
 
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
@@ -605,9 +618,16 @@ export class EnjeuxListComponent implements OnInit {
     return (enjeu.facteurs_influence || []).flatMap(fi => fi.pressions || []);
   });
 
-  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions)
+  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions, dédupliqués)
   selectedOos = computed(() => {
-    return this.selectedPressions().flatMap(p => p.objectifs_operationnels || []);
+    const seen = new Set<number>();
+    return this.selectedPressions()
+      .flatMap(p => p.objectifs_operationnels || [])
+      .filter(oo => {
+        if (seen.has(oo.id_oo)) return false;
+        seen.add(oo.id_oo);
+        return true;
+      });
   });
 
   totalOoCount = computed(() => {
@@ -616,21 +636,41 @@ export class EnjeuxListComponent implements OnInit {
 
   // Event handlers pour les accordéons
   onEnjeuDelete(enjeu: Enjeu): void {
-    this.enjeuService.deleteEnjeu(enjeu.id_enjeu).subscribe({
-      next: () => {
-        // Si l'enjeu supprimé était sélectionné, retourner à la liste
-        if (this.selectedEnjeu()?.id_enjeu === enjeu.id_enjeu) {
-          const slug = this.planSlug();
-          if (slug) {
-            this.router.navigate(['/plans', slug, 'enjeux']);
+    const isFcr = enjeu.categorie_mnemonique === 'FCR';
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: isFcr
+          ? this.translate.instant('enjeux.messages.fcrDeleteConfirmTitle')
+          : this.translate.instant('enjeux.messages.enjeuDeleteConfirmTitle'),
+        message: isFcr
+          ? this.translate.instant('enjeux.messages.fcrDeleteConfirm')
+          : this.translate.instant('enjeux.messages.enjeuDeleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteEnjeu(enjeu.id_enjeu).subscribe({
+          next: () => {
+            // Si l'enjeu supprimé était sélectionné, retourner à la liste
+            if (this.selectedEnjeu()?.id_enjeu === enjeu.id_enjeu) {
+              const slug = this.planSlug();
+              if (slug) {
+                this.router.navigate(['/plans', slug, 'enjeux']);
+              }
+            }
+            this.loadPlanData();
+          },
+          error: () => {
+            this.errorMessage.set(
+              this.translate.instant('enjeux.messages.deleteError')
+            );
           }
-        }
-        this.loadPlanData();
-      },
-      error: () => {
-        this.errorMessage.set(
-          this.translate.instant('enjeux.messages.deleteError')
-        );
+        });
       }
     });
   }
@@ -1793,16 +1833,33 @@ export class EnjeuxListComponent implements OnInit {
   readonly scoreLevels = [1, 2, 3, 4, 5];
 
   deleteMetrique(met: any): void {
-    this.enjeuService.deleteMetrique(met.id_metrique).pipe(
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('enjeux.metriques.deleteTitle'),
+        message: this.translate.instant('enjeux.metriques.deleteConfirm'),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().pipe(
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('enjeux.metriques.deleteSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.loadPlanData();
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.enjeuService.deleteMetrique(met.id_metrique).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('enjeux.metriques.deleteSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadPlanData();
+          }
+        });
       }
     });
   }
@@ -2356,37 +2413,26 @@ export class EnjeuxListComponent implements OnInit {
     return this.expandedOoIds().has(id);
   }
 
-  // Computed pour filtrer les pressions par facteur d'influence sélectionné
-  filteredPressionsForNewOo = computed(() => {
-    const facteurId = this.newOoFacteurFilterId();
-    if (!facteurId) return [];
-    return this.selectedPressions().filter(
-      p => p.id_facteur_influence === facteurId
-    );
-  });
-
   startAddOo(): void {
     this.addingOo.set(true);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId.set(null);
-    this.newOoPressionId = null;
+    this.newOoPressionIds = [];
   }
 
   cancelAddOo(): void {
     this.addingOo.set(false);
     this.newOoLibelle = '';
     this.newOoDescription = '';
-    this.newOoFacteurFilterId.set(null);
-    this.newOoPressionId = null;
+    this.newOoPressionIds = [];
   }
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim() || !this.newOoPressionId) return;
+    if (!enjeu || !this.newOoLibelle.trim() || this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({
-      id_pression: this.newOoPressionId,
+      pression_ids: this.newOoPressionIds,
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -2409,21 +2455,21 @@ export class EnjeuxListComponent implements OnInit {
     this.editingOoId.set(oo.id_oo);
     this.editOoLibelle = oo.libelle;
     this.editOoDescription = oo.description || '';
-    this.editOoPressionId = oo.id_pression;
+    this.editOoPressionIds = [...(oo.pression_ids || [])];
   }
 
   cancelEditOo(): void {
     this.editingOoId.set(null);
     this.editOoLibelle = '';
     this.editOoDescription = '';
-    this.editOoPressionId = null;
+    this.editOoPressionIds = [];
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim() || !this.editOoPressionId) return;
+    if (!this.editOoLibelle.trim() || this.editOoPressionIds.length === 0) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      id_pression: this.editOoPressionId,
+      pression_ids: this.editOoPressionIds,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({

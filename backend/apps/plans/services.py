@@ -313,7 +313,11 @@ class PlanDuplicationService:
             if not copy_sub_elements:
                 continue
 
-            # Copy FacteurInfluence -> Pression + OO -> ResultatAttendu -> Indicateur
+            # Copy FacteurInfluence -> Pression, then OO (M2M) -> ResultatAttendu -> Indicateur
+            # Track old→new OO mapping to avoid duplicating OOs linked to multiple pressions
+            oo_mapping = {}  # {old_oo_id: new_oo}
+            pression_mapping = {}  # {old_pression_id: new_pression}
+
             for old_fi in FacteurInfluence.objects.filter(id_enjeu_id=old_enjeu_id):
                 old_fi_id = old_fi.id_facteur_influence
                 new_fi = FacteurInfluence.objects.create(
@@ -325,7 +329,6 @@ class PlanDuplicationService:
                 )
 
                 for old_pression in Pression.objects.filter(id_facteur_influence_id=old_fi_id):
-                    old_pression_id = old_pression.id_pression
                     new_pression = Pression.objects.create(
                         id_facteur_influence=new_fi,
                         id_pressref=old_pression.id_pressref,
@@ -334,33 +337,40 @@ class PlanDuplicationService:
                         id_utilisateur_ajout=user,
                         id_utilisateur_maj=user,
                     )
+                    pression_mapping[old_pression.id_pression] = new_pression
 
-                    # Copy OO -> ResultatAttendu -> Indicateur -> Metrique (under this pression)
-                    for old_oo in ObjectifOperationnel.objects.filter(id_pression_id=old_pression_id):
-                        new_oo = ObjectifOperationnel.objects.create(
-                            id_pression=new_pression,
-                            libelle=old_oo.libelle,
-                            description=old_oo.description,
-                            id_utilisateur_ajout=user,
-                            id_utilisateur_maj=user,
-                        )
-
-                        for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
-                            new_ra = ResultatAttendu.objects.create(
-                                id_oo=new_oo,
-                                libelle=old_ra.libelle,
-                                description=old_ra.description,
+                    # Copy OO (M2M) -> ResultatAttendu -> Indicateur -> Metrique
+                    for old_oo in old_pression.objectifs_operationnels.all():
+                        if old_oo.id_oo not in oo_mapping:
+                            # First time seeing this OO: create it
+                            new_oo = ObjectifOperationnel.objects.create(
+                                libelle=old_oo.libelle,
+                                description=old_oo.description,
                                 id_utilisateur_ajout=user,
                                 id_utilisateur_maj=user,
                             )
+                            oo_mapping[old_oo.id_oo] = new_oo
 
-                            for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
-                                new_ind = PlanDuplicationService._copy_indicateur(
-                                    old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                            # Copy child elements (only once per OO)
+                            for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
+                                new_ra = ResultatAttendu.objects.create(
+                                    id_oo=new_oo,
+                                    libelle=old_ra.libelle,
+                                    description=old_ra.description,
+                                    id_utilisateur_ajout=user,
+                                    id_utilisateur_maj=user,
                                 )
-                                PlanDuplicationService._copy_indicateur_relations(
-                                    old_ind, new_ind, user
-                                )
+
+                                for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
+                                    new_ind = PlanDuplicationService._copy_indicateur(
+                                        old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                                    )
+                                    PlanDuplicationService._copy_indicateur_relations(
+                                        old_ind, new_ind, user
+                                    )
+
+                        # Link the (possibly already created) new OO to the new pression
+                        oo_mapping[old_oo.id_oo].pressions.add(new_pression)
 
             # Copy OLT -> NiveauExigence -> Indicateur -> Metrique
             for old_olt in ObjectifLongTerme.objects.filter(id_enjeu_id=old_enjeu_id):
@@ -445,6 +455,7 @@ class PlanDuplicationService:
                 unite=old_met.unite,
                 ponderation=old_met.ponderation,
                 etat_reference=old_met.etat_reference,
+                sens_variation=old_met.sens_variation,
                 score_1_inf=old_met.score_1_inf,
                 score_1_sup=old_met.score_1_sup,
                 score_2_inf=old_met.score_2_inf,
@@ -455,11 +466,22 @@ class PlanDuplicationService:
                 score_4_sup=old_met.score_4_sup,
                 score_5_inf=old_met.score_5_inf,
                 score_5_sup=old_met.score_5_sup,
+                score_1_val=old_met.score_1_val,
+                score_2_val=old_met.score_2_val,
+                score_3_val=old_met.score_3_val,
+                score_4_val=old_met.score_4_val,
+                score_5_val=old_met.score_5_val,
                 score_1_label=old_met.score_1_label,
                 score_2_label=old_met.score_2_label,
                 score_3_label=old_met.score_3_label,
                 score_4_label=old_met.score_4_label,
                 score_5_label=old_met.score_5_label,
+                score_1_sup_inclusive=old_met.score_1_sup_inclusive,
+                score_2_sup_inclusive=old_met.score_2_sup_inclusive,
+                score_3_sup_inclusive=old_met.score_3_sup_inclusive,
+                score_4_sup_inclusive=old_met.score_4_sup_inclusive,
+                has_borne_score1=old_met.has_borne_score1,
+                has_borne_score5=old_met.has_borne_score5,
                 id_utilisateur_ajout=user,
                 id_utilisateur_maj=user,
             )

@@ -605,19 +605,19 @@ class NiveauExigence(models.Model):
 
 class ObjectifOperationnel(models.Model):
     """
-    Objectif opérationnel (OO) rattaché à une pression.
+    Objectif opérationnel (OO) lié à une ou plusieurs pressions (M2M).
     Décrit les résultats concrets attendus pendant la durée du plan de gestion.
-    Hiérarchie : Enjeu → FacteurInfluence → Pression → OO → ResultatAttendu.
+    Hiérarchie : Enjeu → FacteurInfluence → Pression ↔ OO (M2M) → ResultatAttendu.
     """
 
     id_oo = models.AutoField(primary_key=True)
-    id_pression = models.ForeignKey(
+    pressions = models.ManyToManyField(
         Pression,
-        on_delete=models.CASCADE,
+        through='CorOoPression',
         related_name='objectifs_operationnels',
-        db_column='id_pression',
-        verbose_name=_("Pression"),
-        help_text=_("Pression parente de cet objectif opérationnel")
+        blank=True,
+        verbose_name=_("Pressions"),
+        help_text=_("Pressions liées à cet objectif opérationnel")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -653,13 +653,13 @@ class ObjectifOperationnel(models.Model):
 
     class Meta:
         db_table = '"general"."t_objectifs_operationnels"'
-        db_table_comment = "Objectifs opérationnels des pressions"
+        db_table_comment = "Objectifs opérationnels liés à des pressions"
         verbose_name = _("Objectif opérationnel")
         verbose_name_plural = _("Objectifs opérationnels")
         ordering = ['id_oo']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_pression})"
+        return self.libelle
 
 
 class ResultatAttendu(models.Model):
@@ -718,6 +718,36 @@ class ResultatAttendu(models.Model):
 
     def __str__(self):
         return f"{self.libelle} ({self.id_oo})"
+
+
+class CorOoPression(models.Model):
+    """
+    Table de jointure M2M entre ObjectifOperationnel et Pression.
+    Un OO peut être lié à plusieurs pressions, et une pression peut
+    être liée à plusieurs OO.
+    """
+
+    id_oo = models.ForeignKey(
+        ObjectifOperationnel,
+        on_delete=models.CASCADE,
+        db_column='id_oo',
+        verbose_name=_("Objectif opérationnel")
+    )
+    id_pression = models.ForeignKey(
+        Pression,
+        on_delete=models.CASCADE,
+        db_column='id_pression',
+        verbose_name=_("Pression")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_oo_pression"'
+        unique_together = [('id_oo', 'id_pression')]
+        verbose_name = _("Lien OO-Pression")
+        verbose_name_plural = _("Liens OO-Pression")
+
+    def __str__(self):
+        return f"OO {self.id_oo_id} ↔ Pression {self.id_pression_id}"
 
 
 class CorResponsabiliteTaxon(models.Model):
