@@ -337,7 +337,7 @@ describe('EnjeuFormComponent', () => {
     it('should navigate back on success', () => {
       component.form.patchValue({ libelle: 'Test', rang: 1 });
       component.onSubmit();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux'], {});
     });
 
     it('should set errorMessage on error', () => {
@@ -521,7 +521,7 @@ describe('EnjeuFormComponent', () => {
     it('should navigate back to enjeux list on cancel', () => {
       setup();
       component.onCancel();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux'], {});
     });
 
     it('should navigate to /plans if no planId', () => {

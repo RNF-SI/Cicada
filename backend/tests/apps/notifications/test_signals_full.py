@@ -1005,18 +1005,23 @@ class TestSignalEdgeCases:
         assert removal_notif.exists()
 
     def test_validation_full_lifecycle(self):
-        """Test the full lifecycle: create pending -> approve -> notifications created."""
+        """Test the full lifecycle: create pending -> notify -> approve -> notifications created."""
+        from apps.notifications.services import NotificationService
+
         super_admin = SuperAdminFactory()
         requester = RoleFactory()
         site = SiteFactory()
 
-        # Create pending request (triggers notify_new_validation_request)
+        # Create pending request
         vr = ValidationRequest.objects.create(
             request_type='site_access',
             status='pending',
             requester=requester,
             target_site=site,
         )
+
+        # Explicitly notify validators (as done in views/serializers)
+        NotificationService.notify_validators(vr)
 
         # Validator should have received a notification
         validator_notif = Notification.objects.filter(

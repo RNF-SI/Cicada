@@ -335,6 +335,7 @@ describe('EnjeuxListComponent', () => {
         },
       },
       params: routeParamsSubject.asObservable(),
+      fragment: of(null),
     };
 
     TestBed.configureTestingModule({
@@ -1740,6 +1741,7 @@ describe('EnjeuxListComponent', () => {
               snapshot: { paramMap: { get: () => null } },
               parent: { snapshot: { paramMap: { get: (key: string) => key === 'slug' ? 'plan-test' : null } } },
               params: routeParamsSubject.asObservable(),
+              fragment: of(null),
             }
           },
           { provide: EnjeuService, useValue: errorEnjeuService },
