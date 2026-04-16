@@ -834,7 +834,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="annee.budget ?? ''"
+                                         [value]="formatBudget(annee.budget)"
                                          (change)="updateBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>

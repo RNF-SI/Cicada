@@ -66,6 +66,7 @@
         <thead>
           <tr>
             <th>{{ 'admin.users.table.user' | translate }}</th>
+            <th class="col-secondary">{{ 'admin.users.table.identifiant' | translate }}</th>
             <th class="col-secondary">{{ 'admin.users.table.email' | translate }}</th>
             @if (isSuperAdmin()) {
               <th>{{ 'admin.users.table.organisme' | translate }}</th>
@@ -85,6 +86,7 @@
                 <div class="user-avatar">{{ getInitials(user) }}</div>
                 <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
               </td>
+              <td class="col-secondary">{{ user.identifiant || '-' }}</td>
               <td class="col-secondary">{{ user.email }}</td>
               @if (isSuperAdmin()) {
                 <td>

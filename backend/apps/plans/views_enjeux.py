@@ -193,8 +193,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         enjeux = self.get_queryset().filter(id_pg=plan)
 
         # Séparer enjeux et FCR
-        enjeux_list = enjeux.filter(id_categorie__mnemonique='ENJEU').order_by('rang', 'libelle')
-        fcr_list = enjeux.filter(id_categorie__mnemonique='FCR').order_by('libelle')
+        enjeux_list = enjeux.filter(id_categorie__mnemonique='ENJEU').order_by('id_enjeu')
+        fcr_list = enjeux.filter(id_categorie__mnemonique='FCR').order_by('id_enjeu')
 
         return Response({
             'plan_id': int(plan_id),

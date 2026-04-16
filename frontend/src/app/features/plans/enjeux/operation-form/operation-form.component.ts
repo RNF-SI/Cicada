@@ -1489,9 +1489,15 @@ export class OperationFormComponent implements OnInit {
   /** Parse une valeur décimale en acceptant la virgule comme séparateur. */
   private parseDecimal(value: string): number | null {
     if (!value) return null;
-    const normalized = String(value).replace(',', '.');
+    // Supprimer les espaces (séparateurs de milliers) avant de parser
+    const normalized = String(value).replace(/\s/g, '').replace(',', '.');
     const parsed = parseFloat(normalized);
     return isNaN(parsed) ? null : parsed;
+  }
+
+  formatBudget(value: number | null): string {
+    if (value == null) return '';
+    return value.toLocaleString('fr-FR');
   }
 
   onModeToggle(mode: string): void {

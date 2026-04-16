@@ -582,7 +582,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
                 )
-                .order_by('rang', 'libelle')
+                .order_by('id_enjeu')
             )
 
             def build_indicateur_node(ind):
