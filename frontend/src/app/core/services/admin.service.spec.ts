@@ -222,7 +222,7 @@ describe('AdminService', () => {
         req.params.get('search') === 'test' &&
         req.params.get('page') === '2' &&
         req.params.get('page_size') === '20' &&
-        req.params.get('id_type_site') === 'RNN'
+        req.params.get('type_site_label') === 'RNN'
       );
       expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
