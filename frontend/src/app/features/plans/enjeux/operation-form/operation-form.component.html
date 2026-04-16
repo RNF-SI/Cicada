@@ -265,7 +265,7 @@
 
               <!-- Date de lancement du suivi (date picker) -->
               <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></mat-label>
+                <mat-label>{{ 'inventaires.form.dateLancement' | translate }}</mat-label>
                 <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
                   [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
                 <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
@@ -352,7 +352,6 @@
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>
                     {{ 'enjeux.operations.nbEtpCycle' | translate }}
-                    <span class="required-star">*</span>
                   </mat-label>
                   <input matInput type="number" formControlName="nb_etp_cycle">
                   <mat-hint>{{ 'enjeux.operations.nbEtpCycleHint' | translate }}</mat-hint>
@@ -439,7 +438,6 @@
               <div class="frequence-row">
                 <span class="field-label">
                   {{ 'enjeux.operations.frequenceAction' | translate }}
-                  <span class="required-star">*</span>
                 </span>
                 <div class="frequence-controls">
                   <div class="frequence-number">

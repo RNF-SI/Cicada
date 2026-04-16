@@ -161,7 +161,7 @@ export class AdminService {
       httpParams = httpParams.set('page_size', params.page_size.toString());
     }
     if (params?.type) {
-      httpParams = httpParams.set('id_type_site', params.type);
+      httpParams = httpParams.set('type_site_label', params.type);
     }
     if (params?.organisme) {
       httpParams = httpParams.set('organisme', params.organisme.toString());

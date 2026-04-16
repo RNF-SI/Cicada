@@ -549,6 +549,13 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   // Navigation
+  navigateToArborescence(): void {
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'mindmap']);
+    }
+  }
+
   navigateToNewEnjeu(): void {
     const slug = this.planSlug();
     if (slug) {

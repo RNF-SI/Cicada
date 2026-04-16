@@ -825,9 +825,13 @@ body {
 body.leaflet-map-fullscreen-active {
   overflow: hidden;
 
-  // Hide header so it doesn't overlay the fullscreen map
-  app-header {
-    display: none;
+  // Hide all page content except the fullscreen map
+  app-header,
+  .sidebar-menu,
+  .content-column,
+  .page-header,
+  .action-bar {
+    display: none !important;
   }
 
   // Remove overflow clipping on ancestor containers so the fixed-position map can escape
