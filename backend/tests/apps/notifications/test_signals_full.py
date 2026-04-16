@@ -397,10 +397,17 @@ class TestUserDeactivationNotification:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestNotifyNewValidationRequest:
-    """Tests for notify_new_validation_request signal (ValidationRequest post_save, created)."""
+    """Tests for notify_validators (called explicitly after ValidationRequest creation).
+
+    Note: The post_save signal notify_new_validation_request is intentionally
+    a no-op. Notifications are sent via NotificationService.notify_validators()
+    called explicitly in views/serializers.
+    """
 
     def test_validators_notified_on_new_site_access_request(self):
-        """Creating a pending site_access request notifies validators."""
+        """Calling notify_validators on a pending site_access request notifies validators."""
+        from apps.notifications.services import NotificationService
+
         super_admin = SuperAdminFactory()
         requester = RoleFactory()
         site = SiteFactory()
@@ -414,6 +421,9 @@ class TestNotifyNewValidationRequest:
             justification="Besoin d'acces",
         )
 
+        # Explicitly call notify_validators (as done in views/serializers)
+        NotificationService.notify_validators(vr)
+
         # Super admins should be among the validators notified
         notif = Notification.objects.filter(
             recipient=super_admin,
@@ -424,18 +434,19 @@ class TestNotifyNewValidationRequest:
         assert notif is not None
         assert notif.priority == 'high'
 
-    def test_no_notification_on_non_pending_creation(self):
-        """Creating a request with status != pending does not notify validators."""
+    def test_no_notification_without_explicit_call(self):
+        """Creating a request without calling notify_validators does not notify."""
         super_admin = SuperAdminFactory()
         requester = RoleFactory()
 
         vr = ValidationRequest.objects.create(
             request_type='site_access',
-            status='approved',
+            status='pending',
             requester=requester,
-            justification="Deja approuve",
+            justification="Pas de notification",
         )
 
+        # No explicit call to notify_validators
         notif = Notification.objects.filter(
             notification_type='validation_request',
             related_validation=vr,
@@ -444,6 +455,8 @@ class TestNotifyNewValidationRequest:
 
     def test_notification_message_includes_request_details(self):
         """The notification message includes request type details."""
+        from apps.notifications.services import NotificationService
+
         super_admin = SuperAdminFactory()
         requester = RoleFactory()
         site = SiteFactory(nom_site="Reserve Naturelle Test")
@@ -455,6 +468,8 @@ class TestNotifyNewValidationRequest:
             target_site=site,
             justification="Pour recherche",
         )
+
+        NotificationService.notify_validators(vr)
 
         notif = Notification.objects.filter(
             recipient=super_admin,
