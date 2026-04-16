@@ -361,6 +361,20 @@ export class EnjeuxListComponent implements OnInit {
     if (slug) {
       this.planSlug.set(slug);
       this.loadPlanData();
+
+      // Scroll vers l'enjeu si fragment présent (retour depuis formulaire)
+      this.route.fragment.pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(fragment => {
+        if (fragment) {
+          this.selectedEnjeuSlug.set(fragment);
+          this.enjeuDetailExpanded.set(true);
+          setTimeout(() => {
+            const el = this.elRef.nativeElement.querySelector(`[data-enjeu-slug="${fragment}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 500);
+        }
+      });
     } else {
       this.errorMessage.set('Slug du plan non trouvé');
       this.isLoading.set(false);

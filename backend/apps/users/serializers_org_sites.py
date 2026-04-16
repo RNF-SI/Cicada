@@ -594,9 +594,12 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_id_inpn(self, value):
-        """Valide l'unicité du code INPN."""
+        """Valide l'unicité du code INPN. Les valeurs vides sont converties en None."""
         if value:
             value = value.strip()
+            # Convertir les valeurs non significatives en None
+            if value.lower() in ('', 'aucun', 'none', '-', 'n/a'):
+                return None
             existing = Site.objects.filter(id_inpn=value)
             if self.instance:
                 existing = existing.exclude(id_site=self.instance.id_site)

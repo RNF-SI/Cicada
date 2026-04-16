@@ -2539,6 +2539,7 @@
     "table": {
       "nom": "Nom du suivi",
       "periode": "Période active du suivi/inventaire",
+      "sites": "Site(s)",
       "statut": "Statut",
       "details": "Détails",
       "detailFiche": "Détails fiche"

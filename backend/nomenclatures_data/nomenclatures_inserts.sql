@@ -295,6 +295,7 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 -- ============================================
 -- AUTRE (id_type=1)
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (604, 1, NULL, 'AUTRE', 'Autre', 'Autre type d''espace naturel', 'CICADA', 'Validé', NULL, NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (605, 1, NULL, 'ENSD', 'Espace Naturel Sensible Départemental', 'Espace naturel sensible géré par le département, sans code INPN', 'CICADA', 'Validé', NULL, NOW(), NOW(), true);
 
 -- ============================================
 -- TYPE DE DOCUMENT DE PLAN DE GESTION
