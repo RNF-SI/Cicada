@@ -547,6 +547,18 @@ $form-side-margin: $spacing-xxl;
   display: flex;
   align-items: center;
   gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.apply-frequency-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  height: 36px;
+
+  i {
+    font-size: 0.95rem;
+  }
 }
 
 .frequence-number {

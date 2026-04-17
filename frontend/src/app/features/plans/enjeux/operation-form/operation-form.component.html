@@ -454,6 +454,13 @@
                       }
                     </mat-select>
                   </mat-form-field>
+                  <button type="button" mat-stroked-button
+                          class="btn-sm apply-frequency-btn"
+                          (click)="applyFrequencyToAnnees()"
+                          [matTooltip]="'enjeux.operations.applyFrequencyTooltip' | translate">
+                    <i class="fi fi-rr-calendar-clock"></i>
+                    {{ 'enjeux.operations.applyFrequency' | translate }}
+                  </button>
                 </div>
               </div>
             </div>

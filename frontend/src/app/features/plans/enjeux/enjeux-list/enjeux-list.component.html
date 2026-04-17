@@ -602,10 +602,16 @@
                     </div>
                   </div>
                 } @else if (canEditPlan()) {
-                  <button class="add-item-btn" (click)="startAddFacteur()">
-                    <i class="fi fi-rr-plus-small"></i>
-                    {{ 'enjeux.facteurInfluence.addButton' | translate }}
-                  </button>
+                  <div class="add-item-wrapper">
+                    <button class="add-item-btn" (click)="startAddFacteur()">
+                      <i class="fi fi-rr-plus-small"></i>
+                      {{ 'enjeux.facteurInfluence.addButton' | translate }}
+                    </button>
+                    <span class="add-item-hint">
+                      <i class="fi fi-rr-info"></i>
+                      {{ 'enjeux.facteurInfluence.helpText' | translate }}
+                    </span>
+                  </div>
                 }
               }
             </div>
