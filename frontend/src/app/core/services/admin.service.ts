@@ -247,6 +247,14 @@ export class AdminService {
   }
 
   /**
+   * Delete a site
+   */
+  deleteSite(slug: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/sites/${slug}/`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Check for duplicate sites by INPN code or name
    * GET /api/users/sites/check_duplicates/
    * @param params - nom_site: search by similar names, id_inpn: exact INPN match, exclude_id: site to exclude (edit mode)

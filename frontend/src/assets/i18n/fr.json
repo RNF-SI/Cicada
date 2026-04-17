@@ -393,6 +393,14 @@
         "organismesUpdated": "Organismes du site mis à jour",
         "deletionNotAvailable": "La suppression de site n'est pas disponible ici. Utilisez l'admin Django."
       },
+      "delete": {
+        "confirmTitle": "Supprimer ce site ?",
+        "confirmMessage": "Voulez-vous vraiment supprimer le site \"{{name}}\" ? Cette action est irréversible.",
+        "plansWarning": "⚠ {{count}} plan(s) de gestion perdront leur association avec ce site",
+        "usersWarning": "⚠ {{count}} utilisateur(s) perdront leur accès à ce site",
+        "success": "Site \"{{name}}\" supprimé avec succès",
+        "error": "Erreur lors de la suppression du site"
+      },
       "others": "+{{count}} autres",
       "referent": "Référent",
       "summary": "{{count}} site(s) - Surface totale: {{surface}} ha"

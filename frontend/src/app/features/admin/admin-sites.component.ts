@@ -19,6 +19,7 @@ import {
   ExistingUserData,
   ExistingOrganismeData
 } from '../../shared/components/modals';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 interface DisplayOrganismeLie {
   id: number;
@@ -350,7 +351,60 @@ export class AdminSitesComponent implements OnInit, OnDestroy {
   }
 
   deleteSite(site: DisplaySite): void {
-    this.snackBar.open(this.translate.instant('admin.sites.messages.deletionNotAvailable'), 'OK', { duration: 5000 });
+    const planCount = site.nbPlans || 0;
+    const userCount = site.users?.length || 0;
+    const details: string[] = [];
+    if (planCount > 0) {
+      details.push(this.translate.instant('admin.sites.delete.plansWarning', { count: planCount }));
+    }
+    if (userCount > 0) {
+      details.push(this.translate.instant('admin.sites.delete.usersWarning', { count: userCount }));
+    }
+    const message = this.translate.instant('admin.sites.delete.confirmMessage', { name: site.nom })
+      + (details.length ? '\n\n' + details.join('\n') : '');
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title: this.translate.instant('admin.sites.delete.confirmTitle'),
+        message,
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+
+      this.adminService.deleteSite(site.slug).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('admin.sites.delete.success', { name: site.nom }),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+          this.loadSites();
+        },
+        error: (error) => {
+          this.snackBar.open(
+            error.message || this.translate.instant('admin.sites.delete.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
+    });
+  }
+
+  canDeleteSite(site: DisplaySite): boolean {
+    if (this.isSuperAdmin()) return true;
+    const userId = this.currentUser()?.id;
+    if (this.isAdminOrganisme()) {
+      const userOrgId = this.currentUser()?.organisme?.id_organisme;
+      if (userOrgId && site.organismes.some(o => o.id === userOrgId)) return true;
+    }
+    return site.users.some(u => u.id === userId && u.isReferent);
   }
 
   getUserRoles(user: DisplayUserLie): string {

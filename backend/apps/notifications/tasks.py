@@ -194,6 +194,7 @@ def send_registration_rejected_email(self, email, reason=None):
 def check_orphaned_sites():
     """
     Tache d'audit hebdomadaire pour verifier les sites sans utilisateurs.
+    Envoie un seul email recapitulatif aux super admins et admin_og concernes.
 
     Note: La detection en temps reel est faite par les signaux Django
     dans apps/users/signals.py (post_delete sur CorRoleSite, post_save sur Role).
@@ -205,33 +206,25 @@ def check_orphaned_sites():
 
     # Sites actifs sans aucun utilisateur associe
     sites_with_users = CorRoleSite.objects.values_list('id_site', flat=True)
-    orphaned_sites = Site.objects.filter(
-        active=True
-    ).exclude(
-        id_site__in=sites_with_users
+    orphaned_sites = list(
+        Site.objects.filter(active=True)
+        .exclude(id_site__in=sites_with_users)
+        .order_by('nom_site')
     )
 
-    for site in orphaned_sites:
-        # Verifier si une notification n'a pas deja ete envoyee recemment
-        from .models import Notification
-        from django.utils import timezone
-        from datetime import timedelta
+    if not orphaned_sites:
+        logger.info("No orphaned sites found")
+        return
 
-        recent = Notification.objects.filter(
-            notification_type='site_orphaned',
-            related_site=site,
-            created_at__gte=timezone.now() - timedelta(days=7)
-        ).exists()
-
-        if not recent:
-            NotificationService.notify_site_orphaned(site)
-            logger.info(f"Notification sent for orphaned site: {site.nom_site}")
+    logger.info(f"Found {len(orphaned_sites)} orphaned sites")
+    NotificationService.notify_orphaned_sites_summary(orphaned_sites)
 
 
 @shared_task
 def check_organismes_without_admin():
     """
     Tache d'audit hebdomadaire pour verifier les organismes sans admin_og.
+    Envoie un seul email recapitulatif aux super admins.
 
     Note: La detection en temps reel est faite par les signaux Django
     dans apps/users/signals.py (post_save et post_delete sur Role).
@@ -241,31 +234,47 @@ def check_organismes_without_admin():
     from apps.users.models import BibOrganismes, Role
     from .services import NotificationService
 
-    # Organismes sans admin_og actif
-    organismes = BibOrganismes.objects.all()
-
-    for organisme in organismes:
+    organismes_without_admin = []
+    for organisme in BibOrganismes.objects.all().order_by('nom_organisme'):
         has_admin = Role.objects.filter(
             id_organisme=organisme,
             role_level='admin_og',
             active=True
         ).exists()
-
         if not has_admin:
-            # Verifier si une notification n'a pas deja ete envoyee recemment
-            from .models import Notification
-            from django.utils import timezone
-            from datetime import timedelta
+            organismes_without_admin.append(organisme)
 
-            recent = Notification.objects.filter(
-                notification_type='organisme_no_admin',
-                related_organisme=organisme,
-                created_at__gte=timezone.now() - timedelta(days=7)
-            ).exists()
+    if not organismes_without_admin:
+        logger.info("No organismes without admin found")
+        return
 
-            if not recent:
-                NotificationService.notify_organisme_no_admin(organisme)
-                logger.info(f"Notification sent for organisme without admin: {organisme.nom_organisme}")
+    logger.info(f"Found {len(organismes_without_admin)} organismes without admin")
+    NotificationService.notify_organismes_no_admin_summary(organismes_without_admin)
+
+
+@shared_task
+def check_orphaned_plans():
+    """
+    Tache d'audit hebdomadaire pour verifier les plans de gestion sans site associe.
+    Ces plans se retrouvent orphelins apres suppression de leurs sites lies.
+
+    Envoie un email recapitulatif aux super admins avec la liste des plans orphelins.
+    """
+    from apps.plans.models import PlanGestion, CorSitePg
+    from .services import NotificationService
+
+    plans_with_sites = CorSitePg.objects.values_list('id_pg', flat=True)
+    orphaned_plans = list(
+        PlanGestion.objects.exclude(id_pg__in=plans_with_sites)
+        .order_by('nom')
+    )
+
+    if not orphaned_plans:
+        logger.info("No orphaned plans found")
+        return
+
+    logger.info(f"Found {len(orphaned_plans)} orphaned plans")
+    NotificationService.notify_orphaned_plans_summary(orphaned_plans)
 
 
 @shared_task

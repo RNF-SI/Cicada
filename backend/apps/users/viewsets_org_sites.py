@@ -428,7 +428,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         elif self.action in ['update', 'partial_update']:
             permission_classes = [IsReferent]  # Vérifié dans get_object
         elif self.action in ['destroy']:
-            permission_classes = [IsAdminOrganisme]  # Vérifié dans get_object
+            permission_classes = [IsReferent]  # Vérifié dans get_object (super_admin, admin_og, référent du site)
         elif self.action in ['bulk_import_validate', 'bulk_import_execute', 'bulk_import_status']:
             permission_classes = [IsAdminOrganisme]
         else:
@@ -586,6 +586,45 @@ class SiteViewSet(viewsets.ModelViewSet):
                 )
 
             return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Suppression d'un site avec notifications.
+        - Accessible au super_admin, admin_og et référent du site (via can_manage_site)
+        - Envoie une notification aux référents et admin_og des organismes liés
+        - Les plans liés (CorSitePg CASCADE) perdent leur association mais ne sont pas supprimés
+        - La détection des plans orphelins est faite par la tâche hebdomadaire check_orphaned_plans
+        """
+        from apps.notifications.services import NotificationService
+
+        site = self.get_object()
+        site_name = site.nom_site
+        site_id = site.id_site
+        deleted_by = request.user
+
+        # Capturer les référents et les organismes avant suppression (CASCADE va tout effacer)
+        referent_ids = list(
+            CorRoleSite.objects.filter(id_site=site, referent=True)
+            .values_list('id_role', flat=True)
+        )
+        org_ids = list(
+            CorOgSite.objects.filter(id_site=site)
+            .values_list('uuid_og', flat=True)
+        )
+
+        # Suppression effective (CASCADE sur CorRoleSite, CorOgSite, CorSitePg)
+        site.delete()
+
+        # Notification post-suppression
+        NotificationService.notify_site_deleted(
+            site_name=site_name,
+            site_id=site_id,
+            deleted_by=deleted_by,
+            referent_ids=referent_ids,
+            org_ids=org_ids,
+        )
+
+        return Response(status=204)
 
     @action(detail=True, methods=['get'])
     def geojson(self, request, slug=None):
