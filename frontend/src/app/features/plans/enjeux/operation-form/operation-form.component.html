@@ -62,6 +62,8 @@
             </mat-autocomplete>
             @if (isCSAction()) {
               <mat-hint>{{ 'enjeux.operations.typeActionCSHint' | translate }}</mat-hint>
+            } @else {
+              <mat-hint>{{ 'enjeux.operations.typeActionHint' | translate }}</mat-hint>
             }
           </mat-form-field>
 
@@ -240,7 +242,12 @@
               <!-- Habitat(s) — conditional: only when cible = HABITATS_VEGETATIONS -->
               @if (showHabitat) {
                 <div class="form-group">
-                  <label class="form-label">{{ 'enjeux.operations.habitatRef' | translate }}</label>
+                  <label class="form-label">
+                    {{ 'enjeux.operations.habitatRef' | translate }}
+                    <i class="fi fi-rr-info help-icon"
+                       [matTooltip]="'enjeux.operations.habitatRefTooltip' | translate"
+                       matTooltipPosition="right"></i>
+                  </label>
                   <app-reference-item-list
                     type="habitat"
                     [items]="habitatItems"

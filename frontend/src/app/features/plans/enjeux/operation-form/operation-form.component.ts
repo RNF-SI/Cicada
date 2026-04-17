@@ -21,6 +21,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
@@ -63,6 +64,7 @@ import {
     MatSnackBarModule,
     MatAutocompleteModule,
     MatDialogModule,
+    MatTooltipModule,
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent

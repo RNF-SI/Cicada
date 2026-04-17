@@ -158,7 +158,7 @@ export class InventaireFormComponent implements OnInit {
       justification_non_respect: [''],
       differences_protocole: [''],
       mode_validation: [''],
-      periode_suivi: [''],
+      periode_suivi: [[] as string[]],
       documentation_disponible: [null],
       url_documentation: [''],
       frequence_nombre: [null],
@@ -419,7 +419,7 @@ export class InventaireFormComponent implements OnInit {
         justification_non_respect: p.justification_non_respect || '',
         differences_protocole: p.differences_protocole || '',
         mode_validation: p.mode_validation || '',
-        periode_suivi: p.periode_suivi || '',
+        periode_suivi: p.periode_suivi ? p.periode_suivi.split(',').map(s => s.trim()).filter(Boolean) : [],
         documentation_disponible: p.documentation_disponible ?? null,
         url_documentation: p.url_documentation || '',
       });
@@ -621,7 +621,12 @@ export class InventaireFormComponent implements OnInit {
     if (fv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = fv.justification_non_respect.trim();
     if (fv.differences_protocole?.trim()) protocoleData['differences_protocole'] = fv.differences_protocole.trim();
     if (fv.mode_validation?.trim()) protocoleData['mode_validation'] = fv.mode_validation.trim();
-    if (fv.periode_suivi) protocoleData['periode_suivi'] = fv.periode_suivi;
+    if (Array.isArray(fv.periode_suivi) && fv.periode_suivi.length > 0) {
+      protocoleData['periode_suivi'] = fv.periode_suivi.join(',');
+    } else if (typeof fv.periode_suivi === 'string' && fv.periode_suivi) {
+      // Rétrocompat si jamais on reçoit une string
+      protocoleData['periode_suivi'] = fv.periode_suivi;
+    }
     if (fv.documentation_disponible != null) protocoleData['documentation_disponible'] = fv.documentation_disponible;
     if (fv.documentation_disponible === true && fv.url_documentation?.trim()) {
       protocoleData['url_documentation'] = fv.url_documentation.trim();

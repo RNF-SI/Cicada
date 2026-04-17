@@ -363,15 +363,15 @@
 
                 <!-- ═══ NON-CAMPANULE only fields ═══ -->
                 @if (isNotCampanule) {
-                  <!-- Période de suivi -->
+                  <!-- Période de suivi (multi-mois) -->
                   <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.periodeSuivi' | translate }} <span class="required-star">*</span></mat-label>
-                    <mat-select formControlName="periode_suivi">
-                      <mat-option value="">—</mat-option>
+                    <mat-label>{{ 'inventaires.form.periodeSuivi' | translate }}</mat-label>
+                    <mat-select formControlName="periode_suivi" multiple>
                       @for (opt of periodeSuiviOptions(); track opt.id_nomenclature) {
                         <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
                       }
                     </mat-select>
+                    <mat-hint>{{ 'inventaires.form.periodeSuiviHint' | translate }}</mat-hint>
                   </mat-form-field>
 
                   <!-- Documentation disponible ? -->
