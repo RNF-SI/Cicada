@@ -21,6 +21,7 @@ export interface SuiviInventaireList {
   nb_operations: number;
   id_pg?: number;
   plan_nom?: string;
+  sites_list?: string | null;
   date_ajout: string;
   date_maj: string;
 }

@@ -44,6 +44,7 @@ interface DisplayPlan {
 interface DisplayUser {
   id: number;
   email: string;
+  identifiant?: string;
   nom: string;
   prenom: string;
   organisme: string;
@@ -242,6 +243,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     return {
       id: user.id_role,
       email: user.email,
+      identifiant: user.identifiant,
       nom: user.nom_role || '',
       prenom: user.prenom_role || '',
       organisme: user.organisme?.nom_organisme || 'Non assigne',
