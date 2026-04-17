@@ -555,6 +555,80 @@ class TestSitesDeleteEndpoint:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not CorOgSite.objects.filter(id_site_id=site_id).exists()
 
+    def test_delete_site_denied_for_regular_user(self, api_client):
+        """Un utilisateur simple ne peut pas supprimer un site."""
+        user = RoleFactory(role_level='utilisateur')
+        site = SiteFactory()
+        site_slug = site.slug
+
+        api_client.force_authenticate(user=user)
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
+
+        # Permission refusée (403) ou non trouvé dans le queryset (404)
+        assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+        assert Site.objects.filter(id_site=site.id_site).exists()
+
+    def test_delete_site_allowed_for_admin_og(self, api_client):
+        """L'admin d'un organisme lié au site peut le supprimer."""
+        admin_og = AdminOrganismeFactory()
+        site = SiteFactory()
+        # Lier le site à l'organisme de l'admin
+        CorOgSiteFactory(id_site=site, uuid_og=admin_og.id_organisme)
+        site_id = site.id_site
+        site_slug = site.slug
+
+        api_client.force_authenticate(user=admin_og)
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Site.objects.filter(id_site=site_id).exists()
+
+    def test_delete_site_preserves_linked_plans(self, api_client):
+        """Les plans liés au site doivent être conservés (pas de suppression en cascade sur PlanGestion)."""
+        from apps.plans.models import PlanGestion, CorSitePg
+
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        plan = PlanGestion.objects.create(
+            nom='Plan test',
+            slug='plan-test-delete',
+            annee_debut=2024,
+            annee_fin=2033,
+            id_utilisateur_ajout=admin,
+        )
+        CorSitePg.objects.create(plan_de_gestion=plan, site=site, rang=1)
+        plan_id = plan.id_pg
+        site_slug = site.slug
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        # Le plan existe toujours, mais n'a plus le lien site
+        assert PlanGestion.objects.filter(id_pg=plan_id).exists()
+        assert not CorSitePg.objects.filter(plan_de_gestion=plan_id).exists()
+
+    def test_delete_site_creates_notification_for_super_admin(self, api_client):
+        """La suppression d'un site crée une notification pour les super_admins."""
+        from apps.notifications.models import Notification
+
+        admin = SuperAdminFactory()
+        other_admin = SuperAdminFactory()
+        site = SiteFactory(nom_site='Site test notif')
+        site_slug = site.slug
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(f'/api/users/sites/{site_slug}/')
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        # L'autre super_admin reçoit une notification
+        notif = Notification.objects.filter(
+            recipient=other_admin,
+            notification_type='site_deleted',
+        ).first()
+        assert notif is not None
+        assert 'Site test notif' in notif.title
+
 
 # =============================================================================
 # FILTERS AND SEARCH TESTS
