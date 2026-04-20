@@ -148,7 +148,7 @@ const mockEnjeu1: Enjeu = {
           id_pression: 301, id_facteur_influence: 101, libelle: 'Pression Urbaine', date_ajout: '', date_maj: '',
           objectifs_operationnels: [
             {
-              id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
+              id_oo: 1001, pressions: [{id_pression: 301, libelle: 'Pression Urbaine'}], pression_ids: [301], libelle: 'OO Test', date_ajout: '', date_maj: '',
               resultats_attendus: [
                 { id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '' }
               ]
@@ -600,6 +600,8 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     it('should call deleteEnjeu and reload on success', () => {
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       const callsBefore = mockEnjeuService.getPlanEnjeux.mock.calls.length;
       component.onEnjeuDelete(mockEnjeu1);
       expect(mockEnjeuService.deleteEnjeu).toHaveBeenCalledWith(1);
@@ -608,12 +610,16 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should navigate back to list if deleted enjeu was selected', () => {
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.onEnjeuDelete(mockEnjeu1);
       expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
     });
 
     it('should set errorMessage on delete error', () => {
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       mockEnjeuService.deleteEnjeu.mockReturnValue(throwError(() => new Error('fail')));
       component.onEnjeuDelete(mockEnjeu1);
       expect(component.errorMessage()).toBeTruthy();
@@ -1392,6 +1398,8 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should call deleteMetrique', () => {
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       component.deleteMetrique({ id_metrique: 901 });
       expect(mockEnjeuService.deleteMetrique).toHaveBeenCalledWith(901);
     });
@@ -1466,7 +1474,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, pressions: [{id_pression: 301, libelle: 'Pression Urbaine'}], pression_ids: [301], libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
 
     it('should toggle OO expanded state', () => {
@@ -1477,62 +1485,33 @@ describe('EnjeuxListComponent', () => {
       expect(component.isOoExpanded(1001)).toBe(false);
     });
 
-    it('should start adding OO and reset facteur signal', () => {
-      component.newOoFacteurFilterId.set(101);
+    it('should start adding OO and reset pression ids', () => {
+      component.newOoPressionIds = [301];
       component.startAddOo();
       expect(component.addingOo()).toBe(true);
       expect(component.newOoLibelle).toBe('');
-      expect(component.newOoFacteurFilterId()).toBeNull();
+      expect(component.newOoPressionIds).toEqual([]);
     });
 
-    it('should cancel adding OO and reset facteur signal', () => {
+    it('should cancel adding OO and reset pression ids', () => {
       component.startAddOo();
       component.newOoLibelle = 'Test';
-      component.newOoFacteurFilterId.set(101);
+      component.newOoPressionIds = [301];
       component.cancelAddOo();
       expect(component.addingOo()).toBe(false);
       expect(component.newOoLibelle).toBe('');
-      expect(component.newOoFacteurFilterId()).toBeNull();
-    });
-
-    it('should return empty pressions when no facteur selected', () => {
-      component['selectedEnjeuSlug'].set('protection-zones-humides');
-      expect(component.filteredPressionsForNewOo()).toEqual([]);
-    });
-
-    it('should filter pressions by selected facteur', () => {
-      component['selectedEnjeuSlug'].set('protection-zones-humides');
-      component.newOoFacteurFilterId.set(101);
-      const pressions = component.filteredPressionsForNewOo();
-      expect(pressions.length).toBe(1);
-      expect(pressions[0].id_pression).toBe(301);
-      expect(pressions[0].libelle).toBe('Pression Urbaine');
-    });
-
-    it('should update filtered pressions when facteur changes', () => {
-      component['selectedEnjeuSlug'].set('protection-zones-humides');
-
-      component.newOoFacteurFilterId.set(101);
-      expect(component.filteredPressionsForNewOo().length).toBe(1);
-      expect(component.filteredPressionsForNewOo()[0].id_pression).toBe(301);
-
-      component.newOoFacteurFilterId.set(102);
-      expect(component.filteredPressionsForNewOo().length).toBe(1);
-      expect(component.filteredPressionsForNewOo()[0].id_pression).toBe(302);
-
-      component.newOoFacteurFilterId.set(null);
-      expect(component.filteredPressionsForNewOo()).toEqual([]);
+      expect(component.newOoPressionIds).toEqual([]);
     });
 
     it('should call createObjectifOperationnel on save', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = 'Nouvel OO';
       component.newOoDescription = 'Desc OO';
-      component.newOoPressionId = 301;
+      component.newOoPressionIds = [301];
       component.saveOo();
 
       expect(mockEnjeuService.createObjectifOperationnel).toHaveBeenCalledWith(expect.objectContaining({
-        id_pression: 301,
+        pression_ids: [301],
         libelle: 'Nouvel OO',
         description: 'Desc OO',
       }));
@@ -1541,7 +1520,7 @@ describe('EnjeuxListComponent', () => {
     it('should not save OO with empty libelle', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = '   ';
-      component.newOoPressionId = 301;
+      component.newOoPressionIds = [301];
       component.saveOo();
       expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1549,7 +1528,7 @@ describe('EnjeuxListComponent', () => {
     it('should not save OO without pression', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       component.newOoLibelle = 'Nouvel OO';
-      component.newOoPressionId = null;
+      component.newOoPressionIds = [];
       component.saveOo();
       expect(mockEnjeuService.createObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1572,7 +1551,7 @@ describe('EnjeuxListComponent', () => {
       component.editOoLibelle = 'OO modifié';
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
-        id_pression: 301,
+        pression_ids: [301],
         libelle: 'OO modifié',
       }));
     });
@@ -1587,7 +1566,7 @@ describe('EnjeuxListComponent', () => {
     it('should not save edit OO without pression', () => {
       component.startEditOo(mockOo);
       component.editOoLibelle = 'OO modifié';
-      component.editOoPressionId = null;
+      component.editOoPressionIds = [];
       component.saveEditOo(mockOo);
       expect(mockEnjeuService.updateObjectifOperationnel).not.toHaveBeenCalled();
     });
@@ -1630,7 +1609,7 @@ describe('EnjeuxListComponent', () => {
     beforeEach(() => setup());
 
     const mockOo: ObjectifOperationnel = {
-      id_oo: 1001, id_pression: 301, libelle: 'OO Test', date_ajout: '', date_maj: '',
+      id_oo: 1001, pressions: [{id_pression: 301, libelle: 'Pression Urbaine'}], pression_ids: [301], libelle: 'OO Test', date_ajout: '', date_maj: '',
     };
     const mockRa: ResultatAttendu = {
       id_ra: 1101, id_oo: 1001, libelle: 'RA Test', date_ajout: '', date_maj: '',

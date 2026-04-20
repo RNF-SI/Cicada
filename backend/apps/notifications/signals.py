@@ -171,12 +171,13 @@ def notify_user_organisme_changed(sender, instance, created, **kwargs):
 @receiver(post_save, sender='notifications.ValidationRequest')
 def notify_new_validation_request(sender, instance, created, **kwargs):
     """
-    Notifie les validateurs d'une nouvelle demande.
+    Signal backup pour notifier les validateurs d'une nouvelle demande.
+
+    NOTE: Ce signal ne fait RIEN car notify_validators() est appele
+    explicitement dans les vues/serializers APRES creation des objets lies
+    (PendingUser, etc.). Garder le signal causerait des notifications en double.
     """
-    if created and instance.status == 'pending':
-        from .services import NotificationService
-        NotificationService.notify_validators(instance)
-        logger.info(f"Validators notified of new {instance.request_type} request")
+    pass
 
 
 @receiver(post_save, sender='notifications.ValidationRequest')

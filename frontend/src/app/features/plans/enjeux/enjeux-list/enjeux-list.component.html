@@ -188,8 +188,12 @@
                         <i class="fi fi-rr-pencil"></i>
                       </button>
                     }
+                    <button class="icon-btn-flat icon-btn-flat--action" (click)="navigateToEnjeuDetail(enjeu); $event.stopPropagation()" [title]="'common.actions.view' | translate">
+                      <i class="fi fi-rr-eye"></i>
+                    </button>
                     <button class="icon-btn-flat icon-btn-flat--action" (click)="toggleEnjeuDetail(); $event.stopPropagation()">
                       <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+
                     </button>
                   </div>
                 </div>

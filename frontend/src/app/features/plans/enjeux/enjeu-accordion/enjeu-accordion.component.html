@@ -49,20 +49,22 @@
                alt="" class="body-sub-ellipse">
           <h4 class="body-sub-title">{{ enjeu.intitule_court || enjeu.libelle }}</h4>
         </div>
-        <div class="body-actions">
-          <button mat-icon-button
-                  (click)="onEdit($event)"
-                  [matTooltip]="'common.actions.edit' | translate"
-                  class="action-btn">
-            <i class="fi fi-rr-pencil"></i>
-          </button>
-          <button mat-icon-button
-                  (click)="onDelete($event)"
-                  [matTooltip]="'common.actions.delete' | translate"
-                  class="action-btn">
-            <i class="fi fi-rr-trash"></i>
-          </button>
-        </div>
+        @if (canEdit) {
+          <div class="body-actions">
+            <button mat-icon-button
+                    (click)="onEdit($event)"
+                    [matTooltip]="'common.actions.edit' | translate"
+                    class="action-btn">
+              <i class="fi fi-rr-pencil"></i>
+            </button>
+            <button mat-icon-button
+                    (click)="onDelete($event)"
+                    [matTooltip]="'common.actions.delete' | translate"
+                    class="action-btn">
+              <i class="fi fi-rr-trash"></i>
+            </button>
+          </div>
+        }
       </div>
 
       <!-- Properties (inline lines) -->

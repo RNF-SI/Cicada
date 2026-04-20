@@ -172,21 +172,31 @@ class ResultatAttenduCreateSerializer(serializers.ModelSerializer):
 # Serializers pour les Objectifs Opérationnels
 # =============================================================================
 
+class PressionLightSerializer(serializers.Serializer):
+    """Serializer léger pour les pressions liées à un OO (M2M)."""
+    id_pression = serializers.IntegerField()
+    libelle = serializers.CharField()
+    facteur_influence_libelle = serializers.SerializerMethodField()
+
+    def get_facteur_influence_libelle(self, obj):
+        try:
+            return obj.id_facteur_influence.libelle
+        except AttributeError:
+            return None
+
+
 class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
     resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
     nb_resultats_attendus = serializers.SerializerMethodField()
-    pression_libelle = serializers.CharField(
-        source='id_pression.libelle', read_only=True
-    )
-    facteur_influence_libelle = serializers.SerializerMethodField()
+    pressions = PressionLightSerializer(many=True, read_only=True)
+    pression_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_pression', 'pression_libelle',
-            'facteur_influence_libelle',
+            'id_oo', 'pressions', 'pression_ids',
             'libelle', 'description',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -196,27 +206,21 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     def get_nb_resultats_attendus(self, obj):
         return obj.resultats_attendus.count()
 
-    def get_facteur_influence_libelle(self, obj):
-        try:
-            return obj.id_pression.id_facteur_influence.libelle
-        except AttributeError:
-            return None
+    def get_pression_ids(self, obj):
+        return list(obj.pressions.values_list('id_pression', flat=True))
 
 
 class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Objectifs Opérationnels."""
     nb_resultats_attendus = serializers.SerializerMethodField()
-    pression_libelle = serializers.CharField(
-        source='id_pression.libelle', read_only=True
-    )
-    facteur_influence_libelle = serializers.SerializerMethodField()
+    pressions = PressionLightSerializer(many=True, read_only=True)
+    pression_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_pression', 'pression_libelle',
-            'facteur_influence_libelle',
+            'id_oo', 'pressions', 'pression_ids',
             'libelle', 'description',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -226,23 +230,40 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     def get_nb_resultats_attendus(self, obj):
         return obj.resultats_attendus.count()
 
-    def get_facteur_influence_libelle(self, obj):
-        try:
-            return obj.id_pression.id_facteur_influence.libelle
-        except AttributeError:
-            return None
+    def get_pression_ids(self, obj):
+        return list(obj.pressions.values_list('id_pression', flat=True))
 
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'un Objectif Opérationnel."""
+    pression_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Liste des IDs de pressions à lier"
+    )
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'id_pression',
+            'id_oo', 'pression_ids',
             'libelle', 'description'
         ]
         read_only_fields = ['id_oo']
+
+    def create(self, validated_data):
+        pression_ids = validated_data.pop('pression_ids', [])
+        oo = super().create(validated_data)
+        if pression_ids:
+            oo.pressions.set(pression_ids)
+        return oo
+
+    def update(self, instance, validated_data):
+        pression_ids = validated_data.pop('pression_ids', None)
+        oo = super().update(instance, validated_data)
+        if pression_ids is not None:
+            oo.pressions.set(pression_ids)
+        return oo
 
 
 # =============================================================================

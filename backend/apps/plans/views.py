@@ -742,7 +742,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             Operation.objects
             .filter(
                 Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
+                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
             )
             .distinct()
             .prefetch_related(
@@ -754,10 +754,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'id_indicateur__id_ne__id_olt__id_enjeu__id_categorie',
                     'id_indicateur__id_resultat_attendu',
                     'id_indicateur__id_resultat_attendu__id_oo',
-                    'id_indicateur__id_resultat_attendu__id_oo__id_pression',
-                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence',
-                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
-                    'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_categorie',
+                ).prefetch_related(
+                    'id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu',
                 ))
             )
         )
@@ -809,11 +807,16 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             }
 
         def build_oo_ancestry(met):
-            """Build inverted path: Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu"""
+            """Build inverted path: Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu
+            Note: OO is M2M with Pression, we pick the first pression for the ancestry path."""
             ind = met.id_indicateur
             ra = ind.id_resultat_attendu
             oo = ra.id_oo
-            pression = oo.id_pression
+            # M2M: pick first pression (prefetched)
+            oo_pressions = list(oo.pressions.all())
+            pression = oo_pressions[0] if oo_pressions else None
+            if not pression:
+                return None
             facteur = pression.id_facteur_influence
             enjeu = facteur.id_enjeu
             is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
@@ -864,7 +867,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 if ind.id_ne:
                     metrique_children.append(build_olt_ancestry(met))
                 elif ind.id_resultat_attendu:
-                    metrique_children.append(build_oo_ancestry(met))
+                    node = build_oo_ancestry(met)
+                    if node:
+                        metrique_children.append(node)
             if metrique_children:
                 op_node = {
                     'name': op.libelle,

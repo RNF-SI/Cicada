@@ -140,14 +140,21 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   allOos = computed(() => {
+    const seen = new Set<number>();
     return this.enjeuxData().flatMap(enjeu =>
       (enjeu.facteurs_influence || []).flatMap(fi =>
         (fi.pressions || []).flatMap(p =>
-          (p.objectifs_operationnels || []).map(oo => ({
-            ...oo,
-            enjeu_libelle: enjeu.libelle,
-            enjeu_id: enjeu.id_enjeu
-          }))
+          (p.objectifs_operationnels || [])
+            .filter(oo => {
+              if (seen.has(oo.id_oo)) return false;
+              seen.add(oo.id_oo);
+              return true;
+            })
+            .map(oo => ({
+              ...oo,
+              enjeu_libelle: enjeu.libelle,
+              enjeu_id: enjeu.id_enjeu
+            }))
         )
       )
     );

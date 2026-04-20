@@ -33,6 +33,7 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
   @Input() isFcr: boolean = false;
   @Input() displayIndex: number = 0;
   @Input() initiallyExpanded: boolean = false;
+  @Input() canEdit: boolean = true;
 
   @Output() edit = new EventEmitter<Enjeu>();
   @Output() delete = new EventEmitter<Enjeu>();

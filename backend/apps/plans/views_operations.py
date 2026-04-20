@@ -41,7 +41,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         Prefetch('metriques', queryset=Metrique.objects.select_related(
             'id_indicateur',
             'id_indicateur__id_ne__id_olt__id_enjeu',
-            'id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu',
+            'id_indicateur__id_resultat_attendu__id_oo',
         )),
         'sites',
         Prefetch('operation_annees', queryset=OperationAnnee.objects.prefetch_related(
@@ -118,7 +118,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__id_pression__id_facteur_influence__id_enjeu__id_pg=plan)
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
         ).distinct()
 
         grouped = defaultdict(list)

@@ -1737,7 +1737,6 @@ class EnjeuxSeeder(BaseSeeder):
 
             pression_urbain = Pression.objects.filter(id_facteur_influence=facteur_urbain).first()
             oo, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_urbain,
                 libelle='Réduire la pression urbaine sur les zones humides',
                 defaults={
                     'description': 'Mettre en place des mesures de protection et de gestion '
@@ -1745,6 +1744,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_urbain:
+                oo.pressions.add(pression_urbain)
             oos_created.append(oo)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo.libelle[:50]}')
 
@@ -1774,7 +1775,6 @@ class EnjeuxSeeder(BaseSeeder):
 
             pression_hydro = Pression.objects.filter(id_facteur_influence=facteur_hydro).first()
             oo2, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_hydro,
                 libelle='Restaurer le régime hydrologique naturel',
                 defaults={
                     'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
@@ -1782,6 +1782,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_hydro:
+                oo2.pressions.add(pression_hydro)
             oos_created.append(oo2)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo2.libelle[:50]}')
 
@@ -1803,7 +1805,6 @@ class EnjeuxSeeder(BaseSeeder):
         if enjeu_tourbieres:
             pression_assechement = Pression.objects.filter(id_facteur_influence=facteur_assechement).first()
             oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_assechement,
                 libelle='Maintenir le niveau piézométrique des tourbières',
                 defaults={
                     'description': 'Surveiller et maintenir le niveau piézométrique '
@@ -1811,6 +1812,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_assechement:
+                oo_tourb.pressions.add(pression_assechement)
             oos_created.append(oo_tourb)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_tourb.libelle[:50]}')
 
@@ -1864,7 +1867,6 @@ class EnjeuxSeeder(BaseSeeder):
                 )
                 pressions_created.append(pression_colonisation)
             oo_veg, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_colonisation,
                 libelle='Restaurer les communautés végétales turficoles',
                 defaults={
                     'description': 'Favoriser la recolonisation par les sphaignes et espèces '
@@ -1872,6 +1874,11 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_colonisation:
+                oo_veg.pressions.add(pression_colonisation)
+            # Also link to assechement pression to test M2M multi-link
+            if pression_assechement:
+                oo_veg.pressions.add(pression_assechement)
             oos_created.append(oo_veg)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_veg.libelle[:50]}')
 
@@ -1893,7 +1900,6 @@ class EnjeuxSeeder(BaseSeeder):
         if enjeu_qualite:
             pression_agricole = Pression.objects.filter(id_facteur_influence=facteur_agricole).first()
             oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_agricole,
                 libelle='Réduire les apports en nutriments d\'origine agricole',
                 defaults={
                     'description': 'Réduire de 30% les flux de phosphore et d\'azote '
@@ -1901,6 +1907,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_agricole:
+                oo_qualite.pressions.add(pression_agricole)
             oos_created.append(oo_qualite)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_qualite.libelle[:50]}')
 
@@ -1955,7 +1963,6 @@ class EnjeuxSeeder(BaseSeeder):
                 )
                 pressions_created.append(pression_eee)
             oo_eee, created = ObjectifOperationnel.objects.update_or_create(
-                id_pression=pression_eee,
                 libelle='Contenir l\'expansion de la Renouée du Japon',
                 defaults={
                     'description': 'Empêcher la progression des 3 stations connues de Renouée '
@@ -1963,6 +1970,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_utilisateur_ajout': admin
                 }
             )
+            if pression_eee:
+                oo_eee.pressions.add(pression_eee)
             oos_created.append(oo_eee)
             self.log_item('créé' if created else 'mis à jour', f'OO: {oo_eee.libelle[:50]}')
 
@@ -3114,10 +3123,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_surface = next((i for i in indicateurs_created if 'Surface des habitats humides' in i.nom_indicateur), None)
         if ind_surface and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Restauration hydraulique du marais sud',
+                code_operation='CAM-SE01',
                 defaults={
+                    'libelle': 'Restauration hydraulique du marais sud',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'CAM-SE01',
                     'id_referentiel_operations': 'SE',
                     'description': 'Travaux de remise en eau du marais sud par suppression '
                                    'des endiguements et restauration des connexions hydrauliques.',
@@ -3131,10 +3140,10 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
             op2, created = Operation.objects.update_or_create(
-                libelle='Suivi cartographique des habitats humides',
+                code_operation='CAM-SE02',
                 defaults={
+                    'libelle': 'Suivi cartographique des habitats humides',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'CAM-SE02',
                     'id_referentiel_operations': 'SE',
                     'description': 'Cartographie annuelle de l\'état de conservation '
                                    'des habitats humides par télédétection et terrain.',
@@ -3151,10 +3160,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_flamant = next((i for i in indicateurs_created if 'Flamant rose' in i.nom_indicateur), None)
         if ind_flamant and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Régulation de la fréquentation autour des colonies',
+                code_operation='CAM-IP01',
                 defaults={
+                    'libelle': 'Régulation de la fréquentation autour des colonies',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'CAM-IP01',
                     'id_referentiel_operations': 'IP',
                     'description': 'Mise en place de zones d\'exclusion temporaires '
                                    'autour des colonies de nidification en période de reproduction.',
@@ -3171,10 +3180,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_debit = next((i for i in indicateurs_created if 'prélèvements d\'eau' in i.nom_indicateur), None)
         if ind_debit and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Négociation de quotas de prélèvement avec les irrigants',
+                code_operation='CAM-GE01',
                 defaults={
+                    'libelle': 'Négociation de quotas de prélèvement avec les irrigants',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'CAM-GE01',
                     'id_referentiel_operations': 'GE',
                     'description': 'Animation de la concertation avec les acteurs agricoles '
                                    'pour la définition de quotas respectant le débit écologique.',
@@ -3192,10 +3201,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_stations = next((i for i in indicateurs_created if 'stations d\'espèces arctico-alpines' in i.nom_indicateur), None)
         if ind_stations and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Inventaire annuel des placettes permanentes',
+                code_operation='AR-CS01',
                 defaults={
+                    'libelle': 'Inventaire annuel des placettes permanentes',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'AR-CS01',
                     'id_referentiel_operations': 'CS',
                     'description': 'Suivi annuel des 24 placettes permanentes pour le comptage '
                                    'des stations d\'espèces arctico-alpines.',
@@ -3212,10 +3221,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_quietude = next((i for i in indicateurs_created if 'zones de quiétude' in i.nom_indicateur), None)
         if ind_quietude and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Mise en défens hivernale des zones de quiétude',
+                code_operation='AR-PR01',
                 defaults={
+                    'libelle': 'Mise en défens hivernale des zones de quiétude',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'AR-PR01',
                     'id_referentiel_operations': 'PR',
                     'description': 'Balisage et surveillance des zones de quiétude '
                                    'pour le tétras-lyre en période hivernale (nov-avr).',
@@ -3229,10 +3238,10 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
 
             op2, created = Operation.objects.update_or_create(
-                libelle='Sensibilisation des pratiquants de sports d\'hiver',
+                code_operation='AR-CC01',
                 defaults={
+                    'libelle': 'Sensibilisation des pratiquants de sports d\'hiver',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'AR-CC01',
                     'id_referentiel_operations': 'CC',
                     'description': 'Campagnes de communication et panneaux d\'information '
                                    'auprès des randonneurs et skieurs de randonnée.',
@@ -3250,10 +3259,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_phosphore = next((i for i in indicateurs_created if 'phosphore total' in i.nom_indicateur), None)
         if ind_phosphore and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Prélèvements mensuels qualité eau lac',
+                code_operation='REM-CS01',
                 defaults={
+                    'libelle': 'Prélèvements mensuels qualité eau lac',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-CS01',
                     'id_referentiel_operations': 'CS',
                     'description': 'Campagnes de prélèvements mensuels sur 3 points '
                                    'du lac pour le suivi de la qualité physico-chimique.',
@@ -3270,10 +3279,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_nutriments = next((i for i in indicateurs_created if 'nutriments' in i.nom_indicateur), None)
         if ind_nutriments and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Diagnostic des pratiques agricoles du bassin versant',
+                code_operation='REM-GE01',
                 defaults={
+                    'libelle': 'Diagnostic des pratiques agricoles du bassin versant',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-GE01',
                     'id_referentiel_operations': 'GE',
                     'description': 'Enquête et accompagnement des exploitants agricoles '
                                    'pour la réduction des intrants sur le bassin versant.',
@@ -3290,10 +3299,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_prairies = next((i for i in indicateurs_created if 'prairies en gestion extensive' in i.nom_indicateur), None)
         if ind_prairies and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Renouvellement des conventions de fauche tardive',
+                code_operation='REM-GE02',
                 defaults={
+                    'libelle': 'Renouvellement des conventions de fauche tardive',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-GE02',
                     'id_referentiel_operations': 'GE',
                     'description': 'Négociation et renouvellement des conventions '
                                    'avec les agriculteurs pour la fauche tardive (après le 15 juillet).',
@@ -3310,10 +3319,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_renouee = next((i for i in indicateurs_created if 'Renouée du Japon' in i.nom_indicateur and 'Expansion' in i.nom_indicateur), None)
         if ind_renouee and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Campagnes d\'arrachage de la Renouée du Japon',
+                code_operation='REM-SE01',
                 defaults={
+                    'libelle': 'Campagnes d\'arrachage de la Renouée du Japon',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-SE01',
                     'id_referentiel_operations': 'SE',
                     'description': 'Trois campagnes annuelles d\'arrachage mécanique '
                                    'et de suivi des repousses sur les 3 stations connues.',
@@ -3329,10 +3338,10 @@ class EnjeuxSeeder(BaseSeeder):
         # Opération multi-indicateurs : liée à la fois au phosphore et aux nutriments
         if ind_phosphore and ind_nutriments and prio_op_3:
             op, created = Operation.objects.update_or_create(
-                libelle='Étude globale du fonctionnement hydrologique du bassin',
+                code_operation='REM-CS02',
                 defaults={
+                    'libelle': 'Étude globale du fonctionnement hydrologique du bassin',
                     'id_priorite': prio_op_3,
-                    'code_operation': 'REM-CS02',
                     'id_referentiel_operations': 'CS',
                     'description': 'Étude hydrologique intégrée pour comprendre les flux '
                                    'de nutriments et la dynamique de la qualité des eaux.',
@@ -3352,10 +3361,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_drains_ref = next((i for i in indicateurs_created if 'drains historiques' in i.nom_indicateur), None)
         if ind_pression_drains_ref and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Bouchage et neutralisation des drains historiques',
+                code_operation='REM-TU01',
                 defaults={
+                    'libelle': 'Bouchage et neutralisation des drains historiques',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU01',
                     'id_referentiel_operations': 'GE',
                     'description': 'Travaux de bouchage des fossés de drainage du XIXe siècle '
                                    'sur les tourbières du Crossat et de Frasne. '
@@ -3373,10 +3382,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_piezo_ref = next((i for i in indicateurs_created if 'piézométrique saisonnier' in i.nom_indicateur), None)
         if ind_pression_piezo_ref and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Suivi piézométrique mensuel des tourbières',
+                code_operation='REM-TU02',
                 defaults={
+                    'libelle': 'Suivi piézométrique mensuel des tourbières',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU02',
                     'id_referentiel_operations': 'SE',
                     'description': 'Relevé mensuel des 15 piézomètres installés sur les '
                                    '8 tourbières. Analyse des tendances inter-annuelles.',
@@ -3393,10 +3402,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_col_ref = next((i for i in indicateurs_created if 'colonisation ligneuse' in i.nom_indicateur), None)
         if ind_pression_col_ref and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Débroussaillage sélectif des bouleaux sur tourbières',
+                code_operation='REM-TU03',
                 defaults={
+                    'libelle': 'Débroussaillage sélectif des bouleaux sur tourbières',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-TU03',
                     'id_referentiel_operations': 'GE',
                     'description': 'Coupes sélectives de bouleaux et saules colonisant '
                                    'les zones de sphaignes. Export des rémanents hors tourbière.',
@@ -3413,10 +3422,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_phosphore_ref = next((i for i in indicateurs_created if 'phosphore des affluents' in i.nom_indicateur), None)
         if ind_pression_phosphore_ref and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Suivi mensuel de la charge en phosphore des affluents',
+                code_operation='REM-QE01',
                 defaults={
+                    'libelle': 'Suivi mensuel de la charge en phosphore des affluents',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-QE01',
                     'id_referentiel_operations': 'SE',
                     'description': 'Prélèvements mensuels sur les 4 affluents principaux '
                                    'du lac pour mesurer les flux de phosphore total.',
@@ -3433,10 +3442,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_conv_ref = next((i for i in indicateurs_created if 'adhésion des exploitants' in i.nom_indicateur), None)
         if ind_pression_conv_ref and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Animation des conventions agricoles du bassin versant',
+                code_operation='REM-QE02',
                 defaults={
+                    'libelle': 'Animation des conventions agricoles du bassin versant',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-QE02',
                     'id_referentiel_operations': 'GE',
                     'description': 'Démarchage, accompagnement et suivi des 12 exploitations '
                                    'du bassin versant pour la signature de conventions '
@@ -3454,10 +3463,10 @@ class EnjeuxSeeder(BaseSeeder):
         ind_pression_ren_ref = next((i for i in indicateurs_created if 'recolonisation de la Renouée' in i.nom_indicateur), None)
         if ind_pression_ren_ref and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Campagnes d\'arrachage intensif de la Renouée (OO)',
+                code_operation='REM-EE01',
                 defaults={
+                    'libelle': 'Campagnes d\'arrachage intensif de la Renouée (OO)',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-EE01',
                     'id_referentiel_operations': 'GE',
                     'description': 'Trois campagnes annuelles d\'arrachage mécanique '
                                    'ciblant la réduction de 50% des surfaces colonisées. '
@@ -3479,10 +3488,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_balbuzard_freq and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Suivi visuel des haltes migratoires du Balbuzard',
+                code_operation='REM-BA01',
                 defaults={
+                    'libelle': 'Suivi visuel des haltes migratoires du Balbuzard',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-BA01',
                     'id_referentiel_operations': 'SE',
                     'description': 'Campagnes d\'observation bi-quotidiennes (aube et crépuscule) '
                                    'durant les périodes de migration prénuptiale (mars-mai) et '
@@ -3508,10 +3517,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_balbuzard_qual and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Aménagement de perchoirs et zones de quiétude lacustres',
+                code_operation='REM-BA02',
                 defaults={
+                    'libelle': 'Aménagement de perchoirs et zones de quiétude lacustres',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-BA02',
                     'id_referentiel_operations': 'GE',
                     'description': 'Installation de 3 perchoirs artificiels sur les berges '
                                    'sud et est du lac. Mise en place de bouées de délimitation '
@@ -3534,10 +3543,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_balbuzard_qual and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Sensibilisation des usagers du lac (pêcheurs, kayakistes)',
+                code_operation='REM-BA03',
                 defaults={
+                    'libelle': 'Sensibilisation des usagers du lac (pêcheurs, kayakistes)',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-BA03',
                     'id_referentiel_operations': 'CC',
                     'description': 'Programme de sensibilisation ciblant les pêcheurs et '
                                    'pratiquants de sports nautiques. Panneaux d\'information, '
@@ -3563,10 +3572,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_balbuzard_freq and ind_balbuzard_qual and prio_op_3:
             op, created = Operation.objects.update_or_create(
-                libelle='Étude de faisabilité nidification assistée du Balbuzard',
+                code_operation='REM-BA04',
                 defaults={
+                    'libelle': 'Étude de faisabilité nidification assistée du Balbuzard',
                     'id_priorite': prio_op_3,
-                    'code_operation': 'REM-BA04',
                     'id_referentiel_operations': 'CS',
                     'description': 'Étude de faisabilité pour l\'installation d\'une plateforme '
                                    'de nidification artificielle. Analyse des sites potentiels, '
@@ -3596,10 +3605,10 @@ class EnjeuxSeeder(BaseSeeder):
         # =====================================================================
         if ind_pression_col_ref and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Cartographie annuelle des sphaignes et végétation tourbeuse',
+                code_operation='REM-TU04',
                 defaults={
+                    'libelle': 'Cartographie annuelle des sphaignes et végétation tourbeuse',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-TU04',
                     'id_referentiel_operations': 'CS',
                     'description': 'Cartographie par drone et relevés phytosociologiques '
                                    'de la végétation des tourbières. Suivi de la dynamique '
@@ -3621,10 +3630,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_pression_drains_ref and prio_op_3:
             op, created = Operation.objects.update_or_create(
-                libelle='Pose de passerelles caillebotis sur sentier tourbière',
+                code_operation='REM-TU05',
                 defaults={
+                    'libelle': 'Pose de passerelles caillebotis sur sentier tourbière',
                     'id_priorite': prio_op_3,
-                    'code_operation': 'REM-TU05',
                     'id_referentiel_operations': 'GE',
                     'description': 'Installation de 450 m de caillebotis bois sur le sentier '
                                    'de découverte des tourbières pour limiter le piétinement '
@@ -3646,10 +3655,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_pression_piezo_ref and ind_pression_col_ref and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Animation pédagogique « La tourbière vivante »',
+                code_operation='REM-TU06',
                 defaults={
+                    'libelle': 'Animation pédagogique « La tourbière vivante »',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU06',
                     'id_referentiel_operations': 'CC',
                     'description': 'Programme pédagogique à destination des scolaires (cycle 3 '
                                    'et collège) et du grand public. Sorties guidées sur la '
@@ -3684,10 +3693,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_ne_piezo and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Maintenance et étalonnage du réseau piézométrique',
+                code_operation='REM-TU07',
                 defaults={
+                    'libelle': 'Maintenance et étalonnage du réseau piézométrique',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU07',
                     'id_referentiel_operations': 'GE',
                     'description': 'Vérification annuelle et étalonnage des 15 sondes '
                                    'piézométriques automatiques. Remplacement des sondes '
@@ -3710,10 +3719,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_ne_piezo and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Analyse inter-annuelle des chroniques piézométriques',
+                code_operation='REM-TU08',
                 defaults={
+                    'libelle': 'Analyse inter-annuelle des chroniques piézométriques',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-TU08',
                     'id_referentiel_operations': 'CS',
                     'description': 'Traitement statistique des données piézométriques '
                                    'cumulées depuis 2012. Modélisation des tendances, '
@@ -3738,10 +3747,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_ne_veg and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Relevés phytosociologiques des communautés turficoles',
+                code_operation='REM-TU09',
                 defaults={
+                    'libelle': 'Relevés phytosociologiques des communautés turficoles',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU09',
                     'id_referentiel_operations': 'SE',
                     'description': 'Relevés phytosociologiques annuels sur 20 quadrats '
                                    'permanents (2×2 m) répartis sur les 8 tourbières. '
@@ -3766,10 +3775,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_ne_veg and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Suivi photographique par drone des tourbières',
+                code_operation='REM-TU10',
                 defaults={
+                    'libelle': 'Suivi photographique par drone des tourbières',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-TU10',
                     'id_referentiel_operations': 'SE',
                     'description': 'Survols drone bi-annuels (début et fin de saison de '
                                    'végétation) pour cartographie haute résolution de la '
@@ -3793,10 +3802,10 @@ class EnjeuxSeeder(BaseSeeder):
 
         if ind_ne_piezo and ind_ne_veg and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Évaluation globale de l\'état de conservation des tourbières',
+                code_operation='REM-TU11',
                 defaults={
+                    'libelle': 'Évaluation globale de l\'état de conservation des tourbières',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TU11',
                     'id_referentiel_operations': 'CS',
                     'description': 'Synthèse triennale croisant les données piézométriques, '
                                    'phytosociologiques et de télédétection pour produire '
@@ -3831,10 +3840,10 @@ class EnjeuxSeeder(BaseSeeder):
         # liée à la fois aux habitats humides (ind_surface) et à la qualité de l'eau (ind_debit)
         if ind_surface and ind_debit and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Suivi hydrologique intégré du bassin versant',
+                code_operation='CAM-TRANS01',
                 defaults={
+                    'libelle': 'Suivi hydrologique intégré du bassin versant',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'CAM-TRANS01',
                     'id_referentiel_operations': 'CS',
                     'description': 'Suivi transversal combinant le monitoring des niveaux d\'eau '
                                    '(surfaces inondées) et des débits de prélèvement. '
@@ -3857,10 +3866,10 @@ class EnjeuxSeeder(BaseSeeder):
         # les prairies (ind_prairies) et la lutte contre la Renouée (ind_renouee)
         if ind_prairies and ind_renouee and prio_op_2:
             op, created = Operation.objects.update_or_create(
-                libelle='Sensibilisation agriculteurs – gestion extensive et espèces invasives',
+                code_operation='REM-TRANS01',
                 defaults={
+                    'libelle': 'Sensibilisation agriculteurs – gestion extensive et espèces invasives',
                     'id_priorite': prio_op_2,
-                    'code_operation': 'REM-TRANS01',
                     'id_referentiel_operations': 'CC',
                     'description': 'Programme de sensibilisation des exploitants agricoles riverains '
                                    'sur la gestion extensive des prairies ET la lutte contre '
@@ -3884,10 +3893,10 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray : opération partagée entre 3 métriques (phosphore + nutriments + prairies)
         if ind_phosphore and ind_nutriments and ind_prairies and prio_op_1:
             op, created = Operation.objects.update_or_create(
-                libelle='Diagnostic agro-environnemental du bassin versant',
+                code_operation='REM-TRANS02',
                 defaults={
+                    'libelle': 'Diagnostic agro-environnemental du bassin versant',
                     'id_priorite': prio_op_1,
-                    'code_operation': 'REM-TRANS02',
                     'id_referentiel_operations': 'CS',
                     'description': 'Diagnostic complet des pratiques agricoles et de leur impact '
                                    'sur la qualité de l\'eau (phosphore, nutriments) et sur le '
