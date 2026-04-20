@@ -498,6 +498,11 @@
   .selected-organisme {
     margin-top: $spacing-sm;
   }
+
+  // Espace entre le hint du champ de recherche et le bouton "Créer un organisme"
+  .create-organisme-btn {
+    margin-top: $spacing-md;
+  }
 }
 
 // Chips styling

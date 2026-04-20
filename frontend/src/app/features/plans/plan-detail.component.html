@@ -163,9 +163,7 @@
               [title]="'plans.detail.sections.synthese' | translate"
               icon="fi-rr-document"
               ellipseColor="terra-cotta"
-              size="lg"
-              [linkText]="'plans.detail.viewDetails' | translate"
-              linkUrl="#">
+              size="lg">
             </app-section-title>
 
             <!-- Accordéons selon design Figma -->
@@ -184,8 +182,8 @@
                       {{ accordion.title }}
                     </span>
                     <i class="fi accordion-icon"
-                       [class.fi-rr-plus]="!accordion.expanded"
-                       [class.fi-rr-minus]="accordion.expanded"></i>
+                       [class.fi-rr-angle-small-down]="!accordion.expanded"
+                       [class.fi-rr-angle-small-up]="accordion.expanded"></i>
                   </button>
 
                   <!-- Contenu de l'accordéon (si ouvert) -->
@@ -324,7 +322,6 @@
                               <div class="synthese-item" (click)="navigateToEnjeuByOltOo(olt.enjeu_id)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ olt.libelle }}</span>
-                                <span class="synthese-item-enjeu">{{ olt.enjeu_libelle }}</span>
                               </div>
                             }
                           </div>
@@ -346,7 +343,6 @@
                               <div class="synthese-item" (click)="navigateToEnjeuByOltOo(oo.enjeu_id)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ oo.libelle }}</span>
-                                <span class="synthese-item-enjeu">{{ oo.enjeu_libelle }}</span>
                               </div>
                             }
                           </div>

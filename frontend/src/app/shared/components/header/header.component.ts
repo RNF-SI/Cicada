@@ -68,7 +68,6 @@ export class HeaderComponent implements OnInit {
   readonly sidebarModules: SidebarModule[] = [
     { code: 'plans', name: 'Plans de gestion', icon: 'fi-rr-document', route: '/plans', requiresAccess: false, isDeveloped: true },
     { code: 'sites', name: 'Sites', icon: 'fi-rr-marker', route: '/sites', requiresAccess: false, isDeveloped: true },
-    { code: 'inventaires', name: 'Collecte de données', icon: 'fi-rr-database', route: '/inventaires', requiresAccess: false, isDeveloped: false },
     { code: 'zonages', name: 'Zonages réglementaires', icon: 'fi-rr-layers', route: '/zonages', requiresAccess: true, isDeveloped: false },
     { code: 'exploration', name: 'Exploration des données', icon: 'fi-rr-search', route: '/exploration', requiresAccess: false, isDeveloped: true },
   ];

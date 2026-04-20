@@ -1,10 +1,16 @@
 <app-header></app-header>
 
-<div class="enjeu-form-page">
+<div class="enjeu-form-page" [class.readonly-mode]="isReadOnly()">
   <!-- Hero Section -->
   <div class="hero-section">
     <h1 class="hero-title">
-      {{ isEditMode() ? ('enjeux.operations.editTitle' | translate) : ('enjeux.operations.createTitle' | translate) }}
+      @if (isReadOnly()) {
+        {{ 'enjeux.operations.viewTitle' | translate }}
+      } @else if (isEditMode()) {
+        {{ 'enjeux.operations.editTitle' | translate }}
+      } @else {
+        {{ 'enjeux.operations.createTitle' | translate }}
+      }
     </h1>
   </div>
 
@@ -1026,18 +1032,26 @@
       </form>
     </div>
 
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
-        {{ 'common.actions.cancel' | translate }}
-      </button>
-      <button class="btn-action-validate" type="button" (click)="save()" [disabled]="isLoading()">
-        @if (isLoading()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          {{ 'common.actions.validate' | translate }}
-        }
-      </button>
-    </div>
+    <!-- Action Bar (masquée en lecture seule) -->
+    @if (!isReadOnly()) {
+      <div class="action-bar">
+        <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
+          {{ 'common.actions.cancel' | translate }}
+        </button>
+        <button class="btn-action-validate" type="button" (click)="save()" [disabled]="isLoading()">
+          @if (isLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            {{ 'common.actions.validate' | translate }}
+          }
+        </button>
+      </div>
+    } @else {
+      <div class="action-bar">
+        <button class="btn-action-cancel" type="button" (click)="goBack()">
+          {{ 'common.actions.back' | translate }}
+        </button>
+      </div>
+    }
   }
 </div>

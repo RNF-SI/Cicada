@@ -383,20 +383,23 @@ h1 {
   }
 }
 
+// La colonne Nom absorbe l'espace restant pour ne pas se faire écraser
+// par la colonne Actions lorsque l'écran est large
 .col-name {
-  width: 419px;
+  width: auto;
+  min-width: 380px;
 }
 
 .col-period {
-  width: 234px;
+  width: 220px;
 }
 
 .col-status {
-  width: 252px;
+  width: 200px;
 }
 
 .col-actions {
-  flex: 1;
+  width: 160px;
 }
 
 .plan-name {

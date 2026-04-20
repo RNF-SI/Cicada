@@ -203,7 +203,9 @@
                         <button class="icon-btn-flat" title="Statistiques">
                           <i class="fi fi-rr-chart-histogram"></i>
                         </button>
-                        <button class="icon-btn-flat" title="Voir détails">
+                        <button class="icon-btn-flat"
+                                [title]="'common.actions.view' | translate"
+                                (click)="navigateToViewOperation(item.operation.id_operation)">
                           <i class="fi fi-rr-eye"></i>
                         </button>
                       </div>

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -34,6 +34,7 @@ interface FlatOperation {
 })
 export class PlanSuiviActionsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
@@ -262,5 +263,12 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (op.priorite_label.includes('2')) return 'priority-2';
     if (op.priorite_label.includes('3')) return 'priority-3';
     return '';
+  }
+
+  /** Ouvre la fiche action en lecture seule (page dédiée, partageable via URL) */
+  navigateToViewOperation(operationId: number): void {
+    const slug = this.planSlug();
+    if (!slug) return;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
   }
 }

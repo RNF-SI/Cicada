@@ -152,9 +152,10 @@ describe('HeaderComponent', () => {
 
     it('should have sidebar modules defined', () => {
       fixture.detectChanges();
-      expect(component.sidebarModules.length).toBe(5);
+      expect(component.sidebarModules.length).toBe(4);
       expect(component.sidebarModules[0].code).toBe('plans');
       expect(component.sidebarModules[1].code).toBe('sites');
+      expect(component.sidebarModules.some(m => m.code === 'inventaires')).toBe(false);
     });
   });
 

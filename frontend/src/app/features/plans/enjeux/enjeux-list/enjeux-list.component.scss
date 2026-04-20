@@ -445,8 +445,8 @@
 
 .enjeu-header-divider {
   width: 100%;
-  height: 1px;
-  background-color: $gray-light;
+  height: 2px;
+  background-color: $secondary-terra-cotta;
   margin-bottom: $spacing-lg;
 }
 
@@ -471,6 +471,16 @@
   &:hover {
     color: $primary-color;
     background-color: rgba($primary-color, 0.05);
+  }
+
+  // Variante "action" pour les icônes d'édition/expand dans les cartes enjeu/facteur/pression
+  &.icon-btn-flat--action {
+    color: $success-color;
+
+    &:hover {
+      color: darken($success-color, 10%);
+      background-color: rgba($success-color, 0.08);
+    }
   }
 }
 
@@ -744,17 +754,6 @@
   align-items: center;
   gap: $spacing-xs;
 
-  .pressref-code {
-    font-family: 'Courier New', monospace;
-    font-weight: 700;
-    font-size: 11px;
-    color: $primary-color;
-    background-color: rgba($primary-color, 0.08);
-    padding: 1px 6px;
-    border-radius: $border-radius-sm;
-    white-space: nowrap;
-  }
-
   .pressref-label {
     font-size: 12px;
     color: $gray-dark;
@@ -825,6 +824,33 @@
   margin-top: $spacing-sm;
 }
 
+// Wrapper + hint for contextual help next to add button
+.add-item-wrapper {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+  margin-top: $spacing-md;
+
+  .add-item-btn {
+    margin-top: 0;
+  }
+}
+
+.add-item-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+
+  i {
+    color: $primary-color;
+    font-size: 1rem;
+  }
+}
+
 // Unified add item button (Figma: stroked pill with + icon)
 .add-item-btn {
   display: inline-flex;
@@ -873,17 +899,36 @@
   gap: $spacing-md;
 }
 
-.oo-facteur-info {
+.oo-pressions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-md 0;
+}
+
+.oo-pressions-label {
   color: $gray-dark;
   font-size: $font-size-small;
   font-style: italic;
-  margin: 0 0 $spacing-md 0;
-  line-height: $line-height-base;
+  margin-right: $spacing-xxs;
+}
 
-  strong {
-    color: $black;
-    font-style: normal;
-  }
+.oo-pression-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background-color: $beige;
+  color: $black;
+  font-size: $font-size-small;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  border: 1px solid $gray-light;
+}
+
+.oo-pression-chip-facteur {
+  color: $gray-dark;
+  font-size: $font-size-small;
 }
 
 // Note d'usage en haut de l'onglet
@@ -1458,20 +1503,6 @@
   color: $black;
   text-transform: uppercase;
   letter-spacing: 2px;
-}
-
-// Operations section title under metrique
-.metrique-operations-section {
-  margin-top: $spacing-sm;
-  padding-left: $spacing-sm;
-  border-left: 3px solid $secondary-orange-salmon;
-
-  .metrique-operations-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: $gray-dark;
-    margin: 0 0 $spacing-xs;
-  }
 }
 
 // Metrique form block (used in both unified and standalone)

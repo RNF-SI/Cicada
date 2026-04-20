@@ -2289,6 +2289,13 @@ export class EnjeuxListComponent implements OnInit {
     );
   }
 
+  /** Ouvre la fiche action en lecture seule (page dédiée, partageable via URL) */
+  navigateToViewOperation(operationId: number): void {
+    const slug = this.planSlug();
+    if (!slug) return;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
+  }
+
   deleteOperation(operation: Operation): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '450px',

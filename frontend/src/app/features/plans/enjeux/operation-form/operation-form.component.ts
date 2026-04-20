@@ -93,6 +93,8 @@ export class OperationFormComponent implements OnInit {
   planNom = signal<string>('');
   operationId = signal<number | null>(null);
   isEditMode = signal(false);
+  /** Mode lecture seule : la route `operations/:id` (sans /modifier) définit data.readOnly = true */
+  isReadOnly = signal(false);
   existingOperation = signal<Operation | null>(null);
 
   // Query params
@@ -305,10 +307,19 @@ export class OperationFormComponent implements OnInit {
       this.planSlug.set(slug);
     }
 
+    // La route `operations/:operationId` (sans /modifier) définit data.readOnly = true
+    if (this.route.snapshot.data['readOnly'] === true) {
+      this.isReadOnly.set(true);
+    }
+
     const opIdStr = this.route.snapshot.paramMap.get('operationId');
     if (opIdStr) {
       this.operationId.set(parseInt(opIdStr, 10));
-      this.isEditMode.set(true);
+      // En mode lecture seule la page reste "vue" — pas d'édition — mais on
+      // doit quand même charger les données de l'action existante
+      if (!this.isReadOnly()) {
+        this.isEditMode.set(true);
+      }
     }
 
     const metriqueIdStr = this.route.snapshot.queryParamMap.get('metriqueId');
@@ -486,6 +497,12 @@ export class OperationFormComponent implements OnInit {
       next: (operation) => {
         this.existingOperation.set(operation);
         this.populateForm(operation);
+        // Verrouille tout le formulaire en mode lecture seule une fois les valeurs chargées
+        if (this.isReadOnly()) {
+          this.form.disable();
+          this.typeActionSearchCtrl.disable();
+          this.campanuleSearchCtrl.disable();
+        }
         this.isLoadingData.set(false);
       },
       error: () => {

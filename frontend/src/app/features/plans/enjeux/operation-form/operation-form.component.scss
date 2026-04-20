@@ -6,6 +6,28 @@
   padding-bottom: 80px;
 }
 
+// Mode lecture seule : la route `operations/:id` (sans /modifier) active cette classe.
+// Les form-controls sont désactivés via `form.disable()` côté TS, mais les inputs natifs
+// (ex. .prog-input du tableau de programmation) restent éditables — on les gèle ici en CSS
+// et on masque tous les leviers d'édition (boutons d'ajout, poignées de suppression, etc.).
+.readonly-mode {
+  .prog-input,
+  .prog-input-wrapper {
+    pointer-events: none;
+    background-color: transparent;
+  }
+
+  .add-link-btn,
+  .btn-action-validate,
+  .btn-remove,
+  .btn-remove-small,
+  .btn-delete,
+  .prog-duplicate-btn,
+  .add-site-btn {
+    display: none !important;
+  }
+}
+
 $form-side-margin: $spacing-xxl;
 
 // Hero Section
@@ -88,7 +110,7 @@ $form-side-margin: $spacing-xxl;
 
 .full-width {
   width: 100%;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 // ═══════════════════════════════════════════════
@@ -303,25 +325,28 @@ $form-side-margin: $spacing-xxl;
   display: inline-flex;
   align-items: center;
   border: 1px solid $gray-light;
-  border-radius: $border-radius-sm;
+  border-radius: $border-radius-md;
   overflow: hidden;
+  background-color: $white;
 
   .prog-input-suffixed {
     border: none;
     border-radius: 0;
     width: 55px;
+    background-color: transparent;
 
     &:focus {
       outline: none;
     }
   }
 
+  // Suffixe (€, j) intégré au champ, sans zone grise ni séparation visible
   .prog-input-suffix {
-    padding: 0 $spacing-xs;
+    padding: 0 $spacing-sm 0 0;
     font-size: $font-size-small;
     color: $gray-dark;
-    background-color: $gray-lighter;
-    border-left: 1px solid $gray-light;
+    background-color: transparent;
+    border-left: none;
     line-height: 28px;
     white-space: nowrap;
   }
@@ -361,10 +386,10 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
-// Per-organisme group header
+// Séparateur d'organisme : bandeau vert pâle reprenant la maquette
 .org-group-header {
   td {
-    background-color: $gray-lighter;
+    background-color: $secondary-pale-green;
     padding: $spacing-xs $spacing-sm;
   }
 
@@ -373,14 +398,14 @@ $form-side-margin: $spacing-xxl;
     font-size: $font-size-small;
     font-weight: $font-weight-bold;
     color: $primary-color;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 }
 
+// Bandeau TOTAL : fond primary, texte blanc
 .total-group-header {
   td {
-    background-color: rgba($secondary-pale-green, 0.3);
+    background-color: $primary-color;
     padding: $spacing-xs $spacing-sm;
   }
 
@@ -388,8 +413,7 @@ $form-side-margin: $spacing-xxl;
     font-family: $font-family;
     font-size: $font-size-small;
     font-weight: $font-weight-bold;
-    color: $primary-color;
-    text-transform: uppercase;
+    color: $white;
     letter-spacing: 0.5px;
   }
 }
@@ -402,12 +426,13 @@ $form-side-margin: $spacing-xxl;
   font-weight: $font-weight-bold;
 }
 
+// Cellule calculée : pas de fond gris, on se démarque juste par le gras
 .computed-cell {
-  background-color: $gray-lighter;
+  background-color: $white;
   font-family: $font-family;
   font-size: $font-size-small;
   font-weight: $font-weight-semibold;
-  color: $black;
+  color: $primary-color;
   text-align: center;
   padding: $spacing-xs;
 }

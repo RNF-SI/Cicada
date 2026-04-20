@@ -384,6 +384,30 @@ export class PlanCreateComponent implements OnInit {
     this.organismeCtrl.setValue('');
   }
 
+  /**
+   * Valide la saisie libre de l'organisme rédacteur quand l'utilisateur appuie sur Entrée
+   * sans avoir choisi d'option dans l'autocomplete.
+   * Le setTimeout laisse mat-autocomplete traiter d'abord un éventuel (optionSelected) ;
+   * si après ce micro-tick aucun organisme existant n'a été retenu, on crée un chip
+   * "texte libre" à partir de ce que l'utilisateur a tapé.
+   */
+  onOrganismeEnter(event: Event): void {
+    event.preventDefault();
+    const value = (this.organismeCtrl.value || '').toString().trim();
+    if (!value) return;
+    setTimeout(() => {
+      if (this.selectedOrganisme()) return;
+      this.selectedOrganisme.set({
+        type: 'text',
+        displayName: value,
+      });
+      this.organismeCtrl.setValue('');
+      if (this.organismeInput) {
+        this.organismeInput.nativeElement.value = '';
+      }
+    }, 0);
+  }
+
   /** Ouvre le modal de création d'organisme */
   openCreateOrganismeDialog(): void {
     const dialogRef = this.dialog.open(OrganismeFormModalComponent, {

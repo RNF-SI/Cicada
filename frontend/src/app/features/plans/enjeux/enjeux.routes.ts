@@ -34,6 +34,14 @@ export const ENJEUX_ROUTES: Routes = [
     title: 'Modifier action'
   },
   {
+    path: 'operations/:operationId',
+    loadComponent: () => import('./operation-form/operation-form.component')
+      .then(m => m.OperationFormComponent),
+    canActivate: [authGuard],
+    data: { readOnly: true },
+    title: 'Détail action'
+  },
+  {
     path: 'fcr/nouveau',
     loadComponent: () => import('./fcr-form/fcr-form.component')
       .then(m => m.FcrFormComponent),

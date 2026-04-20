@@ -243,6 +243,7 @@
                   [formControl]="organismeCtrl"
                   [matAutocomplete]="organismeAuto"
                   [placeholder]="'modals.planForm.placeholders.editorName' | translate"
+                  (keydown.enter)="onOrganismeEnter($event)"
                 />
                 <mat-autocomplete
                   #organismeAuto="matAutocomplete"
@@ -259,7 +260,7 @@
                 <mat-hint>{{ 'modals.planForm.hints.editorName' | translate }}</mat-hint>
               </mat-form-field>
               <!-- Bouton créer un nouvel organisme -->
-              <button mat-stroked-button type="button" class="btn-sm" (click)="openCreateOrganismeDialog()">
+              <button mat-stroked-button type="button" class="btn-sm create-organisme-btn" (click)="openCreateOrganismeDialog()">
                 <i class="fi fi-rr-plus"></i>
                 {{ 'modals.planForm.createOrganisme' | translate }}
               </button>

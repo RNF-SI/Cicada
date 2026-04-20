@@ -357,7 +357,7 @@
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 288px;
+  grid-template-columns: 1fr 360px;
   gap: $spacing-xl;
 }
 
@@ -497,20 +497,20 @@
 .btn-view-details {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
   background-color: transparent;
   color: $primary-color;
   border: 1px solid $primary-color;
   border-radius: $border-radius-pill;
   font-family: $font-family;
-  font-size: $font-size-base;
+  font-size: $font-size-small;
   font-weight: $font-weight-bold;
   cursor: pointer;
   transition: all $transition-fast;
 
   i {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   &:hover {
@@ -923,7 +923,7 @@
   align-items: center;
   justify-content: center;
   height: 80px;
-  background-color: rgba($secondary-pale-green, 0.3);
+  background-color: rgba($secondary-pale-green, 0.08);
   border-radius: $border-radius-sm;
   color: $primary-color;
 
@@ -1108,17 +1108,6 @@
   border-radius: $border-radius-sm;
   padding: 1px 6px;
   flex-shrink: 0;
-}
-
-.synthese-item-enjeu {
-  font-family: $font-family;
-  font-size: 10px;
-  color: $gray-dark;
-  background-color: $gray-lighter;
-  border-radius: $border-radius-sm;
-  padding: 1px 6px;
-  flex-shrink: 0;
-  margin-left: auto;
 }
 
 .synthese-enjeu-block {
