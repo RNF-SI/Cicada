@@ -2,9 +2,11 @@
 Serializers pour l'authentification.
 """
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from rest_framework_simplejwt.settings import api_settings as jwt_api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import Role
 
@@ -82,6 +84,11 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
 
         # Generer les tokens JWT
         refresh = RefreshToken.for_user(user)
+
+        # Mettre a jour last_login (le custom serializer ne passe pas par
+        # le flow standard simplejwt qui le fait automatiquement)
+        if jwt_api_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, user)
 
         # Stocker l'utilisateur pour l'utiliser dans la reponse
         self.user = user

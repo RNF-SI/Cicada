@@ -155,6 +155,100 @@ class TestLogin:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_login_with_identifiant_success(self, api_client, db):
+        """User can login using their identifiant instead of email."""
+        user = RoleFactory(
+            email='ident.user@test.fr',
+            identifiant='myident',
+        )
+        user.set_password('IdentPass123!')
+        user.save()
+
+        response = api_client.post('/api/auth/login/', {
+            'username': 'myident',
+            'password': 'IdentPass123!',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'access' in response.data
+        assert response.data['user']['email'] == 'ident.user@test.fr'
+
+    def test_login_with_identifiant_case_insensitive(self, api_client, db):
+        """Identifiant lookup is case-insensitive."""
+        user = RoleFactory(
+            email='case.user@test.fr',
+            identifiant='CaseSensitive',
+        )
+        user.set_password('CasePass123!')
+        user.save()
+
+        response = api_client.post('/api/auth/login/', {
+            'username': 'casesensitive',
+            'password': 'CasePass123!',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_login_with_unknown_identifiant_fails(self, api_client, db):
+        """Login with an identifiant that doesn't match any user fails."""
+        response = api_client.post('/api/auth/login/', {
+            'username': 'nonexistent_ident',
+            'password': 'AnyPass123!',
+        })
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_login_updates_last_login(self, api_client, user_with_password):
+        """Successful login must update the user's last_login timestamp."""
+        from django.utils import timezone
+
+        # Initially last_login should be None (factory doesn't set it)
+        assert user_with_password.last_login is None
+
+        before = timezone.now()
+        response = api_client.post('/api/auth/login/', {
+            'username': user_with_password.email,
+            'password': 'TestPassword123!',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        user_with_password.refresh_from_db()
+        assert user_with_password.last_login is not None
+        assert user_with_password.last_login >= before
+
+    def test_login_with_identifiant_updates_last_login(self, api_client, db):
+        """Login via identifiant (not email) must also update last_login."""
+        from django.utils import timezone
+
+        user = RoleFactory(email='ll.user@test.fr', identifiant='llident')
+        user.set_password('LLPass123!')
+        user.save()
+        assert user.last_login is None
+
+        before = timezone.now()
+        response = api_client.post('/api/auth/login/', {
+            'username': 'llident',
+            'password': 'LLPass123!',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.last_login is not None
+        assert user.last_login >= before
+
+    def test_failed_login_does_not_update_last_login(self, api_client, user_with_password):
+        """A failed login attempt must not touch last_login."""
+        assert user_with_password.last_login is None
+
+        response = api_client.post('/api/auth/login/', {
+            'username': user_with_password.email,
+            'password': 'WrongPassword!',
+        })
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        user_with_password.refresh_from_db()
+        assert user_with_password.last_login is None
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
