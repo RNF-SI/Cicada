@@ -1102,6 +1102,7 @@ class ValidationService:
         # Creer le Role
         user = Role.objects.create(
             email=pending.email,
+            identifiant=pending.identifiant,
             nom_role=pending.nom_role,
             prenom_role=pending.prenom_role,
             id_organisme=pending.requested_organisme,

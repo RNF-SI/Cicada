@@ -168,6 +168,38 @@ $white: #fff;
   }
 }
 
+.identifiant-item {
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+.add-identifiant-btn {
+  align-self: flex-start;
+  font-size: $font-size-small;
+
+  i {
+    margin-right: $spacing-xs;
+  }
+}
+
+.identifiant-edit {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  grid-column: 1 / -1;
+
+  .identifiant-input-field {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .identifiant-actions {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
 .role-chip {
   background-color: rgba($primary-color, 0.1) !important;
   color: $primary-color !important;

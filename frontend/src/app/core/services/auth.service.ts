@@ -473,4 +473,23 @@ export class AuthService {
     const user = this.currentUserSignal();
     return user?.deletion_requested_at != null;
   }
+
+  /**
+   * Set the current user's identifiant. Only allowed if it's currently empty.
+   * The component handles error extraction (backend returns {identifiant: "..."} on 400).
+   */
+  setIdentifiant(identifiant: string): Observable<{ status: string; identifiant: string }> {
+    return this.http
+      .post<{ status: string; identifiant: string }>('/api/users/users/set_identifiant/', { identifiant })
+      .pipe(
+        tap((response) => {
+          const user = this.currentUserSignal();
+          if (user) {
+            const updated = { ...user, identifiant: response.identifiant };
+            this.currentUserSignal.set(updated);
+            this.storeUser(updated);
+          }
+        })
+      );
+  }
 }

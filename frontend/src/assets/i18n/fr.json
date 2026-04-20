@@ -107,6 +107,9 @@
       "lastNamePlaceholder": "Votre nom",
       "email": "Adresse email",
       "emailPlaceholder": "votre.email@exemple.fr",
+      "identifiant": "Identifiant (optionnel)",
+      "identifiantPlaceholder": "ex. j.dupont",
+      "identifiantHint": "Identifiant alternatif pour vous connecter (en plus de votre email)",
       "organisme": "Organisme",
       "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "password": "Mot de passe",
@@ -133,7 +136,8 @@
         "confirmPasswordRequired": "Veuillez confirmer le mot de passe",
         "passwordMismatch": "Les mots de passe ne correspondent pas",
         "maxLength": "{{max}} caractères maximum",
-        "emailAlreadyUsed": "Cette adresse email est déjà utilisée."
+        "emailAlreadyUsed": "Cette adresse email est déjà utilisée.",
+        "identifiantAlreadyUsed": "Cet identifiant est déjà utilisé."
       }
     },
     "registrationPending": {
@@ -1039,7 +1043,7 @@
       "hints": {
         "rang": "Saisissez un nombre entier",
         "surface": "Saisissez un nombre",
-        "editorName": "Sélectionnez un organisme existant ou saisissez un texte libre",
+        "editorName": "Sélectionnez un organisme existant ou créer un nouvel organisme",
         "redacteurs": "Si plusieurs, séparez les noms par une virgule",
         "relecteurs": "Si plusieurs, séparez les noms par une virgule",
         "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)"
@@ -1349,7 +1353,6 @@
       "organismesRedacteurs": "Organismes rédacteurs",
       "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
       "organismeRedacteur": "Organisme rédacteur principal",
-      "viewDetails": "Voir en détails",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
       "documents": {
@@ -1541,6 +1544,18 @@
       "address": "Adresse",
       "phone": "Téléphone",
       "email": "Email"
+    },
+    "identifier": {
+      "add": "Définir un identifiant",
+      "placeholder": "ex. j.dupont",
+      "hint": "Vous pourrez vous connecter avec cet identifiant en plus de votre email.",
+      "messages": {
+        "success": "Identifiant défini avec succès."
+      },
+      "errors": {
+        "required": "Identifiant requis.",
+        "generic": "Impossible d'enregistrer l'identifiant."
+      }
     },
     "requests": {
       "empty": {
@@ -2244,6 +2259,7 @@
       "title": "Actions",
       "createTitle": "Ajouter une action",
       "editTitle": "Modifier l'action",
+      "viewTitle": "Détail de l'action",
       "typeActionLabel": "Type d'action",
       "typeActionPlaceholder": "Rechercher par code ou intitulé...",
       "typeActionCSHint": "Les actions de type CS permettent la saisie d'inventaires et de suivis.",
@@ -2442,7 +2458,6 @@
       "createSuccess": "Métrique créée avec succès",
       "updateSuccess": "Métrique mise à jour avec succès",
       "deleteSuccess": "Métrique supprimée avec succès",
-      "actionsTitle": "Actions liées à cette métrique",
       "scores": {
         "tresMauvais": "Très mauvais",
         "mauvais": "Mauvais",

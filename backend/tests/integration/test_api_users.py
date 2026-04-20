@@ -822,6 +822,120 @@ class TestUsersRGPDDeletion:
 
 @pytest.mark.django_db
 @pytest.mark.integration
+class TestSetIdentifiant:
+    """Tests for the self-service set_identifiant endpoint."""
+
+    URL = '/api/users/users/set_identifiant/'
+
+    def test_set_identifiant_success(self, api_client):
+        """User without identifiant can set one."""
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'jdupont'}, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['identifiant'] == 'jdupont'
+        user.refresh_from_db()
+        assert user.identifiant == 'jdupont'
+
+    def test_set_identifiant_strips_whitespace(self, api_client):
+        """Leading/trailing whitespace is stripped."""
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': '  jdupont  '}, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.identifiant == 'jdupont'
+
+    def test_set_identifiant_already_set_rejected(self, api_client):
+        """User who already has an identifiant cannot change it via this endpoint."""
+        user = RoleFactory(identifiant='existing')
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'newone'}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+        user.refresh_from_db()
+        assert user.identifiant == 'existing'
+
+    def test_set_identifiant_empty_rejected(self, api_client):
+        """Empty value is rejected."""
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': '   '}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+
+    def test_set_identifiant_too_long_rejected(self, api_client):
+        """Identifiant >100 chars is rejected."""
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'a' * 101}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+
+    def test_set_identifiant_duplicate_role_rejected(self, api_client):
+        """Identifiant already used by another Role is rejected."""
+        RoleFactory(identifiant='taken', email='other@test.fr')
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'taken'}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+        user.refresh_from_db()
+        assert user.identifiant is None
+
+    def test_set_identifiant_duplicate_role_case_insensitive(self, api_client):
+        """Duplicate check is case-insensitive."""
+        RoleFactory(identifiant='Taken', email='other2@test.fr')
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'TAKEN'}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_set_identifiant_duplicate_pending_user_rejected(self, api_client):
+        """Identifiant already used by a PendingUser is rejected."""
+        from apps.notifications.models import PendingUser, ValidationRequest
+
+        vr = ValidationRequest.objects.create(
+            request_type='user_registration',
+            status='pending',
+        )
+        PendingUser.objects.create(
+            email='pending@test.fr',
+            identifiant='pending_id',
+            password_hash='hash',
+            validation_request=vr,
+        )
+
+        user = RoleFactory(identifiant=None)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(self.URL, {'identifiant': 'pending_id'}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+
+    def test_set_identifiant_unauthenticated(self, api_client):
+        """Unauthenticated request is rejected."""
+        response = api_client.post(self.URL, {'identifiant': 'whatever'}, format='json')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestUsersRGPDModelMethods:
     """Tests for RGPD model methods on User."""
 

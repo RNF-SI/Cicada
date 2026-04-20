@@ -4,10 +4,13 @@
  */
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -21,10 +24,13 @@ import { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModal
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     MatCardModule,
     MatButtonModule,
     MatChipsModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatProgressSpinnerModule,
     TranslateModule
   ],
@@ -43,6 +49,12 @@ export class ProfileComponent {
   // State for RGPD actions
   readonly isDeleting = signal(false);
   readonly isCancelling = signal(false);
+
+  // State for identifiant edit
+  readonly editingIdentifiant = signal(false);
+  readonly identifiantInput = signal('');
+  readonly identifiantError = signal<string | null>(null);
+  readonly isSavingIdentifiant = signal(false);
 
   /**
    * Retourne le nom complet de l'utilisateur.
@@ -188,6 +200,51 @@ export class ProfileComponent {
           err.message || this.translate.instant('profile.rgpd.messages.error'),
           this.translate.instant('common.actions.close'),
           { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  // ==================== IDENTIFIANT METHODS ====================
+
+  startEditIdentifiant(): void {
+    this.identifiantInput.set('');
+    this.identifiantError.set(null);
+    this.editingIdentifiant.set(true);
+  }
+
+  cancelEditIdentifiant(): void {
+    this.editingIdentifiant.set(false);
+    this.identifiantInput.set('');
+    this.identifiantError.set(null);
+  }
+
+  saveIdentifiant(): void {
+    const value = this.identifiantInput().trim();
+    if (!value) {
+      this.identifiantError.set(this.translate.instant('profile.identifier.errors.required'));
+      return;
+    }
+
+    this.isSavingIdentifiant.set(true);
+    this.identifiantError.set(null);
+
+    this.authService.setIdentifiant(value).subscribe({
+      next: () => {
+        this.isSavingIdentifiant.set(false);
+        this.editingIdentifiant.set(false);
+        this.identifiantInput.set('');
+        this.snackBar.open(
+          this.translate.instant('profile.identifier.messages.success'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+      },
+      error: (err) => {
+        this.isSavingIdentifiant.set(false);
+        const backendMessage = err?.error?.identifiant || err?.error?.error;
+        this.identifiantError.set(
+          backendMessage || this.translate.instant('profile.identifier.errors.generic')
         );
       }
     });

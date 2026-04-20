@@ -53,6 +53,7 @@ export class RegisterComponent implements OnInit {
   constructor() {
     this.registerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
+      identifiant: ['', [Validators.maxLength(100)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
       nom: ['', [Validators.required, Validators.maxLength(50)]],
@@ -140,6 +141,7 @@ export class RegisterComponent implements OnInit {
     const formValue = this.registerForm.value;
     const payload = {
       email: formValue.email,
+      identifiant: (formValue.identifiant || '').trim(),
       password: formValue.password,
       password_confirm: formValue.confirmPassword,
       nom_role: formValue.nom,
@@ -154,7 +156,9 @@ export class RegisterComponent implements OnInit {
           this.router.navigate(['/auth/registration-pending']);
         },
         error: (error) => {
-          if (error.error?.email) {
+          if (error.error?.identifiant) {
+            this.errorMessage.set(this.translate.instant('auth.register.errors.identifiantAlreadyUsed'));
+          } else if (error.error?.email) {
             this.errorMessage.set(this.translate.instant('auth.register.errors.emailAlreadyUsed'));
           } else if (error.error?.error) {
             this.errorMessage.set(error.error.error);

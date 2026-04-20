@@ -371,6 +371,13 @@ class PendingUser(models.Model):
 
     # Informations de base
     email = models.EmailField(_('Email'), unique=True)
+    identifiant = models.CharField(
+        _('Identifiant'),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_("Identifiant de connexion alternatif (en plus de l'email)")
+    )
     password_hash = models.CharField(
         _('Mot de passe (hash)'),
         max_length=255,

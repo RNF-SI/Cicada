@@ -584,6 +584,61 @@ class RoleViewSet(viewsets.ModelViewSet):
             'message': 'Votre demande de suppression a ete annulee.'
         })
 
+    @action(detail=False, methods=['post'])
+    def set_identifiant(self, request):
+        """
+        Definir son propre identifiant de connexion (uniquement si vide).
+        POST /api/users/users/set_identifiant/
+        Body: {"identifiant": "..."}
+        """
+        user = request.user
+
+        if user.identifiant:
+            return Response(
+                {'error': 'Vous avez deja un identifiant. Contactez un administrateur pour le modifier.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        identifiant = (request.data.get('identifiant') or '').strip()
+        if not identifiant:
+            return Response(
+                {'identifiant': 'Identifiant requis.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(identifiant) > 100:
+            return Response(
+                {'identifiant': '100 caracteres maximum.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.notifications.models import PendingUser
+        if Role.objects.filter(identifiant__iexact=identifiant).exclude(pk=user.pk).exists() \
+                or PendingUser.objects.filter(identifiant__iexact=identifiant).exists():
+            return Response(
+                {'identifiant': 'Cet identifiant est deja utilise.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.identifiant = identifiant
+        user.save(update_fields=['identifiant'])
+
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            entity_type='user',
+            entity_id=user.id_role,
+            entity_name=str(user),
+            action='update',
+            actor=user,
+            description=f"L'utilisateur {user} a defini son identifiant de connexion.",
+            visibility='admin'
+        )
+
+        return Response({
+            'status': 'ok',
+            'identifiant': identifiant,
+        })
+
     # ==================== RGPD Admin Endpoints ====================
 
     @action(detail=False, methods=['get'], permission_classes=[IsSuperAdmin])

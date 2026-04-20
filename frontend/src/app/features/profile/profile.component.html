@@ -34,12 +34,63 @@
                   <mat-chip class="role-chip">{{ getRoleLevelLabel() }}</mat-chip>
                 </span>
               </div>
-              @if (user.identifiant) {
-                <div class="info-item">
-                  <span class="info-label">{{ 'profile.info.identifier' | translate }}</span>
+              <div class="info-item identifiant-item">
+                <span class="info-label">{{ 'profile.info.identifier' | translate }}</span>
+                @if (user.identifiant) {
                   <span class="info-value">{{ user.identifiant }}</span>
-                </div>
-              }
+                } @else if (!editingIdentifiant()) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="add-identifiant-btn"
+                    (click)="startEditIdentifiant()"
+                  >
+                    <i class="fi fi-rr-plus"></i>
+                    {{ 'profile.identifier.add' | translate }}
+                  </button>
+                } @else {
+                  <div class="identifiant-edit">
+                    <mat-form-field appearance="outline" class="identifiant-input-field">
+                      <input
+                        matInput
+                        type="text"
+                        [ngModel]="identifiantInput()"
+                        (ngModelChange)="identifiantInput.set($event); identifiantError.set(null)"
+                        [placeholder]="'profile.identifier.placeholder' | translate"
+                        autocomplete="username"
+                        maxlength="100"
+                      >
+                      @if (identifiantError()) {
+                        <mat-error>{{ identifiantError() }}</mat-error>
+                      } @else {
+                        <mat-hint>{{ 'profile.identifier.hint' | translate }}</mat-hint>
+                      }
+                    </mat-form-field>
+                    <div class="identifiant-actions">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        type="button"
+                        (click)="saveIdentifiant()"
+                        [disabled]="isSavingIdentifiant()"
+                      >
+                        @if (isSavingIdentifiant()) {
+                          <i class="fi fi-rr-spinner spinning"></i>
+                        }
+                        {{ 'common.actions.save' | translate }}
+                      </button>
+                      <button
+                        mat-button
+                        type="button"
+                        (click)="cancelEditIdentifiant()"
+                        [disabled]="isSavingIdentifiant()"
+                      >
+                        {{ 'common.actions.cancel' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
               <div class="info-item">
                 <span class="info-label">{{ 'profile.info.memberSince' | translate }}</span>
                 <span class="info-value">{{ formatDate(user.date_joined) }}</span>

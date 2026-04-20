@@ -99,7 +99,7 @@ class RoleListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = [
-            'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
+            'id_role', 'email', 'identifiant', 'nom_role', 'prenom_role', 'nom_complet',
             'role_level', 'organisme', 'active', 'is_staff', 'date_insert',
             'sites_lies', 'plans_referent', 'last_login'
         ]

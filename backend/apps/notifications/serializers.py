@@ -318,6 +318,12 @@ class PublicRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(
         help_text=_("Adresse email (sera utilisée pour la connexion)")
     )
+    identifiant = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        help_text=_("Identifiant de connexion alternatif (optionnel)")
+    )
     password = serializers.CharField(
         write_only=True,
         min_length=8,
@@ -371,6 +377,29 @@ class PublicRegistrationSerializer(serializers.Serializer):
 
         return email_lower
 
+    def validate_identifiant(self, value):
+        """Verifie que l'identifiant n'est pas deja utilise."""
+        from apps.users.models import Role
+
+        if not value:
+            return value
+
+        identifiant = value.strip()
+        if not identifiant:
+            return ''
+
+        if Role.objects.filter(identifiant__iexact=identifiant).exists():
+            raise serializers.ValidationError(
+                _("Cet identifiant est déjà utilisé.")
+            )
+
+        if PendingUser.objects.filter(identifiant__iexact=identifiant).exists():
+            raise serializers.ValidationError(
+                _("Une demande d'inscription avec cet identifiant est déjà en attente.")
+            )
+
+        return identifiant
+
     def validate(self, data):
         """Validation globale."""
         if data['password'] != data['password_confirm']:
@@ -414,6 +443,7 @@ class PublicRegistrationSerializer(serializers.Serializer):
         # Creer le PendingUser
         pending_user = PendingUser.objects.create(
             email=validated_data['email'],
+            identifiant=validated_data.get('identifiant') or None,
             password_hash=make_password(validated_data['password']),
             nom_role=validated_data.get('nom_role', ''),
             prenom_role=validated_data.get('prenom_role', ''),

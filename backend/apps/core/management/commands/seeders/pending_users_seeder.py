@@ -42,6 +42,7 @@ class PendingUsersSeeder(BaseSeeder):
         return [
             {
                 'email': 'nouveau.user1@test.fr',
+                'identifiant': 'm.lefebvre',
                 'password': DEFAULT_PASSWORD,
                 'nom_role': 'Lefebvre',
                 'prenom_role': 'Marc',
@@ -50,6 +51,7 @@ class PendingUsersSeeder(BaseSeeder):
             },
             {
                 'email': 'nouveau.user2@test.fr',
+                'identifiant': 'l.simon',
                 'password': DEFAULT_PASSWORD,
                 'nom_role': 'Simon',
                 'prenom_role': 'Lea',
@@ -58,6 +60,7 @@ class PendingUsersSeeder(BaseSeeder):
             },
             {
                 'email': 'nouveau.user3@test.fr',
+                'identifiant': None,  # Demande sans identifiant pour couvrir ce chemin
                 'password': DEFAULT_PASSWORD,
                 'nom_role': 'Michel',
                 'prenom_role': 'Paul',
@@ -131,6 +134,7 @@ class PendingUsersSeeder(BaseSeeder):
             # Creer le PendingUser lie a cette ValidationRequest
             pending_user = PendingUser.objects.create(
                 email=pu_data['email'],
+                identifiant=pu_data.get('identifiant'),
                 password_hash=make_password(pu_data['password']),
                 nom_role=pu_data['nom_role'],
                 prenom_role=pu_data['prenom_role'],

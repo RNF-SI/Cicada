@@ -74,6 +74,24 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'auth.register.identifiant' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          formControlName="identifiant"
+          [placeholder]="'auth.register.identifiantPlaceholder' | translate"
+          autocomplete="username"
+        >
+        <mat-icon matPrefix class="field-icon">
+          <i class="fi fi-rr-id-badge"></i>
+        </mat-icon>
+        <mat-hint>{{ 'auth.register.identifiantHint' | translate }}</mat-hint>
+        @if (registerForm.get('identifiant')?.hasError('maxlength')) {
+          <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 100 } }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
         <mat-label>{{ 'auth.register.organisme' | translate }}</mat-label>
         <input
           matInput
