@@ -202,9 +202,10 @@ class TestCheckOrphanedSites:
 
     @patch('apps.notifications.services.NotificationService')
     def test_check_orphaned_sites_finds_orphans(self, mock_service):
-        """Test task finds sites without users."""
-        # Create site without users
-        orphan_site = SiteFactory(active=True)
+        """Test task finds sites without users and sends summary."""
+        # Create sites without users
+        orphan_site1 = SiteFactory(active=True)
+        orphan_site2 = SiteFactory(active=True)
 
         # Create site with users
         site_with_user = SiteFactory(active=True)
@@ -213,8 +214,13 @@ class TestCheckOrphanedSites:
 
         check_orphaned_sites()
 
-        # Should notify for orphan site
-        mock_service.notify_site_orphaned.assert_called_once_with(orphan_site)
+        # Should send a single summary with all orphaned sites
+        mock_service.notify_orphaned_sites_summary.assert_called_once()
+        sites_arg = mock_service.notify_orphaned_sites_summary.call_args[0][0]
+        site_ids = {s.pk for s in sites_arg}
+        assert orphan_site1.pk in site_ids
+        assert orphan_site2.pk in site_ids
+        assert site_with_user.pk not in site_ids
 
     @patch('apps.notifications.services.NotificationService')
     def test_check_orphaned_sites_skips_inactive(self, mock_service):
@@ -224,27 +230,18 @@ class TestCheckOrphanedSites:
 
         check_orphaned_sites()
 
-        mock_service.notify_site_orphaned.assert_not_called()
+        mock_service.notify_orphaned_sites_summary.assert_not_called()
 
     @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_skips_recent_notification(self, mock_service):
-        """Test task skips sites with recent notification."""
-        orphan_site = SiteFactory(active=True)
-
-        # Create recent notification
-        super_admin = SuperAdminFactory()
-        Notification.objects.create(
-            recipient=super_admin,
-            notification_type='site_orphaned',
-            title='Test',
-            message='Test',
-            related_site=orphan_site,
-            created_at=timezone.now()
-        )
+    def test_check_orphaned_sites_no_orphans(self, mock_service):
+        """Test task does nothing when all sites have users."""
+        site = SiteFactory(active=True)
+        user = RoleFactory()
+        CorRoleSiteFactory(id_role=user, id_site=site)
 
         check_orphaned_sites()
 
-        mock_service.notify_site_orphaned.assert_not_called()
+        mock_service.notify_orphaned_sites_summary.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -254,7 +251,7 @@ class TestCheckOrganismesWithoutAdmin:
 
     @patch('apps.notifications.services.NotificationService')
     def test_check_organismes_finds_without_admin(self, mock_service):
-        """Test task finds organismes without admin."""
+        """Test task finds organismes without admin and sends summary."""
         # Create organisme without admin
         organisme_no_admin = OrganismeFactory()
 
@@ -264,8 +261,12 @@ class TestCheckOrganismesWithoutAdmin:
 
         check_organismes_without_admin()
 
-        # Should notify for organisme without admin
-        mock_service.notify_organisme_no_admin.assert_called_once_with(organisme_no_admin)
+        # Should send a single summary
+        mock_service.notify_organismes_no_admin_summary.assert_called_once()
+        orgs_arg = mock_service.notify_organismes_no_admin_summary.call_args[0][0]
+        org_ids = {o.pk for o in orgs_arg}
+        assert organisme_no_admin.pk in org_ids
+        assert organisme_with_admin.pk not in org_ids
 
     @patch('apps.notifications.services.NotificationService')
     def test_check_organismes_skips_inactive_admin(self, mock_service):
@@ -279,27 +280,21 @@ class TestCheckOrganismesWithoutAdmin:
 
         check_organismes_without_admin()
 
-        # The task should call notify_organisme_no_admin for organisme without active admin
-        mock_service.notify_organisme_no_admin.assert_called_once_with(organisme)
+        # The task should include organisme without active admin in summary
+        mock_service.notify_organismes_no_admin_summary.assert_called_once()
+        orgs_arg = mock_service.notify_organismes_no_admin_summary.call_args[0][0]
+        org_ids = {o.pk for o in orgs_arg}
+        assert organisme.pk in org_ids
 
     @patch('apps.notifications.services.NotificationService')
-    def test_check_organismes_skips_recent_notification(self, mock_service):
-        """Test task skips organismes with recent notification."""
+    def test_check_organismes_all_have_admin(self, mock_service):
+        """Test task does nothing when all organismes have admins."""
         organisme = OrganismeFactory()
-
-        super_admin = SuperAdminFactory()
-        Notification.objects.create(
-            recipient=super_admin,
-            notification_type='organisme_no_admin',
-            title='Test',
-            message='Test',
-            related_organisme=organisme,
-            created_at=timezone.now()
-        )
+        AdminOrganismeFactory(id_organisme=organisme)
 
         check_organismes_without_admin()
 
-        mock_service.notify_organisme_no_admin.assert_not_called()
+        mock_service.notify_organismes_no_admin_summary.assert_not_called()
 
 
 # =============================================================================

@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ intro }}{% endblock %}
+
+{% block content %}
+<h2>{% trans "Audit hebdomadaire" %}</h2>
+
+<p>{% blocktrans with prenom=recipient.prenom_role|default:recipient.email %}Bonjour {{ prenom }},{% endblocktrans %}</p>
+
+<p>{{ intro }}</p>
+
+<div class="info-box">
+    <strong>{{ item_count }} element{{ item_count|pluralize }} :</strong>
+    <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+        {% for item in items %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% if action_url %}
+<p style="text-align: center;">
+    <a href="{{ action_url }}" class="button">
+        {{ action_label }}
+    </a>
+</p>
+{% endif %}
+{% endblock %}
