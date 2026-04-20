@@ -111,6 +111,10 @@
         </mat-autocomplete>
         @if (registerForm.get('organisme')?.hasError('required') && registerForm.get('organisme')?.touched) {
           <mat-error>{{ 'auth.register.errors.organismeRequired' | translate }}</mat-error>
+        } @else if (registerForm.get('organisme')?.hasError('organismeNotSelected') && registerForm.get('organisme')?.touched) {
+          <mat-error>{{ 'auth.register.errors.organismeNotSelected' | translate }}</mat-error>
+        } @else {
+          <mat-hint>{{ 'auth.register.organismeHint' | translate }}</mat-hint>
         }
       </mat-form-field>
 

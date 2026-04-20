@@ -120,6 +120,46 @@ class TestPublicRegistrationIdentifiant:
 
 @pytest.mark.django_db
 @pytest.mark.integration
+class TestRegistrationRequiresOrganisme:
+    """Organisme is now mandatory at registration (no silent null acceptance)."""
+
+    URL = '/api/auth/register/'
+
+    def test_register_without_organisme_id_rejected(self, api_client, organisme):
+        payload = _payload(organisme)
+        payload.pop('requested_organisme_id')
+
+        response = api_client.post(self.URL, payload, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'requested_organisme_id' in response.data
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+    def test_register_with_null_organisme_id_rejected(self, api_client, organisme):
+        response = api_client.post(
+            self.URL,
+            _payload(organisme, requested_organisme_id=None),
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'requested_organisme_id' in response.data
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+    def test_register_with_unknown_organisme_id_rejected(self, api_client, organisme):
+        response = api_client.post(
+            self.URL,
+            _payload(organisme, requested_organisme_id=999999),
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'requested_organisme_id' in response.data
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestApprovalCopiesIdentifiant:
     """Approval of a registration must copy identifiant onto the new Role."""
 
@@ -155,3 +195,100 @@ class TestApprovalCopiesIdentifiant:
         )
 
         assert user.identifiant is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestApprovalRequiresOrganisme:
+    """Approval must refuse when the pending registration lost its organisme."""
+
+    def test_approval_refused_when_organisme_missing(self, db):
+        validator = SuperAdminFactory()
+        pending = PendingUserFactory(
+            email='orphan@test.fr',
+            requested_organisme=None,
+        )
+
+        with pytest.raises(ValueError, match="organisme_id_override"):
+            ValidationService.approve_registration(
+                pending.validation_request, validator
+            )
+
+        # PendingUser must remain (transaction safety)
+        assert PendingUser.objects.filter(pk=pending.pk).exists()
+        assert not Role.objects.filter(email='orphan@test.fr').exists()
+
+    def test_approval_succeeds_with_organisme_override(self, db):
+        validator = SuperAdminFactory()
+        fallback_org = OrganismeFactory(nom_organisme='Fallback Org')
+        pending = PendingUserFactory(
+            email='rescued@test.fr',
+            requested_organisme=None,
+        )
+
+        user = ValidationService.approve_registration(
+            pending.validation_request,
+            validator,
+            organisme_override=fallback_org,
+        )
+
+        assert user is not None
+        assert user.id_organisme == fallback_org
+
+    def test_approval_uses_pending_org_when_present_ignoring_override(self, db):
+        """If pending has its own organisme, the override is ignored (priority to original choice)."""
+        validator = SuperAdminFactory()
+        original_org = OrganismeFactory(nom_organisme='Original')
+        override_org = OrganismeFactory(nom_organisme='Override')
+        pending = PendingUserFactory(
+            email='keep.original@test.fr',
+            requested_organisme=original_org,
+        )
+
+        user = ValidationService.approve_registration(
+            pending.validation_request,
+            validator,
+            organisme_override=override_org,
+        )
+
+        assert user.id_organisme == original_org
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestApprovalEndpointWithOverride:
+    """End-to-end: HTTP approval endpoint accepts organisme_id_override."""
+
+    def test_endpoint_rejects_without_organisme(self, api_client):
+        validator = SuperAdminFactory()
+        validator.set_password('Pass123!')
+        validator.save()
+        pending = PendingUserFactory(email='endpoint.refuse@test.fr', requested_organisme=None)
+
+        api_client.force_authenticate(user=validator)
+        response = api_client.post(
+            f'/api/validations/{pending.validation_request.id}/approve/',
+            {},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'organisme' in response.data['error'].lower()
+
+    def test_endpoint_accepts_override(self, api_client):
+        validator = SuperAdminFactory()
+        validator.set_password('Pass123!')
+        validator.save()
+        fallback_org = OrganismeFactory(nom_organisme='Fallback HTTP')
+        pending = PendingUserFactory(email='endpoint.rescue@test.fr', requested_organisme=None)
+
+        api_client.force_authenticate(user=validator)
+        response = api_client.post(
+            f'/api/validations/{pending.validation_request.id}/approve/',
+            {'organisme_id_override': fallback_org.id_organisme},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        user = Role.objects.get(email='endpoint.rescue@test.fr')
+        assert user.id_organisme == fallback_org

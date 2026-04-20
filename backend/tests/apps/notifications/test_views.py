@@ -741,7 +741,7 @@ class TestPublicRegistration:
             'password_confirm': 'Test123!@#',
             'nom_role': 'Dupont',
             'prenom_role': 'Jean',
-            'organisme_id': organisme.id_organisme,
+            'requested_organisme_id': organisme.id_organisme,
             'justification': 'Need access'
         })
 
@@ -760,7 +760,7 @@ class TestPublicRegistration:
             'password_confirm': 'Test123!@#',
             'nom_role': 'Dupont',
             'prenom_role': 'Jean',
-            'organisme_id': organisme.id_organisme
+            'requested_organisme_id': organisme.id_organisme
         })
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST

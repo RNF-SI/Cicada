@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -58,7 +58,7 @@ export class RegisterComponent implements OnInit {
       confirmPassword: ['', [Validators.required]],
       nom: ['', [Validators.required, Validators.maxLength(50)]],
       prenom: ['', [Validators.required, Validators.maxLength(50)]],
-      organisme: [null, [Validators.required]],
+      organisme: [null, [Validators.required, this.organismeSelectedValidator]],
       justification: ['', [Validators.maxLength(1000)]]
     }, { validators: this.passwordMatchValidator });
   }
@@ -106,6 +106,19 @@ export class RegisterComponent implements OnInit {
    */
   displayOrganisme(organisme: OrganismeOption): string {
     return organisme?.nom_organisme || '';
+  }
+
+  /**
+   * Validator : l'organisme doit être un objet sélectionné dans la liste,
+   * pas une string tapée librement (sinon id_organisme = undefined → null envoyé).
+   */
+  organismeSelectedValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (value === null || value === undefined || value === '') {
+      return null;  // Validators.required gère ce cas
+    }
+    const id = value?.id_organisme ?? value?.id;
+    return typeof id === 'number' ? null : { organismeNotSelected: true };
   }
 
   /**

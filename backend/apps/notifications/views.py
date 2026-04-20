@@ -328,13 +328,27 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 comment = serializer.validated_data.get('comment')
                 approve_as_referent = serializer.validated_data.get('approve_as_referent')
+                organisme_id_override = serializer.validated_data.get('organisme_id_override')
 
                 # Traiter selon le type
                 if validation_request.request_type == 'user_registration':
+                    organisme_override = None
+                    if organisme_id_override:
+                        from apps.users.models import BibOrganismes
+                        try:
+                            organisme_override = BibOrganismes.objects.get(
+                                id_organisme=organisme_id_override
+                            )
+                        except BibOrganismes.DoesNotExist:
+                            return Response(
+                                {'error': "Organisme d'override introuvable."},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
                     ValidationService.approve_registration(
                         validation_request,
                         request.user,
-                        comment
+                        comment,
+                        organisme_override=organisme_override,
                     )
                 elif validation_request.request_type == 'site_access':
                     ValidationService.approve_site_access(

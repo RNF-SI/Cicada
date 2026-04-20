@@ -300,6 +300,13 @@ class ValidationApproveSerializer(serializers.Serializer):
         allow_null=True,
         help_text=_("Si defini, surcharge le choix du demandeur pour le statut referent")
     )
+    organisme_id_override = serializers.IntegerField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text=_("Pour user_registration : organisme à attribuer si la demande "
+                    "n'en a pas (ex. l'organisme initial a été supprimé)")
+    )
 
 
 class ValidationRejectSerializer(serializers.Serializer):
@@ -346,9 +353,9 @@ class PublicRegistrationSerializer(serializers.Serializer):
         help_text=_("Prénom")
     )
     requested_organisme_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text=_("ID de l'organisme demandé")
+        required=True,
+        allow_null=False,
+        help_text=_("ID de l'organisme demandé (obligatoire)")
     )
     justification = serializers.CharField(
         required=False,
@@ -407,15 +414,14 @@ class PublicRegistrationSerializer(serializers.Serializer):
                 'password_confirm': _("Les mots de passe ne correspondent pas.")
             })
 
-        # Verifier que l'organisme existe si fourni
-        if data.get('requested_organisme_id'):
-            from apps.users.models import BibOrganismes
-            try:
-                BibOrganismes.objects.get(id_organisme=data['requested_organisme_id'])
-            except BibOrganismes.DoesNotExist:
-                raise serializers.ValidationError({
-                    'requested_organisme_id': _("Organisme non trouvé.")
-                })
+        # Verifier que l'organisme existe (champ obligatoire)
+        from apps.users.models import BibOrganismes
+        try:
+            BibOrganismes.objects.get(id_organisme=data['requested_organisme_id'])
+        except BibOrganismes.DoesNotExist:
+            raise serializers.ValidationError({
+                'requested_organisme_id': _("Organisme non trouvé.")
+            })
 
         return data
 

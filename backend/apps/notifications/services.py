@@ -1057,7 +1057,7 @@ class ValidationService:
         return ValidationRequest.objects.filter(id__in=result_ids)
 
     @staticmethod
-    def approve_registration(validation_request, validator, comment=None):
+    def approve_registration(validation_request, validator, comment=None, organisme_override=None):
         """
         Approuve une inscription et cree le compte utilisateur.
 
@@ -1065,11 +1065,14 @@ class ValidationService:
             validation_request: ValidationRequest
             validator: Role qui approuve
             comment: Commentaire optionnel
+            organisme_override: BibOrganismes a utiliser si la demande n'en a pas
+                (cas ou l'organisme initial a ete supprime entre temps)
 
         Returns:
             Role cree
         """
         from django.contrib.auth.hashers import check_password
+        from apps.users.models import BibOrganismes
 
         if validation_request.request_type != 'user_registration':
             raise ValueError("Cette demande n'est pas une inscription")
@@ -1079,6 +1082,15 @@ class ValidationService:
 
         pending = validation_request.pending_user
 
+        # Determiner l'organisme final (pending OU override fourni par l'admin)
+        final_organisme = pending.requested_organisme or organisme_override
+        if final_organisme is None:
+            raise ValueError(
+                "Cette demande d'inscription n'a pas d'organisme associe "
+                "(probablement supprime depuis). Veuillez fournir 'organisme_id_override' "
+                "pour attribuer manuellement un organisme."
+            )
+
         # Sauvegarder les infos du demandeur avant suppression (pour notifier les autres validateurs)
         requester_info_for_notification = f"{pending.get_full_name()} ({pending.email})"
 
@@ -1086,6 +1098,10 @@ class ValidationService:
         existing_user = Role.objects.filter(email__iexact=pending.email).first()
         if existing_user:
             # L'utilisateur existe deja - peut arriver si seed_testdata est relance apres une approbation
+            # Si l'utilisateur existant n'a pas d'organisme, on lui attribue celui de la demande
+            if not existing_user.id_organisme:
+                existing_user.id_organisme = final_organisme
+                existing_user.save(update_fields=['id_organisme'])
             # Lier la ValidationRequest a l'utilisateur existant pour conserver la reference
             validation_request.requester = existing_user
             validation_request.approve(validator, comment)
@@ -1105,7 +1121,7 @@ class ValidationService:
             identifiant=pending.identifiant,
             nom_role=pending.nom_role,
             prenom_role=pending.prenom_role,
-            id_organisme=pending.requested_organisme,
+            id_organisme=final_organisme,
             role_level='utilisateur',
             active=True,
             pending_validation=False,
