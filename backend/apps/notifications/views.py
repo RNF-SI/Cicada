@@ -672,41 +672,12 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Liaison directe si super_admin, ou admin_og qui gere le site,
-        # ou referent du plan ET du site
-        can_link_directly = (
-            user.is_super_admin() or
-            user.is_redacteur_principal() or
-            (user.is_admin_organisme() and is_site_referent) or
-            (is_plan_referent and is_site_referent)
-        )
+        # Cas particulier conserve : referent du plan ET du site -> auto-approve
+        # (le ValidationService.try_auto_approve ne couvre pas ce cas car ce n'est
+        # pas un role privilegie au sens strict mais une combinaison de referents)
+        is_referent_referent = is_plan_referent and is_site_referent
 
-        if can_link_directly:
-            CorSitePg.objects.get_or_create(
-                site=site,
-                plan_de_gestion=plan,
-                defaults={'rang': 0}
-            )
-
-            # Notifier les referents du plan (sauf l'utilisateur courant)
-            for referent in plan.referents.filter(active=True).exclude(pk=user.pk):
-                NotificationService.create_notification(
-                    recipient=referent,
-                    notification_type='info',
-                    title=f"Site lié au plan {plan.nom}",
-                    message=f"Le site {site.nom_site} a été lié au plan de gestion {plan.nom}.",
-                    priority='medium',
-                    related_plan=plan,
-                    related_site=site,
-                    action_url=f"/plans/{plan.slug or plan.id_pg}",
-                )
-
-            return Response({
-                'message': 'Site lie au plan avec succes.',
-                'direct': True,
-            }, status=status.HTTP_201_CREATED)
-
-        # Sinon, creer une demande de validation
+        # Creer la demande de validation (status pending par defaut)
         validation_request = ValidationRequest.objects.create(
             request_type='plan_site_link',
             status='pending',
@@ -716,12 +687,25 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
             justification=justification,
         )
 
-        NotificationService.notify_validators(validation_request)
+        # Auto-approbation si le demandeur a les droits (super_admin, RP, admin_og dans scope)
+        # OU s'il est referent du plan et du site
+        auto_approved = ValidationService.try_auto_approve(validation_request, user)
+        if not auto_approved and is_referent_referent:
+            ValidationService.approve_plan_site_link(validation_request, user)
+            auto_approved = True
+
+        if not auto_approved:
+            NotificationService.notify_validators(validation_request)
 
         return Response({
             'id': validation_request.id,
-            'message': 'Votre demande de lien plan-site a ete soumise et est en attente de validation.',
-            'direct': False,
+            'message': (
+                'Site lie au plan avec succes.' if auto_approved
+                else 'Votre demande de lien plan-site a ete soumise et est en attente de validation.'
+            ),
+            'auto_approved': auto_approved,
+            # Backward compat : champ "direct" conservé
+            'direct': auto_approved,
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])

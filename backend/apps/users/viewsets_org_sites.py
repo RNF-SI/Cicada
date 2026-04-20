@@ -314,14 +314,23 @@ class OrganismeViewSet(viewsets.ModelViewSet):
             status='pending'
         )
 
-        # Notifier les validateurs (admin_og de l'organisme à retirer)
-        NotificationService.notify_validators(validation_request)
+        # Auto-approbation si le demandeur a les droits
+        from apps.notifications.services import ValidationService
+        auto_approved = ValidationService.try_auto_approve(validation_request, request.user)
+
+        if not auto_approved:
+            # Notifier les validateurs (admin_og de l'organisme à retirer)
+            NotificationService.notify_validators(validation_request)
 
         return Response(
             {
-                'message': f'Demande de retrait de {organisme.nom_organisme} du site {site.nom_site} créée.',
+                'message': (
+                    f'{organisme.nom_organisme} retiré du site {site.nom_site}.' if auto_approved
+                    else f'Demande de retrait de {organisme.nom_organisme} du site {site.nom_site} créée.'
+                ),
                 'validation_request_id': validation_request.id,
-                'status': 'pending'
+                'status': 'approved' if auto_approved else 'pending',
+                'auto_approved': auto_approved,
             },
             status=status.HTTP_201_CREATED
         )
@@ -1081,12 +1090,21 @@ class SiteViewSet(viewsets.ModelViewSet):
             request_as_referent=request_as_referent,
         )
 
-        # Notifier les valideurs (referents du site ou admins de l'organisme)
-        NotificationService.notify_validators(validation_request)
+        # Auto-approbation si le demandeur a les droits (super_admin, RP, admin_og dans scope)
+        from apps.notifications.services import ValidationService
+        auto_approved = ValidationService.try_auto_approve(validation_request, request.user)
+
+        if not auto_approved:
+            # Notifier les valideurs (referents du site ou admins de l'organisme)
+            NotificationService.notify_validators(validation_request)
 
         return Response({
             'id': validation_request.id,
-            'message': f'Votre demande d\'acces au site "{site.nom_site}" a ete soumise.',
+            'message': (
+                f'Acces au site "{site.nom_site}" accorde.' if auto_approved
+                else f'Votre demande d\'acces au site "{site.nom_site}" a ete soumise.'
+            ),
+            'auto_approved': auto_approved,
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
@@ -1145,12 +1163,21 @@ class SiteViewSet(viewsets.ModelViewSet):
             justification=justification,
         )
 
-        # Notifier les valideurs (referents du site, admin de l'organisme, super admin)
-        NotificationService.notify_validators(validation_request)
+        # Auto-approbation si le demandeur a les droits
+        from apps.notifications.services import ValidationService
+        auto_approved = ValidationService.try_auto_approve(validation_request, request.user)
+
+        if not auto_approved:
+            # Notifier les valideurs (referents du site, admin de l'organisme, super admin)
+            NotificationService.notify_validators(validation_request)
 
         return Response({
             'id': validation_request.id,
-            'message': f'Votre demande pour devenir referent du site "{site.nom_site}" a ete soumise.',
+            'message': (
+                f'Vous etes maintenant referent du site "{site.nom_site}".' if auto_approved
+                else f'Votre demande pour devenir referent du site "{site.nom_site}" a ete soumise.'
+            ),
+            'auto_approved': auto_approved,
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
@@ -1215,12 +1242,21 @@ class SiteViewSet(viewsets.ModelViewSet):
             justification=justification,
         )
 
-        # Notifier les valideurs (admin de l'organisme du demandeur)
-        NotificationService.notify_validators(validation_request)
+        # Auto-approbation si le demandeur a les droits
+        from apps.notifications.services import ValidationService
+        auto_approved = ValidationService.try_auto_approve(validation_request, request.user)
+
+        if not auto_approved:
+            # Notifier les valideurs (admin de l'organisme du demandeur)
+            NotificationService.notify_validators(validation_request)
 
         return Response({
             'id': validation_request.id,
-            'message': f'Votre demande de lien avec le site "{site.nom_site}" a ete soumise.',
+            'message': (
+                f'Site "{site.nom_site}" lie a votre organisme.' if auto_approved
+                else f'Votre demande de lien avec le site "{site.nom_site}" a ete soumise.'
+            ),
+            'auto_approved': auto_approved,
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])

@@ -1177,6 +1177,81 @@ class ValidationService:
 
         return user
 
+    # ==================== Auto-approval helper ====================
+
+    # Request types qui supportent l'auto-approbation par un role privilegie
+    AUTO_APPROVABLE_TYPES = frozenset({
+        'site_access',
+        'referent_validation',
+        'site_org_link',
+        'site_org_unlink',
+        'plan_site_link',
+    })
+
+    @staticmethod
+    def _can_auto_approve(requester, validation_request):
+        """
+        Determine si le demandeur peut auto-approuver sa propre demande selon son role
+        et le scope de l'organisme pour un admin_og.
+        - super_admin / redacteur_principal : toujours
+        - admin_og : uniquement si la demande concerne son organisme (scope check par type)
+        - utilisateur : jamais
+        """
+        if validation_request.request_type not in ValidationService.AUTO_APPROVABLE_TYPES:
+            return False
+
+        if requester.is_super_admin() or requester.is_redacteur_principal():
+            return True
+
+        if not requester.is_admin_organisme():
+            return False
+
+        admin_org = requester.id_organisme
+        if not admin_org:
+            return False
+
+        rtype = validation_request.request_type
+        site = validation_request.target_site
+
+        if rtype in ('site_access', 'referent_validation', 'plan_site_link'):
+            # admin_og peut auto-approuver si son organisme est lie au site cible
+            if not site:
+                return False
+            return CorOgSite.objects.filter(uuid_og=admin_org, id_site=site).exists()
+
+        if rtype in ('site_org_link', 'site_org_unlink'):
+            # admin_og peut auto-approuver si la liaison concerne son organisme
+            return validation_request.requested_organisme_id == admin_org.id_organisme
+
+        return False
+
+    @staticmethod
+    def try_auto_approve(validation_request, requester):
+        """
+        Auto-approuve la demande si le requester en a les droits.
+        La demande reste dans la queue avec status='approved' et validator=requester.
+
+        Returns:
+            bool: True si auto-approuve, False sinon
+        """
+        if not ValidationService._can_auto_approve(requester, validation_request):
+            return False
+
+        rtype = validation_request.request_type
+        if rtype == 'site_access':
+            ValidationService.approve_site_access(validation_request, requester)
+        elif rtype == 'referent_validation':
+            ValidationService.approve_referent_validation(validation_request, requester)
+        elif rtype == 'site_org_link':
+            ValidationService.approve_site_org_link(validation_request, requester)
+        elif rtype == 'site_org_unlink':
+            ValidationService.approve_site_org_unlink(validation_request, requester)
+        elif rtype == 'plan_site_link':
+            ValidationService.approve_plan_site_link(validation_request, requester)
+        else:
+            return False
+        return True
+
     @staticmethod
     def approve_site_access(validation_request, validator, comment=None, override_referent=None):
         """
