@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-sm;
 
   h1 {
     font-size: $font-size-h2;
@@ -78,7 +78,7 @@
   justify-content: space-between;
   align-items: center;
   gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-sm;
   flex-wrap: wrap;
 }
 
@@ -169,10 +169,38 @@
   table-layout: auto;
 
   th, td {
-    padding: $spacing-sm $spacing-md;
+    padding: 5px $spacing-sm;
     text-align: left;
     white-space: nowrap;
     font-size: $font-size-base;
+  }
+
+  // Cellules tronquées (identifiant, email) avec ellipsis + tooltip
+  .truncate-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  th.col-identifiant,
+  td.col-identifiant {
+    max-width: 110px;
+  }
+  th.col-email,
+  td.col-email {
+    max-width: 180px;
+  }
+  th.col-organisme,
+  td.col-organisme {
+    max-width: 180px;
+  }
+  td.col-organisme {
+    font-size: $font-size-small;
+  }
+  th.col-lastlogin,
+  td.col-lastlogin {
+    max-width: 90px;
+  }
+  td.col-lastlogin {
+    font-size: $font-size-small;
   }
 
   // Colonnes qui peuvent wrapper leur contenu
@@ -267,8 +295,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background-color: $primary-color;
   color: $white;
   border-radius: $border-radius-round;

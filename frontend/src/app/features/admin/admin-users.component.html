@@ -66,15 +66,16 @@
         <thead>
           <tr>
             <th>{{ 'admin.users.table.user' | translate }}</th>
-            <th class="col-secondary">{{ 'admin.users.table.email' | translate }}</th>
+            <th class="col-secondary col-identifiant">{{ 'admin.users.table.identifiant' | translate }}</th>
+            <th class="col-secondary col-email">{{ 'admin.users.table.email' | translate }}</th>
             @if (isSuperAdmin()) {
-              <th>{{ 'admin.users.table.organisme' | translate }}</th>
+              <th class="col-organisme">{{ 'admin.users.table.organisme' | translate }}</th>
             }
             <th>{{ 'admin.users.table.role' | translate }}</th>
             <th>{{ 'admin.users.table.sites' | translate }}</th>
             <th>{{ 'admin.users.table.plans' | translate }}</th>
             <th>{{ 'admin.users.table.status' | translate }}</th>
-            <th class="col-secondary">{{ 'admin.users.table.lastLogin' | translate }}</th>
+            <th class="col-secondary col-lastlogin">{{ 'admin.users.table.lastLogin' | translate }}</th>
             <th>{{ 'admin.users.table.actions' | translate }}</th>
           </tr>
         </thead>
@@ -85,9 +86,10 @@
                 <div class="user-avatar">{{ getInitials(user) }}</div>
                 <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
               </td>
-              <td class="col-secondary">{{ user.email }}</td>
+              <td class="col-secondary col-identifiant truncate-cell" [matTooltip]="user.identifiant || ''">{{ user.identifiant || '-' }}</td>
+              <td class="col-secondary col-email truncate-cell" [matTooltip]="user.email">{{ user.email }}</td>
               @if (isSuperAdmin()) {
-                <td>
+                <td class="col-organisme truncate-cell" [matTooltip]="user.organisme !== 'Non assigne' ? user.organisme : ''">
                   @if (user.organisme !== 'Non assigne') {
                     {{ user.organisme }}
                   } @else {
@@ -174,7 +176,7 @@
                   </span>
                 }
               </td>
-              <td class="date-cell col-secondary">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
+              <td class="date-cell col-secondary col-lastlogin">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
               <td class="actions-cell">
                 @if (canManageUser(user)) {
                   @if (isSuperAdmin()) {
