@@ -48,6 +48,7 @@ class PlanGestionFilter(filters.FilterSet):
     # Filtres par relations
     site_id = filters.NumberFilter(field_name='sites__site__id_site')
     organisme_id = filters.NumberFilter(method='filter_by_organisme_id')
+    organisme = filters.NumberFilter(method='filter_by_organisme_id')
     referent_id = filters.NumberFilter(field_name='referents__id_role')
     
     # Filtres géospatiaux

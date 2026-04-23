@@ -964,6 +964,26 @@ class SiteViewSet(viewsets.ModelViewSet):
         page_size = min(int(request.query_params.get('page_size', 100)), 500)
         sites = sites[:page_size]
 
+        # Pré-calculer les sites accessibles à l'utilisateur pour déterminer has_access
+        # (inclut l'accès direct, via organisme et via plan)
+        user = request.user
+        accessible_ids = user.accessible_site_ids() if hasattr(user, 'accessible_site_ids') else None
+        # Ajouter l'accès transitif via un plan dont l'utilisateur est membre/référent
+        if accessible_ids is not None:
+            from apps.plans.models import CorSitePg, CorRolePlan, PlanGestion
+            plan_ids = set(
+                CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
+            )
+            plan_ids |= set(
+                PlanGestion.objects.filter(referents=user).values_list('id_pg', flat=True)
+            )
+            if plan_ids:
+                transitive = set(
+                    CorSitePg.objects.filter(plan_de_gestion_id__in=plan_ids)
+                    .values_list('site_id', flat=True)
+                )
+                accessible_ids = set(accessible_ids) | transitive
+
         # Construire la réponse avec les organismes liés
         sites_data = []
         for site in sites:
@@ -983,6 +1003,9 @@ class SiteViewSet(viewsets.ModelViewSet):
                     'referent': cor.referent
                 })
 
+            # Calcul d'accès — accessible_ids=None signifie « accès à tous » (super admin / rédacteur principal)
+            has_access = accessible_ids is None or site.id_site in accessible_ids
+
             sites_data.append({
                 'id_site': site.id_site,
                 'slug': site.slug,
@@ -992,7 +1015,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'surf_off': site.surf_off,
                 'active': site.active,
                 'organismes': organismes,
-                'users': users
+                'users': users,
+                'current_user_access': {'has_access': has_access} if has_access else None
             })
 
         return Response({

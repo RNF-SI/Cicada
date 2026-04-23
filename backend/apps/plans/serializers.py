@@ -111,13 +111,29 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     def get_current_user_has_access(self, obj):
         """Vérifie si l'utilisateur courant a accès au site.
 
-        Cohérent avec Role.accessible_site_ids() : accès direct, via
-        organisme, ou via un plan dont l'utilisateur est membre.
+        Inclut l'accès direct, via organisme, et via un plan dont
+        l'utilisateur est membre/référent (accès transitif). Dans la
+        page de détail d'un plan, un utilisateur membre du plan est
+        considéré comme ayant accès aux sites couverts par ce plan.
         """
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return False
-        return request.user.has_access_to_site(obj.site)
+        user = request.user
+        if user.has_access_to_site(obj.site):
+            return True
+        # Accès transitif : l'utilisateur est membre/référent du plan
+        # auquel ce CorSitePg appartient.
+        from apps.plans.models import CorRolePlan, PlanGestion
+        if CorRolePlan.objects.filter(
+            id_role=user,
+            plan_de_gestion_id=obj.plan_de_gestion_id
+        ).exists():
+            return True
+        return PlanGestion.objects.filter(
+            id_pg=obj.plan_de_gestion_id,
+            referents=user
+        ).exists()
 
     def get_organismes(self, obj):
         """Retourne les organismes liés au site via CorOgSite."""
@@ -204,10 +220,29 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
         ]
 
     def get_referents(self, obj):
-        return [{'id_role': r.id_role} for r in obj.referents.all()]
+        return [
+            {
+                'id_role': r.id_role,
+                'email': r.email,
+                'nom_role': r.nom_role,
+                'prenom_role': r.prenom_role,
+                'nom_complet': r.get_full_name(),
+            }
+            for r in obj.referents.all()
+        ]
 
     def get_membres(self, obj):
-        return [{'id_role': m.id_role_id, 'referent': m.referent} for m in obj.membres.all()]
+        return [
+            {
+                'id_role': m.id_role.id_role,
+                'email': m.id_role.email,
+                'nom_role': m.id_role.nom_role,
+                'prenom_role': m.id_role.prenom_role,
+                'nom_complet': m.id_role.get_full_name(),
+                'referent': m.referent,
+            }
+            for m in obj.membres.all()
+        ]
 
 
 class PlanGestionDetailSerializer(serializers.ModelSerializer):

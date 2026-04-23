@@ -107,10 +107,10 @@ def notify_users_before_organisme_delete(sender, instance, **kwargs):
             NotificationService.create_notification(
                 recipient=user,
                 notification_type='system_alert',
-                title="Votre organisme a ete supprime",
-                message=f"L'organisme '{organisme_name}' auquel vous etiez rattache "
-                        f"a ete supprime du systeme. Veuillez contacter un administrateur "
-                        f"pour etre rattache a un nouvel organisme.",
+                title="Votre organisme a été supprimé",
+                message=f"L'organisme '{organisme_name}' auquel vous étiez rattaché "
+                        f"a été supprimé du système. Veuillez contacter un administrateur "
+                        f"pour être rattaché à un nouvel organisme.",
                 priority='high',
                 send_email=True
             )
@@ -125,9 +125,9 @@ def notify_users_before_organisme_delete(sender, instance, **kwargs):
             NotificationService.create_notification(
                 recipient=admin,
                 notification_type='system_alert',
-                title="Organisme supprime",
-                message=f"L'organisme '{organisme_name}' a ete supprime. "
-                        f"{affected_users.count()} utilisateur(s) ont ete notifie(s).",
+                title="Organisme supprimé",
+                message=f"L'organisme '{organisme_name}' a été supprimé. "
+                        f"{affected_users.count()} utilisateur(s) ont été notifié(s).",
                 priority='low'
             )
         except Exception as e:
@@ -158,13 +158,13 @@ def notify_users_before_site_delete(sender, instance, **kwargs):
             continue
 
         try:
-            role_str = "referent" if relation.referent else "membre"
+            role_str = "référent" if relation.referent else "membre"
             NotificationService.create_notification(
                 recipient=user,
                 notification_type='system_alert',
-                title="Un site auquel vous etiez associe a ete supprime",
-                message=f"Le site '{site_name}' auquel vous etiez associe en tant que {role_str} "
-                        f"a ete supprime du systeme.",
+                title="Un site auquel vous étiez associé a été supprimé",
+                message=f"Le site '{site_name}' auquel vous étiez associé en tant que {role_str} "
+                        f"a été supprimé du système.",
                 priority='high',
                 send_email=True
             )

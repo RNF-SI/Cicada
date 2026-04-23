@@ -189,6 +189,7 @@ export class PlansListComponent implements OnInit {
   readonly otherPlans = computed(() => {
     const search = this.searchQuery().toLowerCase();
     return this.allPlans()
+      .filter(p => p.isOrgPlan)
       .filter(p => p.accessStatus === 'none' || p.accessStatus === 'rejected')
       .filter(p => !search || p.nom.toLowerCase().includes(search));
   });

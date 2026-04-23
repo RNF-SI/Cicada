@@ -238,12 +238,16 @@ class SiteFilter(django_filters.FilterSet):
         ex: 'RNN') soit le libellé complet (ex: 'Réserve Naturelle Nationale').
         Les sélecteurs du frontend envoient le code court, mais on reste
         compatible avec les appels passant le libellé complet.
+
+        Match exact sur mnémonique et libellé pour éviter qu'un filtre
+        'ENS' ne retourne aussi les sites 'ENSD' (label 'Espace Naturel
+        Sensible Départemental' contient 'Espace Naturel Sensible').
         """
         if not value:
             return queryset
         return queryset.filter(
             Q(id_type_site__mnemonique__iexact=value) |
-            Q(id_type_site__label__icontains=value)
+            Q(id_type_site__label__iexact=value)
         )
 
     def filter_type_site(self, queryset, name, value):

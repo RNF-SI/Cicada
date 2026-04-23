@@ -330,10 +330,12 @@ export class SitesListComponent implements OnInit {
 
       const isUserLinked = site.users?.some(u => u.id_role === currentUser?.id);
       const userLink = site.users?.find(u => u.id_role === currentUser?.id);
+      // Accès transitif (via plan, organisme, etc.) calculé côté backend
+      const hasBackendAccess = site.current_user_access?.has_access === true;
 
       let accessStatus: 'granted' | 'pending' | 'rejected' | 'none' = 'none';
       // Super Admin a acces a tous les sites
-      if (isSuperAdmin || isUserLinked || approvedRequest) {
+      if (isSuperAdmin || isUserLinked || hasBackendAccess || approvedRequest) {
         accessStatus = 'granted';
       } else if (pendingRequest) {
         accessStatus = 'pending';

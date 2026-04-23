@@ -135,17 +135,21 @@ export class FindOrCreateSiteModalComponent {
           const isUserLinked = (site as any).users?.some(
             (u: any) => u.id_role === currentUser?.id
           );
+          // L'accès transitif (via plan, organisme, etc.) est calculé côté backend
+          const hasBackendAccess = site.current_user_access?.has_access === true;
+          const hasAccess = isUserLinked || hasBackendAccess;
           const isOrgSite = site.organismes?.some(o => o.id_organisme === userOrgId);
           const isOtherOrg = !isOrgSite && userOrgId !== undefined;
 
           return {
             ...site,
-            hasAccess: isUserLinked || false,
+            hasAccess: hasAccess || false,
             hasPendingRequest: false, // Sera mis à jour avec les demandes
-            canRequestAccess: !isUserLinked && isOrgSite,
+            // Ne proposer la demande d'accès que si l'utilisateur n'a pas déjà accès
+            canRequestAccess: !hasAccess && isOrgSite,
             // Site d'un autre organisme - peut demander le lien
             isOtherOrg,
-            canRequestOrgLink: isOtherOrg && !!userOrgId,
+            canRequestOrgLink: isOtherOrg && !hasAccess && !!userOrgId,
             hasPendingOrgLink: false
           } as SearchableSite;
         });

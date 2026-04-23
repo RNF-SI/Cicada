@@ -389,7 +389,8 @@
         "RNN": "RNN - Réserve Naturelle Nationale",
         "RNR": "RNR - Réserve Naturelle Régionale",
         "PNR": "PNR - Parc Naturel Régional",
-        "ENS": "ENS - Espace Naturel Sensible"
+        "ENS": "ENS - Espace Naturel Sensible",
+        "ENSD": "ENSD - Espace Naturel Sensible Départemental"
       },
       "empty": {
         "noOrganisme": "Aucun organisme",

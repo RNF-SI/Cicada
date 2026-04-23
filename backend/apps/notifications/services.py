@@ -113,7 +113,7 @@ class NotificationService:
 
         elif validation_request.request_type == 'admin_deactivation':
             target_name = str(validation_request.target_user) if validation_request.target_user else "un administrateur"
-            return f"{requester_name} demande la desactivation de {target_name}."
+            return f"{requester_name} demande la désactivation de {target_name}."
 
         elif validation_request.request_type == 'admin_promotion':
             target_name = str(validation_request.target_user) if validation_request.target_user else "un utilisateur"
@@ -172,14 +172,14 @@ class NotificationService:
             return
 
         notification_type = 'validation_approved' if approved else 'validation_rejected'
-        title = "Demande approuvee" if approved else "Demande rejetee"
+        title = "Demande approuvée" if approved else "Demande rejetée"
 
         if approved:
-            message = f"Votre demande de {validation_request.get_request_type_display().lower()} a ete approuvee."
+            message = f"Votre demande de {validation_request.get_request_type_display().lower()} a été approuvée."
         else:
-            message = f"Votre demande de {validation_request.get_request_type_display().lower()} a ete rejetee."
+            message = f"Votre demande de {validation_request.get_request_type_display().lower()} a été rejetée."
             if validation_request.validation_comment:
-                message += f" Motif: {validation_request.validation_comment}"
+                message += f" Motif : {validation_request.validation_comment}"
 
         NotificationService.create_notification(
             recipient=validation_request.requester,
@@ -217,7 +217,7 @@ class NotificationService:
             return
 
         processor_name = f"{processed_by.prenom_role or ''} {processed_by.nom_role or ''}".strip() or processed_by.email
-        status_text = "approuvee" if approved else "rejetee"
+        status_text = "approuvée" if approved else "rejetée"
         request_type_display = validation_request.get_request_type_display().lower()
 
         # Construire le message avec details du demandeur
@@ -226,17 +226,17 @@ class NotificationService:
             if pending_user:
                 requester_info = f"{pending_user.get_full_name()} ({pending_user.email})"
             else:
-                # Si approuvee, PendingUser a ete supprime, chercher dans le message original
+                # Si approuvée, PendingUser a été supprimé, chercher dans le message original
                 requester_info = "un nouvel utilisateur"
         elif validation_request.requester:
             requester_info = str(validation_request.requester)
         else:
             requester_info = "un utilisateur"
 
-        title = f"Demande deja {status_text}"
+        title = f"Demande déjà {status_text}"
         message = (
             f"La demande de {request_type_display} de {requester_info} "
-            f"a ete {status_text} par {processor_name}."
+            f"a été {status_text} par {processor_name}."
         )
 
         for validator in other_validators:
@@ -283,12 +283,12 @@ class NotificationService:
             return
 
         processor_name = f"{processed_by.prenom_role or ''} {processed_by.nom_role or ''}".strip() or processed_by.email
-        status_text = "approuvee" if approved else "rejetee"
+        status_text = "approuvée" if approved else "rejetée"
 
-        title = f"Demande deja {status_text}"
+        title = f"Demande déjà {status_text}"
         message = (
             f"La demande d'inscription de {requester_info} "
-            f"a ete {status_text} par {processor_name}."
+            f"a été {status_text} par {processor_name}."
         )
 
         for validator in other_validators:
@@ -1516,8 +1516,8 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=user,
             notification_type='validation_approved',
-            title="Inscription approuvee",
-            message=f"Votre demande d'inscription a ete approuvee par {validator_name}.",
+            title="Inscription approuvée",
+            message=f"Votre demande d'inscription a été approuvée par {validator_name}.",
             priority='medium',
             related_user=validator,
             related_validation=validation_request,
@@ -2047,8 +2047,8 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=validation_request.requester,
             notification_type='validation_approved',
-            title="Demande de desactivation approuvee",
-            message=f"Votre demande de desactivation de {target_user} a ete approuvee.",
+            title="Demande de désactivation approuvée",
+            message=f"Votre demande de désactivation de {target_user} a été approuvée.",
             priority='high',
             related_user=target_user,
             related_validation=validation_request,
@@ -2094,9 +2094,9 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=target_user,
             notification_type='role_changed',
-            title="Vous etes maintenant administrateur",
-            message=f"Suite a une demande de {validation_request.requester}, "
-                    f"vous avez ete promu administrateur de votre organisme.",
+            title="Vous êtes maintenant administrateur",
+            message=f"Suite à une demande de {validation_request.requester}, "
+                    f"vous avez été promu administrateur de votre organisme.",
             priority='high',
             related_user=validator,
             related_validation=validation_request,
@@ -2107,8 +2107,8 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=validation_request.requester,
             notification_type='validation_approved',
-            title="Demande de promotion approuvee",
-            message=f"Votre demande de promotion de {target_user} en administrateur a ete approuvee.",
+            title="Demande de promotion approuvée",
+            message=f"Votre demande de promotion de {target_user} en administrateur a été approuvée.",
             priority='high',
             related_user=target_user,
             related_validation=validation_request,
@@ -2154,9 +2154,9 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=target_user,
             notification_type='role_changed',
-            title="Changement de role",
-            message=f"Suite a une demande de {validation_request.requester}, "
-                    f"vous n'etes plus administrateur de votre organisme.",
+            title="Changement de rôle",
+            message=f"Suite à une demande de {validation_request.requester}, "
+                    f"vous n'êtes plus administrateur de votre organisme.",
             priority='high',
             related_user=validator,
             related_validation=validation_request,
@@ -2167,8 +2167,8 @@ class ValidationService:
         NotificationService.create_notification(
             recipient=validation_request.requester,
             notification_type='validation_approved',
-            title="Demande de retrogradation approuvee",
-            message=f"Votre demande de retrogradation de {target_user} a ete approuvee.",
+            title="Demande de rétrogradation approuvée",
+            message=f"Votre demande de rétrogradation de {target_user} a été approuvée.",
             priority='high',
             related_user=target_user,
             related_validation=validation_request,

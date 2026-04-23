@@ -305,7 +305,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         v = validation_request.validator
                         validator_name = f"{v.prenom_role or ''} {v.nom_role or ''}".strip() or v.email
                     return Response(
-                        {'error': f'Cette demande a deja ete traitee par {validator_name}.'},
+                        {'error': f'Cette demande a déjà été traitée par {validator_name}.'},
                         status=status.HTTP_409_CONFLICT
                     )
 
@@ -442,7 +442,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         return Response({
             'status': 'approved',
-            'message': 'La demande a ete approuvee.'
+            'message': 'La demande a été approuvée.'
         })
 
     @action(detail=True, methods=['post'])
@@ -469,7 +469,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         v = validation_request.validator
                         validator_name = f"{v.prenom_role or ''} {v.nom_role or ''}".strip() or v.email
                     return Response(
-                        {'error': f'Cette demande a deja ete traitee par {validator_name}.'},
+                        {'error': f'Cette demande a déjà été traitée par {validator_name}.'},
                         status=status.HTTP_409_CONFLICT
                     )
 
@@ -492,7 +492,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         return Response({
             'status': 'rejected',
-            'message': 'La demande a ete rejetee.'
+            'message': 'La demande a été rejetée.'
         })
 
     @action(detail=True, methods=['post'])
@@ -510,7 +510,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         # Verifier que la demande est en attente
         if not validation_request.is_pending():
             return Response(
-                {'error': 'Cette demande a deja ete traitee.'},
+                {'error': 'Cette demande a déjà été traitée.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -742,14 +742,14 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         # Verifier que le demandeur est admin_og ou super_admin
         if not (request.user.is_super_admin() or request.user.role_level == 'admin_og'):
             return Response(
-                {'error': 'Seuls les administrateurs peuvent demander la desactivation d\'un autre administrateur.'},
+                {'error': 'Seuls les administrateurs peuvent demander la désactivation d\'un autre administrateur.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         # Verifier que la cible est admin_og
         if target_user.role_level != 'admin_og':
             return Response(
-                {'error': 'Seule la desactivation d\'un admin_og peut etre demandee via ce processus.'},
+                {'error': 'Seule la désactivation d\'un admin_og peut être demandée via ce processus.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -757,7 +757,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         if request.user.role_level == 'admin_og':
             if target_user.id_organisme != request.user.id_organisme:
                 return Response(
-                    {'error': 'Vous ne pouvez demander la desactivation que d\'un administrateur de votre organisme.'},
+                    {'error': 'Vous ne pouvez demander la désactivation que d\'un administrateur de votre organisme.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -770,7 +770,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         if existing:
             return Response(
-                {'error': 'Une demande de desactivation pour cet administrateur est deja en attente.'},
+                {'error': 'Une demande de désactivation pour cet administrateur est déjà en attente.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -789,7 +789,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         return Response({
             'id': validation_request.id,
-            'message': 'Votre demande de desactivation a ete soumise aux super administrateurs.',
+            'message': 'Votre demande de désactivation a été soumise aux super administrateurs.',
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])

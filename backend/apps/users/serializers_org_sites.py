@@ -322,6 +322,24 @@ class SiteListSerializer(serializers.ModelSerializer):
                     'role_label': user.id_organisme.nom_organisme
                 }
 
+        # Accès transitif via un plan dont l'utilisateur est membre/référent
+        from apps.plans.models import CorSitePg, CorRolePlan
+        plan_ids_with_site = CorSitePg.objects.filter(
+            site=obj
+        ).values_list('plan_de_gestion_id', flat=True)
+        if plan_ids_with_site:
+            user_plan_link = CorRolePlan.objects.filter(
+                id_role=user,
+                plan_de_gestion_id__in=plan_ids_with_site
+            ).first()
+            if user_plan_link:
+                role_label = 'Référent d\'un plan lié' if user_plan_link.referent else 'Membre d\'un plan lié'
+                return {
+                    'has_access': True,
+                    'access_type': 'plan',
+                    'role_label': role_label
+                }
+
         return None
 
 
@@ -549,6 +567,25 @@ class SiteDetailSerializer(serializers.ModelSerializer):
                     'is_referent': True,
                     'is_conservateur': False,
                     'role_label': 'Administrateur Organisme'
+                }
+
+        # Accès transitif via un plan dont l'utilisateur est membre/référent
+        from apps.plans.models import CorSitePg, CorRolePlan
+        plan_ids_with_site = CorSitePg.objects.filter(
+            site=obj
+        ).values_list('plan_de_gestion_id', flat=True)
+        if plan_ids_with_site:
+            user_plan_link = CorRolePlan.objects.filter(
+                id_role=user,
+                plan_de_gestion_id__in=plan_ids_with_site
+            ).first()
+            if user_plan_link:
+                role_label = 'Référent d\'un plan lié' if user_plan_link.referent else 'Membre d\'un plan lié'
+                return {
+                    'has_access': True,
+                    'is_referent': False,
+                    'is_conservateur': False,
+                    'role_label': role_label
                 }
 
         return None

@@ -221,7 +221,7 @@ class ValidationRequestAdmin(admin.ModelAdmin):
         )
     status_badge.short_description = 'Statut'
 
-    @admin.action(description='Approuver les demandes selectionnees')
+    @admin.action(description='Approuver les demandes sélectionnées')
     def approve_requests(self, request, queryset):
         """Action pour approuver en masse."""
         from .services import ValidationService
@@ -233,22 +233,22 @@ class ValidationRequestAdmin(admin.ModelAdmin):
                     ValidationService.approve_registration(
                         validation_request,
                         request.user,
-                        'Approuve via admin'
+                        'Approuvé via admin'
                     )
                 elif validation_request.request_type == 'site_access':
                     ValidationService.approve_site_access(
                         validation_request,
                         request.user,
-                        'Approuve via admin'
+                        'Approuvé via admin'
                     )
                 elif validation_request.request_type == 'plan_access':
                     ValidationService.approve_plan_access(
                         validation_request,
                         request.user,
-                        'Approuve via admin'
+                        'Approuvé via admin'
                     )
                 else:
-                    validation_request.approve(request.user, 'Approuve via admin')
+                    validation_request.approve(request.user, 'Approuvé via admin')
                 count += 1
             except Exception as e:
                 self.message_user(
@@ -257,9 +257,9 @@ class ValidationRequestAdmin(admin.ModelAdmin):
                     level='error'
                 )
 
-        self.message_user(request, f"{count} demande(s) approuvee(s).")
+        self.message_user(request, f"{count} demande(s) approuvée(s).")
 
-    @admin.action(description='Rejeter les demandes selectionnees')
+    @admin.action(description='Rejeter les demandes sélectionnées')
     def reject_requests(self, request, queryset):
         """Action pour rejeter en masse."""
         from .services import ValidationService
@@ -270,7 +270,7 @@ class ValidationRequestAdmin(admin.ModelAdmin):
                 ValidationService.reject_request(
                     validation_request,
                     request.user,
-                    'Rejete via admin'
+                    'Rejeté via admin'
                 )
                 count += 1
             except Exception as e:
@@ -280,7 +280,7 @@ class ValidationRequestAdmin(admin.ModelAdmin):
                     level='error'
                 )
 
-        self.message_user(request, f"{count} demande(s) rejetee(s).")
+        self.message_user(request, f"{count} demande(s) rejetée(s).")
 
 
 @admin.register(PendingUser)

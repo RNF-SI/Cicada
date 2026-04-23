@@ -118,7 +118,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         'id_evaluation', 'id_redacteur_type',
         'id_utilisateur_ajout', 'id_utilisateur_maj',
         'plan_parent', 'id_type_document'
-    ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children')
+    ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children', 'membres__id_role')
 
     pagination_class = StandardPagination
     permission_classes = [permissions.IsAuthenticated]
@@ -166,7 +166,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             queryset = PlanGestion.objects.select_related(
                 'plan_parent', 'id_type_document'
             ).prefetch_related(
-                'sites__site', 'referents', 'membres'
+                'sites__site', 'referents', 'membres__id_role'
             ).annotate(
                 children_count=Count('children')
             )

@@ -23,6 +23,7 @@ class SitesSeeder(BaseSeeder):
     - Espace Naturel Sensible des Marais de Brouage (ENS)
     - Réserve Naturelle de Scandola (RNN)
     - Réserve Naturelle du Lac de Remoray (RNN)
+    - Espace Naturel Sensible Départemental de la Forêt de Saou (ENSD, sans code INPN)
     """
 
     name = 'sites'
@@ -37,6 +38,7 @@ class SitesSeeder(BaseSeeder):
         'Espace Naturel Sensible des Marais de Brouage': (-1.05, 45.87, 0.06),
         'Réserve Naturelle de Scandola': (8.55, 42.37, 0.05),
         'Réserve Naturelle du Lac de Remoray': (6.21, 46.77, 0.04),
+        'Espace Naturel Sensible Départemental de la Forêt de Saou': (5.04, 44.68, 0.05),
     }
 
     def _get_sites_data(self, organismes: List[BibOrganismes]) -> List[Dict]:
@@ -46,6 +48,7 @@ class SitesSeeder(BaseSeeder):
         type_rnr = Nomenclature.objects.filter(mnemonique='RNR').first()
         type_pnr = Nomenclature.objects.filter(mnemonique='PNR').first()
         type_ens = Nomenclature.objects.filter(mnemonique='ENS').first()
+        type_ensd = Nomenclature.objects.filter(mnemonique='ENSD').first()
 
         return [
             {
@@ -124,6 +127,17 @@ class SitesSeeder(BaseSeeder):
                 'outre_mer': False,
                 'active': True,
                 'organismes': [organismes[0]]  # RNF
+            },
+            {
+                'nom_site': 'Espace Naturel Sensible Départemental de la Forêt de Saou',
+                'id_local': 'ENSD26',
+                'id_inpn': None,  # ENSD : pas de code INPN
+                'id_type_site': type_ensd,
+                'surf_off': 2500.0,
+                'marin': False,
+                'outre_mer': False,
+                'active': True,
+                'organismes': [organismes[1]]  # CEN AURA
             },
         ]
 
@@ -220,7 +234,7 @@ class SitesSeeder(BaseSeeder):
             Liste des lignes du résumé
         """
         return [
-            '\nSites (7) avec organismes gestionnaires:',
+            '\nSites (8) avec organismes gestionnaires:',
             '  - Réserve Naturelle de la Camargue (RNN)',
             '      Organismes: RNF [PRINCIPAL], OFB',
             '  - Réserve Naturelle des Aiguilles Rouges (RNN)',
@@ -235,4 +249,6 @@ class SitesSeeder(BaseSeeder):
             '      Organismes: Parc Écrins [PRINCIPAL], OFB',
             '  - Réserve Naturelle du Lac de Remoray (RNN)',
             '      Organismes: RNF [PRINCIPAL]',
+            '  - Espace Naturel Sensible Départemental de la Forêt de Saou (ENSD, sans code INPN)',
+            '      Organismes: CEN AURA [PRINCIPAL]',
         ]

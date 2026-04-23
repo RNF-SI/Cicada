@@ -49,7 +49,7 @@ export interface SiteUserAccess {
   is_conservateur?: boolean;
   role_label: string;
   /** Type d'accès pour le styling frontend */
-  access_type?: 'super_admin' | 'referent' | 'conservateur' | 'membre' | 'admin_og' | 'organisme';
+  access_type?: 'super_admin' | 'redacteur_principal' | 'referent' | 'conservateur' | 'membre' | 'admin_og' | 'organisme' | 'plan';
 }
 
 /**
