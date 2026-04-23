@@ -26,6 +26,7 @@ class Notification(models.Model):
         ('organisme_changed', _('Organisme modifié')),
         ('site_orphaned', _('Site sans utilisateurs')),
         ('site_deleted', _('Site supprimé')),
+        ('plan_deleted', _('Plan de gestion supprimé')),
         ('plans_orphaned_summary', _("Récapitulatif des plans orphelins")),
         ('organisme_no_admin', _('Organisme sans administrateur')),
         ('plan_needs_reassignment', _('Plan à réassigner')),

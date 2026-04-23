@@ -336,7 +336,8 @@
         "manageReferents": "Gérer les référents",
         "validate": "Valider le plan",
         "archive": "Archiver",
-        "restore": "Restaurer en brouillon"
+        "restore": "Restaurer en brouillon",
+        "delete": "Supprimer le plan"
       },
       "empty": {
         "noSite": "Aucun site",
@@ -354,6 +355,15 @@
         "alreadyArchived": "Ce plan est déjà archivé",
         "archived": "Plan archivé avec succès",
         "restored": "Plan restauré en brouillon"
+      },
+      "delete": {
+        "confirmTitle": "Supprimer le plan de gestion",
+        "confirmMessage": "Êtes-vous sûr de vouloir supprimer définitivement le plan \"{{name}}\" ? Les enjeux, opérations, indicateurs et fichiers associés seront supprimés. Les sites et utilisateurs liés restent, seules les associations sont retirées.",
+        "sitesWarning": "{{count}} site(s) seront détaché(s) du plan",
+        "referentsWarning": "{{count}} référent(s) seront notifié(s)",
+        "membersWarning": "{{count}} membre(s) seront notifié(s) et détaché(s)",
+        "success": "Plan \"{{name}}\" supprimé avec succès",
+        "error": "Erreur lors de la suppression du plan"
       },
       "summary": "{{count}} plan(s) de gestion"
     },

@@ -58,6 +58,62 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return True
         return False
 
+    def _can_delete_plan(self, user, plan):
+        """Suppression : référent du plan, admin_og ou super_admin (hors rédacteur principal).
+
+        Aligné avec `can_manage_plan_lifecycle` : la suppression est un acte de
+        cycle de vie, le rédacteur principal en est donc exclu.
+        """
+        if user.is_super_admin():
+            return True
+        if user.can_manage_plan_lifecycle():
+            return True
+        return plan.referents.filter(pk=user.pk).exists()
+
+    def destroy(self, request, *args, **kwargs):
+        """Suppression d'un plan de gestion avec notifications.
+
+        - Permissions : référent du plan, admin_og, super_admin
+        - Capture les référents/membres/organismes rédacteurs avant la suppression
+        - CASCADE Django sur CorSitePg, CorRolePlan, CorRedacteurPlan, CorPgFichier,
+          Enjeu, Operation, SuiviInventaire — les sites/utilisateurs/organismes
+          eux-mêmes ne sont pas supprimés, seules les liaisons le sont
+        - Notifie les acteurs liés après suppression
+        """
+        from apps.notifications.services import NotificationService
+
+        plan = self.get_object()
+
+        if not self._can_delete_plan(request.user, plan):
+            return Response(
+                {'detail': "Vous n'avez pas les droits pour supprimer ce plan de gestion."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        plan_name = plan.nom
+        plan_id = plan.id_pg
+        deleted_by = request.user
+
+        referent_ids = list(plan.referents.values_list('id_role', flat=True))
+        member_ids = list(
+            CorRolePlan.objects.filter(plan_de_gestion=plan)
+            .values_list('id_role', flat=True)
+        )
+        org_ids = list(plan.organismes_redacteurs.values_list('uuid_og', flat=True))
+
+        plan.delete()
+
+        NotificationService.notify_plan_deleted(
+            plan_name=plan_name,
+            plan_id=plan_id,
+            deleted_by=deleted_by,
+            referent_ids=referent_ids,
+            org_ids=org_ids,
+            member_ids=member_ids,
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     queryset = PlanGestion.objects.all().select_related(
         'id_evaluation', 'id_redacteur_type',
         'id_utilisateur_ajout', 'id_utilisateur_maj',

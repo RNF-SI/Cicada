@@ -14,6 +14,7 @@ import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, AdminOrganisme } from '../../core/models/admin.model';
 import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-plan-site-modal/link-plan-site-modal.component';
 import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 // Interface for linked site display
@@ -362,6 +363,57 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
       error: (error: Error) => {
         this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
+    });
+  }
+
+  deletePlan(plan: DisplayPlan): void {
+    const siteCount = plan.sites.length;
+    const referentCount = plan.referents.length;
+    const memberCount = plan.membres.length;
+    const details: string[] = [];
+    if (siteCount > 0) {
+      details.push(this.translate.instant('admin.plans.delete.sitesWarning', { count: siteCount }));
+    }
+    if (referentCount > 0) {
+      details.push(this.translate.instant('admin.plans.delete.referentsWarning', { count: referentCount }));
+    }
+    if (memberCount > 0) {
+      details.push(this.translate.instant('admin.plans.delete.membersWarning', { count: memberCount }));
+    }
+    const message = this.translate.instant('admin.plans.delete.confirmMessage', { name: plan.nom })
+      + (details.length ? '\n\n' + details.join('\n') : '');
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title: this.translate.instant('admin.plans.delete.confirmTitle'),
+        message,
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+
+      this.adminService.deletePlan(plan.id).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('admin.plans.delete.success', { name: plan.nom }),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+          this.loadPlans();
+        },
+        error: (error: Error) => {
+          this.snackBar.open(
+            error.message || this.translate.instant('admin.plans.delete.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
     });
   }
 

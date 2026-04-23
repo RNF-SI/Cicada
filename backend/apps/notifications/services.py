@@ -452,6 +452,76 @@ class NotificationService:
             )
 
     @staticmethod
+    def notify_plan_deleted(plan_name, plan_id, deleted_by, referent_ids, org_ids, member_ids=None):
+        """
+        Notifie les acteurs liés lors de la suppression d'un plan de gestion.
+
+        - Référents du plan
+        - Membres du plan (CorRolePlan)
+        - Admin_og des organismes rédacteurs
+        - Super admins
+
+        Args:
+            plan_name: Nom du plan supprimé
+            plan_id: ID du plan supprimé (pour référence, le plan n'existe plus)
+            deleted_by: Role qui a effectué la suppression
+            referent_ids: Liste des IDs des référents du plan
+            org_ids: Liste des UUID des organismes rédacteurs
+            member_ids: Liste des IDs des membres CorRolePlan (optionnel)
+        """
+        from apps.users.models import Role
+
+        deleted_by_name = str(deleted_by) if deleted_by else "Système"
+        deleted_by_id = deleted_by.id_role if deleted_by else None
+        title = f"Plan de gestion supprimé : {plan_name}"
+        message = (
+            f"Le plan de gestion \"{plan_name}\" a été supprimé par {deleted_by_name}. "
+            "Toutes les données associées (sites liés, enjeux, opérations, fichiers) "
+            "ont été retirées."
+        )
+
+        recipients = set()
+
+        # Référents et membres du plan
+        for uid in referent_ids or []:
+            if uid != deleted_by_id:
+                recipients.add(uid)
+        for uid in member_ids or []:
+            if uid != deleted_by_id:
+                recipients.add(uid)
+
+        # Admin_og des organismes rédacteurs
+        if org_ids:
+            admin_og_ids = Role.objects.filter(
+                id_organisme__in=org_ids,
+                role_level='admin_og',
+                active=True,
+            ).exclude(id_role=deleted_by_id).values_list('id_role', flat=True)
+            recipients.update(admin_og_ids)
+
+        # Super admins
+        super_admin_ids = Role.objects.filter(
+            role_level='super_admin',
+            active=True,
+        ).exclude(id_role=deleted_by_id).values_list('id_role', flat=True)
+        recipients.update(super_admin_ids)
+
+        # Envoi
+        for uid in recipients:
+            try:
+                user = Role.objects.get(id_role=uid)
+            except Role.DoesNotExist:
+                continue
+            NotificationService.create_notification(
+                recipient=user,
+                notification_type='plan_deleted',
+                title=title,
+                message=message,
+                priority='high',
+                send_email=True,
+            )
+
+    @staticmethod
     def notify_orphaned_sites_summary(sites):
         """
         Envoie un email recapitulatif unique pour tous les sites orphelins.

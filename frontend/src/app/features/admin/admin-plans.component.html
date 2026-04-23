@@ -230,6 +230,11 @@
                     <i class="fi fi-rr-undo"></i>
                   </button>
                 }
+                @if (canManagePlan(plan)) {
+                  <button class="btn-icon danger" [title]="'admin.plans.actions.delete' | translate" (click)="deletePlan(plan)">
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                }
               </td>
             </tr>
           }
