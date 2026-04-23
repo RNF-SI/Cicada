@@ -138,9 +138,14 @@ def notify_users_before_organisme_delete(sender, instance, **kwargs):
 def notify_users_before_site_delete(sender, instance, **kwargs):
     """
     Notifie les utilisateurs avant la suppression d'un site.
+    Marque aussi le site pour que les signaux post_delete des enfants
+    (CorRoleSite, etc.) sautent leur journalisation pendant la cascade.
     """
     from .models import Role, CorRoleSite
+    from .deletion_tracker import mark_site_deleting
     from apps.notifications.services import NotificationService
+
+    mark_site_deleting(instance.pk)
 
     site_name = instance.nom_site or f"Site #{instance.id_site}"
 
@@ -166,6 +171,13 @@ def notify_users_before_site_delete(sender, instance, **kwargs):
             logger.info(f"Notified user {user.email} about site deletion: {site_name}")
         except Exception as e:
             logger.error(f"Error notifying user {user.email} about site deletion: {e}")
+
+
+@receiver(post_delete, sender='users.Site')
+def clear_site_deletion_marker(sender, instance, **kwargs):
+    """Démarque le site une fois sa suppression effective."""
+    from .deletion_tracker import unmark_site_deleting
+    unmark_site_deleting(instance.pk)
 
 
 @receiver(post_save, sender='users.Role')
@@ -248,7 +260,14 @@ def check_organisme_admin_after_role_delete(sender, instance, **kwargs):
 def check_site_orphaned_after_user_removed(sender, instance, **kwargs):
     """
     Verifie si un site est devenu orphelin apres le retrait d'un utilisateur.
+    Saute la vérification si le site lui-même est en cours de suppression
+    (CASCADE) : il n'est pas orphelin, il est supprimé.
     """
+    from .deletion_tracker import is_site_deleting
+
+    if is_site_deleting(instance.id_site_id):
+        return
+
     try:
         site = instance.id_site
         _check_site_has_users(site)

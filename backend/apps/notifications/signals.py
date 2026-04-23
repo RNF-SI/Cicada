@@ -51,9 +51,15 @@ def notify_user_site_association(sender, instance, created, **kwargs):
 def check_site_orphaned_on_user_removal(sender, instance, **kwargs):
     """
     Verifie si un site devient orphelin apres le retrait d'un utilisateur.
+    Saute la vérification si le site est en cours de suppression (CASCADE) :
+    il n'est pas orphelin, il est supprimé.
     """
     from apps.users.models import CorRoleSite
+    from apps.users.deletion_tracker import is_site_deleting
     from .services import NotificationService
+
+    if is_site_deleting(instance.id_site_id):
+        return
 
     site = instance.id_site
 
@@ -69,8 +75,16 @@ def check_site_orphaned_on_user_removal(sender, instance, **kwargs):
 def notify_user_removed_from_site(sender, instance, **kwargs):
     """
     Notifie un utilisateur lorsqu'il est retire d'un site.
+    Saute la notification si le site lui-même est en cours de suppression
+    (CASCADE) : les utilisateurs sont déjà notifiés via
+    `notify_users_before_site_delete` (pre_delete Site), et insérer une
+    notification avec `related_site=site` ici violerait la FK au DELETE du site.
     """
+    from apps.users.deletion_tracker import is_site_deleting
     from .services import NotificationService
+
+    if is_site_deleting(instance.id_site_id):
+        return
 
     try:
         NotificationService.create_notification(

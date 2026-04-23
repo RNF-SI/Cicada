@@ -297,7 +297,15 @@ def log_member_activity_on_save(sender, instance, created, **kwargs):
 def log_member_activity_on_delete(sender, instance, **kwargs):
     """
     Enregistre l'activite lors du retrait d'un membre de site.
+    Saute la journalisation si le site lui-même est en cours de suppression
+    (CASCADE) : la suppression du site est déjà loggée, et écrire une ligne
+    avec `related_site=site` ici violerait la FK au moment du DELETE du site.
     """
+    from apps.users.deletion_tracker import is_site_deleting
+
+    if is_site_deleting(instance.id_site_id):
+        return
+
     try:
         actor = getattr(instance, '_current_user', None)
         was_referent = instance.referent and instance.referent_valid
