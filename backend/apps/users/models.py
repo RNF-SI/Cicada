@@ -233,37 +233,30 @@ class Role(AbstractUser):
           alors None pour signaler "tous les sites"
         - il est membre direct du site (CorRoleSite)
         - son organisme gère le site (CorOgSite)
-        - il est membre d'un plan de gestion lié à ce site (CorRolePlan →
-          CorSitePg). Cas clé : plans multi-organismes où un contributeur
-          externe doit pouvoir accéder aux sites du plan.
+
+        L'appartenance à un plan de gestion qui couvre le site ne donne
+        *pas* automatiquement l'accès au site : dans la page plan, les
+        sites non rattachés à l'utilisateur s'affichent en mode verrouillé
+        avec un bouton "Se lier au site" pour initier la liaison.
 
         Used by :
         - SiteViewSet.get_queryset (liste des sites accessibles)
-        - PlanSiteListSerializer.get_current_user_has_access (bouton
-          "Demande d'accès" masqué si déjà accessible)
+        - PlanSiteListSerializer.get_current_user_has_access (cadenas /
+          bouton "Se lier au site" dans la carte du plan)
         """
-        from django.db.models import Q
-        from apps.plans.models import CorRolePlan, CorSitePg
-
         if self.is_super_admin() or self.is_redacteur_principal():
             return None  # accès global
 
-        q = Q(id_role=self)
-        direct = set(CorRoleSite.objects.filter(q).values_list('id_site', flat=True))
+        direct = set(
+            CorRoleSite.objects.filter(id_role=self).values_list('id_site', flat=True)
+        )
         via_org = set()
         if self.id_organisme:
             via_org = set(
                 CorOgSite.objects.filter(uuid_og=self.id_organisme)
                 .values_list('id_site', flat=True)
             )
-        plan_ids = CorRolePlan.objects.filter(id_role=self).values_list(
-            'plan_de_gestion_id', flat=True
-        )
-        via_plan = set(
-            CorSitePg.objects.filter(plan_de_gestion_id__in=plan_ids)
-            .values_list('site_id', flat=True)
-        )
-        return direct | via_org | via_plan
+        return direct | via_org
 
     def has_access_to_site(self, site):
         """Vérifie si l'utilisateur a accès en lecture au site donné."""

@@ -309,16 +309,19 @@ class TestSitesListEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
 
-    def test_list_user_sees_site_via_plan_membership(self, api_client):
-        """Plan member should see sites linked to that plan (#176)."""
+    def test_list_plan_membership_does_not_grant_site_access(self, api_client):
+        """Plan membership ne donne pas accès transitif au site (#176).
+
+        L'utilisateur membre d'un plan doit initier une liaison explicite
+        pour accéder à un site qu'il ne gère pas déjà.
+        """
         from apps.plans.models import CorRolePlan, CorSitePg
         from tests.factories import PlanGestionFactory
 
-        # User in org A, site only linked to org B → pas d'accès organisme direct
         org_a = OrganismeFactory(nom_organisme='Org A')
         org_b = OrganismeFactory(nom_organisme='Org B')
         user = RoleFactory(id_organisme=org_a)
-        site = SiteFactory(nom_site='Site via plan')
+        site = SiteFactory(nom_site='Site hors organisme')
         CorOgSiteFactory(uuid_og=org_b, id_site=site)
 
         plan = PlanGestionFactory(nom='Plan multi-org')
@@ -330,8 +333,9 @@ class TestSitesListEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         nom_sites = [s['nom_site'] for s in response.data['results']]
-        assert 'Site via plan' in nom_sites, (
-            "Le site lié via un plan doit apparaître dans la liste accessible"
+        assert 'Site hors organisme' not in nom_sites, (
+            "L'appartenance à un plan ne doit pas donner accès au site ; "
+            "l'utilisateur doit initier une liaison explicite."
         )
 
 
