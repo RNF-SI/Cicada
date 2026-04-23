@@ -13,35 +13,35 @@ from .base import BaseSeeder
 
 class SitesSeeder(BaseSeeder):
     """
-    Cree les sites de test avec geometries.
+    Crée les sites de test avec géométries.
 
     Sites:
-    - Reserve Naturelle de la Camargue (RNN)
-    - Reserve Naturelle des Aiguilles Rouges (RNN)
-    - Reserve Naturelle Regionale du Grand-Voyeux (RNR)
-    - Parc Naturel Regional du Vercors (PNR)
+    - Réserve Naturelle de la Camargue (RNN)
+    - Réserve Naturelle des Aiguilles Rouges (RNN)
+    - Réserve Naturelle Régionale du Grand-Voyeux (RNR)
+    - Parc Naturel Régional du Vercors (PNR)
     - Espace Naturel Sensible des Marais de Brouage (ENS)
-    - Reserve Naturelle de Scandola (RNN)
-    - Reserve Naturelle du Lac de Remoray (RNN)
+    - Réserve Naturelle de Scandola (RNN)
+    - Réserve Naturelle du Lac de Remoray (RNN)
     """
 
     name = 'sites'
     dependencies = ['organismes']
 
-    # Coordonnees reelles des sites naturels francais (lon, lat, offset)
+    # Coordonnées réelles des sites naturels français (lon, lat, offset)
     SITES_COORDS = {
-        'Reserve Naturelle de la Camargue': (4.63, 43.45, 0.15),
-        'Reserve Naturelle des Aiguilles Rouges': (6.93, 45.98, 0.08),
-        'Reserve Naturelle Regionale du Grand-Voyeux': (2.88, 49.02, 0.03),
-        'Parc Naturel Regional du Vercors': (5.45, 44.95, 0.25),
+        'Réserve Naturelle de la Camargue': (4.63, 43.45, 0.15),
+        'Réserve Naturelle des Aiguilles Rouges': (6.93, 45.98, 0.08),
+        'Réserve Naturelle Régionale du Grand-Voyeux': (2.88, 49.02, 0.03),
+        'Parc Naturel Régional du Vercors': (5.45, 44.95, 0.25),
         'Espace Naturel Sensible des Marais de Brouage': (-1.05, 45.87, 0.06),
-        'Reserve Naturelle de Scandola': (8.55, 42.37, 0.05),
-        'Reserve Naturelle du Lac de Remoray': (6.21, 46.77, 0.04),
+        'Réserve Naturelle de Scandola': (8.55, 42.37, 0.05),
+        'Réserve Naturelle du Lac de Remoray': (6.21, 46.77, 0.04),
     }
 
     def _get_sites_data(self, organismes: List[BibOrganismes]) -> List[Dict]:
-        """Retourne les donnees des sites avec les organismes."""
-        # Recuperer les types de site par mnemonique
+        """Retourne les données des sites avec les organismes."""
+        # Récupérer les types de site par mnémonique
         type_rnn = Nomenclature.objects.filter(mnemonique='RNN').first()
         type_rnr = Nomenclature.objects.filter(mnemonique='RNR').first()
         type_pnr = Nomenclature.objects.filter(mnemonique='PNR').first()
@@ -49,7 +49,7 @@ class SitesSeeder(BaseSeeder):
 
         return [
             {
-                'nom_site': 'Reserve Naturelle de la Camargue',
+                'nom_site': 'Réserve Naturelle de la Camargue',
                 'id_local': 'RN13',
                 'id_inpn': 'FR3600013',
                 'id_type_site': type_rnn,
@@ -60,7 +60,7 @@ class SitesSeeder(BaseSeeder):
                 'organismes': [organismes[0], organismes[4]]  # RNF + OFB
             },
             {
-                'nom_site': 'Reserve Naturelle des Aiguilles Rouges',
+                'nom_site': 'Réserve Naturelle des Aiguilles Rouges',
                 'id_local': 'RN1',
                 'id_inpn': 'FR3600001',
                 'id_type_site': type_rnn,
@@ -71,7 +71,7 @@ class SitesSeeder(BaseSeeder):
                 'organismes': [organismes[0]]  # RNF
             },
             {
-                'nom_site': 'Reserve Naturelle Regionale du Grand-Voyeux',
+                'nom_site': 'Réserve Naturelle Régionale du Grand-Voyeux',
                 'id_local': 'RNR145',
                 'id_inpn': 'FR9300145',
                 'id_type_site': type_rnr,
@@ -82,7 +82,7 @@ class SitesSeeder(BaseSeeder):
                 'organismes': [organismes[1]]  # CEN AURA
             },
             {
-                'nom_site': 'Parc Naturel Regional du Vercors',
+                'nom_site': 'Parc Naturel Régional du Vercors',
                 'id_local': 'PNR38',
                 'id_inpn': 'FR8000038',
                 'id_type_site': type_pnr,
@@ -104,7 +104,7 @@ class SitesSeeder(BaseSeeder):
                 'organismes': [organismes[2]]  # DREAL
             },
             {
-                'nom_site': 'Reserve Naturelle de Scandola',
+                'nom_site': 'Réserve Naturelle de Scandola',
                 'id_local': 'RN2A',
                 'id_inpn': 'FR9300002',
                 'id_type_site': type_rnn,
@@ -115,7 +115,7 @@ class SitesSeeder(BaseSeeder):
                 'organismes': [organismes[3], organismes[4]]  # Parc Ecrins + OFB
             },
             {
-                'nom_site': 'Reserve Naturelle du Lac de Remoray',
+                'nom_site': 'Réserve Naturelle du Lac de Remoray',
                 'id_local': 'RN25',
                 'id_inpn': 'FR3600025',
                 'id_type_site': type_rnn,
@@ -131,12 +131,12 @@ class SitesSeeder(BaseSeeder):
         self, lon: float, lat: float, offset: float = 0.05
     ) -> Tuple[MultiPolygon, Point]:
         """
-        Cree une geometrie polygone et un point de reference pour un site.
+        Crée une géométrie polygone et un point de référence pour un site.
 
         Args:
             lon: Longitude du centre (WGS84)
             lat: Latitude du centre (WGS84)
-            offset: Taille approximative du polygone en degres (~5km par defaut)
+            offset: Taille approximative du polygone en degrés (~5km par défaut)
 
         Returns:
             tuple: (MultiPolygon, Point)
@@ -156,12 +156,12 @@ class SitesSeeder(BaseSeeder):
 
     def seed(self) -> List[Site]:
         """
-        Cree les sites de test.
+        Crée les sites de test.
 
         Returns:
-            Liste des sites crees
+            Liste des sites créés
         """
-        self.log_header('Creation des sites')
+        self.log_header('Création des sites')
 
         organismes = self.context.require('organismes')
         sites_data = self._get_sites_data(organismes)
@@ -171,7 +171,7 @@ class SitesSeeder(BaseSeeder):
             organismes_list = site_data.pop('organismes')
             site_name = site_data['nom_site']
 
-            # Ajouter la geometrie
+            # Ajouter la géométrie
             if site_name in self.SITES_COORDS:
                 lon, lat, offset = self.SITES_COORDS[site_name]
                 geom, geom_pt = self._create_site_geometry(lon, lat, offset)
@@ -192,7 +192,7 @@ class SitesSeeder(BaseSeeder):
                     defaults={'principal': i == 0}
                 )
 
-            status = "cree" if created else "mis a jour"
+            status = "créé" if created else "mis à jour"
             type_code = site.id_type_site.mnemonique if site.id_type_site else 'N/A'
             self.log_item(status, f"{site.nom_site} ({type_code})")
             if self.verbosity >= 2:
@@ -208,31 +208,31 @@ class SitesSeeder(BaseSeeder):
         Supprime les sites de test.
 
         Returns:
-            Nombre de sites supprimes
+            Nombre de sites supprimés
         """
         return Site.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des sites qui seraient crees.
+        Résumé des sites qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nSites (7) avec organismes gestionnaires:',
-            '  - Reserve Naturelle de la Camargue (RNN)',
+            '  - Réserve Naturelle de la Camargue (RNN)',
             '      Organismes: RNF [PRINCIPAL], OFB',
-            '  - Reserve Naturelle des Aiguilles Rouges (RNN)',
+            '  - Réserve Naturelle des Aiguilles Rouges (RNN)',
             '      Organismes: RNF [PRINCIPAL]',
-            '  - Reserve Naturelle Regionale du Grand-Voyeux (RNR)',
+            '  - Réserve Naturelle Régionale du Grand-Voyeux (RNR)',
             '      Organismes: CEN AURA [PRINCIPAL]',
-            '  - Parc Naturel Regional du Vercors (PNR)',
+            '  - Parc Naturel Régional du Vercors (PNR)',
             '      Organismes: CEN AURA [PRINCIPAL], DREAL',
             '  - Espace Naturel Sensible des Marais de Brouage (ENS)',
             '      Organismes: DREAL [PRINCIPAL]',
-            '  - Reserve Naturelle de Scandola (RNN)',
-            '      Organismes: Parc Ecrins [PRINCIPAL], OFB',
-            '  - Reserve Naturelle du Lac de Remoray (RNN)',
+            '  - Réserve Naturelle de Scandola (RNN)',
+            '      Organismes: Parc Écrins [PRINCIPAL], OFB',
+            '  - Réserve Naturelle du Lac de Remoray (RNN)',
             '      Organismes: RNF [PRINCIPAL]',
         ]

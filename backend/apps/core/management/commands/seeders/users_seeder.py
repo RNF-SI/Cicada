@@ -20,7 +20,7 @@ REAL_TEST_EMAIL = 'test@example.com'
 
 class UsersSeeder(BaseSeeder):
     """
-    Cree les utilisateurs de test avec differents roles.
+    Crée les utilisateurs de test avec différents rôles.
 
     Utilisateurs actifs (9):
     - admin@test.fr (super_admin)
@@ -55,7 +55,7 @@ class UsersSeeder(BaseSeeder):
         organismes: List[BibOrganismes],
         sites: List[Site]
     ) -> List[Dict]:
-        """Retourne les donnees des utilisateurs."""
+        """Retourne les données des utilisateurs."""
         return [
             {
                 'email': 'admin@test.fr',
@@ -145,7 +145,7 @@ class UsersSeeder(BaseSeeder):
                 'sites_member': [sites[2], sites[3]],  # Membre de Grand-Voyeux et Vercors
                 'active': True
             },
-            # Utilisateur avec adresse email reelle pour tests d'envoi
+            # Utilisateur avec adresse email réelle pour tests d'envoi
             {
                 'email': REAL_TEST_EMAIL,
                 'nom_role': 'TestEmail',
@@ -242,7 +242,7 @@ class UsersSeeder(BaseSeeder):
                 'active': True,
                 'pending_validation': True
             },
-            # Utilisateurs avec suppression demandee (RGPD)
+            # Utilisateurs avec suppression demandée (RGPD)
             {
                 'email': 'deletion.recent@test.fr',
                 'nom_role': 'Fournier',
@@ -274,27 +274,27 @@ class UsersSeeder(BaseSeeder):
         ]
 
     def _update_existing_superusers(self) -> None:
-        """Met a jour les superusers existants pour avoir role_level='super_admin'."""
+        """Met à jour les superusers existants pour avoir role_level='super_admin'."""
         existing_superusers = Role.objects.filter(is_superuser=True, role_level='utilisateur')
         for su in existing_superusers:
             su.role_level = 'super_admin'
             su.save(update_fields=['role_level'])
-            self.log_item('mise a jour', f"{su.email}: role_level='super_admin'")
+            self.log_item('mise à jour', f"{su.email}: role_level='super_admin'")
 
     def seed(self) -> List[Role]:
         """
-        Cree les utilisateurs de test.
+        Crée les utilisateurs de test.
 
         Returns:
-            Liste des utilisateurs crees
+            Liste des utilisateurs créés
         """
-        self.log_header('Creation des utilisateurs')
+        self.log_header('Création des utilisateurs')
 
         organismes = self.context.require('organismes')
         sites = self.context.require('sites')
         groups = self.context.require('groups')
 
-        # Mettre a jour les superusers existants
+        # Mettre à jour les superusers existants
         self._update_existing_superusers()
 
         users_data = self._get_users_data(organismes, sites)
@@ -354,7 +354,7 @@ class UsersSeeder(BaseSeeder):
                 )
 
             users.append(user)
-            status = "cree" if created else "mis a jour"
+            status = "créé" if created else "mis à jour"
             org_name = user_data['id_organisme'].nom_organisme if user_data['id_organisme'] else "N/A"
             self.log_item(status, f"{user.email} ({user_data['role_level']}) - {org_name}")
 
@@ -367,13 +367,13 @@ class UsersSeeder(BaseSeeder):
         Supprime les utilisateurs de test.
 
         Returns:
-            Nombre d'utilisateurs supprimes
+            Nombre d'utilisateurs supprimés
         """
         test_emails = [
             'admin@test.fr', 'admin.rnf@test.fr', 'admin.cen@test.fr',
             'referent.camargue@test.fr', 'referent.vercors@test.fr',
             'user.rnf@test.fr', 'user.cen@test.fr',
-            REAL_TEST_EMAIL,  # Utilisateur pour tests email reels
+            REAL_TEST_EMAIL,  # Utilisateur pour tests email réels
             'ancien.rnf@test.fr', 'ancien.cen@test.fr', 'stagiaire.dreal@test.fr',
             'pending.rnf@test.fr', 'pending.cen@test.fr',
             'deletion.recent@test.fr', 'deletion.old@test.fr',
@@ -382,24 +382,24 @@ class UsersSeeder(BaseSeeder):
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des utilisateurs qui seraient crees.
+        Résumé des utilisateurs qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nUtilisateurs actifs (8):',
             f'  Mot de passe commun: {DEFAULT_PASSWORD}',
-            '  - admin@test.fr (super_admin) - referent Camargue',
-            '  - admin.rnf@test.fr (admin_og) - RNF, referent Camargue + Aiguilles Rouges',
-            '  - admin.cen@test.fr (admin_og) - CEN AURA, referent Grand-Voyeux + Vercors',
-            '  - referent.camargue@test.fr (referent) - RNF, referent Camargue',
-            '  - referent.vercors@test.fr (referent) - CEN AURA, referent Vercors',
+            '  - admin@test.fr (super_admin) - référent Camargue',
+            '  - admin.rnf@test.fr (admin_og) - RNF, référent Camargue + Aiguilles Rouges',
+            '  - admin.cen@test.fr (admin_og) - CEN AURA, référent Grand-Voyeux + Vercors',
+            '  - referent.camargue@test.fr (référent) - RNF, référent Camargue',
+            '  - referent.vercors@test.fr (référent) - CEN AURA, référent Vercors',
             '  - user.rnf@test.fr (utilisateur) - RNF, membre Camargue + Aiguilles Rouges',
             '  - user.cen@test.fr (utilisateur) - CEN AURA, membre Grand-Voyeux + Vercors',
-            f'  - {REAL_TEST_EMAIL} (utilisateur) - RNF [EMAIL REEL POUR TESTS]',
+            f'  - {REAL_TEST_EMAIL} (utilisateur) - RNF [EMAIL RÉEL POUR TESTS]',
             '\nUtilisateurs inactifs (3):',
-            '  - ancien.rnf@test.fr (referent) - RNF [INACTIF]',
+            '  - ancien.rnf@test.fr (référent) - RNF [INACTIF]',
             '  - ancien.cen@test.fr (admin_og) - CEN AURA [INACTIF]',
             '  - stagiaire.dreal@test.fr (utilisateur) - DREAL [INACTIF]',
             '\nUtilisateurs en attente de validation (2):',

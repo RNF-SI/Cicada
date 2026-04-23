@@ -10,19 +10,19 @@ from .base import BaseSeeder
 
 class ModulesSeeder(BaseSeeder):
     """
-    Cree les modules applicatifs de l'application.
+    Crée les modules applicatifs de l'application.
 
     Les modules sont:
     - plans: Mes plans de gestion
     - sites: Mes sites
     - inventaires: Mes inventaires et suivis
-    - zonages: Zonages reglementaires (requires_access=True)
+    - zonages: Zonages réglementaires (requires_access=True)
     """
 
     name = 'modules'
     dependencies = []
 
-    # Donnees des modules
+    # Données des modules
     MODULES_DATA = [
         {
             'code': 'plans',
@@ -38,7 +38,7 @@ class ModulesSeeder(BaseSeeder):
         {
             'code': 'sites',
             'name': 'Mes sites',
-            'description': 'Gestion des sites et espaces proteges',
+            'description': 'Gestion des sites et espaces protégés',
             'icon': 'fi-rr-map-marker',
             'color': 'salmon',
             'route': '/sites',
@@ -59,8 +59,8 @@ class ModulesSeeder(BaseSeeder):
         },
         {
             'code': 'zonages',
-            'name': 'Zonages reglementaires',
-            'description': 'Acces aux zonages reglementaires et leur gestion',
+            'name': 'Zonages réglementaires',
+            'description': 'Accès aux zonages réglementaires et leur gestion',
             'icon': 'fi-rr-map',
             'color': 'terra-cotta',
             'route': '/zonages',
@@ -72,12 +72,12 @@ class ModulesSeeder(BaseSeeder):
 
     def seed(self) -> List[Module]:
         """
-        Cree les modules applicatifs.
+        Crée les modules applicatifs.
 
         Returns:
-            Liste des modules crees
+            Liste des modules créés
         """
-        self.log_header('Creation des modules')
+        self.log_header('Création des modules')
 
         modules = []
         for module_data in self.MODULES_DATA:
@@ -87,7 +87,7 @@ class ModulesSeeder(BaseSeeder):
             )
             modules.append(module)
 
-            status = "cree" if created else "existant"
+            status = "créé" if created else "existant"
             self.log_item(status, f"{module.code}: {module.name}")
 
         self.log_summary(len(modules), 'modules')
@@ -96,24 +96,24 @@ class ModulesSeeder(BaseSeeder):
 
     def reset(self) -> int:
         """
-        Les modules ne sont pas supprimes car ils sont necessaires a l'application.
+        Les modules ne sont pas supprimés car ils sont nécessaires à l'application.
 
         Returns:
-            0 (aucun module supprime)
+            0 (aucun module supprimé)
         """
         return 0
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des modules qui seraient crees.
+        Résumé des modules qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nModules (4):',
             '  - plans: Mes plans de gestion (primary)',
             '  - sites: Mes sites (salmon)',
             '  - inventaires: Mes inventaires et suivis (yellow)',
-            '  - zonages: Zonages reglementaires (terra-cotta) [requires_access]',
+            '  - zonages: Zonages réglementaires (terra-cotta) [requires_access]',
         ]

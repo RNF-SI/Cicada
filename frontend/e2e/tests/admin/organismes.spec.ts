@@ -28,9 +28,12 @@ test.describe('Admin Organismes', () => {
     await orgPage.waitForData();
 
     if (await orgPage.searchInput.isVisible()) {
-      // Search by a term that matches one of the seed organismes
-      // Seeder uses "Reserves Naturelles de France" (no accent)
-      await orgPage.searchOrganisme('Reserves');
+      // Search by a term that matches one of the seed organismes.
+      // Seeder uses "Réserves Naturelles de France" (accent canonique),
+      // on cherche donc une sous-chaîne sans caractère accentué pour
+      // éviter les faux négatifs tant que la recherche côté backend
+      // n'est pas accent-insensitive.
+      await orgPage.searchOrganisme('Naturelles');
       // Wait for filtering to apply
       await page.waitForTimeout(1000);
 

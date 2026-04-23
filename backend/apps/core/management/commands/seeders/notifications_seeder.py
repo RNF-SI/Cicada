@@ -15,7 +15,7 @@ from .base import BaseSeeder
 
 class NotificationsSeeder(BaseSeeder):
     """
-    Cree des notifications de test.
+    Crée des notifications de test.
 
     Types de notifications:
     - validation_request
@@ -45,7 +45,7 @@ class NotificationsSeeder(BaseSeeder):
         plans: List[PlanGestion],
         organismes: List[BibOrganismes]
     ) -> List[Dict]:
-        """Retourne les donnees des notifications."""
+        """Retourne les données des notifications."""
         admin = users[0]
         admin_rnf = users[1]
         admin_cen = users[2]
@@ -68,8 +68,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_rnf,
                 'notification_type': 'validation_request',
-                'title': "Demande d'acces au plan Camargue",
-                'message': "Emma Durand demande l'acces au plan de gestion 2020-2030 de la Camargue.",
+                'title': "Demande d'accès au plan Camargue",
+                'message': "Emma Durand demande l'accès au plan de gestion 2020-2030 de la Camargue.",
                 'priority': 'medium',
                 'related_user': user_rnf,
                 'related_plan': plans[0],
@@ -79,8 +79,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_rnf,
                 'notification_type': 'info',
-                'title': 'Plan de gestion mis a jour',
-                'message': "Le plan Aiguilles Rouges a ete modifie par l'equipe.",
+                'title': 'Plan de gestion mis à jour',
+                'message': "Le plan Aiguilles Rouges a été modifié par l'équipe.",
                 'priority': 'low',
                 'related_plan': plans[1],
                 'read': True,
@@ -88,8 +88,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_rnf,
                 'notification_type': 'system_alert',
-                'title': 'Maintenance prevue',
-                'message': 'Une maintenance est prevue le 15 janvier 2026 de 2h a 4h.',
+                'title': 'Maintenance prévue',
+                'message': 'Une maintenance est prévue le 15 janvier 2026 de 2h à 4h.',
                 'priority': 'medium',
                 'read': True,
             },
@@ -99,7 +99,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': admin_cen,
                 'notification_type': 'validation_request',
                 'title': "Nouvelle demande d'inscription",
-                'message': 'Lea Simon souhaite rejoindre votre organisme CEN AURA.',
+                'message': 'Léa Simon souhaite rejoindre votre organisme CEN AURA.',
                 'priority': 'high',
                 'action_url': '/administration/validations',
                 'read': False,
@@ -107,8 +107,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_cen,
                 'notification_type': 'validation_approved',
-                'title': 'Demande approuvee',
-                'message': "L'acces de Thomas Leroy au site du Vercors a ete approuve.",
+                'title': 'Demande approuvée',
+                'message': "L'accès de Thomas Leroy au site du Vercors a été approuvé.",
                 'priority': 'low',
                 'related_user': user_cen,
                 'related_site': sites[3],
@@ -117,8 +117,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_cen,
                 'notification_type': 'organisme_no_admin',
-                'title': 'Attention: Admin manquant',
-                'message': "Suite au depart de Claire Dubois, votre organisme n'a plus qu'un seul administrateur.",
+                'title': 'Attention : admin manquant',
+                'message': "Suite au départ de Claire Dubois, votre organisme n'a plus qu'un seul administrateur.",
                 'priority': 'critical',
                 'related_organisme': organismes[1],
                 'read': False,
@@ -129,7 +129,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': referent_camargue,
                 'notification_type': 'user_associated_site',
                 'title': 'Nouvel utilisateur sur votre site',
-                'message': 'Un nouvel utilisateur a ete ajoute au site de la Camargue.',
+                'message': 'Un nouvel utilisateur a été ajouté au site de la Camargue.',
                 'priority': 'medium',
                 'related_site': sites[0],
                 'read': False,
@@ -137,8 +137,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': referent_camargue,
                 'notification_type': 'info',
-                'title': 'Rappel: Bilan annuel',
-                'message': 'Le bilan annuel du plan de gestion doit etre soumis avant le 31 mars.',
+                'title': 'Rappel : bilan annuel',
+                'message': 'Le bilan annuel du plan de gestion doit être soumis avant le 31 mars.',
                 'priority': 'high',
                 'related_plan': plans[0],
                 'read': False,
@@ -148,8 +148,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': referent_vercors,
                 'notification_type': 'validation_approved',
-                'title': 'Vous etes referent!',
-                'message': 'Votre demande pour devenir referent du Marais de Brouage a ete approuvee.',
+                'title': 'Vous êtes référent !',
+                'message': 'Votre demande pour devenir référent du Marais de Brouage a été approuvée.',
                 'priority': 'high',
                 'related_site': sites[4],
                 'read': True,
@@ -159,16 +159,16 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': user_rnf,
                 'notification_type': 'info',
-                'title': 'Bienvenue!',
-                'message': "Bienvenue sur la plateforme de gestion des plans. N'hesitez pas a explorer.",
+                'title': 'Bienvenue !',
+                'message': "Bienvenue sur la plateforme de gestion des plans. N'hésitez pas à explorer.",
                 'priority': 'low',
                 'read': True,
             },
             {
                 'recipient': user_rnf,
                 'notification_type': 'validation_rejected',
-                'title': 'Demande refusee',
-                'message': "Votre demande d'acces au plan Aiguilles Rouges a ete refusee. Contactez votre administrateur.",
+                'title': 'Demande refusée',
+                'message': "Votre demande d'accès au plan Aiguilles Rouges a été refusée. Contactez votre administrateur.",
                 'priority': 'medium',
                 'related_plan': plans[1],
                 'read': False,
@@ -178,8 +178,8 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': user_cen,
                 'notification_type': 'user_associated_plan',
-                'title': 'Acces accorde',
-                'message': 'Vous avez maintenant acces au plan de gestion du Grand-Voyeux.',
+                'title': 'Accès accordé',
+                'message': 'Vous avez maintenant accès au plan de gestion du Grand-Voyeux.',
                 'priority': 'medium',
                 'related_plan': plans[2],
                 'read': True,
@@ -190,7 +190,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': admin,
                 'notification_type': 'system_alert',
                 'title': 'Rapport hebdomadaire',
-                'message': '5 nouvelles inscriptions cette semaine. 3 plans mis a jour.',
+                'message': '5 nouvelles inscriptions cette semaine. 3 plans mis à jour.',
                 'priority': 'low',
                 'read': True,
             },
@@ -198,7 +198,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': admin,
                 'notification_type': 'site_orphaned',
                 'title': 'Site sans gestionnaire',
-                'message': "Le site de Scandola n'a plus d'utilisateur referent assigne.",
+                'message': "Le site de Scandola n'a plus d'utilisateur référent assigné.",
                 'priority': 'critical',
                 'related_site': sites[5],
                 'read': False,
@@ -208,16 +208,16 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': user_cen,
                 'notification_type': 'welcome',
-                'title': 'Bienvenue sur CICADA!',
-                'message': 'Votre compte a ete active. Vous pouvez maintenant acceder a toutes les fonctionnalites de la plateforme.',
+                'title': 'Bienvenue sur CICADA !',
+                'message': 'Votre compte a été activé. Vous pouvez maintenant accéder à toutes les fonctionnalités de la plateforme.',
                 'priority': 'medium',
                 'read': True,
             },
             {
                 'recipient': user_rnf,
                 'notification_type': 'user_removed_site',
-                'title': 'Acces retire',
-                'message': "Votre acces au site du Lac de Remoray a ete retire par l'administrateur.",
+                'title': 'Accès retiré',
+                'message': "Votre accès au site du Lac de Remoray a été retiré par l'administrateur.",
                 'priority': 'medium',
                 'related_site': sites[6],
                 'read': False,
@@ -226,7 +226,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': referent_vercors,
                 'notification_type': 'user_removed_plan',
                 'title': 'Retrait du plan de gestion',
-                'message': "Vous n'etes plus referent du plan de gestion 2018-2028 des Aiguilles Rouges.",
+                'message': "Vous n'êtes plus référent du plan de gestion 2018-2028 des Aiguilles Rouges.",
                 'priority': 'medium',
                 'related_plan': plans[1],
                 'read': True,
@@ -234,36 +234,36 @@ class NotificationsSeeder(BaseSeeder):
             {
                 'recipient': admin_rnf,
                 'notification_type': 'account_deactivated',
-                'title': 'Compte utilisateur desactive',
-                'message': 'Le compte de Jean Martin (ancien.rnf@test.fr) a ete desactive suite a son depart.',
+                'title': 'Compte utilisateur désactivé',
+                'message': 'Le compte de Jean Martin (ancien.rnf@test.fr) a été désactivé suite à son départ.',
                 'priority': 'high',
                 'read': True,
             },
             {
                 'recipient': admin_cen,
                 'notification_type': 'account_activated',
-                'title': 'Compte utilisateur reactive',
-                'message': 'Le compte de Marie Dupont a ete reactive apres verification de son identite.',
+                'title': 'Compte utilisateur réactivé',
+                'message': "Le compte de Marie Dupont a été réactivé après vérification de son identité.",
                 'priority': 'medium',
                 'read': False,
             },
             {
                 'recipient': user_rnf,
                 'notification_type': 'organisme_changed',
-                'title': 'Votre organisme a ete modifie',
-                'message': 'Votre organisme a ete change de "CEN AURA" vers "RNF" suite a votre mutation.',
+                'title': 'Votre organisme a été modifié',
+                'message': 'Votre organisme a été changé de "CEN AURA" vers "RNF" suite à votre mutation.',
                 'priority': 'high',
                 'related_organisme': organismes[0],
                 'action_url': '/profile',
                 'read': False,
             },
 
-            # Notification: nouveau membre ajoute au plan (pour les referents)
+            # Notification: nouveau membre ajouté au plan (pour les référents)
             {
                 'recipient': referent_camargue,
                 'notification_type': 'info',
                 'title': f'Nouvel utilisateur sur le plan {plans[0].nom}',
-                'message': f'Emma Durand a ete ajoute comme membre du plan de gestion {plans[0].nom}.',
+                'message': f'Emma Durand a été ajoutée comme membre du plan de gestion {plans[0].nom}.',
                 'priority': 'low',
                 'related_plan': plans[0],
                 'related_user': user_rnf,
@@ -274,7 +274,7 @@ class NotificationsSeeder(BaseSeeder):
                 'recipient': admin,
                 'notification_type': 'info',
                 'title': f'Nouvel utilisateur sur le plan {plans[0].nom}',
-                'message': f'Emma Durand a ete ajoute comme membre du plan de gestion {plans[0].nom}.',
+                'message': f'Emma Durand a été ajoutée comme membre du plan de gestion {plans[0].nom}.',
                 'priority': 'low',
                 'related_plan': plans[0],
                 'related_user': user_rnf,
@@ -282,12 +282,12 @@ class NotificationsSeeder(BaseSeeder):
                 'read': True,
             },
 
-            # Notification: site valide pour un plan (pour les referents)
+            # Notification: site validé pour un plan (pour les référents)
             {
                 'recipient': referent_camargue,
                 'notification_type': 'info',
-                'title': f'Site lie au plan {plans[0].nom}',
-                'message': f'Le site {sites[4].nom_site} a ete lie au plan de gestion {plans[0].nom}.',
+                'title': f'Site lié au plan {plans[0].nom}',
+                'message': f'Le site {sites[4].nom_site} a été lié au plan de gestion {plans[0].nom}.',
                 'priority': 'medium',
                 'related_plan': plans[0],
                 'related_site': sites[4],
@@ -298,12 +298,12 @@ class NotificationsSeeder(BaseSeeder):
 
     def seed(self) -> List[Notification]:
         """
-        Cree les notifications de test.
+        Crée les notifications de test.
 
         Returns:
-            Liste des Notification creees
+            Liste des Notification créées
         """
-        self.log_header('Creation des notifications')
+        self.log_header('Création des notifications')
 
         users = self.context.require('users')
         sites = self.context.require('sites')
@@ -335,7 +335,7 @@ class NotificationsSeeder(BaseSeeder):
             )
             notifications.append(notif)
 
-            status = "cree" if created else "existant"
+            status = "créé" if created else "existant"
             read_status = "[LU]" if is_read else "[NON LU]"
             self.log_item(status, f"{notif.notification_type} -> {notif.recipient.email} {read_status}")
 
@@ -348,16 +348,16 @@ class NotificationsSeeder(BaseSeeder):
         Supprime les notifications de test.
 
         Returns:
-            Nombre de Notification supprimees
+            Nombre de Notification supprimées
         """
         return Notification.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des notifications qui seraient creees.
+        Résumé des notifications qui seraient créées.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nNotifications (24):',
@@ -366,8 +366,8 @@ class NotificationsSeeder(BaseSeeder):
             '         user_removed_plan, account_deactivated, account_activated,',
             '         organisme_changed, organisme_no_admin, site_orphaned,',
             '         welcome, info, system_alert',
-            '  Priorites: low, medium, high, critical',
-            '\nRepartition par utilisateur:',
+            '  Priorités: low, medium, high, critical',
+            '\nRépartition par utilisateur:',
             '    - admin@test.fr:              3 notifications (1 non lue)',
             '    - admin.rnf@test.fr:          4 notifications (2 non lues)',
             '    - admin.cen@test.fr:          3 notifications (2 non lues)',

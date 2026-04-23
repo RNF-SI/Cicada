@@ -13,16 +13,16 @@ from .base import BaseSeeder
 
 class PlansSeeder(BaseSeeder):
     """
-    Cree les plans de gestion de test.
+    Crée les plans de gestion de test.
 
-    Plans principaux (10) + plans historiques (6) pour chaines de versions.
+    Plans principaux (10) + plans historiques (6) pour chaînes de versions.
 
-    Chaines de versions:
+    Chaînes de versions:
     - Camargue (5 niveaux): Plan initial 2000-2010 (archive) → Eval mi-parcours 2000-2010 (archive)
-      → Plan revise 2010-2020 (archive) → Plan actuel 2020-2030 (valide) → Eval mi-parcours (draft)
+      → Plan révisé 2010-2020 (archive) → Plan actuel 2020-2030 (valide) → Eval mi-parcours (draft)
     - Aiguilles Rouges (4 niveaux): Plan initial 2008-2018 (archive) → Plan 2018-2028 (valide)
-      → Eval mi-parcours (draft) → Plan revise (draft)
-    - Vercors-Ecrins (3 niveaux): Plan initial 2011-2021 (archive)
+      → Eval mi-parcours (draft) → Plan révisé (draft)
+    - Vercors-Écrins (3 niveaux): Plan initial 2011-2021 (archive)
       → Plan actuel 2021-2031 (valide) → Eval mi-parcours (draft)
     """
 
@@ -30,9 +30,9 @@ class PlansSeeder(BaseSeeder):
     dependencies = ['users', 'sites']
 
     def _get_plans_data(self, users: List[Role], sites: List[Site]) -> List[Dict]:
-        """Retourne les donnees des plans de gestion."""
-        # Recuperer les nomenclatures
-        eval_int = Nomenclature.objects.filter(mnemonique='Intermediaire').first()
+        """Retourne les données des plans de gestion."""
+        # Récupérer les nomenclatures
+        eval_int = Nomenclature.objects.filter(mnemonique='Intermédiaire').first()
         eval_fin = Nomenclature.objects.filter(mnemonique='Finale').first()
         redac_gest = Nomenclature.objects.filter(mnemonique='OG').first()
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
@@ -52,16 +52,16 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': True,
                 'id_evaluation': eval_int,
                 'id_redacteur_type': redac_gest,
-                'redacteur_nom': 'RNF - Equipe Camargue',
+                'redacteur_nom': 'RNF - Équipe Camargue',
                 'redacteurs': 'Marie Dupont, Jean-Pierre Martin (RNF)',
-                'relecteurs': 'CSRPN PACA, Commission Biodiversite RNF',
+                'relecteurs': 'CSRPN PACA, Commission Biodiversité RNF',
                 'autres_contributeurs': 'Tour du Valat, SNPN, Amis des Marais du Vigueirat',
                 'date_validation_cspn': date(2020, 3, 15),
                 'organismes_redacteurs_lookup': ['CEN'],
-                'commentaire': 'Plan de gestion valide pour la periode 2020-2030. '
-                               '3eme plan successif, faisant suite au plan 2010-2020. '
+                'commentaire': 'Plan de gestion validé pour la période 2020-2030. '
+                               '3ème plan successif, faisant suite au plan 2010-2020. '
                                'Enjeux principaux : habitats humides, flamant rose, '
-                               'gestion hydraulique et activites traditionnelles.',
+                               'gestion hydraulique et activités traditionnelles.',
                 'sites': [sites[0], sites[4]],  # Camargue + Marais de Brouage
                 # Format: (user, is_referent)
                 'membres': [
@@ -87,13 +87,13 @@ class PlansSeeder(BaseSeeder):
                 'id_redacteur_type': redac_be,
                 'redacteur_nom': 'Cabinet Natura Consulting',
                 'redacteurs': 'Cabinet Natura Consulting (F. Leroy, A. Bernard)',
-                'relecteurs': 'CSRPN Auvergne-Rhone-Alpes, DREAL ARA',
+                'relecteurs': 'CSRPN Auvergne-Rhône-Alpes, DREAL ARA',
                 'autres_contributeurs': 'ASTERS, LPO Haute-Savoie',
                 'date_validation_cspn': date(2018, 6, 20),
-                'organismes_redacteurs_lookup': ['Reserves Naturelles'],
-                'commentaire': 'Plan de gestion en vigueur. Evaluation finale positive. '
-                               'Enjeux centres sur les pelouses alpines, la faune '
-                               'de haute montagne et la maitrise de la frequentation.',
+                'organismes_redacteurs_lookup': ['Réserves Naturelles'],
+                'commentaire': 'Plan de gestion en vigueur. Évaluation finale positive. '
+                               'Enjeux centrés sur les pelouses alpines, la faune '
+                               'de haute montagne et la maîtrise de la fréquentation.',
                 'sites': [sites[1]],
                 'membres': [
                     (users[1], True),   # admin.rnf - referent
@@ -112,17 +112,17 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': False,
                 'id_evaluation': None,
                 'id_redacteur_type': redac_gest,
-                'redacteur_nom': 'CEN Auvergne-Rhone-Alpes',
-                'commentaire': 'Plan en cours de redaction',
+                'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+                'commentaire': 'Plan en cours de rédaction',
                 'sites': [sites[2]],
                 'membres': [
                     (users[2], True),   # admin.cen - referent
                     (users[6], False),  # user.cen - membre
                 ]
             },
-            # Plan Vercors-Ecrins: referent.vercors et admin.cen referents, user.cen membre
+            # Plan Vercors-Écrins: referent.vercors et admin.cen référents, user.cen membre
             {
-                'nom': 'Plan de gestion inter-sites Vercors-Ecrins 2021-2031',
+                'nom': 'Plan de gestion inter-sites Vercors-Écrins 2021-2031',
                 'annee_debut': 2021,
                 'annee_fin': 2031,
                 'statut': 'valide',
@@ -132,8 +132,8 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': True,
                 'id_evaluation': eval_int,
                 'id_redacteur_type': redac_be,
-                'redacteur_nom': 'DREAL Auvergne-Rhone-Alpes',
-                'commentaire': 'Plan de gestion partage entre le PNR du Vercors et le Parc des Ecrins',
+                'redacteur_nom': 'DREAL Auvergne-Rhône-Alpes',
+                'commentaire': 'Plan de gestion partagé entre le PNR du Vercors et le Parc des Écrins',
                 'sites': [sites[3], sites[5]],  # Vercors + Scandola
                 'membres': [
                     (users[4], True),   # referent.vercors - referent
@@ -154,7 +154,7 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': eval_fin,
                 'id_redacteur_type': redac_gest,
                 'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
-                'commentaire': 'Plan archive - nouvelle version en preparation',
+                'commentaire': 'Plan archivé - nouvelle version en préparation',
                 'sites': [sites[4]],
                 'membres': []
             },
@@ -172,13 +172,13 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': False,
                 'id_evaluation': None,
                 'id_redacteur_type': redac_gest,
-                'redacteur_nom': 'RNF - Equipe Franche-Comte',
+                'redacteur_nom': 'RNF - Équipe Franche-Comté',
                 'redacteurs': 'Sophie Moreau, Pierre Leclerc (DREAL BFC)',
-                'relecteurs': 'CSRPN Bourgogne-Franche-Comte',
+                'relecteurs': 'CSRPN Bourgogne-Franche-Comté',
                 'commentaire': 'Nouveau plan en cours de finalisation. '
-                               'Enjeux principaux : qualite des eaux du lac, '
-                               'tourbieres et prairies humides, balbuzard pecheur, '
-                               'gestion des especes exotiques envahissantes.',
+                               'Enjeux principaux : qualité des eaux du lac, '
+                               'tourbières et prairies humides, balbuzard pêcheur, '
+                               'gestion des espèces exotiques envahissantes.',
                 'sites': [sites[6], sites[2]],  # Lac de Remoray + Grand-Voyeux
                 'membres': [
                     (users[0], True),   # super_admin - referent
@@ -202,12 +202,12 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': True,
                 'id_evaluation': eval_fin,
                 'id_redacteur_type': redac_gest,
-                'redacteur_nom': 'RNF - Equipe Camargue',
+                'redacteur_nom': 'RNF - Équipe Camargue',
                 'redacteurs': 'P. Grillas, A. Crivelli (Tour du Valat / RNF)',
                 'relecteurs': 'CSRPN PACA',
                 'date_validation_cspn': date(2010, 1, 10),
-                'commentaire': 'Ancien plan termine, remplace par le plan 2020-2030. '
-                               'Evaluation finale realisee en 2019.',
+                'commentaire': 'Ancien plan terminé, remplacé par le plan 2020-2030. '
+                               'Évaluation finale réalisée en 2019.',
                 'sites': [sites[0], sites[4]],  # Camargue + Marais de Brouage
                 'membres': []
             },
@@ -226,10 +226,10 @@ class PlansSeeder(BaseSeeder):
                 'id_redacteur_type': redac_be,
                 'redacteur_nom': 'Bureau Natura 2000',
                 'redacteurs': 'Bureau Natura 2000 (D. Petit)',
-                'relecteurs': 'CSRPN Rhone-Alpes',
+                'relecteurs': 'CSRPN Rhône-Alpes',
                 'date_validation_cspn': date(2008, 9, 5),
-                'commentaire': 'Plan archive suite a la mise en place du nouveau plan 2018-2028. '
-                               '1er plan de gestion de la reserve.',
+                'commentaire': 'Plan archivé suite à la mise en place du nouveau plan 2018-2028. '
+                               '1er plan de gestion de la réserve.',
                 'sites': [sites[1]],
                 'membres': []
             },
@@ -239,7 +239,7 @@ class PlansSeeder(BaseSeeder):
         # (utiles pour tester "Demander l'acces")
         # Plan sur Camargue (sites[0]) : admin est lie au site → test acces direct
         plans.append({
-            'nom': 'Plan complementaire 2024-2034 - Littoral et zones humides',
+            'nom': 'Plan complémentaire 2024-2034 - Littoral et zones humides',
             'annee_debut': 2024,
             'annee_fin': 2034,
             'rang': 1,
@@ -251,9 +251,9 @@ class PlansSeeder(BaseSeeder):
             'risque_incendie': False,
             'id_evaluation': eval_int,
             'id_redacteur_type': redac_gest,
-            'redacteur_nom': 'RNF - Equipe Camargue',
-            'commentaire': 'Plan complementaire pour les zones humides et littorales. '
-                           'Sans membres directs, pour tester la demande d\'acces.',
+            'redacteur_nom': 'RNF - Équipe Camargue',
+            'commentaire': 'Plan complémentaire pour les zones humides et littorales. '
+                           'Sans membres directs, pour tester la demande d\'accès.',
             'sites': [sites[0], sites[5]],  # Camargue + Scandola
             'membres': []
         })
@@ -271,9 +271,9 @@ class PlansSeeder(BaseSeeder):
             'risque_incendie': False,
             'id_evaluation': None,
             'id_redacteur_type': redac_gest,
-            'redacteur_nom': 'RNF - Equipe Franche-Comte',
-            'commentaire': 'Plan en preparation pour la phase 2 du Lac de Remoray. '
-                           'Sans membres directs, pour tester la demande d\'acces combinee.',
+            'redacteur_nom': 'RNF - Équipe Franche-Comté',
+            'commentaire': 'Plan en préparation pour la phase 2 du Lac de Remoray. '
+                           'Sans membres directs, pour tester la demande d\'accès combinée.',
             'sites': [sites[6]],  # Lac de Remoray
             'membres': []
         })
@@ -295,12 +295,12 @@ class PlansSeeder(BaseSeeder):
 
     def seed(self) -> List[PlanGestion]:
         """
-        Cree les plans de gestion de test.
+        Crée les plans de gestion de test.
 
         Returns:
-            Liste des plans crees
+            Liste des plans créés
         """
-        self.log_header('Creation des plans de gestion')
+        self.log_header('Création des plans de gestion')
 
         users = self.context.require('users')
         sites = self.context.require('sites')
@@ -312,7 +312,7 @@ class PlansSeeder(BaseSeeder):
         # Récupérer les organismes par nom pour les organismes rédacteurs
         from apps.users.models import BibOrganismes
         org_cen = BibOrganismes.objects.filter(nom_organisme__icontains='CEN').first()
-        org_rnf = BibOrganismes.objects.filter(nom_organisme__icontains='Reserves Naturelles').first()
+        org_rnf = BibOrganismes.objects.filter(nom_organisme__icontains='Réserves Naturelles').first()
 
         plans = []
         for plan_data in plans_data:
@@ -365,7 +365,7 @@ class PlansSeeder(BaseSeeder):
                     redacteur_orgs.append(org)
 
             plans.append(plan)
-            status = "cree" if created else "mis a jour"
+            status = "créé" if created else "mis à jour"
             sites_names = ", ".join([s.nom_site[:20] for s in plan_sites])
             membres_count = len(plan_membres)
             referents_count = len(referents_list)
@@ -373,9 +373,9 @@ class PlansSeeder(BaseSeeder):
             self.log_item(status, f"{plan.nom[:50]}... ({plan.statut})")
             if self.verbosity >= 2:
                 self.stdout.write(f"              Sites: {sites_names}")
-                self.stdout.write(f"              Membres: {membres_count} (dont {referents_count} referents)")
+                self.stdout.write(f"              Membres: {membres_count} (dont {referents_count} référents)")
                 if redacteur_count:
-                    self.stdout.write(f"              Organismes redacteurs: {redacteur_count}")
+                    self.stdout.write(f"              Organismes rédacteurs: {redacteur_count}")
 
         # =====================================================================
         # Chaînes de versions complètes
@@ -443,7 +443,7 @@ class PlansSeeder(BaseSeeder):
                     'gestion_partagee': True,
                     'ct88': True,
                     'risque_incendie': True,
-                    'id_evaluation': Nomenclature.objects.filter(mnemonique='Intermediaire').first(),
+                    'id_evaluation': Nomenclature.objects.filter(mnemonique='Intermédiaire').first(),
                     'id_redacteur_type': Nomenclature.objects.filter(mnemonique='OG').first(),
                     'redacteur_nom': 'RNF - Équipe Camargue',
                     'commentaire': 'Évaluation à mi-parcours du plan 2000-2010. '
@@ -540,7 +540,7 @@ class PlansSeeder(BaseSeeder):
                     'gestion_partagee': False,
                     'ct88': False,
                     'risque_incendie': False,
-                    'id_evaluation': Nomenclature.objects.filter(mnemonique='Intermediaire').first(),
+                    'id_evaluation': Nomenclature.objects.filter(mnemonique='Intermédiaire').first(),
                     'id_redacteur_type': Nomenclature.objects.filter(mnemonique='BE').first(),
                     'redacteur_nom': 'Cabinet Natura Consulting',
                     'date_validation_cspn': date(2023, 11, 15),
@@ -597,13 +597,13 @@ class PlansSeeder(BaseSeeder):
             self.log_item('chain', 'Aiguilles Rouges: 4 niveaux (initial → révisé → eval → révisé)')
 
             # -----------------------------------------------------------------
-            # Chaîne Vercors-Ecrins (3 niveaux)
+            # Chaîne Vercors-Écrins (3 niveaux)
             # Plan initial 2011-2021 (archive) → Plan actuel 2021-2031 (valide, index 3)
             # → Eval mi-parcours (draft)
             # -----------------------------------------------------------------
 
             vercors_root, _ = PlanGestion.objects.update_or_create(
-                nom='Plan de gestion 2011-2021 - Vercors-Ecrins (plan initial)',
+                nom='Plan de gestion 2011-2021 - Vercors-Écrins (plan initial)',
                 defaults={
                     'plan_parent': None,
                     'id_type_document': plan_initial_type,
@@ -638,7 +638,7 @@ class PlansSeeder(BaseSeeder):
 
             # Eval mi-parcours du plan actuel (draft)
             vercors_eval, _ = PlanGestion.objects.update_or_create(
-                nom='Évaluation mi-parcours 2026 - Vercors-Ecrins',
+                nom='Évaluation mi-parcours 2026 - Vercors-Écrins',
                 defaults={
                     'plan_parent': plans[3],
                     'id_type_document': eval_mi_type,
@@ -668,7 +668,7 @@ class PlansSeeder(BaseSeeder):
             ])
             plans.append(vercors_eval)
 
-            self.log_item('chain', 'Vercors-Ecrins: 3 niveaux (initial → révisé → eval)')
+            self.log_item('chain', 'Vercors-Écrins: 3 niveaux (initial → révisé → eval)')
 
         # =====================================================================
         # Documents de test (fichiers attachés aux plans)
@@ -683,8 +683,8 @@ class PlansSeeder(BaseSeeder):
                 'nom_fichier': 'PdG_Camargue_2020-2030_Partie1.pdf',
                 'type_fichier': 'document',
                 'titre': 'PdG - Partie 1 : Diagnostic',
-                'description': 'Diagnostic ecologique et socio-economique de la reserve',
-                'auteur': 'RNF - Equipe Camargue',
+                'description': 'Diagnostic écologique et socio-économique de la réserve',
+                'auteur': 'RNF - Équipe Camargue',
                 'taille_fichier': 15_234_567,
                 'extension': 'pdf',
                 'date_document': date(2020, 3, 15),
@@ -697,7 +697,7 @@ class PlansSeeder(BaseSeeder):
                 'type_fichier': 'document',
                 'titre': 'PdG - Partie 2 : Plan d\'action',
                 'description': 'Objectifs et actions de gestion',
-                'auteur': 'RNF - Equipe Camargue',
+                'auteur': 'RNF - Équipe Camargue',
                 'taille_fichier': 8_456_789,
                 'extension': 'pdf',
                 'date_document': date(2020, 3, 15),
@@ -709,7 +709,7 @@ class PlansSeeder(BaseSeeder):
                 'nom_fichier': 'Carte_habitats_Camargue.jpg',
                 'type_fichier': 'carte',
                 'titre': 'Carte des habitats',
-                'description': 'Cartographie des habitats naturels de la reserve',
+                'description': 'Cartographie des habitats naturels de la réserve',
                 'auteur': 'SIG Camargue',
                 'taille_fichier': 3_210_456,
                 'extension': 'jpg',
@@ -722,7 +722,7 @@ class PlansSeeder(BaseSeeder):
                 'plan': plans[1],
                 'nom_fichier': 'PdG_AiguillesRouges_2018-2028.pdf',
                 'type_fichier': 'document',
-                'titre': 'Plan de gestion integre',
+                'titre': 'Plan de gestion intégré',
                 'description': 'Document complet du plan de gestion',
                 'auteur': 'Cabinet Natura Consulting',
                 'taille_fichier': 22_345_678,
@@ -749,9 +749,9 @@ class PlansSeeder(BaseSeeder):
                 'plan': plans[5],
                 'nom_fichier': 'PdG_Lacs_ZH_2023-2033_diagnostic.pdf',
                 'type_fichier': 'document',
-                'titre': 'Diagnostic ecologique - Lacs et zones humides',
-                'description': 'Diagnostic initial des lacs et tourbieres du secteur Franche-Comte',
-                'auteur': 'RNF - Equipe Franche-Comte',
+                'titre': 'Diagnostic écologique - Lacs et zones humides',
+                'description': 'Diagnostic initial des lacs et tourbières du secteur Franche-Comté',
+                'auteur': 'RNF - Équipe Franche-Comté',
                 'taille_fichier': 18_765_432,
                 'extension': 'pdf',
                 'date_document': date(2023, 4, 12),
@@ -762,8 +762,8 @@ class PlansSeeder(BaseSeeder):
                 'plan': plans[5],
                 'nom_fichier': 'Carte_tourbieres_Remoray.pdf',
                 'type_fichier': 'carte',
-                'titre': 'Cartographie des tourbieres',
-                'description': 'Localisation et etat de conservation des tourbieres autour du Lac de Remoray',
+                'titre': 'Cartographie des tourbières',
+                'description': 'Localisation et état de conservation des tourbières autour du Lac de Remoray',
                 'auteur': 'SIG DREAL BFC',
                 'taille_fichier': 6_543_210,
                 'extension': 'pdf',
@@ -775,8 +775,8 @@ class PlansSeeder(BaseSeeder):
                 'plan': plans[5],
                 'nom_fichier': 'Inventaire_balbuzard_2024.xlsx',
                 'type_fichier': 'annexe',
-                'titre': 'Inventaire balbuzard pecheur 2024',
-                'description': 'Donnees de suivi du balbuzard pecheur sur le Lac de Remoray',
+                'titre': 'Inventaire balbuzard pêcheur 2024',
+                'description': 'Données de suivi du balbuzard pêcheur sur le Lac de Remoray',
                 'auteur': 'Sophie Moreau (DREAL BFC)',
                 'taille_fichier': 245_678,
                 'extension': 'xlsx',
@@ -789,9 +789,9 @@ class PlansSeeder(BaseSeeder):
                 'plan': plans[3],
                 'nom_fichier': 'Rapport_evaluation_Vercors.pdf',
                 'type_fichier': 'rapport',
-                'titre': 'Rapport d\'evaluation a mi-parcours',
-                'description': 'Bilan des 5 premieres annees de gestion',
-                'auteur': 'DREAL Auvergne-Rhone-Alpes',
+                'titre': 'Rapport d\'évaluation à mi-parcours',
+                'description': 'Bilan des 5 premières années de gestion',
+                'auteur': 'DREAL Auvergne-Rhône-Alpes',
                 'taille_fichier': 12_456_789,
                 'extension': 'pdf',
                 'date_document': date(2026, 1, 10),
@@ -843,29 +843,29 @@ class PlansSeeder(BaseSeeder):
         Supprime les plans de gestion de test.
 
         Returns:
-            Nombre de plans supprimes
+            Nombre de plans supprimés
         """
         CorPgFichier.objects.all().delete()
         return PlanGestion.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des plans qui seraient crees.
+        Résumé des plans qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nPlans de gestion principaux (10):',
             '  - Plan 2020-2030 Camargue (valide) - multisites',
             '  - Plan 2018-2028 Aiguilles Rouges (valide) - admin membre',
             '  - Plan 2022-2032 Grand-Voyeux (draft) - CEN',
-            '  - Plan inter-sites Vercors-Ecrins 2021-2031 (valide) - multisites',
+            '  - Plan inter-sites Vercors-Écrins 2021-2031 (valide) - multisites',
             '  - Plan 2019-2029 Marais de Brouage (archive) - DREAL',
             '  - Plan 2023-2033 Lacs et zones humides (draft) - multisites',
             '  - Plan 2010-2020 Camargue et Brouage ancien (archive) - multisites',
             '  - Plan 2008-2018 Aiguilles Rouges ancien (archive)',
-            '  - Plan complementaire 2024-2034 Littoral (valide) - multisites, sans membres',
+            '  - Plan complémentaire 2024-2034 Littoral (valide) - multisites, sans membres',
             '  - Plan 2025-2035 Lac de Remoray phase 2 (draft) - sans membres',
             '\nChaînes de versions (8 plans historiques):',
             '  Camargue (5 niveaux):',
@@ -879,7 +879,7 @@ class PlansSeeder(BaseSeeder):
             '    v2.0 → Plan révisé 2018-2028 (valide)',
             '    v2.1 → Eval mi-parcours 2023 (valide)',
             '    v2.2 → Plan révisé (draft)',
-            '  Vercors-Ecrins (3 niveaux):',
+            '  Vercors-Écrins (3 niveaux):',
             '    v1.0 Plan initial 2011-2021 (archive)',
             '    v2.0 → Plan révisé 2021-2031 (valide)',
             '    v2.1 → Eval mi-parcours 2026 (draft)',
@@ -887,5 +887,5 @@ class PlansSeeder(BaseSeeder):
             '  - Camargue: 3 docs (2 PDF publics + 1 carte)',
             '  - Aiguilles Rouges: 2 docs (1 PdG + 1 annexe)',
             '  - Lacs et zones humides: 3 docs (1 diagnostic + 1 carte + 1 inventaire)',
-            '  - Vercors-Ecrins: 2 docs (1 rapport + 1 photo)',
+            '  - Vercors-Écrins: 2 docs (1 rapport + 1 photo)',
         ]

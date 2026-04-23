@@ -10,12 +10,12 @@ from .base import BaseSeeder
 
 class GroupsSeeder(BaseSeeder):
     """
-    Cree les groupes Django pour les permissions.
+    Crée les groupes Django pour les permissions.
 
     Groupes:
     - Super Administrateurs
     - Administrateurs Organisme
-    - Referents
+    - Référents
     - Utilisateurs
     """
 
@@ -42,7 +42,7 @@ class GroupsSeeder(BaseSeeder):
             ]
         },
         {
-            'name': 'Referents',
+            'name': 'Référents',
             'permissions': [
                 'view_role',
                 'change_site', 'view_site',
@@ -57,12 +57,28 @@ class GroupsSeeder(BaseSeeder):
 
     def seed(self) -> Dict[str, Group]:
         """
-        Cree les groupes Django.
+        Crée les groupes Django.
 
         Returns:
-            Dict avec les groupes crees (nom -> groupe)
+            Dict avec les groupes créés (nom -> groupe)
         """
-        self.log_header('Creation des groupes')
+        self.log_header('Création des groupes')
+
+        # Migrer l'ancien nom sans accent vers le nom canonique accentué.
+        old_referents = Group.objects.filter(name='Referents').first()
+        new_referents = Group.objects.filter(name='Référents').first()
+        if old_referents and not new_referents:
+            old_referents.name = 'Référents'
+            old_referents.save(update_fields=['name'])
+            self.log_item('renommé', "Referents → Référents")
+        elif old_referents and new_referents:
+            # Les deux existent : reporter les utilisateurs de l'ancien vers le
+            # nouveau groupe puis supprimer l'ancien.
+            from apps.users.models import Role
+            for user in Role.objects.filter(groups=old_referents):
+                user.groups.add(new_referents)
+            old_referents.delete()
+            self.log_item('fusionné', "Referents → Référents")
 
         groups = {}
         for group_data in self.GROUPS_DATA:
@@ -74,35 +90,35 @@ class GroupsSeeder(BaseSeeder):
                         group.permissions.add(perm)
                     except Permission.DoesNotExist:
                         pass
-                self.log_item('cree', group.name)
+                self.log_item('créé', group.name)
             else:
                 self.log_item('existant', group.name)
             groups[group.name] = group
 
-        self.log('  Groupes crees', 'SUCCESS')
+        self.log('  Groupes créés', 'SUCCESS')
         self.context.set('groups', groups)
         return groups
 
     def reset(self) -> int:
         """
-        Les groupes ne sont pas supprimes car ils sont necessaires a l'application.
+        Les groupes ne sont pas supprimés car ils sont nécessaires à l'application.
 
         Returns:
-            0 (aucun groupe supprime)
+            0 (aucun groupe supprimé)
         """
         return 0
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des groupes qui seraient crees.
+        Résumé des groupes qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nGroupes Django:',
             '  - Super Administrateurs',
             '  - Administrateurs Organisme',
-            '  - Referents',
+            '  - Référents',
             '  - Utilisateurs',
         ]

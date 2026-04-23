@@ -15,12 +15,12 @@ from .base import BaseSeeder
 
 class ValidationRequestsSeeder(BaseSeeder):
     """
-    Cree des demandes de validation de test.
+    Crée des demandes de validation de test.
 
-    Hierarchie des permissions pour la validation:
+    Hiérarchie des permissions pour la validation:
     - super_admin: peut valider TOUTES les demandes
-    - admin_og: peut valider les demandes liees a son organisme
-    - referent: peut valider les demandes sur ses sites
+    - admin_og: peut valider les demandes liées à son organisme
+    - référent: peut valider les demandes sur ses sites
     - utilisateur: ne peut pas valider
 
     Types de demandes:
@@ -48,7 +48,7 @@ class ValidationRequestsSeeder(BaseSeeder):
         plans: List[PlanGestion],
         organismes: List[BibOrganismes]
     ) -> List[Dict]:
-        """Retourne les donnees des demandes de validation."""
+        """Retourne les données des demandes de validation."""
         admin = users[0]  # super_admin
         admin_rnf = users[1]
         admin_cen = users[2]
@@ -60,40 +60,40 @@ class ValidationRequestsSeeder(BaseSeeder):
         now = timezone.now()
 
         return [
-            # DEMANDES D'ACCES SITE
+            # DEMANDES D'ACCÈS SITE
             {
                 'request_type': 'site_access',
                 'requester': user_rnf,
                 'target_site': sites[1],
                 'status': 'pending',
-                'justification': 'Je souhaite participer au suivi des especes vegetales de la reserve.',
+                'justification': 'Je souhaite participer au suivi des espèces végétales de la réserve.',
             },
             {
                 'request_type': 'site_access',
                 'requester': user_cen,
                 'target_site': sites[3],
                 'status': 'approved',
-                'justification': 'Integration equipe Vercors.',
+                'justification': 'Intégration équipe Vercors.',
                 'validator': admin_cen,
-                'validation_comment': "Bienvenue dans l'equipe!",
+                'validation_comment': "Bienvenue dans l'équipe !",
                 'validated_at': now - timedelta(days=3),
             },
 
-            # DEMANDES D'ACCES PLAN
+            # DEMANDES D'ACCÈS PLAN
             # Demandes en attente (pending) - pour tester la section "Plans en attente"
             {
                 'request_type': 'plan_access',
                 'requester': user_rnf,
                 'target_plan': plans[4],  # Plan Marais de Brouage
                 'status': 'pending',
-                'justification': "Besoin d'acces pour comparer les methodes de gestion des zones humides.",
+                'justification': "Besoin d'accès pour comparer les méthodes de gestion des zones humides.",
             },
             {
                 'request_type': 'plan_access',
                 'requester': user_rnf,
-                'target_plan': plans[3],  # Plan inter-sites Vercors-Ecrins
+                'target_plan': plans[3],  # Plan inter-sites Vercors-Écrins
                 'status': 'pending',
-                'justification': "Je participe a un projet de recherche inter-regional.",
+                'justification': "Je participe à un projet de recherche inter-régional.",
             },
             {
                 'request_type': 'plan_access',
@@ -107,16 +107,16 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'requester': user_cen,
                 'target_plan': plans[5],  # Plan Lac de Remoray
                 'status': 'pending',
-                'justification': "Etude comparative des ecosystemes lacustres.",
+                'justification': "Étude comparative des écosystèmes lacustres.",
             },
             {
                 'request_type': 'plan_access',
                 'requester': referent_camargue,
                 'target_plan': plans[2],  # Plan Grand-Voyeux
                 'status': 'pending',
-                'justification': "Echange de bonnes pratiques entre sites.",
+                'justification': "Échange de bonnes pratiques entre sites.",
             },
-            # Demande refusee (pour tester le bouton "Redemander")
+            # Demande refusée (pour tester le bouton "Redemander")
             {
                 'request_type': 'plan_access',
                 'requester': user_cen,
@@ -124,28 +124,28 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'rejected',
                 'justification': "Je voudrais consulter ce plan pour m'inspirer.",
                 'validator': admin_rnf,
-                'validation_comment': 'Ce plan est reserve aux membres de RNF.',
+                'validation_comment': 'Ce plan est réservé aux membres de RNF.',
                 'validated_at': now - timedelta(days=7),
             },
-            # Demande approuvee (pour tester l'acces accorde)
+            # Demande approuvée (pour tester l'accès accordé)
             {
                 'request_type': 'plan_access',
                 'requester': referent_vercors,
                 'target_plan': plans[0],  # Plan Camargue
                 'status': 'approved',
-                'justification': "Besoin d'acces pour partager les methodes de suivi.",
+                'justification': "Besoin d'accès pour partager les méthodes de suivi.",
                 'validator': admin_rnf,
-                'validation_comment': 'Acces accorde pour la collaboration inter-sites.',
+                'validation_comment': 'Accès accordé pour la collaboration inter-sites.',
                 'validated_at': now - timedelta(days=2),
             },
 
-            # VALIDATION REFERENT
+            # VALIDATION RÉFÉRENT
             {
                 'request_type': 'referent_validation',
                 'requester': user_rnf,
                 'target_site': sites[6],
                 'status': 'pending',
-                'justification': 'Je souhaite devenir referent pour ce site proche de mon domicile.',
+                'justification': 'Je souhaite devenir référent pour ce site proche de mon domicile.',
             },
             {
                 'request_type': 'referent_validation',
@@ -154,36 +154,36 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'approved',
                 'justification': 'Expertise zone humide.',
                 'validator': admin,
-                'validation_comment': 'Referent valide.',
+                'validation_comment': 'Référent validé.',
                 'validated_at': now - timedelta(days=14),
             },
 
-            # DESACTIVATION ADMIN
+            # DÉSACTIVATION ADMIN
             {
                 'request_type': 'admin_deactivation',
                 'requester': admin,
                 'target_user': users[8] if len(users) > 8 else None,
                 'requested_organisme': organismes[1],
                 'status': 'pending',
-                'justification': "Depart de l'organisation, besoin de transferer les responsabilites.",
+                'justification': "Départ de l'organisation, besoin de transférer les responsabilités.",
             },
 
-            # DEMANDES D'ACCES MODULE
+            # DEMANDES D'ACCÈS MODULE
             {
                 'request_type': 'module_access',
                 'requester': user_cen,
                 'target_module': 'zonages',
                 'status': 'pending',
-                'justification': 'Je travaille sur les zonages reglementaires pour le Vercors.',
+                'justification': 'Je travaille sur les zonages réglementaires pour le Vercors.',
             },
             {
                 'request_type': 'module_access',
                 'requester': user_rnf,
                 'target_module': 'zonages',
                 'status': 'approved',
-                'justification': "Besoin d'acces pour le suivi des zonages de la Camargue.",
+                'justification': "Besoin d'accès pour le suivi des zonages de la Camargue.",
                 'validator': admin,
-                'validation_comment': 'Acces accorde pour le projet Camargue.',
+                'validation_comment': 'Accès accordé pour le projet Camargue.',
                 'validated_at': now - timedelta(days=5),
             },
             {
@@ -193,16 +193,16 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'rejected',
                 'justification': 'Je souhaite consulter les zonages.',
                 'validator': admin,
-                'validation_comment': 'Acces refuse: formation requise avant utilisation de ce module.',
+                'validation_comment': 'Accès refusé : formation requise avant utilisation de ce module.',
                 'validated_at': now - timedelta(days=10),
             },
 
-            # CREATION DE SITE
+            # CRÉATION DE SITE
             {
                 'request_type': 'site_creation',
                 'requester': user_cen,
                 'status': 'pending',
-                'justification': 'Je souhaite creer un nouveau site pour la Tourbiere du Mont Bar dans le Puy-de-Dome.',
+                'justification': 'Je souhaite créer un nouveau site pour la Tourbière du Mont Bar dans le Puy-de-Dôme.',
             },
             {
                 'request_type': 'site_creation',
@@ -210,7 +210,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'approved',
                 'justification': 'Nouveau site ENS dans les Hautes-Alpes.',
                 'validator': admin,
-                'validation_comment': 'Site cree avec succes. Bienvenue!',
+                'validation_comment': 'Site créé avec succès. Bienvenue !',
                 'validated_at': now - timedelta(days=30),
             },
 
@@ -221,7 +221,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[5],
                 'requested_organisme': organismes[1],
                 'status': 'pending',
-                'justification': 'Notre organisme participe a un projet de suivi inter-regional.',
+                'justification': 'Notre organisme participe à un projet de suivi inter-régional.',
             },
             {
                 'request_type': 'site_org_link',
@@ -231,7 +231,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'approved',
                 'justification': 'Partenariat pour le suivi de la faune alpine.',
                 'validator': admin_cen,
-                'validation_comment': 'Partenariat valide. Bienvenue!',
+                'validation_comment': 'Partenariat validé. Bienvenue !',
                 'validated_at': now - timedelta(days=14),
             },
 
@@ -242,7 +242,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[3],
                 'requested_organisme': organismes[1],
                 'status': 'pending',
-                'justification': "Fin du partenariat inter-regional. CEN AURA n'intervient plus sur ce site.",
+                'justification': "Fin du partenariat inter-régional. CEN AURA n'intervient plus sur ce site.",
             },
             {
                 'request_type': 'site_org_unlink',
@@ -250,9 +250,9 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[0],
                 'requested_organisme': organismes[3],
                 'status': 'approved',
-                'justification': "Projet termine, retrait de l'organisme partenaire.",
+                'justification': "Projet terminé, retrait de l'organisme partenaire.",
                 'validator': admin,
-                'validation_comment': 'Retrait effectue. Merci pour la collaboration.',
+                'validation_comment': 'Retrait effectué. Merci pour la collaboration.',
                 'validated_at': now - timedelta(days=10),
             },
             {
@@ -274,7 +274,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[0],
                 'requested_organisme': organismes[1],
                 'status': 'pending',
-                'justification': 'Nous invitons CEN AURA a participer au projet de suivi des flamants roses.',
+                'justification': 'Nous invitons CEN AURA à participer au projet de suivi des flamants roses.',
             },
             {
                 'request_type': 'invite_org_to_site',
@@ -284,7 +284,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'status': 'approved',
                 'justification': 'Invitation pour collaboration scientifique.',
                 'validator': admin,
-                'validation_comment': 'Collaboration acceptee.',
+                'validation_comment': 'Collaboration acceptée.',
                 'validated_at': now - timedelta(days=21),
             },
 
@@ -295,7 +295,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[0],
                 'target_user': user_cen,
                 'status': 'pending',
-                'justification': "Nous vous invitons a rejoindre l'equipe du site Camargue pour le projet biodiversite.",
+                'justification': "Nous vous invitons à rejoindre l'équipe du site Camargue pour le projet biodiversité.",
             },
             {
                 'request_type': 'invite_user_to_site',
@@ -303,9 +303,9 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[6],
                 'target_user': user_rnf,
                 'status': 'approved',
-                'justification': "Invitation a rejoindre l'equipe du Lac de Remoray.",
+                'justification': "Invitation à rejoindre l'équipe du Lac de Remoray.",
                 'validator': user_rnf,
-                'validation_comment': "J'accepte avec plaisir de rejoindre cette equipe!",
+                'validation_comment': "J'accepte avec plaisir de rejoindre cette équipe !",
                 'validated_at': now - timedelta(days=5),
             },
             {
@@ -314,13 +314,13 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_site': sites[3],
                 'target_user': user_rnf,
                 'status': 'rejected',
-                'justification': 'Invitation a participer au suivi floristique.',
+                'justification': 'Invitation à participer au suivi floristique.',
                 'validator': user_rnf,
                 'validation_comment': "Merci pour l'invitation mais je ne suis pas disponible actuellement.",
                 'validated_at': now - timedelta(days=7),
             },
 
-            # LIEN PLAN-SITE (demande de liaison d'un site a un plan)
+            # LIEN PLAN-SITE (demande de liaison d'un site à un plan)
             {
                 'request_type': 'plan_site_link',
                 'requester': referent_camargue,
@@ -332,7 +332,7 @@ class ValidationRequestsSeeder(BaseSeeder):
             {
                 'request_type': 'plan_site_link',
                 'requester': referent_vercors,
-                'target_plan': plans[3],  # Plan inter-sites Vercors-Ecrins
+                'target_plan': plans[3],  # Plan inter-sites Vercors-Écrins
                 'target_site': sites[4],  # Marais de Brouage
                 'status': 'pending',
                 'justification': 'Extension du plan aux zones humides du littoral atlantique.',
@@ -343,30 +343,30 @@ class ValidationRequestsSeeder(BaseSeeder):
                 'target_plan': plans[1],  # Plan Aiguilles Rouges
                 'target_site': sites[6],  # Lac de Remoray
                 'status': 'approved',
-                'justification': 'Etude comparative des ecosystemes montagnards et lacustres.',
+                'justification': 'Étude comparative des écosystèmes montagnards et lacustres.',
                 'validator': admin_rnf,
-                'validation_comment': 'Lien approuve pour le projet de recherche.',
+                'validation_comment': 'Lien approuvé pour le projet de recherche.',
                 'validated_at': now - timedelta(days=4),
             },
-            # Demande par un referent de site non lie au plan
+            # Demande par un référent de site non lié au plan
             {
                 'request_type': 'plan_site_link',
                 'requester': referent_vercors,
                 'target_plan': plans[1],  # Plan Aiguilles Rouges (referent_vercors n'est pas membre)
-                'target_site': sites[3],  # Vercors (referent_vercors est referent)
+                'target_site': sites[3],  # Vercors (referent_vercors est référent)
                 'status': 'pending',
-                'justification': 'Lier le site du Vercors au plan Aiguilles Rouges pour etude comparative.',
+                'justification': 'Lier le site du Vercors au plan Aiguilles Rouges pour étude comparative.',
             },
         ]
 
     def seed(self) -> List[ValidationRequest]:
         """
-        Cree les demandes de validation de test.
+        Crée les demandes de validation de test.
 
         Returns:
-            Liste des ValidationRequest creees
+            Liste des ValidationRequest créées
         """
-        self.log_header('Creation des demandes de validation')
+        self.log_header('Création des demandes de validation')
 
         users = self.context.require('users')
         sites = self.context.require('sites')
@@ -405,10 +405,10 @@ class ValidationRequestsSeeder(BaseSeeder):
             )
             validation_requests.append(vr)
 
-            status_str = "cree" if created else "existant"
+            status_str = "créé" if created else "existant"
             validated_info = ""
             if validated_at:
-                validated_info = f" (valide le {validated_at.strftime('%d/%m/%Y')})"
+                validated_info = f" (validé le {validated_at.strftime('%d/%m/%Y')})"
             self.log_item(status_str, f"{vr.request_type} - {vr.status}{validated_info}")
 
         self.log_summary(len(validation_requests), 'demandes de validation')
@@ -420,16 +420,16 @@ class ValidationRequestsSeeder(BaseSeeder):
         Supprime les demandes de validation de test.
 
         Returns:
-            Nombre de ValidationRequest supprimees
+            Nombre de ValidationRequest supprimées
         """
         return ValidationRequest.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des demandes qui seraient creees.
+        Résumé des demandes qui seraient créées.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             '\nDemandes de validation (31):',
@@ -447,9 +447,9 @@ class ValidationRequestsSeeder(BaseSeeder):
             '    - module_access approved (user_rnf -> zonages): il y a 5 jours',
             '    - module_access rejected (referent_vercors -> zonages): il y a 10 jours',
             '    - module_access pending (user_cen -> zonages): en attente',
-            '\nHierarchie des permissions de validation:',
-            '  super_admin > admin_og > referent > utilisateur',
+            '\nHiérarchie des permissions de validation:',
+            '  super_admin > admin_og > référent > utilisateur',
             '  - super_admin: peut valider TOUTES les demandes',
-            '  - admin_og: demandes liees a son organisme',
-            '  - referent: demandes sur ses sites',
+            '  - admin_og: demandes liées à son organisme',
+            '  - référent: demandes sur ses sites',
         ]

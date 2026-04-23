@@ -33,13 +33,13 @@ class EnjeuxSeeder(BaseSeeder):
     Enjeux (19 au total):
     - 5 enjeux pour Plan Camargue (priorités 1, 2, 3)
     - 5 enjeux pour Plan Aiguilles Rouges (priorités 1, 2, 3) dont 1 géologique
-    - 3 enjeux pour Plan Vercors-Ecrins dont 1 géologique
+    - 3 enjeux pour Plan Vercors-Écrins dont 1 géologique
     - 6 enjeux pour Plan Lac de Remoray (priorités 1, 2, 3) dont 1 géologique
 
     FCR (8 au total):
     - 2 FCR pour Plan Camargue
     - 2 FCR pour Plan Aiguilles Rouges
-    - 2 FCR pour Plan Vercors-Ecrins
+    - 2 FCR pour Plan Vercors-Écrins
     - 2 FCR pour Plan Lac de Remoray
 
     Responsabilités (12 au total):
@@ -5001,12 +5001,12 @@ class EnjeuxSeeder(BaseSeeder):
             '\nEnjeux (19):',
             '  - Camargue: 5 enjeux (hab. humides, flamant rose, activités trad., hydraulique, cistude)',
             '  - Aiguilles Rouges: 5 enjeux (pelouses alpines, zones humides, tétras-lyre, fréquentation, géol. glaciaire)',
-            '  - Vercors-Ecrins: 3 enjeux (corridors, grands rapaces, géol. karstique)',
+            '  - Vercors-Écrins: 3 enjeux (corridors, grands rapaces, géol. karstique)',
             '  - Lac de Remoray: 6 enjeux (qualité eaux, tourbières, balbuzard, prairies, EEE, géol. moraines)',
             '\nFCR (8):',
             '  - Camargue: 2 FCR (connaissance, partenariats)',
             '  - Aiguilles Rouges: 2 FCR (moyens, climat)',
-            '  - Vercors-Ecrins: 2 FCR (coordination, sensibilisation)',
+            '  - Vercors-Écrins: 2 FCR (coordination, sensibilisation)',
             '  - Lac de Remoray: 2 FCR (suivi hydro., intégration territoriale)',
             '\nResponsabilités (12):',
             '  - Camargue: 3 (faune nationale, habitat régional, faune internationale)',

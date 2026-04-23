@@ -289,15 +289,22 @@ class Command(BaseCommand):
 
     def _delete_organismes(self):
         """Supprime les organismes de test."""
+        # Liste incluant les noms actuels (accentués) et les anciens noms ASCII
+        # afin de nettoyer les bases qui n'ont pas encore été migrées.
         test_organismes = [
+            'Réserves Naturelles de France',
+            'CEN Auvergne-Rhône-Alpes',
+            'DREAL Nouvelle-Aquitaine',
+            'Parc National des Écrins',
+            'Office Français de la Biodiversité',
+            # Anciennes variantes ASCII
             'Reserves Naturelles de France',
             'CEN Auvergne-Rhone-Alpes',
-            'DREAL Nouvelle-Aquitaine',
             'Parc National des Ecrins',
-            'Office Francais de la Biodiversite'
+            'Office Francais de la Biodiversite',
         ]
         count = BibOrganismes.objects.filter(nom_organisme__in=test_organismes).delete()[0]
-        self.stdout.write(f'  Organismes supprimes: {count}')
+        self.stdout.write(f'  Organismes supprimés: {count}')
 
     def _show_dry_run_summary(self):
         """Affiche un resume des donnees qui seraient creees."""

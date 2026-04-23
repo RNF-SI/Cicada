@@ -18,10 +18,10 @@ DEFAULT_PASSWORD = 'Test123!'
 
 class PendingUsersSeeder(BaseSeeder):
     """
-    Cree les utilisateurs en attente d'inscription (PendingUser).
+    Crée les utilisateurs en attente d'inscription (PendingUser).
 
     Chaque PendingUser a sa propre ValidationRequest unique.
-    Ces demandes peuvent etre validees par:
+    Ces demandes peuvent être validées par:
     - super_admin: toutes les demandes
     - admin_og: demandes pour leur organisme
 
@@ -38,7 +38,7 @@ class PendingUsersSeeder(BaseSeeder):
         self,
         organismes: List[BibOrganismes]
     ) -> List[Dict]:
-        """Retourne les donnees des utilisateurs en attente."""
+        """Retourne les données des utilisateurs en attente."""
         return [
             {
                 'email': 'nouveau.user1@test.fr',
@@ -54,7 +54,7 @@ class PendingUsersSeeder(BaseSeeder):
                 'identifiant': 'l.simon',
                 'password': DEFAULT_PASSWORD,
                 'nom_role': 'Simon',
-                'prenom_role': 'Lea',
+                'prenom_role': 'Léa',
                 'requested_organisme': organismes[1],  # CEN AURA
                 'justification': 'Nouvelle recrue au CEN AURA, en attente de validation par mon administrateur.',
             },
@@ -65,17 +65,17 @@ class PendingUsersSeeder(BaseSeeder):
                 'nom_role': 'Michel',
                 'prenom_role': 'Paul',
                 'requested_organisme': organismes[2],  # DREAL
-                'justification': 'Agent DREAL affecte au suivi des espaces naturels.',
+                'justification': 'Agent DREAL affecté au suivi des espaces naturels.',
             },
         ]
 
     def _fix_orphan_approved_requests(self) -> None:
-        """Corrige les demandes d'inscription approuvees sans requester lie."""
+        """Corrige les demandes d'inscription approuvées sans requester lié."""
         # Mapping emails de test -> organisme
         test_emails = {
             'nouveau.user1@test.fr': 'RNF',
-            'nouveau.user2@test.fr': 'CEN Auvergne-Rhone-Alpes',
-            'nouveau.user3@test.fr': 'DREAL Auvergne-Rhone-Alpes',
+            'nouveau.user2@test.fr': 'CEN Auvergne-Rhône-Alpes',
+            'nouveau.user3@test.fr': 'DREAL Nouvelle-Aquitaine',
         }
 
         orphan_approved = ValidationRequest.objects.filter(
@@ -91,17 +91,17 @@ class PendingUsersSeeder(BaseSeeder):
                     if vr.requested_organisme.nom_organisme == org_name:
                         vr.requester = user
                         vr.save(update_fields=['requester'])
-                        self.log(f"  [FIX] Requester lie pour validation #{vr.id}: {user}")
+                        self.log(f"  [FIX] Requester lié pour validation #{vr.id}: {user}")
                         break
 
     def seed(self) -> List[PendingUser]:
         """
-        Cree les utilisateurs en attente d'inscription.
+        Crée les utilisateurs en attente d'inscription.
 
         Returns:
-            Liste des PendingUser crees
+            Liste des PendingUser créés
         """
-        self.log_header("Creation des utilisateurs en attente d'inscription")
+        self.log_header("Création des utilisateurs en attente d'inscription")
 
         organismes = self.context.require('organismes')
 
@@ -147,7 +147,7 @@ class PendingUsersSeeder(BaseSeeder):
             pending_users.append(pending_user)
 
             org_name = pu_data['requested_organisme'].nom_organisme
-            self.log_item('cree', f"{pu_data['email']} -> {org_name}")
+            self.log_item('créé', f"{pu_data['email']} -> {org_name}")
             if self.verbosity >= 2:
                 self.stdout.write(f"         ValidationRequest #{validation_request.id} (pending)")
 
@@ -160,16 +160,16 @@ class PendingUsersSeeder(BaseSeeder):
         Supprime les utilisateurs en attente de test.
 
         Returns:
-            Nombre de PendingUser supprimes
+            Nombre de PendingUser supprimés
         """
         return PendingUser.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des utilisateurs en attente qui seraient crees.
+        Résumé des utilisateurs en attente qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             "\nUtilisateurs en attente d'inscription - PendingUser (3):",

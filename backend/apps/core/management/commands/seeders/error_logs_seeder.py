@@ -14,7 +14,7 @@ from .base import BaseSeeder
 
 class ErrorLogsSeeder(BaseSeeder):
     """
-    Cree des logs d'erreur de test.
+    Crée des logs d'erreur de test.
 
     Niveaux:
     - WARNING (3)
@@ -22,15 +22,15 @@ class ErrorLogsSeeder(BaseSeeder):
     - CRITICAL (2)
 
     Statuts:
-    - Non acquittes (4)
-    - Acquittes (4)
+    - Non acquittés (4)
+    - Acquittés (4)
     """
 
     name = 'error_logs'
     dependencies = ['users']
 
     def _get_error_logs_data(self, users: List[Role]) -> List[Dict]:
-        """Retourne les donnees des logs d'erreur."""
+        """Retourne les données des logs d'erreur."""
         now = timezone.now()
         admin = users[0]
         admin_rnf = users[1]
@@ -38,10 +38,10 @@ class ErrorLogsSeeder(BaseSeeder):
         user_cen = users[6]
 
         return [
-            # WARNING - non acquitte, recent
+            # WARNING - non acquitté, récent
             {
                 'level': 'WARNING',
-                'message': 'Tentative de connexion avec un token expire',
+                'message': 'Tentative de connexion avec un token expiré',
                 'logger_name': 'apps.authentication.views',
                 'correlation_id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
                 'user': user_rnf,
@@ -55,7 +55,7 @@ class ErrorLogsSeeder(BaseSeeder):
                 'acknowledged_at': None,
                 'created_at': now - timedelta(hours=2),
             },
-            # WARNING - acquitte
+            # WARNING - acquitté
             {
                 'level': 'WARNING',
                 'message': "Rate limit atteint pour l'utilisateur",
@@ -72,10 +72,10 @@ class ErrorLogsSeeder(BaseSeeder):
                 'acknowledged_at': now - timedelta(days=2),
                 'created_at': now - timedelta(days=3),
             },
-            # WARNING - non acquitte
+            # WARNING - non acquitté
             {
                 'level': 'WARNING',
-                'message': 'Fichier temporaire non supprime apres upload',
+                'message': 'Fichier temporaire non supprimé après upload',
                 'logger_name': 'apps.plans.views',
                 'correlation_id': 'c3d4e5f6-a7b8-9012-cdef-345678901234',
                 'user': admin_rnf,
@@ -89,10 +89,10 @@ class ErrorLogsSeeder(BaseSeeder):
                 'acknowledged_at': None,
                 'created_at': now - timedelta(days=1),
             },
-            # ERROR - non acquitte, recent
+            # ERROR - non acquitté, récent
             {
                 'level': 'ERROR',
-                'message': 'Erreur de validation lors de la creation du plan de gestion',
+                'message': 'Erreur de validation lors de la création du plan de gestion',
                 'logger_name': 'apps.plans.serializers',
                 'correlation_id': 'd4e5f6a7-b8c9-0123-defa-456789012345',
                 'user': user_rnf,
@@ -104,17 +104,17 @@ class ErrorLogsSeeder(BaseSeeder):
     serializer.is_valid(raise_exception=True)
   File "/usr/local/lib/python3.11/site-packages/rest_framework/serializers.py", line 235, in is_valid
     raise ValidationError(self.errors)
-rest_framework.exceptions.ValidationError: {'date_fin': ['La date de fin doit etre superieure a la date de debut.']}''',
+rest_framework.exceptions.ValidationError: {'date_fin': ['La date de fin doit être supérieure à la date de début.']}''',
                 'context': {'plan_data': {'nom': 'Plan test', 'date_debut': '2025-01-01', 'date_fin': '2024-01-01'}},
                 'acknowledged': False,
                 'acknowledged_by': None,
                 'acknowledged_at': None,
                 'created_at': now - timedelta(hours=6),
             },
-            # ERROR - acquitte
+            # ERROR - acquitté
             {
                 'level': 'ERROR',
-                'message': 'Impossible de generer le PDF du plan de gestion',
+                'message': 'Impossible de générer le PDF du plan de gestion',
                 'logger_name': 'apps.plans.pdf_generator',
                 'correlation_id': 'e5f6a7b8-c9d0-1234-efab-567890123456',
                 'user': admin_rnf,
@@ -133,7 +133,7 @@ apps.plans.exceptions.PDFGenerationError: Template rendering failed''',
                 'acknowledged_at': now - timedelta(days=1),
                 'created_at': now - timedelta(days=2),
             },
-            # ERROR - acquitte
+            # ERROR - acquitté
             {
                 'level': 'ERROR',
                 'message': 'Timeout lors de la connexion au service externe INPN',
@@ -155,10 +155,10 @@ requests.exceptions.Timeout: HTTPSConnectionPool: Read timed out.''',
                 'acknowledged_at': now - timedelta(days=4),
                 'created_at': now - timedelta(days=5),
             },
-            # CRITICAL - non acquitte
+            # CRITICAL - non acquitté
             {
                 'level': 'CRITICAL',
-                'message': 'Echec de la connexion a la base de donnees',
+                'message': 'Échec de la connexion à la base de données',
                 'logger_name': 'django.db.backends',
                 'correlation_id': 'a7b8c9d0-e1f2-3456-abcd-789012345678',
                 'user': None,
@@ -178,7 +178,7 @@ psycopg2.OperationalError: could not connect to server: Connection refused
                 'acknowledged_at': None,
                 'created_at': now - timedelta(days=1, hours=5),
             },
-            # CRITICAL - acquitte
+            # CRITICAL - acquitté
             {
                 'level': 'CRITICAL',
                 'message': 'Espace disque insuffisant pour le stockage des fichiers',
@@ -205,12 +205,12 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
 
     def seed(self) -> List[ErrorLog]:
         """
-        Cree les logs d'erreur de test.
+        Crée les logs d'erreur de test.
 
         Returns:
-            Liste des ErrorLog crees
+            Liste des ErrorLog créés
         """
-        self.log_header("Creation des logs d'erreur")
+        self.log_header("Création des logs d'erreur")
 
         users = self.context.require('users')
         error_logs_data = self._get_error_logs_data(users)
@@ -220,14 +220,14 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
             created_at = log_data.pop('created_at')
 
             log = ErrorLog.objects.create(**log_data)
-            # Mettre a jour created_at manuellement
+            # Mettre à jour created_at manuellement
             ErrorLog.objects.filter(pk=log.pk).update(created_at=created_at)
             log.refresh_from_db()
 
             error_logs.append(log)
 
             ack_status = "[ACK]" if log.acknowledged else "[NON ACK]"
-            self.log_item('cree', f"{log.level} - {log.message[:50]}... {ack_status}")
+            self.log_item('créé', f"{log.level} - {log.message[:50]}... {ack_status}")
 
         self.log_summary(len(error_logs), "logs d'erreur")
         self.context.set('error_logs', error_logs)
@@ -238,16 +238,16 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
         Supprime les logs d'erreur de test.
 
         Returns:
-            Nombre de ErrorLog supprimes
+            Nombre de ErrorLog supprimés
         """
         return ErrorLog.objects.all().delete()[0]
 
     def get_dry_run_summary(self) -> List[str]:
         """
-        Resume des logs d'erreur qui seraient crees.
+        Résumé des logs d'erreur qui seraient créés.
 
         Returns:
-            Liste des lignes du resume
+            Liste des lignes du résumé
         """
         return [
             "\nLogs d'erreur (8):",
@@ -255,6 +255,6 @@ Disk usage: 98.5% (available: 512MB, required: 2GB)''',
             '  - 3 WARNING (avertissements)',
             '  - 3 ERROR (erreurs standards)',
             '  - 2 CRITICAL (erreurs critiques)',
-            '  - 4 non acquittes, 4 acquittes',
-            '  - Dates variees sur les 7 derniers jours',
+            '  - 4 non acquittés, 4 acquittés',
+            '  - Dates variées sur les 7 derniers jours',
         ]
