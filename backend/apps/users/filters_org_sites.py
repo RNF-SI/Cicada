@@ -150,7 +150,10 @@ class SiteFilter(django_filters.FilterSet):
     id_inpn = django_filters.CharFilter(field_name='id_inpn', lookup_expr='icontains')
     
     # Filtres par type
-    type_site = django_filters.NumberFilter(field_name='id_type_site__id_nomenclature')
+    # Accepte soit un id_nomenclature (entier), soit un mnémonique (ex. 'RNN') :
+    # tolérant aux anciens bundles frontend qui envoyaient encore le code court.
+    type_site = django_filters.CharFilter(method='filter_type_site')
+    id_type_site = django_filters.CharFilter(method='filter_type_site')
     type_site_label = django_filters.CharFilter(method='filter_type_site_label')
     
     # Filtres par surface
@@ -242,6 +245,22 @@ class SiteFilter(django_filters.FilterSet):
             Q(id_type_site__mnemonique__iexact=value) |
             Q(id_type_site__label__icontains=value)
         )
+
+    def filter_type_site(self, queryset, name, value):
+        """
+        Filtre par type de site tolérant :
+        - valeur numérique : on filtre par id_nomenclature (comportement
+          historique).
+        - valeur texte : on délègue à filter_type_site_label (compatibilité
+          avec les anciens bundles frontend qui envoyaient `id_type_site=RNN`).
+        """
+        if not value:
+            return queryset
+        try:
+            nomenclature_id = int(value)
+        except (TypeError, ValueError):
+            return self.filter_type_site_label(queryset, name, value)
+        return queryset.filter(id_type_site__id_nomenclature=nomenclature_id)
     
     def filter_has_geometry(self, queryset, name, value):
         """Filtre les sites avec/sans géométrie."""
