@@ -151,10 +151,7 @@ class SiteFilter(django_filters.FilterSet):
     
     # Filtres par type
     type_site = django_filters.NumberFilter(field_name='id_type_site__id_nomenclature')
-    type_site_label = django_filters.CharFilter(
-        field_name='id_type_site__label',
-        lookup_expr='icontains'
-    )
+    type_site_label = django_filters.CharFilter(method='filter_type_site_label')
     
     # Filtres par surface
     surf_min = django_filters.NumberFilter(field_name='surf_off', lookup_expr='gte')
@@ -231,6 +228,20 @@ class SiteFilter(django_filters.FilterSet):
             Q(jonction_nom__icontains=value) |
             Q(id_type_site__label__icontains=value)
         ).distinct()
+
+    def filter_type_site_label(self, queryset, name, value):
+        """
+        Filtre par type de site en acceptant soit le code court (mnémonique,
+        ex: 'RNN') soit le libellé complet (ex: 'Réserve Naturelle Nationale').
+        Les sélecteurs du frontend envoient le code court, mais on reste
+        compatible avec les appels passant le libellé complet.
+        """
+        if not value:
+            return queryset
+        return queryset.filter(
+            Q(id_type_site__mnemonique__iexact=value) |
+            Q(id_type_site__label__icontains=value)
+        )
     
     def filter_has_geometry(self, queryset, name, value):
         """Filtre les sites avec/sans géométrie."""

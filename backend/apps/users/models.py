@@ -206,7 +206,7 @@ class Role(AbstractUser):
         """Vérifie si l'utilisateur peut gérer un site donné."""
         if self.is_super_admin():
             return True
-        
+
         # Vérifier si référent du site
         try:
             cor_role_site = CorRoleSite.objects.get(id_role=self, id_site=site)
@@ -214,15 +214,63 @@ class Role(AbstractUser):
                 return True
         except CorRoleSite.DoesNotExist:
             pass
-        
+
         # Vérifier si admin organisme gestionnaire
         if self.is_admin_organisme() and self.id_organisme:
             site_organismes = CorOgSite.objects.filter(id_site=site)
             for cor_og_site in site_organismes:
                 if cor_og_site.uuid_og.id_organisme == self.id_organisme.id_organisme:
                     return True
-        
+
         return False
+
+    def accessible_site_ids(self):
+        """
+        Retourne la liste des id_site auxquels l'utilisateur a accès en lecture.
+
+        Un utilisateur a accès à un site si :
+        - il est super admin ou rédacteur principal (accès global) — on renvoie
+          alors None pour signaler "tous les sites"
+        - il est membre direct du site (CorRoleSite)
+        - son organisme gère le site (CorOgSite)
+        - il est membre d'un plan de gestion lié à ce site (CorRolePlan →
+          CorSitePg). Cas clé : plans multi-organismes où un contributeur
+          externe doit pouvoir accéder aux sites du plan.
+
+        Used by :
+        - SiteViewSet.get_queryset (liste des sites accessibles)
+        - PlanSiteListSerializer.get_current_user_has_access (bouton
+          "Demande d'accès" masqué si déjà accessible)
+        """
+        from django.db.models import Q
+        from apps.plans.models import CorRolePlan, CorSitePg
+
+        if self.is_super_admin() or self.is_redacteur_principal():
+            return None  # accès global
+
+        q = Q(id_role=self)
+        direct = set(CorRoleSite.objects.filter(q).values_list('id_site', flat=True))
+        via_org = set()
+        if self.id_organisme:
+            via_org = set(
+                CorOgSite.objects.filter(uuid_og=self.id_organisme)
+                .values_list('id_site', flat=True)
+            )
+        plan_ids = CorRolePlan.objects.filter(id_role=self).values_list(
+            'plan_de_gestion_id', flat=True
+        )
+        via_plan = set(
+            CorSitePg.objects.filter(plan_de_gestion_id__in=plan_ids)
+            .values_list('site_id', flat=True)
+        )
+        return direct | via_org | via_plan
+
+    def has_access_to_site(self, site):
+        """Vérifie si l'utilisateur a accès en lecture au site donné."""
+        ids = self.accessible_site_ids()
+        if ids is None:
+            return True
+        return site.id_site in ids
 
     def request_deletion(self):
         """

@@ -180,7 +180,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        serializer = PlanGestionDetailSerializer(plan)
+        serializer = PlanGestionDetailSerializer(plan, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])

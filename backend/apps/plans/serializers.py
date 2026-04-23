@@ -109,34 +109,15 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
         return None
 
     def get_current_user_has_access(self, obj):
-        """Vérifie si l'utilisateur courant a accès au site (même logique que SiteViewSet.get_queryset)."""
+        """Vérifie si l'utilisateur courant a accès au site.
+
+        Cohérent avec Role.accessible_site_ids() : accès direct, via
+        organisme, ou via un plan dont l'utilisateur est membre.
+        """
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return False
-
-        user = request.user
-        site = obj.site
-
-        # Super admin a accès à tout
-        if user.is_super_admin():
-            return True
-
-        # Rédacteur principal a accès à tout
-        if user.is_redacteur_principal():
-            return True
-
-        from apps.users.models import CorRoleSite, CorOgSite
-
-        # Accès direct via assignation personnelle (tous rôles)
-        if CorRoleSite.objects.filter(id_site=site, id_role=user).exists():
-            return True
-
-        # Admin organisme : accès via organisme
-        if user.is_admin_organisme() and user.id_organisme:
-            if CorOgSite.objects.filter(id_site=site, uuid_og=user.id_organisme).exists():
-                return True
-
-        return False
+        return request.user.has_access_to_site(obj.site)
 
     def get_organismes(self, obj):
         """Retourne les organismes liés au site via CorOgSite."""

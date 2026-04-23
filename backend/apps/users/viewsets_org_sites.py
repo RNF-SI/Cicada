@@ -446,59 +446,25 @@ class SiteViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        """Filtrage selon le rôle de l'utilisateur."""
+        """Filtrage selon le rôle de l'utilisateur.
+
+        Sources d'accès combinées (voir Role.accessible_site_ids):
+        - super_admin / rédacteur principal : tous les sites
+        - assignation directe (CorRoleSite)
+        - gestion via organisme (CorOgSite)
+        - appartenance à un plan lié au site (CorRolePlan → CorSitePg)
+        """
         user = self.request.user
-        
-        if user.is_super_admin() or user.is_redacteur_principal():
-            # Super admin et rédacteur principal voient tous les sites
+
+        ids = user.accessible_site_ids()
+        if ids is None:
             return Site.objects.all().select_related('id_type_site')
 
-        elif user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme voit les sites de son organisme + ses sites personnellement assignés
-            org_sites = CorOgSite.objects.filter(
-                uuid_og=user.id_organisme
-            ).values_list('id_site', flat=True)
-
-            # Ajouter les sites personnellement assignés (ex: référent d'un site d'un autre organisme)
-            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
-
-            return Site.objects.filter(
-                Q(id_site__in=org_sites) | Q(id_site__in=assigned_sites)
-            ).distinct().select_related('id_type_site')
-        
-        elif user.is_referent():
-            # Référent voit les sites qui lui sont assignés + sites de son organisme
-            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
-            
-            queryset = Site.objects.filter(id_site__in=assigned_sites)
-            
-            # Ajouter les sites de son organisme si il en a un
-            if user.id_organisme:
-                org_sites = CorOgSite.objects.filter(
-                    uuid_og=user.id_organisme
-                ).values_list('id_site', flat=True)
-                
-                queryset = Site.objects.filter(
-                    Q(id_site__in=assigned_sites) | Q(id_site__in=org_sites)
-                ).distinct()
-            
-            return queryset.select_related('id_type_site')
-        
-        else:
-            # Utilisateur normal voit les sites assignés + sites de son organisme
-            assigned_sites = CorRoleSite.objects.filter(id_role=user).values_list('id_site', flat=True)
-
-            if user.id_organisme:
-                org_sites = CorOgSite.objects.filter(
-                    uuid_og=user.id_organisme
-                ).values_list('id_site', flat=True)
-
-                return Site.objects.filter(
-                    Q(id_site__in=assigned_sites) | Q(id_site__in=org_sites)
-                ).distinct().select_related('id_type_site')
-
-            # Utilisateur sans organisme voit uniquement ses sites assignés
-            return Site.objects.filter(id_site__in=assigned_sites).select_related('id_type_site')
+        return (
+            Site.objects.filter(id_site__in=ids)
+            .distinct()
+            .select_related('id_type_site')
+        )
     
     def get_object(self):
         """Vérification des permissions d'objet."""
