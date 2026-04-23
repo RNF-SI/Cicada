@@ -18,6 +18,7 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
     type_action_label = serializers.CharField(source='id_type_action.label', read_only=True, default=None)
     nb_operations = serializers.SerializerMethodField()
     plan_nom = serializers.CharField(source='id_pg.nom', read_only=True, default=None)
+    sites_list = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
@@ -30,12 +31,18 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
             'actif',
             'nb_operations',
             'id_pg', 'plan_nom',
+            'sites_list',
             'date_ajout', 'date_maj',
         ]
         read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
 
     def get_nb_operations(self, obj):
         return obj.operations.count()
+
+    def get_sites_list(self, obj):
+        """Retourne les noms des sites associés via les opérations liées."""
+        sites = obj.operations.values_list('sites__nom_site', flat=True).distinct()
+        return ', '.join(s for s in sites if s) or None
 
 
 # =============================================================================

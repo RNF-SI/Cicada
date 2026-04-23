@@ -25,6 +25,8 @@ class Notification(models.Model):
         ('account_activated', _('Compte activé')),
         ('organisme_changed', _('Organisme modifié')),
         ('site_orphaned', _('Site sans utilisateurs')),
+        ('site_deleted', _('Site supprimé')),
+        ('plans_orphaned_summary', _("Récapitulatif des plans orphelins")),
         ('organisme_no_admin', _('Organisme sans administrateur')),
         ('plan_needs_reassignment', _('Plan à réassigner')),
         ('system_alert', _('Alerte système')),

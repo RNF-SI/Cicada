@@ -361,6 +361,20 @@ export class EnjeuxListComponent implements OnInit {
     if (slug) {
       this.planSlug.set(slug);
       this.loadPlanData();
+
+      // Scroll vers l'enjeu si fragment présent (retour depuis formulaire)
+      this.route.fragment.pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(fragment => {
+        if (fragment) {
+          this.selectedEnjeuSlug.set(fragment);
+          this.enjeuDetailExpanded.set(true);
+          setTimeout(() => {
+            const el = this.elRef.nativeElement.querySelector(`[data-enjeu-slug="${fragment}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 500);
+        }
+      });
     } else {
       this.errorMessage.set('Slug du plan non trouvé');
       this.isLoading.set(false);
@@ -549,6 +563,13 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   // Navigation
+  navigateToArborescence(): void {
+    const slug = this.planSlug();
+    if (slug) {
+      this.router.navigate(['/plans', slug, 'mindmap']);
+    }
+  }
+
   navigateToNewEnjeu(): void {
     const slug = this.planSlug();
     if (slug) {
@@ -1897,7 +1918,17 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   getScoreRange(met: any, level: number): string {
-    const mnemonique = met.type_metrique_mnemonique || 'NUMERIQUE';
+    // Fallback intelligent si le type_metrique n'est pas renseigné :
+    // on détecte le type d'après les données présentes sur la métrique
+    let mnemonique = met.type_metrique_mnemonique;
+    if (!mnemonique) {
+      const hasLabels = [1, 2, 3, 4, 5].some(l => met[`score_${l}_label`]?.toString().trim());
+      const hasVals = [1, 2, 3, 4, 5].some(l => met[`score_${l}_val`] != null);
+      const hasBounds = [1, 2, 3, 4, 5].some(l => met[`score_${l}_inf`] != null || met[`score_${l}_sup`] != null);
+      if (hasLabels && !hasBounds) mnemonique = 'TEXTE';
+      else if (hasVals && !hasBounds) mnemonique = 'CHIFFRE';
+      else mnemonique = 'NUMERIQUE';
+    }
 
     if (mnemonique === 'CHIFFRE') {
       const val = met[`score_${level}_val`];

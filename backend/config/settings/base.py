@@ -150,8 +150,8 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -241,6 +241,12 @@ CELERY_BEAT_SCHEDULE = {
     'check-orphaned-sites': {
         'task': 'apps.notifications.tasks.check_orphaned_sites',
         'schedule': crontab(hour=8, minute=30, day_of_week=1),  # Lundi
+    },
+    # Audit hebdomadaire des plans de gestion sans site - tous les lundis a 9h
+    # Detecte les plans orphelins suite a la suppression de tous leurs sites
+    'check-orphaned-plans': {
+        'task': 'apps.notifications.tasks.check_orphaned_plans',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),  # Lundi
     },
     # Nettoyage des anciennes notifications - tous les jours a 4h
     'cleanup-old-notifications': {

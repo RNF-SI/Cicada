@@ -100,10 +100,10 @@ class Protocole(models.Model):
     # Champs ajoutés (Figma v2)
     periode_suivi = models.CharField(
         _("Période de suivi"),
-        max_length=50,
+        max_length=200,
         blank=True,
         default='',
-        help_text=_("Mois de suivi (mnémonique nomenclature PERIODE_SUIVI)")
+        help_text=_("Mois de suivi (mnémoniques nomenclature PERIODE_SUIVI séparés par virgule, ex: 'JANVIER,FEVRIER,MARS')")
     )
     documentation_disponible = models.BooleanField(
         _("Documentation disponible"),

@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("notifications", "0006_add_plan_site_link_request_type"),
+        ("notifications", "0007_alter_notification_notification_type"),
     ]
 
     operations = [

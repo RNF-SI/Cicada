@@ -83,10 +83,11 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   stopImpersonation(): void {
     this.authService.stopImpersonation().subscribe({
       next: () => {
-        this.router.navigate(['/administration/utilisateurs']);
+        // Force full page reload to reset Angular state and sync all tabs
+        window.location.href = '/administration/utilisateurs';
       },
       error: () => {
-        this.router.navigate(['/']);
+        window.location.href = '/';
       }
     });
   }

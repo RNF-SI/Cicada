@@ -127,7 +127,8 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
             'intitule', 'actif',
             # Détails
             'objectif_principal', 'objectif_secondaire',
-            'cibles_principales', 'taxon_taxref',
+            'cibles_principales', 'cible_secondaire',
+            'taxon_taxref', 'habitat_ref',
             'date_lancement_suivi',
             # Protocole (nested writable)
             'protocole',

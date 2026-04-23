@@ -68,6 +68,8 @@
             </mat-autocomplete>
             @if (isCSAction()) {
               <mat-hint>{{ 'enjeux.operations.typeActionCSHint' | translate }}</mat-hint>
+            } @else {
+              <mat-hint>{{ 'enjeux.operations.typeActionHint' | translate }}</mat-hint>
             }
           </mat-form-field>
 
@@ -246,7 +248,12 @@
               <!-- Habitat(s) — conditional: only when cible = HABITATS_VEGETATIONS -->
               @if (showHabitat) {
                 <div class="form-group">
-                  <label class="form-label">{{ 'enjeux.operations.habitatRef' | translate }}</label>
+                  <label class="form-label">
+                    {{ 'enjeux.operations.habitatRef' | translate }}
+                    <i class="fi fi-rr-info help-icon"
+                       [matTooltip]="'enjeux.operations.habitatRefTooltip' | translate"
+                       matTooltipPosition="right"></i>
+                  </label>
                   <app-reference-item-list
                     type="habitat"
                     [items]="habitatItems"
@@ -271,7 +278,7 @@
 
               <!-- Date de lancement du suivi (date picker) -->
               <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></mat-label>
+                <mat-label>{{ 'inventaires.form.dateLancement' | translate }}</mat-label>
                 <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
                   [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
                 <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
@@ -358,7 +365,6 @@
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>
                     {{ 'enjeux.operations.nbEtpCycle' | translate }}
-                    <span class="required-star">*</span>
                   </mat-label>
                   <input matInput type="number" formControlName="nb_etp_cycle">
                   <mat-hint>{{ 'enjeux.operations.nbEtpCycleHint' | translate }}</mat-hint>
@@ -445,7 +451,6 @@
               <div class="frequence-row">
                 <span class="field-label">
                   {{ 'enjeux.operations.frequenceAction' | translate }}
-                  <span class="required-star">*</span>
                 </span>
                 <div class="frequence-controls">
                   <div class="frequence-number">
@@ -462,6 +467,13 @@
                       }
                     </mat-select>
                   </mat-form-field>
+                  <button type="button" mat-stroked-button
+                          class="btn-sm apply-frequency-btn"
+                          (click)="applyFrequencyToAnnees()"
+                          [matTooltip]="'enjeux.operations.applyFrequencyTooltip' | translate">
+                    <i class="fi fi-rr-calendar-clock"></i>
+                    {{ 'enjeux.operations.applyFrequency' | translate }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -842,7 +854,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
-                                         [value]="annee.budget ?? ''"
+                                         [value]="formatBudget(annee.budget)"
                                          (change)="updateBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
                                 </div>

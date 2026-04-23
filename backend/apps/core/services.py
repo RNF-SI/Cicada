@@ -116,6 +116,9 @@ class ActivityService:
         from apps.users.models import CorOgSite
         organisme = CorOgSite.get_principal(site)
 
+        # Lors d'une suppression, ne pas lier le site (pre_delete : la FK sera cassée)
+        related_site = None if action == 'delete' else site
+
         return ActivityService.log_activity(
             entity_type='site',
             entity_id=site.id_site,
@@ -123,7 +126,7 @@ class ActivityService:
             action=action,
             actor=actor,
             description=description,
-            related_site=site,
+            related_site=related_site,
             related_organisme=organisme,
             changes=changes,
             metadata=metadata,
@@ -363,8 +366,13 @@ class ActivityService:
         user_name = user.get_full_name() or user.email
         description = f"{user_name} {action_labels.get(action, action)} {site.nom_site}"
 
-        from apps.users.models import CorOgSite
+        from apps.users.models import CorOgSite, Site
         organisme = CorOgSite.get_principal(site)
+
+        # Si le site n'existe plus en base (CASCADE en cours), ne pas faire référence (FK sera cassée)
+        related_site = site
+        if not Site.objects.filter(pk=site.pk).exists():
+            related_site = None
 
         return ActivityService.log_activity(
             entity_type='site',
@@ -373,7 +381,7 @@ class ActivityService:
             action=action,
             actor=actor,
             description=description,
-            related_site=site,
+            related_site=related_site,
             related_organisme=organisme,
             related_user=user,
             metadata={

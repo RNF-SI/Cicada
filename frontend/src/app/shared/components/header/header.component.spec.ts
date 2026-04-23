@@ -373,26 +373,30 @@ describe('HeaderComponent', () => {
       expect(component.isReadOnly()).toBe(true);
     });
 
-    it('should stop impersonation and navigate to admin', fakeAsync(() => {
+    it('should stop impersonation and reload to admin page', fakeAsync(() => {
       fixture.detectChanges();
-      const navigateSpy = jest.spyOn(router, 'navigate');
+      // window.location.href triggers a full page reload — mock it to prevent jsdom error
+      delete (window as any).location;
+      (window as any).location = { href: '' };
 
       component.stopImpersonation();
       tick();
 
       expect(stopImpersonationMock).toHaveBeenCalled();
-      expect(navigateSpy).toHaveBeenCalledWith(['/administration/utilisateurs']);
+      expect((window as any).location.href).toBe('/administration/utilisateurs');
     }));
 
-    it('should navigate to home on stop impersonation error', fakeAsync(() => {
+    it('should reload to home on stop impersonation error', fakeAsync(() => {
       stopImpersonationMock.mockReturnValue(throwError(() => new Error('Error')));
       fixture.detectChanges();
-      const navigateSpy = jest.spyOn(router, 'navigate');
+      delete (window as any).location;
+      (window as any).location = { href: '' };
 
       component.stopImpersonation();
       tick();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/']);
+      expect(stopImpersonationMock).toHaveBeenCalled();
+      expect((window as any).location.href).toBe('/');
     }));
   });
 

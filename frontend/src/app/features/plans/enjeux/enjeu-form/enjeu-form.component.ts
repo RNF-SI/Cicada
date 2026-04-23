@@ -476,7 +476,8 @@ export class EnjeuFormComponent implements OnInit {
   private navigateBack(): void {
     const slug = this.planSlug();
     if (slug) {
-      this.router.navigate(['/plans', slug, 'enjeux']);
+      const enjeuSlug = this.enjeuSlug();
+      this.router.navigate(['/plans', slug, 'enjeux'], enjeuSlug ? { fragment: enjeuSlug } : {});
     } else {
       this.router.navigate(['/plans']);
     }

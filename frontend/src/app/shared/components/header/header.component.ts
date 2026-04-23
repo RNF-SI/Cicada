@@ -198,12 +198,11 @@ export class HeaderComponent implements OnInit {
   stopImpersonation(): void {
     this.authService.stopImpersonation().subscribe({
       next: () => {
-        // Redirect to admin users page after stopping impersonation
-        this.router.navigate(['/administration/utilisateurs']);
+        // Force full page reload to reset Angular state and sync all tabs
+        window.location.href = '/administration/utilisateurs';
       },
       error: () => {
-        // Even on error, redirect to home
-        this.router.navigate(['/']);
+        window.location.href = '/';
       }
     });
   }

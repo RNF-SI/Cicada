@@ -164,9 +164,12 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
 
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
-    const organismeFilter = !this.hasGlobalAccess() && this.isAdminOrganisme() && currentOrgId
-      ? currentOrgId
-      : undefined;
+    // Priorité au filtre sélectionné par l'utilisateur, sinon scoping par rôle
+    const organismeFilter = this.filterOrganisme
+      ? parseInt(this.filterOrganisme, 10)
+      : (!this.hasGlobalAccess() && this.isAdminOrganisme() && currentOrgId
+        ? currentOrgId
+        : undefined);
 
     const scope = !this.isSuperAdmin() && !this.isAdminOrganisme() ? 'mine' as const : undefined;
 

@@ -21,6 +21,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
@@ -63,6 +64,7 @@ import {
     MatSnackBarModule,
     MatAutocompleteModule,
     MatDialogModule,
+    MatTooltipModule,
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent
@@ -1465,6 +1467,39 @@ export class OperationFormComponent implements OnInit {
     this.operationAnnees[index].budget = this.parseDecimal(value);
   }
 
+  /**
+   * Retourne le pas entre années cochées selon l'unité de fréquence.
+   * - AN : tous les ans (pas = 1)
+   * - 2_ANS : tous les 2 ans (pas = 2)
+   * - 5_ANS : tous les 5 ans (pas = 5)
+   * - 10_ANS : tous les 10 ans (pas = 10)
+   * - autres (JOUR, MOIS, TRIMESTRE...) : tous les ans (pas = 1)
+   */
+  private getYearStepFromFrequence(unite: string | null): number {
+    if (!unite) return 0;
+    const u = unite.toLowerCase();
+    if (u === '2_ans') return 2;
+    if (u === '5_ans') return 5;
+    if (u === '10_ans') return 10;
+    // Pour tout intervalle infra-annuel (jour, mois, trimestre, an), l'action se produit chaque année
+    return 1;
+  }
+
+  /**
+   * Applique la fréquence (frequence_nombre + frequence_unite) aux années :
+   * coche periodicite=true sur les années correspondantes à partir de la 1ère année du plan.
+   * Appelé quand l'utilisateur change l'unité de fréquence ou clique sur "Appliquer".
+   */
+  applyFrequencyToAnnees(): void {
+    const unite = this.form.get('frequence_unite')?.value;
+    const step = this.getYearStepFromFrequence(unite);
+    if (step === 0 || this.operationAnnees.length === 0) return;
+
+    for (let i = 0; i < this.operationAnnees.length; i++) {
+      this.operationAnnees[i].periodicite = (i % step === 0);
+    }
+  }
+
   updateEtp(index: number, value: string): void {
     this.operationAnnees[index].etp = this.parseDecimal(value);
   }
@@ -1506,9 +1541,15 @@ export class OperationFormComponent implements OnInit {
   /** Parse une valeur décimale en acceptant la virgule comme séparateur. */
   private parseDecimal(value: string): number | null {
     if (!value) return null;
-    const normalized = String(value).replace(',', '.');
+    // Supprimer les espaces (séparateurs de milliers) avant de parser
+    const normalized = String(value).replace(/\s/g, '').replace(',', '.');
     const parsed = parseFloat(normalized);
     return isNaN(parsed) ? null : parsed;
+  }
+
+  formatBudget(value: number | null): string {
+    if (value == null) return '';
+    return value.toLocaleString('fr-FR');
   }
 
   onModeToggle(mode: string): void {

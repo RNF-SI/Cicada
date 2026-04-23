@@ -119,6 +119,7 @@
                   <i class="fi fi-rr-arrow-small-down sort-icon"></i>
                 </th>
                 <th class="col-periode">{{ 'inventaires.table.periode' | translate }}</th>
+                <th class="col-sites">{{ 'inventaires.table.sites' | translate }}</th>
                 <th class="col-statut">
                   {{ 'inventaires.table.statut' | translate }}
                   <i class="fi fi-rr-arrow-small-down sort-icon sort-icon-inactive"></i>
@@ -134,6 +135,9 @@
                   </td>
                   <td class="col-periode">
                     {{ formatPeriode(suivi) }}
+                  </td>
+                  <td class="col-sites">
+                    {{ suivi.sites_list || '-' }}
                   </td>
                   <td class="col-statut">
                     <div class="statut-cell">

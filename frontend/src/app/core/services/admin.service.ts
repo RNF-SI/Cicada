@@ -161,7 +161,7 @@ export class AdminService {
       httpParams = httpParams.set('page_size', params.page_size.toString());
     }
     if (params?.type) {
-      httpParams = httpParams.set('id_type_site', params.type);
+      httpParams = httpParams.set('type_site_label', params.type);
     }
     if (params?.organisme) {
       httpParams = httpParams.set('organisme', params.organisme.toString());
@@ -243,6 +243,14 @@ export class AdminService {
    */
   updateSite(slug: string, payload: Partial<SiteCreatePayload>): Observable<AdminSite> {
     return this.http.patch<AdminSite>(`${this.apiUrl}/sites/${slug}/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Delete a site
+   */
+  deleteSite(slug: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/sites/${slug}/`)
       .pipe(catchError(this.handleError));
   }
 

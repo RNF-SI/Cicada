@@ -17,7 +17,7 @@
     left: 0;
     width: 100vw;
     height: 100vh !important;
-    z-index: $z-index-tooltip + 10;
+    z-index: 9999;
     border-radius: 0;
   }
 }
