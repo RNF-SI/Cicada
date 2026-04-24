@@ -156,7 +156,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
           this.initCurrentView();
         });
       },
-      error: () => {
+      error: (err) => {
+        console.error('[mindmap] Erreur chargement données:', err);
         this.loading.set(false);
         this.error.set("Impossible de charger les données du tableau d'arborescence.");
       }
@@ -279,8 +280,13 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       .attr('x', 6)
       .attr('y', d => this.typeVisible(d, width) ? 28 : 13)
       .attr('fill', d => this.getTextColor(MINDMAP_COLORS[d.data.entityType] || '#555'))
-      .attr('fill-opacity', d => this.nameVisible(d, width) ? 1 : 0)
-      .text(d => d.data.name);
+      .attr('fill-opacity', d => this.nameVisible(d, width) ? 1 : 0);
+
+    this.wrapIcicleText(
+      nameText,
+      d => Math.max(0, (d.y1 - d.y0) - 12),
+      d => this.icicleRectHeight(d) - (this.typeVisible(d, width) ? 22 : 8),
+    );
 
     cell.append('title')
       .text(d => `${MINDMAP_LABELS[d.data.entityType] || d.data.entityType}\n${d.data.name}`);
@@ -492,6 +498,77 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private icicleRectHeight(d: { x0: number; x1: number }): number {
     return d.x1 - d.x0 - Math.min(1, (d.x1 - d.x0) / 2);
+  }
+
+  /**
+   * Wrap SVG text into multiple tspans to fit the given maxWidth and maxHeight.
+   * First tspan keeps the parent text's y offset; subsequent tspans use dy so
+   * that the block moves as one when the parent's y is animated.
+   */
+  private wrapIcicleText(
+    selection: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
+    maxWidthAccessor: (d: IcicleNode) => number,
+    maxHeightAccessor: (d: IcicleNode) => number,
+  ): void {
+    const lineHeight = 14;
+    selection.each(function(d) {
+      const textEl = d3.select(this);
+      const name = d.data.name || '';
+      const maxWidth = maxWidthAccessor(d);
+      const maxHeight = maxHeightAccessor(d);
+      const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight));
+      const words = name.split(/\s+/).filter(w => w.length > 0).reverse();
+      const x = textEl.attr('x') || '0';
+
+      textEl.text(null);
+      if (words.length === 0 || maxWidth <= 0) {
+        return;
+      }
+
+      let line: string[] = [];
+      let lineCount = 1;
+      let tspan = textEl.append('tspan').attr('x', x);
+
+      const ellipsize = (span: d3.Selection<SVGTSpanElement, unknown, null, undefined>): void => {
+        let currentText = span.text();
+        while (currentText.length > 1 && (span.node() as SVGTextContentElement).getComputedTextLength() > maxWidth) {
+          currentText = currentText.slice(0, -1);
+          span.text(currentText + '…');
+        }
+      };
+
+      let word: string | undefined;
+      while ((word = words.pop())) {
+        line.push(word);
+        tspan.text(line.join(' '));
+        if ((tspan.node() as SVGTextContentElement).getComputedTextLength() > maxWidth) {
+          line.pop();
+          if (line.length === 0) {
+            // Single word too long for the line — keep it and truncate with ellipsis
+            tspan.text(word);
+            ellipsize(tspan);
+            line = [];
+          } else {
+            tspan.text(line.join(' '));
+            line = [word];
+          }
+          if (lineCount >= maxLines) {
+            // Reached the max number of lines — append ellipsis to the current line if needed
+            if (line.length > 0) {
+              const previous = tspan.text();
+              tspan.text(previous + '…');
+              ellipsize(tspan);
+            }
+            return;
+          }
+          lineCount++;
+          tspan = textEl.append('tspan')
+            .attr('x', x)
+            .attr('dy', `${lineHeight}px`)
+            .text(line.length > 0 ? line.join(' ') : '');
+        }
+      }
+    });
   }
 
   private typeVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number): boolean {

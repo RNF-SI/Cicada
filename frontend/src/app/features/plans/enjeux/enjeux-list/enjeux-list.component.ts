@@ -566,7 +566,7 @@ export class EnjeuxListComponent implements OnInit {
   navigateToArborescence(): void {
     const slug = this.planSlug();
     if (slug) {
-      this.router.navigate(['/plans', slug, 'mindmap']);
+      this.router.navigate(['/plans', slug, 'tableau-d-arborescence']);
     }
   }
 
@@ -580,7 +580,7 @@ export class EnjeuxListComponent implements OnInit {
   navigateToMindmap(): void {
     const slug = this.planSlug();
     if (slug) {
-      this.router.navigate(['/plans', slug, 'mindmap']);
+      this.router.navigate(['/plans', slug, 'tableau-d-arborescence']);
     }
   }
 

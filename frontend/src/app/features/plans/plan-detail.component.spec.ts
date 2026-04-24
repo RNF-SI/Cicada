@@ -967,9 +967,9 @@ describe('PlanDetailComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/plans', 'mon-plan', 'enjeux']);
     });
 
-    it('navigateToMindmap should navigate to /plans/:slug/mindmap', () => {
+    it('navigateToMindmap should navigate to /plans/:slug/tableau-d-arborescence', () => {
       component.navigateToMindmap();
-      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'mon-plan', 'mindmap']);
+      expect(router.navigate).toHaveBeenCalledWith(['/plans', 'mon-plan', 'tableau-d-arborescence']);
     });
   });
 

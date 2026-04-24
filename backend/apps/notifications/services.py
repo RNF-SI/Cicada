@@ -121,40 +121,40 @@ class NotificationService:
 
         elif validation_request.request_type == 'admin_demotion':
             target_name = str(validation_request.target_user) if validation_request.target_user else "un administrateur"
-            return f"{requester_name} demande la retrogradation de {target_name} en utilisateur simple."
+            return f"{requester_name} demande la rétrogradation de {target_name} en utilisateur simple."
 
         elif validation_request.request_type == 'site_org_link':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
-            return f"{requester_name} demande a lier le site {site_name} a {org_name}."
+            return f"{requester_name} demande à lier le site {site_name} à {org_name}."
 
         elif validation_request.request_type == 'site_org_unlink':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "l'organisme"
-            return f"{requester_name} demande a retirer {org_name} du site {site_name}."
+            return f"{requester_name} demande à retirer {org_name} du site {site_name}."
 
         elif validation_request.request_type == 'site_creation':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un nouveau site"
-            return f"{requester_name} a cree le site {site_name} et demande sa validation."
+            return f"{requester_name} a créé le site {site_name} et demande sa validation."
 
         elif validation_request.request_type == 'referent_validation':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
-            return f"{requester_name} demande a devenir referent du site {site_name}."
+            return f"{requester_name} demande à devenir référent du site {site_name}."
 
         elif validation_request.request_type == 'invite_org_to_site':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             org_name = validation_request.requested_organisme.nom_organisme if validation_request.requested_organisme else "votre organisme"
-            return f"{requester_name} invite {org_name} a rejoindre le site {site_name}."
+            return f"{requester_name} invite {org_name} à rejoindre le site {site_name}."
 
         elif validation_request.request_type == 'invite_user_to_site':
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
             target_user_name = str(validation_request.target_user) if validation_request.target_user else "un utilisateur"
-            return f"{requester_name} invite {target_user_name} a rejoindre le site {site_name}."
+            return f"{requester_name} invite {target_user_name} à rejoindre le site {site_name}."
 
         elif validation_request.request_type == 'plan_site_link':
             plan_name = validation_request.target_plan.nom if validation_request.target_plan else "un plan"
             site_name = validation_request.target_site.nom_site if validation_request.target_site else "un site"
-            return f"{requester_name} demande a lier le site {site_name} au plan de gestion {plan_name}."
+            return f"{requester_name} demande à lier le site {site_name} au plan de gestion {plan_name}."
 
         return f"Nouvelle demande de {requester_name}."
 
@@ -340,8 +340,8 @@ class NotificationService:
     @staticmethod
     def notify_site_orphaned(site):
         """Notifie les admins qu'un site n'a plus d'utilisateurs."""
-        title = f"Site orphelin: {site.nom_site}"
-        message = f"Le site {site.nom_site} n'a plus aucun utilisateur associe."
+        title = f"Site orphelin : {site.nom_site}"
+        message = f"Le site {site.nom_site} n'a plus aucun utilisateur associé."
 
         NotificationService.notify_super_admins(
             notification_type='site_orphaned',
@@ -555,7 +555,7 @@ class NotificationService:
 
         title = f"Audit hebdomadaire : {count} site(s) sans utilisateur"
         message = (
-            f"{count} site(s) actif(s) n'ont aucun utilisateur associe :\n\n"
+            f"{count} site(s) actif(s) n'ont aucun utilisateur associé :\n\n"
             f"{sites_list_text}"
         )
 
@@ -574,7 +574,7 @@ class NotificationService:
             NotificationService._send_audit_summary_email(
                 recipient=admin,
                 subject=title,
-                intro=f"{count} site(s) actif(s) n'ont aucun utilisateur associe.",
+                intro=f"{count} site(s) actif(s) n'ont aucun utilisateur associé.",
                 items=site_names,
                 action_url="/administration/sites",
                 action_label="Voir les sites",
@@ -601,7 +601,7 @@ class NotificationService:
             admin_count = len(admin_site_names)
             admin_title = f"Audit hebdomadaire : {admin_count} site(s) sans utilisateur"
             admin_message = (
-                f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associe :\n\n"
+                f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé :\n\n"
                 + "\n".join(f"- {name}" for name in admin_site_names)
             )
             NotificationService.create_notification(
@@ -615,7 +615,7 @@ class NotificationService:
             NotificationService._send_audit_summary_email(
                 recipient=admin,
                 subject=admin_title,
-                intro=f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associe.",
+                intro=f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé.",
                 items=admin_site_names,
                 action_url="/administration/sites",
                 action_label="Voir les sites",
@@ -640,7 +640,7 @@ class NotificationService:
         plan_names = [p.nom for p in plans]
 
         title = f"Audit hebdomadaire : {count} plan(s) de gestion sans site"
-        intro = f"{count} plan(s) de gestion n'ont aucun site associe suite a la suppression de leurs sites."
+        intro = f"{count} plan(s) de gestion n'ont aucun site associé suite à la suppression de leurs sites."
         message = (
             f"{count} plan(s) de gestion orphelins :\n\n"
             + "\n".join(f"- {name}" for name in plan_names)
@@ -970,10 +970,10 @@ class NotificationService:
     def notify_user_deactivated(user, deactivated_by, reason=None):
         """Notifie de la desactivation d'un compte."""
         # Notifier l'utilisateur desactive
-        title = "Votre compte a ete desactive"
-        message = "Votre compte a ete desactive par un administrateur."
+        title = "Votre compte a été désactivé"
+        message = "Votre compte a été désactivé par un administrateur."
         if reason:
-            message += f" Motif: {reason}"
+            message += f" Motif : {reason}"
 
         NotificationService.create_notification(
             recipient=user,
@@ -988,8 +988,8 @@ class NotificationService:
         # Notifier les super admins
         NotificationService.notify_super_admins(
             notification_type='account_deactivated',
-            title=f"Compte desactive: {user}",
-            message=f"Le compte de {user} a ete desactive par {deactivated_by}.",
+            title=f"Compte désactivé : {user}",
+            message=f"Le compte de {user} a été désactivé par {deactivated_by}.",
             priority='high',
             related_user=user,
             send_email=True

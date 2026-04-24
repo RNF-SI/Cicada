@@ -84,6 +84,6 @@ export class PlanSidebarComponent implements OnInit {
   }
 
   navigateToMindmap(): void {
-    this.router.navigate(['/plans', this.planSlug(), 'mindmap']);
+    this.router.navigate(['/plans', this.planSlug(), 'tableau-d-arborescence']);
   }
 }

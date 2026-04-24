@@ -204,8 +204,8 @@ def handle_user_deactivation(sender, instance, created, **kwargs):
                 NotificationService.create_notification(
                     recipient=instance,
                     notification_type='account_deactivated',
-                    title="Votre compte a ete desactive",
-                    message="Votre compte a ete desactive. Si vous pensez qu'il s'agit d'une erreur, "
+                    title="Votre compte a été désactivé",
+                    message="Votre compte a été désactivé. Si vous pensez qu'il s'agit d'une erreur, "
                             "veuillez contacter un administrateur.",
                     priority='critical',
                     send_email=True

@@ -421,7 +421,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   navigateToMindmap(): void {
     const slug = this.planSlug();
     if (slug) {
-      this.router.navigate(['/plans', slug, 'mindmap']);
+      this.router.navigate(['/plans', slug, 'tableau-d-arborescence']);
     }
   }
 

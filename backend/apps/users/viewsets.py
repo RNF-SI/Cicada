@@ -718,9 +718,9 @@ class RoleViewSet(viewsets.ModelViewSet):
         NotificationService.create_notification(
             recipient=user,
             notification_type='account_deactivated',
-            title="Compte desactive (RGPD)",
-            message="Votre compte a ete desactive suite a votre demande de suppression. "
-                    "Vos donnees personnelles n'ont pas encore ete supprimees.",
+            title="Compte désactivé (RGPD)",
+            message="Votre compte a été désactivé suite à votre demande de suppression. "
+                    "Vos données personnelles n'ont pas encore été supprimées.",
             priority='high'
         )
 
@@ -829,8 +829,8 @@ class RoleViewSet(viewsets.ModelViewSet):
         NotificationService.create_notification(
             recipient=user,
             notification_type='system_alert',
-            title="Demande de suppression rejetee",
-            message="Votre demande de suppression de compte a ete rejetee par un administrateur. "
+            title="Demande de suppression rejetée",
+            message="Votre demande de suppression de compte a été rejetée par un administrateur. "
                     "Votre compte reste actif.",
             priority='medium'
         )

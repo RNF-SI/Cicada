@@ -41,6 +41,13 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: ':slug/tableau-d-arborescence',
+    loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
+    canActivate: [authGuard]
+  },
+  {
+    // Ancien chemin conservé pour compatibilité ; les navigations internes
+    // utilisent désormais /tableau-d-arborescence.
     path: ':slug/mindmap',
     loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
     canActivate: [authGuard]

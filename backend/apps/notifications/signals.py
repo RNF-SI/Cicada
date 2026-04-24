@@ -38,8 +38,8 @@ def notify_user_site_association(sender, instance, created, **kwargs):
         NotificationService.create_notification(
             recipient=instance.id_role,
             notification_type='user_associated_site',
-            title=f"Vous avez ete associe au site {instance.id_site.nom_site}",
-            message=f"Vous avez ete ajoute comme membre du site {instance.id_site.nom_site}.",
+            title=f"Vous avez été associé au site {instance.id_site.nom_site}",
+            message=f"Vous avez été ajouté comme membre du site {instance.id_site.nom_site}.",
             priority='medium',
             related_site=instance.id_site,
             action_url=f"/mes-sites/{instance.id_site.id_site}",
@@ -90,8 +90,8 @@ def notify_user_removed_from_site(sender, instance, **kwargs):
         NotificationService.create_notification(
             recipient=instance.id_role,
             notification_type='user_removed_site',
-            title=f"Vous avez ete retire du site {instance.id_site.nom_site}",
-            message=f"Vous n'etes plus membre du site {instance.id_site.nom_site}.",
+            title=f"Vous avez été retiré du site {instance.id_site.nom_site}",
+            message=f"Vous n'êtes plus membre du site {instance.id_site.nom_site}.",
             priority='medium',
             related_site=instance.id_site,
         )
@@ -305,8 +305,8 @@ def setup_m2m_signals():
                     NotificationService.create_notification(
                         recipient=role,
                         notification_type='user_associated_plan',
-                        title=f"Vous etes referent du plan {instance.nom}",
-                        message=f"Vous avez ete ajoute comme referent du plan de gestion {instance.nom}.",
+                        title=f"Vous êtes référent du plan {instance.nom}",
+                        message=f"Vous avez été ajouté comme référent du plan de gestion {instance.nom}.",
                         priority='medium',
                         related_plan=instance,
                         action_url=f"/plans/{instance.id_pg}",
