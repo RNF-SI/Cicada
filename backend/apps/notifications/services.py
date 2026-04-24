@@ -456,6 +456,7 @@ class NotificationService:
         """
         Notifie les acteurs liés lors de la suppression d'un plan de gestion.
 
+        - Auteur de la suppression (confirmation)
         - Référents du plan
         - Membres du plan (CorRolePlan)
         - Admin_og des organismes rédacteurs
@@ -519,6 +520,21 @@ class NotificationService:
                 message=message,
                 priority='high',
                 send_email=True,
+            )
+
+        # Confirmation pour l'auteur de la suppression
+        if deleted_by and deleted_by.active:
+            NotificationService.create_notification(
+                recipient=deleted_by,
+                notification_type='plan_deleted',
+                title=f"Vous avez supprimé le plan : {plan_name}",
+                message=(
+                    f"Vous avez supprimé le plan de gestion \"{plan_name}\". "
+                    "Toutes les données associées (sites liés, enjeux, opérations, fichiers) "
+                    "ont été retirées."
+                ),
+                priority='high',
+                send_email=False,
             )
 
     @staticmethod

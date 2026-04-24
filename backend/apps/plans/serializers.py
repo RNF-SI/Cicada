@@ -111,29 +111,17 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     def get_current_user_has_access(self, obj):
         """Vérifie si l'utilisateur courant a accès au site.
 
-        Inclut l'accès direct, via organisme, et via un plan dont
-        l'utilisateur est membre/référent (accès transitif). Dans la
-        page de détail d'un plan, un utilisateur membre du plan est
-        considéré comme ayant accès aux sites couverts par ce plan.
+        Retourne True uniquement pour l'accès direct (CorRoleSite),
+        via organisme (CorOgSite), ou global (super_admin /
+        rédacteur principal). L'appartenance à un plan de gestion
+        qui couvre le site ne donne pas accès au site : dans ce cas
+        le front affiche le site verrouillé avec un bouton
+        « Se lier au site ».
         """
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return False
-        user = request.user
-        if user.has_access_to_site(obj.site):
-            return True
-        # Accès transitif : l'utilisateur est membre/référent du plan
-        # auquel ce CorSitePg appartient.
-        from apps.plans.models import CorRolePlan, PlanGestion
-        if CorRolePlan.objects.filter(
-            id_role=user,
-            plan_de_gestion_id=obj.plan_de_gestion_id
-        ).exists():
-            return True
-        return PlanGestion.objects.filter(
-            id_pg=obj.plan_de_gestion_id,
-            referents=user
-        ).exists()
+        return request.user.has_access_to_site(obj.site)
 
     def get_organismes(self, obj):
         """Retourne les organismes liés au site via CorOgSite."""

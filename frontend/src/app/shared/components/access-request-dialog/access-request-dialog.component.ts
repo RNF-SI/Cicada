@@ -36,6 +36,8 @@ export interface AccessRequestDialogData {
   // Mode plan: accès via site ou combiné
   hasAccessViaSite?: boolean;       // true = demande directe, false = besoin site
   sitesNeedingAccess?: SelectableSite[];  // Sites du plan où demander le lien
+  // Mode site : demande personnelle (CorRoleSite) ou rattachement d'organisme (CorOgSite)
+  siteMode?: 'personal' | 'organisme';
 }
 
 @Component({
@@ -55,7 +57,9 @@ export interface AccessRequestDialogData {
   ],
   template: `
     <h2 mat-dialog-title>
-      @if (data.type === 'site') {
+      @if (data.type === 'site' && isOrganismeMode) {
+        {{ 'accessRequest.dialog.titleSiteOrg' | translate }}
+      } @else if (data.type === 'site') {
         {{ 'accessRequest.dialog.titleSite' | translate }}
       } @else if (isCombinedPlanMode) {
         {{ 'accessRequest.dialog.titlePlanWithSite' | translate }}
@@ -101,6 +105,13 @@ export interface AccessRequestDialogData {
           <span class="target-label">{{ 'accessRequest.dialog.targetLabel' | translate }}</span>
           <span class="target-name">{{ data.targetName }}</span>
         </div>
+
+        @if (data.type === 'site' && isOrganismeMode) {
+          <div class="site-access-note">
+            <i class="fi fi-rr-info"></i>
+            <span>{{ 'accessRequest.dialog.siteOrgNote' | translate }}</span>
+          </div>
+        }
       }
 
       @if (data.type === 'plan') {
@@ -304,6 +315,11 @@ export class AccessRequestDialogComponent {
            !!(this.data.sitesNeedingAccess && this.data.sitesNeedingAccess.length > 0);
   }
 
+  /** Mode de demande site : rattachement d'organisme (CorOgSite) vs personnel (CorRoleSite). */
+  get isOrganismeMode(): boolean {
+    return this.data.type === 'site' && this.data.siteMode === 'organisme';
+  }
+
   /** Verifie si le formulaire peut etre soumis */
   get canSubmit(): boolean {
     if (this.isSelectionMode) {
@@ -357,11 +373,14 @@ export class AccessRequestDialogComponent {
       }
     } else {
       // Sites (existant)
-      this.validationService.requestSiteAccess(this.getTargetSlug(), requestData)
-        .subscribe({
-          next: () => this.onSuccess('accessRequest.success'),
-          error: (e) => this.onError(e)
-        });
+      const slug = this.getTargetSlug();
+      const obs = this.isOrganismeMode
+        ? this.validationService.requestSiteOrgLink(slug, requestData)
+        : this.validationService.requestSiteAccess(slug, requestData);
+      obs.subscribe({
+        next: () => this.onSuccess('accessRequest.success'),
+        error: (e) => this.onError(e)
+      });
     }
   }
 

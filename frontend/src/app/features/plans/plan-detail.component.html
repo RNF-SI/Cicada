@@ -401,9 +401,16 @@
                         @if (site.type_site_label) {
                           <span class="site-type">{{ site.type_site_label }}</span>
                         }
-                        <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
-                          {{ 'plans.detail.linkSite' | translate }}
-                        </button>
+                        <div class="site-request-actions">
+                          @if (authService.isAdminOrganisme()) {
+                            <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
+                              {{ 'plans.detail.linkSitePersonal' | translate }}
+                            </button>
+                          }
+                          <button class="site-request-access-btn" (click)="requestSiteOrgLink(site)">
+                            {{ 'plans.detail.linkSiteOrg' | translate }}
+                          </button>
+                        </div>
                       </div>
                       <i class="fi fi-rr-lock"></i>
                     </div>

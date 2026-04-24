@@ -1364,6 +1364,8 @@
       "siteNoAccess": "Vous n'avez pas accès à ce site",
       "requestSiteAccess": "Demander l'accès",
       "linkSite": "Se lier au site",
+      "linkSitePersonal": "Me lier au site",
+      "linkSiteOrg": "Lier mon organisme au site",
       "accordions": {
         "enjeux": "Enjeux et Facteurs clés de réussite",
         "objectifsLT": "Objectifs long terme",
@@ -1883,12 +1885,14 @@
   "accessRequest": {
     "dialog": {
       "titleSite": "Demander l'accès à un site",
+      "titleSiteOrg": "Lier mon organisme au site",
       "titlePlan": "Demander l'accès à un plan",
       "titlePlanWithSite": "Demander le lien au site et l'accès au plan",
       "targetLabel": "Cible",
       "selectSite": "Sélectionner un site",
       "selectSiteForPlan": "Sélectionner le site à rejoindre",
       "siteAccessNote": "Vous n'êtes lié à aucun site de ce plan. Une demande de lien au site sera également envoyée.",
+      "siteOrgNote": "Votre organisme sera rattaché à ce site (tous les membres de votre organisme y auront accès).",
       "justificationLabel": "Justification (optionnel)",
       "justificationPlaceholder": "Expliquez pourquoi vous avez besoin d'accès...",
       "justificationHint": "Cette information sera transmise aux administrateurs",

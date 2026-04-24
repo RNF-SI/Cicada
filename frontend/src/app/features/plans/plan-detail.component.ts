@@ -85,7 +85,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
-  private readonly authService = inject(AuthService);
+  readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly validationService = inject(ValidationService);
   private readonly dialog = inject(MatDialog);
@@ -596,6 +596,19 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         type: 'site',
         targetSlug: site.slug,
         targetName: site.nom_site,
+        siteMode: 'personal',
+      } as AccessRequestDialogData,
+    });
+  }
+
+  requestSiteOrgLink(site: PlanSite): void {
+    this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'site',
+        targetSlug: site.slug,
+        targetName: site.nom_site,
+        siteMode: 'organisme',
       } as AccessRequestDialogData,
     });
   }
