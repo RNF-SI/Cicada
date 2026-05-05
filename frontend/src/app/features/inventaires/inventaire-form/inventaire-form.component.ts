@@ -1,7 +1,7 @@
 /**
  * Formulaire Suivi/Inventaire (standalone) - création + édition.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -63,6 +63,7 @@ import {
   styleUrl: './inventaire-form.component.scss'
 })
 export class InventaireFormComponent implements OnInit {
+  private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -127,7 +128,87 @@ export class InventaireFormComponent implements OnInit {
     this.initTypeActionAutocomplete();
     this.loadNomenclatures();
     this.initCampanuleAutocomplete();
+    this.initValidatorsSync();
     this.loadRouteParams();
+  }
+
+  /**
+   * Subscribe à tous les contrôles dont le changement de valeur peut faire
+   * apparaître / disparaître un autre champ requis, pour re-synchroniser les
+   * validators conditionnels.
+   */
+  private initValidatorsSync(): void {
+    const watched = [
+      'integre_plan_gestion',
+      'suit_indicateur',
+      'protocole_dans_campanule',
+      'frequence_unite',
+      'documentation_disponible',
+    ];
+    for (const name of watched) {
+      this.form.get(name)?.valueChanges.subscribe(() => this.syncConditionalValidators());
+    }
+    // Synchro initiale (form vide → impose les "always required")
+    this.syncConditionalValidators();
+  }
+
+  /**
+   * Met à jour Validators.required sur tous les champs marqués d'un `*` dans
+   * le template. Les conditions reflètent les `@if` du HTML pour éviter
+   * d'imposer un required sur un champ caché.
+   */
+  private syncConditionalValidators(): void {
+    const v = (name: string) => this.form.get(name)?.value;
+
+    // Toujours requis (champs visibles en haut de formulaire)
+    this.applyRequiredValidator('intitule', true);
+    this.applyRequiredValidator('integre_plan_gestion', true);
+    this.applyRequiredValidator('objectif_principal', true);
+    this.applyRequiredValidator('cibles_principales', true);
+    this.applyRequiredValidator('date_lancement_suivi', true);
+    this.applyRequiredValidator('protocole_dans_campanule', true);
+
+    // Indicateurs (conditionnels)
+    this.applyRequiredValidator('suit_indicateur', v('integre_plan_gestion') === true);
+    this.applyRequiredValidator(
+      'type_indicateur',
+      v('integre_plan_gestion') === true && v('suit_indicateur') === true,
+    );
+
+    // Protocole : exclusif Oui/Non
+    const isCampanule = v('protocole_dans_campanule') === true;
+    const isNotCampanule = v('protocole_dans_campanule') === false;
+    const protocoleSet = isCampanule || isNotCampanule;
+
+    this.applyRequiredValidator('cd_protocole_campanule', isCampanule);
+    this.applyRequiredValidator('nom_protocole', isNotCampanule);
+    // Champs visibles dans les 2 modes (dès qu'un mode est choisi)
+    this.applyRequiredValidator('frequence_nombre', protocoleSet);
+    this.applyRequiredValidator('frequence_unite', protocoleSet);
+    this.applyRequiredValidator('respect_protocole', protocoleSet);
+    // Champs visibles uniquement en mode hors-CAMPanule
+    this.applyRequiredValidator('documentation_disponible', isNotCampanule);
+    this.applyRequiredValidator('nb_etp_cycle', isNotCampanule);
+  }
+
+  private applyRequiredValidator(controlName: string, required: boolean): void {
+    const ctrl = this.form.get(controlName);
+    if (!ctrl) return;
+    if (required) {
+      // Pour intitule on garde maxLength
+      if (controlName === 'intitule') {
+        ctrl.setValidators([Validators.required, Validators.maxLength(500)]);
+      } else {
+        ctrl.setValidators([Validators.required]);
+      }
+    } else {
+      if (controlName === 'intitule') {
+        ctrl.setValidators([Validators.maxLength(500)]);
+      } else {
+        ctrl.clearValidators();
+      }
+    }
+    ctrl.updateValueAndValidity({ emitEvent: false });
   }
 
   private initForm(): void {
@@ -436,6 +517,10 @@ export class InventaireFormComponent implements OnInit {
         }
       }
     }
+
+    // Réajuster les validators d'après l'état chargé (sinon les conditionnels
+    // sur protocole_dans_campanule, suit_indicateur, etc., ne sont pas posés).
+    this.syncConditionalValidators();
   }
 
   toggleSection(section: string): void {
@@ -554,9 +639,71 @@ export class InventaireFormComponent implements OnInit {
     }
   }
 
+  /** Tableau (formControlName → clé i18n du label) pour les messages d'erreur. */
+  private readonly fieldLabelKeys: Record<string, string> = {
+    intitule: 'inventaires.form.intitule',
+    integre_plan_gestion: 'inventaires.form.integrePG',
+    suit_indicateur: 'inventaires.form.suitIndicateur',
+    type_indicateur: 'inventaires.form.typeIndicateur',
+    objectif_principal: 'inventaires.form.objectifPrincipal',
+    cibles_principales: 'inventaires.form.ciblesPrincipales',
+    date_lancement_suivi: 'inventaires.form.dateLancement',
+    protocole_dans_campanule: 'inventaires.form.protocoleCampanule',
+    cd_protocole_campanule: 'inventaires.form.protocoleCampanuleNom',
+    nom_protocole: 'inventaires.form.nomProtocole',
+    frequence_nombre: 'inventaires.form.frequence',
+    frequence_unite: 'inventaires.form.frequence',
+    respect_protocole: 'inventaires.form.respectProtocole',
+    documentation_disponible: 'inventaires.form.documentationDisponible',
+    nb_etp_cycle: 'inventaires.form.nbEtpCycle',
+  };
+
+  private showValidationErrorMessage(): void {
+    const labels = new Set<string>();
+    for (const [name, control] of Object.entries(this.form.controls)) {
+      if (control.invalid && this.fieldLabelKeys[name]) {
+        labels.add(this.translate.instant(this.fieldLabelKeys[name]));
+      }
+    }
+    const list = Array.from(labels);
+    if (list.length > 0) {
+      this.errorMessage.set(
+        this.translate.instant('inventaires.errors.validationFailedWithFields', {
+          fields: list.join(', '),
+        }),
+      );
+    } else {
+      this.errorMessage.set(this.translate.instant('inventaires.errors.validationFailed'));
+    }
+  }
+
+  private scrollToError(): void {
+    setTimeout(() => {
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const candidates = this.elRef.nativeElement.querySelectorAll(
+        'mat-form-field.ng-invalid, mat-radio-group.ng-invalid, mat-select.ng-invalid, .ng-invalid:not(form):not(mat-form-field):not(mat-radio-group):not(mat-select)',
+      ) as NodeListOf<HTMLElement>;
+      for (const el of Array.from(candidates)) {
+        if (el.tagName === 'FORM') continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const focusable = el.querySelector('input, textarea, [tabindex]:not([tabindex="-1"])') as HTMLElement | null;
+        focusable?.focus({ preventScroll: true });
+        return;
+      }
+    });
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.showValidationErrorMessage();
+      this.scrollToError();
       return;
     }
 

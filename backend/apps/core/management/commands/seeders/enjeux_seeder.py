@@ -4884,10 +4884,13 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2020-03-01',
                 'annee_fin_suivi': 2022,
                 'actif': False,
+                'integre_plan_gestion': False,
 
                 'id_type_action': ta_cs6_2,
                 'id_statut': statut_termine,
                 'commentaires': 'Inventaire terminé, rapport final disponible',
+                'frequence_nombre': 1,
+                'frequence_unite': 'AN',
             },
             {
                 'intitule': 'Suivi et inventaire amphibiens',
@@ -4911,6 +4914,7 @@ class EnjeuxSeeder(BaseSeeder):
                 'cibles_principales': 'STRUCTURES_PAYSAGE',
                 'date_lancement_suivi': '2026-04-01',
                 'actif': True,
+                'integre_plan_gestion': False,
 
                 'id_type_action': ta_cs12,
                 'id_statut': statut_a_venir,
@@ -4925,16 +4929,35 @@ class EnjeuxSeeder(BaseSeeder):
                 'date_lancement_suivi': '2016-05-01',
                 'annee_fin_suivi': 2019,
                 'actif': False,
+                'integre_plan_gestion': False,
 
                 'id_type_action': ta_cs8_6,
                 'id_statut': statut_termine,
                 'commentaires': 'Étude terminée, résultats publiés',
+                'frequence_nombre': 1,
+                'frequence_unite': 'AN',
             },
         ]
 
         for data in standalone_data:
+            # Créer un Protocole minimal pour chaque suivi standalone afin que
+            # l'édition via le formulaire d'inventaire passe les validators
+            # conditionnels (protocole_dans_campanule, respect_protocole, etc.).
+            protocole = Protocole.objects.create(
+                protocole_dans_campanule=False,
+                nom_protocole=f"Protocole {data['intitule'][:80]}",
+                respect_protocole=True,
+                description_protocole='Protocole standard décrit dans la fiche du suivi.',
+                objectif_protocole=data.get('objectif_principal', '') or '',
+                periode_echantillonnage='',
+                documentation_disponible=False,
+                nb_etp_cycle=1.0,
+                id_utilisateur_ajout=admin,
+            )
+            protocoles_created += 1
             suivi = SuiviInventaire.objects.create(
                 id_utilisateur_ajout=admin,
+                id_protocole=protocole,
                 **data,
             )
             standalone_suivis_created += 1

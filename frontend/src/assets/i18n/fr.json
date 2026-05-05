@@ -2676,7 +2676,9 @@
     },
     "errors": {
       "loadFailed": "Erreur lors du chargement des données",
-      "saveFailed": "Erreur lors de l'enregistrement"
+      "saveFailed": "Erreur lors de l'enregistrement",
+      "validationFailed": "Le formulaire contient des erreurs. Veuillez compléter les champs obligatoires marqués d'un *.",
+      "validationFailedWithFields": "Champs obligatoires manquants : {{fields}}."
     }
   },
   "campanule": {
