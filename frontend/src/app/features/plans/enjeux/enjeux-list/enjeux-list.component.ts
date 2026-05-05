@@ -180,6 +180,8 @@ export class EnjeuxListComponent implements OnInit {
   expandedOperationIds = signal<Set<number>>(new Set());
   // Pending scroll to a specific operation after data loads
   pendingScrollToOperation = signal<number | null>(null);
+  // Pending scroll to a specific métrique after data loads (retour depuis form action annulé)
+  pendingScrollToMetrique = signal<number | null>(null);
 
   // Indicateurs state
   expandedIndicateurIds = signal<Set<number>>(new Set());
@@ -415,8 +417,15 @@ export class EnjeuxListComponent implements OnInit {
             this.pendingScrollToOperation.set(opId);
           }
         }
+        const expandMetrique = qp.get('expandMetrique');
+        if (expandMetrique) {
+          const metId = parseInt(expandMetrique, 10);
+          if (!isNaN(metId)) {
+            this.pendingScrollToMetrique.set(metId);
+          }
+        }
         // Clean up query params from URL
-        if (expandOo || expandOperation) {
+        if (expandOo || expandOperation || expandMetrique) {
           this.router.navigate([], {
             relativeTo: this.route,
             queryParams: {},
@@ -429,12 +438,19 @@ export class EnjeuxListComponent implements OnInit {
     });
   }
 
-  loadPlanData(): void {
+  /**
+   * Recharge les données du plan.
+   * @param silent Si true, ne déclenche pas le spinner global (DOM préservé → scroll conservé).
+   *               À utiliser après une saisie pour éviter le retour en haut de page.
+   */
+  loadPlanData(silent: boolean = false): void {
     const slug = this.planSlug();
     if (!slug) return;
 
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
+    if (!silent) {
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+    }
 
     const existingPlanId = this.planId();
 
@@ -443,12 +459,15 @@ export class EnjeuxListComponent implements OnInit {
       this.enjeuService.getPlanEnjeux(existingPlanId, true).subscribe({
         next: (response) => {
           this.planEnjeuxData.set(response);
-          this.isLoading.set(false);
+          if (!silent) this.isLoading.set(false);
           this.expandAndScrollToOperation();
+          this.expandAndScrollToMetrique();
         },
         error: () => {
-          this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
-          this.isLoading.set(false);
+          if (!silent) {
+            this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+            this.isLoading.set(false);
+          }
         }
       });
       return;
@@ -466,18 +485,20 @@ export class EnjeuxListComponent implements OnInit {
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
             this.planEnjeuxData.set(response);
-            this.isLoading.set(false);
+            if (!silent) this.isLoading.set(false);
             this.expandAndScrollToOperation();
           },
           error: () => {
-            this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
-            this.isLoading.set(false);
+            if (!silent) {
+              this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+              this.isLoading.set(false);
+            }
           }
         });
       },
       error: () => {
         this.errorMessage.set('Plan non trouvé');
-        this.isLoading.set(false);
+        if (!silent) this.isLoading.set(false);
       }
     });
   }
@@ -691,7 +712,7 @@ export class EnjeuxListComponent implements OnInit {
                 this.router.navigate(['/plans', slug, 'enjeux']);
               }
             }
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(
@@ -759,7 +780,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelAddFacteur();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -788,7 +809,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -878,7 +899,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelAddPression();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -907,7 +928,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -1019,7 +1040,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditPression();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -1232,7 +1253,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelAddNe();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -1266,7 +1287,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditNe();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -1295,7 +1316,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -1620,7 +1641,7 @@ export class EnjeuxListComponent implements OnInit {
           this.addingIndicateurForNe.set(null);
           this.indicateurFormMetriques = [];
           this.isSavingIndicateur.set(false);
-          this.loadPlanData();
+          this.loadPlanData(true);
           return;
         }
 
@@ -1639,7 +1660,7 @@ export class EnjeuxListComponent implements OnInit {
             this.addingIndicateurForNe.set(null);
             this.indicateurFormMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             // Partial success: indicateur created but some metriques failed
@@ -1651,7 +1672,7 @@ export class EnjeuxListComponent implements OnInit {
             this.addingIndicateurForNe.set(null);
             this.indicateurFormMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           }
         });
       },
@@ -1694,7 +1715,7 @@ export class EnjeuxListComponent implements OnInit {
         this.addingMetriqueForIndicateur.set(null);
         this.standaloneMetriqueForm = null;
         this.isSavingStandaloneMetrique.set(false);
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.isSavingStandaloneMetrique.set(false);
@@ -1785,7 +1806,7 @@ export class EnjeuxListComponent implements OnInit {
           this.editingIndicateurId.set(null);
           this.editIndicateurMetriques = [];
           this.isSavingIndicateur.set(false);
-          this.loadPlanData();
+          this.loadPlanData(true);
           return;
         }
 
@@ -1799,7 +1820,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingIndicateurId.set(null);
             this.editIndicateurMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.snackBar.open(
@@ -1810,7 +1831,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingIndicateurId.set(null);
             this.editIndicateurMetriques = [];
             this.isSavingIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           }
         });
       },
@@ -1847,7 +1868,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           }
         });
       }
@@ -1885,7 +1906,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           }
         });
       }
@@ -2025,6 +2046,59 @@ export class EnjeuxListComponent implements OnInit {
                 this.scrollToElement(`operation-${opId}`);
                 return;
               }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * After data is loaded, if a pending métrique scroll target exists,
+   * walk the enjeu tree to find it, expand its parent OO/OLT/indicateur, then scroll.
+   * Utilisé pour ramener l'utilisateur à proximité de l'endroit d'où il a ouvert
+   * le formulaire d'action quand celui-ci est annulé (pas d'opération créée).
+   */
+  private expandAndScrollToMetrique(): void {
+    const metId = this.pendingScrollToMetrique();
+    if (!metId) return;
+    this.pendingScrollToMetrique.set(null);
+
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu) return;
+
+    // Branche OO (onglet operations)
+    for (const fi of enjeu.facteurs_influence || []) {
+      for (const pression of fi.pressions || []) {
+        for (const oo of pression.objectifs_operationnels || []) {
+          for (const ra of oo.resultats_attendus || []) {
+            for (const ind of ra.indicateurs || []) {
+              for (const met of ind.metriques || []) {
+                if (met.id_metrique === metId) {
+                  this.activeTab.set('operations');
+                  this.expandedOoIds.update(s => { const ns = new Set(s); ns.add(oo.id_oo); return ns; });
+                  this.expandedOoIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
+                  this.scrollToElement(`metrique-${metId}`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Branche NE (onglet olt)
+    for (const olt of enjeu.objectifs_long_terme || []) {
+      for (const ne of olt.niveaux_exigence || []) {
+        for (const ind of ne.indicateurs || []) {
+          for (const met of ind.metriques || []) {
+            if (met.id_metrique === metId) {
+              this.activeTab.set('olt');
+              this.expandedOltIds.update(s => { const ns = new Set(s); ns.add(olt.id_olt); return ns; });
+              this.expandedIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
+              this.scrollToElement(`metrique-${metId}`);
+              return;
             }
           }
         }
@@ -2416,7 +2490,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.snackBar.open(
@@ -2488,7 +2562,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelAddOo();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -2525,7 +2599,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditOo();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -2554,7 +2628,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -2595,7 +2669,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelAddRa();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
@@ -2629,7 +2703,7 @@ export class EnjeuxListComponent implements OnInit {
           { duration: 3000 }
         );
         this.cancelEditRa();
-        this.loadPlanData();
+        this.loadPlanData(true);
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.updateError'));
@@ -2658,7 +2732,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
@@ -2751,11 +2825,11 @@ export class EnjeuxListComponent implements OnInit {
                 { duration: 3000 }
               );
               this.cancelAddIndicateurForRa();
-              this.loadPlanData();
+              this.loadPlanData(true);
             },
             error: () => {
               this.isSavingOoIndicateur.set(false);
-              this.loadPlanData();
+              this.loadPlanData(true);
             }
           });
         } else {
@@ -2766,7 +2840,7 @@ export class EnjeuxListComponent implements OnInit {
             { duration: 3000 }
           );
           this.cancelAddIndicateurForRa();
-          this.loadPlanData();
+          this.loadPlanData(true);
         }
       },
       error: () => {
@@ -2850,7 +2924,7 @@ export class EnjeuxListComponent implements OnInit {
           this.editingOoIndicateurId.set(null);
           this.editOoIndicateurMetriques = [];
           this.isSavingOoIndicateur.set(false);
-          this.loadPlanData();
+          this.loadPlanData(true);
           return;
         }
 
@@ -2864,7 +2938,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingOoIndicateurId.set(null);
             this.editOoIndicateurMetriques = [];
             this.isSavingOoIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.snackBar.open(
@@ -2875,7 +2949,7 @@ export class EnjeuxListComponent implements OnInit {
             this.editingOoIndicateurId.set(null);
             this.editOoIndicateurMetriques = [];
             this.isSavingOoIndicateur.set(false);
-            this.loadPlanData();
+            this.loadPlanData(true);
           }
         });
       },
@@ -2911,7 +2985,7 @@ export class EnjeuxListComponent implements OnInit {
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
-            this.loadPlanData();
+            this.loadPlanData(true);
           },
           error: () => {
             this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));

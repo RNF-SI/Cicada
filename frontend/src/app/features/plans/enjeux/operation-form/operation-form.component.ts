@@ -960,7 +960,7 @@ export class OperationFormComponent implements OnInit {
       });
     } else {
       this.enjeuService.createOperation(payload).subscribe({
-        next: () => {
+        next: (created) => {
           this.isLoading.set(false);
           this.snackBar.open(
             this.translate.instant('enjeux.operations.createSuccess'),
@@ -968,7 +968,7 @@ export class OperationFormComponent implements OnInit {
             { duration: 3000 }
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
-          this.goBack();
+          this.goBack(created?.id_operation ?? null);
         },
         error: (error) => {
           this.isLoading.set(false);
@@ -993,7 +993,14 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
-  goBack(): void {
+  /**
+   * Retour vers la liste des enjeux.
+   * @param overrideOpId Si fourni, utilisé comme cible de scroll (ex. id de l'opération
+   *                     fraîchement créée). Sinon on retombe sur l'opération en cours
+   *                     d'édition, ou à défaut sur la métrique pré-liée pour scroller
+   *                     l'utilisateur à proximité de l'endroit d'où il vient.
+   */
+  goBack(overrideOpId: number | null = null): void {
     const slug = this.planSlug();
     if (!slug) {
       this.router.navigate(['/plans']);
@@ -1001,11 +1008,18 @@ export class OperationFormComponent implements OnInit {
     }
 
     const returnEnjeu = this.returnEnjeuSlug();
-    const opId = this.operationId();
+    const opId = overrideOpId ?? this.operationId();
+    const metriqueId = this.prelinkedMetriqueId();
     if (returnEnjeu) {
+      const queryParams: Record<string, number | string> = { tab: 'operations' };
+      if (opId) {
+        queryParams['expandOperation'] = opId;
+      } else if (metriqueId) {
+        queryParams['expandMetrique'] = metriqueId;
+      }
       this.router.navigate(
         ['/plans', slug, 'enjeux', returnEnjeu],
-        { queryParams: { tab: 'operations', ...(opId ? { expandOperation: opId } : {}) } }
+        { queryParams }
       );
     } else {
       this.router.navigate(['/plans', slug, 'enjeux']);

@@ -947,7 +947,7 @@
                                               <!-- Métriques avec opérations imbriquées -->
                                               @if (ind.metriques && ind.metriques.length > 0) {
                                                 @for (met of ind.metriques; track met.id_metrique) {
-                                                  <div class="metrique-block">
+                                                  <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
                                                     <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
                                                     <div class="metriques-table-wrapper">
                                                       <table class="metriques-table">
@@ -2036,7 +2036,7 @@
                                       <!-- Métriques avec opérations imbriquées -->
                                       @if (ind.metriques && ind.metriques.length > 0) {
                                         @for (met of ind.metriques; track met.id_metrique) {
-                                          <div class="metrique-block">
+                                          <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
                                             <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
                                             <div class="metriques-table-wrapper">
                                               <table class="metriques-table">
