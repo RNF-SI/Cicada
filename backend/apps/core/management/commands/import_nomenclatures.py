@@ -49,12 +49,20 @@ class Command(BaseCommand):
         if prune:
             force = True
 
-        if not force and self._nomenclatures_already_exist():
-            self.stdout.write(self.style.SUCCESS(
-                '✓ Les nomenclatures sont déjà importées - import ignoré'
-            ))
-            self.stdout.write('  (Utilisez --force pour mettre à jour, --force --prune pour nettoyer)')
-            return
+        if not force:
+            if self._nomenclatures_already_exist():
+                self.stdout.write(self.style.SUCCESS(
+                    '✓ Les nomenclatures sont déjà importées - import ignoré'
+                ))
+                self.stdout.write('  (Utilisez --force pour mettre à jour, --force --prune pour nettoyer)')
+                return
+            # Base partielle (quelques entrées créées par migrations/seeds) :
+            # bascule automatiquement en upsert pour éviter les conflits PK.
+            if self._has_partial_data():
+                self.stdout.write(self.style.WARNING(
+                    '⚠ Données partielles détectées - bascule en mode upsert'
+                ))
+                force = True
 
         # Chemins vers les fichiers SQL
         project_dir = Path(__file__).resolve().parents[4]  # backend/
@@ -102,12 +110,46 @@ class Command(BaseCommand):
             raise
 
     def _nomenclatures_already_exist(self):
-        """Vérifie si les nomenclatures sont déjà importées."""
+        """Vérifie si l'import des nomenclatures est complet.
+
+        Compare le nombre de lignes en base au nombre d'INSERT dans les fichiers
+        source. Permet d'éviter de skipper l'import quand seules quelques entrées
+        ont été créées par ailleurs (migrations, seed_testdata partiels, etc.).
+        """
+        try:
+            project_dir = Path(__file__).resolve().parents[4]
+            types_file = project_dir / 'nomenclatures_data' / 'types_inserts.sql'
+            noms_file = project_dir / 'nomenclatures_data' / 'nomenclatures_inserts.sql'
+            if not types_file.exists() or not noms_file.exists():
+                return False
+
+            expected_types = sum(
+                1 for line in types_file.read_text().splitlines()
+                if line.strip().upper().startswith('INSERT')
+            )
+            expected_noms = sum(
+                1 for line in noms_file.read_text().splitlines()
+                if line.strip().upper().startswith('INSERT')
+            )
+
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT COUNT(*) FROM bib_nomenclatures_types')
+                types_count = cursor.fetchone()[0]
+                cursor.execute('SELECT COUNT(*) FROM t_nomenclatures')
+                noms_count = cursor.fetchone()[0]
+            return types_count >= expected_types and noms_count >= expected_noms
+        except Exception:
+            return False
+
+    def _has_partial_data(self):
+        """Renvoie True s'il y a au moins une entrée en base (mais pas tout)."""
         try:
             with connection.cursor() as cursor:
+                cursor.execute('SELECT COUNT(*) FROM bib_nomenclatures_types')
+                types_count = cursor.fetchone()[0]
                 cursor.execute('SELECT COUNT(*) FROM t_nomenclatures')
-                count = cursor.fetchone()[0]
-                return count > 0
+                noms_count = cursor.fetchone()[0]
+            return types_count > 0 or noms_count > 0
         except Exception:
             return False
 
