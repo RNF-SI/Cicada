@@ -2,6 +2,8 @@
 
 **CICADA** - Application web de gestion des plans de gestion d'espaces naturels développée pour le **CEN** (Conservatoire d'Espaces Naturels) et **RNF** (Réserves Naturelles de France).
 
+> 📄 Pour une présentation détaillée du projet, consultez le document [Présentation_projet_CICADA_VF.pdf](docs/Présentation_projet_CICADA_VF.pdf), qui contient davantage d'informations sur le contexte, les objectifs et le périmètre fonctionnel.
+
 ## 🎯 Objectif
 
 Centraliser et standardiser la gestion des plans de gestion des aires protégées françaises avec :
