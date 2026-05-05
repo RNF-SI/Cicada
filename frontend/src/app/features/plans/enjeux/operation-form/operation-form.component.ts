@@ -6,7 +6,7 @@
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
 import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -76,6 +76,7 @@ export class OperationFormComponent implements OnInit {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly fb = inject(FormBuilder);
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
@@ -587,6 +588,7 @@ export class OperationFormComponent implements OnInit {
       }
 
       this.form.patchValue({
+        intitule_suivi: suivi.intitule || '',
         objectif_principal: suivi.objectif_principal || '',
         objectif_secondaire: suivi.objectif_secondaire || '',
         cibles_principales: suivi.cibles_principales || null,
@@ -968,7 +970,7 @@ export class OperationFormComponent implements OnInit {
             { duration: 3000 }
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
-          this.goBack(created?.id_operation ?? null);
+          this.navigateAfterCreate(created?.id_operation ?? null);
         },
         error: (error) => {
           this.isLoading.set(false);
@@ -994,13 +996,18 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * Retour vers la liste des enjeux.
-   * @param overrideOpId Si fourni, utilisé comme cible de scroll (ex. id de l'opération
-   *                     fraîchement créée). Sinon on retombe sur l'opération en cours
-   *                     d'édition, ou à défaut sur la métrique pré-liée pour scroller
-   *                     l'utilisateur à proximité de l'endroit d'où il vient.
+   * Retour à la page précédente via l'historique du navigateur.
+   * Préserve l'URL exacte (filtres, onglet, query params) et la position de scroll.
    */
-  goBack(overrideOpId: number | null = null): void {
+  goBack(): void {
+    this.location.back();
+  }
+
+  /**
+   * Navigation après création d'une nouvelle action : on cible l'enjeu d'origine
+   * en demandant à la liste de déployer et scroller jusqu'à la nouvelle action.
+   */
+  private navigateAfterCreate(newOpId: number | null): void {
     const slug = this.planSlug();
     if (!slug) {
       this.router.navigate(['/plans']);
@@ -1008,12 +1015,11 @@ export class OperationFormComponent implements OnInit {
     }
 
     const returnEnjeu = this.returnEnjeuSlug();
-    const opId = overrideOpId ?? this.operationId();
     const metriqueId = this.prelinkedMetriqueId();
     if (returnEnjeu) {
       const queryParams: Record<string, number | string> = { tab: 'operations' };
-      if (opId) {
-        queryParams['expandOperation'] = opId;
+      if (newOpId) {
+        queryParams['expandOperation'] = newOpId;
       } else if (metriqueId) {
         queryParams['expandMetrique'] = metriqueId;
       }

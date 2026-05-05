@@ -3,7 +3,7 @@
  * - Sans enjeu sélectionné : liste plate de cartes accordéon
  * - Avec enjeu sélectionné (route :enjeuId) : vue détail avec 3 onglets
  */
-import { Component, OnInit, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -80,7 +80,7 @@ type TabType = 'detail' | 'olt' | 'operations';
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'
 })
-export class EnjeuxListComponent implements OnInit {
+export class EnjeuxListComponent implements OnInit, OnDestroy {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -388,6 +388,14 @@ export class EnjeuxListComponent implements OnInit {
     ).subscribe(params => {
       const enjeuSlug = params['enjeuSlug'];
       if (enjeuSlug) {
+        const previousEnjeuSlug = this.selectedEnjeuSlug();
+        // Si on change d'enjeu sans démonter le composant, sauver l'état du précédent
+        // et réinitialiser pour que le restore se fasse pour le nouvel enjeu.
+        if (previousEnjeuSlug && previousEnjeuSlug !== enjeuSlug) {
+          this.saveUiState();
+          this.resetExpansionState();
+          this.hasRestoredUiState = false;
+        }
         this.selectedEnjeuSlug.set(enjeuSlug);
         this.enjeuDetailExpanded.set(true);
         // Reset list toggle state on enjeu change
@@ -424,13 +432,24 @@ export class EnjeuxListComponent implements OnInit {
             this.pendingScrollToMetrique.set(metId);
           }
         }
-        // Clean up query params from URL
+        // Nettoyer uniquement les params éphémères (expand*) — on garde "tab"
+        // pour que Location.back() restaure le bon onglet.
         if (expandOo || expandOperation || expandMetrique) {
           this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: {},
+            queryParams: { expandOo: null, expandOperation: null, expandMetrique: null },
+            queryParamsHandling: 'merge',
             replaceUrl: true,
           });
+        }
+
+        // Sur changement d'enjeu (pas le tout premier load), restaurer l'état
+        // sauvegardé pour le nouvel enjeu. Au premier load, applyPostLoadNavigation
+        // s'en occupera après le chargement des données.
+        if (previousEnjeuSlug && previousEnjeuSlug !== enjeuSlug) {
+          const hasUrlScrollTarget = !!this.pendingScrollToOperation() || !!this.pendingScrollToMetrique();
+          this.restoreUiState(hasUrlScrollTarget);
+          this.hasRestoredUiState = true;
         }
       } else {
         this.selectedEnjeuSlug.set(null);
@@ -460,8 +479,7 @@ export class EnjeuxListComponent implements OnInit {
         next: (response) => {
           this.planEnjeuxData.set(response);
           if (!silent) this.isLoading.set(false);
-          this.expandAndScrollToOperation();
-          this.expandAndScrollToMetrique();
+          this.applyPostLoadNavigation();
         },
         error: () => {
           if (!silent) {
@@ -486,7 +504,7 @@ export class EnjeuxListComponent implements OnInit {
           next: (response) => {
             this.planEnjeuxData.set(response);
             if (!silent) this.isLoading.set(false);
-            this.expandAndScrollToOperation();
+            this.applyPostLoadNavigation();
           },
           error: () => {
             if (!silent) {
@@ -501,6 +519,139 @@ export class EnjeuxListComponent implements OnInit {
         if (!silent) this.isLoading.set(false);
       }
     });
+  }
+
+  /** Vrai après le premier restoreUiState — empêche les loadPlanData(silent=true) post-CRUD d'écraser l'état actuel. */
+  private hasRestoredUiState = false;
+
+  /** Dernier élément avec lequel l'utilisateur a interagi avant de quitter la page (clic sur une action,
+   *  une métrique, etc.). Utilisé au retour pour scroller jusqu'à cet élément précis (plus fiable que
+   *  window.scrollTo qui peut clamper si la hauteur du document n'est pas encore stabilisée). */
+  private lastScrollAnchor: { type: 'operation' | 'metrique'; id: number } | null = null;
+
+  /**
+   * Après chargement des données, restaure l'état UI sauvegardé (expansions + scroll)
+   * une seule fois, puis applique les éventuels deep-links (expand* URL — création d'action).
+   */
+  private applyPostLoadNavigation(): void {
+    if (!this.hasRestoredUiState) {
+      const hasUrlScrollTarget = !!this.pendingScrollToOperation() || !!this.pendingScrollToMetrique();
+      this.restoreUiState(hasUrlScrollTarget);
+      this.hasRestoredUiState = true;
+    }
+    this.expandAndScrollToOperation();
+    this.expandAndScrollToMetrique();
+  }
+
+  // ============================================
+  // Sauvegarde / restauration de l'état UI (sessionStorage)
+  // Permet de retrouver les nœuds dépliés et la position de scroll au retour
+  // depuis un formulaire (création/édition action, enjeu, FCR…).
+  // ============================================
+
+  private uiStateKey(): string {
+    return `enjeux-ui-state:${this.planSlug()}:${this.selectedEnjeuSlug() || ''}`;
+  }
+
+  private saveUiState(): void {
+    if (!this.planSlug() || !this.selectedEnjeuSlug()) return;
+    const state = {
+      activeTab: this.activeTab(),
+      enjeuDetailExpanded: this.enjeuDetailExpanded(),
+      expandedFcrIds: Array.from(this.expandedFcrIds()),
+      expandedFacteurIds: Array.from(this.expandedFacteurIds()),
+      expandedPressionIds: Array.from(this.expandedPressionIds()),
+      expandedOltIds: Array.from(this.expandedOltIds()),
+      expandedIndicateurIds: Array.from(this.expandedIndicateurIds()),
+      expandedOperationIds: Array.from(this.expandedOperationIds()),
+      expandedOoIds: Array.from(this.expandedOoIds()),
+      expandedOoIndicateurIds: Array.from(this.expandedOoIndicateurIds()),
+      expandedOoOperationIds: Array.from(this.expandedOoOperationIds()),
+      scrollY: window.scrollY,
+      anchor: this.lastScrollAnchor,
+    };
+    try {
+      sessionStorage.setItem(this.uiStateKey(), JSON.stringify(state));
+    } catch {
+      // QuotaExceeded ou sessionStorage indisponible — on ignore silencieusement
+    }
+  }
+
+  private restoreUiState(skipScroll: boolean): void {
+    if (!this.selectedEnjeuSlug()) return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(this.uiStateKey());
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      const state = JSON.parse(raw) as Partial<{
+        activeTab: TabType;
+        enjeuDetailExpanded: boolean;
+        expandedFcrIds: number[];
+        expandedFacteurIds: number[];
+        expandedPressionIds: number[];
+        expandedOltIds: number[];
+        expandedIndicateurIds: number[];
+        expandedOperationIds: number[];
+        expandedOoIds: number[];
+        expandedOoIndicateurIds: number[];
+        expandedOoOperationIds: number[];
+        scrollY: number;
+        anchor: { type: 'operation' | 'metrique'; id: number } | null;
+      }>;
+      if (state.activeTab === 'detail' || state.activeTab === 'olt' || state.activeTab === 'operations') {
+        // Ne pas écraser si la query string a déjà fixé un onglet plus pertinent
+        const urlTab = this.route.snapshot.queryParamMap.get('tab');
+        if (!urlTab) this.activeTab.set(state.activeTab);
+      }
+      if (typeof state.enjeuDetailExpanded === 'boolean') this.enjeuDetailExpanded.set(state.enjeuDetailExpanded);
+      this.expandedFcrIds.set(new Set<number>(state.expandedFcrIds ?? []));
+      this.expandedFacteurIds.set(new Set<number>(state.expandedFacteurIds ?? []));
+      this.expandedPressionIds.set(new Set<number>(state.expandedPressionIds ?? []));
+      this.expandedOltIds.set(new Set<number>(state.expandedOltIds ?? []));
+      this.expandedIndicateurIds.set(new Set<number>(state.expandedIndicateurIds ?? []));
+      this.expandedOperationIds.set(new Set<number>(state.expandedOperationIds ?? []));
+      this.expandedOoIds.set(new Set<number>(state.expandedOoIds ?? []));
+      this.expandedOoIndicateurIds.set(new Set<number>(state.expandedOoIndicateurIds ?? []));
+      this.expandedOoOperationIds.set(new Set<number>(state.expandedOoOperationIds ?? []));
+      if (!skipScroll) {
+        // Priorité à l'ancre élément (plus fiable que window.scrollTo qui peut clamper
+        // si la hauteur du document n'est pas encore stabilisée).
+        if (state.anchor) {
+          this.lastScrollAnchor = state.anchor;
+          const elementId = `${state.anchor.type}-${state.anchor.id}`;
+          // scrollToElement poll le DOM jusqu'à 2s (le temps que les @if dépliés rendent)
+          setTimeout(() => this.scrollToElement(elementId), 50);
+        } else if (typeof state.scrollY === 'number') {
+          const targetY = state.scrollY;
+          setTimeout(() => window.scrollTo({ top: targetY, behavior: 'instant' as ScrollBehavior }), 50);
+        }
+      }
+    } catch {
+      // JSON corrompu — ignorer
+    }
+  }
+
+  /** Réinitialise tous les sets d'expansion + l'ancre de scroll. Utilisé lors d'un changement
+   *  d'enjeu pour éviter que les IDs dépliés du précédent enjeu ne restent dans les signaux. */
+  private resetExpansionState(): void {
+    this.expandedFcrIds.set(new Set());
+    this.expandedFacteurIds.set(new Set());
+    this.expandedPressionIds.set(new Set());
+    this.expandedOltIds.set(new Set());
+    this.expandedIndicateurIds.set(new Set());
+    this.expandedOperationIds.set(new Set());
+    this.expandedOoIds.set(new Set());
+    this.expandedOoIndicateurIds.set(new Set());
+    this.expandedOoOperationIds.set(new Set());
+    this.lastScrollAnchor = null;
+  }
+
+  ngOnDestroy(): void {
+    this.saveUiState();
   }
 
   // ============================================
@@ -626,6 +777,13 @@ export class EnjeuxListComponent implements OnInit {
   // Onglets (vue détail)
   setActiveTab(tab: TabType): void {
     this.activeTab.set(tab);
+    // Synchroniser l'onglet à l'URL pour que back/refresh restaurent le bon onglet
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab === 'detail' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   // Toggle detail card expand/collapse
@@ -2187,16 +2345,14 @@ export class EnjeuxListComponent implements OnInit {
   }
 
   /**
-   * Check if an operation year is planned (periodicite or monthly planning).
+   * Check if an operation year is planned (annual periodicite checkbox only).
+   * The monthly template is shared across all years and indicates WHICH months
+   * within a planned year, not WHETHER a year is planned.
    */
   isYearPlanned(op: Operation, year: number): boolean {
     const annee = this.getOperationAnnee(op, year);
     if (!annee) return false;
-    if (annee.periodicite) return true;
-    if (annee.periodicite_mensuelle) {
-      return Object.values(annee.periodicite_mensuelle).some(v => v === true);
-    }
-    return false;
+    return !!annee.periodicite;
   }
 
   /**
@@ -2344,6 +2500,9 @@ export class EnjeuxListComponent implements OnInit {
   navigateToOperationForm(metriqueId?: number): void {
     const slug = this.planSlug();
     if (!slug) return;
+    if (metriqueId) {
+      this.lastScrollAnchor = { type: 'metrique', id: metriqueId };
+    }
     const queryParams: any = {};
     if (metriqueId) queryParams.metriqueId = metriqueId;
     const enjeuSlug = this.selectedEnjeuSlug();
@@ -2451,6 +2610,7 @@ export class EnjeuxListComponent implements OnInit {
   navigateToEditOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
+    this.lastScrollAnchor = { type: 'operation', id: operationId };
     const enjeuSlug = this.selectedEnjeuSlug();
     this.router.navigate(
       ['/plans', slug, 'enjeux', 'operations', operationId, 'modifier'],
@@ -2462,6 +2622,7 @@ export class EnjeuxListComponent implements OnInit {
   navigateToViewOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
+    this.lastScrollAnchor = { type: 'operation', id: operationId };
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
   }
 

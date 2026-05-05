@@ -221,11 +221,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     const annee = op.operation_annees.find(a => a.annee === year);
     if (!annee) return null;
 
-    // Check if any months are planned
-    const hasPlanning = annee.periodicite ||
-      (annee.periodicite_mensuelle && Object.values(annee.periodicite_mensuelle).some(v => v === true));
-
-    if (hasPlanning) {
+    if (annee.periodicite) {
       return 'planned';
     }
     return null;
