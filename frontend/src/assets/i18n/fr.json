@@ -2152,7 +2152,9 @@
       "createError": "Erreur lors de la création",
       "updateError": "Erreur lors de la mise à jour",
       "deleteError": "Erreur lors de la suppression",
-      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?",
+      "validationFailed": "Le formulaire contient des erreurs. Veuillez compléter les champs obligatoires marqués d'un *.",
+      "validationFailedWithFields": "Champs obligatoires manquants : {{fields}}."
     },
     "importList": {
       "titleTaxon": "Importer une liste d'espèces",

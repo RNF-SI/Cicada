@@ -644,6 +644,11 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
+    // Synchronise les validators conditionnels (notamment intitule_suivi requis
+    // pour CS + nouveau suivi) — sinon en édition l'utilisateur peut vider le
+    // champ et sauvegarder sans erreur.
+    this.syncConditionalValidators();
+
     // Restore site selections
     if (op.site_ids) {
       for (const siteId of op.site_ids) {
@@ -750,6 +755,7 @@ export class OperationFormComponent implements OnInit {
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.showValidationErrorMessage();
       this.scrollToError();
       return;
     }
@@ -983,15 +989,98 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Met à jour les validators conditionnels en fonction de l'état du formulaire.
+   * Pour l'instant : intitule_suivi requis si action CS et nouveau suivi.
+   * Doit être appelé après populateForm, au changement de type d'action, ou au
+   * toggle "suivi existant".
+   */
+  private syncConditionalValidators(): void {
+    const ctrl = this.form.get('intitule_suivi');
+    if (!ctrl) return;
+    if (this.isCSAction() && !this.estSuiviExistant()) {
+      ctrl.setValidators([Validators.required]);
+    } else {
+      ctrl.clearValidators();
+    }
+    ctrl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /**
+   * Tableau (formControlName, clé i18n du label) pour traduire les contrôles
+   * invalides en libellés humains dans le message d'erreur.
+   */
+  private readonly fieldLabelKeys: Record<string, string> = {
+    libelle: 'enjeux.operations.libelleLabel',
+    intitule_suivi: 'enjeux.operations.intituleSuiviLabel',
+    id_type_action: 'enjeux.operations.typeActionLabel',
+    objectif_principal: 'enjeux.operations.objectifPrincipal',
+    cibles_principales: 'enjeux.operations.ciblesPrincipales',
+    protocole_dans_campanule: 'enjeux.operations.protocoleCampanule',
+    protocole_campanule_nom: 'enjeux.operations.protocoleNom',
+    nom_protocole: 'enjeux.operations.nomProtocole',
+    respect_protocole: 'enjeux.operations.respectProtocole',
+  };
+
+  /**
+   * Construit un message d'erreur listant les champs invalides (libellés
+   * traduits) et l'affiche dans la bannière en haut du formulaire.
+   */
+  private showValidationErrorMessage(): void {
+    const invalidLabels = this.collectInvalidFieldLabels();
+    if (invalidLabels.length > 0) {
+      this.errorMessage.set(
+        this.translate.instant('enjeux.messages.validationFailedWithFields', {
+          fields: invalidLabels.join(', '),
+        }),
+      );
+    } else {
+      this.errorMessage.set(this.translate.instant('enjeux.messages.validationFailed'));
+    }
+  }
+
+  /** Liste les libellés (traduits) des contrôles invalides du formulaire. */
+  private collectInvalidFieldLabels(): string[] {
+    const labels: string[] = [];
+    for (const [name, control] of Object.entries(this.form.controls)) {
+      if (control.invalid && this.fieldLabelKeys[name]) {
+        labels.push(this.translate.instant(this.fieldLabelKeys[name]));
+      }
+    }
+    return labels;
+  }
+
+  /**
+   * Scrolle le premier contrôle invalide du formulaire au centre du viewport
+   * et y donne le focus. Couvre mat-form-field, mat-radio-group, mat-select
+   * (et fallback sur n'importe quel élément `.ng-invalid` non-form).
+   */
   private scrollToError(): void {
     setTimeout(() => {
+      // 1) Si on a un message d'erreur backend en bannière, on y va d'abord.
       const banner = this.elRef.nativeElement.querySelector('.error-banner');
       if (banner) {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
-      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // 2) Premier contrôle invalide en ordre du DOM (radio group, select, form-field).
+      const candidates = this.elRef.nativeElement.querySelectorAll(
+        'mat-form-field.ng-invalid, mat-radio-group.ng-invalid, mat-select.ng-invalid, .ng-invalid:not(form):not(mat-form-field):not(mat-radio-group):not(mat-select)',
+      ) as NodeListOf<HTMLElement>;
+
+      for (const el of Array.from(candidates)) {
+        // Ignore le formulaire racine et les éléments cachés (display:none).
+        if (el.tagName === 'FORM') continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus si possible (input, textarea ou bouton interne).
+        const focusable = el.querySelector('input, textarea, [tabindex]:not([tabindex="-1"])') as HTMLElement | null;
+        focusable?.focus({ preventScroll: true });
+        return;
+      }
     });
   }
 
@@ -1187,6 +1276,7 @@ export class OperationFormComponent implements OnInit {
       this.estSuiviExistant.set(false);
       this.form.get('libelle')?.enable();
     }
+    this.syncConditionalValidators();
   }
 
   clearTypeAction(): void {
@@ -1196,6 +1286,7 @@ export class OperationFormComponent implements OnInit {
     this.availableInventaires.set([]);
     this.estSuiviExistant.set(false);
     this.form.get('libelle')?.enable();
+    this.syncConditionalValidators();
   }
 
   /** Charge les inventaires existants filtrés par préfixe du type d'action CS */
