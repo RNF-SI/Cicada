@@ -843,6 +843,15 @@ body.leaflet-map-fullscreen-active {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Reference list autocomplete (taxons / habitats / géologie)
+// overlay CDK — doit être global pour atteindre le panel
+// Utilisé dans : enjeu-form, operation-form, inventaire-form
+// ════════════════════════════════════════════════════════════════
+.reference-autocomplete-panel.mat-mdc-autocomplete-panel {
+  max-height: 480px; // ~10 options visibles (48px chacune)
+}
+
+// ════════════════════════════════════════════════════════════════
 // Type d'action autocomplete (overlay CDK — doit être global)
 // Utilisé dans : operation-form, inventaire-form
 // ════════════════════════════════════════════════════════════════

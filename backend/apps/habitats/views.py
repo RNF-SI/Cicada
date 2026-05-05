@@ -45,15 +45,23 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
 
         limit = min(int(request.query_params.get('limit', 20)), 100)
 
+        is_numeric = search.isdigit()
+
         from django.db import connection
         with connection.cursor() as cursor:
             sql = """
                 SELECT cd_hab, cd_typo, lb_code, search_name,
                        lb_hab_fr, lb_hab_fr_complet, lb_typo, niveau
                 FROM ref_habitats.autocomplete_habitat
-                WHERE unaccent(search_name) ILIKE unaccent(%s)
+                WHERE (unaccent(search_name) ILIKE unaccent(%s)
             """
             params = [f'%{search}%']
+
+            if is_numeric:
+                sql += " OR cd_hab::text LIKE %s"
+                params.append(f'{search}%')
+
+            sql += ")"
 
             cd_typo = request.query_params.get('cd_typo')
             if cd_typo:
@@ -62,11 +70,15 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
 
             sql += """
                 ORDER BY
-                    CASE WHEN lower(lb_code) = lower(%s) THEN 0 ELSE 1 END,
+                    CASE
+                        WHEN cd_hab::text = %s THEN 0
+                        WHEN lower(lb_code) = lower(%s) THEN 1
+                        ELSE 2
+                    END,
                     similarity(unaccent(search_name), unaccent(%s)) DESC
                 LIMIT %s
             """
-            params.extend([search, search, limit])
+            params.extend([search, search, search, limit])
 
             cursor.execute(sql, params)
             columns = [col[0] for col in cursor.description]

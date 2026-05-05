@@ -36,9 +36,11 @@
            [formControl]="searchControl"
            [matAutocomplete]="auto"
            [placeholder]="(type === 'taxon' ? 'enjeux.referenceList.searchTaxonPlaceholder' : type === 'habitat' ? 'enjeux.referenceList.searchHabitatPlaceholder' : 'enjeux.referenceList.searchGeologyPlaceholder') | translate">
-    <mat-hint>{{ 'enjeux.referenceList.searchHint' | translate }}</mat-hint>
+    <mat-hint>{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxonHint' : type === 'habitat' ? 'enjeux.referenceList.searchHabitatHint' : 'enjeux.referenceList.searchGeologyHint') | translate }}</mat-hint>
     <mat-autocomplete #auto="matAutocomplete"
                       [displayWith]="displayFn"
+                      panelWidth="auto"
+                      panelClass="reference-autocomplete-panel"
                       (optionSelected)="onAutocompleteSelected($event)">
       @for (result of autocompleteResults(); track $index) {
         <mat-option [value]="result">

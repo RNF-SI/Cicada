@@ -115,7 +115,7 @@ describe('ReferenceItemListComponent', () => {
       component.searchControl.setValue('Lynx');
       tick(300); // debounce
 
-      expect(taxonomyService.autocomplete).toHaveBeenCalledWith('Lynx', { limit: 10 });
+      expect(taxonomyService.autocomplete).toHaveBeenCalledWith('Lynx', { limit: 20 });
       expect(component.autocompleteResults().length).toBe(1);
     }));
 
@@ -130,7 +130,7 @@ describe('ReferenceItemListComponent', () => {
       component.searchControl.setValue('Hêt');
       tick(300);
 
-      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 10 });
+      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 20 });
     }));
 
     it('should not search with less than 2 characters', fakeAsync(() => {

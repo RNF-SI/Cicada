@@ -2196,8 +2196,11 @@
       "searchTaxon": "Rechercher un taxon",
       "searchHabitat": "Rechercher un habitat",
       "searchTaxonPlaceholder": "Nom scientifique ou vernaculaire...",
-      "searchHabitatPlaceholder": "Nom ou code habitat...",
+      "searchHabitatPlaceholder": "Nom, code ou cd_hab HabRef...",
       "searchHint": "Saisissez au moins 2 caractères pour lancer la recherche",
+      "searchTaxonHint": "Référentiel TaxRef (INPN). Recherche par nom scientifique, vernaculaire ou cd_nom (min. 2 caractères, 20 résultats max).",
+      "searchHabitatHint": "Référentiel HabRef (INPN). Recherche par nom, code typologique (lb_code) ou identifiant cd_hab (min. 2 caractères, 20 résultats max).",
+      "searchGeologyHint": "Référentiel INPG. Recherche par nom de site, code métier ou id_inpg (min. 2 caractères, 20 résultats max).",
       "geologyCount": "{{count}} site(s) géologique(s)",
       "searchGeology": "Rechercher un site géologique INPG",
       "searchGeologyPlaceholder": "Nom du site ou code métier..."

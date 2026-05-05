@@ -80,11 +80,11 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
       error: () => this.isSearching.set(false)
     };
     if (this.type === 'taxon') {
-      this.taxonomyService.autocomplete(term, { limit: 10 }).subscribe(handler);
+      this.taxonomyService.autocomplete(term, { limit: 20 }).subscribe(handler);
     } else if (this.type === 'habitat') {
-      this.habitatService.autocomplete(term, { limit: 10 }).subscribe(handler);
+      this.habitatService.autocomplete(term, { limit: 20 }).subscribe(handler);
     } else {
-      this.geologyService.autocomplete(term, { limit: 10 }).subscribe(handler);
+      this.geologyService.autocomplete(term, { limit: 20 }).subscribe(handler);
     }
   }
 
