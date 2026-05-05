@@ -475,11 +475,11 @@
 
   // Variante "action" pour les icônes d'édition/expand dans les cartes enjeu/facteur/pression
   &.icon-btn-flat--action {
-    color: $success-color;
+    color: $primary-color;
 
     &:hover {
-      color: darken($success-color, 10%);
-      background-color: rgba($success-color, 0.08);
+      color: darken($primary-color, 10%);
+      background-color: rgba($primary-color, 0.08);
     }
   }
 }
