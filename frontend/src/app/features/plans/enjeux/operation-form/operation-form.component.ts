@@ -991,14 +991,37 @@ export class OperationFormComponent implements OnInit {
 
   /**
    * Met à jour les validators conditionnels en fonction de l'état du formulaire.
-   * Pour l'instant : intitule_suivi requis si action CS et nouveau suivi.
-   * Doit être appelé après populateForm, au changement de type d'action, ou au
-   * toggle "suivi existant".
+   * Couvre tous les champs marqués d'un `*` dans le template :
+   *  - intitule_suivi : requis si action CS et nouveau suivi
+   *  - protocole_dans_campanule, respect_protocole : requis si action CS et nouveau suivi
+   *  - cd_protocole_campanule : requis si ci-dessus + mode CAMPanule (Oui)
+   *  - nom_protocole : requis si ci-dessus + mode hors CAMPanule (Non)
+   *
+   * Doit être appelé après populateForm, au changement de type d'action, au
+   * toggle "suivi existant", et au changement de "protocole dans CAMPanule".
    */
   private syncConditionalValidators(): void {
-    const ctrl = this.form.get('intitule_suivi');
+    const requireForCS = this.isCSAction() && !this.estSuiviExistant();
+    const protocoleCampanule = this.form.get('protocole_dans_campanule')?.value;
+
+    this.applyRequiredValidator('intitule_suivi', requireForCS);
+    this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
+    this.applyRequiredValidator('respect_protocole', requireForCS);
+    this.applyRequiredValidator(
+      'cd_protocole_campanule',
+      requireForCS && protocoleCampanule === true,
+    );
+    this.applyRequiredValidator(
+      'nom_protocole',
+      requireForCS && protocoleCampanule === false,
+    );
+  }
+
+  /** Helper : ajoute ou retire Validators.required sur un contrôle, sans émettre. */
+  private applyRequiredValidator(controlName: string, required: boolean): void {
+    const ctrl = this.form.get(controlName);
     if (!ctrl) return;
-    if (this.isCSAction() && !this.estSuiviExistant()) {
+    if (required) {
       ctrl.setValidators([Validators.required]);
     } else {
       ctrl.clearValidators();
@@ -1017,7 +1040,7 @@ export class OperationFormComponent implements OnInit {
     objectif_principal: 'enjeux.operations.objectifPrincipal',
     cibles_principales: 'enjeux.operations.ciblesPrincipales',
     protocole_dans_campanule: 'enjeux.operations.protocoleCampanule',
-    protocole_campanule_nom: 'enjeux.operations.protocoleNom',
+    cd_protocole_campanule: 'enjeux.operations.protocoleNom',
     nom_protocole: 'enjeux.operations.nomProtocole',
     respect_protocole: 'enjeux.operations.respectProtocole',
   };
@@ -1128,22 +1151,19 @@ export class OperationFormComponent implements OnInit {
   setEstSuiviExistant(value: boolean): void {
     this.estSuiviExistant.set(value);
     if (value) {
-      // "Existing suivi" mode: disable suivi fields, clear intitule_suivi
+      // "Existing suivi" mode: disable suivi fields
       this.setSuiviFieldsEnabled(false);
-      this.form.get('intitule_suivi')?.clearValidators();
-      this.form.get('intitule_suivi')?.updateValueAndValidity();
       // Sync libelle from selected inventaire
       this.updateLibelle(this.getSelectedSuiviIntitule());
     } else {
-      // "New suivi" mode: enable suivi fields, reset values, intitule_suivi required
+      // "New suivi" mode: enable suivi fields, reset values
       this.resetSuiviFields();
       this.setSuiviFieldsEnabled(true);
-      this.form.get('intitule_suivi')?.setValidators([Validators.required]);
-      this.form.get('intitule_suivi')?.updateValueAndValidity();
       this.form.get('id_suivi')?.setValue(null);
       // Sync libelle from intitule_suivi text
       this.updateLibelle(this.form.get('intitule_suivi')?.value || '');
     }
+    this.syncConditionalValidators();
   }
 
   /**
@@ -1166,6 +1186,12 @@ export class OperationFormComponent implements OnInit {
       if (this.isCSAction() && !this.estSuiviExistant()) {
         this.updateLibelle(val || '');
       }
+    });
+
+    // Switch CAMPanule (Oui/Non) change le champ requis (cd_protocole_campanule
+    // vs nom_protocole) → re-synchroniser les validators.
+    this.form.get('protocole_dans_campanule')?.valueChanges.subscribe(() => {
+      this.syncConditionalValidators();
     });
   }
 
