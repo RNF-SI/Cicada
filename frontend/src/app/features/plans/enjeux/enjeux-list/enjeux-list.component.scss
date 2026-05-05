@@ -824,33 +824,6 @@
   margin-top: $spacing-sm;
 }
 
-// Wrapper + hint for contextual help next to add button
-.add-item-wrapper {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  flex-wrap: wrap;
-  margin-top: $spacing-md;
-
-  .add-item-btn {
-    margin-top: 0;
-  }
-}
-
-.add-item-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  color: $gray-dark;
-  font-size: $font-size-small;
-  font-style: italic;
-
-  i {
-    color: $primary-color;
-    font-size: 1rem;
-  }
-}
-
 // Unified add item button (Figma: stroked pill with + icon)
 .add-item-btn {
   display: inline-flex;

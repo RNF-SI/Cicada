@@ -2421,7 +2421,7 @@
       "label": "Facteur d'influence",
       "newTitle": "Nouveau facteur d'influence",
       "addButton": "Ajouter un facteur d'influence",
-      "helpText": "Les facteurs d'influence se créent dans l'onglet Détail de l'enjeu ou FCR",
+      "usageNote": "Utilisez cette section pour définir les facteurs d'influence de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
       "viewButton": "Voir les facteurs",
       "countSuffix": "facteur(s) d'influence",
       "libelleLabel": "Intitulé du facteur d'influence",

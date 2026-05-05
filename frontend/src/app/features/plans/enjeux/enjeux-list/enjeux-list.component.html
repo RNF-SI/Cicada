@@ -174,6 +174,14 @@
               </div>
               <div class="enjeu-header-divider"></div>
 
+              <!-- Note contextuelle facteurs d'influence -->
+              @if (!isSelectedFcr()) {
+                <div class="olt-info-note">
+                  <i class="fi fi-rr-info"></i>
+                  <span>{{ 'enjeux.facteurInfluence.usageNote' | translate }}</span>
+                </div>
+              }
+
               <!-- Enjeu detail card (terra-cotta) -->
               <div class="enjeu-detail-card">
                 <!-- Card section header -->
@@ -602,16 +610,10 @@
                     </div>
                   </div>
                 } @else if (canEditPlan()) {
-                  <div class="add-item-wrapper">
-                    <button class="add-item-btn" (click)="startAddFacteur()">
-                      <i class="fi fi-rr-plus-small"></i>
-                      {{ 'enjeux.facteurInfluence.addButton' | translate }}
-                    </button>
-                    <span class="add-item-hint">
-                      <i class="fi fi-rr-info"></i>
-                      {{ 'enjeux.facteurInfluence.helpText' | translate }}
-                    </span>
-                  </div>
+                  <button class="add-item-btn" (click)="startAddFacteur()">
+                    <i class="fi fi-rr-plus-small"></i>
+                    {{ 'enjeux.facteurInfluence.addButton' | translate }}
+                  </button>
                 }
               }
             </div>
