@@ -201,6 +201,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 ## 📖 Documentation
 
 - **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
+- **[Présentation du projet (PDF)](docs/Présentation_projet_CICADA_VF.pdf)** - Présentation générale du projet CICADA
 - **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
 - **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
