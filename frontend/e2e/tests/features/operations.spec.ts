@@ -184,6 +184,9 @@ test.describe('Operations - Create', () => {
     // Select a CS action type to reveal protocole section
     await formPage.selectCSAction();
 
+    // CS action requires an intitulé de suivi (validators conditionnels)
+    await formPage.fillIntituleSuivi(`E2E Suivi ${Date.now()}`);
+
     // Fill protocole
     await formPage.fillProtocoleNonCampanule('Protocole E2E Test', {
       description: 'Description du protocole de test',

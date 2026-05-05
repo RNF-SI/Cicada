@@ -24,6 +24,9 @@ export class OperationFormPage {
   readonly estSuiviOui: Locator;
   readonly estSuiviNon: Locator;
 
+  // Intitulé du suivi (visible quand CS + nouveau suivi)
+  readonly intituleSuiviInput: Locator;
+
   // Section headers (for toggling)
   readonly sectionDetailsSuivi: Locator;
   readonly sectionProtocole: Locator;
@@ -97,6 +100,9 @@ export class OperationFormPage {
     // Suivi existant toggle (radio buttons in .radio-field-row)
     this.estSuiviOui = page.locator('.radio-field-row').filter({ hasText: /suivi existant/i }).locator('mat-radio-button').first();
     this.estSuiviNon = page.locator('.radio-field-row').filter({ hasText: /suivi existant/i }).locator('mat-radio-button').nth(1);
+
+    // Intitulé du suivi (input texte, visible quand CS + nouveau suivi)
+    this.intituleSuiviInput = page.locator('input[formControlName="intitule_suivi"]');
 
     // Section headers
     this.sectionDetailsSuivi = page.locator('.section-header').filter({ hasText: /inventaire|suivi/i }).first();
@@ -191,6 +197,14 @@ export class OperationFormPage {
   async fillLibelle(text: string) {
     await this.libelleInput.click();
     await this.libelleInput.fill(text);
+  }
+
+  /**
+   * Fill the intitulé du suivi (visible only after selecting a CS-type action
+   * with mode "nouveau suivi"). Required for CS actions to pass validation.
+   */
+  async fillIntituleSuivi(text: string) {
+    await this.intituleSuiviInput.fill(text);
   }
 
   /** Select the first available type d'action option from the autocomplete. */
