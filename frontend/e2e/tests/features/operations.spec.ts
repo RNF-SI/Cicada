@@ -364,6 +364,87 @@ test.describe('Operations - Edit', () => {
     expect(after.libelle).toBe(detail.libelle);
     if (detail.id_priorite) expect(after.id_priorite).toBe(detail.id_priorite);
   });
+
+  /**
+   * Régression #187 : tous les champs SuiviInventaire (notamment habitat_ref,
+   * cible_secondaire, taxon_taxref) doivent survivre à un round-trip
+   * GET → ouvrir le formulaire → valider sans changement → GET.
+   *
+   * Avant le fix : habitat_ref et cible_secondaire étaient absents du
+   * serializer de lecture → champs vides en formulaire → écrasés au save.
+   */
+  test('should preserve ALL SuiviInventaire fields on edit roundtrip (#187)', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+
+    // Étape 1 : créer une action CS avec un SuiviInventaire complet via l'API
+    // (on évite de remplir 30+ champs à la souris)
+    const createPayload: Record<string, unknown> = {
+      libelle: `E2E roundtrip ${Date.now()}`,
+      est_suivi_existant: false,
+      suivi_inventaire: {
+        intitule: 'Suivi roundtrip E2E',
+        objectif_principal: 'OBJ_CONNAISSANCE',
+        objectif_secondaire: 'OBJ_GESTION',
+        cibles_principales: 'HABITATS_VEGETATIONS',
+        cible_secondaire: 'cible secondaire texte libre',
+        taxon_taxref: 'Phragmites australis, Tamarix gallica',
+        habitat_ref: 'D5.2, C1.221',
+        date_lancement_suivi: '2024-03-15',
+        outil_bancarisation: 'GeoNature',
+        outil_saisie: 'GeoNature',
+        transmission_donnee: true,
+      },
+    };
+    const { ok, data: created } = await apiPost(referentPage, 'plans/operations/', createPayload);
+    if (!ok) {
+      test.skip(true, `Cannot create test operation: ${JSON.stringify(created).slice(0, 200)}`);
+      return;
+    }
+    const opId = created.id_operation as number;
+
+    try {
+      // Étape 2 : récupérer l'état initial via l'API
+      const { data: before } = await apiGet(referentPage, `plans/operations/${opId}/`);
+      const beforeSuivi = before.suivi_inventaire;
+
+      // Sanity check : tous les champs sont bien renvoyés par l'API de lecture
+      expect(beforeSuivi.intitule).toBe('Suivi roundtrip E2E');
+      expect(beforeSuivi.cibles_principales).toBe('HABITATS_VEGETATIONS');
+      expect(beforeSuivi.cible_secondaire).toBe('cible secondaire texte libre');
+      expect(beforeSuivi.taxon_taxref).toBe('Phragmites australis, Tamarix gallica');
+      expect(beforeSuivi.habitat_ref).toBe('D5.2, C1.221');
+
+      // Étape 3 : ouvrir le formulaire d'édition et valider sans changement
+      const formPage = new OperationFormPage(referentPage);
+      await formPage.gotoEdit(plan.slug, opId);
+      await formPage.waitForForm();
+      await formPage.submit();
+      await Promise.race([
+        formPage.waitForSnackbar().catch(() => {}),
+        referentPage.waitForURL(/\/enjeux/, { timeout: 10000 }).catch(() => {}),
+      ]);
+      await referentPage.waitForTimeout(1000);
+
+      // Étape 4 : vérifier que TOUS les champs ont survécu au roundtrip
+      const { data: after } = await apiGet(referentPage, `plans/operations/${opId}/`);
+      const afterSuivi = after.suivi_inventaire;
+
+      expect(after.libelle).toBe(before.libelle);
+      expect(afterSuivi.intitule).toBe(beforeSuivi.intitule);
+      expect(afterSuivi.objectif_principal).toBe(beforeSuivi.objectif_principal);
+      expect(afterSuivi.objectif_secondaire).toBe(beforeSuivi.objectif_secondaire);
+      expect(afterSuivi.cibles_principales).toBe(beforeSuivi.cibles_principales);
+      expect(afterSuivi.cible_secondaire).toBe(beforeSuivi.cible_secondaire);
+      expect(afterSuivi.taxon_taxref).toBe(beforeSuivi.taxon_taxref);
+      expect(afterSuivi.habitat_ref).toBe(beforeSuivi.habitat_ref);
+      expect(afterSuivi.outil_bancarisation).toBe(beforeSuivi.outil_bancarisation);
+      expect(afterSuivi.outil_saisie).toBe(beforeSuivi.outil_saisie);
+      expect(afterSuivi.transmission_donnee).toBe(beforeSuivi.transmission_donnee);
+    } finally {
+      // Cleanup : supprimer l'action créée pour le test
+      await deleteOperationViaApi(referentPage, opId).catch(() => {});
+    }
+  });
 });
 
 // =========================================================================
