@@ -679,11 +679,7 @@ export class InventaireFormComponent implements OnInit {
 
   private scrollToError(): void {
     setTimeout(() => {
-      const banner = this.elRef.nativeElement.querySelector('.error-banner');
-      if (banner) {
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
+      // Priorité au premier contrôle invalide : c'est là que l'utilisateur doit corriger.
       const candidates = this.elRef.nativeElement.querySelectorAll(
         'mat-form-field.ng-invalid, mat-radio-group.ng-invalid, mat-select.ng-invalid, .ng-invalid:not(form):not(mat-form-field):not(mat-radio-group):not(mat-select)',
       ) as NodeListOf<HTMLElement>;
@@ -696,6 +692,9 @@ export class InventaireFormComponent implements OnInit {
         focusable?.focus({ preventScroll: true });
         return;
       }
+      // Fallback : bannière (cas erreur backend sans contrôle invalide).
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

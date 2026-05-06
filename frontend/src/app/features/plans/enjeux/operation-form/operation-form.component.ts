@@ -1080,14 +1080,8 @@ export class OperationFormComponent implements OnInit {
    */
   private scrollToError(): void {
     setTimeout(() => {
-      // 1) Si on a un message d'erreur backend en bannière, on y va d'abord.
-      const banner = this.elRef.nativeElement.querySelector('.error-banner');
-      if (banner) {
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-
-      // 2) Premier contrôle invalide en ordre du DOM (radio group, select, form-field).
+      // 1) Premier contrôle invalide en ordre du DOM (radio group, select, form-field) :
+      //    c'est l'endroit où l'utilisateur doit corriger, donc priorité 1.
       const candidates = this.elRef.nativeElement.querySelectorAll(
         'mat-form-field.ng-invalid, mat-radio-group.ng-invalid, mat-select.ng-invalid, .ng-invalid:not(form):not(mat-form-field):not(mat-radio-group):not(mat-select)',
       ) as NodeListOf<HTMLElement>;
@@ -1104,6 +1098,10 @@ export class OperationFormComponent implements OnInit {
         focusable?.focus({ preventScroll: true });
         return;
       }
+
+      // 2) Aucun contrôle invalide → on retombe sur la bannière (cas erreur backend).
+      const banner = this.elRef.nativeElement.querySelector('.error-banner');
+      banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 
