@@ -48,6 +48,42 @@ async function createInventaireViaApi(
   return data.id_suivi_inventaire;
 }
 
+/**
+ * Create an inventaire via the API with all fields required by the form's
+ * conditional validators populated. Use this when the test will subsequently
+ * open the form for editing — a "minimal" inventaire would now be rejected
+ * by the form because integre_plan_gestion / protocole / etc. are required.
+ */
+async function createFullInventaireViaApi(
+  page: import('@playwright/test').Page,
+  intitule: string,
+  extra: Record<string, unknown> = {},
+): Promise<number> {
+  const payload = {
+    intitule,
+    actif: true,
+    integre_plan_gestion: false,
+    objectif_principal: 'OBJ_INVENTAIRE_INITIAL',
+    cibles_principales: 'ESPECES',
+    date_lancement_suivi: '2024-06-01',
+    frequence_nombre: 1,
+    frequence_unite: 'AN',
+    protocole: {
+      protocole_dans_campanule: false,
+      nom_protocole: 'Protocole E2E full',
+      respect_protocole: true,
+      documentation_disponible: false,
+      nb_etp_cycle: 1,
+    },
+    ...extra,
+  };
+  const { ok, status, data } = await apiPost(page, 'inventaires/suivis/', payload);
+  if (!ok) {
+    throw new Error(`Create full inventaire failed: ${status} ${JSON.stringify(data).slice(0, 200)}`);
+  }
+  return data.id_suivi_inventaire;
+}
+
 /** Delete an inventaire via the API. */
 async function deleteInventaireViaApi(page: import('@playwright/test').Page, suiviId: number) {
   await apiDelete(page, `inventaires/suivis/${suiviId}/`);
@@ -122,13 +158,13 @@ test.describe('Inventaires - Create', () => {
     await expect(formPage.infoBlock).toBeVisible();
   });
 
-  test('should create an inventaire with intitule only', async ({ referentPage }) => {
+  test('should create an inventaire with all required fields', async ({ referentPage }) => {
     const formPage = new InventaireFormPage(referentPage);
     await formPage.gotoCreate();
     await formPage.waitForForm();
 
     const uniqueName = `E2E Inventaire Minimal ${Date.now()}`;
-    await formPage.fillIntitule(uniqueName);
+    await formPage.fillAllRequiredFields(uniqueName);
     await formPage.submit();
 
     // Should show success and navigate back to list
@@ -142,20 +178,9 @@ test.describe('Inventaires - Create', () => {
     await formPage.waitForForm();
 
     const uniqueName = `E2E Inventaire Full ${Date.now()}`;
-    await formPage.fillIntitule(uniqueName);
-
-    // Select type suivi
+    await formPage.fillAllRequiredFields(uniqueName);
+    // En plus du minimum, ajoute un type suivi
     await formPage.selectFirstTypeSuivi();
-
-    // Set integre plan gestion to Non
-    await formPage.integrePgNon.click();
-    await referentPage.waitForTimeout(300);
-
-    // Select objectif principal
-    await formPage.selectFirstObjectifPrincipal();
-
-    // Select cible principale
-    await formPage.selectFirstCiblePrincipale();
 
     await formPage.submit();
     await formPage.waitForSnackbar();
@@ -168,11 +193,8 @@ test.describe('Inventaires - Create', () => {
     await formPage.waitForForm();
 
     const uniqueName = `E2E Inventaire Proto ${Date.now()}`;
-    await formPage.fillIntitule(uniqueName);
-
-    // Fill protocole
-    await formPage.fillProtocoleNonCampanule('Protocole Inventaire E2E');
-    await formPage.respectProtocoleOui.click();
+    // fillAllRequiredFields choisit déjà le mode hors-CAMPanule
+    await formPage.fillAllRequiredFields(uniqueName);
 
     await formPage.submit();
     await formPage.waitForSnackbar();
@@ -187,7 +209,8 @@ test.describe('Inventaires - Edit', () => {
   let testSuiviId: number;
 
   test.beforeAll(async ({ browser }) => {
-    // Create an inventaire via API to edit
+    // Create an inventaire via API to edit. Utilise la version "full" pour
+    // que le formulaire d'édition passe les validators conditionnels.
     const context = await browser.newContext({
       storageState: path.join(AUTH_DIR, 'referent.json'),
     });
@@ -196,7 +219,7 @@ test.describe('Inventaires - Edit', () => {
       // Navigate to app first so localStorage is available
       await page.goto('/');
       await page.waitForTimeout(1000);
-      testSuiviId = await createInventaireViaApi(page, `E2E Edit Target ${Date.now()}`);
+      testSuiviId = await createFullInventaireViaApi(page, `E2E Edit Target ${Date.now()}`);
     } finally {
       await context.close();
     }
@@ -236,6 +259,71 @@ test.describe('Inventaires - Edit', () => {
 
     await formPage.cancel();
     await referentPage.waitForURL(/\/inventaires/, { timeout: 10000 });
+  });
+
+  /**
+   * Régression #187 (équivalent inventaire-form) : tous les champs d'un
+   * SuiviInventaire (incluant habitat_ref, cible_secondaire, taxon_taxref,
+   * et tous les champs Protocole) doivent survivre à un roundtrip
+   * GET → ouvrir → valider sans changement → GET.
+   */
+  test('should preserve ALL inventaire fields on edit roundtrip (#187 equivalent)', async ({ referentPage }) => {
+    // Crée un inventaire complet avec habitat_ref, cible_secondaire,
+    // taxon_taxref, et un Protocole complet.
+    const intitule = `E2E Inv Roundtrip ${Date.now()}`;
+    const id = await createFullInventaireViaApi(referentPage, intitule, {
+      cibles_principales: 'HABITATS_VEGETATIONS',
+      cible_secondaire: 'cible secondaire roundtrip',
+      taxon_taxref: 'Phragmites australis',
+      habitat_ref: 'D5.2, C1.221',
+      objectif_principal: 'OBJ_INVENTAIRE_INITIAL',
+      objectif_secondaire: 'OBJ_GESTION',
+      commentaires: 'Commentaires roundtrip E2E',
+    });
+
+    try {
+      // Snapshot initial via API
+      const before = await getInventaire(referentPage, id);
+      expect(before).toBeTruthy();
+      expect(before.intitule).toBe(intitule);
+      expect(before.cibles_principales).toBe('HABITATS_VEGETATIONS');
+      expect(before.cible_secondaire).toBe('cible secondaire roundtrip');
+      expect(before.taxon_taxref).toBe('Phragmites australis');
+      expect(before.habitat_ref).toBe('D5.2, C1.221');
+      expect(before.protocole?.nom_protocole).toBe('Protocole E2E full');
+      expect(before.protocole?.respect_protocole).toBe(true);
+
+      // Ouvre le formulaire et valide sans changement
+      const formPage = new InventaireFormPage(referentPage);
+      await formPage.gotoEdit(id);
+      await formPage.waitForForm();
+      await formPage.submit();
+      await Promise.race([
+        formPage.waitForSnackbar().catch(() => {}),
+        referentPage.waitForURL(/\/inventaires/, { timeout: 10000 }).catch(() => {}),
+      ]);
+      await referentPage.waitForTimeout(800);
+
+      // Snapshot après roundtrip
+      const after = await getInventaire(referentPage, id);
+      expect(after).toBeTruthy();
+      expect(after.intitule).toBe(before.intitule);
+      expect(after.integre_plan_gestion).toBe(before.integre_plan_gestion);
+      expect(after.objectif_principal).toBe(before.objectif_principal);
+      expect(after.objectif_secondaire).toBe(before.objectif_secondaire);
+      expect(after.cibles_principales).toBe(before.cibles_principales);
+      expect(after.cible_secondaire).toBe(before.cible_secondaire);
+      expect(after.taxon_taxref).toBe(before.taxon_taxref);
+      expect(after.habitat_ref).toBe(before.habitat_ref);
+      expect(after.commentaires).toBe(before.commentaires);
+      expect(after.protocole?.protocole_dans_campanule).toBe(before.protocole.protocole_dans_campanule);
+      expect(after.protocole?.nom_protocole).toBe(before.protocole.nom_protocole);
+      expect(after.protocole?.respect_protocole).toBe(before.protocole.respect_protocole);
+      expect(after.protocole?.documentation_disponible).toBe(before.protocole.documentation_disponible);
+      expect(after.protocole?.nb_etp_cycle).toBe(before.protocole.nb_etp_cycle);
+    } finally {
+      await deleteInventaireViaApi(referentPage, id).catch(() => {});
+    }
   });
 
   test.afterAll(async ({ browser }) => {
@@ -302,6 +390,52 @@ test.describe('Inventaires - Validation', () => {
 
     const hasError = await formPage.hasIntituleError();
     expect(hasError).toBeTruthy();
+  });
+
+  test('should display validation error banner listing missing required fields', async ({ referentPage }) => {
+    // Submit completely empty form → la bannière doit lister les champs requis manquants.
+    const formPage = new InventaireFormPage(referentPage);
+    await formPage.gotoCreate();
+    await formPage.waitForForm();
+
+    await formPage.submit();
+    await referentPage.waitForTimeout(500);
+
+    // Reste sur le formulaire (validation a bloqué)
+    expect(referentPage.url()).toContain('/inventaires/nouveau');
+
+    // La bannière d'erreur est visible
+    await expect(formPage.errorBanner).toBeVisible();
+    const bannerText = await formPage.errorBanner.textContent();
+    expect(bannerText).toMatch(/Champs obligatoires manquants/i);
+    // Au moins le label "Intitulé" doit apparaître (toujours requis)
+    expect(bannerText).toMatch(/Intitulé/i);
+  });
+
+  test('should auto-scroll to the first invalid field on submit', async ({ referentPage }) => {
+    // Le scrollToError doit centrer le premier champ invalide dans le viewport
+    // et y poser le focus. On scrolle d'abord en bas pour s'assurer qu'un scroll
+    // automatique a bien lieu.
+    const formPage = new InventaireFormPage(referentPage);
+    await formPage.gotoCreate();
+    await formPage.waitForForm();
+
+    // Scrolle tout en bas du formulaire
+    await referentPage.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await referentPage.waitForTimeout(300);
+
+    await formPage.submit();
+    await referentPage.waitForTimeout(800);
+
+    // Le champ intitule (premier requis dans le DOM) doit être dans le viewport
+    // après le scrollIntoView.
+    const intituleVisible = await formPage.intituleInput.isVisible();
+    expect(intituleVisible).toBeTruthy();
+    const inViewport = await formPage.intituleInput.evaluate((el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top >= 0 && rect.bottom <= window.innerHeight;
+    });
+    expect(inViewport).toBeTruthy();
   });
 });
 

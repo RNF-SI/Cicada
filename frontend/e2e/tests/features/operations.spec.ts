@@ -498,6 +498,56 @@ test.describe('Operations - Validation', () => {
     // Might show error banner or redirect — either is acceptable
     expect(hasError || referentPage.url().includes('/enjeux')).toBeTruthy();
   });
+
+  test('should display validation error banner listing missing required fields (CS action)', async ({ referentPage }) => {
+    // Sélectionne un type CS sans remplir intitule_suivi → la bannière doit
+    // lister les champs requis manquants.
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.selectCSAction();
+    await formPage.submit();
+    await referentPage.waitForTimeout(500);
+
+    // Reste sur le formulaire (validation a bloqué)
+    expect(referentPage.url()).toContain('/operations/nouveau');
+
+    // La bannière d'erreur est visible avec le label des champs manquants
+    await expect(formPage.errorBanner).toBeVisible();
+    const bannerText = await formPage.errorBanner.textContent();
+    expect(bannerText).toMatch(/Champs obligatoires manquants/i);
+    // Au moins un des champs requis CS doit apparaître
+    expect(bannerText).toMatch(/Intitulé|Protocole|Respect/i);
+  });
+
+  test('should auto-scroll to the first invalid field on submit (CS action)', async ({ referentPage }) => {
+    // Avec un type CS sélectionné mais intitule_suivi vide, le scroll doit
+    // ramener le premier champ invalide dans le viewport.
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.selectCSAction();
+
+    // Scrolle tout en bas de la page
+    await referentPage.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await referentPage.waitForTimeout(300);
+
+    await formPage.submit();
+    await referentPage.waitForTimeout(800);
+
+    // L'intitule_suivi (premier champ requis dans le DOM en mode CS) doit être visible
+    const intituleSuivi = formPage.intituleSuiviInput;
+    await expect(intituleSuivi).toBeVisible();
+    const inViewport = await intituleSuivi.evaluate((el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top >= 0 && rect.bottom <= window.innerHeight;
+    });
+    expect(inViewport).toBeTruthy();
+  });
 });
 
 // =========================================================================

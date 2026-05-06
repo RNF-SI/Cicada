@@ -167,6 +167,35 @@ export class InventaireFormPage {
     await this.nbEtpCycleInput.fill('1');
   }
 
+  /**
+   * Fill all fields required by the conditional validators :
+   * intitule, integre_plan_gestion=Non, objectif_principal, cibles_principales,
+   * date_lancement_suivi, protocole_dans_campanule=Non, nom_protocole,
+   * respect_protocole=Oui, documentation_disponible=Non, nb_etp_cycle, frequence.
+   * After this call, the form is in a state that should pass validation.
+   */
+  async fillAllRequiredFields(intitule: string) {
+    await this.fillIntitule(intitule);
+    // integre_plan_gestion=Non (évite d'avoir à choisir suit_indicateur)
+    await this.integrePgNon.click();
+    await this.page.waitForTimeout(200);
+    await this.selectFirstObjectifPrincipal();
+    await this.selectFirstCiblePrincipale();
+    await this.fillDateLancement('01/06/2024');
+    // Protocole hors-CAMPanule (mode le plus simple)
+    await this.protocoleCampanuleNon.click();
+    await this.page.waitForTimeout(300);
+    await this.nomProtocoleInput.fill('Protocole E2E');
+    await this.nbEtpCycleInput.fill('1');
+    await this.respectProtocoleOui.click();
+    // documentation_disponible=Non
+    await this.page.locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
+    // Fréquence : 1 fois par AN
+    await this.frequenceInput.fill('1');
+    await this.page.locator('mat-select[formControlName="frequence_unite"]').click();
+    await this.page.locator('mat-option').filter({ hasText: /^An$/i }).first().click();
+  }
+
   async submit() {
     await this.saveBtn.click();
   }
