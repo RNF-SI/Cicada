@@ -641,6 +641,16 @@ export class OperationFormComponent implements OnInit {
       if (code.startsWith('CS')) {
         this.form.get('libelle')?.disable();
         this.libelleDisplay.set(op.libelle || '');
+        // Charger la liste des inventaires existants (sinon, en mode "suivi existant",
+        // le mat-select n'a aucune option et l'intitulé sélectionné n'apparaît pas).
+        this.loadInventairesByTypeAction(code);
+        // En mode "nouveau suivi", l'intitulé de l'inventaire = libellé de l'action.
+        // Si suivi.intitule est vide/manquant, on retombe sur op.libelle pour que le
+        // champ ne soit pas vide à l'ouverture de l'édition.
+        const currentIntitule = this.form.get('intitule_suivi')?.value;
+        if (!currentIntitule && op.libelle) {
+          this.form.patchValue({ intitule_suivi: op.libelle });
+        }
       }
     }
 
