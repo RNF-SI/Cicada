@@ -1331,7 +1331,7 @@ class TestUsersRGPDAdminEndpoints:
             notification_type='system_alert'
         ).first()
         assert notification is not None
-        assert 'rejetee' in notification.title.lower() or 'reject' in notification.title.lower()
+        assert 'rejetée' in notification.title.lower() or 'reject' in notification.title.lower()
 
     def test_auth_provider_endpoint(self, api_client):
         """Test auth_provider endpoint returns the configured provider."""

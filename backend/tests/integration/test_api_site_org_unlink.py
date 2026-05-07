@@ -76,12 +76,13 @@ class TestUnassignSiteEndpoint:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_unassign_site_creates_validation_request(self, super_admin_client, db):
-        """Test that unassign site creates a validation request."""
-        client, admin = super_admin_client
-        organisme = OrganismeFactory()
-        site = SiteFactory()
-        CorOgSiteFactory(id_site=site, uuid_og=organisme)
+    def test_unassign_site_creates_validation_request(self, referent_client, db):
+        """Test that unassign site creates a validation request.
+
+        Use a referent (not super_admin/admin_og of the target org) to avoid
+        auto-approval and observe the pending validation request.
+        """
+        client, user, site, organisme = referent_client
 
         response = client.delete(
             f'/api/users/organismes/{organisme.id_organisme}/sites/{site.id_site}/unassign/'
@@ -98,7 +99,7 @@ class TestUnassignSiteEndpoint:
         assert validation_request.request_type == 'site_org_unlink'
         assert validation_request.target_site == site
         assert validation_request.requested_organisme == organisme
-        assert validation_request.requester == admin
+        assert validation_request.requester == user
         assert validation_request.status == 'pending'
 
     def test_unassign_site_with_justification(self, super_admin_client, db):
@@ -120,12 +121,13 @@ class TestUnassignSiteEndpoint:
         )
         assert validation_request.justification == 'Organisme ne gère plus ce site'
 
-    def test_unassign_site_does_not_delete_link_immediately(self, super_admin_client, db):
-        """Test that the site-organisme link is not deleted immediately."""
-        client, admin = super_admin_client
-        organisme = OrganismeFactory()
-        site = SiteFactory()
-        cor_og_site = CorOgSiteFactory(id_site=site, uuid_og=organisme)
+    def test_unassign_site_does_not_delete_link_immediately(self, referent_client, db):
+        """Test that the site-organisme link is not deleted immediately.
+
+        Use referent to avoid auto-approval (super_admin/admin_og of the
+        target org would auto-approve and remove the link instantly).
+        """
+        client, user, site, organisme = referent_client
 
         response = client.delete(
             f'/api/users/organismes/{organisme.id_organisme}/sites/{site.id_site}/unassign/'
@@ -133,7 +135,7 @@ class TestUnassignSiteEndpoint:
 
         assert response.status_code == status.HTTP_201_CREATED
 
-        # Link should still exist
+        # Link should still exist (request is pending)
         assert CorOgSite.objects.filter(
             id_site=site, uuid_og=organisme
         ).exists()
@@ -152,18 +154,20 @@ class TestUnassignSiteEndpoint:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert 'error' in response.data
 
-    def test_unassign_site_returns_error_if_pending_request_exists(self, super_admin_client, db):
-        """Test error when a pending request already exists."""
-        client, admin = super_admin_client
-        organisme = OrganismeFactory()
-        site = SiteFactory()
-        CorOgSiteFactory(id_site=site, uuid_og=organisme)
+    def test_unassign_site_returns_error_if_pending_request_exists(self, referent_client, db):
+        """Test error when a pending request already exists.
+
+        Use referent to avoid auto-approval — only a pending request can be
+        a duplicate (auto-approved ones are immediately closed).
+        """
+        client, user, site, organisme = referent_client
 
         # Create first request
         response1 = client.delete(
             f'/api/users/organismes/{organisme.id_organisme}/sites/{site.id_site}/unassign/'
         )
         assert response1.status_code == status.HTTP_201_CREATED
+        assert response1.data['status'] == 'pending'
 
         # Try to create second request
         response2 = client.delete(

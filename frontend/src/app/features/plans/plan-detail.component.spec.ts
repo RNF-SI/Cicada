@@ -589,9 +589,12 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly three lifecycle buttons (edit + toDraft + archive)', () => {
+      // #248 : le bouton "edit metadata" n'est rendu que sur les plans en
+      // brouillon (canEditPlan()), donc sur valide on a uniquement les 2
+      // boutons de cycle de vie : toDraft + archive.
+      it('should show exactly two lifecycle buttons (toDraft + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(3);
+        expect(buttons.length).toBe(2);
       });
 
       it('should show warning button (toDraft) and neutral button (archive)', () => {
@@ -616,9 +619,10 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly two lifecycle buttons (edit + reactivate)', () => {
+      // #248 : edit metadata caché hors brouillon → seul reactivate reste.
+      it('should show exactly one lifecycle button (reactivate)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(1);
       });
 
       it('should show the btn-lifecycle-success class (reactivate action)', () => {
@@ -698,9 +702,10 @@ describe('PlanDetailComponent', () => {
     });
 
     it('should call openEditModal when edit button is clicked', () => {
+      // #248 : le bouton edit n'est rendu que sur un plan en brouillon
       setup({
         isSuperAdmin: true,
-        plan: createMockPlan({ statut: 'valide' }),
+        plan: createMockPlan({ statut: 'draft' }),
       });
       fixture.detectChanges();
 

@@ -26,7 +26,7 @@ def operation_test_data(db):
     site = SiteFactory()
     CorOgSiteFactory(id_site=site, uuid_og=organisme)
 
-    plan = PlanGestionFactory(nom='Plan Test Operations', statut='valide')
+    plan = PlanGestionFactory(nom='Plan Test Operations', statut='draft')
     CorSitePgFactory(plan_de_gestion=plan, site=site)
 
     # Users

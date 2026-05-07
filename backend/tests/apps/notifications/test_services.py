@@ -554,7 +554,7 @@ class TestNotificationServiceBuildMessage:
         )
 
         message = NotificationService._build_validation_message(request)
-        assert 'retrogradation' in message.lower()
+        assert 'rétrogradation' in message.lower()
 
     def test_build_message_site_org_link(self):
         """Test message for site-org link request."""
@@ -675,7 +675,7 @@ class TestNotificationServiceNotifyOtherValidators:
             notification_type='info'
         )
         assert notifications.exists()
-        assert 'approuvee' in notifications.first().title.lower()
+        assert 'approuvée' in notifications.first().title.lower()
 
     def test_notify_other_validators_marks_old_notifications_as_read(self):
         """Test that old validation_request notifications are marked as read."""

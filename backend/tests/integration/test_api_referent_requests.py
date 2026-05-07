@@ -334,7 +334,7 @@ class TestApproveReferentValidation:
         response = api_client.post(f'/api/validations/{validation_request.id}/approve/')
 
         assert response.status_code == status.HTTP_409_CONFLICT
-        assert 'deja ete traitee' in response.data['error'].lower()
+        assert 'déjà été traitée' in response.data['error'].lower()
 
 
 @pytest.mark.django_db

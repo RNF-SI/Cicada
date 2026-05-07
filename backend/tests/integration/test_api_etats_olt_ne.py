@@ -24,7 +24,7 @@ def olt_test_data(db):
     site = SiteFactory()
     CorOgSiteFactory(id_site=site, uuid_og=organisme)
 
-    plan = PlanGestionFactory(nom='Plan OLT Test', statut='valide')
+    plan = PlanGestionFactory(nom='Plan OLT Test', statut='draft')
     CorSitePgFactory(plan_de_gestion=plan, site=site)
 
     super_admin = SuperAdminFactory()

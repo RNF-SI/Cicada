@@ -281,13 +281,20 @@ class TestPlanSiteLinkDirect:
         assert CorSitePg.objects.filter(plan_de_gestion=plan, site=site).exists()
 
     def test_direct_link_admin_og_and_site_referent(self):
-        """Test admin_og who is also site referent can link directly."""
+        """Test admin_og who is also site referent can link directly.
+
+        Auto-approve for admin_og requires that their organisme is linked
+        to the target site (via CorOgSite). Otherwise an admin_og of org A
+        could attach plans to sites of org B just because they happen to
+        be a site referent there.
+        """
         organisme = OrganismeFactory()
         admin_og = AdminOrganismeFactory(id_organisme=organisme)
         client = APIClient()
         client.force_authenticate(user=admin_og)
 
         site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=organisme)
         # Make admin_og a validated referent of the site
         CorRoleSiteFactory(id_role=admin_og, id_site=site, referent=True, referent_valid=True)
         plan = PlanGestionFactory(statut='valide')

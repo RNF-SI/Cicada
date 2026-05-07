@@ -363,6 +363,7 @@ describe('RegisterComponent', () => {
 
       expect(httpMock.post).toHaveBeenCalledWith('/api/auth/register/', {
         email: 'test@example.com',
+        identifiant: '',
         password: 'password123',
         password_confirm: 'password123',
         nom_role: 'Dupont',

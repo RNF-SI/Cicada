@@ -29,7 +29,7 @@ def suivi_test_data(db):
     site = SiteFactory()
     CorOgSiteFactory(id_site=site, uuid_og=organisme)
 
-    plan = PlanGestionFactory(nom='Plan Test Suivis', statut='valide')
+    plan = PlanGestionFactory(nom='Plan Test Suivis', statut='draft')
     CorSitePgFactory(plan_de_gestion=plan, site=site)
 
     # Users
