@@ -407,6 +407,19 @@ export class EnjeuService {
     return this.http.delete<void>(`${this.apiUrl}/indicateurs/${id}/`);
   }
 
+  /**
+   * Duplique un indicateur (avec ses métriques et liens taxonomiques) sur
+   * un ou plusieurs niveaux d'exigence et/ou résultats attendus cibles
+   * (#262). Les mesures (données dans le temps) ne sont pas copiées.
+   */
+  duplicateIndicateur(id: number, payload: { ne_ids: number[]; ra_ids: number[] }):
+    Observable<{ created_ids: number[]; count: number }> {
+    return this.http.post<{ created_ids: number[]; count: number }>(
+      `${this.apiUrl}/indicateurs/${id}/duplicate/`,
+      payload,
+    );
+  }
+
   // ==========================================================================
   // Metriques CRUD
   // ==========================================================================

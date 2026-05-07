@@ -28,6 +28,13 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import {
+  DuplicateIndicateurDialogComponent,
+  DuplicateIndicateurDialogData,
+  DuplicateIndicateurDialogResult,
+  DuplicateIndicateurTargetNe,
+  DuplicateIndicateurTargetRa,
+} from '../../../../shared/components/modals/duplicate-indicateur-dialog/duplicate-indicateur-dialog.component';
 import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -2239,6 +2246,94 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           }
         });
       }
+    });
+  }
+
+  /**
+   * Ouvre la modale de duplication pour cet indicateur (#262). Liste les
+   * NE et RA candidats du plan en excluant le parent actuel pour ne pas
+   * dupliquer en place. Sur confirmation, appelle l'API duplicate puis
+   * recharge les données.
+   */
+  duplicateIndicateur(ind: any): void {
+    const data = this.planEnjeuxData();
+    if (!data) return;
+
+    const targetsNe: DuplicateIndicateurTargetNe[] = [];
+    const targetsRa: DuplicateIndicateurTargetRa[] = [];
+
+    // Walk the data tree to collect targets across all enjeux of the plan.
+    const allEnjeux = [...(data.enjeux || []), ...(data.fcr || [])];
+    for (const enjeu of allEnjeux) {
+      // Branche OLT → NE
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          targetsNe.push({
+            id_ne: ne.id_ne,
+            libelle: ne.libelle,
+            enjeu_libelle: enjeu.intitule_court || enjeu.libelle,
+            olt_libelle: olt.libelle,
+          });
+        }
+      }
+      // Branche OO → RA
+      for (const fi of enjeu.facteurs_influence || []) {
+        for (const p of fi.pressions || []) {
+          for (const oo of p.objectifs_operationnels || []) {
+            for (const ra of oo.resultats_attendus || []) {
+              targetsRa.push({
+                id_ra: ra.id_ra,
+                libelle: ra.libelle,
+                enjeu_libelle: enjeu.intitule_court || enjeu.libelle,
+                oo_libelle: oo.libelle,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    const dialogRef = this.dialog.open<
+      DuplicateIndicateurDialogComponent,
+      DuplicateIndicateurDialogData,
+      DuplicateIndicateurDialogResult | null
+    >(DuplicateIndicateurDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        sourceName: ind.nom_indicateur,
+        currentNeId: ind.id_ne ?? null,
+        currentRaId: ind.id_resultat_attendu ?? null,
+        availableNe: targetsNe,
+        availableRa: targetsRa,
+      },
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(result => {
+      if (!result) return;
+      this.enjeuService.duplicateIndicateur(ind.id_indicateur, {
+        ne_ids: result.ne_ids,
+        ra_ids: result.ra_ids,
+      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (resp) => {
+          this.snackBar.open(
+            this.translate.instant('enjeux.indicateurs.duplicate.success', { count: resp.count }),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.loadPlanData(true);
+        },
+        error: (err) => {
+          const detail = err?.error?.error || err?.error?.detail || this.translate.instant('enjeux.indicateurs.duplicate.error');
+          this.snackBar.open(detail,
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
     });
   }
 

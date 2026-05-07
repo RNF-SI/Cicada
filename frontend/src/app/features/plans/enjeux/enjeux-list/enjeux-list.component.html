@@ -945,6 +945,9 @@
                                                 <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
                                                   <i class="fi fi-rr-pencil"></i>
                                                 </button>
+                                                <button class="icon-btn-flat" (click)="duplicateIndicateur(ind); $event.stopPropagation()" title="{{ 'enjeux.indicateurs.duplicate.action' | translate }}">
+                                                  <i class="fi fi-rr-copy"></i>
+                                                </button>
                                                 <button class="icon-btn-flat" (click)="deleteIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
                                                   <i class="fi fi-rr-trash"></i>
                                                 </button>
@@ -2045,6 +2048,9 @@
                                       @if (canEditPlan()) {
                                         <button class="icon-btn-flat" (click)="startEditOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
                                           <i class="fi fi-rr-pencil"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" (click)="duplicateIndicateur(ind); $event.stopPropagation()" title="{{ 'enjeux.indicateurs.duplicate.action' | translate }}">
+                                          <i class="fi fi-rr-copy"></i>
                                         </button>
                                         <button class="icon-btn-flat" (click)="deleteOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.delete' | translate }}">
                                           <i class="fi fi-rr-trash"></i>

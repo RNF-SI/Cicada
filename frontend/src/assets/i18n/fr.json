@@ -2500,6 +2500,18 @@
       "updateSuccess": "Indicateur mis à jour avec succès",
       "deleteSuccess": "Indicateur supprimé avec succès",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cet indicateur ? Ses métriques et mesures seront également supprimées.",
+      "duplicate": {
+        "action": "Dupliquer cet indicateur",
+        "title": "Dupliquer un indicateur",
+        "source": "Indicateur source",
+        "hint": "Sélectionnez un ou plusieurs niveaux d'exigence (sous OLT) ou résultats attendus (sous OO) où copier cet indicateur. Les métriques et liens taxon/habitat/géologie sont copiés ; les mesures (données dans le temps) restent associées à l'indicateur d'origine.",
+        "targetsNe": "Niveaux d'exigence (branche OLT)",
+        "targetsRa": "Résultats attendus (branche OO)",
+        "empty": "Aucun niveau d'exigence ou résultat attendu disponible dans ce plan.",
+        "confirm": "Dupliquer",
+        "success": "{{count}} copie(s) de l'indicateur créée(s).",
+        "error": "Erreur lors de la duplication de l'indicateur."
+      },
       "types": {
         "etat": "État",
         "pression": "Pression",
