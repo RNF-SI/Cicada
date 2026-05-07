@@ -838,6 +838,38 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+.btn-action-save {
+  min-width: 120px;
+  padding: $spacing-xs $spacing-lg;
+  background-color: transparent;
+  color: $white;
+  border: 1px solid $white;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  line-height: 24px;
+
+  &:hover {
+    background-color: rgba($white, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  mat-spinner {
+    margin: 0 auto;
+
+    ::ng-deep circle {
+      stroke: $white;
+    }
+  }
+}
+
 .btn-action-validate {
   min-width: 120px;
   padding: $spacing-xs $spacing-lg;

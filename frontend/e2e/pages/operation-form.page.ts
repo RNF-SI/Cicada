@@ -77,6 +77,7 @@ export class OperationFormPage {
 
   // Action bar
   readonly cancelBtn: Locator;
+  readonly saveBtn: Locator;
   readonly validateBtn: Locator;
 
   // Snackbar
@@ -154,6 +155,7 @@ export class OperationFormPage {
 
     // Action bar
     this.cancelBtn = page.locator('.btn-action-cancel');
+    this.saveBtn = page.locator('.btn-action-save');
     this.validateBtn = page.locator('.btn-action-validate');
 
     // Snackbar
@@ -280,6 +282,11 @@ export class OperationFormPage {
   /** Click Validate to submit the form. */
   async submit() {
     await this.validateBtn.click();
+  }
+
+  /** Click Save (without validation) — stays on form. */
+  async saveDraft() {
+    await this.saveBtn.click();
   }
 
   /** Click Cancel to go back. */

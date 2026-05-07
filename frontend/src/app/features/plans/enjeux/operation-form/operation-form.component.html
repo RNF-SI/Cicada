@@ -1050,6 +1050,14 @@
         <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
           {{ 'common.actions.cancel' | translate }}
         </button>
+        <button class="btn-action-save" type="button" (click)="saveDraft()" [disabled]="isLoading()"
+                [matTooltip]="'enjeux.operations.saveTooltip' | translate">
+          @if (isLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            {{ 'common.actions.save' | translate }}
+          }
+        </button>
         <button class="btn-action-validate" type="button" (click)="save()" [disabled]="isLoading()">
           @if (isLoading()) {
             <mat-spinner diameter="20"></mat-spinner>

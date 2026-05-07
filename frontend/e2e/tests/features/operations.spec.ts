@@ -749,3 +749,73 @@ test.describe('Operations - Programmation', () => {
     expect(monthHeaders.length).toBe(13);
   });
 });
+
+// =========================================================================
+// Save without validation (#251)
+// =========================================================================
+test.describe('Operations - Save without validation (#251)', () => {
+  test('save button is visible alongside validate in create mode', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await expect(formPage.saveBtn).toBeVisible();
+    await expect(formPage.validateBtn).toBeVisible();
+  });
+
+  test('saveDraft creates operation and stays on form (URL switches to edit mode)', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.fillLibelle('Action enregistrée sans validation');
+    await formPage.saveDraft();
+
+    // URL replaced to /modifier/{id}
+    await referentPage.waitForURL(/\/operations\/\d+\/modifier/, { timeout: 10000 });
+    expect(referentPage.url()).toMatch(/\/operations\/\d+\/modifier/);
+
+    // Form remains visible (user stayed on form)
+    await expect(formPage.libelleInput).toBeVisible();
+    await expect(formPage.libelleInput).toHaveValue('Action enregistrée sans validation');
+  });
+
+  test('saveDraft on CS action with missing required fields does not block', async ({ referentPage }) => {
+    // En cliquant Valider, la validation bloque (cf. test plus haut). Le bouton
+    // Enregistrer doit au contraire passer outre les requis et créer l'action.
+    const plan = await findPlan(referentPage, 'Camargue');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoCreate(plan.slug);
+    await formPage.waitForForm();
+
+    await formPage.selectCSAction();
+    // intitule_suivi resté vide volontairement
+    await formPage.saveDraft();
+
+    // Doit créer et passer en mode édition
+    await referentPage.waitForURL(/\/operations\/\d+\/modifier/, { timeout: 10000 });
+    expect(referentPage.url()).toMatch(/\/operations\/\d+\/modifier/);
+  });
+
+  test('saveDraft in edit mode keeps the user on the form', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    const opId = await createOperationViaApi(referentPage, 'Action initiale (saveDraft test)');
+    const formPage = new OperationFormPage(referentPage);
+    await formPage.gotoEdit(plan.slug, opId);
+    await formPage.waitForForm();
+
+    const urlBefore = referentPage.url();
+    await formPage.fillLibelle('Action modifiée via saveDraft');
+    await formPage.saveDraft();
+
+    // Snackbar de confirmation, URL inchangée
+    await formPage.waitForSnackbar();
+    expect(referentPage.url()).toBe(urlBefore);
+    await expect(formPage.libelleInput).toHaveValue('Action modifiée via saveDraft');
+
+    // Cleanup
+    await apiDelete(referentPage, `plans/operations/${opId}/`);
+  });
+});

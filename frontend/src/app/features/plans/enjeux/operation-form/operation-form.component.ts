@@ -769,10 +769,21 @@ export class OperationFormComponent implements OnInit {
       this.scrollToError();
       return;
     }
+    this.submitToApi(this.buildPayload(), { stayOnForm: false });
+  }
 
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
+  /**
+   * Enregistrement sans validation des champs requis.
+   * L'utilisateur reste sur le formulaire :
+   *  - en édition : aucune navigation, snackbar de confirmation
+   *  - en création : redirection silencieuse vers l'URL d'édition de l'opération créée,
+   *    pour que les enregistrements suivants soient des PATCH plutôt que des POST.
+   */
+  saveDraft(): void {
+    this.submitToApi(this.buildPayload(), { stayOnForm: true });
+  }
 
+  private buildPayload(): OperationCreatePayload {
     const fv = this.form.value;
 
     // getRawValue() includes disabled fields (for readonly suivi mode)
@@ -786,6 +797,9 @@ export class OperationFormComponent implements OnInit {
         const code = selected.cd_nomenclature || selected.mnemonique || '';
         libelle = `${code} - ${selected.label}`;
       }
+    }
+    if (!libelle) {
+      libelle = this.translate.instant('enjeux.operations.draftPlaceholderLibelle');
     }
 
     const payload: OperationCreatePayload = {
@@ -955,18 +969,37 @@ export class OperationFormComponent implements OnInit {
         }));
     }
 
+    return payload;
+  }
+
+  /**
+   * Soumet le payload à l'API (create ou update).
+   * `stayOnForm = true` (saveDraft) : reste sur le formulaire ; en création, redirige
+   * silencieusement vers l'URL d'édition pour que les saves suivants soient des PATCH.
+   * `stayOnForm = false` (save validé) : navigue vers la liste après succès.
+   */
+  private submitToApi(payload: OperationCreatePayload, opts: { stayOnForm: boolean }): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    const successKey = opts.stayOnForm
+      ? 'enjeux.operations.saveSuccess'
+      : (this.isEditMode() ? 'enjeux.operations.updateSuccess' : 'enjeux.operations.createSuccess');
+
     if (this.isEditMode()) {
       const opId = this.operationId()!;
       this.enjeuService.updateOperation(opId, payload).subscribe({
         next: () => {
           this.isLoading.set(false);
           this.snackBar.open(
-            this.translate.instant('enjeux.operations.updateSuccess'),
+            this.translate.instant(successKey),
             this.translate.instant('common.actions.close'),
             { duration: 3000 }
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
-          this.goBack();
+          if (!opts.stayOnForm) {
+            this.goBack();
+          }
         },
         error: (error) => {
           this.isLoading.set(false);
@@ -981,12 +1014,16 @@ export class OperationFormComponent implements OnInit {
         next: (created) => {
           this.isLoading.set(false);
           this.snackBar.open(
-            this.translate.instant('enjeux.operations.createSuccess'),
+            this.translate.instant(successKey),
             this.translate.instant('common.actions.close'),
             { duration: 3000 }
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
-          this.navigateAfterCreate(created?.id_operation ?? null);
+          if (opts.stayOnForm && created?.id_operation) {
+            this.navigateToEdit(created.id_operation);
+          } else {
+            this.navigateAfterCreate(created?.id_operation ?? null);
+          }
         },
         error: (error) => {
           this.isLoading.set(false);
@@ -997,6 +1034,22 @@ export class OperationFormComponent implements OnInit {
         }
       });
     }
+  }
+
+  /**
+   * Après un saveDraft en mode création : redirige vers l'URL d'édition de l'opération
+   * créée, en remplaçant l'historique pour que l'utilisateur ne revienne pas sur le
+   * formulaire de création vide via "back".
+   */
+  private navigateToEdit(opId: number): void {
+    const slug = this.planSlug();
+    if (!slug) {
+      return;
+    }
+    this.router.navigate(
+      ['/plans', slug, 'enjeux', 'operations', opId, 'modifier'],
+      { replaceUrl: true, queryParamsHandling: 'preserve' }
+    );
   }
 
   /**
