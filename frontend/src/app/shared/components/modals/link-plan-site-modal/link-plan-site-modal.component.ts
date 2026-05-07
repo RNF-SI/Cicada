@@ -1,7 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -65,6 +66,7 @@ export class LinkPlanSiteModalComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly validationService = inject(ValidationService);
   private readonly dialogRef = inject(MatDialogRef<LinkPlanSiteModalComponent>);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   readonly data = inject<LinkPlanSiteModalData>(MAT_DIALOG_DATA);
 
@@ -253,11 +255,52 @@ export class LinkPlanSiteModalComponent implements OnInit {
       return;
     }
 
+    // Confirmation explicite si l'utilisateur retire au moins un site (#267).
+    // L'ajout d'un site n'est pas destructif → pas de confirmation.
+    if (toDelete.length > 0) {
+      this.confirmDeletionsThenSave(planId, toAdd, toDelete);
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
-
-    // Process operations
     this.processOperations(planId, toAdd, toDelete);
+  }
+
+  /**
+   * Affiche une modale de confirmation avant d'appliquer les retraits de
+   * sites. Liste les sites concernés dans le message pour que l'utilisateur
+   * sache exactement ce qu'il valide.
+   */
+  private confirmDeletionsThenSave(
+    planId: number,
+    toAdd: SiteAssignment[],
+    toDelete: SiteAssignment[],
+  ): void {
+    const names = toDelete.map(a => `• ${a.site.nom_site}`).join('\n');
+    const count = toDelete.length;
+    const title = count === 1
+      ? this.translate.instant('modals.linkPlanSite.confirmRemove.titleSingle')
+      : this.translate.instant('modals.linkPlanSite.confirmRemove.titlePlural', { count });
+    const message = this.translate.instant('modals.linkPlanSite.confirmRemove.message', { count })
+      + '\n\n' + names;
+
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title,
+        message,
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      },
+    });
+    ref.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+      this.processOperations(planId, toAdd, toDelete);
+    });
   }
 
   private processOperations(

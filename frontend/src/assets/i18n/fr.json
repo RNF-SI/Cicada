@@ -792,6 +792,11 @@
         "siteAdded": "Site \"{{name}}\" ajouté à la liste",
         "addError": "Erreur lors de l'ajout des sites: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
+      },
+      "confirmRemove": {
+        "titleSingle": "Retirer ce site du plan ?",
+        "titlePlural": "Retirer {{count}} sites du plan ?",
+        "message": "Vous êtes sur le point de retirer {{count}} site(s) de ce plan de gestion. Cette action est définitive."
       }
     },
     "linkPlanReferent": {
@@ -824,6 +829,11 @@
         "userAdded": "Utilisateur \"{{name}}\" ajouté à la liste",
         "addError": "Erreur lors de l'ajout: {{error}}",
         "removeError": "Erreur lors de la suppression: {{error}}"
+      },
+      "confirmRemove": {
+        "titleSingle": "Retirer cet utilisateur du plan ?",
+        "titlePlural": "Retirer {{count}} utilisateurs du plan ?",
+        "message": "Vous êtes sur le point de retirer {{count}} utilisateur(s) de ce plan de gestion. Cette action est définitive."
       }
     },
     "linkPlanToSite": {

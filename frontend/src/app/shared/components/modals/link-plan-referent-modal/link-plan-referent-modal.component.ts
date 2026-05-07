@@ -1,7 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -63,6 +64,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly dialogRef = inject(MatDialogRef<LinkPlanReferentModalComponent>);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   readonly data = inject<LinkPlanReferentModalData>(MAT_DIALOG_DATA);
 
@@ -288,10 +290,48 @@ export class LinkPlanReferentModalComponent implements OnInit {
       return;
     }
 
+    // Confirmation explicite si l'utilisateur retire au moins un membre/référent (#267).
+    if (toDelete.length > 0) {
+      this.confirmDeletionsThenSave(planId, toAdd, toDelete, toChangeRole);
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
-
     this.processOperations(planId, toAdd, toDelete, toChangeRole);
+  }
+
+  /** Demande confirmation avant d'appliquer les retraits d'utilisateurs (#267). */
+  private confirmDeletionsThenSave(
+    planId: number,
+    toAdd: UserAssignment[],
+    toDelete: UserAssignment[],
+    toChangeRole: UserAssignment[],
+  ): void {
+    const names = toDelete.map(a => `• ${a.user.nom_complet || a.user.email}`).join('\n');
+    const count = toDelete.length;
+    const title = count === 1
+      ? this.translate.instant('modals.linkPlanReferent.confirmRemove.titleSingle')
+      : this.translate.instant('modals.linkPlanReferent.confirmRemove.titlePlural', { count });
+    const message = this.translate.instant('modals.linkPlanReferent.confirmRemove.message', { count })
+      + '\n\n' + names;
+
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title,
+        message,
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      },
+    });
+    ref.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+      this.processOperations(planId, toAdd, toDelete, toChangeRole);
+    });
   }
 
   private processOperations(
