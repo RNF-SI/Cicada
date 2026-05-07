@@ -511,6 +511,37 @@ Le paramètre `?scope=mine` exclut la condition "même organisme" pour n'affiche
 
 > **Note** : La permission est vérifiée au niveau du **plan spécifique** via `_can_manage_plan(user, plan)` qui vérifie `plan.referents.filter(pk=user.pk)` ou `user.is_admin_organisme()`. Un utilisateur référent d'un autre plan ne peut pas gérer un plan dont il n'est pas référent.
 
+### Verrouillage des modifications hors brouillon (#248)
+
+À partir du moment où un plan **n'est plus en brouillon**, **toute écriture sur le plan ou ses entités enfants est rejetée avec un statut `403`**, indépendamment du rôle de l'utilisateur (y compris super admin).
+
+Permission DRF : `CanModifyOnlyDraftPlan` (`apps/plans/permissions.py`), appliquée à :
+
+`PlanGestionViewSet`, `CorPgFichierViewSet`, `EnjeuViewSet`, `FacteurInfluenceViewSet`, `PressionViewSet`, `ObjectifLongTermeViewSet`, `NiveauExigenceViewSet`, `ObjectifOperationnelViewSet`, `ResultatAttenduViewSet`, `IndicateurViewSet`, `MetriqueViewSet`, `MesureViewSet`, `OperationViewSet`, `SuiviInventaireViewSet`.
+
+**Actions exemptées** (autorisées hors brouillon) :
+- Cycle de vie : `change-status`, `duplicate`, `create-evaluation`.
+- Associations plan ↔ entités : `assign_site`, `remove_site`, `replace_site`, `assign_referent`, `remove_referent`, `assign_member`, `remove_member`.
+- Tout endpoint de consultation (méthodes `GET`/`HEAD`/`OPTIONS`).
+
+**Réponse type lors d'une tentative de modification** :
+
+```json
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{
+  "detail": "Le plan de gestion associé n'est pas en brouillon. Pour modifier ce plan, repassez-le en brouillon ou créez une nouvelle version.",
+  "correlation_id": "..."
+}
+```
+
+**Pour modifier un plan validé/archivé** :
+1. Soit `POST /api/plans/plans/{id}/change-status/` avec `{"new_status": "draft"}` pour le repasser en brouillon.
+2. Soit `POST /api/plans/plans/{id}/duplicate/` ou `POST /api/plans/plans/{id}/create-evaluation/` pour créer une nouvelle version éditable.
+
+> ℹ️ L'endpoint `/api/plans/enjeux/by-plan/{id}/` retourne désormais le champ `plan_statut`, utilisé par le frontend pour afficher la bannière « Plan verrouillé en lecture seule » et désactiver l'UI d'édition.
+
 ### Validation plan-site link
 
 L'endpoint `POST /api/validations/request_plan_site_link/` permet de demander la liaison d'un site à un plan. Selon les droits du demandeur, le lien est créé directement ou soumis à validation :
@@ -627,6 +658,12 @@ curl -X POST http://localhost:8000/api/plans/plans/1/change-status/ \
 // 403 - Permissions insuffisantes
 {"detail": "Vous n'avez pas la permission de gérer ce plan."}
 ```
+
+**Flux d'archivage automatique du plan précédent (#246)** :
+
+À l'issue d'une transition `draft → valide`, le **frontend** déclenche une pop-up d'archivage si la `version_chain` du plan validé contient un autre plan encore au statut `valide`. Si l'utilisateur confirme, un second appel `change-status` est émis sur le plan précédent avec `{"new_status": "archive"}`.
+
+Ce flux est entièrement orchestré côté frontend (helper `findPreviousValidatedPlan` dans `shared/components/modals/archive-previous-plan-dialog/`). Côté API, il s'agit donc simplement de **deux appels `change-status` consécutifs**, sans endpoint dédié.
 
 ### 14. Création d'une évaluation mi-parcours
 

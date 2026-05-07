@@ -149,6 +149,102 @@ Les noeuds sont cliquables pour naviguer entre les versions.
 
 \* Uniquement pour les plans (pas les évaluations)
 
+### Pop-up d'archivage du plan précédent (#246)
+
+Lorsqu'un utilisateur valide un plan (`draft → valide`) et qu'un autre plan de la **même chaîne de versions** (`plan_parent`) est encore au statut `valide`, une modale propose d'**archiver automatiquement le plan précédent**.
+
+**Composant** : `shared/components/modals/archive-previous-plan-dialog/`
+
+**Logique côté frontend** :
+1. Avant l'appel API, on capture le candidat à archiver via `findPreviousValidatedPlan(currentId, version_chain)`.
+2. Au succès du `change-status`, si un candidat existe → ouverture de la modale.
+3. Confirmation → second appel `change-status` (`new_status: 'archive'`) sur le plan précédent + snackbar dédié.
+
+**Critère V1** : limité à la même `version_chain` (lien `plan_parent`). Le cas « nouveau rang sans `plan_parent` partageant un site » sera couvert ultérieurement.
+
+**Helper exporté** : `findPreviousValidatedPlan(currentId, version_chain)` — réutilisable dans `plan-detail.component.ts` et `plans-list.component.ts`.
+
+---
+
+## Verrouillage des modifications hors brouillon (#248)
+
+À partir du moment où un plan **n'est plus en brouillon**, il **ne peut plus être modifié ou réorganisé directement**. Pour modifier un plan validé/archivé, l'utilisateur doit :
+- Soit **repasser le plan en brouillon** via les actions de cycle de vie (`valide → draft`).
+- Soit **créer une nouvelle version** (duplication ou évaluation mi-parcours).
+
+### Permission backend `CanModifyOnlyDraftPlan`
+
+Fichier : `apps/plans/permissions.py`
+
+```python
+class CanModifyOnlyDraftPlan(BasePermission):
+    """Bloque POST/PUT/PATCH/DELETE quand le plan associé n'est pas en draft."""
+```
+
+**Actions exemptées** (autorisées hors brouillon) :
+- Cycle de vie : `change_status`, `duplicate`, `create_evaluation`.
+- Associations : `assign_site`, `remove_site`, `replace_site`, `assign_referent`, `remove_referent`, `assign_member`, `remove_member`.
+- Endpoints de consultation (GET) : `by_plan`, `by_ne`, `by_oo`, `by_resultat`, `by_enjeu`, `by_indicateur`, `by_metrique`.
+
+**Mécanisme** :
+1. **Vue objet** (`has_object_permission`) — retrouve le plan via `obj.get_plan_de_gestion()` (méthode ajoutée sur tous les modèles concernés) puis vérifie `plan.statut == 'draft'`.
+2. **Vue création** (`has_permission` + POST) — chaque ViewSet racine expose `get_plan_for_payload(data)` pour résoudre le plan depuis le corps de la requête avant désérialisation.
+
+**ViewSets concernés** : `PlanGestionViewSet`, `CorPgFichierViewSet`, `EnjeuViewSet`, `FacteurInfluenceViewSet`, `PressionViewSet`, `ObjectifLongTermeViewSet`, `NiveauExigenceViewSet`, `ObjectifOperationnelViewSet`, `ResultatAttenduViewSet`, `IndicateurViewSet`, `MetriqueViewSet`, `MesureViewSet`, `OperationViewSet`, `SuiviInventaireViewSet`.
+
+`ResponsabiliteViewSet` est **exclue** : une responsabilité est rattachée à un site, pas à un plan.
+
+### Méthode `get_plan_de_gestion()` sur les modèles
+
+Chaque modèle remontant la chaîne FK retourne le plan associé (ou `None` si non rattaché). Exemples :
+
+```python
+class Enjeu(models.Model):
+    def get_plan_de_gestion(self):
+        return self.id_pg
+
+class Pression(models.Model):
+    def get_plan_de_gestion(self):
+        return self.id_facteur_influence.id_enjeu.id_pg
+
+class Operation(models.Model):
+    def get_plan_de_gestion(self):
+        # Priorité au suivi (id_pg direct), fallback sur les métriques
+        if self.id_suivi_id and self.id_suivi.id_pg is not None:
+            return self.id_suivi.id_pg
+        first_metrique = self.metriques.first()
+        return first_metrique.get_plan_de_gestion() if first_metrique else None
+```
+
+### Réponse 403 type
+
+```json
+{
+  "detail": "Le plan de gestion associé n'est pas en brouillon. Pour modifier ce plan, repassez-le en brouillon ou créez une nouvelle version.",
+  "correlation_id": "..."
+}
+```
+
+### Désactivation UI côté frontend
+
+- `plan-detail.component.ts` : `canEditPlan()` inclut désormais `isPlanDraft()`. `canManageLifecycle()` reste **inchangé** (les actions de cycle de vie restent accessibles hors brouillon).
+- `enjeux-list.component.ts` : nouveau signal `planStatut` alimenté par `enjeux/by-plan/` (qui retourne maintenant `plan_statut`). `canEditPlan()` étendu de la même manière.
+- Tous les usages de `canEditPlan()` (≈25 emplacements dans `plan-detail.html` et `enjeux-list.html`) bénéficient automatiquement du verrou — aucun ajout de check explicite dans le HTML.
+
+### Bannière `.lock-banner` (lecture seule)
+
+Affichée en haut de `plan-detail` et `enjeux-list` quand `plan.statut !== 'draft'` :
+
+> 🔒 **Plan verrouillé en lecture seule**
+> Ce plan n'est pas en brouillon. Pour le modifier, repassez-le en brouillon depuis le cycle de vie ou créez une nouvelle version (duplication / évaluation mi-parcours).
+
+Style global défini dans `assets/scss/_components.scss` (`.lock-banner`).
+
+### Limites V1
+
+- **Détection automatique de nouveau rang** (création d'un plan sur un site déjà couvert) : non implémentée. Le rang reste saisi manuellement dans le formulaire de création.
+- **Formulaires d'édition** (`operation-form`, `enjeu-form`, etc.) : pas désactivés au sein du formulaire. Inaccessibles via les boutons désactivés en amont ; le backend rejette de toute façon les écritures en 403.
+
 ---
 
 ## Permissions
@@ -883,6 +979,7 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 | `apps/plans/views_enjeux.py` | ViewSet enjeux (accès élargi aux membres via `CorRolePlan`) |
 | `apps/plans/views_indicateurs.py` | ViewSet indicateurs (idem) |
 | `apps/plans/views_operations.py` | ViewSet opérations (idem) |
+| `apps/plans/permissions.py` | Permission `CanModifyOnlyDraftPlan` (#248) — verrouillage hors brouillon |
 | `apps/plans/serializers.py` | Serializers (CorRolePlanSerializer, etc.) |
 | `apps/notifications/services.py` | Validation plan-site, notifications, réassignation |
 | `apps/notifications/signals.py` | Signal `notify_plan_referents_new_member` |
@@ -901,6 +998,7 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 | `shared/components/view-scope-toggle/` | Composant de sélection du scope |
 | `shared/components/plan-version-timeline/` | Timeline de versions (cycle de vie) |
 | `shared/components/modals/duplicate-plan-dialog/` | Modale de duplication |
+| `shared/components/modals/archive-previous-plan-dialog/` | Modale d'archivage du plan précédent (#246) — exporte `findPreviousValidatedPlan()` |
 | `shared/components/modals/link-plan-site-modal/` | Modale gestion sites du plan |
 | `shared/components/modals/link-plan-referent-modal/` | Modale gestion utilisateurs du plan |
 | `shared/components/modals/link-plan-to-site-dialog/` | Dialog lier plan depuis page site |
@@ -917,6 +1015,7 @@ L'API retourne le champ `membres` dans les réponses de liste et détail :
 - Janvier 2026 : Ajout réassignation de site avec notification automatique
 - Janvier 2026 : Ajout système hybride rédacteurs/relecteurs
 - Janvier 2026 : Ajout section "Plans en attente de validation" sur la liste des plans
+- Mai 2026 : Pop-up d'archivage du plan précédent à la validation (#246) et verrouillage des modifications hors brouillon (#248)
 - Janvier 2026 : Amélioration détermination accès (via sites liés) et gestion demandes rejetées
 - Janvier 2026 : Ajout scope toggle (Mes plans / Mon organisme / Tous) selon le rôle utilisateur
 - Janvier 2026 : Ajout relation membre/référent directe via `CorRolePlan` (comme `CorRoleSite` pour les sites)

@@ -1066,12 +1066,20 @@ class UsersConfig(AppConfig):
 - **Cycle de vie des plans** :
   - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
     - Transitions : `draft↔valide`, `valide→archive`, `archive→valide`
+    - **Pop-up d'archivage automatique (#246)** : à la transition `draft → valide`, le frontend détecte les plans encore `valide` dans la `version_chain` (lien `plan_parent`) et propose d'archiver le plan précédent. Helper `findPreviousValidatedPlan(currentId, version_chain)` exporté depuis `shared/components/modals/archive-previous-plan-dialog/`. Si confirmé, un second `change-status` (`new_status: 'archive'`) est émis. Critère V1 limité à la même chaîne `plan_parent`.
   - `POST /api/plans/plans/{id}/create-evaluation/` - Création d'une évaluation mi-parcours (référent du plan, admin_og+). Plan source doit être `valide` et de type plan (pas évaluation). Copie sites/référents, version incrémentée.
   - `POST /api/plans/plans/{id}/duplicate/` - Duplication d'un plan avec options sélectives
   - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature)
   - Le serializer détail expose `version_chain` pour la timeline frontend
   - **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
   - **Permissions lifecycle** : référent du plan (`PlanGestion.referents`), admin_og, super_admin. Vérification spécifique au plan dans la vue (pas juste le rôle global).
+- **Verrouillage des modifications hors brouillon (#248)** :
+  - Permission DRF `CanModifyOnlyDraftPlan` (`apps/plans/permissions.py`) appliquée aux ViewSets : `PlanGestionViewSet`, `CorPgFichierViewSet`, `EnjeuViewSet`, `FacteurInfluenceViewSet`, `PressionViewSet`, `ObjectifLongTermeViewSet`, `NiveauExigenceViewSet`, `ObjectifOperationnelViewSet`, `ResultatAttenduViewSet`, `IndicateurViewSet`, `MetriqueViewSet`, `MesureViewSet`, `OperationViewSet`, `SuiviInventaireViewSet`. (`ResponsabiliteViewSet` exclue : rattachée à un site.)
+  - Toute écriture (POST/PUT/PATCH/DELETE) sur le plan ou ses entités enfants → **403** quand `plan.statut != 'draft'`, indépendamment du rôle.
+  - **Actions exemptées** : `change_status`, `duplicate`, `create_evaluation`, `assign_site/remove_site/replace_site`, `assign_referent/remove_referent`, `assign_member/remove_member`, et tout endpoint de consultation (GET).
+  - **Mécanisme** : méthode `get_plan_de_gestion()` ajoutée sur tous les modèles concernés (`Enjeu`, `FacteurInfluence`, `Pression`, `OLT`, `NE`, `OO`, `RA`, `Indicateur`, `Métrique`, `Mesure`, `Operation`, `SuiviInventaire`, `CorPgFichier`) pour remonter au plan via la chaîne FK. Les ViewSets racines exposent `get_plan_for_payload(data)` pour bloquer les créations en amont.
+  - **Frontend** : `canEditPlan()` étendu avec un check `isPlanDraft()` côté `plan-detail.component.ts` et `enjeux-list.component.ts`. Bannière `.lock-banner` (« Plan verrouillé en lecture seule ») affichée en haut des deux pages dès que `statut !== 'draft'`. L'endpoint `enjeux/by-plan/` retourne `plan_statut` pour alimenter la bannière. Les actions de cycle de vie (`canManageLifecycle()`) restent **inchangées** (accessibles hors brouillon).
+  - Pour modifier un plan validé : repasser en brouillon (cycle de vie) ou créer une nouvelle version (duplicate / create-evaluation).
 - Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
 
 **API REST Notifications & Validations:**
@@ -1228,7 +1236,18 @@ Fichiers frontend:
   - Fichiers : `shared/components/modals/status-change-dialog/`
 - **DuplicatePlanDialogComponent** : Modale de duplication de plan avec options sélectives
   - Fichiers : `shared/components/modals/duplicate-plan-dialog/`
-- Traductions : `frontend/src/assets/i18n/fr.json` (clés `plans.lifecycle.*`, `plans.duplicate.*`)
+- **ArchivePreviousPlanDialogComponent (#246)** : Modale d'archivage automatique du plan précédent à la validation d'un nouveau plan dans la même chaîne de versions. Helper `findPreviousValidatedPlan(currentId, version_chain)` exporté.
+  - Fichiers : `shared/components/modals/archive-previous-plan-dialog/`
+- **Verrouillage hors brouillon (#248)** : `canEditPlan()` côté `plan-detail.component.ts` et `enjeux-list.component.ts` inclut un check `isPlanDraft()`. Bannière `.lock-banner` (style global dans `assets/scss/_components.scss`) affichée en haut des pages quand le plan n'est pas en brouillon. Backend : permission DRF `CanModifyOnlyDraftPlan`.
+- Traductions : `frontend/src/assets/i18n/fr.json` (clés `plans.lifecycle.*`, `plans.duplicate.*`, `plans.lifecycle.archivePrevious.*`, `plans.lifecycle.lockedBanner.*`)
+
+**Formulaire d'action / opération (`/plans/:slug/enjeux/operations/...`) :**
+- **Bouton « Enregistrer » sans validation (#251)** dans le formulaire d'opération (`features/plans/enjeux/operation-form/operation-form.component.*`) :
+  - Sauvegarde sans déclencher les validators required, **maintient l'utilisateur sur le formulaire**.
+  - En création, redirige silencieusement (`router.navigate(..., { replaceUrl: true })`) vers `/operations/{id}/modifier` pour que les enregistrements suivants soient des `PATCH`.
+  - En édition, reste sur la page (URL inchangée) avec snackbar « Modifications enregistrées ».
+  - Méthodes : `saveDraft()` + extraction de `buildPayload()` et `submitToApi(payload, { stayOnForm })`. Le bouton « Valider » conserve son comportement strict (validation + navigation).
+  - Bouton CSS : `.btn-action-save` (outline blanc, distinct du « Valider » plein).
 
 ## Internationalisation (i18n)
 
