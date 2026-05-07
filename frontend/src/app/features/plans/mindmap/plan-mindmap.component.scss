@@ -257,7 +257,11 @@
   background: $white;
   border-radius: $border-radius-sm;
   border: 1px solid rgba($primary-color, 0.08);
-  overflow: hidden;
+  // #257 : la partition peut être plus grande que la fenêtre quand le plan
+  // est dense (chaque feuille a min 50 px). On rend le conteneur scrollable
+  // verticalement pour permettre l'affichage multi-ligne du texte.
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 // Legend

@@ -215,7 +215,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     d3.select(container).selectAll('*').remove();
 
     const width = container.clientWidth;
-    const height = container.clientHeight;
+    const containerHeight = container.clientHeight;
 
     const filteredData: MindmapNode = filterChildren
       ? { ...data, children: filterChildren(data.children || []) }
@@ -245,6 +245,17 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     hierarchy.each(d => { if (d.depth > maxDepth) maxDepth = d.depth; });
     const initialVisibleCols = 2;
     const columnWidth = width / initialVisibleCols;
+
+    // Hauteur adaptative (#257) : sur les plans denses, chaque feuille reçoit
+    // viewport / nLeaves px de hauteur — souvent < 20 px, ce qui ne laisse pas
+    // la place pour du texte multi-ligne. On garantit au minimum
+    // MIN_LEAF_HEIGHT par feuille en agrandissant la zone de partition (et
+    // donc le SVG) au-delà du viewport ; le container est scrollable
+    // verticalement (overflow-y: auto) pour les plans riches.
+    const MIN_LEAF_HEIGHT = 50;
+    let leafCount = 0;
+    hierarchy.each(d => { if (!d.children || d.children.length === 0) leafCount++; });
+    const height = Math.max(containerHeight, leafCount * MIN_LEAF_HEIGHT);
 
     const root = d3.partition<MindmapNode>()
       .size([height, (maxDepth + 1) * columnWidth])
