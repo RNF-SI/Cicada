@@ -448,7 +448,7 @@
 
 // Column widths
 .col-nom {
-  width: 36%;
+  width: 30%;
   border-right: 2px solid $primary-color !important;
 
   .sort-icon {
@@ -457,12 +457,18 @@
 }
 
 .col-periode {
-  width: 20%;
+  width: 13%;
+  border-right: 1px solid $gray-light;
+  white-space: nowrap;
+}
+
+.col-sites {
+  width: 27%;
   border-right: 1px solid $gray-light;
 }
 
 .col-statut {
-  width: 22%;
+  width: 16%;
   border-right: 1px solid $gray-light;
 
   .sort-icon {
@@ -471,7 +477,7 @@
 }
 
 .col-actions {
-  width: 22%;
+  width: 14%;
 }
 
 // Sort icons in header
