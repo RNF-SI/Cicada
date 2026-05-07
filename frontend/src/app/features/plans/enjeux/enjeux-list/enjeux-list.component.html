@@ -340,7 +340,7 @@
               <!-- Facteurs d'Influence (enjeux uniquement, pas FCR) -->
               @if (!isSelectedFcr()) {
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
-                  <div class="facteur-influence-card" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
+                  <div class="facteur-influence-card" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
                     <!-- Mode édition facteur -->
                     @if (editingFacteurId() === facteur.id_facteur_influence) {
                       <div class="facteur-card-body">
@@ -404,7 +404,7 @@
 
                         <!-- Pressions du facteur -->
                         @for (pression of facteur.pressions || []; track pression.id_pression) {
-                          <div class="pression-card" [class.expanded]="isPressionExpanded(pression.id_pression)">
+                          <div class="pression-card" [id]="'pression-' + pression.id_pression" [class.expanded]="isPressionExpanded(pression.id_pression)">
                             <!-- Mode édition pression -->
                             @if (editingPressionId() === pression.id_pression) {
                               <div class="pression-card-body">
@@ -677,7 +677,7 @@
                           </div>
                         } @else {
                           <!-- Barre OLT (utilise app-section-title réutilisable) -->
-                          <div class="olt-section-header" (click)="toggleOlt(olt.id_olt)">
+                          <div class="olt-section-header" [id]="'olt-' + olt.id_olt" (click)="toggleOlt(olt.id_olt)">
                             <app-section-title
                               [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
                               icon="fi-rr-eye"
@@ -731,7 +731,7 @@
                                     </div>
                                   </div>
                                 } @else {
-                                  <div class="ne-card">
+                                  <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne">
                                     <div class="ne-card-header">
                                       <div class="ne-card-left">
                                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
@@ -754,7 +754,7 @@
 
                                     <!-- Indicateurs de ce NE -->
                                     @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
-                                      <div class="indicateur-block">
+                                      <div class="indicateur-block" [id]="'indicateur-' + ind.id_indicateur">
                                         @if (editingIndicateurId() === ind.id_indicateur) {
                                           <!-- Edit mode (extended with metriques) -->
                                           <div class="unified-indicateur-form">
@@ -1763,7 +1763,7 @@
                   </div>
                 } @else {
                   <!-- Barre OO (utilise app-section-title réutilisable) -->
-                  <div class="olt-section-header" (click)="toggleOo(oo.id_oo)">
+                  <div class="olt-section-header" [id]="'oo-' + oo.id_oo" (click)="toggleOo(oo.id_oo)">
                     <app-section-title
                       [title]="('enjeux.oo.label' | translate) + ' ' + (ooIdx + 1) + ' : ' + oo.libelle"
                       icon="fi-rr-bullseye-arrow"
@@ -1832,7 +1832,7 @@
                             </div>
                           </div>
                         } @else {
-                          <div class="ne-card">
+                          <div class="ne-card" [id]="'resultat_attendu-' + ra.id_ra">
                             <div class="ne-card-header">
                               <div class="ne-card-left">
                                 <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
@@ -1855,7 +1855,7 @@
 
                             <!-- Indicateurs de pression de ce RA -->
                             @for (ind of ra.indicateurs || []; track ind.id_indicateur) {
-                              <div class="indicateur-block">
+                              <div class="indicateur-block" [id]="'indicateur-' + ind.id_indicateur">
                                 @if (editingOoIndicateurId() === ind.id_indicateur) {
                                   <!-- Edit mode (extended with metriques) -->
                                   <div class="unified-indicateur-form">

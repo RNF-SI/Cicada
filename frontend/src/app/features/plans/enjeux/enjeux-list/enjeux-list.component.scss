@@ -2276,3 +2276,24 @@
     gap: $spacing-xs;
   }
 }
+
+// Highlight bref appliqué aux éléments ciblés par un fragment typé du
+// tableau d'arborescence (#257). Pulse ~2s pour guider l'œil.
+.anchor-highlight {
+  animation: anchor-pulse 1.6s ease-out;
+}
+
+@keyframes anchor-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba($secondary-orange-salmon, 0.7);
+    background-color: rgba($secondary-orange-salmon, 0.18);
+  }
+  60% {
+    box-shadow: 0 0 0 12px rgba($secondary-orange-salmon, 0);
+    background-color: rgba($secondary-orange-salmon, 0.10);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba($secondary-orange-salmon, 0);
+    background-color: transparent;
+  }
+}

@@ -191,6 +191,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   pendingScrollToOperation = signal<number | null>(null);
   // Pending scroll to a specific métrique after data loads (retour depuis form action annulé)
   pendingScrollToMetrique = signal<number | null>(null);
+  // Pending scroll to a typed anchor `<type>-<id>` (depuis le tableau d'arborescence #257)
+  pendingScrollToAnchor = signal<string | null>(null);
 
   // Indicateurs state
   expandedIndicateurIds = signal<Set<number>>(new Set());
@@ -373,18 +375,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       this.planSlug.set(slug);
       this.loadPlanData();
 
-      // Scroll vers l'enjeu si fragment présent (retour depuis formulaire)
+      // Fragment URL : peut être un slug d'enjeu (retour depuis formulaire)
+      // ou un fragment typé `<entityType>-<id>` posté par le tableau
+      // d'arborescence (#257) pour cibler une sous-entité précise.
       this.route.fragment.pipe(
         takeUntilDestroyed(this.destroyRef)
       ).subscribe(fragment => {
-        if (fragment) {
-          this.selectedEnjeuSlug.set(fragment);
-          this.enjeuDetailExpanded.set(true);
-          setTimeout(() => {
-            const el = this.elRef.nativeElement.querySelector(`[data-enjeu-slug="${fragment}"]`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 500);
-        }
+        if (!fragment) return;
+        this.handleFragmentNavigation(fragment);
       });
     } else {
       this.errorMessage.set('Slug du plan non trouvé');
@@ -551,12 +549,67 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    */
   private applyPostLoadNavigation(): void {
     if (!this.hasRestoredUiState) {
-      const hasUrlScrollTarget = !!this.pendingScrollToOperation() || !!this.pendingScrollToMetrique();
+      const hasUrlScrollTarget = !!this.pendingScrollToOperation()
+        || !!this.pendingScrollToMetrique()
+        || !!this.pendingScrollToAnchor();
       this.restoreUiState(hasUrlScrollTarget);
       this.hasRestoredUiState = true;
     }
     this.expandAndScrollToOperation();
     this.expandAndScrollToMetrique();
+    this.expandAndScrollToAnchor();
+  }
+
+  /**
+   * Décode un fragment d'URL et planifie le scroll/expansion approprié.
+   * Formats supportés :
+   *   - `<entityType>-<id>` : posé par le tableau d'arborescence (#257) pour
+   *     viser une sous-entité précise (olt-12, niveau_exigence-3, indicateur-7,
+   *     metrique-15, mesure-2, oo-8, resultat_attendu-4, facteur-9, pression-5,
+   *     etat_enjeu-12, operation-N, enjeu-N, fcr-N).
+   *   - `<slug-d-enjeu>` (legacy) : ancien comportement, équivaut à sélectionner
+   *     l'enjeu correspondant.
+   */
+  private handleFragmentNavigation(fragment: string): void {
+    const typedMatch = fragment.match(/^([a-z_]+)-(\d+)$/);
+    if (typedMatch) {
+      this.pendingScrollToAnchor.set(fragment);
+      // Si la donnée est déjà chargée, déclencher le scroll immédiatement.
+      if (this.planEnjeuxData()) {
+        this.expandAndScrollToAnchor();
+      }
+      return;
+    }
+    // Legacy : fragment = slug d'enjeu
+    this.selectedEnjeuSlug.set(fragment);
+    this.enjeuDetailExpanded.set(true);
+    setTimeout(() => {
+      const el = this.elRef.nativeElement.querySelector(`[data-enjeu-slug="${fragment}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 500);
+  }
+
+  /**
+   * Scroll vers l'élément ciblé par un fragment typé `<type>-<id>` après le
+   * chargement des données. Cherche un élément avec `id="<fragment>"` dans
+   * le DOM (les templates exposent déjà ces IDs pour `metrique-N`, `operation-N`,
+   * `enjeu-N`, `fcr-N`). Pour les autres types non encore présents dans le
+   * DOM, fait un scroll best-effort.
+   */
+  private expandAndScrollToAnchor(): void {
+    const anchor = this.pendingScrollToAnchor();
+    if (!anchor) return;
+    this.pendingScrollToAnchor.set(null);
+
+    setTimeout(() => {
+      const el = this.elRef.nativeElement.querySelector(`#${CSS.escape(anchor)}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Highlight bref pour guider l'œil
+        el.classList.add('anchor-highlight');
+        setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+      }
+    }, 600);
   }
 
   // ============================================

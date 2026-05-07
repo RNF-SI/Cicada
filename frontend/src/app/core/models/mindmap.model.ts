@@ -2,6 +2,8 @@ export interface MindmapNode {
   name: string;
   entityType: MindmapEntityType;
   id?: number;
+  /** Slug exposé pour les types `enjeu` et `fcr` (route `/enjeux/:enjeuSlug`). */
+  slug?: string;
   children?: MindmapNode[];
   _children?: MindmapNode[];
 }

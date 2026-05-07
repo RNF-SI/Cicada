@@ -674,6 +674,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'name': enjeu.intitule_court or enjeu.libelle,
                     'entityType': 'fcr' if is_fcr else 'enjeu',
                     'id': enjeu.id_enjeu,
+                    'slug': enjeu.slug,
                     'children': []
                 }
 

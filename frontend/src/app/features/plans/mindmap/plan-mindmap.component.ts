@@ -321,28 +321,57 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     cell.on('dblclick', (event, p) => {
       event.preventDefault();
       event.stopPropagation();
-      this.openEntity(p.data);
+      this.openEntity(p);
     });
   }
 
   /**
    * Navigate to the detail page of a node, triggered on double-click (#257).
-   * Operations have a dedicated detail route; other types fall back to the
-   * plan's enjeux list (no individual route exists yet for OLT, NE, OO, etc.).
+   *
+   * - `operation` → fiche dédiée (`/enjeux/operations/<id>`).
+   * - `enjeu` / `fcr` → page détail de l'enjeu (`/enjeux/<enjeuSlug>`).
+   * - Sous-entités (OLT, NE, OO, RA, indicateur, métrique, mesure, facteur,
+   *   pression, etat_enjeu) → page détail de l'enjeu ancêtre, avec un
+   *   fragment `<type>-<id>` que `enjeux-list` utilise pour scroller jusqu'à
+   *   l'élément précis (et déplier l'accordéon parent au passage).
    */
-  private openEntity(node: MindmapNode): void {
+  private openEntity(node: IcicleNode): void {
     const slug = this.planSlug();
-    if (!slug || !node.id) return;
+    if (!slug || !node.data.id) return;
 
-    if (node.entityType === 'operation') {
-      this.router.navigate(['/plans', slug, 'enjeux', 'operations', node.id]);
+    const data = node.data;
+
+    if (data.entityType === 'operation') {
+      this.router.navigate(['/plans', slug, 'enjeux', 'operations', data.id]);
       return;
     }
-    if (node.entityType === 'plan') {
+    if (data.entityType === 'plan') {
       this.router.navigate(['/plans', slug]);
       return;
     }
-    this.router.navigate(['/plans', slug, 'enjeux']);
+
+    // Pour enjeu/fcr, navigue directement vers la page détail.
+    if ((data.entityType === 'enjeu' || data.entityType === 'fcr') && data.slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', data.slug]);
+      return;
+    }
+
+    // Sous-entité : remonter aux ancêtres pour trouver l'enjeu/FCR parent.
+    const enjeuAncestor = node.ancestors().find(a =>
+      (a.data.entityType === 'enjeu' || a.data.entityType === 'fcr') && a.data.slug
+    );
+
+    const fragment = `${data.entityType}-${data.id}`;
+    if (enjeuAncestor && enjeuAncestor.data.slug) {
+      this.router.navigate(
+        ['/plans', slug, 'enjeux', enjeuAncestor.data.slug],
+        { fragment },
+      );
+      return;
+    }
+
+    // Fallback : page enjeux du plan avec fragment générique.
+    this.router.navigate(['/plans', slug, 'enjeux'], { fragment });
   }
 
   private animateToFocus(
