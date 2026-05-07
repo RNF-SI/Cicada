@@ -591,25 +591,165 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   /**
    * Scroll vers l'élément ciblé par un fragment typé `<type>-<id>` après le
-   * chargement des données. Cherche un élément avec `id="<fragment>"` dans
-   * le DOM (les templates exposent déjà ces IDs pour `metrique-N`, `operation-N`,
-   * `enjeu-N`, `fcr-N`). Pour les autres types non encore présents dans le
-   * DOM, fait un scroll best-effort.
+   * chargement des données. Marche en 2 temps :
+   *   1. Walk de l'arbre `selectedEnjeu()` pour trouver l'élément, déterminer
+   *      le tab (detail/olt/operations) et déplier les accordéons parents.
+   *   2. Scroll-into-view avec polling pour gérer les rendus Angular en
+   *      cascade (`@if` imbriqués) puis highlight bref.
    */
   private expandAndScrollToAnchor(): void {
     const anchor = this.pendingScrollToAnchor();
     if (!anchor) return;
     this.pendingScrollToAnchor.set(null);
 
-    setTimeout(() => {
+    const match = anchor.match(/^([a-z_]+)-(\d+)$/);
+    if (!match) return;
+    const type = match[1];
+    const id = parseInt(match[2], 10);
+
+    // Préparer le contexte (tab + accordéons à déplier) en parcourant l'arbre.
+    this.prepareUiForAnchor(type, id);
+
+    // Polling jusqu'à ce que le DOM rende l'élément (peut prendre quelques
+    // cycles de change-detection à cause des @if imbriqués).
+    let attempts = 0;
+    const maxAttempts = 30;
+    const interval = setInterval(() => {
+      attempts++;
       const el = this.elRef.nativeElement.querySelector(`#${CSS.escape(anchor)}`);
       if (el) {
+        clearInterval(interval);
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Highlight bref pour guider l'œil
         el.classList.add('anchor-highlight');
         setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+      } else if (attempts >= maxAttempts) {
+        clearInterval(interval);
       }
-    }, 600);
+    }, 100);
+  }
+
+  /**
+   * Marche l'arbre `selectedEnjeu()` pour localiser une entité par type+id et
+   * déplie les accordéons + sélectionne l'onglet pour la rendre visible.
+   * Couvre toutes les entités exposées par le tableau d'arborescence.
+   */
+  private prepareUiForAnchor(type: string, id: number): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu) return;
+
+    // Helpers pour ajouter à un set signal
+    const expandFacteur = (fid: number) =>
+      this.expandedFacteurIds.update(s => { const ns = new Set(s); ns.add(fid); return ns; });
+    const expandPression = (pid: number) =>
+      this.expandedPressionIds.update(s => { const ns = new Set(s); ns.add(pid); return ns; });
+    const expandOlt = (oltId: number) =>
+      this.expandedOltIds.update(s => { const ns = new Set(s); ns.add(oltId); return ns; });
+    const expandIndicateur = (iid: number) =>
+      this.expandedIndicateurIds.update(s => { const ns = new Set(s); ns.add(iid); return ns; });
+    const expandOo = (ooId: number) =>
+      this.expandedOoIds.update(s => { const ns = new Set(s); ns.add(ooId); return ns; });
+    const expandOoIndicateur = (iid: number) =>
+      this.expandedOoIndicateurIds.update(s => { const ns = new Set(s); ns.add(iid); return ns; });
+
+    // === Branche détail (facteur / pression) ===
+    if (type === 'facteur') {
+      const fi = (enjeu.facteurs_influence || []).find(f => f.id_facteur_influence === id);
+      if (fi) {
+        this.activeTab.set('detail');
+        expandFacteur(fi.id_facteur_influence);
+      }
+      return;
+    }
+    if (type === 'pression') {
+      for (const fi of enjeu.facteurs_influence || []) {
+        const p = (fi.pressions || []).find(pp => pp.id_pression === id);
+        if (p) {
+          this.activeTab.set('detail');
+          expandFacteur(fi.id_facteur_influence);
+          expandPression(p.id_pression);
+          return;
+        }
+      }
+      return;
+    }
+
+    // === Branche OLT (etat_enjeu / olt / niveau_exigence) ===
+    if (type === 'etat_enjeu' || type === 'olt') {
+      this.activeTab.set('olt');
+      if (type === 'olt') expandOlt(id);
+      return;
+    }
+    if (type === 'niveau_exigence') {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        const ne = (olt.niveaux_exigence || []).find(n => n.id_ne === id);
+        if (ne) {
+          this.activeTab.set('olt');
+          expandOlt(olt.id_olt);
+          return;
+        }
+      }
+      return;
+    }
+
+    // === Branche OO (oo / resultat_attendu) ===
+    if (type === 'oo') {
+      this.activeTab.set('operations');
+      expandOo(id);
+      return;
+    }
+    if (type === 'resultat_attendu') {
+      for (const fi of enjeu.facteurs_influence || []) {
+        for (const p of fi.pressions || []) {
+          for (const oo of p.objectifs_operationnels || []) {
+            const ra = (oo.resultats_attendus || []).find(r => r.id_ra === id);
+            if (ra) {
+              this.activeTab.set('operations');
+              expandOo(oo.id_oo);
+              return;
+            }
+          }
+        }
+      }
+      return;
+    }
+
+    // === Indicateur / métrique : peut être sous OLT (NE) OU OO (RA). On essaie OLT d'abord. ===
+    if (type === 'indicateur' || type === 'metrique') {
+      // Branche OLT
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          for (const ind of ne.indicateurs || []) {
+            const isInd = type === 'indicateur' && ind.id_indicateur === id;
+            const isMet = type === 'metrique' && (ind.metriques || []).some(m => m.id_metrique === id);
+            if (isInd || isMet) {
+              this.activeTab.set('olt');
+              expandOlt(olt.id_olt);
+              expandIndicateur(ind.id_indicateur);
+              return;
+            }
+          }
+        }
+      }
+      // Branche OO/RA
+      for (const fi of enjeu.facteurs_influence || []) {
+        for (const p of fi.pressions || []) {
+          for (const oo of p.objectifs_operationnels || []) {
+            for (const ra of oo.resultats_attendus || []) {
+              for (const ind of ra.indicateurs || []) {
+                const isInd = type === 'indicateur' && ind.id_indicateur === id;
+                const isMet = type === 'metrique' && (ind.metriques || []).some(m => m.id_metrique === id);
+                if (isInd || isMet) {
+                  this.activeTab.set('operations');
+                  expandOo(oo.id_oo);
+                  expandOoIndicateur(ind.id_indicateur);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   // ============================================
