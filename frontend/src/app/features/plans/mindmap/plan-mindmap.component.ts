@@ -3,7 +3,7 @@ import {
   inject, signal, ElementRef, ViewChild, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,6 +37,7 @@ interface IcicleNode extends d3.HierarchyRectangularNode<MindmapNode> {
 })
 export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -316,6 +317,32 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       setFocus(focus);
       this.animateToFocus(focus, getRoot(), root, svg, cell, rect, defs, typeText, nameText, viewWidth, viewHeight);
     });
+
+    cell.on('dblclick', (event, p) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.openEntity(p.data);
+    });
+  }
+
+  /**
+   * Navigate to the detail page of a node, triggered on double-click (#257).
+   * Operations have a dedicated detail route; other types fall back to the
+   * plan's enjeux list (no individual route exists yet for OLT, NE, OO, etc.).
+   */
+  private openEntity(node: MindmapNode): void {
+    const slug = this.planSlug();
+    if (!slug || !node.id) return;
+
+    if (node.entityType === 'operation') {
+      this.router.navigate(['/plans', slug, 'enjeux', 'operations', node.id]);
+      return;
+    }
+    if (node.entityType === 'plan') {
+      this.router.navigate(['/plans', slug]);
+      return;
+    }
+    this.router.navigate(['/plans', slug, 'enjeux']);
   }
 
   private animateToFocus(

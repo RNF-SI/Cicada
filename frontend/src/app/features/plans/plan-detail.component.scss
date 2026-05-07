@@ -652,12 +652,34 @@
   &:hover {
     background-color: rgba($primary-color, 0.08);
     transform: translateX(4px);
+
+    .site-card-cta {
+      transform: scale(1.08);
+      box-shadow: 0 2px 6px rgba($primary-color, 0.25);
+    }
   }
 
   i {
     font-size: 14px;
     color: $primary-color;
     flex-shrink: 0;
+  }
+
+  .site-card-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: $primary-color;
+    transition: transform $transition-fast, box-shadow $transition-fast;
+
+    i {
+      font-size: 13px;
+      color: $white;
+    }
   }
 
   &.site-card-locked {

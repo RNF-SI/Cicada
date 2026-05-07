@@ -17,6 +17,7 @@ import { ValidationService } from '../../core/services/validation.service';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AdminPlan, PlanFichier, PlanMembre, PlanSite, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
   PlanFormModalComponent,
@@ -716,25 +717,36 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const p = this.plan();
     if (!p) return;
 
-    const confirmMsg = this.translate.instant('plans.detail.confirmRemoveSite', { name: site.nom_site });
-    if (!confirm(confirmMsg)) return;
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('common.actions.delete'),
+        message: this.translate.instant('plans.detail.confirmRemoveSite', { name: site.nom_site }),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      },
+    });
 
-    this.adminService.removeSiteFromPlan(p.id_pg, site.id_site).subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('plans.detail.siteRemoved'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.loadPlan();
-      },
-      error: () => {
-        this.snackBar.open(
-          this.translate.instant('common.messages.error'),
-          this.translate.instant('common.actions.close'),
-          { duration: 5000 }
-        );
-      },
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.adminService.removeSiteFromPlan(p.id_pg, site.id_site).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('plans.detail.siteRemoved'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.loadPlan();
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translate.instant('common.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        },
+      });
     });
   }
 
@@ -774,25 +786,36 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
   deleteFichier(fichier: PlanFichier): void {
     const name = fichier.titre || fichier.nom_fichier;
-    const confirmMsg = this.translate.instant('plans.detail.documents.confirmDelete', { name });
-    if (!confirm(confirmMsg)) return;
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: this.translate.instant('common.actions.delete'),
+        message: this.translate.instant('plans.detail.documents.confirmDelete', { name }),
+        confirmText: this.translate.instant('common.actions.delete'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      },
+    });
 
-    this.adminService.deleteFichier(fichier.id).subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.translate.instant('plans.detail.documents.deleteSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.loadPlan();
-      },
-      error: () => {
-        this.snackBar.open(
-          this.translate.instant('plans.detail.documents.deleteError'),
-          this.translate.instant('common.actions.close'),
-          { duration: 5000 }
-        );
-      },
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.adminService.deleteFichier(fichier.id).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('plans.detail.documents.deleteSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.loadPlan();
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translate.instant('plans.detail.documents.deleteError'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        },
+      });
     });
   }
 }

@@ -960,6 +960,12 @@
                                                 <span class="meta-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
                                                 <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
                                               </div>
+                                              @if (ind.description) {
+                                                <div class="indicateur-meta">
+                                                  <span class="meta-label">{{ 'enjeux.indicateurs.descriptionLabel' | translate }} :</span>
+                                                  <span class="meta-value">{{ ind.description }}</span>
+                                                </div>
+                                              }
 
                                               <!-- Métriques avec opérations imbriquées -->
                                               @if (ind.metriques && ind.metriques.length > 0) {
@@ -1454,6 +1460,12 @@
                                             <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
                                           </mat-radio-group>
                                         </div>
+
+                                        <!-- Description -->
+                                        <mat-form-field appearance="outline" class="full-width">
+                                          <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
+                                          <textarea matInput [(ngModel)]="newIndicateurDescription" rows="2"></textarea>
+                                        </mat-form-field>
 
                                         <!-- Section MÉTRIQUES -->
                                         <div class="metriques-section">
@@ -2049,6 +2061,12 @@
                                         <span class="meta-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
                                         <span class="meta-value">{{ ind.est_standardise ? 'oui' : 'non' }}</span>
                                       </div>
+                                      @if (ind.description) {
+                                        <div class="indicateur-meta">
+                                          <span class="meta-label">{{ 'enjeux.indicateurs.descriptionLabel' | translate }} :</span>
+                                          <span class="meta-value">{{ ind.description }}</span>
+                                        </div>
+                                      }
 
                                       <!-- Métriques avec opérations imbriquées -->
                                       @if (ind.metriques && ind.metriques.length > 0) {
@@ -2527,6 +2545,12 @@
                                     <mat-radio-button [value]="false">{{ 'common.no' | translate }}</mat-radio-button>
                                   </mat-radio-group>
                                 </div>
+
+                                <!-- Description -->
+                                <mat-form-field appearance="outline" class="full-width">
+                                  <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
+                                  <textarea matInput [(ngModel)]="newOoIndicateurDescription" rows="2"></textarea>
+                                </mat-form-field>
 
                                 <!-- Section MÉTRIQUES -->
                                 <div class="metriques-section">

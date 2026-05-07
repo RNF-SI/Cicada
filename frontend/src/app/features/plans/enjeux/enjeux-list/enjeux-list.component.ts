@@ -2669,11 +2669,12 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             );
             this.loadPlanData(true);
           },
-          error: () => {
+          error: (err) => {
+            const detail = err?.error?.detail || this.translate.instant('enjeux.messages.deleteError');
             this.snackBar.open(
-              this.translate.instant('enjeux.messages.deleteError'),
+              detail,
               this.translate.instant('common.actions.close'),
-              { duration: 3000 }
+              { duration: 5000 }
             );
           }
         });

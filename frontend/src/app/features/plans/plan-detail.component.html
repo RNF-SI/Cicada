@@ -400,14 +400,17 @@
               <div class="sites-list">
                 @for (site of plan()!.sites!; track site.id_site) {
                   @if (site.current_user_has_access !== false) {
-                    <a class="site-card" [routerLink]="['/sites', site.slug]">
+                    <a class="site-card" [routerLink]="['/sites', site.slug]"
+                       [title]="'sites.actions.view' | translate">
                       <div class="site-info">
                         <span class="site-name">{{ site.nom_site }}</span>
                         @if (site.type_site_label) {
                           <span class="site-type">{{ site.type_site_label }}</span>
                         }
                       </div>
-                      <i class="fi fi-rr-angle-right"></i>
+                      <span class="site-card-cta" aria-hidden="true">
+                        <i class="fi fi-rr-arrow-right"></i>
+                      </span>
                     </a>
                   } @else {
                     <div class="site-card site-card-locked">
