@@ -727,59 +727,71 @@ describe('PlanDetailComponent', () => {
         isSuperAdmin: true,
         plan: createMockPlan({ id_pg: 10, statut: 'draft' }),
       });
+      // PlanDetailComponent imports MatDialogModule (standalone), donc le
+      // provider mockDialog du TestBed est ignoré au profit du vrai MatDialog.
+      // On override directement l'instance après création.
+      (component as any).dialog = mockDialog;
     });
 
+    // Les confirms lifecycle utilisent ConfirmDialogComponent (Material) — on
+    // simule la fermeture de la modale en pilotant `mockDialog.open`.
+    const mockDialogConfirmed = (confirmed: boolean) => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(confirmed),
+      } as any);
+    };
+
     describe('confirmValidation', () => {
-      it('should call changePlanStatus with valide when confirm returns true', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+      it('should call changePlanStatus with valide when dialog is confirmed', () => {
+        mockDialogConfirmed(true);
         component.confirmValidation();
         expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
       });
 
-      it('should NOT call changePlanStatus when confirm returns false', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+      it('should NOT call changePlanStatus when dialog is cancelled', () => {
+        mockDialogConfirmed(false);
         component.confirmValidation();
         expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
       });
     });
 
     describe('confirmToDraft', () => {
-      it('should call changePlanStatus with draft when confirm returns true', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+      it('should call changePlanStatus with draft when dialog is confirmed', () => {
+        mockDialogConfirmed(true);
         component.confirmToDraft();
         expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft');
       });
 
-      it('should NOT call changePlanStatus when confirm returns false', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+      it('should NOT call changePlanStatus when dialog is cancelled', () => {
+        mockDialogConfirmed(false);
         component.confirmToDraft();
         expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
       });
     });
 
     describe('confirmArchive', () => {
-      it('should call changePlanStatus with archive when confirm returns true', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+      it('should call changePlanStatus with archive when dialog is confirmed', () => {
+        mockDialogConfirmed(true);
         component.confirmArchive();
         expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'archive');
       });
 
-      it('should NOT call changePlanStatus when confirm returns false', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+      it('should NOT call changePlanStatus when dialog is cancelled', () => {
+        mockDialogConfirmed(false);
         component.confirmArchive();
         expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
       });
     });
 
     describe('confirmReactivate', () => {
-      it('should call changePlanStatus with valide when confirm returns true', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+      it('should call changePlanStatus with valide when dialog is confirmed', () => {
+        mockDialogConfirmed(true);
         component.confirmReactivate();
         expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
       });
 
-      it('should NOT call changePlanStatus when confirm returns false', () => {
-        confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+      it('should NOT call changePlanStatus when dialog is cancelled', () => {
+        mockDialogConfirmed(false);
         component.confirmReactivate();
         expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
       });
@@ -796,7 +808,11 @@ describe('PlanDetailComponent', () => {
         isSuperAdmin: true,
         plan: createMockPlan({ id_pg: 10, statut: 'draft' }),
       });
-      confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+      // Lifecycle uses ConfirmDialogComponent — override instance to mock
+      (component as any).dialog = mockDialog;
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as any);
     });
 
     it('should show success snackBar on status change success', () => {

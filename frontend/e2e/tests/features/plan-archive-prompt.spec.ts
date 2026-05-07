@@ -47,9 +47,12 @@ test.describe('Plan archive-previous prompt (#246)', () => {
     const validateBtn = page.locator('.btn-lifecycle.btn-lifecycle-success');
     await validateBtn.waitFor({ state: 'visible', timeout: 15000 });
 
-    // confirmValidation() opens a native confirm() before triggering the API.
-    page.once('dialog', d => d.accept());
+    // confirmValidation() opens a Material ConfirmDialog before triggering the API.
     await validateBtn.click();
+    const lifecycleConfirm = page.locator('mat-dialog-container').filter({
+      hasText: /Valider le plan/i,
+    });
+    await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
 
     // The MatDialog appears once the change-status API responds.
     const dialog = page.locator('app-archive-previous-plan-dialog');
@@ -75,8 +78,12 @@ test.describe('Plan archive-previous prompt (#246)', () => {
     const validateBtn = page.locator('.btn-lifecycle.btn-lifecycle-success');
     await validateBtn.waitFor({ state: 'visible', timeout: 15000 });
 
-    page.once('dialog', d => d.accept());
     await validateBtn.click();
+    // confirmValidation() opens a Material ConfirmDialog
+    const lifecycleConfirm = page.locator('mat-dialog-container').filter({
+      hasText: /Valider le plan/i,
+    });
+    await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
 
     const dialog = page.locator('app-archive-previous-plan-dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });

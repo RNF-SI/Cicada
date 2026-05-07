@@ -52,6 +52,7 @@ export interface ConfirmDialogData {
       p {
         margin: 0;
         color: #746F6E;
+        white-space: pre-line;
       }
     }
 

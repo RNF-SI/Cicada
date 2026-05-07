@@ -440,39 +440,76 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
   // ==================== LIFECYCLE ACTIONS ====================
 
+  /**
+   * Ouvre une modale de confirmation Material pour une action de cycle de vie.
+   * Remplace les `window.confirm()` natifs par le composant unifié, alignant
+   * l'UX avec les confirmations de suppression (#267).
+   */
+  private openLifecycleConfirm(opts: {
+    title: string;
+    message: string;
+    confirmText: string;
+    confirmColor: 'primary' | 'warn';
+    onConfirm: () => void;
+  }): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title: opts.title,
+        message: opts.message,
+        confirmText: opts.confirmText,
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: opts.confirmColor,
+      },
+    });
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (confirmed) opts.onConfirm();
+    });
+  }
+
   confirmValidation(): void {
-    const msg = this.translate.instant('plans.lifecycle.warnings.validateTitle') + '\n\n' +
-      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning1') + '\n' +
+    const message = '⚠ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning1') + '\n' +
       'ℹ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning2') + '\n' +
       'ℹ ' + this.translate.instant('plans.lifecycle.warnings.validateWarning3');
-    if (confirm(msg)) {
-      this.changeStatus('valide');
-    }
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.validateTitle'),
+      message,
+      confirmText: this.translate.instant('plans.lifecycle.actions.validate'),
+      confirmColor: 'primary',
+      onConfirm: () => this.changeStatus('valide'),
+    });
   }
 
   confirmArchive(): void {
-    const msg = this.translate.instant('plans.lifecycle.warnings.archiveTitle') + '\n\n' +
-      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.archiveWarning');
-    if (confirm(msg)) {
-      this.changeStatus('archive');
-    }
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.archiveTitle'),
+      message: '⚠ ' + this.translate.instant('plans.lifecycle.warnings.archiveWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.archive'),
+      confirmColor: 'warn',
+      onConfirm: () => this.changeStatus('archive'),
+    });
   }
 
   confirmToDraft(): void {
-    const msg = this.translate.instant('plans.lifecycle.warnings.toDraftTitle') + '\n\n' +
-      '⚠ ' + this.translate.instant('plans.lifecycle.warnings.toDraftWarning') + '\n\n' +
+    const message = '⚠ ' + this.translate.instant('plans.lifecycle.warnings.toDraftWarning') + '\n\n' +
       this.translate.instant('plans.lifecycle.warnings.toDraftConfirm') + ' ?';
-    if (confirm(msg)) {
-      this.changeStatus('draft');
-    }
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.toDraftTitle'),
+      message,
+      confirmText: this.translate.instant('plans.lifecycle.actions.toDraft'),
+      confirmColor: 'warn',
+      onConfirm: () => this.changeStatus('draft'),
+    });
   }
 
   confirmReactivate(): void {
-    const msg = this.translate.instant('plans.lifecycle.warnings.reactivateTitle') + '\n\n' +
-      this.translate.instant('plans.lifecycle.warnings.reactivateWarning');
-    if (confirm(msg)) {
-      this.changeStatus('valide');
-    }
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.reactivateTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.reactivateWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.reactivate'),
+      confirmColor: 'primary',
+      onConfirm: () => this.changeStatus('valide'),
+    });
   }
 
   private changeStatus(newStatus: PlanStatut): void {
