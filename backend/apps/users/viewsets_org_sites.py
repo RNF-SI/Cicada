@@ -566,6 +566,8 @@ class SiteViewSet(viewsets.ModelViewSet):
         """
         Suppression d'un site avec notifications.
         - Accessible au super_admin, admin_og et référent du site (via can_manage_site)
+        - Le rédacteur principal est exclu (aligné avec la suppression des plans :
+          la suppression d'un site est un acte de cycle de vie)
         - Envoie une notification aux référents et admin_og des organismes liés
         - Les plans liés (CorSitePg CASCADE) perdent leur association mais ne sont pas supprimés
         - La détection des plans orphelins est faite par la tâche hebdomadaire check_orphaned_plans
@@ -573,6 +575,13 @@ class SiteViewSet(viewsets.ModelViewSet):
         from apps.notifications.services import NotificationService
 
         site = self.get_object()
+
+        if request.user.is_redacteur_principal():
+            return Response(
+                {'detail': "Le rédacteur principal ne peut pas supprimer un site."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         site_name = site.nom_site
         site_id = site.id_site
         deleted_by = request.user

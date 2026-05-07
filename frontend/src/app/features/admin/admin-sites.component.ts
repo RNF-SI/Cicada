@@ -399,6 +399,9 @@ export class AdminSitesComponent implements OnInit, OnDestroy {
 
   canDeleteSite(site: DisplaySite): boolean {
     if (this.isSuperAdmin()) return true;
+    // Le rédacteur principal est exclu (aligné avec la suppression des plans :
+    // la suppression d'un site est un acte de cycle de vie)
+    if (this.authService.isRedacteurPrincipal()) return false;
     const userId = this.currentUser()?.id;
     if (this.isAdminOrganisme()) {
       const userOrgId = this.currentUser()?.organisme?.id_organisme;
