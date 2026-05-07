@@ -182,7 +182,10 @@ test.describe('Cascade Delete - OLT', () => {
 // PRESSION CASCADE — Deletes OO -> RA
 // =========================================================================
 test.describe('Cascade Delete - Pression', () => {
-  test('deleting pression should cascade to OO and RA', async ({ superAdminPage }) => {
+  test('deleting pression unlinks OO but does not cascade-delete it', async ({ superAdminPage }) => {
+    // Pression ↔ OO est une M2M (via CorOoPression). Supprimer la pression
+    // ne supprime pas l'OO (qui peut être lié à d'autres pressions). L'OO et
+    // ses RA restent donc présents après suppression de la pression.
     const plan = await findPlan(superAdminPage, 'Camargue');
     const enjeu = await createEnjeu(superAdminPage, plan.id_pg, `E2E Cascade Pression ${Date.now()}`);
     const facteur = await createFacteur(superAdminPage, enjeu.id_enjeu, 'E2E FI for Pression cascade');
@@ -198,14 +201,16 @@ test.describe('Cascade Delete - Pression', () => {
     const { status } = await apiDelete(superAdminPage, `plans/pressions/${pression.id_pression}/`);
     expect(status).toBe(204);
 
-    // OO and RA should be gone
-    expect(await entityExists(superAdminPage, `plans/objectifs-operationnels/${oo.id_oo}/`)).toBeFalsy();
-    expect(await entityExists(superAdminPage, `plans/resultats-attendus/${ra.id_ra}/`)).toBeFalsy();
+    // OO and RA still exist (M2M unlink, not cascade)
+    expect(await entityExists(superAdminPage, `plans/objectifs-operationnels/${oo.id_oo}/`)).toBeTruthy();
+    expect(await entityExists(superAdminPage, `plans/resultats-attendus/${ra.id_ra}/`)).toBeTruthy();
 
     // Facteur should still exist
     expect(await entityExists(superAdminPage, `plans/facteurs-influence/${facteur.id_facteur_influence}/`)).toBeTruthy();
 
     // Cleanup
+    await apiDelete(superAdminPage, `plans/resultats-attendus/${ra.id_ra}/`);
+    await apiDelete(superAdminPage, `plans/objectifs-operationnels/${oo.id_oo}/`);
     await apiDelete(superAdminPage, `plans/enjeux/${enjeu.id_enjeu}/`);
   });
 });

@@ -75,16 +75,28 @@ class OperationViewSet(viewsets.ModelViewSet):
         if user.is_redacteur_principal():
             return queryset
 
+        # Une opération peut être rattachée au plan via :
+        # - une de ses métriques (chaîne metriques→indicateur→ne→olt→enjeu→pg)
+        # - son suivi/inventaire (id_suivi→SuiviInventaire.id_pg)
+        # On inclut les deux chemins pour qu'une opération créée avec un suivi
+        # mais sans métrique reste visible à son créateur. Le créateur d'une
+        # opération orpheline (sans plan résolu) la voit toujours.
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(id_suivi__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(id_utilisateur_ajout=user)
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
+            Q(id_suivi__id_pg__in=user_plan_ids) |
+            Q(id_suivi__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_suivi__id_pg__statut='valide') |
+            Q(id_utilisateur_ajout=user)
         ).distinct()
 
     def perform_create(self, serializer):

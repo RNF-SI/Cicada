@@ -193,7 +193,8 @@ export class InventaireFormPage {
     // Fréquence : 1 fois par AN
     await this.frequenceInput.fill('1');
     await this.page.locator('mat-select[formControlName="frequence_unite"]').click();
-    await this.page.locator('mat-option').filter({ hasText: /^An$/i }).first().click();
+    // Nomenclature `AN` is labelled "Ans" (cf. seed FREQUENCE_EMBOITEMENT)
+    await this.page.locator('mat-option').filter({ hasText: /^Ans?$/i }).first().click();
   }
 
   async submit() {
@@ -214,6 +215,11 @@ export class InventaireFormPage {
   }
 
   async hasIntituleError(): Promise<boolean> {
-    return this.page.locator('mat-error').isVisible().catch(() => false);
+    // Soit un mat-error inline (ancien comportement), soit la nouvelle bannière
+    // qui liste les champs manquants après un submit invalide (#197 / a0c6ddc).
+    const matError = await this.page.locator('mat-error').first().isVisible().catch(() => false);
+    if (matError) return true;
+    const banner = await this.page.locator('.error-banner').first().isVisible().catch(() => false);
+    return banner;
   }
 }

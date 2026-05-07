@@ -338,11 +338,11 @@ test.describe('Plan Views - Sidebar Navigation', () => {
     const sidebar = referentPage.locator('app-plan-sidebar').first();
     await expect(sidebar).toBeVisible();
 
-    // Click on mindmap link in sidebar
+    // Click on tableau d'arborescence link in sidebar (formerly "mindmap")
     const mindmapLink = sidebar.locator('.menu-item, .sidebar-menu-item').filter({ hasText: /arborescence|mindmap/i });
     if (await mindmapLink.count() > 0) {
       await mindmapLink.first().click();
-      await referentPage.waitForURL(/mindmap/, { timeout: 10000 });
+      await referentPage.waitForURL(/(tableau-d-arborescence|mindmap)/, { timeout: 10000 });
     }
   });
 

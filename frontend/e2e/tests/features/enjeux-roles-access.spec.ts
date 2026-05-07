@@ -34,9 +34,10 @@ async function findPlan(page: import('@playwright/test').Page, nameFragment: str
   if (!ok) return null;
   const results = data.results || data;
   if (!Array.isArray(results) || results.length === 0) return null;
-  // Prefer valide plans with name match, then any valide, then first result
+  // Name match wins over statut: callers say `findPlan('Camargue')` to mean
+  // "the Camargue plan", regardless of whether it's draft or valide.
   const nameMatch = (p: any) => p.nom?.toLowerCase().includes(nameFragment.toLowerCase());
-  const plan = results.find((p: any) => p.statut === 'valide' && nameMatch(p))
+  const plan = results.find((p: any) => p.statut !== 'archive' && nameMatch(p))
     || results.find((p: any) => p.statut === 'valide')
     || results.find((p: any) => p.statut !== 'archive')
     || results[0];
@@ -332,9 +333,12 @@ test.describe('Roles - Cross-Organisation Isolation', () => {
   });
 
   test('admin.cen should NOT modify RNF enjeux', async ({ adminCenPage }) => {
-    const plan = await findPlan(adminCenPage, 'Camargue');
+    // Aiguilles Rouges est purement RNF (site 18 non lié à CEN). Camargue
+    // partage son site Brouage avec CEN, donc admin.cen y a accès via la
+    // chaîne site→organisme — ce n'est plus un test de cross-org isolation.
+    const plan = await findPlan(adminCenPage, 'Aiguilles Rouges');
     if (plan) {
-      // Try to find enjeux (may see them if plan is valid)
+      // Try to find enjeux: admin.cen ne devrait pas en voir (queryset filter)
       const { ok, data } = await apiGet(adminCenPage, `plans/enjeux/by-plan/${plan.id_pg}/`);
       if (ok) {
         const enjeux = data.enjeux || [];

@@ -153,14 +153,14 @@ export async function apiDelete(
 
 /**
  * Find a plan by name fragment. Selection priority:
- * 1. Valide plan whose name contains the fragment
+ * 1. Non-archive plan whose name contains the fragment (any statut, draft included)
  * 2. Valide plan with referents (has active members, more likely to have data)
- * 3. Valide plan (from search results — may match sites/description)
- * 4. Non-archive plan whose name contains the fragment
- * 5. First search result
+ * 3. Valide plan (from search results — may match via sites/description)
+ * 4. First search result
  *
- * Archive plans are deprioritized because they often lack enjeux data.
- * Plans without referents are deprioritized because they're often access-test plans.
+ * Name match wins over statut: callers who say `findPlan('Camargue')` mean
+ * "the Camargue plan" — they don't care whether it's draft or valide. Tests
+ * needing a specific statut should use `findValidatedPlan()` etc.
  */
 export async function findPlan(page: Page, nameFragment: string) {
   const { data } = await apiGet(page, 'plans/plans/', { search: nameFragment });
@@ -171,15 +171,10 @@ export async function findPlan(page: Page, nameFragment: string) {
   const nameMatch = (p: any) => p.nom?.toLowerCase().includes(nameFragment.toLowerCase());
   const notArchive = (p: any) => p.statut !== 'archive';
   const hasReferents = (p: any) => (p.referents?.length > 0) || (p.nb_referents > 0);
-  // Priority 1: valide + name match
-  const best = results.find((p: any) => p.statut === 'valide' && nameMatch(p))
-    // Priority 2: valide + has referents (active plan with members)
+  const best = results.find((p: any) => notArchive(p) && nameMatch(p))
     || results.find((p: any) => p.statut === 'valide' && hasReferents(p))
-    // Priority 3: valide (returned by search, may match via sites)
     || results.find((p: any) => p.statut === 'valide')
-    // Priority 4: non-archive + name match (draft is acceptable)
-    || results.find((p: any) => notArchive(p) && nameMatch(p))
-    // Priority 5: first result
+    || results.find((p: any) => nameMatch(p))
     || results[0];
   return { id_pg: best.id_pg as number, slug: best.slug as string };
 }

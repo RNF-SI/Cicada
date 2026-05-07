@@ -230,9 +230,11 @@ test.describe('Operations - Create', () => {
     // Select first available metrique
     await formPage.metriqueSelect.click();
     await referentPage.locator('mat-option').filter({ hasNotText: '--' }).first().click({ timeout: 10000 });
-    // Wait for dropdown to close
+    // Press Escape to ensure the autocomplete overlay is dismissed before
+    // clicking submit (otherwise cdk-overlay-backdrop intercepts pointer events).
+    await referentPage.keyboard.press('Escape');
     await referentPage.locator('.cdk-overlay-backdrop').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
-    await referentPage.waitForTimeout(300);
+    await referentPage.waitForTimeout(500);
 
     await formPage.submit();
     await formPage.waitForSnackbar();
@@ -670,6 +672,11 @@ test.describe('Operations - Form Interactions', () => {
 test.describe('Operations - Cancel', () => {
   test('should navigate back to enjeux list on cancel', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
+    // Navigate to /enjeux first so location.back() has a destination after
+    // the "annuler" click on the operation form.
+    await referentPage.goto(`/plans/${plan.slug}/enjeux`);
+    await referentPage.waitForLoadState('networkidle').catch(() => {});
+
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
     await formPage.waitForForm();
@@ -777,9 +784,11 @@ test.describe('Operations - Save without validation (#251)', () => {
     await referentPage.waitForURL(/\/operations\/\d+\/modifier/, { timeout: 10000 });
     expect(referentPage.url()).toMatch(/\/operations\/\d+\/modifier/);
 
-    // Form remains visible (user stayed on form)
+    // Wait for the form to re-populate from the loaded operation (the
+    // component re-mounts after navigateToEdit and re-fetches the operation).
+    await formPage.waitForForm();
     await expect(formPage.libelleInput).toBeVisible();
-    await expect(formPage.libelleInput).toHaveValue('Action enregistrée sans validation');
+    await expect(formPage.libelleInput).toHaveValue('Action enregistrée sans validation', { timeout: 10000 });
   });
 
   test('saveDraft on CS action with missing required fields does not block', async ({ referentPage }) => {

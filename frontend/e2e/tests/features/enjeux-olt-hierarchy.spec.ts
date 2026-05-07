@@ -69,7 +69,9 @@ test.describe('OLT Tab - OLT Edit', () => {
   });
 
   test('should show edit pencil on OLT item', async ({ referentPage }) => {
-    await gotoOltTab(referentPage, 'Lacs');
+    // Use Camargue: referent.camargue est référent de ce plan, donc canEditPlan()
+    // est vrai et le crayon s'affiche. Sur "Lacs" elle ne serait pas référente.
+    await gotoOltTab(referentPage, 'Camargue');
 
     const oltHeaders = referentPage.locator('.olt-content .olt-section-header');
     const editBtn = oltHeaders.first().locator('.icon-btn-flat .fi-rr-pencil').first();
