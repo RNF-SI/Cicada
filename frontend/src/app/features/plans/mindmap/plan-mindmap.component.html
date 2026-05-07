@@ -110,4 +110,16 @@
       }
     </section>
   </main>
+
+  <!-- Tooltip personnalisé (#257) : affiche le nom complet d'une cellule -->
+  @if (tooltipNode(); as t) {
+    <div class="mindmap-tooltip"
+         [style.left.px]="tooltipX() + 12"
+         [style.top.px]="tooltipY() + 12">
+      <span class="mindmap-tooltip-type" [style.color]="getEntityColor(t.entityType)">
+        {{ getEntityLabel(t.entityType) }}
+      </span>
+      <span class="mindmap-tooltip-name">{{ t.name }}</span>
+    </div>
+  }
 </div>

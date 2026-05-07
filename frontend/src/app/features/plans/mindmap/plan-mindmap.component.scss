@@ -372,3 +372,52 @@
     flex-wrap: wrap;
   }
 }
+
+// Tooltip personnalisé sur survol des cellules de l'icicle (#257).
+// Position absolue par rapport au viewport (pilotée via [style.left/top.px]
+// dans le template), suit le curseur. Affiche le type de l'entité et son
+// nom complet (utile quand le texte SVG est tronqué dans une petite case).
+.mindmap-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 360px;
+  padding: $spacing-sm $spacing-md;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: $font-family;
+  pointer-events: none;
+  animation: mindmap-tooltip-fade-in 120ms ease-out;
+}
+
+.mindmap-tooltip-type {
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mindmap-tooltip-name {
+  font-size: 14px;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  line-height: 1.35;
+  // Permet le wrap multi-ligne du nom complet
+  white-space: normal;
+  word-break: break-word;
+}
+
+@keyframes mindmap-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

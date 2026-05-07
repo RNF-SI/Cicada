@@ -58,6 +58,20 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   legendItems: { type: MindmapEntityType; color: string; label: string }[] = [];
 
+  // Custom tooltip (#257) — surface le nom complet d'une cellule au survol
+  // (le texte SVG est tronqué quand la cellule est trop petite).
+  tooltipNode = signal<MindmapNode | null>(null);
+  tooltipX = signal(0);
+  tooltipY = signal(0);
+
+  getEntityLabel(type: MindmapEntityType | undefined): string {
+    return type ? (MINDMAP_LABELS[type] || type) : '';
+  }
+
+  getEntityColor(type: MindmapEntityType | undefined): string {
+    return type ? (MINDMAP_COLORS[type] || '#555') : '#555';
+  }
+
   // Icicle view state (normal)
   private icicleRoot!: IcicleNode;
   private icicleFocus!: IcicleNode;
@@ -289,8 +303,21 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       d => this.icicleRectHeight(d) - (this.typeVisible(d, width) ? 22 : 8),
     );
 
-    cell.append('title')
-      .text(d => `${MINDMAP_LABELS[d.data.entityType] || d.data.entityType}\n${d.data.name}`);
+    // Custom HTML tooltip (#257) en remplacement de l'attribut SVG `title`
+    // (qui dépend du tooltip natif du navigateur, peu lisible). Affiche le
+    // nom complet et le type de l'élément sur hover.
+    cell.on('mouseenter', (event, p) => {
+      this.tooltipNode.set(p.data);
+      this.tooltipX.set(event.clientX);
+      this.tooltipY.set(event.clientY);
+    });
+    cell.on('mousemove', (event) => {
+      this.tooltipX.set(event.clientX);
+      this.tooltipY.set(event.clientY);
+    });
+    cell.on('mouseleave', () => {
+      this.tooltipNode.set(null);
+    });
 
     return { root, svg, cell, rect, defs, typeText, nameText, width, height };
   }
