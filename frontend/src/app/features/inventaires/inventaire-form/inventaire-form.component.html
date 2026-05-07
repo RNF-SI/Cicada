@@ -56,8 +56,8 @@
               <mat-label>{{ 'inventaires.form.intitule' | translate }} <span class="required-star">*</span></mat-label>
               <input matInput formControlName="intitule"
                 [placeholder]="'inventaires.form.intitulePlaceholder' | translate">
-              @if (form.get('intitule')?.hasError('required') && form.get('intitule')?.touched) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              @if (shouldShowError('intitule')) {
+                <mat-error>{{ getErrorMessage('intitule') }}</mat-error>
               }
             </mat-form-field>
 
@@ -91,23 +91,29 @@
             </mat-form-field>
 
             <!-- Intégré dans le plan de gestion -->
-            <div class="radio-field-row">
+            <div class="radio-field-row" [class.has-error]="shouldShowError('integre_plan_gestion')">
               <span class="radio-field-label">{{ 'inventaires.form.integrePG' | translate }} <span class="required-star">*</span></span>
               <mat-radio-group formControlName="integre_plan_gestion" class="radio-inline">
                 <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                 <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
               </mat-radio-group>
             </div>
+            @if (shouldShowError('integre_plan_gestion')) {
+              <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('integre_plan_gestion') }}</p>
+            }
 
             <!-- Suit un indicateur (conditional: only if integre_plan_gestion == true) -->
             @if (showSuitIndicateur) {
-              <div class="radio-field-row">
+              <div class="radio-field-row" [class.has-error]="shouldShowError('suit_indicateur')">
                 <span class="radio-field-label">{{ 'inventaires.form.suitIndicateur' | translate }} <span class="required-star">*</span></span>
                 <mat-radio-group formControlName="suit_indicateur" class="radio-inline">
                   <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                   <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                 </mat-radio-group>
               </div>
+              @if (shouldShowError('suit_indicateur')) {
+                <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('suit_indicateur') }}</p>
+              }
             }
 
             <!-- Type d'indicateur (conditional: only if suit_indicateur == true) -->
@@ -120,6 +126,9 @@
                     <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
                   }
                 </mat-select>
+                @if (shouldShowError('type_indicateur')) {
+                  <mat-error>{{ getErrorMessage('type_indicateur') }}</mat-error>
+                }
               </mat-form-field>
             }
 
@@ -146,6 +155,9 @@
                   }
                 }
               </mat-select>
+              @if (shouldShowError('objectif_principal')) {
+                <mat-error>{{ getErrorMessage('objectif_principal') }}</mat-error>
+              }
             </mat-form-field>
 
             <!-- Objectif secondaire (conditional: only if objectif principal is set) -->
@@ -183,6 +195,9 @@
                   <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
                 }
               </mat-select>
+              @if (shouldShowError('cibles_principales')) {
+                <mat-error>{{ getErrorMessage('cibles_principales') }}</mat-error>
+              }
             </mat-form-field>
 
             <!-- Taxon(s) référé(s) — conditional: only when cible = ESPECES -->
@@ -230,6 +245,9 @@
                 [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
               <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
               <mat-datepicker #dateLancementPicker></mat-datepicker>
+              @if (shouldShowError('date_lancement_suivi')) {
+                <mat-error>{{ getErrorMessage('date_lancement_suivi') }}</mat-error>
+              }
             </mat-form-field>
 
             <!-- Statut -->
@@ -269,7 +287,7 @@
             <div class="section-content">
               <div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
-                <div class="radio-field-row">
+                <div class="radio-field-row" [class.has-error]="shouldShowError('protocole_dans_campanule')">
                   <span class="radio-field-label">
                     {{ 'inventaires.form.protocoleCampanule' | translate }}
                     <span class="required-star">*</span>
@@ -279,6 +297,9 @@
                     <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                   </mat-radio-group>
                 </div>
+                @if (shouldShowError('protocole_dans_campanule')) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('protocole_dans_campanule') }}</p>
+                }
 
                 <!-- ═══ MODE CAMPANULE (Oui) ═══ -->
                 @if (isCampanule) {
@@ -291,6 +312,7 @@
                     <input matInput
                       [formControl]="campanuleSearchCtrl"
                       [matAutocomplete]="campanuleAuto"
+                      (blur)="onCampanuleBlur()"
                       [placeholder]="'inventaires.form.campanuleSearchPlaceholder' | translate">
                     <mat-autocomplete #campanuleAuto="matAutocomplete"
                       [displayWith]="displayCampanuleFn"
@@ -313,6 +335,12 @@
                     }
                     <mat-hint>{{ 'inventaires.form.campanuleSearchHint' | translate }}</mat-hint>
                   </mat-form-field>
+                  @if (shouldShowError('cd_protocole_campanule')) {
+                    <p class="field-error field-error-form-field">
+                      <i class="fi fi-rr-exclamation"></i>
+                      {{ 'inventaires.form.campanuleSelectionRequired' | translate }}
+                    </p>
+                  }
                 }
 
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
@@ -324,6 +352,9 @@
                       <span class="required-star">*</span>
                     </mat-label>
                     <input matInput formControlName="nom_protocole">
+                    @if (shouldShowError('nom_protocole')) {
+                      <mat-error>{{ getErrorMessage('nom_protocole') }}</mat-error>
+                    }
                   </mat-form-field>
                 }
 
@@ -335,7 +366,7 @@
                       <span class="required-star">*</span>
                     </label>
                     <div class="frequence-controls">
-                      <div class="frequence-number">
+                      <div class="frequence-number" [class.has-error]="shouldShowError('frequence_nombre')">
                         <button type="button" class="freq-btn" (click)="incrementFrequence(-1)">−</button>
                         <input type="number" formControlName="frequence_nombre" class="freq-input">
                         <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
@@ -350,6 +381,12 @@
                         </mat-select>
                       </mat-form-field>
                     </div>
+                    @if (shouldShowError('frequence_nombre') || shouldShowError('frequence_unite')) {
+                      <p class="field-error">
+                        <i class="fi fi-rr-exclamation"></i>
+                        {{ getErrorMessage('frequence_nombre') || getErrorMessage('frequence_unite') }}
+                      </p>
+                    }
                     <!-- Precision for "Autre" -->
                     @if (showFrequencePrecision) {
                       <mat-form-field appearance="outline" class="frequence-precision-field">
@@ -375,7 +412,7 @@
                   </mat-form-field>
 
                   <!-- Documentation disponible ? -->
-                  <div class="radio-field-row">
+                  <div class="radio-field-row" [class.has-error]="shouldShowError('documentation_disponible')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.documentationDisponible' | translate }}
                       <span class="required-star">*</span>
@@ -385,6 +422,9 @@
                       <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                     </mat-radio-group>
                   </div>
+                  @if (shouldShowError('documentation_disponible')) {
+                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('documentation_disponible') }}</p>
+                  }
 
                   <!-- URL de la documentation (conditional) -->
                   @if (showDocumentationUrl) {
@@ -403,6 +443,9 @@
                     </mat-label>
                     <input matInput type="number" formControlName="nb_etp_cycle">
                     <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
+                    @if (shouldShowError('nb_etp_cycle')) {
+                      <mat-error>{{ getErrorMessage('nb_etp_cycle') }}</mat-error>
+                    }
                   </mat-form-field>
 
                   <!-- Descriptif du protocole -->
@@ -460,7 +503,8 @@
 
                 <!-- Respect strict du protocole + Consulter le protocole -->
                 @if (isCampanule || isNotCampanule) {
-                  <div class="radio-field-row radio-field-row-with-link">
+                  <div class="radio-field-row radio-field-row-with-link"
+                    [class.has-error]="shouldShowError('respect_protocole')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.respectProtocole' | translate }}
                       <span class="required-star">*</span>
@@ -475,6 +519,9 @@
                       </a>
                     }
                   </div>
+                  @if (shouldShowError('respect_protocole')) {
+                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('respect_protocole') }}</p>
+                  }
                 }
 
                 <!-- Conditional: non-respect fields -->

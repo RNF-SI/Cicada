@@ -308,6 +308,40 @@ export class InventaireFormComponent implements OnInit {
       next: (results) => this.campanuleResults.set(results),
       error: () => this.campanuleResults.set([]),
     });
+
+    // Si l'utilisateur édite le texte après une sélection, on invalide la
+    // sélection — sinon le formulaire conserverait un cd_protocole qui ne
+    // correspond plus à ce qui est affiché.
+    this.campanuleSearchCtrl.valueChanges.subscribe((val) => {
+      if (typeof val !== 'string') return; // option object → géré par onCampanuleSelected
+      const selected = this.selectedCampanule();
+      if (selected && val !== selected.lb_protocole_court) {
+        this.selectedCampanule.set(null);
+        this.form.patchValue({
+          protocole_campanule_nom: '',
+          cd_protocole_campanule: null,
+          description_protocole: '',
+          objectif_protocole: '',
+          periode_echantillonnage: '',
+        });
+      }
+    });
+  }
+
+  /**
+   * Au blur du champ CAMPanule, on force la cohérence : si du texte a été
+   * saisi mais qu'aucun protocole n'a été sélectionné dans la liste, on vide
+   * le champ — l'utilisateur doit obligatoirement choisir une option.
+   */
+  onCampanuleBlur(): void {
+    const val = this.campanuleSearchCtrl.value;
+    const selected = this.selectedCampanule();
+    if (typeof val === 'string' && val.trim() && !selected) {
+      this.campanuleSearchCtrl.setValue('', { emitEvent: false });
+      this.campanuleResults.set([]);
+    }
+    // Marque le contrôle requis comme touched pour afficher l'erreur si besoin.
+    this.form.get('cd_protocole_campanule')?.markAsTouched();
   }
 
   private loadNomenclatures(): void {
@@ -657,6 +691,35 @@ export class InventaireFormComponent implements OnInit {
     documentation_disponible: 'inventaires.form.documentationDisponible',
     nb_etp_cycle: 'inventaires.form.nbEtpCycle',
   };
+
+  /**
+   * Faut-il afficher une erreur pour ce contrôle ? `touched` (et `dirty` au cas
+   * où le contrôle n'a pas reçu de blur — datepicker, selects natifs, etc.).
+   */
+  shouldShowError(controlName: string): boolean {
+    const ctrl = this.form.get(controlName);
+    if (!ctrl) return false;
+    return ctrl.invalid && (ctrl.touched || ctrl.dirty);
+  }
+
+  /**
+   * Message d'erreur traduit pour ce contrôle, ou null s'il n'y en a pas.
+   * Utilisé par les `<mat-error>` et les messages des champs custom (radios,
+   * fréquence, autocomplete CAMPanule).
+   */
+  getErrorMessage(controlName: string): string | null {
+    const ctrl = this.form.get(controlName);
+    if (!ctrl || !ctrl.errors) return null;
+    if (ctrl.errors['required']) {
+      return this.translate.instant('common.validation.required');
+    }
+    if (ctrl.errors['maxlength']) {
+      return this.translate.instant('common.validation.maxLength', {
+        max: ctrl.errors['maxlength'].requiredLength,
+      });
+    }
+    return null;
+  }
 
   private showValidationErrorMessage(): void {
     const labels = new Set<string>();

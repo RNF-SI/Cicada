@@ -210,6 +210,39 @@ $form-side-margin: $page-gutter;
     color: $black;
     min-width: 300px;
   }
+
+  &.has-error {
+    margin-bottom: $spacing-xs;
+
+    .radio-field-label {
+      color: $error-color;
+    }
+  }
+}
+
+// ============================================
+// FIELD ERRORS (custom controls outside mat-form-field)
+// ============================================
+
+.field-error {
+  margin: 0 0 $spacing-md 0;
+  padding-left: 0;
+  color: $error-color;
+  font-size: $font-size-small;
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  i {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  // Variant aligné sous un mat-form-field (compense le subscript wrapper)
+  &.field-error-form-field {
+    margin-top: -$spacing-md;
+  }
 }
 
 .radio-inline {
@@ -336,6 +369,10 @@ $form-side-margin: $page-gutter;
   border: 1px solid $gray-light;
   border-radius: $border-radius-sm;
   overflow: hidden;
+
+  &.has-error {
+    border-color: $error-color;
+  }
 }
 
 .freq-btn {

@@ -2643,6 +2643,7 @@
       "protocoleCampanuleNom": "Protocole Campanule",
       "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
       "campanuleSearchHint": "Recherche par nom du protocole (ex : STOC, PSDRF, EPOC...)",
+      "campanuleSelectionRequired": "Sélectionnez un protocole dans la liste qui s'affiche.",
       "nomProtocole": "Nom du protocole",
       "nbEtpCycle": "Nombre d'ETP par cycle de collecte",
       "nbEtpCycleHint": "Veuillez préciser un estimatif du nombre total d'ETP nécessaire à la mise en œuvre sur un cycle : préparation, étude terrain et analyse des données",
