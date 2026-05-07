@@ -1398,6 +1398,22 @@
       &.score-cell-4 { background-color: rgba($score-good, 0.12); }
       &.score-cell-5 { background-color: rgba($score-very-good, 0.12); }
 
+      // #256 : un fond légèrement plus saturé + un liseré pour les
+      // cellules fusionnées (colspan > 1), pour signaler visuellement
+      // que plusieurs paliers partagent la même valeur.
+      &.score-cell-merged {
+        font-weight: $font-weight-semibold;
+        position: relative;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 4px; bottom: 4px; left: 50%;
+          width: 1px;
+          background: rgba($black, 0.15);
+        }
+      }
+
       &.actions-col {
         text-align: center;
         border-right: none;

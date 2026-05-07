@@ -997,11 +997,16 @@
                                                             <td>{{ met.unite || '-' }}</td>
                                                             <td>{{ met.ponderation || '-' }}</td>
                                                             <td>{{ met.etat_reference || '-' }}</td>
-                                                            <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
-                                                            <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
-                                                            <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
-                                                            <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
-                                                            <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                            <!-- #256 : niveaux de score auto-fusionnés en cellules adjacentes
+                                                                 quand les valeurs sont identiques (ex : très mauvais + mauvais
+                                                                 = "diminution" sur une grille à 3 paliers). -->
+                                                            @for (group of getScoreGroups(met); track group.primaryLevel) {
+                                                              <td class="score-cell score-cell-{{ group.primaryLevel }}"
+                                                                  [class.score-cell-merged]="group.colspan > 1"
+                                                                  [attr.colspan]="group.colspan">
+                                                                {{ group.value }}
+                                                              </td>
+                                                            }
                                                             @if (canEditPlan()) {
                                                               <td class="actions-col">
                                                                 <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
@@ -2101,11 +2106,14 @@
                                                     <td>{{ met.unite || '-' }}</td>
                                                     <td>{{ met.ponderation || '-' }}</td>
                                                     <td>{{ met.etat_reference || '-' }}</td>
-                                                    <td class="score-cell score-cell-1">{{ getScoreRange(met, 1) }}</td>
-                                                    <td class="score-cell score-cell-2">{{ getScoreRange(met, 2) }}</td>
-                                                    <td class="score-cell score-cell-3">{{ getScoreRange(met, 3) }}</td>
-                                                    <td class="score-cell score-cell-4">{{ getScoreRange(met, 4) }}</td>
-                                                    <td class="score-cell score-cell-5">{{ getScoreRange(met, 5) }}</td>
+                                                    <!-- #256 : niveaux de score auto-fusionnés (cf. branche NE) -->
+                                                    @for (group of getScoreGroups(met); track group.primaryLevel) {
+                                                      <td class="score-cell score-cell-{{ group.primaryLevel }}"
+                                                          [class.score-cell-merged]="group.colspan > 1"
+                                                          [attr.colspan]="group.colspan">
+                                                        {{ group.value }}
+                                                      </td>
+                                                    }
                                                     @if (canEditPlan()) {
                                                       <td class="actions-col">
                                                         <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">

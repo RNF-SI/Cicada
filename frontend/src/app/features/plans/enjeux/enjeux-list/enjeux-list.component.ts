@@ -2459,6 +2459,45 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * D\u00E9tecte les niveaux de score adjacents qui partagent exactement la m\u00EAme
+   * valeur/borne/label et les fusionne visuellement en cellules avec
+   * `colspan` > 1 (#256). Permet \u00E0 l'utilisateur de simuler une grille \u00E0
+   * 3 niveaux (ex. diminution/maintien/augmentation) en remplissant les
+   * m\u00EAmes valeurs sur 1+2 et 4+5 \u2014 l'affichage compresse automatiquement.
+   *
+   * Retourne la liste des groupes ordonn\u00E9s gauche\u2192droite, chacun avec
+   * `levels` (les niveaux concern\u00E9s), `colspan` et la valeur format\u00E9e.
+   */
+  getScoreGroups(met: any): Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> {
+    const values = [1, 2, 3, 4, 5].map(l => this.getScoreRange(met, l));
+    const groups: Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> = [];
+    const isEmpty = (v: string) => v === '-' || v === '- - -' || !v;
+    let i = 0;
+    while (i < 5) {
+      const level = i + 1;
+      const value = values[i];
+      // Empty cells never merge \u2014 chacune reste seule pour pr\u00E9server le
+      // signal visuel "niveau non renseign\u00E9".
+      if (isEmpty(value)) {
+        groups.push({ levels: [level], colspan: 1, value, primaryLevel: level });
+        i++;
+        continue;
+      }
+      // Cellules pleines : on \u00E9tend le groupe tant que les voisines ont
+      // la m\u00EAme valeur.
+      const mergedLevels = [level];
+      let j = i + 1;
+      while (j < 5 && values[j] === value) {
+        mergedLevels.push(j + 1);
+        j++;
+      }
+      groups.push({ levels: mergedLevels, colspan: mergedLevels.length, value, primaryLevel: level });
+      i = j;
+    }
+    return groups;
+  }
+
+  /**
    * After data is loaded, if a pending operation scroll target exists,
    * walk the enjeu tree to find it, expand all parent nodes, then scroll.
    */
