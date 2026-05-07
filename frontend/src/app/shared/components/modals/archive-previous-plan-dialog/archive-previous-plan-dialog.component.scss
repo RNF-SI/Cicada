@@ -1,0 +1,60 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-width: 440px;
+  max-width: 600px;
+}
+
+.intro {
+  margin: 0 0 $spacing-md 0;
+  color: $black;
+  line-height: 1.5;
+}
+
+.previous-plan-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $beige;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-md;
+
+  .icon {
+    font-size: 24px;
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+    min-width: 0;
+  }
+
+  .plan-name {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    word-break: break-word;
+  }
+
+  .plan-period {
+    color: $gray-dark;
+    font-size: $font-size-small;
+  }
+}
+
+.hint {
+  margin: 0;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  line-height: 1.4;
+}
+
+mat-dialog-actions {
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+}

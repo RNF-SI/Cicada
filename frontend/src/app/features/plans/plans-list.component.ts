@@ -35,6 +35,13 @@ import {
   StatusChangeDialogData,
   StatusChangeDialogResult,
 } from '../../shared/components/modals/status-change-dialog/status-change-dialog.component';
+import {
+  ArchivePreviousPlanDialogComponent,
+  ArchivePreviousPlanDialogData,
+  ArchivePreviousPlanDialogResult,
+  findPreviousValidatedPlan,
+} from '../../shared/components/modals/archive-previous-plan-dialog/archive-previous-plan-dialog.component';
+import { PlanVersionChainItem } from '../../core/models/admin.model';
 
 
 interface PlanWithAccess extends AdminPlan {
@@ -612,13 +619,20 @@ export class PlansListComponent implements OnInit {
       if (!result || result.action === 'cancel') return;
 
       if (result.action === 'change_status' && result.newStatus) {
-        this.adminService.changePlanStatus(plan.id_pg, result.newStatus).subscribe({
+        const newStatus = result.newStatus;
+        const previousCandidate = newStatus === 'valide'
+          ? findPreviousValidatedPlan(plan.id_pg, plan.version_chain)
+          : null;
+        this.adminService.changePlanStatus(plan.id_pg, newStatus).subscribe({
           next: () => {
             this.snackBar.open(
               this.translate.instant('plans.lifecycle.messages.statusChanged'),
               this.translate.instant('common.actions.close'),
               { duration: 3000 }
             );
+            if (previousCandidate) {
+              this.promptArchivePreviousPlan(previousCandidate);
+            }
             this.loadData();
           },
           error: () => {
@@ -653,6 +667,50 @@ export class PlansListComponent implements OnInit {
         });
       }
     });
+  }
+
+  /**
+   * Affiche la pop-up d'archivage du plan précédent (#246) après validation
+   * d'un nouveau plan dans la même chaîne de versions.
+   */
+  private promptArchivePreviousPlan(previous: PlanVersionChainItem): void {
+    const period = (previous.annee_debut && previous.annee_fin)
+      ? `${previous.annee_debut} - ${previous.annee_fin}`
+      : undefined;
+
+    const dialogData: ArchivePreviousPlanDialogData = {
+      previousPlanId: previous.id_pg,
+      previousPlanName: previous.nom,
+      previousPlanPeriod: period,
+    };
+
+    this.dialog
+      .open<ArchivePreviousPlanDialogComponent, ArchivePreviousPlanDialogData, ArchivePreviousPlanDialogResult>(
+        ArchivePreviousPlanDialogComponent,
+        { data: dialogData, width: '520px', maxWidth: '95vw' }
+      )
+      .afterClosed()
+      .subscribe(result => {
+        if (!result?.confirmed) return;
+
+        this.adminService.changePlanStatus(previous.id_pg, 'archive').subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.previousArchived'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.loadData();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('plans.lifecycle.messages.previousArchiveError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 5000 }
+            );
+          },
+        });
+      });
   }
 
   viewPlan(plan: PlanWithAccess): void {

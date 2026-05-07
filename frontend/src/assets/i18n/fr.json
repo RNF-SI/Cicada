@@ -1325,7 +1325,16 @@
         "statusChanged": "Le statut du plan a été modifié avec succès.",
         "statusError": "Erreur lors du changement de statut.",
         "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
-        "evaluationError": "Erreur lors de la création de l'évaluation."
+        "evaluationError": "Erreur lors de la création de l'évaluation.",
+        "previousArchived": "Le plan précédent a été archivé.",
+        "previousArchiveError": "Erreur lors de l'archivage du plan précédent."
+      },
+      "archivePrevious": {
+        "title": "Archiver le plan précédent ?",
+        "intro": "Vous venez de valider un nouveau plan de gestion. Un plan de la chaîne de versions est encore actif.",
+        "hint": "Si vous archivez, le plan précédent restera consultable mais ne sera plus considéré comme actif. Vous pouvez aussi conserver les deux plans en parallèle (cohabitation) pendant une période transitoire.",
+        "keep": "Conserver les deux plans",
+        "archive": "Archiver le précédent"
       },
       "timeline": {
         "title": "Cycle de vie",

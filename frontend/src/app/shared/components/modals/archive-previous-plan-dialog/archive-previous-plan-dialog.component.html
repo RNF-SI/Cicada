@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.archivePrevious.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'plans.lifecycle.archivePrevious.intro' | translate }}
+  </p>
+
+  <div class="previous-plan-card">
+    <i class="fi fi-rr-box icon"></i>
+    <div class="info">
+      <span class="plan-name">{{ data.previousPlanName }}</span>
+      @if (data.previousPlanPeriod) {
+        <span class="plan-period">{{ data.previousPlanPeriod }}</span>
+      }
+    </div>
+  </div>
+
+  <p class="hint">
+    {{ 'plans.lifecycle.archivePrevious.hint' | translate }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'plans.lifecycle.archivePrevious.keep' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="confirm()">
+    {{ 'plans.lifecycle.archivePrevious.archive' | translate }}
+  </button>
+</mat-dialog-actions>

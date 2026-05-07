@@ -14,6 +14,7 @@ export { AdminRoleChangeModalComponent, AdminRoleChangeModalData, AdminRoleChang
 export { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModalResult } from './delete-account-modal/delete-account-modal.component';
 export { DuplicatePlanDialogComponent, DuplicatePlanDialogData, DuplicatePlanDialogResult } from './duplicate-plan-dialog/duplicate-plan-dialog.component';
 export { StatusChangeDialogComponent, StatusChangeDialogData, StatusChangeDialogResult } from './status-change-dialog/status-change-dialog.component';
+export { ArchivePreviousPlanDialogComponent, ArchivePreviousPlanDialogData, ArchivePreviousPlanDialogResult, findPreviousValidatedPlan } from './archive-previous-plan-dialog/archive-previous-plan-dialog.component';
 export { LinkPlanToSiteDialogComponent, LinkPlanToSiteDialogData } from './link-plan-to-site-dialog/link-plan-to-site-dialog.component';
 export { ImportListDialogComponent, ImportListDialogData, ImportListDialogResult, ImportedItem } from './import-list-dialog/import-list-dialog.component';
 export { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from './link-operation-dialog/link-operation-dialog.component';
