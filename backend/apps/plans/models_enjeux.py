@@ -315,6 +315,10 @@ class Enjeu(models.Model):
     def __str__(self):
         return f"{self.libelle} ({self.id_pg})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_pg
+
     def save(self, *args, **kwargs):
         """Auto-générer le slug depuis intitule_court ou libelle."""
         if not self.slug:
@@ -408,6 +412,10 @@ class FacteurInfluence(models.Model):
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_enjeu.id_pg
+
 
 class Pression(models.Model):
     """
@@ -483,6 +491,10 @@ class Pression(models.Model):
     def __str__(self):
         return f"{self.libelle} ({self.id_facteur_influence})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_facteur_influence.id_enjeu.id_pg
+
 
 # ============================================
 # TABLES DE CORRELATION POUR LES RESPONSABILITÉS
@@ -545,6 +557,10 @@ class ObjectifLongTerme(models.Model):
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_enjeu.id_pg
+
 
 class NiveauExigence(models.Model):
     """
@@ -601,6 +617,10 @@ class NiveauExigence(models.Model):
 
     def __str__(self):
         return f"{self.libelle} ({self.id_olt})"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_olt.id_enjeu.id_pg
 
 
 class ObjectifOperationnel(models.Model):
@@ -661,6 +681,17 @@ class ObjectifOperationnel(models.Model):
     def __str__(self):
         return self.libelle
 
+    def get_plan_de_gestion(self):
+        """
+        Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
+        Un OO est rattaché à des pressions via M2M : on remonte au plan via
+        la première pression rattachée.
+        """
+        first_pression = self.pressions.first()
+        if first_pression is None:
+            return None
+        return first_pression.get_plan_de_gestion()
+
 
 class ResultatAttendu(models.Model):
     """
@@ -718,6 +749,10 @@ class ResultatAttendu(models.Model):
 
     def __str__(self):
         return f"{self.libelle} ({self.id_oo})"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_oo.get_plan_de_gestion()
 
 
 class CorOoPression(models.Model):

@@ -1329,6 +1329,10 @@
         "previousArchived": "Le plan précédent a été archivé.",
         "previousArchiveError": "Erreur lors de l'archivage du plan précédent."
       },
+      "lockedBanner": {
+        "title": "Plan verrouillé en lecture seule",
+        "text": "Ce plan n'est pas en brouillon. Pour le modifier, repassez-le en brouillon depuis le cycle de vie ou créez une nouvelle version (duplication / évaluation mi-parcours)."
+      },
       "archivePrevious": {
         "title": "Archiver le plan précédent ?",
         "intro": "Vous venez de valider un nouveau plan de gestion. Un plan de la chaîne de versions est encore actif.",

@@ -259,6 +259,10 @@ class PlanGestion(models.Model):
     def __str__(self):
         return self.nom
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self
+
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement certains champs."""
         # Mettre à jour l'utilisateur modificateur
@@ -628,6 +632,10 @@ class CorPgFichier(models.Model):
 
     def __str__(self):
         return f"{self.titre or self.nom_fichier} ({self.plan_de_gestion.nom})"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.plan_de_gestion
 
     def get_file_size_human(self):
         """Retourne la taille du fichier dans un format lisible."""

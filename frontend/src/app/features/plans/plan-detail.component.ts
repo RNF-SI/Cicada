@@ -202,8 +202,11 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return p.referents?.some(r => r.id_role === currentUser.id) || false;
   });
 
-  // Permissions édition: tout ce que canManageLifecycle fait + redacteur_principal
+  // Permissions édition: tout ce que canManageLifecycle fait + redacteur_principal,
+  // ET le plan doit être en brouillon (#248). Les actions de cycle de vie restent
+  // accessibles hors brouillon via canManageLifecycle.
   canEditPlan = computed(() => {
+    if (!this.isPlanDraft()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -212,6 +215,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     if (!p || !currentUser) return false;
     return p.referents?.some(r => r.id_role === currentUser.id) || false;
   });
+
+  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
+  isPlanDraft = computed(() => this.plan()?.statut === 'draft');
 
   // Accordéons de la section Synthèse
   syntheseAccordions = signal<SyntheseAccordion[]>([

@@ -8,8 +8,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models_operations import SuiviInventaire
+from .models import PlanGestion
 from apps.users.permissions import IsReferent
 from apps.users.pagination import UsersPagination
+from .permissions import CanModifyOnlyDraftPlan
 from .serializers_suivis import (
     SuiviInventaireListSerializer,
     SuiviInventaireDetailSerializer,
@@ -35,8 +37,18 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
         'id_pg', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('operations')
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanModifyOnlyDraftPlan]
     pagination_class = UsersPagination
+
+    def get_plan_for_payload(self, data):
+        """Pour le check draft à la création."""
+        plan_id = data.get('id_pg')
+        if not plan_id:
+            return None
+        try:
+            return PlanGestion.objects.only('statut').get(pk=plan_id)
+        except PlanGestion.DoesNotExist:
+            return None
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = SuiviInventaireFilter
     search_fields = ['intitule', 'commentaires']

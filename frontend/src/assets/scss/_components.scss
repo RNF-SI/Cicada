@@ -845,3 +845,44 @@
     font-size: $font-size-h3;
   }
 }
+
+
+// ============================================
+// LOCK BANNER (#248) — plan hors brouillon
+// ============================================
+.lock-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  margin: 0 $spacing-md $spacing-md;
+  background-color: rgba($secondary-yellow, 0.4);
+  border: 1px solid $secondary-yellow;
+  border-left: 4px solid $primary-color;
+  border-radius: $border-radius-sm;
+  color: $black;
+
+  > i {
+    font-size: 22px;
+    color: $primary-color;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .lock-banner-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+    min-width: 0;
+  }
+
+  .lock-banner-title {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+
+  .lock-banner-text {
+    color: $gray-dark;
+    line-height: 1.4;
+  }
+}

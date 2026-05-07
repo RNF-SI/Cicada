@@ -16,6 +16,7 @@ from .models_operations import Operation, CorOperationMetrique, OperationAnnee, 
 from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
 from apps.users.permissions import IsReferent
+from .permissions import CanModifyOnlyDraftPlan
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
 )
@@ -50,7 +51,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         Prefetch('finances', queryset=FinanceOperation.objects.select_related('id_categorie')),
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = OperationFilter
     search_fields = ['libelle', 'description', 'code_operation']
@@ -91,6 +92,31 @@ class OperationViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    def get_plan_for_payload(self, data):
+        """
+        Pour le check draft à la création (#248) : remonte au plan via le
+        suivi (id_suivi → SuiviInventaire.id_pg) ou via une métrique
+        (metrique_ids[0] → Indicateur → … → plan).
+        """
+        suivi_id = data.get('id_suivi')
+        if suivi_id:
+            from .models_operations import SuiviInventaire
+            try:
+                return SuiviInventaire.objects.only('id_pg').get(pk=suivi_id).id_pg
+            except SuiviInventaire.DoesNotExist:
+                return None
+        metrique_ids = data.get('metrique_ids') or []
+        if not metrique_ids:
+            return None
+        try:
+            metrique = Metrique.objects.select_related(
+                'id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
+                'id_indicateur__id_resultat_attendu__id_oo',
+            ).get(pk=metrique_ids[0])
+        except Metrique.DoesNotExist:
+            return None
+        return metrique.get_plan_de_gestion()
 
     @action(detail=False, methods=['get'], url_path=r'by-indicateur/(?P<indicateur_id>\d+)')
     def by_indicateur(self, request, indicateur_id=None):

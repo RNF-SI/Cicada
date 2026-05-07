@@ -718,6 +718,8 @@ export interface PlanEnjeuxResponse {
   plan_id: number;
   plan_nom: string;
   plan_slug?: string;
+  /** Statut du plan : utilisé pour verrouiller l'édition hors brouillon (#248). */
+  plan_statut?: 'draft' | 'valide' | 'archive';
   enjeux: Enjeu[];
   fcr: Enjeu[];
   total_enjeux: number;

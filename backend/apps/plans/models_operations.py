@@ -376,6 +376,10 @@ class SuiviInventaire(models.Model):
     def __str__(self):
         return self.intitule or f"Suivi #{self.id_suivi_inventaire}"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_pg
+
 
 class Operation(models.Model):
     """
@@ -590,6 +594,27 @@ class Operation(models.Model):
 
     def __str__(self):
         return self.libelle
+
+    def get_plan_de_gestion(self):
+        """
+        Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
+        Une opération est rattachée au plan via :
+          - son suivi/inventaire (id_suivi → SuiviInventaire.id_pg) en priorité,
+          - sinon une de ses métriques (M2M via CorOperationMetrique).
+        Note : un suivi peut être orphelin (id_pg=None), auquel cas on
+        retombe sur les métriques.
+        """
+        if self.id_suivi_id:
+            try:
+                plan = self.id_suivi.id_pg
+                if plan is not None:
+                    return plan
+            except Exception:
+                pass
+        first_metrique = self.metriques.first() if hasattr(self, "metriques") else None
+        if first_metrique is not None:
+            return first_metrique.get_plan_de_gestion()
+        return None
 
 
 class CorOperationSite(models.Model):

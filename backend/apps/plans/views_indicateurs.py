@@ -14,6 +14,7 @@ from .models_indicateurs import Indicateur, Metrique, Mesure
 from .models_enjeux import NiveauExigence, ResultatAttendu
 from .models import CorRolePlan
 from apps.users.permissions import IsReferent
+from .permissions import CanModifyOnlyDraftPlan
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
     MetriqueSerializer, MetriqueListSerializer, MetriqueCreateSerializer,
@@ -45,7 +46,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         'metriques__operations', 'metriques__operations__id_priorite', 'metriques__operations__id_utilisateur_ajout'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = IndicateurFilter
     search_fields = ['nom_indicateur', 'description']
@@ -141,7 +142,7 @@ class MetriqueViewSet(viewsets.ModelViewSet):
         'id_indicateur', 'type_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('mesures', 'mesures__id_utilisateur_ajout')
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MetriqueFilter
     search_fields = ['nom_metrique', 'description']
@@ -217,7 +218,7 @@ class MesureViewSet(viewsets.ModelViewSet):
         'id_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MesureFilter
     search_fields = ['valeur', 'commentaire']

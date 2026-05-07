@@ -32,6 +32,7 @@ from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
 )
 from apps.users.pagination import StandardPagination
+from .permissions import CanModifyOnlyDraftPlan
 
 
 class PlanGestionViewSet(viewsets.ModelViewSet):
@@ -121,12 +122,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children', 'membres__id_role')
 
     pagination_class = StandardPagination
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def get_permissions(self):
         """Permissions selon l'action."""
         if self.action == 'create':
+            # La création d'un plan n'a pas de plan associé existant : pas
+            # de check draft à appliquer.
             return [permissions.IsAuthenticated(), IsReferent()]
         return super().get_permissions()
     filterset_class = PlanGestionFilter
@@ -1198,7 +1201,17 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         'plan_de_gestion', 'id_utilisateur_upload'
     )
     serializer_class = CorPgFichierSerializer
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+
+    def get_plan_for_payload(self, data):
+        """Pour le check draft à la création : remonte le plan depuis l'id."""
+        plan_id = data.get('plan_de_gestion') or data.get('id_pg')
+        if not plan_id:
+            return None
+        try:
+            return PlanGestion.objects.only('statut').get(pk=plan_id)
+        except PlanGestion.DoesNotExist:
+            return None
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = CorPgFichierFilter

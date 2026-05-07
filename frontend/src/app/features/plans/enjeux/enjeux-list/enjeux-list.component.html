@@ -112,6 +112,21 @@
         </div>
       </section>
 
+      <!-- Bannière verrouillage hors brouillon (#248) -->
+      @if (planStatut() && !isPlanDraft()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-lock"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.lifecycle.lockedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.lifecycle.lockedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- Content Section -->
       <section class="content-section">
         @if (selectedEnjeu(); as enjeu) {

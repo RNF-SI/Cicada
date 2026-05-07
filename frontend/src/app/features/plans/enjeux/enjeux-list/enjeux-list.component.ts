@@ -101,8 +101,17 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
+  /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
+   *  verrouiller l'édition hors brouillon (#248). */
+  planStatut = signal<'draft' | 'valide' | 'archive' | null>(null);
+
+  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
+  isPlanDraft = computed(() => this.planStatut() === 'draft');
+
   // Permissions édition: super_admin, redacteur_principal, admin_og, ou référent du plan
+  // ET le plan doit être en brouillon (#248).
   canEditPlan = computed(() => {
+    if (!this.isPlanDraft()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -478,6 +487,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       this.enjeuService.getPlanEnjeux(existingPlanId, true).subscribe({
         next: (response) => {
           this.planEnjeuxData.set(response);
+          if (response.plan_statut) {
+            this.planStatut.set(response.plan_statut);
+          }
           if (!silent) this.isLoading.set(false);
           this.applyPostLoadNavigation();
         },
@@ -499,10 +511,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(plan.annee_fin || null);
         this.planReferentIds.set((plan.referents || []).map(r => r.id_role));
+        this.planStatut.set(plan.statut);
 
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
             this.planEnjeuxData.set(response);
+            if (response.plan_statut) {
+              this.planStatut.set(response.plan_statut);
+            }
             if (!silent) this.isLoading.set(false);
             this.applyPostLoadNavigation();
           },

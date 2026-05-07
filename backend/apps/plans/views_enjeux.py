@@ -31,6 +31,7 @@ from .serializers_enjeux import (
     CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer
 )
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
+from .permissions import CanModifyOnlyDraftPlan
 from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
 
 
@@ -109,11 +110,21 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EnjeuFilter
     search_fields = ['libelle', 'intitule_court', 'description', 'etat_enjeu']
     ordering_fields = ['rang', 'libelle', 'date_ajout', 'date_maj', 'id_enjeu']
+
+    def get_plan_for_payload(self, data):
+        """Pour le check draft à la création."""
+        plan_id = data.get('id_pg')
+        if not plan_id:
+            return None
+        try:
+            return PlanGestion.objects.only('statut').get(pk=plan_id)
+        except PlanGestion.DoesNotExist:
+            return None
     ordering = ['id_enjeu']
 
     def get_serializer_class(self):
@@ -200,6 +211,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
             'plan_slug': plan.slug,
+            'plan_statut': plan.statut,
             'enjeux': EnjeuDetailSerializer(enjeux_list, many=True).data,
             'fcr': EnjeuDetailSerializer(fcr_list, many=True).data,
             'total_enjeux': enjeux_list.count(),
@@ -358,6 +370,7 @@ class ResponsabiliteViewSet(viewsets.ModelViewSet):
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('taxons', 'habitats', 'geologies', 'enjeux_lies')
 
+    # Responsabilité est rattachée à un Site, pas à un Plan : pas de check draft.
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ResponsabiliteFilter
@@ -500,7 +513,7 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         'pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_facteur_influence']
@@ -586,7 +599,7 @@ class PressionViewSet(viewsets.ModelViewSet):
         'objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_pression']
@@ -661,7 +674,7 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
         'niveaux_exigence', 'niveaux_exigence__id_utilisateur_ajout'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_olt']
@@ -736,7 +749,7 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
         'id_olt', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ne']
@@ -818,7 +831,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         'resultats_attendus__indicateurs__id_utilisateur_ajout',
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_oo']
@@ -893,7 +906,7 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
         'id_oo', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ra']

@@ -105,6 +105,11 @@ class Indicateur(models.Model):
         parent = self.id_ne or self.id_resultat_attendu
         return f"{self.nom_indicateur} ({parent})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        parent = self.id_ne or self.id_resultat_attendu
+        return parent.get_plan_de_gestion() if parent else None
+
 
 class CorIndicateurTaxon(models.Model):
     """
@@ -422,6 +427,10 @@ class Metrique(models.Model):
     def __str__(self):
         return f"{self.nom_metrique} ({self.id_indicateur})"
 
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_indicateur.get_plan_de_gestion() if self.id_indicateur else None
+
 
 class Mesure(models.Model):
     """
@@ -485,3 +494,7 @@ class Mesure(models.Model):
     def __str__(self):
         date_str = self.date_mesure.isoformat() if self.date_mesure else "?"
         return f"{self.valeur} ({date_str}) - {self.id_metrique}"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_metrique.get_plan_de_gestion() if self.id_metrique else None
