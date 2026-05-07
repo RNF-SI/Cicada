@@ -79,7 +79,7 @@
             <span class="prop-value">{{ categoryLabel || '-' }}</span>
           </div>
           <div class="property-line">
-            <span class="prop-label">{{ (enjeu.categorie_ecologique !== false ? 'enjeux.enjeuForm.enjeuLieAEcologique' : 'enjeux.enjeuForm.enjeuLieASocioEco') | translate }}</span>
+            <span class="prop-label">{{ 'enjeux.enjeuForm.typeEnjeu' | translate }} :</span>
             <span class="prop-value">{{ typeLabels.length > 0 ? typeLabels.join(', ') : '-' }}</span>
           </div>
           @if (enjeu.patrimoine_geologique && (enjeu.geo_in_situ || enjeu.geo_ex_situ)) {

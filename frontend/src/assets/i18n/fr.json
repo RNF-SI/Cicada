@@ -1078,7 +1078,8 @@
         "editorName": "Sélectionnez un organisme existant ou créer un nouvel organisme",
         "redacteurs": "Si plusieurs, séparez les noms par une virgule",
         "relecteurs": "Si plusieurs, séparez les noms par une virgule",
-        "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)"
+        "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)",
+        "docGestion": "Référence du plan dans le système Doc'Gestion de la Fédération des Conservatoires d'Espaces Naturels (FCEN). À ne remplir que si votre conservatoire vous l'a communiqué."
       },
       "createOrganisme": "Créer un organisme",
       "createOrganismePrompt": "Nom du nouvel organisme :",
@@ -2080,6 +2081,8 @@
       "categorie": "Catégorie de l'enjeu",
       "ecologique": "Écologique",
       "socioEconomique": "Socio-économique",
+      "transversal": "Transversal (écologique et socio-économique)",
+      "atLeastOneCategoryRequired": "Sélectionnez au moins une catégorie (les deux peuvent être cochées pour un enjeu transversal).",
       "typeEnjeu": "L'enjeu est lié à",
       "enjeuLieAEcologique": "L'enjeu est lié à :",
       "enjeuLieASocioEco": "L'enjeu est lié :",

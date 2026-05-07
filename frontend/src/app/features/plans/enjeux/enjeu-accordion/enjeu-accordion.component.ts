@@ -102,9 +102,16 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
   }
 
   get categoryLabel(): string {
-    if (this.enjeu.categorie_ecologique === true) {
+    // #260 : un enjeu peut être à la fois écologique ET socio-économique.
+    const isEco = this.enjeu.categorie_ecologique === true;
+    const isSocio = this.enjeu.categorie_socio_economique === true;
+    if (isEco && isSocio) {
+      return this.translate.instant('enjeux.enjeuForm.transversal');
+    }
+    if (isEco) {
       return this.translate.instant('enjeux.enjeuForm.ecologique');
-    } else if (this.enjeu.categorie_ecologique === false) {
+    }
+    if (isSocio) {
       return this.translate.instant('enjeux.enjeuForm.socioEconomique');
     }
     return '';

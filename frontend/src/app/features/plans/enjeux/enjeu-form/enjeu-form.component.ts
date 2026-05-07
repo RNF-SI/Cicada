@@ -86,7 +86,9 @@ export class EnjeuFormComponent implements OnInit {
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       intitule_court: ['', [Validators.maxLength(25)]],
       rang: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
-      categorie_ecologique: [true, Validators.required],
+      // #260 : les deux catégories sont indépendantes, peuvent cohabiter
+      categorie_ecologique: [true],
+      categorie_socio_economique: [false],
       // Checkboxes écologiques
       habitat: [false],
       espece: [false],
@@ -135,21 +137,11 @@ export class EnjeuFormComponent implements OnInit {
       }
     });
 
-    // Réinitialiser les checkboxes de l'autre catégorie lors du changement
+    // #260 : les deux catégories sont indépendantes. Quand on décoche
+    // l'une, on réinitialise les sous-champs propres à cette catégorie
+    // (mais pas l'autre, qui peut rester active).
     this.form.get('categorie_ecologique')?.valueChanges.subscribe(isEcologique => {
-      if (isEcologique) {
-        // Réinitialiser les checkboxes socio-économiques
-        this.form.patchValue({
-          valeur_paysagere: false,
-          patrimoine_culturel: false,
-          developpement_durable: false,
-          usages: false,
-          valeur_ajoutee: false,
-          autre_socioeco: false,
-          autre_socioeco_precision: ''
-        }, { emitEvent: false });
-      } else {
-        // Réinitialiser les checkboxes écologiques
+      if (!isEcologique) {
         this.form.patchValue({
           habitat: false,
           espece: false,
@@ -161,6 +153,26 @@ export class EnjeuFormComponent implements OnInit {
           autre_ecologique_precision: ''
         }, { emitEvent: false });
       }
+    });
+    this.form.get('categorie_socio_economique')?.valueChanges.subscribe(isSocio => {
+      if (!isSocio) {
+        this.form.patchValue({
+          valeur_paysagere: false,
+          patrimoine_culturel: false,
+          developpement_durable: false,
+          usages: false,
+          valeur_ajoutee: false,
+          autre_socioeco: false,
+          autre_socioeco_precision: ''
+        }, { emitEvent: false });
+      }
+    });
+
+    // Validateur niveau formulaire : au moins une catégorie doit être cochée
+    this.form.addValidators((group: any) => {
+      const eco = group.get('categorie_ecologique')?.value;
+      const socio = group.get('categorie_socio_economique')?.value;
+      return (eco || socio) ? null : { atLeastOneCategory: true };
     });
 
     // Réinitialiser les précisions quand "autre" est décoché
@@ -277,6 +289,7 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: enjeu.intitule_court || '',
       rang: enjeu.rang || 1,
       categorie_ecologique: enjeu.categorie_ecologique ?? true,
+      categorie_socio_economique: enjeu.categorie_socio_economique ?? false,
       // Écologique
       habitat: enjeu.habitat || false,
       espece: enjeu.espece || false,
@@ -353,6 +366,7 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: formValue.intitule_court || undefined,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
+      categorie_socio_economique: formValue.categorie_socio_economique,
       // Écologique
       habitat: formValue.habitat,
       espece: formValue.espece,
@@ -412,6 +426,7 @@ export class EnjeuFormComponent implements OnInit {
       intitule_court: formValue.intitule_court || undefined,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
+      categorie_socio_economique: formValue.categorie_socio_economique,
       // Écologique
       habitat: formValue.habitat,
       espece: formValue.espece,

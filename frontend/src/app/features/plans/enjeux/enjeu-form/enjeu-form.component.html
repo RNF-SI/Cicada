@@ -72,20 +72,25 @@
             </mat-radio-group>
           </div>
 
-          <!-- Catégorie écologique -->
+          <!-- Catégorie écologique / socio-économique (#260 — peuvent cohabiter pour les enjeux transversaux) -->
           <div class="form-group">
             <label class="form-label">{{ 'enjeux.enjeuForm.categorie' | translate }} <span class="required-star">*</span></label>
-            <mat-radio-group formControlName="categorie_ecologique" class="category-radio-group">
-              <mat-radio-button [value]="true">
+            <div class="checkbox-group">
+              <mat-checkbox formControlName="categorie_ecologique" color="primary">
                 {{ 'enjeux.enjeuForm.ecologique' | translate }}
-              </mat-radio-button>
-              <mat-radio-button [value]="false">
+              </mat-checkbox>
+              <mat-checkbox formControlName="categorie_socio_economique" color="primary">
                 {{ 'enjeux.enjeuForm.socioEconomique' | translate }}
-              </mat-radio-button>
-            </mat-radio-group>
+              </mat-checkbox>
+            </div>
+            @if (form.errors?.['atLeastOneCategory']) {
+              <div class="form-error">{{ 'enjeux.enjeuForm.atLeastOneCategoryRequired' | translate }}</div>
+            }
           </div>
 
-          <!-- Type d'enjeu - Checkboxes conditionnelles selon la catégorie -->
+          <!-- Type d'enjeu - Checkboxes conditionnelles : afficher selon les
+               catégories cochées. Les deux blocs peuvent être visibles en
+               même temps pour un enjeu transversal. -->
           @if (form.get('categorie_ecologique')?.value === true) {
             <!-- Checkboxes écologiques -->
             <div class="form-group">
@@ -169,7 +174,8 @@
                 </mat-form-field>
               </div>
             }
-          } @else {
+          }
+          @if (form.get('categorie_socio_economique')?.value === true) {
             <!-- Checkboxes socio-économiques -->
             <div class="form-group">
               <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieASocioEco' | translate }}</label>

@@ -200,7 +200,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     container: HTMLDivElement,
     data: MindmapNode,
     clipPrefix: string,
-    filterChildren?: (children: MindmapNode[]) => MindmapNode[]
+    filterChildren?: (children: MindmapNode[]) => MindmapNode[],
+    skipRoot: boolean = false,
   ): {
     root: IcicleNode;
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -270,10 +271,25 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const defs = svg.append('defs');
 
-    const cell = svg.selectAll<SVGGElement, IcicleNode>('g')
+    // #258 : quand on saute le nœud racine, on enveloppe les cellules dans
+    // un <g> translaté de -columnWidth pour décaler tout le rendu vers la
+    // gauche d'une colonne. Les positions internes (y0/y1) restent
+    // inchangées, donc les animations et calculs de focus continuent de
+    // marcher sans modification.
+    if (skipRoot) {
+      svg.append('g').attr('class', 'cells-shift').attr('transform', `translate(${-columnWidth},0)`);
+    }
+    const cellsParent: any = skipRoot ? svg.select('g.cells-shift') : svg;
+
+    const cell = cellsParent.selectAll('g')
       .data(root.descendants())
       .join('g')
-      .attr('transform', d => `translate(${d.y0},${d.x0})`);
+      .attr('transform', (d: IcicleNode) => `translate(${d.y0},${d.x0})`)
+      // La cellule racine (depth 0) est masquée : son rendu serait en zone
+      // négative après le translate(-columnWidth), mais on la cache aussi
+      // pour éviter les hovers/tooltips fantômes.
+      .style('display', (d: IcicleNode) => (skipRoot && d.depth === 0) ? 'none' : null) as
+        d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>;
 
     cell.each(function(d, i) {
       defs.append('clipPath')
@@ -474,8 +490,12 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     const container = this.icicleContainerRef?.nativeElement;
     if (!data || !container) return;
 
+    // #258 : skipRoot=true → on saute le nœud Plan, l'arborescence démarre
+    // aux enjeux/FCR directement (le PG est déjà rappelé dans le breadcrumb
+    // et l'en-tête de page).
     const result = this.buildIcicle(container, data, 'clip', children =>
-      children.filter(c => c.entityType === 'enjeu' || c.entityType === 'fcr')
+      children.filter(c => c.entityType === 'enjeu' || c.entityType === 'fcr'),
+      true
     );
 
     this.icicleRoot = result.root;

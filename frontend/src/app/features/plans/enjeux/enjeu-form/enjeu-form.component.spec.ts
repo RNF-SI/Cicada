@@ -50,6 +50,7 @@ const existingEnjeu: Enjeu = {
   intitule_court: 'Court',
   rang: 2,
   categorie_ecologique: false,
+  categorie_socio_economique: true,
   habitat: true,
   espece: false,
   patrimoine_geologique: false,
@@ -249,9 +250,14 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('rang')?.hasError('max')).toBe(true);
     });
 
-    it('should require categorie_ecologique', () => {
-      component.form.get('categorie_ecologique')?.setValue(null);
-      expect(component.form.get('categorie_ecologique')?.hasError('required')).toBe(true);
+    it('should require at least one category (#260)', () => {
+      // Avec #260, les deux catégories sont indépendantes mais au moins une
+      // doit être cochée — validateur niveau formulaire `atLeastOneCategory`.
+      component.form.patchValue({
+        categorie_ecologique: false,
+        categorie_socio_economique: false,
+      });
+      expect(component.form.errors?.['atLeastOneCategory']).toBe(true);
     });
 
     it('should allow empty intitule_court', () => {
@@ -313,6 +319,7 @@ describe('EnjeuFormComponent', () => {
         libelle: 'Enjeu socio',
         rang: 1,
         categorie_ecologique: false,
+        categorie_socio_economique: true,
         valeur_paysagere: true,
         patrimoine_culturel: false,
         developpement_durable: true,
@@ -449,15 +456,16 @@ describe('EnjeuFormComponent', () => {
   describe('conditional checkboxes', () => {
     beforeEach(() => setup());
 
-    it('should reset socio-economic fields when switching to ecologique', () => {
-      // Set some socio-eco values
+    it('should reset socio-economic fields when categorie_socio_economique is unchecked (#260)', () => {
+      // Set some socio-eco values with both categories cochées
       component.form.patchValue({
-        categorie_ecologique: false,
+        categorie_ecologique: true,
+        categorie_socio_economique: true,
         valeur_paysagere: true,
         patrimoine_culturel: true,
       });
-      // Switch to ecologique
-      component.form.get('categorie_ecologique')?.setValue(true);
+      // Décocher socio-éco (l'écolo reste actif, c'est ça l'invariant #260)
+      component.form.get('categorie_socio_economique')?.setValue(false);
 
       expect(component.form.get('valeur_paysagere')?.value).toBe(false);
       expect(component.form.get('patrimoine_culturel')?.value).toBe(false);
@@ -467,15 +475,16 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('autre_socioeco')?.value).toBe(false);
     });
 
-    it('should reset ecological fields when switching to socio-economique', () => {
-      // Set some ecological values
+    it('should reset ecological fields when categorie_ecologique is unchecked (#260)', () => {
       component.form.patchValue({
+        categorie_ecologique: true,
+        categorie_socio_economique: true,
         habitat: true,
         espece: true,
         patrimoine_geologique: true,
         geo_ex_situ: true,
       });
-      // Switch to socio-économique
+      // Décocher écolo (le socio reste actif)
       component.form.get('categorie_ecologique')?.setValue(false);
 
       expect(component.form.get('habitat')?.value).toBe(false);
