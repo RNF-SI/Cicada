@@ -39,13 +39,17 @@ class PlansSeeder(BaseSeeder):
 
         plans = [
             # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres
+            # Note: ce plan est en `draft` pour que les E2E qui exercent le CRUD enjeux/OLT/operations
+            # depuis Camargue passent (le verrou hors brouillon #248 bloquerait les édits sinon).
+            # Les tests qui ont besoin d'un plan validé (plan-edit-lock) cherchent un plan validé
+            # n'importe lequel via `findValidatedPlan()`.
             {
                 'nom': 'Plan de gestion 2020-2030 - Camargue',
                 'annee_debut': 2020,
                 'annee_fin': 2030,
                 'rang': 3,
                 'surface': 13117,
-                'statut': 'valide',
+                'statut': 'draft',
                 'version': '2.0',
                 'gestion_partagee': True,
                 'ct88': True,

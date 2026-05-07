@@ -2,6 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env['CI'];
 
+// Optional native Chromium binary (Alpine container side-runs use the
+// system chromium installed via apk, since Playwright's bundled Ubuntu
+// build is not glibc-compatible with Alpine).
+const nativeChromium = process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'];
+
 export default defineConfig({
   testDir: '.',
   outputDir: '../test-results',
@@ -31,10 +36,14 @@ export default defineConfig({
     {
       name: 'auth-setup',
       testMatch: /fixtures\/auth\.setup\.ts/,
+      use: nativeChromium ? { launchOptions: { executablePath: nativeChromium } } : {},
     },
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(nativeChromium ? { launchOptions: { executablePath: nativeChromium } } : {}),
+      },
       dependencies: ['auth-setup'],
       testMatch: /tests\/.*\.spec\.ts/,
     },

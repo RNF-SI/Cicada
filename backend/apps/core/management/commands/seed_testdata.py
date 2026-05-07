@@ -29,7 +29,7 @@ from apps.core.models import Module, Nomenclature, ErrorLog, ActivityLog
 from apps.plans.models import PlanGestion
 from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
-    ObjectifLongTerme, NiveauExigence,
+    ObjectifLongTerme, NiveauExigence, ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
@@ -251,6 +251,11 @@ class Command(BaseCommand):
         # Enjeux sous-entités
         count += NiveauExigence.objects.all().delete()[0]
         count += ObjectifLongTerme.objects.all().delete()[0]
+        # OO et RA sont liés aux Pressions via M2M (cascade libère le lien
+        # mais laisse les OO/RA orphelins, qui bloquent la suppression des
+        # Roles via leur FK PROTECT id_utilisateur_ajout)
+        count += ResultatAttendu.objects.all().delete()[0]
+        count += ObjectifOperationnel.objects.all().delete()[0]
         count += Pression.objects.all().delete()[0]
         count += FacteurInfluence.objects.all().delete()[0]
         # Corrélations

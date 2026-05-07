@@ -10,7 +10,9 @@
  */
 import { type Page } from '@playwright/test';
 
-const API_BASE = 'http://localhost:8000/api';
+// Override via E2E_API_BASE (e.g. `http://web:8000/api`) for runs that
+// reach the backend through Docker service names instead of localhost.
+const API_BASE = process.env['E2E_API_BASE'] || 'http://localhost:8000/api';
 
 /**
  * Extract the JWT access token from the page's localStorage.
@@ -179,6 +181,20 @@ export async function findPlan(page: Page, nameFragment: string) {
     || results.find((p: any) => notArchive(p) && nameMatch(p))
     // Priority 5: first result
     || results[0];
+  return { id_pg: best.id_pg as number, slug: best.slug as string };
+}
+
+/**
+ * Find any validated plan in the seed (used by tests that exercise the
+ * read-only / lock behaviour on a non-draft plan).
+ */
+export async function findValidatedPlan(page: Page) {
+  const { data } = await apiGet(page, 'plans/plans/', { statut: 'valide', page_size: '5' });
+  const results: any[] = data.results || data;
+  if (!Array.isArray(results) || results.length === 0) {
+    throw new Error('No validated plan in seed');
+  }
+  const best = results[0];
   return { id_pg: best.id_pg as number, slug: best.slug as string };
 }
 

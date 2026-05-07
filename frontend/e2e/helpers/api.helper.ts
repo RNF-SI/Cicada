@@ -1,9 +1,13 @@
 /**
  * Direct API helper for test setup/teardown operations.
  * Uses fetch to call Django REST API directly.
+ *
+ * The base URL defaults to localhost (host-side execution) but can be
+ * overridden via E2E_API_BASE for container-side runs (e.g.
+ * `http://web:8000/api`).
  */
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = process.env['E2E_API_BASE'] || 'http://localhost:8000/api';
 
 interface LoginResponse {
   access: string;

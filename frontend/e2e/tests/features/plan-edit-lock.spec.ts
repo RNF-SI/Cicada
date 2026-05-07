@@ -11,16 +11,12 @@
  * (l'évaluation mi-parcours).
  */
 import { test, expect } from '../../fixtures/auth.fixture';
-import { findPlan, apiGet, apiPatch, apiPost } from '../../helpers/plan.helper';
+import { findValidatedPlan, apiGet, apiPatch, apiPost } from '../../helpers/plan.helper';
 
 test.describe('Plan edit-lock (#248) — backend permissions', () => {
   test('PATCH on a validated plan returns 403', async ({ superAdminPage: page }) => {
-    const plan = await findPlan(page, 'Camargue');
+    const plan = await findValidatedPlan(page);
     expect(plan.id_pg).toBeTruthy();
-
-    // Charge le plan pour vérifier qu'il est bien validé
-    const { data: planData } = await apiGet(page, `plans/plans/${plan.id_pg}/`);
-    test.skip(planData.statut !== 'valide', `Plan ${plan.slug} not validated, skipping`);
 
     const { ok, status } = await apiPatch(page, `plans/plans/${plan.id_pg}/`, {
       commentaire: 'tentative de modification (devrait échouer)',
@@ -31,9 +27,7 @@ test.describe('Plan edit-lock (#248) — backend permissions', () => {
   });
 
   test('POST to create an enjeu on a validated plan returns 403', async ({ superAdminPage: page }) => {
-    const plan = await findPlan(page, 'Camargue');
-    const { data: planData } = await apiGet(page, `plans/plans/${plan.id_pg}/`);
-    test.skip(planData.statut !== 'valide', `Plan ${plan.slug} not validated, skipping`);
+    const plan = await findValidatedPlan(page);
 
     // Récupère une nomenclature CATEGORIE_ENJEU pour le payload
     const { data: nomData } = await apiGet(page, 'nomenclatures/', { type: 'CATEGORIE_ENJEU' });
@@ -73,10 +67,7 @@ test.describe('Plan edit-lock (#248) — backend permissions', () => {
 
 test.describe('Plan edit-lock (#248) — frontend UI', () => {
   test('lock banner is visible on a validated plan detail page', async ({ superAdminPage: page }) => {
-    const plan = await findPlan(page, 'Camargue');
-    const { data: planData } = await apiGet(page, `plans/plans/${plan.id_pg}/`);
-    test.skip(planData.statut !== 'valide', `Plan ${plan.slug} not validated, skipping`);
-
+    const plan = await findValidatedPlan(page);
     await page.goto(`/plans/${plan.slug}`);
 
     // La bannière apparaît dans la page de détail
@@ -86,10 +77,7 @@ test.describe('Plan edit-lock (#248) — frontend UI', () => {
   });
 
   test('the "Modifier les métadonnées" button is hidden on a validated plan', async ({ superAdminPage: page }) => {
-    const plan = await findPlan(page, 'Camargue');
-    const { data: planData } = await apiGet(page, `plans/plans/${plan.id_pg}/`);
-    test.skip(planData.statut !== 'valide', `Plan ${plan.slug} not validated, skipping`);
-
+    const plan = await findValidatedPlan(page);
     await page.goto(`/plans/${plan.slug}`);
     await page.waitForLoadState('networkidle').catch(() => {});
 
