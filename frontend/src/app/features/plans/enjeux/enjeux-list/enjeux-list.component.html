@@ -1585,7 +1585,54 @@
                                         <div class="metriques-section">
                                           <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
+                                          <div cdkDropList class="metriques-droplist"
+                                               (cdkDropListDropped)="onMetriquesDrop(indicateurFormMetriques, $event)">
                                           @for (met of indicateurFormMetriques; track $index; let i = $index) {
+                                            <div cdkDrag class="metrique-drag-item">
+                                            <!-- #2 : ligne compacte (toujours visible) -->
+                                            <div class="metrique-compact-row">
+                                              <button class="icon-btn-flat metrique-drag-handle" type="button" cdkDragHandle
+                                                      [title]="'enjeux.metriques.dragHandle' | translate">
+                                                <i class="fi fi-rr-menu-burger"></i>
+                                              </button>
+                                              <span class="metrique-order">{{ i + 1 }}.</span>
+                                              <div class="metrique-summary">
+                                                <span class="metrique-summary-name">
+                                                  {{ met.nom_metrique || ('enjeux.metriques.unnamed' | translate) }}
+                                                </span>
+                                                <span class="metrique-summary-meta">
+                                                  {{ getMetriqueTypeMnemonique(met.type_metrique) }}
+                                                  @if (met.unite) { · {{ met.unite }} }
+                                                  @if (met.ponderation != null) { · {{ 'enjeux.metriques.ponderationLabel' | translate }} {{ met.ponderation }} }
+                                                </span>
+                                              </div>
+                                              <div class="metrique-actions">
+                                                <button class="icon-btn-flat" type="button"
+                                                        (click)="moveMetrique(indicateurFormMetriques, i, -1)"
+                                                        [disabled]="i === 0"
+                                                        [title]="'common.actions.moveUp' | translate">
+                                                  <i class="fi fi-rr-arrow-up"></i>
+                                                </button>
+                                                <button class="icon-btn-flat" type="button"
+                                                        (click)="moveMetrique(indicateurFormMetriques, i, 1)"
+                                                        [disabled]="i === indicateurFormMetriques.length - 1"
+                                                        [title]="'common.actions.moveDown' | translate">
+                                                  <i class="fi fi-rr-arrow-down"></i>
+                                                </button>
+                                                <button class="icon-btn-flat" type="button"
+                                                        (click)="toggleMetriqueExpanded(indicateurFormMetriques, i)"
+                                                        [title]="(met._expanded ? 'common.actions.collapse' : 'common.actions.edit') | translate">
+                                                  <i class="fi" [class.fi-rr-angle-up]="met._expanded" [class.fi-rr-pencil]="!met._expanded"></i>
+                                                </button>
+                                                <button class="icon-btn-flat" type="button"
+                                                        (click)="removeMetriqueFromForm(i)"
+                                                        [title]="'common.actions.delete' | translate">
+                                                  <i class="fi fi-rr-trash"></i>
+                                                </button>
+                                              </div>
+                                            </div>
+
+                                            @if (met._expanded) {
                                             @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                               <app-metrique-form
                                                 [metrique]="met"
@@ -1715,7 +1762,10 @@
                                               </div>
                                             </div>
                                             }
+                                            }
+                                            </div>
                                           }
+                                          </div>
 
                                           <!-- Add metrique link -->
                                           <button class="add-item-btn" (click)="addMetriqueToForm()">
@@ -2011,8 +2061,55 @@
                                     <div class="metriques-section">
                                       <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
+                                      <div cdkDropList class="metriques-droplist"
+                                           (cdkDropListDropped)="onMetriquesDrop(editOoIndicateurMetriques, $event)">
                                       @for (met of editOoIndicateurMetriques; track $index; let i = $index) {
                                         @if (!met._deleted) {
+                                          <div cdkDrag class="metrique-drag-item">
+                                          <!-- #2 : ligne compacte -->
+                                          <div class="metrique-compact-row">
+                                            <button class="icon-btn-flat metrique-drag-handle" type="button" cdkDragHandle
+                                                    [title]="'enjeux.metriques.dragHandle' | translate">
+                                              <i class="fi fi-rr-menu-burger"></i>
+                                            </button>
+                                            <span class="metrique-order">{{ i + 1 }}.</span>
+                                            <div class="metrique-summary">
+                                              <span class="metrique-summary-name">
+                                                {{ met.nom_metrique || ('enjeux.metriques.unnamed' | translate) }}
+                                              </span>
+                                              <span class="metrique-summary-meta">
+                                                {{ getMetriqueTypeMnemonique(met.type_metrique) }}
+                                                @if (met.unite) { · {{ met.unite }} }
+                                                @if (met.ponderation != null) { · {{ 'enjeux.metriques.ponderationLabel' | translate }} {{ met.ponderation }} }
+                                              </span>
+                                            </div>
+                                            <div class="metrique-actions">
+                                              <button class="icon-btn-flat" type="button"
+                                                      (click)="moveMetrique(editOoIndicateurMetriques, i, -1)"
+                                                      [disabled]="i === 0"
+                                                      [title]="'common.actions.moveUp' | translate">
+                                                <i class="fi fi-rr-arrow-up"></i>
+                                              </button>
+                                              <button class="icon-btn-flat" type="button"
+                                                      (click)="moveMetrique(editOoIndicateurMetriques, i, 1)"
+                                                      [disabled]="i === editOoIndicateurMetriques.length - 1"
+                                                      [title]="'common.actions.moveDown' | translate">
+                                                <i class="fi fi-rr-arrow-down"></i>
+                                              </button>
+                                              <button class="icon-btn-flat" type="button"
+                                                      (click)="toggleMetriqueExpanded(editOoIndicateurMetriques, i)"
+                                                      [title]="(met._expanded ? 'common.actions.collapse' : 'common.actions.edit') | translate">
+                                                <i class="fi" [class.fi-rr-angle-up]="met._expanded" [class.fi-rr-pencil]="!met._expanded"></i>
+                                              </button>
+                                              <button class="icon-btn-flat" type="button"
+                                                      (click)="removeOoMetriqueFromEdit(i)"
+                                                      [title]="'common.actions.delete' | translate">
+                                                <i class="fi fi-rr-trash"></i>
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          @if (met._expanded) {
                                           @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                             <app-metrique-form
                                               [metrique]="met"
@@ -2138,8 +2235,11 @@
                                             </div>
                                           </div>
                                           }
+                                          }
+                                          </div>
                                         }
                                       }
+                                      </div>
 
                                       <button class="add-item-btn" (click)="addOoMetriqueToEdit()">
                                         <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
@@ -2701,7 +2801,54 @@
                                 <div class="metriques-section">
                                   <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
+                                  <div cdkDropList class="metriques-droplist"
+                                       (cdkDropListDropped)="onMetriquesDrop(ooIndicateurFormMetriques, $event)">
                                   @for (met of ooIndicateurFormMetriques; track $index; let i = $index) {
+                                    <div cdkDrag class="metrique-drag-item">
+                                    <!-- #2 : ligne compacte -->
+                                    <div class="metrique-compact-row">
+                                      <button class="icon-btn-flat metrique-drag-handle" type="button" cdkDragHandle
+                                              [title]="'enjeux.metriques.dragHandle' | translate">
+                                        <i class="fi fi-rr-menu-burger"></i>
+                                      </button>
+                                      <span class="metrique-order">{{ i + 1 }}.</span>
+                                      <div class="metrique-summary">
+                                        <span class="metrique-summary-name">
+                                          {{ met.nom_metrique || ('enjeux.metriques.unnamed' | translate) }}
+                                        </span>
+                                        <span class="metrique-summary-meta">
+                                          {{ getMetriqueTypeMnemonique(met.type_metrique) }}
+                                          @if (met.unite) { · {{ met.unite }} }
+                                          @if (met.ponderation != null) { · {{ 'enjeux.metriques.ponderationLabel' | translate }} {{ met.ponderation }} }
+                                        </span>
+                                      </div>
+                                      <div class="metrique-actions">
+                                        <button class="icon-btn-flat" type="button"
+                                                (click)="moveMetrique(ooIndicateurFormMetriques, i, -1)"
+                                                [disabled]="i === 0"
+                                                [title]="'common.actions.moveUp' | translate">
+                                          <i class="fi fi-rr-arrow-up"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" type="button"
+                                                (click)="moveMetrique(ooIndicateurFormMetriques, i, 1)"
+                                                [disabled]="i === ooIndicateurFormMetriques.length - 1"
+                                                [title]="'common.actions.moveDown' | translate">
+                                          <i class="fi fi-rr-arrow-down"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" type="button"
+                                                (click)="toggleMetriqueExpanded(ooIndicateurFormMetriques, i)"
+                                                [title]="(met._expanded ? 'common.actions.collapse' : 'common.actions.edit') | translate">
+                                          <i class="fi" [class.fi-rr-angle-up]="met._expanded" [class.fi-rr-pencil]="!met._expanded"></i>
+                                        </button>
+                                        <button class="icon-btn-flat" type="button"
+                                                (click)="removeOoMetriqueRow(i)"
+                                                [title]="'common.actions.delete' | translate">
+                                          <i class="fi fi-rr-trash"></i>
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    @if (met._expanded) {
                                     @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                       <app-metrique-form
                                         [metrique]="met"
@@ -2827,7 +2974,10 @@
                                       </div>
                                     </div>
                                     }
+                                    }
+                                    </div>
                                   }
+                                  </div>
 
                                   <button class="add-item-btn" (click)="addOoMetriqueRow()">
                                     <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}

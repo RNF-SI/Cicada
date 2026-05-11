@@ -1835,7 +1835,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   addMetriqueToForm(): void {
-    this.indicateurFormMetriques = [...this.indicateurFormMetriques, this.createEmptyMetrique()];
+    // #2 — Nouvelle métrique ouverte par défaut pour saisie immédiate
+    this.indicateurFormMetriques = [
+      ...this.indicateurFormMetriques,
+      { ...this.createEmptyMetrique(), _expanded: true },
+    ];
   }
 
   removeMetriqueFromForm(index: number): void {
@@ -3506,7 +3510,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   addOoMetriqueRow(): void {
-    this.ooIndicateurFormMetriques.push(this.createEmptyMetrique());
+    this.ooIndicateurFormMetriques.push({ ...this.createEmptyMetrique(), _expanded: true });
   }
 
   removeOoMetriqueRow(index: number): void {
@@ -3588,7 +3592,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   addOoMetriqueToEdit(): void {
-    this.editOoIndicateurMetriques = [...this.editOoIndicateurMetriques, this.createEmptyMetrique()];
+    this.editOoIndicateurMetriques = [...this.editOoIndicateurMetriques, { ...this.createEmptyMetrique(), _expanded: true }];
   }
 
   removeOoMetriqueFromEdit(index: number): void {
