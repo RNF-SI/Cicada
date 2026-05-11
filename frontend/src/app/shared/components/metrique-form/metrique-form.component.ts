@@ -157,4 +157,72 @@ export class MetriqueFormComponent {
   }
 
   trackByOptionId = (_i: number, opt: TypeMetriqueOption) => opt.id_nomenclature;
+
+  // =====================================================================
+  // #247 — Aide visuelle pour le parenthésage
+  // =====================================================================
+
+  /**
+   * Profondeur de groupe au début du rendu du bloc à `idx` (depuis le sequence
+   * principal + complémentaires). 0 = pas dans un groupe, 1 = dans un groupe,
+   * 2 = dans un groupe imbriqué, etc.
+   */
+  getBlockDepth(idx: number): number {
+    let depth = 0;
+    for (let i = 0; i <= idx; i++) {
+      depth += this.blocks[i].group_open ?? 0;
+      if (i < idx) {
+        depth -= this.blocks[i].group_close ?? 0;
+      }
+    }
+    return depth;
+  }
+
+  /** Profondeur après le bloc à `idx` (utilisée pour la cohérence visuelle). */
+  getBlockDepthAfter(idx: number): number {
+    return this.getBlockDepth(idx) - (this.blocks[idx].group_close ?? 0);
+  }
+
+  /**
+   * Formule textuelle représentant la logique : « Bloc 1 OU (Bloc 2 ET Bloc 3)
+   * OU Bloc 4 ». Aide l'utilisateur à valider visuellement son parenthésage.
+   */
+  getFormulaText(): string {
+    const parts: string[] = [this.translate('enjeux.metriques.principal')];
+    this.blocks.forEach((block, i) => {
+      const op = ' ' + this.translate(block.logical_op === 'AND'
+        ? 'enjeux.metriques.opAnd'
+        : 'enjeux.metriques.opOr') + ' ';
+      const opens = '('.repeat(block.group_open ?? 0);
+      const closes = ')'.repeat(block.group_close ?? 0);
+      const label = this.translate('enjeux.metriques.blockLabel') + ' ' + (i + 2);
+      parts.push(`${op}${opens}${label}${closes}`);
+    });
+    return parts.join('');
+  }
+
+  /** Wrapper léger sans dépendance directe à TranslateService dans le squelette. */
+  private translate(key: string): string {
+    // Fallback simple : utilise la clé telle quelle si non traduite.
+    // Idéalement on injecterait TranslateService, mais on évite la dép. pour
+    // garder le composant indépendant — appelé via le pipe `translate` dans
+    // le template pour les libellés visibles. Cette méthode sert uniquement
+    // pour la formule textuelle dynamique.
+    const dict: Record<string, string> = {
+      'enjeux.metriques.principal': 'Bloc principal',
+      'enjeux.metriques.blockLabel': 'Bloc',
+      'enjeux.metriques.opAnd': 'ET',
+      'enjeux.metriques.opOr': 'OU',
+    };
+    return dict[key] ?? key;
+  }
+
+  /** Solde de parens (ouvertes - fermées). 0 = équilibré. */
+  getParensBalance(): number {
+    let balance = 0;
+    for (const b of this.blocks) {
+      balance += (b.group_open ?? 0) - (b.group_close ?? 0);
+    }
+    return balance;
+  }
 }

@@ -43,7 +43,42 @@
 }
 
 // =====================================================================
-// Séparateur entre blocs (ET/OU + parenthèses)
+// Formule logique en haut (#247) — résumé textuel de la structure ET/OU
+// =====================================================================
+.formula-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($primary-color, 0.05);
+  border: 1px solid rgba($primary-color, 0.2);
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+
+  .formula-label {
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+
+  .formula-text {
+    font-size: 14px;
+    color: $black;
+    font-family: 'Courier New', monospace;
+    font-weight: $font-weight-semibold;
+  }
+
+  .formula-warning {
+    margin-left: auto;
+    color: $error-color;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+  }
+}
+
+// =====================================================================
+// Séparateur entre blocs (ET/OU + groupage)
 // =====================================================================
 .block-separator {
   display: flex;
@@ -51,6 +86,69 @@
   justify-content: center;
   gap: $spacing-sm;
   padding: $spacing-xs 0;
+  flex-wrap: wrap;
+
+  // Indentation visuelle selon la profondeur de groupe
+  &.depth-1 { padding-left: $spacing-lg; }
+  &.depth-2 { padding-left: $spacing-xxl; }
+}
+
+// =====================================================================
+// Wrapper du bloc (card) avec indentation + bordure gauche selon profondeur
+// =====================================================================
+.block-wrapper {
+  &.depth-1 {
+    padding-left: $spacing-md;
+    border-left: 4px solid rgba($primary-color, 0.5);
+    margin-left: $spacing-xs;
+  }
+  &.depth-2 {
+    padding-left: $spacing-md;
+    border-left: 4px solid rgba($secondary-terra-cotta, 0.7);
+    margin-left: $spacing-lg;
+  }
+  &.depth-3 {
+    padding-left: $spacing-md;
+    border-left: 4px solid rgba($secondary-yellow, 0.9);
+    margin-left: $spacing-xl;
+  }
+}
+
+// Bouton « Grouper » / « Fermer le groupe » : remplace les anciens « ( » « ) »
+.group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid $gray;
+  background: $white;
+  color: $gray-dark;
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  i { font-size: 12px; }
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &.active {
+    border-color: $primary-color;
+    background: $primary-color;
+    color: $white;
+
+    i { color: $white; }
+  }
+
+  // Le « close » est miroir du « open »
+  &.group-btn-close {
+    i { transform: scaleX(-1); }
+  }
 }
 
 .op-tabs {
@@ -81,30 +179,6 @@
   }
 }
 
-.paren-btn {
-  width: 32px;
-  height: 32px;
-  border: 2px solid $gray;
-  background: $white;
-  color: $gray-dark;
-  border-radius: $border-radius-sm;
-  font-family: $font-family;
-  font-size: 18px;
-  font-weight: $font-weight-bold;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    border-color: $primary-color;
-    color: $primary-color;
-  }
-
-  &.active {
-    border-color: $primary-color;
-    background: $primary-color;
-    color: $white;
-  }
-}
 
 .btn-remove-block {
   width: 28px;

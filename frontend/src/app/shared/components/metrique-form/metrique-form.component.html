@@ -61,24 +61,32 @@
     </mat-form-field>
   </div>
 
+  <!-- #247 : formule textuelle de la logique (aide à la compréhension du
+       parenthésage). Affichée uniquement quand au moins 1 bloc complémentaire. -->
+  @if (blocks.length > 0) {
+    <div class="formula-preview">
+      <span class="formula-label">{{ 'enjeux.metriques.formulaLabel' | translate }}</span>
+      <span class="formula-text">{{ getFormulaText() }}</span>
+      @if (getParensBalance() !== 0) {
+        <span class="formula-warning" [title]="'enjeux.metriques.parensImbalance' | translate">
+          ⚠ {{ 'enjeux.metriques.parensImbalanceShort' | translate }}
+        </span>
+      }
+    </div>
+  }
+
   <!-- Bloc principal -->
   <app-metrique-block
     [block]="mainBlock"
     (blockChange)="onMainBlockChange($event)">
   </app-metrique-block>
 
-  <!-- Blocs complémentaires : même card visuelle, précédés d'un sélecteur ET/OU + parens -->
+  <!-- Blocs complémentaires : même card visuelle, précédés d'un sélecteur ET/OU
+       + boutons de groupage. Les blocs imbriqués reçoivent une indentation et
+       une bordure gauche colorée selon leur profondeur. -->
   @for (block of blocks; track $index; let i = $index) {
-    <div class="block-separator">
-      <!-- Parenthèse ouvrante (avant ET/OU) -->
-      <button type="button"
-              class="paren-btn"
-              [class.active]="block.group_open > 0"
-              (click)="toggleParensOpen(i)"
-              [title]="'enjeux.metriques.toggleOpenParen' | translate">
-        (
-      </button>
-
+    <!-- Séparateur : opérateur + boutons groupage + corbeille -->
+    <div class="block-separator" [class.depth-1]="getBlockDepth(i) >= 1" [class.depth-2]="getBlockDepth(i) >= 2">
       <div class="op-tabs" role="tablist">
         <button type="button"
                 class="op-tab"
@@ -94,33 +102,42 @@
         </button>
       </div>
 
+      <!-- Bouton « Grouper » : ouvre une parenthèse avant ce bloc -->
+      <button type="button"
+              class="group-btn"
+              [class.active]="block.group_open > 0"
+              (click)="toggleParensOpen(i)"
+              [title]="'enjeux.metriques.toggleOpenParen' | translate">
+        <i class="fi fi-rr-bracket-curly-right"></i>
+        {{ 'enjeux.metriques.groupStart' | translate }}
+      </button>
+
+      <!-- Bouton « Fermer le groupe » : ferme une parenthèse après ce bloc -->
+      <button type="button"
+              class="group-btn group-btn-close"
+              [class.active]="block.group_close > 0"
+              (click)="toggleParensClose(i)"
+              [title]="'enjeux.metriques.toggleCloseParen' | translate">
+        <i class="fi fi-rr-bracket-curly-right"></i>
+        {{ 'enjeux.metriques.groupEnd' | translate }}
+      </button>
+
       <button type="button" class="btn-remove-block" (click)="removeBlock(i)"
               [attr.aria-label]="'common.actions.delete' | translate">
         <i class="fi fi-rr-trash"></i>
       </button>
     </div>
 
-    <app-metrique-block
-      [block]="$any(block)"
-      (blockChange)="onBlockChange($event)">
-    </app-metrique-block>
-
-    <!-- Parenthèse fermante (après le bloc) -->
-    @if (block.group_close > 0) {
-      <button type="button"
-              class="paren-btn paren-btn-close active"
-              (click)="toggleParensClose(i)"
-              [title]="'enjeux.metriques.toggleCloseParen' | translate">
-        )
-      </button>
-    } @else {
-      <button type="button"
-              class="paren-btn paren-btn-close"
-              (click)="toggleParensClose(i)"
-              [title]="'enjeux.metriques.toggleCloseParen' | translate">
-        )
-      </button>
-    }
+    <!-- Card du bloc, indenté + bordure colorée selon profondeur -->
+    <div class="block-wrapper"
+         [class.depth-1]="getBlockDepth(i) >= 1"
+         [class.depth-2]="getBlockDepth(i) >= 2"
+         [class.depth-3]="getBlockDepth(i) >= 3">
+      <app-metrique-block
+        [block]="$any(block)"
+        (blockChange)="onBlockChange($event)">
+      </app-metrique-block>
+    </div>
   }
 
   <button type="button" class="btn-add-block" (click)="addBlock()">
