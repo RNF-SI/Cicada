@@ -626,7 +626,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
                     if not (is_eco or is_socio):
                         raise serializers.ValidationError({
                             'categorie_ecologique': _(
-                                "Au moins une catégorie (écologique ou socio-économique) doit être sélectionnée."
+                                "Au moins une catégorie (conservation du patrimoine naturel ou socio-économique) doit être sélectionnée."
                             )
                         })
 

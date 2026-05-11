@@ -19,7 +19,7 @@ class FakeTranslateLoader implements TranslateLoader {
         enjeuForm: {
           title: 'Nouvel enjeu',
           editTitle: 'Modifier l\'enjeu',
-          ecologique: 'Écologique',
+          ecologique: 'Conservation du patrimoine naturel',
           socioEconomique: 'Socio-économique',
         },
         messages: {

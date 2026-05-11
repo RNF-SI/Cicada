@@ -174,6 +174,22 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
 docker compose -f docker-compose.prod.yml exec web python manage.py create_permissions
 ```
 
+#### Mise à jour des libellés de nomenclatures (issue #268)
+
+Si la release modifie des libellés ou définitions dans `backend/nomenclatures_data/` (fichiers `nomenclatures_inserts.sql` et `types_inserts.sql`), exécuter explicitement :
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py import_nomenclatures --force
+```
+
+**Pourquoi :** au démarrage du conteneur, `import_nomenclatures` est lancé sans `--force`. Si la base est déjà complètement peuplée (cas prod après une release), le script **skip** silencieusement et n'applique aucun `UPDATE`. Les libellés affichés dans l'UI restent dans leur version pré-correction.
+
+**Sécurité :** la commande est idempotente grâce au `ON CONFLICT DO UPDATE` — safe à exécuter à chaque release. Coût : ~700 `UPDATE` (négligeable).
+
+**Quand sauter cette étape :** uniquement si la release ne touche **aucun** fichier sous `backend/nomenclatures_data/`. En cas de doute, exécuter la commande.
+
+> **Note :** une amélioration long terme (détection automatique par hash des fichiers SQL) est tracée dans l'issue #268.
+
 ### 7.5 Pièges courants
 
 | Problème | Cause | Solution |

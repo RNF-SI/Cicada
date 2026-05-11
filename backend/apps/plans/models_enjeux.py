@@ -147,10 +147,10 @@ class Enjeu(models.Model):
     # à la fois écologique ET socio-économique (cas des enjeux transversaux).
     # Au moins un des deux doit être vrai (validé côté serializer).
     categorie_ecologique = models.BooleanField(
-        _("Catégorie écologique"),
+        _("Catégorie conservation du patrimoine naturel"),
         default=True,
         null=True,
-        help_text=_("True si l'enjeu relève de la dimension écologique")
+        help_text=_("True si l'enjeu relève de la conservation du patrimoine naturel")
     )
     categorie_socio_economique = models.BooleanField(
         _("Catégorie socio-économique"),
@@ -179,16 +179,16 @@ class Enjeu(models.Model):
         help_text=_("Enjeu lié à une/des fonctionnalités des écosystèmes")
     )
     autre_ecologique = models.BooleanField(
-        _("Autre (écologique)"),
+        _("Autre (conservation du patrimoine naturel)"),
         default=False,
-        help_text=_("Enjeu écologique de type autre")
+        help_text=_("Enjeu de conservation du patrimoine naturel de type autre")
     )
     autre_ecologique_precision = models.CharField(
-        _("Précision autre (écologique)"),
+        _("Précision autre (conservation du patrimoine naturel)"),
         max_length=255,
         blank=True,
         default='',
-        help_text=_("Précision sur le type 'Autre' écologique")
+        help_text=_("Précision sur le type 'Autre' conservation du patrimoine naturel")
     )
     # Sous-champs patrimoine géologique (affichés quand patrimoine_geologique=True)
     geo_ex_situ = models.BooleanField(

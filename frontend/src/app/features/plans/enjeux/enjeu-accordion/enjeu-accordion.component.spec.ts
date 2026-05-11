@@ -16,7 +16,7 @@ class FakeTranslateLoader implements TranslateLoader {
       enjeux: {
         types: { enjeu: 'Enjeu', fcr: 'FCR' },
         enjeuForm: {
-          ecologique: 'Écologique',
+          ecologique: 'Conservation du patrimoine naturel',
           socioEconomique: 'Socio-économique',
           enjeuLieAEcologique: 'L\'enjeu est lié à :',
           enjeuLieASocioEco: 'L\'enjeu est lié :',
@@ -228,9 +228,9 @@ describe('EnjeuAccordionComponent', () => {
   // =========================================================================
 
   describe('computed getters', () => {
-    it('should return categoryLabel "Écologique" for ecological', () => {
+    it('should return categoryLabel "Conservation du patrimoine naturel" for ecological', () => {
       component.enjeu = { ...baseEnjeu, categorie_ecologique: true, categorie_socio_economique: false };
-      expect(component.categoryLabel).toBe('Écologique');
+      expect(component.categoryLabel).toBe('Conservation du patrimoine naturel');
     });
 
     it('should return categoryLabel "Socio-économique" for non-ecological', () => {

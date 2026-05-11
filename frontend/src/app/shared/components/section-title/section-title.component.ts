@@ -7,24 +7,13 @@ import { EllipseIconButtonComponent, EllipseColor } from '../ellipse-icon-button
  * SectionTitle - Composant de titre de section avec icône ellipse
  *
  * Utilisé pour les titres de sections dans les pages de détail (plans, sites, etc.)
- * Combine une ellipse colorée avec icône et un titre, avec optionnellement un lien.
+ * Combine une ellipse colorée avec icône et un titre.
  *
  * @example
- * <!-- Titre simple -->
  * <app-section-title
  *   title="Synthèse"
  *   icon="fi-rr-list-check"
  *   ellipseColor="salmon">
- * </app-section-title>
- *
- * @example
- * <!-- Titre avec lien -->
- * <app-section-title
- *   title="Site"
- *   icon="fi-rr-marker"
- *   ellipseColor="primary"
- *   linkText="Voir en détails"
- *   linkUrl="/sites/123">
  * </app-section-title>
  */
 @Component({

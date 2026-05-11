@@ -23,7 +23,7 @@ class FakeTranslateLoader implements TranslateLoader {
       enjeux: {
         types: { enjeu: 'Enjeu', fcr: 'FCR' },
         enjeuForm: {
-          ecologique: 'Écologique',
+          ecologique: 'Conservation du patrimoine naturel',
           socioEconomique: 'Socio-économique',
           habitat: 'Un/des habitat(s)',
           espece: 'Une/des espèce(s)',
@@ -485,7 +485,7 @@ describe('EnjeuxListComponent', () => {
     it('should compute selectedCategoryLabel for ecologique', () => {
       component['selectedEnjeuSlug'].set('protection-zones-humides');
       const label = component.selectedCategoryLabel();
-      expect(label).toBe('Écologique');
+      expect(label).toBe('Conservation du patrimoine naturel');
     });
 
     it('should compute selectedCategoryLabel for socio-economique', () => {
