@@ -790,9 +790,47 @@
 
                                               @for (met of editIndicateurMetriques; track $index; let i = $index) {
                                                 @if (!met._deleted) {
-                                                  <!-- #208/#247 : NUMERIQUE utilise le nouveau composant Figma ;
-                                                       CHIFFRE / TEXTE / INDETERMINE gardent l'ancien bloc en attendant
-                                                       leurs designs dédiés. -->
+                                                  <!-- #2 : ligne compacte de la métrique (toujours visible, repli/déploi via bouton) -->
+                                                  <div class="metrique-compact-row">
+                                                    <span class="metrique-order">{{ i + 1 }}.</span>
+                                                    <div class="metrique-summary">
+                                                      <span class="metrique-summary-name">
+                                                        {{ met.nom_metrique || ('enjeux.metriques.unnamed' | translate) }}
+                                                      </span>
+                                                      <span class="metrique-summary-meta">
+                                                        {{ getMetriqueTypeMnemonique(met.type_metrique) }}
+                                                        @if (met.unite) { · {{ met.unite }} }
+                                                        @if (met.ponderation != null) { · {{ 'enjeux.metriques.ponderationLabel' | translate }} {{ met.ponderation }} }
+                                                      </span>
+                                                    </div>
+                                                    <div class="metrique-actions">
+                                                      <button class="icon-btn-flat" type="button"
+                                                              (click)="moveMetrique(editIndicateurMetriques, i, -1)"
+                                                              [disabled]="i === 0"
+                                                              [title]="'common.actions.moveUp' | translate">
+                                                        <i class="fi fi-rr-arrow-up"></i>
+                                                      </button>
+                                                      <button class="icon-btn-flat" type="button"
+                                                              (click)="moveMetrique(editIndicateurMetriques, i, 1)"
+                                                              [disabled]="i === editIndicateurMetriques.length - 1"
+                                                              [title]="'common.actions.moveDown' | translate">
+                                                        <i class="fi fi-rr-arrow-down"></i>
+                                                      </button>
+                                                      <button class="icon-btn-flat" type="button"
+                                                              (click)="toggleMetriqueExpanded(editIndicateurMetriques, i)"
+                                                              [title]="(met._expanded ? 'common.actions.collapse' : 'common.actions.edit') | translate">
+                                                        <i class="fi" [class.fi-rr-angle-up]="met._expanded" [class.fi-rr-pencil]="!met._expanded"></i>
+                                                      </button>
+                                                      <button class="icon-btn-flat" type="button"
+                                                              (click)="removeMetriqueFromEdit(i)"
+                                                              [title]="'common.actions.delete' | translate">
+                                                        <i class="fi fi-rr-trash"></i>
+                                                      </button>
+                                                    </div>
+                                                  </div>
+
+                                                  <!-- Form complet : visible uniquement quand le toggle « Modifier » est activé -->
+                                                  @if (met._expanded) {
                                                   @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                                     <app-metrique-form
                                                       [metrique]="met"
@@ -917,6 +955,7 @@
                                                       }
                                                     </div>
                                                   </div>
+                                                  }
                                                   }
                                                 }
                                               }

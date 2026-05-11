@@ -20,7 +20,10 @@
       "associate": "Associer",
       "searching": "Recherche en cours",
       "reset": "Réinitialiser",
-      "select": "Sélectionner"
+      "select": "Sélectionner",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "collapse": "Replier"
     },
     "status": {
       "active": "Actif",
@@ -2585,6 +2588,7 @@
       "notSet": "—",
       "indetermineLabel": "Indéterminé",
       "addExtraBlock": "Ajouter un bloc",
+      "unnamed": "(métrique sans nom)",
       "opOr": "OU",
       "opAnd": "ET",
       "boundInf": "min",

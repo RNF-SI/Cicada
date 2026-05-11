@@ -2172,7 +2172,28 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   addMetriqueToEdit(): void {
-    this.editIndicateurMetriques = [...this.editIndicateurMetriques, this.createEmptyMetrique()];
+    // Nouvelle métrique → dépliée pour saisie immédiate (#2)
+    this.editIndicateurMetriques = [
+      ...this.editIndicateurMetriques,
+      { ...this.createEmptyMetrique(), _expanded: true },
+    ];
+  }
+
+  /** #2 — Bascule l'affichage d'une métrique entre vue compacte et dépliée. */
+  toggleMetriqueExpanded(metrics: MetriqueFormData[], idx: number): void {
+    if (!metrics[idx]) return;
+    metrics[idx]._expanded = !metrics[idx]._expanded;
+  }
+
+  /**
+   * #2 — Déplace une métrique vers le haut / le bas dans la liste.
+   * `dir = -1` pour monter, `dir = +1` pour descendre.
+   */
+  moveMetrique(metrics: MetriqueFormData[], idx: number, dir: -1 | 1): void {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= metrics.length) return;
+    const [m] = metrics.splice(idx, 1);
+    metrics.splice(newIdx, 0, m);
   }
 
   removeMetriqueFromEdit(index: number): void {

@@ -572,6 +572,10 @@ export interface MetriqueFormData {
   // #247 — Intervalles complémentaires (OR/AND avec l'intervalle principal du même palier).
   // À la sauvegarde, la liste complète est envoyée au backend (le serializer remplace).
   score_blocks?: MetriqueScoreBlock[];
+  // État UI (#2) : déplié dans le formulaire d'édition d'indicateur. Par défaut
+  // une métrique existante est repliée (affichage compact) ; une métrique
+  // nouvellement ajoutée s'ouvre dépliée.
+  _expanded?: boolean;
   _deleted?: boolean;  // marked for deletion
 }
 
