@@ -405,6 +405,33 @@ class Metrique(models.Model):
         help_text=_("Croissant: borne sup score 5 active. Décroissant: borne inf score 5 active.")
     )
 
+    # Niveaux désactivés (cases « non utilisé » de la cartouche). Liste d'entiers
+    # 1..5 ; un niveau inactif ne contribue pas au scoring et s'affiche comme
+    # « —. » dans la cartouche du formulaire. Persistance ajoutée pour que la
+    # case « inactif » soit restituée à la réouverture du formulaire.
+    inactive_levels = models.JSONField(
+        _("Niveaux inactifs"),
+        default=list,
+        blank=True,
+        help_text=_("Liste d'entiers 1..5 marquant les paliers non utilisés."),
+    )
+
+    # Parenthésage du bloc principal (#247). Le bloc principal peut faire
+    # partie d'un groupe au même titre qu'un complémentaire (ex.
+    # « (Principal OU B1) ET B2 » → group_open=1 sur le principal,
+    # group_close=1 sur B1). Pas de logical_op car le principal est toujours
+    # en tête (rien à combiner devant).
+    group_open = models.PositiveSmallIntegerField(
+        _("Parenthèses ouvrantes"),
+        default=0,
+        help_text=_("Nombre de '(' à ouvrir avant le bloc principal."),
+    )
+    group_close = models.PositiveSmallIntegerField(
+        _("Parenthèses fermantes"),
+        default=0,
+        help_text=_("Nombre de ')' à fermer après le bloc principal."),
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -531,6 +558,14 @@ class MetriqueScoreBlock(models.Model):
     # Bornes extrêmes optionnelles
     has_borne_score1 = models.BooleanField(default=False)
     has_borne_score5 = models.BooleanField(default=False)
+
+    # Niveaux désactivés (cases « non utilisé » de la cartouche du bloc).
+    inactive_levels = models.JSONField(
+        _("Niveaux inactifs"),
+        default=list,
+        blank=True,
+        help_text=_("Liste d'entiers 1..5 marquant les paliers non utilisés."),
+    )
 
     class Meta:
         db_table = '"general"."t_metrique_score_blocks"'

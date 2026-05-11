@@ -46,15 +46,26 @@
 // Formule logique en haut (#247) — résumé textuel de la structure ET/OU
 // =====================================================================
 .formula-preview {
+  // Reste visible au scroll (#3) — la formule sert de repère permanent
+  // dans une saisie de métrique qui peut être longue. Sticky sous le header
+  // global (`app-header` est sticky de hauteur 58px).
+  position: sticky;
+  top: 58px;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
-  background: rgba($primary-color, 0.05);
-  border: 1px solid rgba($primary-color, 0.2);
+  background: rgba($white, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba($primary-color, 0.25);
   border-radius: $border-radius-sm;
   font-family: $font-family;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  // Léger margin négatif pour que la zone d'arrière-plan dépasse les bords
+  // du form (impression d'une barre en lévitation, comme une toolbar).
+  margin: 0 (-$spacing-xs);
 
   .formula-label {
     font-size: 13px;
@@ -63,10 +74,111 @@
   }
 
   .formula-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
     font-size: 14px;
     color: $black;
     font-family: 'Courier New', monospace;
     font-weight: $font-weight-semibold;
+  }
+
+  // Chip cliquable + draggable pour chaque nom de bloc dans la formule.
+  .formula-block-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border: 1px solid rgba($primary-color, 0.35);
+    background: $white;
+    color: $primary-color;
+    border-radius: $border-radius-pill;
+    font-family: $font-family;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    cursor: grab;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba($primary-color, 0.08);
+      border-color: $primary-color;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    &.selected {
+      background: $primary-color;
+      color: $white;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
+    }
+
+    // États CDK pendant le drag dans la formule.
+    &.cdk-drag-preview {
+      background: $primary-color;
+      color: $white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    &.cdk-drag-placeholder {
+      opacity: 0.3;
+    }
+  }
+
+  // Parenthèses cliquables (supprime au clic).
+  .formula-paren {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    padding: 0 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: $secondary-terra-cotta;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: $border-radius-sm;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: rgba($error-color, 0.1);
+      color: $error-color;
+    }
+  }
+
+  // Opérateur ET/OU cliquable pour basculer entre les deux.
+  .formula-op-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: 12px;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: $border-radius-sm;
+    transition: background 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      background: rgba($primary-color, 0.12);
+      border-color: rgba($primary-color, 0.3);
+    }
+  }
+
+  // Astuce affichée quand un bloc est sélectionné, en attente du second clic.
+  .formula-hint {
+    margin-left: $spacing-sm;
+    color: $primary-color;
+    font-size: 12px;
+    font-style: italic;
   }
 
   .formula-warning {
@@ -91,6 +203,35 @@
   // Indentation visuelle selon la profondeur de groupe
   &.depth-1 { padding-left: $spacing-lg; }
   &.depth-2 { padding-left: $spacing-xxl; }
+
+  // Variante au-dessus du bloc principal : pas d'op-tabs ni corbeille,
+  // uniquement les boutons « Début/Fin de groupe ».
+  &.main-block-separator {
+    justify-content: flex-start;
+    padding: $spacing-xs 0 0 0;
+  }
+}
+
+// =====================================================================
+// Étiquette de bloc (« Bloc A », « Bloc B »…) au-dessus de chaque card.
+// Rappel visuel qui reprend la même lettre stable que les chips dans la
+// formule en haut.
+// =====================================================================
+.block-name-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  margin-bottom: $spacing-xxs;
+  border: 1px solid rgba($primary-color, 0.35);
+  background: rgba($primary-color, 0.06);
+  color: $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
 }
 
 // =====================================================================
@@ -114,7 +255,7 @@
   }
 }
 
-// Bouton « Grouper » / « Fermer le groupe » : remplace les anciens « ( » « ) »
+// Bouton « Grouper » / « Fermer le groupe » : libellé + caractère ( ou )
 .group-btn {
   display: inline-flex;
   align-items: center;
@@ -130,7 +271,11 @@
   cursor: pointer;
   transition: all 0.15s ease;
 
-  i { font-size: 12px; }
+  .paren-char {
+    font-size: 18px;
+    line-height: 1;
+    font-weight: $font-weight-bold;
+  }
 
   &:hover {
     border-color: $primary-color;
@@ -141,13 +286,6 @@
     border-color: $primary-color;
     background: $primary-color;
     color: $white;
-
-    i { color: $white; }
-  }
-
-  // Le « close » est miroir du « open »
-  &.group-btn-close {
-    i { transform: scaleX(-1); }
   }
 }
 

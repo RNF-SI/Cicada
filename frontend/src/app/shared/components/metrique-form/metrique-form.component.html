@@ -61,12 +61,61 @@
     </mat-form-field>
   </div>
 
-  <!-- #247 : formule textuelle de la logique (aide à la compréhension du
-       parenthésage). Affichée uniquement quand au moins 1 bloc complémentaire. -->
-  @if (blocks.length > 0) {
+  <!-- #247 : formule interactive. Cliquer sur un nom de bloc le sélectionne ;
+       cliquer sur un autre groupe les deux (ajoute une paire de parenthèses).
+       Cliquer sur une parenthèse la supprime. -->
+  @if (blocks.length > 0 || hasAnyParens()) {
     <div class="formula-preview">
       <span class="formula-label">{{ 'enjeux.metriques.formulaLabel' | translate }}</span>
-      <span class="formula-text">{{ getFormulaText() }}</span>
+      <!-- Drop-list horizontale : seuls les chips de bloc sont draggables.
+           Le réordonnancement met automatiquement à jour la liste des cards
+           en-dessous (même modèle de données). -->
+      <div class="formula-text"
+           cdkDropList
+           cdkDropListOrientation="horizontal"
+           (cdkDropListDropped)="onFormulaDrop($event)">
+        @for (part of getFormulaParts(); track $index) {
+          @switch (part.kind) {
+            @case ('open') {
+              <button type="button"
+                      class="formula-paren"
+                      (click)="onFormulaParenClick(part.blockIdx!, 'open')"
+                      [title]="'enjeux.metriques.removeParen' | translate">(</button>
+            }
+            @case ('close') {
+              <button type="button"
+                      class="formula-paren"
+                      (click)="onFormulaParenClick(part.blockIdx!, 'close')"
+                      [title]="'enjeux.metriques.removeParen' | translate">)</button>
+            }
+            @case ('op') {
+              <button type="button"
+                      class="formula-op-btn"
+                      (click)="onFormulaOpClick(part.blockIdx!)"
+                      [title]="'enjeux.metriques.toggleOp' | translate">
+                {{ part.label }}
+              </button>
+            }
+            @case ('block') {
+              <button type="button"
+                      cdkDrag
+                      class="formula-block-chip"
+                      [class.selected]="selectedFormulaIdx === part.blockIdx"
+                      (click)="onFormulaBlockClick(part.blockIdx!)"
+                      [title]="selectedFormulaIdx === null
+                        ? ('enjeux.metriques.formulaSelectHint' | translate)
+                        : (selectedFormulaIdx === part.blockIdx
+                          ? ('enjeux.metriques.formulaDeselectHint' | translate)
+                          : ('enjeux.metriques.formulaGroupHint' | translate))">
+                {{ part.label }}
+              </button>
+            }
+          }
+        }
+      </div>
+      @if (selectedFormulaIdx !== null) {
+        <span class="formula-hint">{{ 'enjeux.metriques.formulaSelectionHint' | translate }}</span>
+      }
       @if (getParensBalance() !== 0) {
         <span class="formula-warning" [title]="'enjeux.metriques.parensImbalance' | translate">
           ⚠ {{ 'enjeux.metriques.parensImbalanceShort' | translate }}
@@ -75,80 +124,92 @@
     </div>
   }
 
-  <!-- Bloc principal -->
-  <app-metrique-block
-    [block]="mainBlock"
-    (blockChange)="onMainBlockChange($event)">
-  </app-metrique-block>
+  <!-- Tous les blocs (principal + complémentaires) sont rendus dans une seule
+       drop-list. Le bloc à l'index 0 est le principal ; les suivants sont des
+       complémentaires (modèle MetriqueScoreBlock). Le drag-and-drop peut donc
+       réordonner le principal au même titre que les autres (#247 #4).
 
-  <!-- Blocs complémentaires : même card visuelle, précédés d'un sélecteur ET/OU
-       + boutons de groupage. Les blocs imbriqués reçoivent une indentation et
-       une bordure gauche colorée selon leur profondeur.
-       #4 : drag-and-drop pour réordonnancement (toute la paire séparateur+bloc
-       constitue un item draggable). -->
+       Si le drop change la position 0, le contenu du nouveau "premier" devient
+       le principal (voir onBlockDrop). -->
   <div cdkDropList class="blocks-droplist" (cdkDropListDropped)="onBlockDrop($event)">
-  @for (block of blocks; track $index; let i = $index) {
+    <!-- ============================== Principal ============================ -->
     <div cdkDrag class="block-drag-item">
-      <button type="button" class="block-drag-handle" cdkDragHandle
-              [title]="'enjeux.metriques.dragHandle' | translate"
-              [attr.aria-label]="'enjeux.metriques.dragHandle' | translate">
-        <i class="fi fi-rr-menu-burger"></i>
-      </button>
-    <!-- Séparateur : opérateur + boutons groupage + corbeille -->
-    <div class="block-separator" [class.depth-1]="getBlockDepth(i) >= 1" [class.depth-2]="getBlockDepth(i) >= 2">
-      <div class="op-tabs" role="tablist">
-        <button type="button"
-                class="op-tab"
-                [class.active]="block.logical_op === 'OR'"
-                (click)="setBlockLogicalOp(i, 'OR')">
-          {{ 'enjeux.metriques.opOr' | translate }}
+      @if (blocks.length > 0) {
+        <button type="button" class="block-drag-handle" cdkDragHandle
+                [title]="'enjeux.metriques.dragHandle' | translate"
+                [attr.aria-label]="'enjeux.metriques.dragHandle' | translate">
+          <i class="fi fi-rr-menu-burger"></i>
         </button>
-        <button type="button"
-                class="op-tab"
-                [class.active]="block.logical_op === 'AND'"
-                (click)="setBlockLogicalOp(i, 'AND')">
-          {{ 'enjeux.metriques.opAnd' | translate }}
+      }
+
+      <!-- Étiquette stable rappelant la lettre du bloc (rappel visuel : la
+           lettre dans la formule en haut correspond à cette card). -->
+      @if (blocks.length > 0) {
+        <div class="block-name-badge">
+          {{ 'enjeux.metriques.blockLabel' | translate }} {{ metrique._letter ?? 'A' }}
+        </div>
+      }
+
+      <div class="block-wrapper"
+           [class.depth-1]="getMainBlockDepth() >= 1"
+           [class.depth-2]="getMainBlockDepth() >= 2"
+           [class.depth-3]="getMainBlockDepth() >= 3">
+        <app-metrique-block
+          [block]="mainBlock"
+          (blockChange)="onMainBlockChange($event)">
+        </app-metrique-block>
+      </div>
+    </div>
+
+    <!-- ============================== Complémentaires ====================== -->
+    @for (block of blocks; track $index; let i = $index) {
+      <div cdkDrag class="block-drag-item">
+        <button type="button" class="block-drag-handle" cdkDragHandle
+                [title]="'enjeux.metriques.dragHandle' | translate"
+                [attr.aria-label]="'enjeux.metriques.dragHandle' | translate">
+          <i class="fi fi-rr-menu-burger"></i>
+        </button>
+      <!-- Séparateur : opérateur ET/OU + corbeille (les boutons de groupage
+           ont été déplacés dans la formule interactive en haut du form). -->
+      <div class="block-separator" [class.depth-1]="getBlockDepth(i) >= 1" [class.depth-2]="getBlockDepth(i) >= 2">
+        <div class="op-tabs" role="tablist">
+          <button type="button"
+                  class="op-tab"
+                  [class.active]="block.logical_op === 'OR'"
+                  (click)="setBlockLogicalOp(i, 'OR')">
+            {{ 'enjeux.metriques.opOr' | translate }}
+          </button>
+          <button type="button"
+                  class="op-tab"
+                  [class.active]="block.logical_op === 'AND'"
+                  (click)="setBlockLogicalOp(i, 'AND')">
+            {{ 'enjeux.metriques.opAnd' | translate }}
+          </button>
+        </div>
+
+        <button type="button" class="btn-remove-block" (click)="removeBlock(i)"
+                [attr.aria-label]="'common.actions.delete' | translate">
+          <i class="fi fi-rr-trash"></i>
         </button>
       </div>
 
-      <!-- Bouton « Grouper » : ouvre une parenthèse avant ce bloc -->
-      <button type="button"
-              class="group-btn"
-              [class.active]="block.group_open > 0"
-              (click)="toggleParensOpen(i)"
-              [title]="'enjeux.metriques.toggleOpenParen' | translate">
-        <i class="fi fi-rr-bracket-curly-right"></i>
-        {{ 'enjeux.metriques.groupStart' | translate }}
-      </button>
+      <!-- Étiquette stable rappelant la lettre du bloc. -->
+      <div class="block-name-badge">
+        {{ 'enjeux.metriques.blockLabel' | translate }} {{ block._letter ?? '?' }}
+      </div>
 
-      <!-- Bouton « Fermer le groupe » : ferme une parenthèse après ce bloc -->
-      <button type="button"
-              class="group-btn group-btn-close"
-              [class.active]="block.group_close > 0"
-              (click)="toggleParensClose(i)"
-              [title]="'enjeux.metriques.toggleCloseParen' | translate">
-        <i class="fi fi-rr-bracket-curly-right"></i>
-        {{ 'enjeux.metriques.groupEnd' | translate }}
-      </button>
-
-      <button type="button" class="btn-remove-block" (click)="removeBlock(i)"
-              [attr.aria-label]="'common.actions.delete' | translate">
-        <i class="fi fi-rr-trash"></i>
-      </button>
-    </div>
-
-    <!-- Card du bloc, indenté + bordure colorée selon profondeur -->
-    <div class="block-wrapper"
-         [class.depth-1]="getBlockDepth(i) >= 1"
-         [class.depth-2]="getBlockDepth(i) >= 2"
-         [class.depth-3]="getBlockDepth(i) >= 3">
-      <app-metrique-block
-        [block]="$any(block)"
-        (blockChange)="onBlockChange($event)">
-      </app-metrique-block>
-    </div>
-    </div>
-  }
+      <!-- Card du bloc, indenté + bordure colorée selon profondeur -->
+      <div class="block-wrapper"
+           [class.depth-1]="getBlockDepth(i) >= 1"
+           [class.depth-2]="getBlockDepth(i) >= 2"
+           [class.depth-3]="getBlockDepth(i) >= 3">
+        <app-metrique-block
+          [block]="$any(block)"
+          (blockChange)="onBlockChange($event)">
+        </app-metrique-block>
+      </div>
+      </div>
+    }
   </div>
 
   <button type="button" class="btn-add-block" (click)="addBlock()">

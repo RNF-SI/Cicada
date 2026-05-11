@@ -27,8 +27,8 @@ export interface ScoreBlockData {
   has_borne_score1: boolean;
   has_borne_score5: boolean;
 
-  /** Niveaux désactivés via les tags « Niveaux actifs » (uniquement front). */
-  _inactiveLevels?: number[];
+  /** Niveaux désactivés via les tags « Niveaux actifs ». Persistés en base. */
+  inactive_levels?: number[];
 }
 
 export type ScoreLevel = 1 | 2 | 3 | 4 | 5;
@@ -78,16 +78,16 @@ export class MetriqueBlockComponent {
   }
 
   isLevelActive(level: ScoreLevel): boolean {
-    return !this.block._inactiveLevels?.includes(level);
+    return !this.block.inactive_levels?.includes(level);
   }
 
   toggleLevelActive(level: ScoreLevel): void {
-    this.block._inactiveLevels ??= [];
-    const i = this.block._inactiveLevels.indexOf(level);
+    this.block.inactive_levels ??= [];
+    const i = this.block.inactive_levels.indexOf(level);
     if (i >= 0) {
-      this.block._inactiveLevels.splice(i, 1);
+      this.block.inactive_levels.splice(i, 1);
     } else {
-      this.block._inactiveLevels.push(level);
+      this.block.inactive_levels.push(level);
       (this.block as any)[`score_${level}_inf`] = null;
       (this.block as any)[`score_${level}_sup`] = null;
     }

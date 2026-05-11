@@ -2350,6 +2350,7 @@
                                                               <span class="cell-op">{{ line.op === 'AND' ? ('enjeux.metriques.opAnd' | translate) : ('enjeux.metriques.opOr' | translate) }}</span>
                                                             }
                                                             @if (line.openParen) { <span class="cell-paren">(</span> }
+                                                            <span class="cell-block-label">{{ line.blockLabel }} :</span>
                                                             <span class="cell-interval">{{ line.text }}</span>
                                                             @if (line.closeParen) { <span class="cell-paren">)</span> }
                                                           </div>

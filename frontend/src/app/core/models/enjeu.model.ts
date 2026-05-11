@@ -310,6 +310,11 @@ export interface MetriqueScoreBlock {
   score_4_sup_inclusive: boolean;
   has_borne_score1: boolean;
   has_borne_score5: boolean;
+  inactive_levels?: number[];       // paliers désactivés (1..5)
+  // Lettre stable affichée dans la formule (A, B, C, …). Reste attachée au
+  // bloc à travers les drag-and-drop. Frontend uniquement — réassignée à
+  // chaque chargement depuis l'ordre courant.
+  _letter?: string;
 }
 
 /**
@@ -340,6 +345,10 @@ export interface Metrique {
   score_4_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
+  inactive_levels?: number[];
+  // Parenthésage du bloc principal (#247 — symétrie avec MetriqueScoreBlock)
+  group_open?: number;
+  group_close?: number;
   score_blocks?: MetriqueScoreBlock[];  // #247
   mesures?: Mesure[];
   nb_mesures?: number;
@@ -572,6 +581,12 @@ export interface MetriqueFormData {
   // de saisie. Côté API on stocke `null` sur les bornes correspondantes — ce champ
   // sert uniquement à mémoriser l'intention de l'utilisateur pendant l'édition.
   _inactiveLevels?: number[];
+  // Parenthésage du bloc principal (#247) — le principal participe désormais
+  // aux groupes au même titre qu'un bloc complémentaire.
+  group_open?: number;
+  group_close?: number;
+  // Lettre stable du bloc principal (cf. MetriqueScoreBlock._letter).
+  _letter?: string;
   // #247 — Intervalles complémentaires (OR/AND avec l'intervalle principal du même palier).
   // À la sauvegarde, la liste complète est envoyée au backend (le serializer remplace).
   score_blocks?: MetriqueScoreBlock[];
@@ -637,6 +652,9 @@ export interface MetriqueCreatePayload {
   score_4_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
+  inactive_levels?: number[];
+  group_open?: number;
+  group_close?: number;
   // #247 — Intervalles complémentaires (envoyés en bloc, remplacement intégral côté serveur)
   score_blocks?: MetriqueScoreBlock[];
 }

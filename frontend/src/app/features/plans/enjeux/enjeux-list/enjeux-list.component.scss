@@ -1458,6 +1458,17 @@
           font-size: 14px;
         }
 
+        // Étiquette du bloc d'origine (« Principal », « Bloc 2 »…) rappelée
+        // dans chaque ligne pour que l'utilisateur retrouve la correspondance
+        // entre les intervalles affichés et les blocs saisis.
+        .cell-block-label {
+          color: $gray-dark;
+          font-size: 11px;
+          font-weight: $font-weight-bold;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+
         .cell-interval {
           color: $black;
           font-size: 12px;

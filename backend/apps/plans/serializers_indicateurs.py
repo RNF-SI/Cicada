@@ -104,6 +104,7 @@ class MetriqueScoreBlockSerializer(serializers.ModelSerializer):
             'score_4_sup_inclusive',
             'has_borne_score1',
             'has_borne_score5',
+            'inactive_levels',
         ]
         read_only_fields = ['id_score_block']
 
@@ -137,6 +138,8 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'score_1_sup_inclusive', 'score_2_sup_inclusive',
             'score_3_sup_inclusive', 'score_4_sup_inclusive',
             'has_borne_score1', 'has_borne_score5',
+            'inactive_levels',
+            'group_open', 'group_close',
             # Blocs complémentaires (#247) — même structure que le bloc principal
             'score_blocks',
             # Relations
@@ -211,6 +214,8 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'score_1_sup_inclusive', 'score_2_sup_inclusive',
             'score_3_sup_inclusive', 'score_4_sup_inclusive',
             'has_borne_score1', 'has_borne_score5',
+            'inactive_levels',
+            'group_open', 'group_close',
             # Blocs complémentaires
             'score_blocks',
         ]
@@ -258,8 +263,20 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             getattr(self.instance, 'sens_variation', 'CROISSANT') if self.instance else 'CROISSANT'
         )
 
+        # Niveaux désactivés : sautés par les validateurs de bornes / continuité.
+        inactive = attrs.get(
+            'inactive_levels',
+            getattr(self.instance, 'inactive_levels', None) if self.instance else None
+        ) or []
+        try:
+            inactive_set = {int(x) for x in inactive}
+        except (TypeError, ValueError):
+            inactive_set = set()
+
         # Validate inf < sup for each level (always true regardless of direction)
         for level in range(1, 6):
+            if level in inactive_set:
+                continue
             inf_val = attrs.get(f'score_{level}_inf')
             sup_val = attrs.get(f'score_{level}_sup')
             if inf_val is not None and sup_val is not None and inf_val >= sup_val:
@@ -267,10 +284,14 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
                     f'score_{level}_sup': _("La borne sup doit être strictement supérieure à la borne inf.")
                 })
 
-        # Validate continuity between adjacent levels
+        # Validate continuity between adjacent levels — en sautant les niveaux
+        # inactifs (un niveau marqué « non utilisé » casse volontairement la
+        # continuité avec ses voisins).
         # Ascending: score_N_sup == score_(N+1)_inf (boundary = upper end of N)
         # Descending: score_N_inf == score_(N+1)_sup (boundary = lower end of N)
         for n in range(1, 5):
+            if n in inactive_set or (n + 1) in inactive_set:
+                continue
             if sens == 'DECROISSANT':
                 val_n = attrs.get(f'score_{n}_inf')
                 val_next = attrs.get(f'score_{n + 1}_sup')

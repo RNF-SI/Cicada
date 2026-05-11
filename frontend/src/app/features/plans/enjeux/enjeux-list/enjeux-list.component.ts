@@ -1770,6 +1770,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_4_sup_inclusive: true,
       has_score1_optional_bound: false,
       has_score5_optional_bound: false,
+      _letter: 'A',
     };
   }
 
@@ -1782,6 +1783,22 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   private cleanNum(val: number | null | undefined): number | null {
     if (val == null) return null;
     return parseFloat(Number(val).toPrecision(12));
+  }
+
+  /**
+   * Convertit un index 0-based en lettre stable : 0→A, 1→B, …, 25→Z, 26→AA…
+   * Utilisé pour étiqueter chaque bloc d'une métrique. La lettre reste
+   * attachée au bloc à travers les drag-and-drop (réassignée seulement au
+   * chargement, depuis l'ordre courant).
+   */
+  indexToBlockLetter(idx: number): string {
+    let result = '';
+    let n = idx;
+    while (n >= 0) {
+      result = String.fromCharCode(65 + (n % 26)) + result;
+      n = Math.floor(n / 26) - 1;
+    }
+    return result;
   }
 
   metriqueToFormData(met: Metrique): MetriqueFormData {
@@ -1810,9 +1827,17 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_4_sup_inclusive: met.score_4_sup_inclusive ?? true,
       has_score1_optional_bound: met.has_borne_score1 ?? false,
       has_score5_optional_bound: met.has_borne_score5 ?? false,
+      // Restituer les paliers marqués comme inactifs (bug feedback : la
+      // sélection « non utilisé » n'était pas restaurée à la réouverture).
+      _inactiveLevels: Array.isArray(met.inactive_levels) ? [...met.inactive_levels] : [],
+      // Parenthésage du bloc principal (#247 — symétrie avec les complémentaires).
+      group_open: met.group_open ?? 0,
+      group_close: met.group_close ?? 0,
+      // Lettre stable du principal (A) — réassignée à chaque chargement.
+      _letter: this.indexToBlockLetter(0),
       // #247 — blocs de scoring complémentaires (recopie pour édition).
       // Le serializer remplace la liste complète côté serveur.
-      score_blocks: (met.score_blocks || []).map(b => ({
+      score_blocks: (met.score_blocks || []).map((b, i) => ({
         id_score_block: b.id_score_block,
         position: b.position,
         logical_op: b.logical_op,
@@ -1830,6 +1855,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         score_4_sup_inclusive: b.score_4_sup_inclusive,
         has_borne_score1: b.has_borne_score1,
         has_borne_score5: b.has_borne_score5,
+        inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
+        // Lettre stable : B, C, D, … (le principal = A).
+        _letter: this.indexToBlockLetter(i + 1),
       })),
     };
   }
@@ -1901,6 +1929,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       payload.score_4_sup_inclusive = met.score_4_sup_inclusive;
       payload.has_borne_score1 = met.has_score1_optional_bound;
       payload.has_borne_score5 = met.has_score5_optional_bound;
+      // Persistance des paliers désactivés (sinon l'état est perdu au rechargement).
+      payload.inactive_levels = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
+      // Parenthésage du bloc principal
+      payload.group_open = met.group_open ?? 0;
+      payload.group_close = met.group_close ?? 0;
 
       // #247 — blocs de scoring complémentaires. Envoyés intégralement à
       // chaque sauvegarde : le serializer remplace l'ensemble (delete + recréation).
@@ -1922,6 +1955,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           score_4_sup_inclusive: b.score_4_sup_inclusive,
           has_borne_score1: b.has_borne_score1,
           has_borne_score5: b.has_borne_score5,
+          inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
         }));
       }
     }
@@ -2568,32 +2602,41 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    */
   getCellLines(met: any, level: number): Array<{
     text: string;
+    blockLabel: string;
     op?: 'OR' | 'AND';
     openParen?: boolean;
     closeParen?: boolean;
   }> {
     const lines: Array<any> = [];
 
-    // Bloc principal
+    // Lettres stables : principal = A, complémentaires = B, C, D, … (basé
+    // sur l'ordre courant). Le label reste « Bloc A », « Bloc B », etc.
+    const blockLabelPrefix = this.translate.instant('enjeux.metriques.blockLabel');
+
+    // Bloc principal — étiqueté avec sa lettre.
     const mainText = this.getScoreRange(met, level);
     if (mainText && mainText !== '-' && mainText !== '- - -') {
-      lines.push({ text: mainText });
+      lines.push({
+        text: mainText,
+        blockLabel: blockLabelPrefix + ' ' + this.indexToBlockLetter(0),
+        openParen: (met.group_open ?? 0) > 0,
+        closeParen: (met.group_close ?? 0) > 0,
+      });
     }
 
-    // Blocs complémentaires
+    // Blocs complémentaires — étiquetés avec leur lettre stable.
     const blocks = met.score_blocks || [];
-    for (const block of blocks) {
-      // Construire un objet « met-like » pour réutiliser getScoreRange.
-      // score_N_inf/sup et inclusivités sont déjà au bon format dans le bloc.
+    blocks.forEach((block: any, idx: number) => {
       const text = this.getScoreRange({ ...block, type_metrique_mnemonique: 'NUMERIQUE' }, level);
-      if (!text || text === '-' || text === '- - -') continue;
+      if (!text || text === '-' || text === '- - -') return;
       lines.push({
         text,
+        blockLabel: blockLabelPrefix + ' ' + this.indexToBlockLetter(idx + 1),
         op: block.logical_op,
         openParen: (block.group_open ?? 0) > 0,
         closeParen: (block.group_close ?? 0) > 0,
       });
-    }
+    });
 
     return lines;
   }
