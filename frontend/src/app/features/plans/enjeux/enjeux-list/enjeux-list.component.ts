@@ -110,7 +110,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
    *  verrouiller l'édition hors brouillon (#248). */
-  planStatut = signal<'draft' | 'valide' | 'archive' | null>(null);
+  planStatut = signal<'draft' | 'valide' | 'etendu' | 'archive' | null>(null);
 
   /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
   // #250 — `etendu` est aussi éditable (annees d'extension actives).

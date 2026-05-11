@@ -422,6 +422,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
     const classes: Record<PlanStatut, string> = {
       'draft': 'statut-draft',
       'valide': 'statut-valide',
+      'etendu': 'statut-etendu',
       'archive': 'statut-archive'
     };
     return classes[statut] || '';
