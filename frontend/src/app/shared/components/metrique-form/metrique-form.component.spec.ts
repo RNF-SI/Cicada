@@ -47,77 +47,100 @@ describe('MetriqueFormComponent', () => {
     fixture.detectChanges();
   });
 
-  describe('niveaux actifs', () => {
-    it('considère tous les niveaux actifs par défaut', () => {
-      for (let level = 1 as 1 | 2 | 3 | 4 | 5; level <= 5; level = (level + 1) as any) {
-        expect(component.isLevelActive(level)).toBe(true);
-      }
+  describe('mainBlock (vue flat du bloc principal)', () => {
+    it('expose les valeurs des scores depuis metrique.scores[N]', () => {
+      const block = component.mainBlock;
+      expect(block.score_1_sup).toBe(10);
+      expect(block.score_2_inf).toBe(10);
+      expect(block.score_5_inf).toBe(40);
+      expect(block.sens_variation).toBe('CROISSANT');
     });
 
-    it('désactive et efface les bornes du niveau ciblé', () => {
-      component.toggleLevelActive(2);
-      expect(component.isLevelActive(2)).toBe(false);
-      expect(component.metrique.scores[2].inf).toBeNull();
-      expect(component.metrique.scores[2].sup).toBeNull();
-    });
-
-    it('réactive un niveau précédemment désactivé', () => {
-      component.toggleLevelActive(2);
-      component.toggleLevelActive(2);
-      expect(component.isLevelActive(2)).toBe(true);
-    });
-  });
-
-  describe('mapping valeur-limite ↔ score_N_inf/sup', () => {
-    it('renvoie le score_N_sup comme valeur de la frontière N (CROISSANT)', () => {
-      // Boundary 1 = entre palier 1 et 2 → score_1_sup
-      expect(component.getBoundaryValue(1)).toBe(10);
-      expect(component.getBoundaryValue(2)).toBe(20);
-      expect(component.getBoundaryValue(3)).toBe(30);
-      expect(component.getBoundaryValue(4)).toBe(40);
-    });
-
-    it('met à jour les deux paliers adjacents lors d\'un changement de frontière', () => {
-      component.setBoundaryValue(2, 25);
-      expect(component.metrique.scores[2].sup).toBe(25);
+    it('propage les changements vers metrique.scores[N]', () => {
+      const updated = { ...component.mainBlock, score_3_inf: 25 };
+      component.onMainBlockChange(updated);
       expect(component.metrique.scores[3].inf).toBe(25);
     });
 
-    it('inverse l\'ordre des paliers en sens DECROISSANT', () => {
-      component.metrique.sens_variation = 'DECROISSANT';
-      // Avec DECROISSANT, ordered = [5, 4, 3, 2, 1].
-      // Boundary 1 sépare ordered[0]=5 et ordered[1]=4 → score_5_sup
-      expect(component.scoreMetaOrdered[0].level).toBe(5);
-      expect(component.scoreMetaOrdered[4].level).toBe(1);
+    it('propage le sens de variation', () => {
+      component.onMainBlockChange({ ...component.mainBlock, sens_variation: 'DECROISSANT' });
+      expect(component.metrique.sens_variation).toBe('DECROISSANT');
     });
   });
 
-  describe('inclusivité des frontières', () => {
-    it('lit score_N_sup_inclusive pour la frontière N (CROISSANT)', () => {
-      expect(component.isBoundaryInLeft(1)).toBe(true);   // score_1_sup_inclusive
-      expect(component.isBoundaryInLeft(3)).toBe(false);  // score_3_sup_inclusive
+  describe('blocs complémentaires (#247)', () => {
+    it('démarre avec aucun bloc complémentaire', () => {
+      expect(component.blocks.length).toBe(0);
     });
 
-    it('bascule l\'inclusivité de la frontière ciblée', () => {
-      const before = component.metrique.score_2_sup_inclusive;
-      component.toggleBoundaryInclusion(2);
-      expect(component.metrique.score_2_sup_inclusive).toBe(!before);
+    it('addBlock() ajoute un bloc OR / CROISSANT vide', () => {
+      component.addBlock();
+      expect(component.blocks.length).toBe(1);
+      expect(component.blocks[0].position).toBe(1);
+      expect(component.blocks[0].logical_op).toBe('OR');
+      expect(component.blocks[0].sens_variation).toBe('CROISSANT');
+      expect(component.blocks[0].group_open).toBe(0);
+      expect(component.blocks[0].group_close).toBe(0);
+    });
+
+    it('addBlock() x3 numérote les positions correctement', () => {
+      component.addBlock();
+      component.addBlock();
+      component.addBlock();
+      expect(component.blocks.map(b => b.position)).toEqual([1, 2, 3]);
+    });
+
+    it('removeBlock() renumérote les positions restantes', () => {
+      component.addBlock();
+      component.addBlock();
+      component.addBlock();
+      component.removeBlock(1);
+      expect(component.blocks.length).toBe(2);
+      expect(component.blocks.map(b => b.position)).toEqual([1, 2]);
+    });
+
+    it('setBlockLogicalOp() change l\'opérateur', () => {
+      component.addBlock();
+      component.setBlockLogicalOp(0, 'AND');
+      expect(component.blocks[0].logical_op).toBe('AND');
+    });
+
+    it('toggleParensOpen() bascule group_open entre 0 et 1', () => {
+      component.addBlock();
+      expect(component.blocks[0].group_open).toBe(0);
+      component.toggleParensOpen(0);
+      expect(component.blocks[0].group_open).toBe(1);
+      component.toggleParensOpen(0);
+      expect(component.blocks[0].group_open).toBe(0);
+    });
+
+    it('toggleParensClose() bascule group_close', () => {
+      component.addBlock();
+      component.toggleParensClose(0);
+      expect(component.blocks[0].group_close).toBe(1);
     });
   });
 
   describe('événements', () => {
-    it('émet l\'événement delete au clic corbeille', () => {
+    it('émet delete au clic corbeille', () => {
       const spy = jest.fn();
       component.delete.subscribe(spy);
       component.onMetriqueDelete();
       expect(spy).toHaveBeenCalled();
     });
 
-    it('émet metriqueChange après chaque mutation', () => {
+    it('émet metriqueChange après modification du bloc principal', () => {
       const spy = jest.fn();
       component.metriqueChange.subscribe(spy);
-      component.setBoundaryValue(1, 5);
+      component.onMainBlockChange({ ...component.mainBlock, score_1_sup: 15 });
       expect(spy).toHaveBeenCalledWith(component.metrique);
+    });
+
+    it('émet metriqueChange après ajout d\'un bloc', () => {
+      const spy = jest.fn();
+      component.metriqueChange.subscribe(spy);
+      component.addBlock();
+      expect(spy).toHaveBeenCalled();
     });
   });
 });

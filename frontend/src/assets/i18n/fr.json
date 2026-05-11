@@ -2584,13 +2584,13 @@
       "includedIn": "inclu dans :",
       "notSet": "—",
       "indetermineLabel": "Indéterminé",
-      "extraBlocks": "Blocs de scoring complémentaires",
-      "addExtraBlock": "Ajouter un bloc complémentaire",
-      "extraBlocksPlaceholder": "{{count}} bloc(s) complémentaire(s) — UI complète à venir.",
+      "addExtraBlock": "Ajouter un bloc",
       "opOr": "OU",
       "opAnd": "ET",
       "boundInf": "min",
-      "boundSup": "max"
+      "boundSup": "max",
+      "toggleOpenParen": "Ouvrir une parenthèse avant ce bloc",
+      "toggleCloseParen": "Fermer une parenthèse après ce bloc"
     },
     "mesures": {
       "label": "Mesure",

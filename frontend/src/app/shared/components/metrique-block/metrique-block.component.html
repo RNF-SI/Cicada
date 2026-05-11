@@ -1,0 +1,102 @@
+<div class="block-card">
+  <!-- Cartouche configuration : Sens variation + Niveaux actifs -->
+  <div class="config-panel">
+    <div class="config-row">
+      <span class="config-label">{{ 'enjeux.metriques.sensVariation' | translate }}</span>
+      <div class="sens-tabs" role="tablist">
+        <button type="button"
+                class="sens-tab"
+                role="tab"
+                [class.active]="block.sens_variation === 'CROISSANT'"
+                [attr.aria-selected]="block.sens_variation === 'CROISSANT'"
+                (click)="onSensVariationChange('CROISSANT')">
+          {{ 'enjeux.metriques.croissant' | translate }}
+        </button>
+        <button type="button"
+                class="sens-tab"
+                role="tab"
+                [class.active]="block.sens_variation === 'DECROISSANT'"
+                [attr.aria-selected]="block.sens_variation === 'DECROISSANT'"
+                (click)="onSensVariationChange('DECROISSANT')">
+          {{ 'enjeux.metriques.decroissant' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div class="config-row">
+      <span class="config-label">{{ 'enjeux.metriques.niveauxActifs' | translate }}</span>
+      <div class="level-tags">
+        @for (meta of scoreMeta; track meta.level) {
+          <button type="button"
+                  class="level-tag level-tag-{{ meta.level }}"
+                  [class.inactive]="!isLevelActive(meta.level)"
+                  [attr.aria-pressed]="isLevelActive(meta.level)"
+                  (click)="toggleLevelActive(meta.level)">
+            {{ meta.labelKey | translate }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau de scoring -->
+  <div class="score-table-wrapper">
+    <table class="score-table">
+      <thead>
+        <tr>
+          @for (meta of scoreMetaOrdered; track meta.level; let i = $index; let last = $last) {
+            <th class="score-header score-header-{{ meta.level }}"
+                [class.inactive]="!isLevelActive(meta.level)">
+              <span class="score-header-label">{{ meta.labelKey | translate }}</span>
+              <span class="score-header-suffix">{{ 'enjeux.metriques.scoreSuffix' | translate:{ score: meta.level } }}</span>
+            </th>
+            @if (!last) {
+              <th class="boundary-header">
+                {{ 'enjeux.metriques.boundaryLabel' | translate }}
+              </th>
+            }
+          }
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          @for (meta of scoreMetaOrdered; track meta.level; let i = $index; let last = $last) {
+            <td class="score-cell score-cell-{{ meta.level }}"
+                [class.inactive]="!isLevelActive(meta.level)">
+              <div class="score-cell-content">
+                {{ getIntervalText(meta.level) || ('enjeux.metriques.notSet' | translate) }}
+              </div>
+            </td>
+            @if (!last) {
+              <td class="boundary-cell">
+                <div class="boundary-input-wrapper">
+                  <input type="number"
+                         class="boundary-input"
+                         [ngModel]="getBoundaryValue($any(i + 1))"
+                         (ngModelChange)="setBoundaryValue($any(i + 1), $event)"
+                         step="any"
+                         [placeholder]="'enjeux.metriques.boundaryPlaceholder' | translate">
+                  <span class="boundary-incl-label">{{ 'enjeux.metriques.includedIn' | translate }}</span>
+                  <div class="boundary-incl-tabs">
+                    <button type="button"
+                            class="boundary-incl-tab"
+                            [class.active]="isBoundaryInLeft($any(i + 1))"
+                            (click)="!isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
+                      {{ scoreMetaOrdered[i].shortKey | translate }}
+                    </button>
+                    <button type="button"
+                            class="boundary-incl-tab boundary-incl-tab-right boundary-incl-tab-right-{{ scoreMetaOrdered[i+1].level }}"
+                            [class.active]="!isBoundaryInLeft($any(i + 1))"
+                            (click)="isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
+                      {{ scoreMetaOrdered[i+1].shortKey | translate }}
+                    </button>
+                  </div>
+                </div>
+              </td>
+            }
+          }
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

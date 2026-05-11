@@ -1,0 +1,252 @@
+@import 'variables';
+
+// Variables locales des couleurs scores (cohérent avec metrique-form)
+:host {
+  --score-very-bad: #fa5e63;
+  --score-bad: #fa9965;
+  --score-neutral: #f7d35c;
+  --score-good: #82db8a;
+  --score-very-good: #81c9d8;
+
+  --score-very-bad-bg: #fdbbbd;
+  --score-bad-bg: #fcccb2;
+  --score-neutral-bg: #fcecba;
+  --score-good-bg: #cff1d2;
+  --score-very-good-bg: #cde9ef;
+
+  display: block;
+}
+
+.block-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// =====================================================================
+// Cartouche configuration
+// =====================================================================
+.config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $white;
+  border: 1px solid $gray;
+  border-radius: $border-radius-xl;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.config-label {
+  font-size: 13px;
+  color: $black;
+  font-weight: $font-weight-regular;
+}
+
+.sens-tabs {
+  display: inline-flex;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  background: $white;
+
+  .sens-tab {
+    padding: 6px 16px;
+    border: 1px solid $primary-color;
+    background: $white;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:first-child { border-radius: $border-radius-sm 0 0 $border-radius-sm; }
+    &:last-child { border-radius: 0 $border-radius-sm $border-radius-sm 0; margin-left: -1px; }
+
+    &.active { background: $primary-color; color: $white; }
+    &:not(.active):hover { background: rgba($primary-color, 0.06); }
+  }
+}
+
+.level-tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+
+  .level-tag {
+    padding: 4px 12px;
+    border-radius: $border-radius-sm;
+    border: none;
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
+
+    &.level-tag-1 { background: var(--score-very-bad); }
+    &.level-tag-2 { background: var(--score-bad); }
+    &.level-tag-3 { background: var(--score-neutral); }
+    &.level-tag-4 { background: var(--score-good); }
+    &.level-tag-5 { background: var(--score-very-good); }
+
+    &.inactive {
+      background: $gray-lighter !important;
+      color: $gray-dark;
+      text-decoration: line-through;
+    }
+
+    &:hover { opacity: 0.85; }
+  }
+}
+
+// =====================================================================
+// Tableau de scoring
+// =====================================================================
+.score-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-sm;
+}
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $white;
+  th, td { vertical-align: middle; }
+}
+
+.score-header {
+  padding: 12px 8px;
+  text-align: center;
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  height: 44px;
+  min-width: 120px;
+
+  &.score-header-1 { background: var(--score-very-bad); }
+  &.score-header-2 { background: var(--score-bad); }
+  &.score-header-3 { background: var(--score-neutral); }
+  &.score-header-4 { background: var(--score-good); }
+  &.score-header-5 { background: var(--score-very-good); }
+
+  &.inactive {
+    background: $gray-lighter;
+    color: $gray-dark;
+    text-decoration: line-through;
+  }
+
+  .score-header-label { display: block; font-weight: $font-weight-bold; }
+  .score-header-suffix { display: block; font-weight: $font-weight-regular; font-size: 12px; opacity: 0.85; }
+}
+
+.boundary-header {
+  padding: 12px;
+  text-align: center;
+  font-family: $font-family;
+  font-size: 14px;
+  background: #f6f6f6;
+  color: $black;
+  min-width: 90px;
+  font-weight: $font-weight-regular;
+}
+
+.score-cell {
+  padding: 12px 8px;
+  text-align: center;
+  font-family: $font-family;
+  font-size: 14px;
+  color: $black;
+  min-width: 120px;
+  height: 130px;
+
+  &.score-cell-1 { background: var(--score-very-bad-bg); }
+  &.score-cell-2 { background: var(--score-bad-bg); }
+  &.score-cell-3 { background: var(--score-neutral-bg); }
+  &.score-cell-4 { background: var(--score-good-bg); }
+  &.score-cell-5 { background: var(--score-very-good-bg); }
+
+  &.inactive {
+    background: $gray-lighter;
+    color: $gray-dark;
+    text-decoration: line-through;
+  }
+
+  .score-cell-content { white-space: nowrap; }
+}
+
+.boundary-cell {
+  padding: 12px 8px;
+  background: #f6f6f6;
+  text-align: center;
+  vertical-align: middle;
+  min-width: 90px;
+}
+
+.boundary-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.boundary-input {
+  width: 100%;
+  max-width: 80px;
+  padding: 8px 10px;
+  border: 1px solid $gray;
+  border-radius: $border-radius-sm;
+  background: $white;
+  text-align: center;
+  font-family: $font-family;
+  font-size: 14px;
+  color: $black;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.15);
+  }
+}
+
+.boundary-incl-label { font-size: 12px; color: $black; }
+
+.boundary-incl-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+
+  .boundary-incl-tab {
+    padding: 3px 10px;
+    border: 1px solid $gray-dark;
+    background: $white;
+    color: $gray-dark;
+    font-family: $font-family;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: $border-radius-sm;
+
+    &:first-child { border-radius: $border-radius-sm 0 0 $border-radius-sm; }
+    &:last-child { border-radius: 0 $border-radius-sm $border-radius-sm 0; margin-left: -1px; }
+
+    &.active {
+      font-weight: $font-weight-bold;
+      color: $black;
+      border-color: transparent;
+    }
+
+    &.boundary-incl-tab-right.active.boundary-incl-tab-right-1 { background: var(--score-very-bad); }
+    &.boundary-incl-tab-right.active.boundary-incl-tab-right-2 { background: var(--score-bad); }
+    &.boundary-incl-tab-right.active.boundary-incl-tab-right-3 { background: var(--score-neutral); }
+    &.boundary-incl-tab-right.active.boundary-incl-tab-right-4 { background: var(--score-good); }
+    &.boundary-incl-tab-right.active.boundary-incl-tab-right-5 { background: var(--score-very-good); }
+  }
+}

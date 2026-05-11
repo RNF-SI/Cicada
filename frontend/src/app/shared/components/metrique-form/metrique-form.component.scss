@@ -1,20 +1,6 @@
 @import 'variables';
 
-// Variables locales — couleurs « claires » des cellules valeur (pas dans le design system standard)
-// Dérivées des couleurs scores avec une luminosité plus élevée.
 :host {
-  --score-very-bad: #fa5e63;
-  --score-bad: #fa9965;
-  --score-neutral: #f7d35c;
-  --score-good: #82db8a;
-  --score-very-good: #81c9d8;
-
-  --score-very-bad-bg: #fdbbbd;
-  --score-bad-bg: #fcccb2;
-  --score-neutral-bg: #fcecba;
-  --score-good-bg: #cff1d2;
-  --score-very-good-bg: #cde9ef;
-
   display: block;
 }
 
@@ -57,44 +43,28 @@
 }
 
 // =====================================================================
-// Cartouche configuration
+// Séparateur entre blocs (ET/OU + parenthèses)
 // =====================================================================
-.config-panel {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  padding: $spacing-md;
-  background: $white;
-  border: 1px solid $gray;
-  border-radius: $border-radius-xl;
-}
-
-.config-row {
+.block-separator {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: $spacing-sm;
-  flex-wrap: wrap;
+  padding: $spacing-xs 0;
 }
 
-.config-label {
-  font-size: 13px;
-  color: $black;
-  font-weight: $font-weight-regular;
-}
-
-.sens-tabs {
+.op-tabs {
   display: inline-flex;
   border-radius: $border-radius-sm;
   overflow: hidden;
-  background: $white;
 
-  .sens-tab {
-    padding: 6px 16px;
+  .op-tab {
+    padding: 6px 18px;
     border: 1px solid $primary-color;
     background: $white;
     color: $primary-color;
     font-family: $font-family;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: $font-weight-bold;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
@@ -107,317 +77,69 @@
       color: $white;
     }
 
-    &:not(.active):hover {
-      background: rgba($primary-color, 0.06);
-    }
+    &:not(.active):hover { background: rgba($primary-color, 0.06); }
   }
 }
 
-.level-tags {
-  display: flex;
-  gap: $spacing-xs;
-  flex-wrap: wrap;
-
-  .level-tag {
-    padding: 4px 12px;
-    border-radius: $border-radius-sm;
-    border: none;
-    font-family: $font-family;
-    font-size: 13px;
-    font-weight: $font-weight-bold;
-    color: $black;
-    cursor: pointer;
-    transition: opacity 0.15s ease, background 0.15s ease;
-
-    &.level-tag-1 { background: var(--score-very-bad); }
-    &.level-tag-2 { background: var(--score-bad); }
-    &.level-tag-3 { background: var(--score-neutral); }
-    &.level-tag-4 { background: var(--score-good); }
-    &.level-tag-5 { background: var(--score-very-good); }
-
-    &.inactive {
-      background: $gray-lighter !important;
-      color: $gray-dark;
-      text-decoration: line-through;
-    }
-
-    &:hover { opacity: 0.85; }
-  }
-}
-
-// =====================================================================
-// Tableau de scoring
-// =====================================================================
-.score-table-wrapper {
-  overflow-x: auto;
-  border: 1px solid $primary-color;
-  border-radius: $border-radius-sm;
-}
-
-.score-table {
-  width: 100%;
-  border-collapse: collapse;
+.paren-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid $gray;
   background: $white;
-
-  th, td { vertical-align: middle; }
-}
-
-// En-tête : alterne paliers (colorés) et frontières (gris clair)
-.score-header {
-  padding: 12px 8px;
-  text-align: center;
-  font-family: $font-family;
-  font-size: 14px;
-  font-weight: $font-weight-bold;
-  color: $black;
-  height: 44px;
-  min-width: 120px;
-
-  &.score-header-1 { background: var(--score-very-bad); }
-  &.score-header-2 { background: var(--score-bad); }
-  &.score-header-3 { background: var(--score-neutral); }
-  &.score-header-4 { background: var(--score-good); }
-  &.score-header-5 { background: var(--score-very-good); }
-
-  &.inactive {
-    background: $gray-lighter;
-    color: $gray-dark;
-    text-decoration: line-through;
-  }
-
-  .score-header-label { display: block; font-weight: $font-weight-bold; }
-  .score-header-suffix { display: block; font-weight: $font-weight-regular; font-size: 12px; opacity: 0.85; }
-}
-
-.boundary-header {
-  padding: 12px;
-  text-align: center;
-  font-family: $font-family;
-  font-size: 14px;
-  background: #f6f6f6;
-  color: $black;
-  min-width: 90px;
-  font-weight: $font-weight-regular;
-}
-
-// Cellules de palier : background clair correspondant
-.score-cell {
-  padding: 12px 8px;
-  text-align: center;
-  font-family: $font-family;
-  font-size: 14px;
-  color: $black;
-  min-width: 120px;
-  height: 130px;
-
-  &.score-cell-1 { background: var(--score-very-bad-bg); }
-  &.score-cell-2 { background: var(--score-bad-bg); }
-  &.score-cell-3 { background: var(--score-neutral-bg); }
-  &.score-cell-4 { background: var(--score-good-bg); }
-  &.score-cell-5 { background: var(--score-very-good-bg); }
-
-  &.inactive {
-    background: $gray-lighter;
-    color: $gray-dark;
-    text-decoration: line-through;
-  }
-
-  .score-cell-content { white-space: nowrap; }
-}
-
-// #247 — Section « Intervalles complémentaires »
-.score-section-title {
-  font-family: $font-family;
-  font-size: 13px;
-  font-weight: $font-weight-bold;
-  color: $black;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.extras-section {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  margin-top: $spacing-sm;
-}
-
-.extras-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  .extras-title {
-    font-family: $font-family;
-    font-size: 13px;
-    font-weight: $font-weight-bold;
-    color: $black;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-  }
-
-  .btn-add-extra {
-    display: inline-flex;
-    align-items: center;
-    gap: $spacing-xxs;
-    padding: 6px 12px;
-    border: 1px dashed $primary-color;
-    background: transparent;
-    color: $primary-color;
-    font-family: $font-family;
-    font-size: 13px;
-    font-weight: $font-weight-bold;
-    border-radius: $border-radius-sm;
-    cursor: pointer;
-    transition: background 0.15s ease;
-
-    &:hover { background: rgba($primary-color, 0.06); }
-    i { font-size: 14px; }
-  }
-}
-
-.extras-list {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
-.extra-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: $spacing-xxs;
-  padding: $spacing-xs $spacing-sm;
-  background: rgba($primary-color, 0.04);
-  border: 1px solid $gray-light;
+  color: $gray-dark;
   border-radius: $border-radius-sm;
-
-  .extra-op-select,
-  .extra-level-select,
-  .extra-incl-select {
-    padding: 4px 8px;
-    border: 1px solid $gray;
-    border-radius: $border-radius-sm;
-    background: $white;
-    font-family: $font-family;
-    font-size: 13px;
-    color: $black;
-  }
-
-  .extra-op-select {
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-  }
-
-  .extra-input {
-    width: 80px;
-    padding: 4px 8px;
-    border: 1px solid $gray;
-    border-radius: $border-radius-sm;
-    background: $white;
-    text-align: center;
-    font-family: $font-family;
-    font-size: 13px;
-    color: $black;
-  }
-
-  .extra-label {
-    font-family: $font-family;
-    font-size: 13px;
-    color: $black;
-  }
-
-  .btn-remove-extra {
-    margin-left: auto;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid $error-color;
-    background: $white;
-    color: $error-color;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover { background: $error-color; color: $white; }
-  }
-}
-
-// Cellules de frontière : input + toggle inclusivité
-.boundary-cell {
-  padding: 12px 8px;
-  background: #f6f6f6;
-  text-align: center;
-  vertical-align: middle;
-  min-width: 90px;
-}
-
-.boundary-input-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.boundary-input {
-  width: 100%;
-  max-width: 80px;
-  padding: 8px 10px;
-  border: 1px solid $gray;
-  border-radius: $border-radius-sm;
-  background: $white;
-  text-align: center;
   font-family: $font-family;
-  font-size: 14px;
-  color: $black;
+  font-size: 18px;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
 
-  &:focus {
-    outline: none;
+  &:hover {
     border-color: $primary-color;
-    box-shadow: 0 0 0 2px rgba($primary-color, 0.15);
+    color: $primary-color;
+  }
+
+  &.active {
+    border-color: $primary-color;
+    background: $primary-color;
+    color: $white;
   }
 }
 
-.boundary-incl-label {
-  font-size: 12px;
-  color: $black;
-}
-
-.boundary-incl-tabs {
+.btn-remove-block {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid $error-color;
+  background: $white;
+  color: $error-color;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0;
+  justify-content: center;
 
-  .boundary-incl-tab {
-    padding: 3px 10px;
-    border: 1px solid $gray-dark;
-    background: $white;
-    color: $gray-dark;
-    font-family: $font-family;
-    font-size: 12px;
-    font-weight: $font-weight-regular;
-    cursor: pointer;
-    border-radius: $border-radius-sm;
+  &:hover { background: $error-color; color: $white; }
+}
 
-    &:first-child { border-radius: $border-radius-sm 0 0 $border-radius-sm; }
-    &:last-child { border-radius: 0 $border-radius-sm $border-radius-sm 0; margin-left: -1px; }
+// =====================================================================
+// Bouton « + Ajouter un bloc »
+// =====================================================================
+.btn-add-block {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 8px 16px;
+  border: 1px dashed $primary-color;
+  background: transparent;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: $font-weight-bold;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: background 0.15s ease;
 
-    &.active {
-      font-weight: $font-weight-bold;
-      color: $black;
-      border-color: transparent;
-    }
-
-    // Couleur de l'onglet droit quand actif = couleur du palier de droite
-    &.boundary-incl-tab-right.active.boundary-incl-tab-right-1 { background: var(--score-very-bad); }
-    &.boundary-incl-tab-right.active.boundary-incl-tab-right-2 { background: var(--score-bad); }
-    &.boundary-incl-tab-right.active.boundary-incl-tab-right-3 { background: var(--score-neutral); }
-    &.boundary-incl-tab-right.active.boundary-incl-tab-right-4 { background: var(--score-good); }
-    &.boundary-incl-tab-right.active.boundary-incl-tab-right-5 { background: var(--score-very-good); }
-
-    // Onglet gauche actif = couleur du palier de gauche (utilise le contexte via parent classes...)
-    // Pour simplifier on rend juste le tab gauche actif comme "background blanc + couleur correspondante"
-    // — fait via JS / class supplémentaire si besoin.
-  }
+  &:hover { background: rgba($primary-color, 0.06); }
+  i { font-size: 14px; }
 }

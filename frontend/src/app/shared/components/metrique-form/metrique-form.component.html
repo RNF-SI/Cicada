@@ -19,7 +19,7 @@
     </button>
   </div>
 
-  <!-- Ligne 2 : Unité (obligatoire) + Type de métrique -->
+  <!-- Ligne 2 : Unité + Type de métrique -->
   <div class="row">
     <mat-form-field appearance="outline" class="flex-1">
       <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }} <span class="required">*</span></mat-label>
@@ -61,127 +61,70 @@
     </mat-form-field>
   </div>
 
-  <!-- Cartouche configuration : Sens variation + Niveaux actifs -->
-  <div class="config-panel">
-    <div class="config-row">
-      <span class="config-label">{{ 'enjeux.metriques.sensVariation' | translate }}</span>
-      <div class="sens-tabs" role="tablist">
+  <!-- Bloc principal -->
+  <app-metrique-block
+    [block]="mainBlock"
+    (blockChange)="onMainBlockChange($event)">
+  </app-metrique-block>
+
+  <!-- Blocs complémentaires : même card visuelle, précédés d'un sélecteur ET/OU + parens -->
+  @for (block of blocks; track $index; let i = $index) {
+    <div class="block-separator">
+      <!-- Parenthèse ouvrante (avant ET/OU) -->
+      <button type="button"
+              class="paren-btn"
+              [class.active]="block.group_open > 0"
+              (click)="toggleParensOpen(i)"
+              [title]="'enjeux.metriques.toggleOpenParen' | translate">
+        (
+      </button>
+
+      <div class="op-tabs" role="tablist">
         <button type="button"
-                class="sens-tab"
-                role="tab"
-                [class.active]="metrique.sens_variation === 'CROISSANT'"
-                [attr.aria-selected]="metrique.sens_variation === 'CROISSANT'"
-                (click)="onSensVariationChange('CROISSANT')">
-          {{ 'enjeux.metriques.croissant' | translate }}
+                class="op-tab"
+                [class.active]="block.logical_op === 'OR'"
+                (click)="setBlockLogicalOp(i, 'OR')">
+          {{ 'enjeux.metriques.opOr' | translate }}
         </button>
         <button type="button"
-                class="sens-tab"
-                role="tab"
-                [class.active]="metrique.sens_variation === 'DECROISSANT'"
-                [attr.aria-selected]="metrique.sens_variation === 'DECROISSANT'"
-                (click)="onSensVariationChange('DECROISSANT')">
-          {{ 'enjeux.metriques.decroissant' | translate }}
+                class="op-tab"
+                [class.active]="block.logical_op === 'AND'"
+                (click)="setBlockLogicalOp(i, 'AND')">
+          {{ 'enjeux.metriques.opAnd' | translate }}
         </button>
       </div>
-    </div>
 
-    <div class="config-row">
-      <span class="config-label">{{ 'enjeux.metriques.niveauxActifs' | translate }}</span>
-      <div class="level-tags">
-        @for (meta of scoreMeta; track meta.level) {
-          <button type="button"
-                  class="level-tag level-tag-{{ meta.level }}"
-                  [class.inactive]="!isLevelActive(meta.level)"
-                  [attr.aria-pressed]="isLevelActive(meta.level)"
-                  (click)="toggleLevelActive(meta.level)">
-            {{ meta.labelKey | translate }}
-          </button>
-        }
-      </div>
-    </div>
-  </div>
-
-  <!-- Tableau de scoring -->
-  <div class="score-table-wrapper">
-    <table class="score-table">
-      <thead>
-        <tr>
-          @for (meta of scoreMetaOrdered; track meta.level; let i = $index; let last = $last) {
-            <th class="score-header score-header-{{ meta.level }}"
-                [class.inactive]="!isLevelActive(meta.level)">
-              <span class="score-header-label">{{ meta.labelKey | translate }}</span>
-              <span class="score-header-suffix">{{ 'enjeux.metriques.scoreSuffix' | translate:{ score: meta.level } }}</span>
-            </th>
-            @if (!last) {
-              <th class="boundary-header">
-                {{ 'enjeux.metriques.boundaryLabel' | translate }}
-              </th>
-            }
-          }
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          @for (meta of scoreMetaOrdered; track meta.level; let i = $index; let last = $last) {
-            <td class="score-cell score-cell-{{ meta.level }}"
-                [class.inactive]="!isLevelActive(meta.level)">
-              <div class="score-cell-content">
-                {{ getIntervalText(meta.level) || ('enjeux.metriques.notSet' | translate) }}
-              </div>
-            </td>
-            @if (!last) {
-              <td class="boundary-cell">
-                <div class="boundary-input-wrapper">
-                  <input type="number"
-                         class="boundary-input"
-                         [ngModel]="getBoundaryValue($any(i + 1))"
-                         (ngModelChange)="setBoundaryValue($any(i + 1), $event)"
-                         step="any"
-                         [placeholder]="'enjeux.metriques.boundaryPlaceholder' | translate">
-                  <span class="boundary-incl-label">{{ 'enjeux.metriques.includedIn' | translate }}</span>
-                  <div class="boundary-incl-tabs">
-                    <button type="button"
-                            class="boundary-incl-tab"
-                            [class.active]="isBoundaryInLeft($any(i + 1))"
-                            (click)="!isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
-                      {{ scoreMetaOrdered[i].shortKey | translate }}
-                    </button>
-                    <button type="button"
-                            class="boundary-incl-tab boundary-incl-tab-right boundary-incl-tab-right-{{ scoreMetaOrdered[i+1].level }}"
-                            [class.active]="!isBoundaryInLeft($any(i + 1))"
-                            (click)="isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
-                      {{ scoreMetaOrdered[i+1].shortKey | translate }}
-                    </button>
-                  </div>
-                </div>
-              </td>
-            }
-          }
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- #247 — Blocs de scoring complémentaires : section temporaire en attendant
-       la card complète. Pour l'instant, juste un bouton + nombre de blocs. -->
-  <div class="extras-section">
-    <div class="extras-header">
-      <span class="extras-title">
-        {{ 'enjeux.metriques.extraBlocks' | translate }}
-        @if (blocks.length > 0) {
-          <span class="extras-count">({{ blocks.length }})</span>
-        }
-      </span>
-      <button type="button" class="btn-add-extra" (click)="addBlock()">
-        <i class="fi fi-rr-plus-small"></i>
-        {{ 'enjeux.metriques.addExtraBlock' | translate }}
+      <button type="button" class="btn-remove-block" (click)="removeBlock(i)"
+              [attr.aria-label]="'common.actions.delete' | translate">
+        <i class="fi fi-rr-trash"></i>
       </button>
     </div>
 
-    @if (blocks.length > 0) {
-      <p class="extras-placeholder">
-        {{ 'enjeux.metriques.extraBlocksPlaceholder' | translate:{ count: blocks.length } }}
-      </p>
+    <app-metrique-block
+      [block]="$any(block)"
+      (blockChange)="onBlockChange($event)">
+    </app-metrique-block>
+
+    <!-- Parenthèse fermante (après le bloc) -->
+    @if (block.group_close > 0) {
+      <button type="button"
+              class="paren-btn paren-btn-close active"
+              (click)="toggleParensClose(i)"
+              [title]="'enjeux.metriques.toggleCloseParen' | translate">
+        )
+      </button>
+    } @else {
+      <button type="button"
+              class="paren-btn paren-btn-close"
+              (click)="toggleParensClose(i)"
+              [title]="'enjeux.metriques.toggleCloseParen' | translate">
+        )
+      </button>
     }
-  </div>
+  }
+
+  <button type="button" class="btn-add-block" (click)="addBlock()">
+    <i class="fi fi-rr-plus-small"></i>
+    {{ 'enjeux.metriques.addExtraBlock' | translate }}
+  </button>
 </div>
