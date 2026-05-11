@@ -46,6 +46,7 @@ import {
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
   NomenclatureGroup,
@@ -82,7 +83,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     HeaderComponent,
     PlanSidebarComponent,
     EnjeuAccordionComponent,
-    SectionTitleComponent
+    SectionTitleComponent,
+    MetriqueFormComponent
   ],
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'

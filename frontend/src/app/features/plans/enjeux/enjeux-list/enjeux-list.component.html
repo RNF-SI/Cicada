@@ -790,6 +790,16 @@
 
                                               @for (met of editIndicateurMetriques; track $index; let i = $index) {
                                                 @if (!met._deleted) {
+                                                  <!-- #208/#247 : NUMERIQUE utilise le nouveau composant Figma ;
+                                                       CHIFFRE / TEXTE / INDETERMINE gardent l'ancien bloc en attendant
+                                                       leurs designs dédiés. -->
+                                                  @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                                    <app-metrique-form
+                                                      [metrique]="met"
+                                                      [typeMetriqueOptions]="typeMetriqueOptions()"
+                                                      (delete)="removeMetriqueFromEdit(i)">
+                                                    </app-metrique-form>
+                                                  } @else {
                                                   <div class="metrique-form-block">
                                                     <div class="metrique-row">
                                                       <mat-form-field appearance="outline" class="flex-grow">
@@ -907,6 +917,7 @@
                                                       }
                                                     </div>
                                                   </div>
+                                                  }
                                                 }
                                               }
 
@@ -1319,6 +1330,13 @@
                                               @if (addingMetriqueForIndicateur() === ind.id_indicateur && standaloneMetriqueForm) {
                                                 <div class="metrique-form-block standalone-metrique-form">
                                                   <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
+                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
+                                                    <app-metrique-form
+                                                      [metrique]="standaloneMetriqueForm"
+                                                      [typeMetriqueOptions]="typeMetriqueOptions()"
+                                                      (delete)="cancelAddStandaloneMetrique()">
+                                                    </app-metrique-form>
+                                                  } @else {
                                                   <div class="metrique-row">
                                                     <mat-form-field appearance="outline" class="flex-grow">
                                                       <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
@@ -1428,6 +1446,7 @@
                                                       </div>
                                                     }
                                                   </div>
+                                                  }
                                                   <div class="inline-form-actions">
                                                     <button mat-flat-button color="primary"
                                                       (click)="saveStandaloneMetrique(ind.id_indicateur)"
@@ -1482,6 +1501,13 @@
                                           <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
                                           @for (met of indicateurFormMetriques; track $index; let i = $index) {
+                                            @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                              <app-metrique-form
+                                                [metrique]="met"
+                                                [typeMetriqueOptions]="typeMetriqueOptions()"
+                                                (delete)="removeMetriqueFromForm(i)">
+                                              </app-metrique-form>
+                                            } @else {
                                             <div class="metrique-form-block">
                                               <!-- Row 1: Nom + delete -->
                                               <div class="metrique-row">
@@ -1603,6 +1629,7 @@
                                                 }
                                               </div>
                                             </div>
+                                            }
                                           }
 
                                           <!-- Add metrique link -->
@@ -1901,6 +1928,13 @@
 
                                       @for (met of editOoIndicateurMetriques; track $index; let i = $index) {
                                         @if (!met._deleted) {
+                                          @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                            <app-metrique-form
+                                              [metrique]="met"
+                                              [typeMetriqueOptions]="typeMetriqueOptions()"
+                                              (delete)="removeOoMetriqueFromEdit(i)">
+                                            </app-metrique-form>
+                                          } @else {
                                           <div class="metrique-form-block">
                                             <div class="metrique-row">
                                               <mat-form-field appearance="outline" class="flex-grow">
@@ -2018,6 +2052,7 @@
                                               }
                                             </div>
                                           </div>
+                                          }
                                         }
                                       }
 
@@ -2577,6 +2612,13 @@
                                   <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
                                   @for (met of ooIndicateurFormMetriques; track $index; let i = $index) {
+                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
+                                      <app-metrique-form
+                                        [metrique]="met"
+                                        [typeMetriqueOptions]="typeMetriqueOptions()"
+                                        (delete)="removeOoMetriqueRow(i)">
+                                      </app-metrique-form>
+                                    } @else {
                                     <div class="metrique-form-block">
                                       <div class="metrique-row">
                                         <mat-form-field appearance="outline" class="flex-grow">
@@ -2694,6 +2736,7 @@
                                         }
                                       </div>
                                     </div>
+                                    }
                                   }
 
                                   <button class="add-item-btn" (click)="addOoMetriqueRow()">
