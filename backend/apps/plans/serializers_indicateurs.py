@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from .models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
-    Metrique, Mesure,
+    Metrique, MetriqueIntervalleExtra, Mesure,
 )
 
 
@@ -75,6 +75,28 @@ class MesureCreateSerializer(serializers.ModelSerializer):
 # Serializers pour les Métriques
 # =============================================================================
 
+class MetriqueIntervalleExtraSerializer(serializers.ModelSerializer):
+    """
+    Intervalle complémentaire d'une métrique numérique (#247).
+    Combiné à l'intervalle principal (et aux extras précédents au même score)
+    via `logical_op` (OR par défaut).
+    """
+
+    class Meta:
+        model = MetriqueIntervalleExtra
+        fields = [
+            'id_intervalle_extra',
+            'score_level',
+            'position',
+            'inf',
+            'sup',
+            'inf_inclusive',
+            'sup_inclusive',
+            'logical_op',
+        ]
+        read_only_fields = ['id_intervalle_extra']
+
+
 class MetriqueSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Métrique avec mesures et opérations imbriquées."""
     mesures = MesureSerializer(many=True, read_only=True)
@@ -84,6 +106,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_metrique_label = serializers.CharField(source='type_metrique.label', read_only=True)
     type_metrique_mnemonique = serializers.CharField(source='type_metrique.mnemonique', read_only=True)
+    intervalles_extra = MetriqueIntervalleExtraSerializer(many=True, read_only=True)
 
     class Meta:
         model = Metrique
@@ -103,6 +126,8 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'score_1_sup_inclusive', 'score_2_sup_inclusive',
             'score_3_sup_inclusive', 'score_4_sup_inclusive',
             'has_borne_score1', 'has_borne_score5',
+            # Intervalles complémentaires (#247)
+            'intervalles_extra',
             # Relations
             'mesures', 'nb_mesures',
             'operations', 'nb_operations',
@@ -154,6 +179,9 @@ class MetriqueListSerializer(serializers.ModelSerializer):
 class MetriqueCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Métrique."""
 
+    # #247 — Intervalles complémentaires (OR/AND avec l'intervalle principal du même palier)
+    intervalles_extra = MetriqueIntervalleExtraSerializer(many=True, required=False)
+
     class Meta:
         model = Metrique
         fields = [
@@ -171,8 +199,29 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'score_1_sup_inclusive', 'score_2_sup_inclusive',
             'score_3_sup_inclusive', 'score_4_sup_inclusive',
             'has_borne_score1', 'has_borne_score5',
+            # Intervalles complémentaires
+            'intervalles_extra',
         ]
         read_only_fields = ['id_metrique']
+
+    def create(self, validated_data):
+        extras = validated_data.pop('intervalles_extra', [])
+        metrique = super().create(validated_data)
+        for extra in extras:
+            MetriqueIntervalleExtra.objects.create(id_metrique=metrique, **extra)
+        return metrique
+
+    def update(self, instance, validated_data):
+        # Stratégie simple : on remplace l'ensemble des extras à chaque update.
+        # Le client doit envoyer la liste complète des intervalles complémentaires
+        # à conserver. Évite la complexité d'un diff partiel (#247).
+        extras = validated_data.pop('intervalles_extra', None)
+        instance = super().update(instance, validated_data)
+        if extras is not None:
+            instance.intervalles_extra.all().delete()
+            for extra in extras:
+                MetriqueIntervalleExtra.objects.create(id_metrique=instance, **extra)
+        return instance
 
     def validate(self, attrs):
         """Validate interval consistency for NUMERIQUE metrics."""

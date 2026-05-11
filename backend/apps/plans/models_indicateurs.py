@@ -5,6 +5,7 @@ Hiérarchie : NiveauExigence → Indicateur(s) → Métrique(s) → Mesure(s)
 """
 from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 
 
@@ -430,6 +431,88 @@ class Metrique(models.Model):
     def get_plan_de_gestion(self):
         """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
         return self.id_indicateur.get_plan_de_gestion() if self.id_indicateur else None
+
+
+class MetriqueIntervalleExtra(models.Model):
+    """
+    Intervalle complémentaire pour une métrique numérique (#247).
+
+    Chaque métrique conserve son intervalle principal par palier via les
+    champs `score_N_inf/sup/_inclusive` de :class:`Metrique`. Pour exprimer
+    des cas comme « score 5 si x ∈ [0;10] OU x ∈ [50;60] », l'utilisateur
+    peut ajouter ici des intervalles supplémentaires.
+
+    Combinaison logique : chaque extra est relié à l'intervalle qui précède
+    (le principal ou l'extra précédent au même `score_level`) par `logical_op`.
+    """
+
+    LOGICAL_OP_CHOICES = [
+        ('OR', _('OU')),
+        ('AND', _('ET')),
+    ]
+
+    id_intervalle_extra = models.AutoField(primary_key=True)
+    id_metrique = models.ForeignKey(
+        Metrique,
+        on_delete=models.CASCADE,
+        related_name='intervalles_extra',
+        db_column='id_metrique',
+        verbose_name=_("Métrique")
+    )
+    score_level = models.PositiveSmallIntegerField(
+        _("Niveau de score"),
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Palier auquel l'intervalle est rattaché (1=TM, 2=Mauv, 3=Moy, 4=Bon, 5=TB)"),
+    )
+    position = models.PositiveSmallIntegerField(
+        _("Position"),
+        default=1,
+        help_text=_("Ordre de cet extra parmi les intervalles complémentaires du même palier (1=premier extra)"),
+    )
+    inf = models.DecimalField(
+        _("Borne inférieure"),
+        max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    sup = models.DecimalField(
+        _("Borne supérieure"),
+        max_digits=12, decimal_places=4, null=True, blank=True
+    )
+    inf_inclusive = models.BooleanField(
+        _("Borne inf inclusive"), default=True,
+        help_text=_("True: x ≥ inf, False: x > inf"),
+    )
+    sup_inclusive = models.BooleanField(
+        _("Borne sup inclusive"), default=False,
+        help_text=_("True: x ≤ sup, False: x < sup"),
+    )
+    logical_op = models.CharField(
+        _("Opérateur logique"),
+        max_length=4,
+        choices=LOGICAL_OP_CHOICES,
+        default='OR',
+        help_text=_("Comment combiner cet intervalle avec l'intervalle qui précède (principal ou extra précédent)"),
+    )
+
+    class Meta:
+        db_table = '"general"."t_metrique_intervalles_extra"'
+        db_table_comment = "Intervalles complémentaires des métriques numériques (#247)"
+        verbose_name = _("Intervalle complémentaire")
+        verbose_name_plural = _("Intervalles complémentaires")
+        ordering = ['id_metrique', 'score_level', 'position']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['id_metrique', 'score_level', 'position'],
+                name='uniq_metrique_intervalle_extra_position',
+            ),
+        ]
+
+    def __str__(self):
+        op = self.get_logical_op_display()
+        return f"{op} [{self.inf}; {self.sup}] (m{self.id_metrique_id} L{self.score_level} p{self.position})"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_metrique.get_plan_de_gestion() if self.id_metrique else None
 
 
 class Mesure(models.Model):
