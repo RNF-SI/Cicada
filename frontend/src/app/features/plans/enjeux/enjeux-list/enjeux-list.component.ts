@@ -113,7 +113,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   planStatut = signal<'draft' | 'valide' | 'archive' | null>(null);
 
   /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
-  isPlanDraft = computed(() => this.planStatut() === 'draft');
+  // #250 — `etendu` est aussi éditable (annees d'extension actives).
+  isPlanDraft = computed(() => {
+    const s = this.planStatut();
+    return s === 'draft' || s === 'etendu';
+  });
 
   // Permissions édition: super_admin, redacteur_principal, admin_og, ou référent du plan
   // ET le plan doit être en brouillon (#248).

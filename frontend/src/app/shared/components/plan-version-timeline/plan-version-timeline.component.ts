@@ -31,6 +31,7 @@ export class PlanVersionTimelineComponent {
     const classes: Record<string, string> = {
       draft: 'status-warning',
       valide: 'status-success',
+      etendu: 'status-info',
       archive: 'status-neutre',
     };
     return classes[item.statut] || '';

@@ -344,6 +344,12 @@
     color: $primary-color;
     border: 1px solid $primary-color;
   }
+
+  // #250 — Bouton « Étendre la durée du plan »
+  &-info {
+    background-color: $info-color;
+    color: $white;
+  }
 }
 
 // ============================================

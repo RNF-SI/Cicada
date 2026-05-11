@@ -526,6 +526,17 @@ export class AdminService {
   }
 
   /**
+   * #250 — Extend the duration of a validated plan by 1 or 2 years
+   * POST /api/plans/plans/{id}/extend-duration/
+   */
+  extendPlanDuration(planId: number, years: 1 | 2): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/extend-duration/`,
+      { years }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
    * Duplicate a plan with configurable options
    * POST /api/plans/plans/{id}/duplicate/
    */

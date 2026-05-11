@@ -54,6 +54,7 @@ class PlanGestion(models.Model):
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
         ('valide', _('Validé')),
+        ('etendu', _('Étendu')),
         ('archive', _('Archivé')),
     ]
     
@@ -192,6 +193,16 @@ class PlanGestion(models.Model):
         null=True, blank=True, related_name='children',
         verbose_name=_("Plan parent"),
         help_text=_("Plan dont celui-ci est dérivé")
+    )
+
+    # Extension de durée (#250) — 0 (pas d'extension), 1 ou 2 années ajoutées
+    # au plan en fin de vie pour la transition avec le rang suivant. Cohabite
+    # avec le statut `etendu` qui marque visuellement la prolongation.
+    annees_extension = models.PositiveSmallIntegerField(
+        _("Années d'extension"),
+        default=0,
+        validators=[MaxValueValidator(2)],
+        help_text=_("Nombre d'années ajoutées au plan (statut 'étendu'). 0, 1 ou 2.")
     )
 
     id_type_document = models.ForeignKey(

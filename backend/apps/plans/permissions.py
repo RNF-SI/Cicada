@@ -34,11 +34,17 @@ class CanModifyOnlyDraftPlan(BasePermission):
         "Pour modifier ce plan, repassez-le en brouillon ou créez une nouvelle version."
     )
 
+    # Statuts qui autorisent les modifications. `etendu` (#250) est inclus :
+    # un plan prolongé doit rester éditable pour les actions sur les années
+    # supplémentaires.
+    EDITABLE_STATUSES = frozenset({"draft", "etendu"})
+
     EXEMPT_ACTIONS = frozenset({
         # Cycle de vie / versions
         "change_status",
         "duplicate",
         "create_evaluation",
+        "extend_duration",
         # Associations plan ↔ site
         "assign_site",
         "remove_site",
@@ -69,7 +75,7 @@ class CanModifyOnlyDraftPlan(BasePermission):
             return True
         if request.method == "POST":
             plan = self._resolve_plan_from_payload(request, view)
-            if plan is not None and plan.statut != "draft":
+            if plan is not None and plan.statut not in self.EDITABLE_STATUSES:
                 return False
         return True
 
@@ -79,7 +85,7 @@ class CanModifyOnlyDraftPlan(BasePermission):
         if self._is_exempt_action(view):
             return True
         plan = self._resolve_plan_from_object(obj)
-        return plan is None or plan.statut == "draft"
+        return plan is None or plan.statut in self.EDITABLE_STATUSES
 
     # ──────────────────────────────────────────────────────────────────
     # Helpers
@@ -123,7 +129,7 @@ class DraftPlanRequiredMixin:
     """
 
     def _check_plan_is_draft(self, plan):
-        if plan is not None and plan.statut != "draft":
+        if plan is not None and plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied(

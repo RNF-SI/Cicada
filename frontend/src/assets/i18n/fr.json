@@ -324,6 +324,7 @@
       "status": {
         "draft": "Brouillon",
         "valide": "Valide",
+        "etendu": "Étendu",
         "archive": "Archivé"
       },
       "periode": {
@@ -1236,6 +1237,7 @@
     "status": {
       "draft": "Brouillon",
       "valide": "Valide",
+      "etendu": "Étendu",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours"
@@ -1317,7 +1319,11 @@
         "createEvaluation": "Lancer une évaluation mi-parcours",
         "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
         "toDraft": "Remettre en brouillon",
-        "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau."
+        "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau.",
+        "extendDuration": "Étendre la durée du plan",
+        "extendDurationDesc": "Prolonger ce plan de 1 ou 2 années pendant la rédaction du rang suivant.",
+        "revertExtension": "Annuler l'extension",
+        "revertExtensionDesc": "Repasser ce plan en statut validé en annulant son extension."
       },
       "warnings": {
         "validateTitle": "Valider le plan de gestion",
@@ -1330,7 +1336,9 @@
         "toDraftWarning": "Attention : remettre ce plan en brouillon annulera sa validation. Le suivi ne sera plus accessible.",
         "toDraftConfirm": "Je confirme vouloir remettre en brouillon",
         "reactivateTitle": "Réactiver le plan",
-        "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif."
+        "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif.",
+        "revertExtensionTitle": "Annuler l'extension du plan",
+        "revertExtensionWarning": "Le plan repassera en statut validé. Les actions saisies sur les années étendues resteront, mais ne seront plus marquées comme appartenant à l'extension."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
@@ -1338,7 +1346,9 @@
         "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
         "evaluationError": "Erreur lors de la création de l'évaluation.",
         "previousArchived": "Le plan précédent a été archivé.",
-        "previousArchiveError": "Erreur lors de l'archivage du plan précédent."
+        "previousArchiveError": "Erreur lors de l'archivage du plan précédent.",
+        "extensionApplied": "Plan prolongé de {{years}} an(s).",
+        "extensionError": "Impossible de prolonger le plan."
       },
       "lockedBanner": {
         "title": "Plan verrouillé en lecture seule",
@@ -1350,6 +1360,12 @@
         "hint": "Si vous archivez, le plan précédent restera consultable mais ne sera plus considéré comme actif. Vous pouvez aussi conserver les deux plans en parallèle (cohabitation) pendant une période transitoire.",
         "keep": "Conserver les deux plans",
         "archive": "Archiver le précédent"
+      },
+      "extendDuration": {
+        "title": "Étendre la durée du plan",
+        "intro": "Le plan « {{name}} » se termine en {{year}}. Choisissez le nombre d'années à ajouter pour couvrir la période de transition avec le plan suivant.",
+        "newEnd": "Nouvelle échéance",
+        "hint": "Pendant l'extension, le plan reste éditable pour ajouter ou modifier les actions des années ajoutées. Vous pouvez annuler l'extension à tout moment."
       },
       "timeline": {
         "title": "Cycle de vie",

@@ -202,7 +202,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
         model = PlanGestion
         fields = [
             'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
-            'annee_debut', 'annee_fin',
+            'annee_debut', 'annee_fin', 'annees_extension',
             'plan_parent_id', 'type_document_display', 'children_count',
             'sites', 'referents', 'membres',
         ]
@@ -248,6 +248,13 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     organismes_gestionnaires = serializers.SerializerMethodField()
     sites_list = serializers.SerializerMethodField()
 
+    # #250 : éligibilité à l'extension de durée. Vrai si :
+    #   - statut = 'valide'
+    #   - annee_fin renseignée
+    #   - année courante ∈ [annee_fin - 1, annee_fin + 2]
+    peut_etre_etendu = serializers.SerializerMethodField()
+    annee_fin_effective = serializers.SerializerMethodField()
+
     # Champs display
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
@@ -270,6 +277,22 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
+
+    def get_peut_etre_etendu(self, obj):
+        """Indique si le plan est dans la fenêtre permettant l'extension (#250)."""
+        from datetime import date
+        if obj.statut != 'valide' or not obj.annee_fin:
+            return False
+        current_year = date.today().year
+        return obj.annee_fin - 1 <= current_year <= obj.annee_fin + 2
+
+    def get_annee_fin_effective(self, obj):
+        """Année de fin effective (annee_fin + annees_extension si statut étendu)."""
+        if obj.annee_fin is None:
+            return None
+        if obj.statut == 'etendu':
+            return obj.annee_fin + (obj.annees_extension or 0)
+        return obj.annee_fin
 
     def get_organismes_gestionnaires(self, obj):
         """Retourne la liste des noms des organismes gestionnaires."""
@@ -321,6 +344,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id_pg', 'nom', 'slug', 'id_cdr', 'rang',
             'annee_debut', 'annee_fin', 'periode_gestion',
+            'annees_extension', 'peut_etre_etendu', 'annee_fin_effective',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_validation_cspn', 'id_docgestion_fcen',
             'id_evaluation', 'evaluation_display', 'id_redacteur_type', 'redacteur_type_display',
@@ -335,7 +359,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj'
         ]
         read_only_fields = [
-            'id_pg', 'slug', 'date_ajout', 'date_maj'
+            'id_pg', 'slug', 'date_ajout', 'date_maj',
+            'peut_etre_etendu', 'annee_fin_effective',
         ]
     
     def validate(self, data):

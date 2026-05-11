@@ -237,6 +237,60 @@ class PlansSeeder(BaseSeeder):
                 'sites': [sites[1]],
                 'membres': []
             },
+            # #250 — Plan déjà étendu (statut 'etendu', +2 ans)
+            {
+                'nom': 'Plan de gestion 2016-2025 - Scandola (étendu)',
+                'annee_debut': 2016,
+                'annee_fin': 2025,
+                'rang': 2,
+                'surface': 1669,
+                'statut': 'etendu',
+                'annees_extension': 2,
+                'version': '1.0',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': True,
+                'id_evaluation': eval_int,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Équipe Corse',
+                'redacteurs': 'A. Aboucaya (RNF)',
+                'relecteurs': 'CSRPN Corse',
+                'date_validation_cspn': date(2016, 6, 30),
+                'commentaire': 'Plan prolongé de 2 ans (2025 → 2027) pendant la rédaction '
+                               'du rang suivant (#250).',
+                'sites': [sites[5]],  # Scandola
+                'membres': [
+                    (users[0], True),  # admin (super_admin) - référent
+                    (users[1], True),  # admin.rnf - référent
+                ]
+            },
+            # #250 — Plan validé dans la fenêtre de déclenchement de l'extension
+            # (annee_fin = 2026, fenêtre [2025, 2028] → bouton « Étendre » visible)
+            {
+                'nom': 'Plan de gestion 2017-2026 - Lac de Remoray (à étendre)',
+                'annee_debut': 2017,
+                'annee_fin': 2026,
+                'rang': 1,
+                'surface': 286,
+                'statut': 'valide',
+                'version': '1.0',
+                'gestion_partagee': False,
+                'ct88': True,
+                'risque_incendie': False,
+                'id_evaluation': eval_int,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Équipe Franche-Comté',
+                'redacteurs': 'A. Magny (RNF), équipe Remoray',
+                'relecteurs': 'CSRPN Bourgogne-Franche-Comté',
+                'date_validation_cspn': date(2017, 4, 12),
+                'commentaire': 'Plan en fin de cycle. Le rang 2 est en cours de rédaction — '
+                               'le bouton « Étendre la durée du plan » est disponible (#250).',
+                'sites': [sites[6]],  # Lac de Remoray
+                'membres': [
+                    (users[0], True),  # admin (super_admin) - référent
+                    (users[1], True),  # admin.rnf - référent
+                ]
+            },
         ]
 
         # Plans supplementaires sur des sites RNF sans membres directs

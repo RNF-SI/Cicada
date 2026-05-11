@@ -1,0 +1,56 @@
+@import 'variables';
+
+.intro {
+  margin: 0 0 1rem 0;
+  color: $black;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 2px solid $primary-color;
+  border-radius: $border-radius-md;
+  background: $white;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+
+  &:hover {
+    background: $primary-color;
+    color: $white;
+    transform: translateY(-2px);
+
+    .choice-new-end strong { color: $white; }
+  }
+
+  &:active { transform: translateY(0); }
+}
+
+.choice-years {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.choice-new-end {
+  font-size: 0.875rem;
+  color: $gray-dark;
+
+  strong { color: $primary-color; }
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: $gray-dark;
+}

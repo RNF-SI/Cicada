@@ -323,8 +323,9 @@ export interface PlanFichier {
 
 /**
  * Statuts possibles d'un plan de gestion
+ * - `etendu` : plan validé prolongé de 1 ou 2 années (#250). Reste éditable comme `draft`.
  */
-export type PlanStatut = 'draft' | 'valide' | 'archive';
+export type PlanStatut = 'draft' | 'valide' | 'etendu' | 'archive';
 
 /**
  * Site associé à un plan de gestion
@@ -407,6 +408,12 @@ export interface AdminPlan {
   version?: string;
   annee_debut?: number;
   annee_fin?: number;
+  /** #250 — Années d'extension (0, 1 ou 2) appliquées quand statut = 'etendu' */
+  annees_extension?: number;
+  /** #250 — Indique si le plan est dans la fenêtre [annee_fin-1, annee_fin+2] et donc éligible à l'extension (read-only API) */
+  peut_etre_etendu?: boolean;
+  /** #250 — annee_fin + annees_extension si statut='etendu', sinon annee_fin (read-only API) */
+  annee_fin_effective?: number | null;
   surface?: number;
   gestion_partagee: boolean;
   ct88: boolean;

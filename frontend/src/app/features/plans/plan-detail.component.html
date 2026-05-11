@@ -123,11 +123,28 @@
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
                   }
-                  <!-- Validé → Remettre en brouillon + Archiver -->
+                  <!-- Validé → Remettre en brouillon + Étendre (si fenêtre OK, #250) + Archiver -->
                   @if (p.statut === 'valide') {
                     <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+                    </button>
+                    @if (p.peut_etre_etendu) {
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()">
+                        <i class="fi fi-rr-time-add"></i>
+                        <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
+                      </button>
+                    }
+                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
+                      <i class="fi fi-rr-box"></i>
+                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
+                    </button>
+                  }
+                  <!-- Étendu → Revenir à validé + Archiver -->
+                  @if (p.statut === 'etendu') {
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
                     </button>
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
                       <i class="fi fi-rr-box"></i>

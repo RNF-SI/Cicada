@@ -1013,10 +1013,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                           status=status.HTTP_400_BAD_REQUEST)
 
         # Vérifier les transitions autorisées
+        # Note : `valide → etendu` passe par l'endpoint `extend-duration` (#250),
+        # pas par `change-status`.
         current = plan.statut
         allowed_transitions = {
             'draft': ['valide'],
             'valide': ['archive', 'draft'],
+            'etendu': ['archive', 'valide'],
             'archive': ['valide'],
         }
 
@@ -1041,6 +1044,95 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 entity_id=plan.id_pg,
                 entity_name=plan.nom,
                 description=f"Statut changé de {old_status} à {new_status}",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='extend-duration',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def extend_duration(self, request, pk=None):
+        """
+        Étendre la durée d'un plan de gestion de 1 ou 2 années (#250).
+
+        POST /api/plans/plans/{id}/extend-duration/
+        Body: {"years": 1}  ou  {"years": 2}
+
+        Conditions :
+        - Référent du plan, admin_og ou super_admin.
+        - Plan en statut `valide` uniquement (pas de double extension).
+        - Date courante ∈ [annee_fin - 1, annee_fin + 2] (fenêtre de déclenchement).
+        - `years` ∈ {1, 2}.
+
+        Effet : statut → `etendu`, `annees_extension` = N. Le plan redevient
+        éditable (permission #248 autorise `etendu` au même titre que `draft`).
+        """
+        from datetime import date
+
+        plan = self.get_object()
+
+        # Vérifier les droits (référent du plan, admin_og+).
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour le prolonger.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Statut compatible.
+        if plan.statut != 'valide':
+            return Response(
+                {'error': "Seul un plan au statut 'validé' peut être prolongé."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Année de fin renseignée.
+        if not plan.annee_fin:
+            return Response(
+                {'error': "L'année de fin du plan doit être renseignée pour le prolonger."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Fenêtre de déclenchement : [annee_fin - 1, annee_fin + 2].
+        current_year = date.today().year
+        if not (plan.annee_fin - 1 <= current_year <= plan.annee_fin + 2):
+            return Response(
+                {'error': (
+                    f"Le plan ne peut être prolongé qu'entre {plan.annee_fin - 1} "
+                    f"et {plan.annee_fin + 2} (année actuelle : {current_year})."
+                )},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Valeur d'extension : 1 ou 2.
+        try:
+            years = int(request.data.get('years'))
+        except (TypeError, ValueError):
+            years = None
+
+        if years not in (1, 2):
+            return Response(
+                {'error': "Le paramètre 'years' doit valoir 1 ou 2."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        plan.statut = 'etendu'
+        plan.annees_extension = years
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['statut', 'annees_extension', 'id_utilisateur_maj', 'date_maj'])
+
+        # Log activity
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='status_change',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Plan prolongé de {years} an{'s' if years > 1 else ''} (statut → étendu)",
             )
         except Exception:
             pass

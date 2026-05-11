@@ -134,6 +134,14 @@
     i { color: $gray-dark; }
   }
 
+  // #250 — Plan étendu : variation du « validé » avec accent info
+  &.dot-etendu {
+    border-color: $info-color;
+    background: rgba($info-color, 0.1);
+
+    i { color: $info-color; }
+  }
+
   &.dot-current {
     border-color: $secondary-terra-cotta;
     border-width: 2.5px;

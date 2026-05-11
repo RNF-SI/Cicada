@@ -45,6 +45,11 @@ import {
   ArchivePreviousPlanDialogResult,
   findPreviousValidatedPlan,
 } from '../../shared/components/modals/archive-previous-plan-dialog/archive-previous-plan-dialog.component';
+import {
+  ExtendDurationDialogComponent,
+  ExtendDurationDialogData,
+  ExtendDurationDialogResult,
+} from '../../shared/components/modals/extend-duration-dialog/extend-duration-dialog.component';
 
 interface SyntheseAccordion {
   id: string;
@@ -217,8 +222,15 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return p.referents?.some(r => r.id_role === currentUser.id) || false;
   });
 
-  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
-  isPlanDraft = computed(() => this.plan()?.statut === 'draft');
+  /**
+   * Plan éditable (#248). Renvoie true pour `draft` et `etendu` (#250 — un plan
+   * prolongé doit rester modifiable pour les actions sur les années ajoutées).
+   * Conserve le nom historique `isPlanDraft` pour limiter le diff.
+   */
+  isPlanDraft = computed(() => {
+    const s = this.plan()?.statut;
+    return s === 'draft' || s === 'etendu';
+  });
 
   // Accordéons de la section Synthèse
   syntheseAccordions = signal<SyntheseAccordion[]>([
@@ -509,6 +521,64 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       confirmText: this.translate.instant('plans.lifecycle.actions.reactivate'),
       confirmColor: 'primary',
       onConfirm: () => this.changeStatus('valide'),
+    });
+  }
+
+  /**
+   * #250 — Ouvre la modale de choix « +1 an » / « +2 ans » pour prolonger
+   * la durée du plan. Appel API au choix de l'utilisateur.
+   */
+  openExtendDurationDialog(): void {
+    const p = this.plan();
+    if (!p || !p.annee_fin) return;
+
+    const dialogData: ExtendDurationDialogData = {
+      planName: p.nom,
+      anneeFin: p.annee_fin,
+    };
+
+    this.dialog
+      .open<ExtendDurationDialogComponent, ExtendDurationDialogData, ExtendDurationDialogResult>(
+        ExtendDurationDialogComponent,
+        { data: dialogData, width: '560px', maxWidth: '95vw' }
+      )
+      .afterClosed()
+      .subscribe(result => {
+        if (!result || result.years === null) return;
+        this.applyExtension(result.years);
+      });
+  }
+
+  /**
+   * #250 — Étendu → Validé : annule l'extension en repassant en statut validé.
+   * Le champ `annees_extension` est conservé jusqu'à la prochaine extension.
+   */
+  confirmRevertExtension(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.revertExtensionTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.revertExtensionWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.revertExtension'),
+      confirmColor: 'warn',
+      onConfirm: () => this.changeStatus('valide'),
+    });
+  }
+
+  private applyExtension(years: 1 | 2): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.extendPlanDuration(p.id_pg, years).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.extensionApplied', { years }),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        this.loadPlan();
+      },
+      error: (err) => {
+        const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.extensionError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
     });
   }
 
