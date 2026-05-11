@@ -1807,6 +1807,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_4_sup_inclusive: met.score_4_sup_inclusive ?? true,
       has_score1_optional_bound: met.has_borne_score1 ?? false,
       has_score5_optional_bound: met.has_borne_score5 ?? false,
+      // #247 — recopie pour édition. Le serializer remplace la liste complète
+      // côté serveur ; le front conserve l'ordre et les positions tels quels.
+      intervalles_extra: (met.intervalles_extra || []).map(ex => ({
+        id_intervalle_extra: ex.id_intervalle_extra,
+        score_level: ex.score_level,
+        position: ex.position,
+        inf: c(ex.inf as any),
+        sup: c(ex.sup as any),
+        inf_inclusive: ex.inf_inclusive,
+        sup_inclusive: ex.sup_inclusive,
+        logical_op: ex.logical_op,
+      })),
     };
   }
 
@@ -1872,6 +1884,21 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       payload.score_4_sup_inclusive = met.score_4_sup_inclusive;
       payload.has_borne_score1 = met.has_score1_optional_bound;
       payload.has_borne_score5 = met.has_score5_optional_bound;
+
+      // #247 — intervalles complémentaires. Envoyés intégralement à chaque
+      // sauvegarde : le serializer côté serveur fait un remplacement complet
+      // (delete + recréation).
+      if (met.intervalles_extra !== undefined) {
+        payload.intervalles_extra = (met.intervalles_extra || []).map(ex => ({
+          score_level: ex.score_level,
+          position: ex.position,
+          inf: ex.inf,
+          sup: ex.sup,
+          inf_inclusive: ex.inf_inclusive,
+          sup_inclusive: ex.sup_inclusive,
+          logical_op: ex.logical_op,
+        }));
+      }
     }
 
     return payload;

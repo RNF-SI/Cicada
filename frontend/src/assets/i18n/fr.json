@@ -2583,7 +2583,16 @@
       "boundaryPlaceholder": "Valeur",
       "includedIn": "inclu dans :",
       "notSet": "—",
-      "indetermineLabel": "Indéterminé"
+      "indetermineLabel": "Indéterminé",
+      "principalIntervals": "Intervalles principaux",
+      "extraIntervals": "Intervalles complémentaires",
+      "addExtra": "Ajouter un intervalle complémentaire",
+      "opOr": "OU",
+      "opAnd": "ET",
+      "applyTo": "pour le palier",
+      "and": "et",
+      "boundInf": "min",
+      "boundSup": "max"
     },
     "mesures": {
       "label": "Mesure",

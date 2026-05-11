@@ -280,6 +280,21 @@ export interface Indicateur {
 }
 
 /**
+ * Intervalle complémentaire d'une métrique numérique (#247).
+ * Combiné à l'intervalle principal du même `score_level` via `logical_op`.
+ */
+export interface MetriqueIntervalleExtra {
+  id_intervalle_extra?: number;  // undefined = nouveau, number = existant
+  score_level: 1 | 2 | 3 | 4 | 5;
+  position: number;          // ordre d'application au sein du palier
+  inf: number | null;
+  sup: number | null;
+  inf_inclusive: boolean;
+  sup_inclusive: boolean;
+  logical_op: 'OR' | 'AND';
+}
+
+/**
  * Métrique rattachée à un indicateur
  */
 export interface Metrique {
@@ -306,6 +321,7 @@ export interface Metrique {
   score_4_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
+  intervalles_extra?: MetriqueIntervalleExtra[];  // #247
   mesures?: Mesure[];
   nb_mesures?: number;
   operations?: Operation[];
@@ -535,6 +551,9 @@ export interface MetriqueFormData {
   // de saisie. Côté API on stocke `null` sur les bornes correspondantes — ce champ
   // sert uniquement à mémoriser l'intention de l'utilisateur pendant l'édition.
   _inactiveLevels?: number[];
+  // #247 — Intervalles complémentaires (OR/AND avec l'intervalle principal du même palier).
+  // À la sauvegarde, la liste complète est envoyée au backend (le serializer remplace).
+  intervalles_extra?: MetriqueIntervalleExtra[];
   _deleted?: boolean;  // marked for deletion
 }
 
@@ -592,6 +611,8 @@ export interface MetriqueCreatePayload {
   score_4_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
+  // #247 — Intervalles complémentaires (envoyés en bloc, remplacement intégral côté serveur)
+  intervalles_extra?: MetriqueIntervalleExtra[];
 }
 
 /**

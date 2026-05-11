@@ -225,6 +225,125 @@
   .score-cell-content { white-space: nowrap; }
 }
 
+// #247 — Section « Intervalles complémentaires »
+.score-section-title {
+  font-family: $font-family;
+  font-size: 13px;
+  font-weight: $font-weight-bold;
+  color: $black;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.extras-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.extras-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .extras-title {
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .btn-add-extra {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: 6px 12px;
+    border: 1px dashed $primary-color;
+    background: transparent;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover { background: rgba($primary-color, 0.06); }
+    i { font-size: 14px; }
+  }
+}
+
+.extras-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.extra-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  padding: $spacing-xs $spacing-sm;
+  background: rgba($primary-color, 0.04);
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+
+  .extra-op-select,
+  .extra-level-select,
+  .extra-incl-select {
+    padding: 4px 8px;
+    border: 1px solid $gray;
+    border-radius: $border-radius-sm;
+    background: $white;
+    font-family: $font-family;
+    font-size: 13px;
+    color: $black;
+  }
+
+  .extra-op-select {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+
+  .extra-input {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid $gray;
+    border-radius: $border-radius-sm;
+    background: $white;
+    text-align: center;
+    font-family: $font-family;
+    font-size: 13px;
+    color: $black;
+  }
+
+  .extra-label {
+    font-family: $font-family;
+    font-size: 13px;
+    color: $black;
+  }
+
+  .btn-remove-extra {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid $error-color;
+    background: $white;
+    color: $error-color;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover { background: $error-color; color: $white; }
+  }
+}
+
 // Cellules de frontière : input + toggle inclusivité
 .boundary-cell {
   padding: 12px 8px;

@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MetriqueFormData } from '../../../core/models/enjeu.model';
+import { MetriqueFormData, MetriqueIntervalleExtra } from '../../../core/models/enjeu.model';
 
 /**
  * Editor for a single Metrique (numerical type with 5 score levels).
@@ -209,4 +209,62 @@ export class MetriqueFormComponent {
 
   /** Pour la dropdown `Type de métrique`. */
   trackByOptionId = (_i: number, opt: TypeMetriqueOption) => opt.id_nomenclature;
+
+  // =====================================================================
+  // #247 — Intervalles complémentaires (ET/OU)
+  // =====================================================================
+
+  /** Tableau modifiable des extras. Référence directe (mutations in-place). */
+  get extras(): MetriqueIntervalleExtra[] {
+    this.metrique.intervalles_extra ??= [];
+    return this.metrique.intervalles_extra;
+  }
+
+  /** Ajoute un intervalle complémentaire vide (par défaut : palier 5, OR). */
+  addExtra(): void {
+    const newExtra: MetriqueIntervalleExtra = {
+      score_level: 5,
+      position: this.nextPositionFor(5),
+      inf: null,
+      sup: null,
+      inf_inclusive: true,
+      sup_inclusive: true,
+      logical_op: 'OR',
+    };
+    this.extras.push(newExtra);
+    this.emitChange();
+  }
+
+  removeExtra(idx: number): void {
+    this.extras.splice(idx, 1);
+    this.renumberPositions();
+    this.emitChange();
+  }
+
+  /**
+   * Recalcule la position de chaque extra pour qu'elle reste unique par (score_level).
+   * Appelée après suppression ou changement de palier.
+   */
+  renumberPositions(): void {
+    const counters: Record<number, number> = {};
+    for (const ex of this.extras) {
+      counters[ex.score_level] = (counters[ex.score_level] ?? 0) + 1;
+      ex.position = counters[ex.score_level];
+    }
+  }
+
+  private nextPositionFor(level: ScoreLevel): number {
+    return this.extras.filter(e => e.score_level === level).length + 1;
+  }
+
+  onExtraLevelChange(_idx: number): void {
+    this.renumberPositions();
+    this.emitChange();
+  }
+
+  /** Label court (TM, Mauv., …) pour un palier donné. */
+  getShortLabelKey(level: ScoreLevel): string {
+    const meta = this.scoreMeta.find(m => m.level === level);
+    return meta?.shortKey ?? '';
+  }
 }
