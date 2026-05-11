@@ -2312,6 +2312,7 @@
                                                 <th>{{ 'enjeux.metriques.uniteLabel' | translate }}</th>
                                                 <th>{{ 'enjeux.metriques.ponderationLabel' | translate }}</th>
                                                 <th>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</th>
+                                                <th class="indetermine-col">{{ 'enjeux.metriques.indetermineLabel' | translate }}</th>
                                                 <th class="score-col score-col-1">{{ getScoreLevelLabel(1) }} =1</th>
                                                 <th class="score-col score-col-2">{{ getScoreLevelLabel(2) }} =2</th>
                                                 <th class="score-col score-col-3">{{ getScoreLevelLabel(3) }} =3</th>
@@ -2327,13 +2328,42 @@
                                                   <td>{{ met.unite || '-' }}</td>
                                                   <td>{{ met.ponderation || '-' }}</td>
                                                   <td>{{ met.etat_reference || '-' }}</td>
-                                                  <!-- #256 : fusion paliers de score adjacents identiques. -->
-                                                  @for (group of getScoreGroups(met); track group.primaryLevel) {
-                                                    <td class="score-cell score-cell-{{ group.primaryLevel }}"
-                                                        [class.score-cell-merged]="group.colspan > 1"
-                                                        [attr.colspan]="group.colspan">
-                                                      {{ group.value }}
-                                                    </td>
+                                                  <!-- #208 : marqueur pour les métriques de type indéterminé. -->
+                                                  <td class="indetermine-cell">
+                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'INDETERMINE') {
+                                                      <span class="indetermine-marker">
+                                                        <i class="fi fi-rr-check"></i>
+                                                        <span>{{ 'common.yes' | translate }}</span>
+                                                      </span>
+                                                    } @else {
+                                                      <span class="indetermine-empty">—</span>
+                                                    }
+                                                  </td>
+                                                  <!-- #247 : si blocs complémentaires, multi-lignes ET/OU avec parens.
+                                                       Sinon fusion #256 (paliers adjacents identiques). -->
+                                                  @if (hasExtraBlocks(met)) {
+                                                    @for (level of [1, 2, 3, 4, 5]; track level) {
+                                                      <td class="score-cell score-cell-{{ level }} score-cell-multi">
+                                                        @for (line of getCellLines(met, level); track $index; let i = $index) {
+                                                          <div class="cell-line">
+                                                            @if (i > 0 && line.op) {
+                                                              <span class="cell-op">{{ line.op === 'AND' ? ('enjeux.metriques.opAnd' | translate) : ('enjeux.metriques.opOr' | translate) }}</span>
+                                                            }
+                                                            @if (line.openParen) { <span class="cell-paren">(</span> }
+                                                            <span class="cell-interval">{{ line.text }}</span>
+                                                            @if (line.closeParen) { <span class="cell-paren">)</span> }
+                                                          </div>
+                                                        }
+                                                      </td>
+                                                    }
+                                                  } @else {
+                                                    @for (group of getScoreGroups(met); track group.primaryLevel) {
+                                                      <td class="score-cell score-cell-{{ group.primaryLevel }}"
+                                                          [class.score-cell-merged]="group.colspan > 1"
+                                                          [attr.colspan]="group.colspan">
+                                                        {{ group.value }}
+                                                      </td>
+                                                    }
                                                   }
                                                   @if (canEditPlan()) {
                                                     <td class="actions-col">
