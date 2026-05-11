@@ -1391,12 +1391,17 @@
                                           }
                                         }
 
-                                                    <!-- Bouton ajout opération pour cette métrique -->
-                                                    <button class="add-item-btn" (click)="openAddActionDialog(met.id_metrique, met.nom_metrique)">
-                                                      <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
-                                                    </button>
+                                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur -->
+
                                                   </div>
                                                 }
+                                              }
+
+                                              <!-- #1 : bouton « Ajouter une action » au niveau indicateur — liée à toutes ses métriques -->
+                                              @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                                <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
+                                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
+                                                </button>
                                               }
 
                                               <!-- Bouton ajout métrique standalone -->
@@ -2513,12 +2518,17 @@
                                   }
                                 }
 
-                                    <!-- Bouton ajout opération pour cette métrique -->
-                                    <button class="add-item-btn" (click)="openAddActionDialog(met.id_metrique, met.nom_metrique)">
-                                      <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addAction' | translate }}
-                                    </button>
+                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur (OO) -->
+
                                           </div>
                                         }
+                                      }
+
+                                      <!-- #1 : bouton « Ajouter une action » au niveau indicateur (OO) — liée à toutes ses métriques -->
+                                      @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                        <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
+                                          <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
+                                        </button>
                                       }
 
                                       <!-- Bouton ajout métrique standalone (OO) -->

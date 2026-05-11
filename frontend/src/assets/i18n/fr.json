@@ -2337,6 +2337,8 @@
       "empty": "Aucun objectif opérationnel saisi",
       "addButton": "Ajouter un objectif opérationnel",
       "addAction": "Ajouter une action",
+      "addActionAtIndicateur": "Ajouter une action (liée à toutes les métriques)",
+      "indicateurNoMetriques": "Cet indicateur n'a pas encore de métrique — ajoutez-en une d'abord.",
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
       "label": "Action",

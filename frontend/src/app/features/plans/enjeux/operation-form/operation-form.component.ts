@@ -102,6 +102,10 @@ export class OperationFormComponent implements OnInit {
 
   // Query params
   prelinkedMetriqueId = signal<number | null>(null);
+  // #1 — Liste de métriques à pré-lier quand l'action est créée au niveau
+  // indicateur. Supersede `prelinkedMetriqueId` (qui reste utilisé pour
+  // l'auto-scroll et la rétrocompatibilité avec les liens single-metric).
+  prelinkedMetriqueIds = signal<number[]>([]);
   returnEnjeuSlug = signal<string | null>(null);
 
   // Nomenclatures
@@ -330,6 +334,21 @@ export class OperationFormComponent implements OnInit {
       this.prelinkedMetriqueId.set(parseInt(metriqueIdStr, 10));
     }
 
+    // #1 — Liste de métriques (CSV) quand l'action est créée au niveau indicateur.
+    const metriqueIdsStr = this.route.snapshot.queryParamMap.get('metriqueIds');
+    if (metriqueIdsStr) {
+      const ids = metriqueIdsStr
+        .split(',')
+        .map(s => parseInt(s.trim(), 10))
+        .filter(n => !isNaN(n));
+      this.prelinkedMetriqueIds.set(ids);
+      // Le premier id sert aussi de `prelinkedMetriqueId` pour les comportements
+      // existants (auto-scroll, etc.).
+      if (ids.length > 0 && !this.prelinkedMetriqueId()) {
+        this.prelinkedMetriqueId.set(ids[0]);
+      }
+    }
+
     const returnEnjeu = this.route.snapshot.queryParamMap.get('returnEnjeu');
     if (returnEnjeu) {
       this.returnEnjeuSlug.set(returnEnjeu);
@@ -511,10 +530,15 @@ export class OperationFormComponent implements OnInit {
   private loadOperationIfEdit(): void {
     const opId = this.operationId();
     if (!opId) {
+      // #1 — Pré-sélectionne toutes les métriques passées en query
+      // (`metriqueIds` au niveau indicateur, fallback `metriqueId` single).
+      const prelinkedIds = this.prelinkedMetriqueIds();
       const prelinkedId = this.prelinkedMetriqueId();
-      if (prelinkedId) {
-        // prelinkedId is now expected to be a metrique ID
-        this.form.patchValue({ metrique_ids: [prelinkedId] });
+      const ids = prelinkedIds.length > 0
+        ? prelinkedIds
+        : (prelinkedId ? [prelinkedId] : []);
+      if (ids.length > 0) {
+        this.form.patchValue({ metrique_ids: ids });
       }
       this.isLoadingData.set(false);
       return;

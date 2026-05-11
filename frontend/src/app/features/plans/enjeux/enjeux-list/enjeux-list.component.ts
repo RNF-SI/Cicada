@@ -2985,6 +2985,86 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
 
+  /**
+   * #1 — Ouvre le dialogue d'ajout d'action au niveau indicateur.
+   * L'action sera liée par défaut à TOUTES les métriques de l'indicateur.
+   */
+  openAddActionForIndicateur(ind: any): void {
+    const metriques = (ind.metriques || []).filter((m: any) => !m._deleted);
+    if (metriques.length === 0) {
+      this.snackBar.open(
+        this.translate.instant('enjeux.operations.indicateurNoMetriques'),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+      return;
+    }
+    const metriqueIds: number[] = metriques.map((m: any) => m.id_metrique).filter(Boolean);
+    const indicateurNom: string = ind.nom_indicateur || '';
+    this.openAddActionDialogForIds(metriqueIds, indicateurNom);
+  }
+
+  /**
+   * Variante de `openAddActionDialog` qui accepte plusieurs métriques.
+   * À la création : ouvre le form d'opération en pré-liant à toutes.
+   * À la liaison d'une opération existante : boucle les appels API.
+   */
+  openAddActionDialogForIds(metriqueIds: number[], label: string): void {
+    const planId = this.planId();
+    if (!planId || metriqueIds.length === 0) return;
+
+    const dialogRef = this.dialog.open(LinkOperationDialogComponent, {
+      width: '700px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        planId,
+        metriqueId: metriqueIds[0],  // pour compatibilité avec le dialog existant
+        metriqueNom: label,
+      } as LinkOperationDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: LinkOperationDialogResult | undefined) => {
+        if (!result || result.action === 'cancel') return;
+
+        if (result.action === 'create') {
+          this.navigateToOperationFormForMetriques(metriqueIds);
+        } else if (result.action === 'link' && result.operationId) {
+          // Lier l'opération existante à TOUTES les métriques cibles
+          const opId = result.operationId;
+          const links$ = metriqueIds.map(id =>
+            this.enjeuService.addMetriqueToOperation(opId, id)
+          );
+          forkJoin(links$).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.linkSuccess'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.loadPlanData(true);
+            },
+            error: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.linkError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+            },
+          });
+        }
+      });
+  }
+
+  /** Navigation vers le form d'opération en pré-liant à plusieurs métriques (CSV). */
+  private navigateToOperationFormForMetriques(metriqueIds: number[]): void {
+    const slug = this.planSlug();
+    if (!slug) return;
+    const queryParams: any = { metriqueIds: metriqueIds.join(',') };
+    const enjeuSlug = this.selectedEnjeuSlug();
+    if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
+  }
+
   openAddActionDialog(metriqueId: number, metriqueNom: string): void {
     const planId = this.planId();
     if (!planId) return;
