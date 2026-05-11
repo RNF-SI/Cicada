@@ -2518,6 +2518,50 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    * Retourne la liste des groupes ordonn\u00E9s gauche\u2192droite, chacun avec
    * `levels` (les niveaux concern\u00E9s), `colspan` et la valeur format\u00E9e.
    */
+  /**
+   * #247 — Lignes affichées dans une cellule de palier en lecture.
+   *
+   * Pour une métrique avec un seul bloc (principal) : retourne 1 entrée.
+   * Pour une métrique avec N blocs complémentaires : retourne 1 + N entrées,
+   * chacune avec son opérateur (OR/AND) et ses parenthèses.
+   */
+  getCellLines(met: any, level: number): Array<{
+    text: string;
+    op?: 'OR' | 'AND';
+    openParen?: boolean;
+    closeParen?: boolean;
+  }> {
+    const lines: Array<any> = [];
+
+    // Bloc principal
+    const mainText = this.getScoreRange(met, level);
+    if (mainText && mainText !== '-' && mainText !== '- - -') {
+      lines.push({ text: mainText });
+    }
+
+    // Blocs complémentaires
+    const blocks = met.score_blocks || [];
+    for (const block of blocks) {
+      // Construire un objet « met-like » pour réutiliser getScoreRange.
+      // score_N_inf/sup et inclusivités sont déjà au bon format dans le bloc.
+      const text = this.getScoreRange({ ...block, type_metrique_mnemonique: 'NUMERIQUE' }, level);
+      if (!text || text === '-' || text === '- - -') continue;
+      lines.push({
+        text,
+        op: block.logical_op,
+        openParen: (block.group_open ?? 0) > 0,
+        closeParen: (block.group_close ?? 0) > 0,
+      });
+    }
+
+    return lines;
+  }
+
+  /** Vrai si la métrique a au moins un bloc complémentaire (désactive la fusion). */
+  hasExtraBlocks(met: any): boolean {
+    return (met.score_blocks?.length ?? 0) > 0;
+  }
+
   getScoreGroups(met: any): Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> {
     const values = [1, 2, 3, 4, 5].map(l => this.getScoreRange(met, l));
     const groups: Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> = [];

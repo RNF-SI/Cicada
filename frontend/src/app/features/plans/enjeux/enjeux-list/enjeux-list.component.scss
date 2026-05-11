@@ -1426,6 +1426,44 @@
         font-size: 12px;
       }
 
+      // #247 : cellule multi-lignes pour les métriques avec blocs complémentaires.
+      // Chaque intervalle sur sa propre ligne, opérateurs ET/OU en gras, parens.
+      &.score-cell-multi {
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: $spacing-xs $spacing-sm;
+        vertical-align: middle;
+
+        .cell-line {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          flex-wrap: wrap;
+
+          + .cell-line { margin-top: 4px; }
+        }
+
+        .cell-op {
+          font-weight: $font-weight-bold;
+          color: $primary-color;
+          font-size: 11px;
+          padding: 0 4px;
+        }
+
+        .cell-paren {
+          font-weight: $font-weight-bold;
+          color: $primary-color;
+          font-size: 14px;
+        }
+
+        .cell-interval {
+          color: $black;
+          font-size: 12px;
+        }
+      }
+
       // #208 : colonne "Indéterminé" — pictogramme + libellé "Oui" pour les
       // métriques sans saisie de scores. Cellule vide (tiret discret) sinon.
       &.indetermine-cell {
