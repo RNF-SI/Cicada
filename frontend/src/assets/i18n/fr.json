@@ -2020,7 +2020,14 @@
     "neutral": "Moyen",
     "good": "Bon",
     "veryGood": "Très bon",
-    "noData": "Sans donnée"
+    "noData": "Sans donnée",
+    "short": {
+      "veryBad": "TM",
+      "bad": "Mauv.",
+      "neutral": "Moy.",
+      "good": "Bon",
+      "veryGood": "TB"
+    }
   },
   "actionStatus": {
     "planned": "Action prévue",
@@ -2562,12 +2569,20 @@
         "tresBon": "Très bon"
       },
       "direction": "Sens de variation",
+      "sensVariation": "Sens de variation",
       "croissant": "Croissant",
       "decroissant": "Décroissant",
       "borneMin": "Borne min",
       "borneMax": "Borne max",
       "inclusif": "≤ (inclus)",
-      "exclusif": "< (exclus)"
+      "exclusif": "< (exclus)",
+      "nomPlaceholder": "Intitulé court de la métrique",
+      "niveauxActifs": "Niveaux actifs :",
+      "scoreSuffix": "score = {{score}}",
+      "boundaryLabel": "Valeur limite",
+      "boundaryPlaceholder": "Valeur",
+      "includedIn": "inclu dans :",
+      "notSet": "—"
     },
     "mesures": {
       "label": "Mesure",

@@ -531,6 +531,10 @@ export interface MetriqueFormData {
   score_4_sup_inclusive: boolean;
   has_score1_optional_bound: boolean;  // checkbox: borne extrême score 1 (inf si croissant, sup si décroissant)
   has_score5_optional_bound: boolean;  // checkbox: borne extrême score 5 (sup si croissant, inf si décroissant)
+  // Liste des niveaux désactivés via le tag « Niveaux actifs » du nouveau composant
+  // de saisie. Côté API on stocke `null` sur les bornes correspondantes — ce champ
+  // sert uniquement à mémoriser l'intention de l'utilisateur pendant l'édition.
+  _inactiveLevels?: number[];
   _deleted?: boolean;  // marked for deletion
 }
 
