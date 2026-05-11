@@ -788,10 +788,18 @@
                                             <div class="metriques-section">
                                               <h5 class="metriques-section-title">{{ 'enjeux.metriques.sectionTitle' | translate }}</h5>
 
+                                              <div cdkDropList class="metriques-droplist"
+                                                   (cdkDropListDropped)="onMetriquesDrop(editIndicateurMetriques, $event)">
                                               @for (met of editIndicateurMetriques; track $index; let i = $index) {
                                                 @if (!met._deleted) {
+                                                  <div cdkDrag class="metrique-drag-item">
                                                   <!-- #2 : ligne compacte de la métrique (toujours visible, repli/déploi via bouton) -->
                                                   <div class="metrique-compact-row">
+                                                    <button class="icon-btn-flat metrique-drag-handle" type="button" cdkDragHandle
+                                                            [title]="'enjeux.metriques.dragHandle' | translate"
+                                                            [attr.aria-label]="'enjeux.metriques.dragHandle' | translate">
+                                                      <i class="fi fi-rr-menu-burger"></i>
+                                                    </button>
                                                     <span class="metrique-order">{{ i + 1 }}.</span>
                                                     <div class="metrique-summary">
                                                       <span class="metrique-summary-name">
@@ -957,8 +965,10 @@
                                                   </div>
                                                   }
                                                   }
+                                                  </div>
                                                 }
                                               }
+                                              </div>
 
                                               <button class="add-item-btn" (click)="addMetriqueToEdit()">
                                                 <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}

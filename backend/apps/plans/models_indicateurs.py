@@ -250,6 +250,13 @@ class Metrique(models.Model):
         null=True,
         help_text=_("Description détaillée de la métrique")
     )
+    # #4 — Ordre d'affichage parmi les métriques d'un indicateur. Plus bas = en tête.
+    # Mis à jour côté frontend via drag-and-drop.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        help_text=_("Ordre d'affichage parmi les métriques d'un indicateur (0 = haut)")
+    )
     type_metrique = models.ForeignKey(
         'core.Nomenclature',
         on_delete=models.SET_NULL,
@@ -423,7 +430,7 @@ class Metrique(models.Model):
         db_table_comment = "Métriques des indicateurs"
         verbose_name = _("Métrique")
         verbose_name_plural = _("Métriques")
-        ordering = ['id_metrique']
+        ordering = ['ordre', 'id_metrique']
 
     def __str__(self):
         return f"{self.nom_metrique} ({self.id_indicateur})"

@@ -320,6 +320,7 @@ export interface Metrique {
   id_indicateur: number;
   nom_metrique: string;
   description?: string;
+  ordre?: number;
   type_metrique?: number;
   type_metrique_label?: string;
   type_metrique_mnemonique?: string;
@@ -556,6 +557,8 @@ export interface MetriqueFormData {
   unite: string;
   ponderation: number | null;
   etat_reference: string;
+  /** #4 — Ordre d'affichage parmi les métriques d'un indicateur (réordonnancement DnD). */
+  ordre?: number;
   scores: { [level: number]: { inf: number | null; sup: number | null; val: number | null; label: string } };
   // Direction et inclusivité des bornes (NUMERIQUE only)
   sens_variation: 'CROISSANT' | 'DECROISSANT';
@@ -616,6 +619,7 @@ export interface MetriqueCreatePayload {
   id_indicateur: number;
   nom_metrique: string;
   description?: string;
+  ordre?: number;
   type_metrique?: number;
   unite?: string;
   ponderation?: number;

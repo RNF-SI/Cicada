@@ -1601,6 +1601,40 @@
   letter-spacing: 2px;
 }
 
+// #4 — Drag-and-drop sur la liste des métriques (CDK).
+.metriques-droplist {
+  display: flex;
+  flex-direction: column;
+}
+
+.metrique-drag-item {
+  // Pas de styles propres : la ligne compacte interne gère son look.
+}
+
+.metrique-drag-handle {
+  cursor: grab;
+  color: $gray-dark;
+
+  &:hover { color: $primary-color; }
+  &:active { cursor: grabbing; }
+}
+
+.cdk-drag-preview {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  border-radius: $border-radius-sm;
+  opacity: 0.95;
+}
+
+.cdk-drag-placeholder { opacity: 0; }
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.metriques-droplist.cdk-drop-list-dragging .metrique-drag-item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
 // #2 — Ligne compacte d'une métrique dans le formulaire d'édition d'indicateur.
 // Toujours visible ; cache la card complète par défaut pour réduire le bruit
 // visuel quand un indicateur a plusieurs métriques. Le bouton crayon dépli.

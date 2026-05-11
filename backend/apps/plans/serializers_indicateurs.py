@@ -123,7 +123,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
         model = Metrique
         fields = [
             'id_metrique', 'id_indicateur',
-            'nom_metrique', 'description',
+            'nom_metrique', 'description', 'ordre',
             'type_metrique', 'type_metrique_label', 'type_metrique_mnemonique',
             'unite', 'ponderation', 'etat_reference',
             # Seuils de scores
@@ -198,7 +198,7 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
         model = Metrique
         fields = [
             'id_metrique', 'id_indicateur',
-            'nom_metrique', 'description',
+            'nom_metrique', 'description', 'ordre',
             'type_metrique', 'unite', 'ponderation', 'etat_reference',
             # Seuils de scores
             'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',

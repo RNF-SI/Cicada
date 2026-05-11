@@ -5,6 +5,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MetriqueFormData, MetriqueScoreBlock } from '../../../core/models/enjeu.model';
 import { MetriqueBlockComponent, ScoreBlockData } from '../metrique-block/metrique-block.component';
 
@@ -34,6 +35,7 @@ export interface TypeMetriqueOption {
   imports: [
     CommonModule, FormsModule, TranslateModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
+    DragDropModule,
     MetriqueBlockComponent,
   ],
   templateUrl: './metrique-form.component.html',
@@ -145,6 +147,14 @@ export class MetriqueFormComponent {
   toggleParensClose(idx: number): void {
     const b = this.blocks[idx];
     b.group_close = b.group_close > 0 ? 0 : 1;
+    this.emitChange();
+  }
+
+  /** #4 — Réordonnancement des blocs complémentaires via drag-and-drop. */
+  onBlockDrop(event: CdkDragDrop<MetriqueScoreBlock[]>): void {
+    moveItemInArray(this.blocks, event.previousIndex, event.currentIndex);
+    // Renumérote les positions (1..N)
+    this.blocks.forEach((b, i) => { b.position = i + 1; });
     this.emitChange();
   }
 

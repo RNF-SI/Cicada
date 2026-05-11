@@ -83,8 +83,17 @@
 
   <!-- Blocs complémentaires : même card visuelle, précédés d'un sélecteur ET/OU
        + boutons de groupage. Les blocs imbriqués reçoivent une indentation et
-       une bordure gauche colorée selon leur profondeur. -->
+       une bordure gauche colorée selon leur profondeur.
+       #4 : drag-and-drop pour réordonnancement (toute la paire séparateur+bloc
+       constitue un item draggable). -->
+  <div cdkDropList class="blocks-droplist" (cdkDropListDropped)="onBlockDrop($event)">
   @for (block of blocks; track $index; let i = $index) {
+    <div cdkDrag class="block-drag-item">
+      <button type="button" class="block-drag-handle" cdkDragHandle
+              [title]="'enjeux.metriques.dragHandle' | translate"
+              [attr.aria-label]="'enjeux.metriques.dragHandle' | translate">
+        <i class="fi fi-rr-menu-burger"></i>
+      </button>
     <!-- Séparateur : opérateur + boutons groupage + corbeille -->
     <div class="block-separator" [class.depth-1]="getBlockDepth(i) >= 1" [class.depth-2]="getBlockDepth(i) >= 2">
       <div class="op-tabs" role="tablist">
@@ -138,7 +147,9 @@
         (blockChange)="onBlockChange($event)">
       </app-metrique-block>
     </div>
+    </div>
   }
+  </div>
 
   <button type="button" class="btn-add-block" (click)="addBlock()">
     <i class="fi fi-rr-plus-small"></i>

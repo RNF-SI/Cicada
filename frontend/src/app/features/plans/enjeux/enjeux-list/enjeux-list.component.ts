@@ -22,6 +22,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../../../core/services/auth.service';
@@ -84,7 +85,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     PlanSidebarComponent,
     EnjeuAccordionComponent,
     SectionTitleComponent,
-    MetriqueFormComponent
+    MetriqueFormComponent,
+    DragDropModule
   ],
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'
@@ -1793,6 +1795,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       unite: met.unite || '',
       ponderation: met.ponderation ?? null,
       etat_reference: met.etat_reference || '',
+      ordre: met.ordre ?? 0,
       scores: {
         1: { inf: c(met.score_1_inf), sup: c(met.score_1_sup), val: c(met.score_1_val), label: met.score_1_label || '' },
         2: { inf: c(met.score_2_inf), sup: c(met.score_2_sup), val: c(met.score_2_val), label: met.score_2_label || '' },
@@ -1854,6 +1857,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (met.unite.trim()) payload.unite = met.unite.trim();
     if (met.ponderation != null) payload.ponderation = met.ponderation;
     if (met.etat_reference.trim()) payload.etat_reference = met.etat_reference.trim();
+    if (met.ordre != null) payload.ordre = met.ordre;
 
     const mnemonique = this.getMetriqueTypeMnemonique(met.type_metrique);
     for (let level = 1; level <= 5; level++) {
@@ -2194,6 +2198,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (newIdx < 0 || newIdx >= metrics.length) return;
     const [m] = metrics.splice(idx, 1);
     metrics.splice(newIdx, 0, m);
+    this.renumberMetriquesOrdre(metrics);
+  }
+
+  /** #4 — Drag-and-drop pour réordonner les métriques d'un indicateur. */
+  onMetriquesDrop(metrics: MetriqueFormData[], event: CdkDragDrop<MetriqueFormData[]>): void {
+    moveItemInArray(metrics, event.previousIndex, event.currentIndex);
+    this.renumberMetriquesOrdre(metrics);
+  }
+
+  /** Réassigne le champ `ordre` (0..N) selon la position courante. */
+  private renumberMetriquesOrdre(metrics: MetriqueFormData[]): void {
+    metrics.forEach((m, i) => { m.ordre = i; });
   }
 
   removeMetriqueFromEdit(index: number): void {

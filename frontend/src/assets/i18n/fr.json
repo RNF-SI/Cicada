@@ -2596,6 +2596,7 @@
       "groupEnd": "Fin de groupe",
       "parensImbalance": "Parenthèses non équilibrées : il manque une ouverture ou une fermeture.",
       "parensImbalanceShort": "parenthèses non équilibrées",
+      "dragHandle": "Glisser-déposer pour réordonner",
       "opOr": "OU",
       "opAnd": "ET",
       "boundInf": "min",
