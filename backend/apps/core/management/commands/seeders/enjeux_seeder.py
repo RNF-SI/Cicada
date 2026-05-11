@@ -2161,6 +2161,29 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
+            # 2e métrique : indicateur d'état qualitatif (TEXTE) — illustre
+            # la coexistence de plusieurs types dans la même table (#242).
+            met_qual, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Pression de dérangement humain sur la colonie',
+                defaults={
+                    'type_metrique': type_met_texte,
+                    'etat_reference': 'Absence de dérangement notable depuis 2019',
+                    'score_1_label': 'Très forte',
+                    'score_2_label': 'Forte',
+                    'score_3_label': 'Modérée',
+                    'score_4_label': 'Faible',
+                    'score_5_label': 'Absente',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_qual)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_qual, date_mesure=date(2023, 7, 1),
+                defaults={'valeur': 'Modérée', 'commentaire': 'Survols de drone touristique en juin', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
         # --- Camargue - NE "Débit écologique" : indicateur pression ---
         ne_debit = next((ne for ne in nes_created if 'Débit écologique' in ne.libelle), None)
         if ne_debit and type_ind_pression:
@@ -2206,6 +2229,37 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': '28', 'commentaire': 'Bilan annuel 2023', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # 2e métrique : valeur ponctuelle (CHIFFRE)
+            met_volume, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Volume annuel prélevé pour l\'irrigation',
+                defaults={
+                    'type_metrique': type_met_chiffre,
+                    'unite': 'm³',
+                    'etat_reference': 'Référence 2015 : 4,2 millions de m³',
+                    'score_1_val': 6000000, 'score_1_label': 'Critique',
+                    'score_2_val': 5000000, 'score_2_label': 'Mauvais',
+                    'score_3_val': 4000000, 'score_3_label': 'Moyen',
+                    'score_4_val': 3000000, 'score_4_label': 'Bon',
+                    'score_5_val': 2000000, 'score_5_label': 'Très bon',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_volume)
+
+            # 3e métrique : type indéterminé (#208) — saisie à définir
+            met_resilience, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Capacité de résilience hydrique de la zone humide',
+                defaults={
+                    'type_metrique': type_met_indetermine,
+                    'description': 'Indicateur composite combinant niveau piézométrique, '
+                                   'salinité et état végétation. Protocole à arbitrer.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_resilience)
 
         # --- Aiguilles Rouges - NE "Pas de disparition de station" ---
         ne_stations = next((ne for ne in nes_created if 'disparition de station' in ne.libelle), None)
