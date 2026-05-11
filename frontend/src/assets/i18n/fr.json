@@ -2592,7 +2592,8 @@
       "applyTo": "pour le palier",
       "and": "et",
       "boundInf": "min",
-      "boundSup": "max"
+      "boundSup": "max",
+      "forLevel": "pour"
     },
     "mesures": {
       "label": "Mesure",

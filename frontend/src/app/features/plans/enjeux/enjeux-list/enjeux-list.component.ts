@@ -2501,6 +2501,44 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    * Retourne la liste des groupes ordonn\u00E9s gauche\u2192droite, chacun avec
    * `levels` (les niveaux concern\u00E9s), `colspan` et la valeur format\u00E9e.
    */
+  /**
+   * #247 — Texte formaté d'un intervalle complémentaire dans la table de
+   * lecture (ex: « OU pour Très bon : 50 ≤ x ≤ 60 »).
+   */
+  getExtraIntervalText(extra: any): string {
+    const opLabel = extra.logical_op === 'AND'
+      ? this.translate.instant('enjeux.metriques.opAnd')
+      : this.translate.instant('enjeux.metriques.opOr');
+    const levelLabel = this.translate.instant(this.getScoreLevelI18nKey(extra.score_level));
+    const infOp = extra.inf_inclusive ? '≤' : '<';
+    const supOp = extra.sup_inclusive ? '≤' : '<';
+    const inf = extra.inf != null ? Number(extra.inf).toString() : null;
+    const sup = extra.sup != null ? Number(extra.sup).toString() : null;
+    let intervalText: string;
+    if (inf != null && sup != null) {
+      intervalText = `${inf} ${infOp} x ${supOp} ${sup}`;
+    } else if (inf != null) {
+      intervalText = `x ${infOp.replace('≤', '≥').replace('<', '>')} ${inf}`;
+    } else if (sup != null) {
+      intervalText = `x ${supOp} ${sup}`;
+    } else {
+      intervalText = '—';
+    }
+    return `${opLabel} ${this.translate.instant('enjeux.metriques.forLevel')} ${levelLabel} : ${intervalText}`;
+  }
+
+  /** Clé i18n du palier (1-5). */
+  getScoreLevelI18nKey(level: number): string {
+    switch (level) {
+      case 1: return 'scores.veryBad';
+      case 2: return 'scores.bad';
+      case 3: return 'scores.neutral';
+      case 4: return 'scores.good';
+      case 5: return 'scores.veryGood';
+      default: return '';
+    }
+  }
+
   getScoreGroups(met: any): Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> {
     const values = [1, 2, 3, 4, 5].map(l => this.getScoreRange(met, l));
     const groups: Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> = [];

@@ -1336,6 +1336,40 @@
   overflow: hidden;
   font-size: $font-size-small;
 
+  // #247 : ligne supplémentaire sous une métrique listant les intervalles
+  // complémentaires (OU/ET). Visuellement distincte (bg légèrement teinté +
+  // chips colorés par palier).
+  tr.metrique-extras-row {
+    background-color: rgba($primary-color, 0.04);
+
+    td {
+      padding: $spacing-xs $spacing-md;
+    }
+
+    .metrique-extras-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+    }
+
+    .metrique-extra-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: $border-radius-pill;
+      font-size: 12px;
+      font-weight: $font-weight-bold;
+      color: $black;
+      border: 1px solid transparent;
+
+      &.metrique-extra-chip-1 { background-color: rgba($score-very-bad, 0.25); border-color: rgba($score-very-bad, 0.5); }
+      &.metrique-extra-chip-2 { background-color: rgba($score-bad, 0.25); border-color: rgba($score-bad, 0.5); }
+      &.metrique-extra-chip-3 { background-color: rgba($score-neutral, 0.25); border-color: rgba($score-neutral, 0.5); }
+      &.metrique-extra-chip-4 { background-color: rgba($score-good, 0.25); border-color: rgba($score-good, 0.5); }
+      &.metrique-extra-chip-5 { background-color: rgba($score-very-good, 0.25); border-color: rgba($score-very-good, 0.5); }
+    }
+  }
+
   thead {
     th {
       background-color: $primary-color;

@@ -15,7 +15,7 @@ from apps.plans.models_enjeux import (
 )
 from apps.plans.models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
-    CorIndicateurGeologie, Metrique, Mesure
+    CorIndicateurGeologie, Metrique, MetriqueIntervalleExtra, Mesure
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -2071,6 +2071,21 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
+            # #247 — Intervalles complémentaires : zone d'alerte hors intervalle
+            # principal. Si la surface dépasse 105% (cas calibration douteuse) ou
+            # passe sous 0% (anomalie capteur), on retombe sur « Très mauvais ».
+            met.intervalles_extra.all().delete()
+            MetriqueIntervalleExtra.objects.create(
+                id_metrique=met, score_level=1, position=1,
+                inf=105, sup=None, inf_inclusive=False, sup_inclusive=True,
+                logical_op='OR',
+            )
+            MetriqueIntervalleExtra.objects.create(
+                id_metrique=met, score_level=1, position=2,
+                inf=None, sup=0, inf_inclusive=True, sup_inclusive=False,
+                logical_op='OR',
+            )
+
             # Métrique 2 : qualitative
             met2, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -2161,6 +2176,16 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
+            # #247 — Intervalle complémentaire (OU) : exceptionnellement, un
+            # ratio compris entre 1.2 et 1.5 (boom reproductif post-crise) doit
+            # être classé « Excellent » au même titre que [0.7 ; 1.0].
+            met.intervalles_extra.all().delete()
+            MetriqueIntervalleExtra.objects.create(
+                id_metrique=met, score_level=5, position=1,
+                inf=1.2, sup=1.5, inf_inclusive=True, sup_inclusive=True,
+                logical_op='OR',
+            )
+
             # 2e métrique : indicateur d'état qualitatif (TEXTE) — illustre
             # la coexistence de plusieurs types dans la même table (#242).
             met_qual, _ = Metrique.objects.update_or_create(
@@ -2229,6 +2254,23 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': '28', 'commentaire': 'Bilan annuel 2023', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # #247 — Cas plus complexe : combinaison ET/OU sur deux paliers.
+            # « Moyen » si on enchaîne deux années stables (15-25 jours) OU si
+            # le pic estival est court (≤ 10 jours consécutifs). On simule via
+            # deux intervalles complémentaires : un sur palier 3 (OU étendu)
+            # et un sur palier 1 (cas dégradé : > 100 jours = pire que critique).
+            met.intervalles_extra.all().delete()
+            MetriqueIntervalleExtra.objects.create(
+                id_metrique=met, score_level=3, position=1,
+                inf=15, sup=25, inf_inclusive=True, sup_inclusive=True,
+                logical_op='OR',
+            )
+            MetriqueIntervalleExtra.objects.create(
+                id_metrique=met, score_level=1, position=1,
+                inf=100, sup=None, inf_inclusive=False, sup_inclusive=True,
+                logical_op='OR',
+            )
 
             # 2e métrique : valeur ponctuelle (CHIFFRE)
             met_volume, _ = Metrique.objects.update_or_create(
