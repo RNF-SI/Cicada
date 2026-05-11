@@ -15,7 +15,7 @@ from apps.plans.models_enjeux import (
 )
 from apps.plans.models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
-    CorIndicateurGeologie, Metrique, MetriqueIntervalleExtra, Mesure
+    CorIndicateurGeologie, Metrique, MetriqueScoreBlock, Mesure
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -2071,19 +2071,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
-            # #247 — Intervalles complémentaires : zone d'alerte hors intervalle
-            # principal. Si la surface dépasse 105% (cas calibration douteuse) ou
-            # passe sous 0% (anomalie capteur), on retombe sur « Très mauvais ».
-            met.intervalles_extra.all().delete()
-            MetriqueIntervalleExtra.objects.create(
-                id_metrique=met, score_level=1, position=1,
-                inf=105, sup=None, inf_inclusive=False, sup_inclusive=True,
-                logical_op='OR',
-            )
-            MetriqueIntervalleExtra.objects.create(
-                id_metrique=met, score_level=1, position=2,
-                inf=None, sup=0, inf_inclusive=True, sup_inclusive=False,
-                logical_op='OR',
+            # #247 — Bloc de scoring complémentaire : grille décroissante en OU.
+            # Si la valeur passe en territoire négatif (anomalie capteur),
+            # on applique une grille inverse pour signaler une dégradation.
+            met.score_blocks.all().delete()
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=1, logical_op='OR',
+                sens_variation='DECROISSANT',
+                score_1_inf=110, score_1_sup=200,
+                score_2_inf=105, score_2_sup=110,
+                score_3_inf=100, score_3_sup=105,
+                score_4_inf=-10, score_4_sup=0,
+                score_5_inf=-100, score_5_sup=-10,
+                has_borne_score1=True, has_borne_score5=True,
             )
 
             # Métrique 2 : qualitative
@@ -2176,14 +2176,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
-            # #247 — Intervalle complémentaire (OU) : exceptionnellement, un
-            # ratio compris entre 1.2 et 1.5 (boom reproductif post-crise) doit
-            # être classé « Excellent » au même titre que [0.7 ; 1.0].
-            met.intervalles_extra.all().delete()
-            MetriqueIntervalleExtra.objects.create(
-                id_metrique=met, score_level=5, position=1,
-                inf=1.2, sup=1.5, inf_inclusive=True, sup_inclusive=True,
-                logical_op='OR',
+            # #247 — Bloc complémentaire (OU) : grille spécifique pour les
+            # années à très haut succès (1.2-2.0+). Permet de moduler le score
+            # quand le ratio dépasse largement les attendus standard.
+            met.score_blocks.all().delete()
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=1, logical_op='OR',
+                sens_variation='CROISSANT',
+                score_1_inf=1.2, score_1_sup=1.3,
+                score_2_inf=1.3, score_2_sup=1.5,
+                score_3_inf=1.5, score_3_sup=1.7,
+                score_4_inf=1.7, score_4_sup=1.9,
+                score_5_inf=1.9, score_5_sup=3.0,
+                has_borne_score1=True, has_borne_score5=True,
             )
 
             # 2e métrique : indicateur d'état qualitatif (TEXTE) — illustre
@@ -2255,21 +2260,19 @@ class EnjeuxSeeder(BaseSeeder):
             )
             mesures_created.append(m)
 
-            # #247 — Cas plus complexe : combinaison ET/OU sur deux paliers.
-            # « Moyen » si on enchaîne deux années stables (15-25 jours) OU si
-            # le pic estival est court (≤ 10 jours consécutifs). On simule via
-            # deux intervalles complémentaires : un sur palier 3 (OU étendu)
-            # et un sur palier 1 (cas dégradé : > 100 jours = pire que critique).
-            met.intervalles_extra.all().delete()
-            MetriqueIntervalleExtra.objects.create(
-                id_metrique=met, score_level=3, position=1,
-                inf=15, sup=25, inf_inclusive=True, sup_inclusive=True,
-                logical_op='OR',
-            )
-            MetriqueIntervalleExtra.objects.create(
-                id_metrique=met, score_level=1, position=1,
-                inf=100, sup=None, inf_inclusive=False, sup_inclusive=True,
-                logical_op='OR',
+            # #247 — Bloc complémentaire ET : ne s'applique qu'en plus de la
+            # grille principale. Décroissant : plus le total cumulé est bas,
+            # mieux c'est. Couvre les cas extrêmes (>200 jours sur 2 ans).
+            met.score_blocks.all().delete()
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=1, logical_op='AND',
+                sens_variation='DECROISSANT',
+                score_1_inf=200, score_1_sup=730,
+                score_2_inf=120, score_2_sup=200,
+                score_3_inf=60, score_3_sup=120,
+                score_4_inf=30, score_4_sup=60,
+                score_5_inf=0, score_5_sup=30,
+                has_borne_score1=True, has_borne_score5=True,
             )
 
             # 2e métrique : valeur ponctuelle (CHIFFRE)
@@ -2457,6 +2460,48 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': '21.2', 'commentaire': 'Moyenne annuelle 2023 - dépassement du seuil', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # #247 — Exemple riche avec parenthésage : structure logique
+            #   Principal OR (Bloc1 AND Bloc2) OR Bloc3
+            # Permet de tester la précédence ET/OU + l'UX des parenthèses
+            # sur le plan zones humides (plus utilisé par l'équipe).
+            met.score_blocks.all().delete()
+            # Bloc 1 : ouvre une parenthèse, combiné en OR au principal
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=1, logical_op='OR',
+                group_open=1, group_close=0,
+                sens_variation='CROISSANT',
+                score_1_inf=0, score_1_sup=5,
+                score_2_inf=5, score_2_sup=10,
+                score_3_inf=10, score_3_sup=15,
+                score_4_inf=15, score_4_sup=20,
+                score_5_inf=20, score_5_sup=30,
+                has_borne_score1=True, has_borne_score5=True,
+            )
+            # Bloc 2 : combiné en AND au bloc 1, ferme la parenthèse
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=2, logical_op='AND',
+                group_open=0, group_close=1,
+                sens_variation='DECROISSANT',
+                score_1_inf=80, score_1_sup=200,
+                score_2_inf=60, score_2_sup=80,
+                score_3_inf=40, score_3_sup=60,
+                score_4_inf=20, score_4_sup=40,
+                score_5_inf=0, score_5_sup=20,
+                has_borne_score1=True, has_borne_score5=True,
+            )
+            # Bloc 3 : combiné en OR au groupe précédent, sans parenthèses
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=3, logical_op='OR',
+                group_open=0, group_close=0,
+                sens_variation='CROISSANT',
+                score_1_inf=0, score_1_sup=2,
+                score_2_inf=2, score_2_sup=5,
+                score_3_inf=5, score_3_sup=10,
+                score_4_inf=10, score_4_sup=15,
+                score_5_inf=15, score_5_sup=25,
+                has_borne_score1=True, has_borne_score5=True,
+            )
 
             # Indicateur pression sur le phosphore
             ind_p, created = Indicateur.objects.update_or_create(
@@ -2986,6 +3031,47 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': '22', 'commentaire': 'Amplitude mai-sept 2023 - été sec', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # #247 — Exemple à 4 blocs avec parenthésage double :
+            #   Principal AND (Bloc1 OR Bloc2) AND (Bloc3 OR Bloc4)
+            # Permet de tester la combinaison de plusieurs groupes parenthésés.
+            met.score_blocks.all().delete()
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=1, logical_op='AND',
+                group_open=1, group_close=0,
+                sens_variation='CROISSANT',
+                score_1_inf=0, score_1_sup=5,
+                score_3_inf=10, score_3_sup=20,
+                score_5_inf=25, score_5_sup=40,
+                has_borne_score1=True, has_borne_score5=True,
+            )
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=2, logical_op='OR',
+                group_open=0, group_close=1,
+                sens_variation='DECROISSANT',
+                score_1_inf=80, score_1_sup=150,
+                score_3_inf=40, score_3_sup=60,
+                score_5_inf=0, score_5_sup=20,
+                has_borne_score1=True, has_borne_score5=True,
+            )
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=3, logical_op='AND',
+                group_open=1, group_close=0,
+                sens_variation='CROISSANT',
+                score_1_inf=0, score_1_sup=2,
+                score_3_inf=5, score_3_sup=10,
+                score_5_inf=15, score_5_sup=25,
+                has_borne_score1=True, has_borne_score5=True,
+            )
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=4, logical_op='OR',
+                group_open=0, group_close=1,
+                sens_variation='DECROISSANT',
+                score_1_inf=60, score_1_sup=120,
+                score_3_inf=20, score_3_sup=40,
+                score_5_inf=0, score_5_sup=10,
+                has_borne_score1=True, has_borne_score5=True,
+            )
 
         # --- Remoray OO Tourbières - RA "80% drains neutralisés" ---
         ra_drains_obj = next((r for r in ras_created if 'drains' in r.libelle.lower()), None)

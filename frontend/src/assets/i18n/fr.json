@@ -2584,16 +2584,13 @@
       "includedIn": "inclu dans :",
       "notSet": "—",
       "indetermineLabel": "Indéterminé",
-      "principalIntervals": "Intervalles principaux",
-      "extraIntervals": "Intervalles complémentaires",
-      "addExtra": "Ajouter un intervalle complémentaire",
+      "extraBlocks": "Blocs de scoring complémentaires",
+      "addExtraBlock": "Ajouter un bloc complémentaire",
+      "extraBlocksPlaceholder": "{{count}} bloc(s) complémentaire(s) — UI complète à venir.",
       "opOr": "OU",
       "opAnd": "ET",
-      "applyTo": "pour le palier",
-      "and": "et",
       "boundInf": "min",
-      "boundSup": "max",
-      "forLevel": "pour"
+      "boundSup": "max"
     },
     "mesures": {
       "label": "Mesure",

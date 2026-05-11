@@ -1035,20 +1035,6 @@
                                                             </td>
                                                           }
                                                         </tr>
-                                                        <!-- #247 : intervalles complémentaires affichés en ligne supplémentaire -->
-                                                        @if (met.intervalles_extra && met.intervalles_extra.length > 0) {
-                                                          <tr class="metrique-extras-row">
-                                                            <td colspan="12">
-                                                              <div class="metrique-extras-list">
-                                                                @for (extra of met.intervalles_extra; track extra.id_intervalle_extra) {
-                                                                  <span class="metrique-extra-chip metrique-extra-chip-{{ extra.score_level }}">
-                                                                    {{ getExtraIntervalText(extra) }}
-                                                                  </span>
-                                                                }
-                                                              </div>
-                                                            </td>
-                                                          </tr>
-                                                        }
                                                       }
                                                     </tbody>
                                                   </table>

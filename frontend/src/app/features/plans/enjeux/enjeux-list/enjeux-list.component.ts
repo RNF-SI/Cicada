@@ -1807,17 +1807,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_4_sup_inclusive: met.score_4_sup_inclusive ?? true,
       has_score1_optional_bound: met.has_borne_score1 ?? false,
       has_score5_optional_bound: met.has_borne_score5 ?? false,
-      // #247 — recopie pour édition. Le serializer remplace la liste complète
-      // côté serveur ; le front conserve l'ordre et les positions tels quels.
-      intervalles_extra: (met.intervalles_extra || []).map(ex => ({
-        id_intervalle_extra: ex.id_intervalle_extra,
-        score_level: ex.score_level,
-        position: ex.position,
-        inf: c(ex.inf as any),
-        sup: c(ex.sup as any),
-        inf_inclusive: ex.inf_inclusive,
-        sup_inclusive: ex.sup_inclusive,
-        logical_op: ex.logical_op,
+      // #247 — blocs de scoring complémentaires (recopie pour édition).
+      // Le serializer remplace la liste complète côté serveur.
+      score_blocks: (met.score_blocks || []).map(b => ({
+        id_score_block: b.id_score_block,
+        position: b.position,
+        logical_op: b.logical_op,
+        group_open: b.group_open,
+        group_close: b.group_close,
+        sens_variation: b.sens_variation,
+        score_1_inf: c(b.score_1_inf as any), score_1_sup: c(b.score_1_sup as any),
+        score_2_inf: c(b.score_2_inf as any), score_2_sup: c(b.score_2_sup as any),
+        score_3_inf: c(b.score_3_inf as any), score_3_sup: c(b.score_3_sup as any),
+        score_4_inf: c(b.score_4_inf as any), score_4_sup: c(b.score_4_sup as any),
+        score_5_inf: c(b.score_5_inf as any), score_5_sup: c(b.score_5_sup as any),
+        score_1_sup_inclusive: b.score_1_sup_inclusive,
+        score_2_sup_inclusive: b.score_2_sup_inclusive,
+        score_3_sup_inclusive: b.score_3_sup_inclusive,
+        score_4_sup_inclusive: b.score_4_sup_inclusive,
+        has_borne_score1: b.has_borne_score1,
+        has_borne_score5: b.has_borne_score5,
       })),
     };
   }
@@ -1885,18 +1894,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       payload.has_borne_score1 = met.has_score1_optional_bound;
       payload.has_borne_score5 = met.has_score5_optional_bound;
 
-      // #247 — intervalles complémentaires. Envoyés intégralement à chaque
-      // sauvegarde : le serializer côté serveur fait un remplacement complet
-      // (delete + recréation).
-      if (met.intervalles_extra !== undefined) {
-        payload.intervalles_extra = (met.intervalles_extra || []).map(ex => ({
-          score_level: ex.score_level,
-          position: ex.position,
-          inf: ex.inf,
-          sup: ex.sup,
-          inf_inclusive: ex.inf_inclusive,
-          sup_inclusive: ex.sup_inclusive,
-          logical_op: ex.logical_op,
+      // #247 — blocs de scoring complémentaires. Envoyés intégralement à
+      // chaque sauvegarde : le serializer remplace l'ensemble (delete + recréation).
+      if (met.score_blocks !== undefined) {
+        payload.score_blocks = (met.score_blocks || []).map(b => ({
+          position: b.position,
+          logical_op: b.logical_op,
+          group_open: b.group_open,
+          group_close: b.group_close,
+          sens_variation: b.sens_variation,
+          score_1_inf: b.score_1_inf, score_1_sup: b.score_1_sup,
+          score_2_inf: b.score_2_inf, score_2_sup: b.score_2_sup,
+          score_3_inf: b.score_3_inf, score_3_sup: b.score_3_sup,
+          score_4_inf: b.score_4_inf, score_4_sup: b.score_4_sup,
+          score_5_inf: b.score_5_inf, score_5_sup: b.score_5_sup,
+          score_1_sup_inclusive: b.score_1_sup_inclusive,
+          score_2_sup_inclusive: b.score_2_sup_inclusive,
+          score_3_sup_inclusive: b.score_3_sup_inclusive,
+          score_4_sup_inclusive: b.score_4_sup_inclusive,
+          has_borne_score1: b.has_borne_score1,
+          has_borne_score5: b.has_borne_score5,
         }));
       }
     }
@@ -2501,44 +2518,6 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    * Retourne la liste des groupes ordonn\u00E9s gauche\u2192droite, chacun avec
    * `levels` (les niveaux concern\u00E9s), `colspan` et la valeur format\u00E9e.
    */
-  /**
-   * #247 — Texte formaté d'un intervalle complémentaire dans la table de
-   * lecture (ex: « OU pour Très bon : 50 ≤ x ≤ 60 »).
-   */
-  getExtraIntervalText(extra: any): string {
-    const opLabel = extra.logical_op === 'AND'
-      ? this.translate.instant('enjeux.metriques.opAnd')
-      : this.translate.instant('enjeux.metriques.opOr');
-    const levelLabel = this.translate.instant(this.getScoreLevelI18nKey(extra.score_level));
-    const infOp = extra.inf_inclusive ? '≤' : '<';
-    const supOp = extra.sup_inclusive ? '≤' : '<';
-    const inf = extra.inf != null ? Number(extra.inf).toString() : null;
-    const sup = extra.sup != null ? Number(extra.sup).toString() : null;
-    let intervalText: string;
-    if (inf != null && sup != null) {
-      intervalText = `${inf} ${infOp} x ${supOp} ${sup}`;
-    } else if (inf != null) {
-      intervalText = `x ${infOp.replace('≤', '≥').replace('<', '>')} ${inf}`;
-    } else if (sup != null) {
-      intervalText = `x ${supOp} ${sup}`;
-    } else {
-      intervalText = '—';
-    }
-    return `${opLabel} ${this.translate.instant('enjeux.metriques.forLevel')} ${levelLabel} : ${intervalText}`;
-  }
-
-  /** Clé i18n du palier (1-5). */
-  getScoreLevelI18nKey(level: number): string {
-    switch (level) {
-      case 1: return 'scores.veryBad';
-      case 2: return 'scores.bad';
-      case 3: return 'scores.neutral';
-      case 4: return 'scores.good';
-      case 5: return 'scores.veryGood';
-      default: return '';
-    }
-  }
-
   getScoreGroups(met: any): Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> {
     const values = [1, 2, 3, 4, 5].map(l => this.getScoreRange(met, l));
     const groups: Array<{ levels: number[]; colspan: number; value: string; primaryLevel: number }> = [];

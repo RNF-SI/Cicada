@@ -102,8 +102,6 @@
   </div>
 
   <!-- Tableau de scoring -->
-  <div class="score-section-title">{{ 'enjeux.metriques.principalIntervals' | translate }}</div>
-
   <div class="score-table-wrapper">
     <table class="score-table">
       <thead>
@@ -164,70 +162,26 @@
     </table>
   </div>
 
-  <!-- #247 — Intervalles complémentaires : ET/OU avec l'intervalle principal -->
+  <!-- #247 — Blocs de scoring complémentaires : section temporaire en attendant
+       la card complète. Pour l'instant, juste un bouton + nombre de blocs. -->
   <div class="extras-section">
     <div class="extras-header">
-      <span class="extras-title">{{ 'enjeux.metriques.extraIntervals' | translate }}</span>
-      <button type="button" class="btn-add-extra" (click)="addExtra()">
+      <span class="extras-title">
+        {{ 'enjeux.metriques.extraBlocks' | translate }}
+        @if (blocks.length > 0) {
+          <span class="extras-count">({{ blocks.length }})</span>
+        }
+      </span>
+      <button type="button" class="btn-add-extra" (click)="addBlock()">
         <i class="fi fi-rr-plus-small"></i>
-        {{ 'enjeux.metriques.addExtra' | translate }}
+        {{ 'enjeux.metriques.addExtraBlock' | translate }}
       </button>
     </div>
 
-    @if (extras.length > 0) {
-      <div class="extras-list">
-        @for (extra of extras; track $index; let i = $index) {
-          <div class="extra-row">
-            <select [(ngModel)]="extra.logical_op" (ngModelChange)="emitChange()" class="extra-op-select">
-              <option value="OR">{{ 'enjeux.metriques.opOr' | translate }}</option>
-              <option value="AND">{{ 'enjeux.metriques.opAnd' | translate }}</option>
-            </select>
-
-            <span class="extra-label">{{ 'enjeux.metriques.applyTo' | translate }}</span>
-
-            <select [(ngModel)]="extra.score_level"
-                    (ngModelChange)="onExtraLevelChange(i)"
-                    class="extra-level-select">
-              @for (meta of scoreMeta; track meta.level) {
-                <option [ngValue]="meta.level">{{ meta.labelKey | translate }}</option>
-              }
-            </select>
-
-            <span class="extra-label">x</span>
-
-            <select [(ngModel)]="extra.inf_inclusive" (ngModelChange)="emitChange()" class="extra-incl-select">
-              <option [ngValue]="false">&gt;</option>
-              <option [ngValue]="true">≥</option>
-            </select>
-
-            <input type="number" class="extra-input"
-                   [(ngModel)]="extra.inf"
-                   (ngModelChange)="emitChange()"
-                   step="any"
-                   [placeholder]="'enjeux.metriques.boundInf' | translate">
-
-            <span class="extra-label">{{ 'enjeux.metriques.and' | translate }} x</span>
-
-            <select [(ngModel)]="extra.sup_inclusive" (ngModelChange)="emitChange()" class="extra-incl-select">
-              <option [ngValue]="false">&lt;</option>
-              <option [ngValue]="true">≤</option>
-            </select>
-
-            <input type="number" class="extra-input"
-                   [(ngModel)]="extra.sup"
-                   (ngModelChange)="emitChange()"
-                   step="any"
-                   [placeholder]="'enjeux.metriques.boundSup' | translate">
-
-            <button type="button" class="btn-remove-extra"
-                    (click)="removeExtra(i)"
-                    [attr.aria-label]="'common.actions.delete' | translate"
-                    [title]="'common.actions.delete' | translate">
-              <i class="fi fi-rr-trash"></i>
-            </button>
-          </div>
-        }
-      </div>
+    @if (blocks.length > 0) {
+      <p class="extras-placeholder">
+        {{ 'enjeux.metriques.extraBlocksPlaceholder' | translate:{ count: blocks.length } }}
+      </p>
     }
   </div>
 </div>

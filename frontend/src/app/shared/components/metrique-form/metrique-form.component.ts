@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MetriqueFormData, MetriqueIntervalleExtra } from '../../../core/models/enjeu.model';
+import { MetriqueFormData, MetriqueScoreBlock } from '../../../core/models/enjeu.model';
 
 /**
  * Editor for a single Metrique (numerical type with 5 score levels).
@@ -211,54 +211,43 @@ export class MetriqueFormComponent {
   trackByOptionId = (_i: number, opt: TypeMetriqueOption) => opt.id_nomenclature;
 
   // =====================================================================
-  // #247 — Intervalles complémentaires (ET/OU)
+  // #247 — Blocs de scoring complémentaires
   // =====================================================================
+  // L'UI complète (card par bloc) sera ajoutée dans un commit dédié.
+  // Pour l'instant : exposition simple des blocs en lecture seule + ajout/suppression.
 
-  /** Tableau modifiable des extras. Référence directe (mutations in-place). */
-  get extras(): MetriqueIntervalleExtra[] {
-    this.metrique.intervalles_extra ??= [];
-    return this.metrique.intervalles_extra;
+  get blocks(): MetriqueScoreBlock[] {
+    this.metrique.score_blocks ??= [];
+    return this.metrique.score_blocks;
   }
 
-  /** Ajoute un intervalle complémentaire vide (par défaut : palier 5, OR). */
-  addExtra(): void {
-    const newExtra: MetriqueIntervalleExtra = {
-      score_level: 5,
-      position: this.nextPositionFor(5),
-      inf: null,
-      sup: null,
-      inf_inclusive: true,
-      sup_inclusive: true,
+  /** Ajoute un bloc complémentaire vide (croissant, OR avec le précédent). */
+  addBlock(): void {
+    const block: MetriqueScoreBlock = {
+      position: this.blocks.length + 1,
       logical_op: 'OR',
+      group_open: 0,
+      group_close: 0,
+      sens_variation: 'CROISSANT',
+      score_1_inf: null, score_1_sup: null,
+      score_2_inf: null, score_2_sup: null,
+      score_3_inf: null, score_3_sup: null,
+      score_4_inf: null, score_4_sup: null,
+      score_5_inf: null, score_5_sup: null,
+      score_1_sup_inclusive: true,
+      score_2_sup_inclusive: true,
+      score_3_sup_inclusive: true,
+      score_4_sup_inclusive: true,
+      has_borne_score1: false,
+      has_borne_score5: false,
     };
-    this.extras.push(newExtra);
+    this.blocks.push(block);
     this.emitChange();
   }
 
-  removeExtra(idx: number): void {
-    this.extras.splice(idx, 1);
-    this.renumberPositions();
-    this.emitChange();
-  }
-
-  /**
-   * Recalcule la position de chaque extra pour qu'elle reste unique par (score_level).
-   * Appelée après suppression ou changement de palier.
-   */
-  renumberPositions(): void {
-    const counters: Record<number, number> = {};
-    for (const ex of this.extras) {
-      counters[ex.score_level] = (counters[ex.score_level] ?? 0) + 1;
-      ex.position = counters[ex.score_level];
-    }
-  }
-
-  private nextPositionFor(level: ScoreLevel): number {
-    return this.extras.filter(e => e.score_level === level).length + 1;
-  }
-
-  onExtraLevelChange(_idx: number): void {
-    this.renumberPositions();
+  removeBlock(idx: number): void {
+    this.blocks.splice(idx, 1);
+    this.blocks.forEach((b, i) => { b.position = i + 1; });
     this.emitChange();
   }
 

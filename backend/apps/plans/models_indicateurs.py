@@ -433,17 +433,22 @@ class Metrique(models.Model):
         return self.id_indicateur.get_plan_de_gestion() if self.id_indicateur else None
 
 
-class MetriqueIntervalleExtra(models.Model):
+class MetriqueScoreBlock(models.Model):
     """
-    Intervalle complémentaire pour une métrique numérique (#247).
+    Bloc de scoring complémentaire pour une métrique numérique (#247).
 
-    Chaque métrique conserve son intervalle principal par palier via les
-    champs `score_N_inf/sup/_inclusive` de :class:`Metrique`. Pour exprimer
-    des cas comme « score 5 si x ∈ [0;10] OU x ∈ [50;60] », l'utilisateur
-    peut ajouter ici des intervalles supplémentaires.
+    Une métrique conserve toujours son bloc principal sur :class:`Metrique`
+    lui-même (champs `score_N_inf/sup/_inclusive`, `sens_variation`,
+    `has_borne_score1/5`). Pour exprimer un scoring en plusieurs blocs
+    combinés en ET/OU (ex. deux courbes croissantes/décroissantes alternatives,
+    ou des intervalles disjoints), on ajoute des blocs additionnels ici.
 
-    Combinaison logique : chaque extra est relié à l'intervalle qui précède
-    (le principal ou l'extra précédent au même `score_level`) par `logical_op`.
+    Chaque bloc a la même structure qu'un bloc principal : 5 paliers, sens de
+    variation, inclusivités, bornes extrêmes optionnelles. Les blocs sont
+    combinés au principal (et entre eux) via `logical_op`.
+
+    L'UI doit présenter principal et complémentaires de manière strictement
+    symétrique — d'où le nom volontairement neutre « score block ».
     """
 
     LOGICAL_OP_CHOICES = [
@@ -451,64 +456,91 @@ class MetriqueIntervalleExtra(models.Model):
         ('AND', _('ET')),
     ]
 
-    id_intervalle_extra = models.AutoField(primary_key=True)
+    id_score_block = models.AutoField(primary_key=True)
     id_metrique = models.ForeignKey(
         Metrique,
         on_delete=models.CASCADE,
-        related_name='intervalles_extra',
+        related_name='score_blocks',
         db_column='id_metrique',
         verbose_name=_("Métrique")
-    )
-    score_level = models.PositiveSmallIntegerField(
-        _("Niveau de score"),
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        help_text=_("Palier auquel l'intervalle est rattaché (1=TM, 2=Mauv, 3=Moy, 4=Bon, 5=TB)"),
     )
     position = models.PositiveSmallIntegerField(
         _("Position"),
         default=1,
-        help_text=_("Ordre de cet extra parmi les intervalles complémentaires du même palier (1=premier extra)"),
-    )
-    inf = models.DecimalField(
-        _("Borne inférieure"),
-        max_digits=12, decimal_places=4, null=True, blank=True
-    )
-    sup = models.DecimalField(
-        _("Borne supérieure"),
-        max_digits=12, decimal_places=4, null=True, blank=True
-    )
-    inf_inclusive = models.BooleanField(
-        _("Borne inf inclusive"), default=True,
-        help_text=_("True: x ≥ inf, False: x > inf"),
-    )
-    sup_inclusive = models.BooleanField(
-        _("Borne sup inclusive"), default=False,
-        help_text=_("True: x ≤ sup, False: x < sup"),
+        help_text=_("Ordre du bloc complémentaire (1=premier après le principal)"),
     )
     logical_op = models.CharField(
         _("Opérateur logique"),
         max_length=4,
         choices=LOGICAL_OP_CHOICES,
         default='OR',
-        help_text=_("Comment combiner cet intervalle avec l'intervalle qui précède (principal ou extra précédent)"),
+        help_text=_("Comment combiner ce bloc avec le bloc qui précède (principal ou complémentaire précédent)"),
     )
 
+    # Parenthésage explicite pour gérer la précédence ET/OU sur 3+ blocs (#247).
+    # group_open : nombre de « ( » que ce bloc OUVRE (juste avant lui).
+    # group_close : nombre de « ) » que ce bloc FERME (juste après lui).
+    # Exemple : (Bloc1 OR Bloc2) AND (Bloc3 OR Bloc4) se code
+    #   - Bloc1 : group_open=1, group_close=0
+    #   - Bloc2 : group_open=0, group_close=1
+    #   - Bloc3 : group_open=1, group_close=0, logical_op=AND
+    #   - Bloc4 : group_open=0, group_close=1, logical_op=OR
+    group_open = models.PositiveSmallIntegerField(
+        _("Parenthèses ouvrantes"),
+        default=0,
+        help_text=_("Nombre de '(' à ouvrir avant ce bloc (gestion de la précédence ET/OU)"),
+    )
+    group_close = models.PositiveSmallIntegerField(
+        _("Parenthèses fermantes"),
+        default=0,
+        help_text=_("Nombre de ')' à fermer après ce bloc"),
+    )
+
+    sens_variation = models.CharField(
+        _("Sens de variation"),
+        max_length=20,
+        choices=[('CROISSANT', _('Croissant')), ('DECROISSANT', _('Décroissant'))],
+        default='CROISSANT',
+    )
+
+    # 5 paliers — bornes des intervalles
+    score_1_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_1_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_2_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_2_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_3_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_3_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_4_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_4_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_5_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    score_5_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+
+    # Inclusivité des frontières entre paliers (4 frontières pour 5 paliers)
+    score_1_sup_inclusive = models.BooleanField(default=True)
+    score_2_sup_inclusive = models.BooleanField(default=True)
+    score_3_sup_inclusive = models.BooleanField(default=True)
+    score_4_sup_inclusive = models.BooleanField(default=True)
+
+    # Bornes extrêmes optionnelles
+    has_borne_score1 = models.BooleanField(default=False)
+    has_borne_score5 = models.BooleanField(default=False)
+
     class Meta:
-        db_table = '"general"."t_metrique_intervalles_extra"'
-        db_table_comment = "Intervalles complémentaires des métriques numériques (#247)"
-        verbose_name = _("Intervalle complémentaire")
-        verbose_name_plural = _("Intervalles complémentaires")
-        ordering = ['id_metrique', 'score_level', 'position']
+        db_table = '"general"."t_metrique_score_blocks"'
+        db_table_comment = "Blocs de scoring complémentaires des métriques numériques (#247)"
+        verbose_name = _("Bloc de scoring complémentaire")
+        verbose_name_plural = _("Blocs de scoring complémentaires")
+        ordering = ['id_metrique', 'position']
         constraints = [
             models.UniqueConstraint(
-                fields=['id_metrique', 'score_level', 'position'],
-                name='uniq_metrique_intervalle_extra_position',
+                fields=['id_metrique', 'position'],
+                name='uniq_metrique_score_block_position',
             ),
         ]
 
     def __str__(self):
         op = self.get_logical_op_display()
-        return f"{op} [{self.inf}; {self.sup}] (m{self.id_metrique_id} L{self.score_level} p{self.position})"
+        return f"{op} bloc#{self.position} (m{self.id_metrique_id})"
 
     def get_plan_de_gestion(self):
         """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
