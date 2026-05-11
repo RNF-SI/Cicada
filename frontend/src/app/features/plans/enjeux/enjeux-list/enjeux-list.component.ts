@@ -1818,7 +1818,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.indicateurFormMetriques = this.indicateurFormMetriques.filter((_, i) => i !== index);
   }
 
-  getMetriqueTypeMnemonique(typeMetriqueId: number | null): string {
+  getMetriqueTypeMnemonique(typeMetriqueId: number | null | undefined): string {
     if (!typeMetriqueId) return 'NUMERIQUE';
     const opt = this.typeMetriqueOptions().find(o => o.id_nomenclature === typeMetriqueId);
     return opt?.mnemonique || 'NUMERIQUE';

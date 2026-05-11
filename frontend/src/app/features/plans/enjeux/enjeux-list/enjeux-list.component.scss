@@ -1392,6 +1392,28 @@
         font-size: 12px;
       }
 
+      // #208 : colonne "Indéterminé" — pictogramme + libellé "Oui" pour les
+      // métriques sans saisie de scores. Cellule vide (tiret discret) sinon.
+      &.indetermine-cell {
+        text-align: center;
+        font-size: 12px;
+        min-width: 80px;
+
+        .indetermine-marker {
+          display: inline-flex;
+          align-items: center;
+          gap: $spacing-xxs;
+          color: $primary-color;
+          font-weight: $font-weight-bold;
+
+          i { font-size: 14px; }
+        }
+
+        .indetermine-empty {
+          color: $gray-dark;
+        }
+      }
+
       &.score-cell-1 { background-color: rgba($score-very-bad, 0.12); }
       &.score-cell-2 { background-color: rgba($score-bad, 0.12); }
       &.score-cell-3 { background-color: rgba($score-neutral, 0.12); }

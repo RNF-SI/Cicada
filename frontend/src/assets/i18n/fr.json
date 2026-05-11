@@ -2582,7 +2582,8 @@
       "boundaryLabel": "Valeur limite",
       "boundaryPlaceholder": "Valeur",
       "includedIn": "inclu dans :",
-      "notSet": "—"
+      "notSet": "—",
+      "indetermineLabel": "Indéterminé"
     },
     "mesures": {
       "label": "Mesure",
