@@ -264,6 +264,7 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (760, 48, 'NUMERIQUE', 'NUMERIQUE', 'Intervalle numérique', 'Métrique de type intervalle numérique (min-max)', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1351, 48, 'CHIFFRE', 'CHIFFRE', 'Chiffre', 'Métrique de type chiffre (valeur unique)', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1352, 48, 'TEXTE', 'TEXTE', 'Texte', 'Métrique de type texte (description libre)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1367, 48, 'INDETERMINE', 'INDETERMINE', 'Indéterminé', 'Type de métrique non défini — saisie à préciser ultérieurement', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
 
 -- ============================================
 -- NOMENCLATURES POUR OPÉRATIONS (ACTIONS)

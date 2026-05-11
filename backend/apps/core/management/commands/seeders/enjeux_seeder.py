@@ -2004,6 +2004,7 @@ class EnjeuxSeeder(BaseSeeder):
         type_met_numerique = self._get_nomenclature('TYPE_METRIQUE', 'NUMERIQUE')
         type_met_chiffre = self._get_nomenclature('TYPE_METRIQUE', 'CHIFFRE')
         type_met_texte = self._get_nomenclature('TYPE_METRIQUE', 'TEXTE')
+        type_met_indetermine = self._get_nomenclature('TYPE_METRIQUE', 'INDETERMINE')
 
         from datetime import date
 
@@ -2091,6 +2092,19 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': 'Bien développée', 'commentaire': 'Relevé phytosociologique', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # Métrique 3 : type indéterminé (#208) — saisie à préciser plus tard
+            met3, created = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Diversité fonctionnelle (à préciser)',
+                defaults={
+                    'type_metrique': type_met_indetermine,
+                    'description': 'Méthodologie de mesure à définir avec le comité scientifique. '
+                                   'Pourra basculer en numérique (indice multivarié) ou texte qualitatif.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met3)
 
         # --- Camargue - NE "Succès de reproduction ≥ 0.5" (flamant) ---
         ne_flamant = next((ne for ne in nes_created if 'reproduction' in ne.libelle and 'jeune' in ne.libelle), None)
@@ -2232,6 +2246,20 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={'valeur': '22', 'commentaire': 'Inventaire été 2023 - 2 stations non retrouvées', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
+
+            # Métrique 2 : type indéterminé (#208) — placeholder en attente de protocole
+            met_ind, created = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Connectivité des stations (à définir)',
+                defaults={
+                    'type_metrique': type_met_indetermine,
+                    'description': 'Mesure de connectivité écologique entre stations. '
+                                   'Protocole en discussion avec le CSRPN — sera précisé '
+                                   'lors de la prochaine évaluation.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_ind)
 
         # --- Aiguilles Rouges - NE "Tendance démographique tétras" : indicateur réponse ---
         ne_tetras = next((ne for ne in nes_created if 'démographique' in ne.libelle.lower()), None)
