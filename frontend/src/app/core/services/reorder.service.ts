@@ -48,4 +48,13 @@ export class ReorderService {
   moveIndicateur(indicateurId: number, payload: MoveIndicateurPayload): Observable<unknown> {
     return this.http.post(`${this.base}/indicateurs/${indicateurId}/move/`, payload);
   }
+
+  /**
+   * Récupère le dict `{id_operation: code_affichage}` pour un plan.
+   * Utilisé pour rafraîchir uniquement les codes après un DnD, sans
+   * recharger la totalité de l'arbre du plan (#228 — réduit la latence).
+   */
+  getOperationCodes(planId: number): Observable<Record<number, string>> {
+    return this.http.get<Record<number, string>>(`${this.base}/plans/${planId}/operation-codes/`);
+  }
 }

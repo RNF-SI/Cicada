@@ -274,15 +274,27 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   expandedOoIndicateurIds = signal<Set<number>>(new Set());
   expandedOoOperationIds = signal<Set<number>>(new Set());
 
-  // Enjeux et FCR séparés
+  // Enjeux et FCR séparés.
+  // #228 — Tri explicite par `ordre` puis `id_enjeu` après chaque accès :
+  // moveItemInArray dans applyReorder mute `item.ordre` sur les objets
+  // partagés ; le re-render dépend du tri canonique pour refléter le DnD.
+  private static _byOrdreId<T extends { ordre?: number; id_enjeu: number }>(a: T, b: T): number {
+    const oa = a.ordre ?? 0;
+    const ob = b.ordre ?? 0;
+    if (oa !== ob) return oa - ob;
+    return a.id_enjeu - b.id_enjeu;
+  }
+
   enjeux = computed(() => {
     const data = this.planEnjeuxData();
-    return data?.enjeux || [];
+    if (!data) return [];
+    return [...(data.enjeux || [])].sort(EnjeuxListComponent._byOrdreId);
   });
 
   fcr = computed(() => {
     const data = this.planEnjeuxData();
-    return data?.fcr || [];
+    if (!data) return [];
+    return [...(data.fcr || [])].sort(EnjeuxListComponent._byOrdreId);
   });
 
   // Compteur total
@@ -1053,16 +1065,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return (enjeu.facteurs_influence || []).flatMap(fi => fi.pressions || []);
   });
 
-  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions, dédupliqués)
+  // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions, dédupliqués).
+  // #228 — Tri final par `ordre` puis `id_oo` : le flatMap suit l'ordre des
+  // pressions, mais une fois dédupliqué, il faut imposer le tri canonique
+  // des OO pour que le DnD inter-OO soit visible côté UI (sinon la première
+  // pression rencontrée fige la position du OO).
   selectedOos = computed(() => {
     const seen = new Set<number>();
-    return this.selectedPressions()
+    const unique = this.selectedPressions()
       .flatMap(p => p.objectifs_operationnels || [])
       .filter(oo => {
         if (seen.has(oo.id_oo)) return false;
         seen.add(oo.id_oo);
         return true;
       });
+    return [...unique].sort((a, b) => {
+      const ordreA = (a as any).ordre ?? 0;
+      const ordreB = (b as any).ordre ?? 0;
+      if (ordreA !== ordreB) return ordreA - ordreB;
+      return a.id_oo - b.id_oo;
+    });
   });
 
   totalOoCount = computed(() => {
@@ -2292,11 +2314,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           this.translate.instant('common.actions.close'),
           { duration: 2000 },
         );
-        // Recharge silencieuse : les enjeux/FCR sont des computed() sur
-        // planEnjeuxData(), donc une mutation d'un tableau copié ne se
-        // reflète pas dans le rendu. La recharge depuis le serveur garantit
-        // l'ordre persisté côté UI (retour utilisateur du 2026-05-12).
-        this.loadPlanData(true);
+        // #228 — Au lieu de recharger tout l'arbre via by-plan/, on :
+        // 1) force le re-render des computed (l'ordre local est déjà à jour
+        //    via moveItemInArray sur la liste passée en référence)
+        // 2) ne re-fetch que les codes calculés des actions (endpoint léger).
+        this.refreshUiAndCodes();
       },
       error: () => {
         this.snackBar.open(
@@ -2308,6 +2330,67 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.loadPlanData(true);
       },
     });
+  }
+
+  /**
+   * Force un re-render des computed liés à planEnjeuxData (les mutations
+   * sur les sous-listes ne notifient pas le signal d'elles-mêmes), puis
+   * fetch les codes d'actions à jour et les patche en place. Beaucoup plus
+   * léger qu'un `loadPlanData(true)` complet (#228, retour utilisateur du
+   * 2026-05-12 : « l'actualisation des numéros prend un peu de temps »).
+   */
+  private refreshUiAndCodes(): void {
+    // 1) Trigger le re-render en remplaçant l'objet racine (clé `_uiRev`
+    //    suffit : Angular signals comparent par référence).
+    this.planEnjeuxData.update(d => d ? { ...d } : d);
+
+    // 2) Fetch les codes calculés et les patche dans chaque opération.
+    const planId = this.planId();
+    if (!planId) return;
+    this.reorderService.getOperationCodes(planId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (codes) => this.applyCodesInPlace(codes),
+      error: () => { /* silencieux : les codes seront re-calculés au prochain reload */ },
+    });
+  }
+
+  /**
+   * Walk l'arbre `planEnjeuxData` et met à jour `op.code_affichage` à partir
+   * du dict {id_operation: code} reçu du backend.
+   */
+  private applyCodesInPlace(codes: Record<number, string>): void {
+    const data = this.planEnjeuxData();
+    if (!data) return;
+    const patchOp = (op: any) => {
+      const code = codes[op.id_operation];
+      if (code !== undefined) op.code_affichage = code;
+    };
+    const walkIndicateur = (ind: any) => {
+      for (const met of (ind.metriques || [])) {
+        for (const op of (met.operations || [])) patchOp(op);
+      }
+    };
+    const walkEnjeu = (enjeu: any) => {
+      for (const olt of (enjeu.objectifs_long_terme || [])) {
+        for (const ne of (olt.niveaux_exigence || [])) {
+          for (const ind of (ne.indicateurs || [])) walkIndicateur(ind);
+        }
+      }
+      for (const fi of (enjeu.facteurs_influence || [])) {
+        for (const pression of (fi.pressions || [])) {
+          for (const oo of (pression.objectifs_operationnels || [])) {
+            for (const ra of (oo.resultats_attendus || [])) {
+              for (const ind of (ra.indicateurs || [])) walkIndicateur(ind);
+            }
+          }
+        }
+      }
+    };
+    for (const enjeu of (data.enjeux || [])) walkEnjeu(enjeu);
+    for (const fcr of (data.fcr || [])) walkEnjeu(fcr);
+    // Forcer le re-render après mutation in-place.
+    this.planEnjeuxData.update(d => d ? { ...d } : d);
   }
 
   /** Drag-and-drop : réordonne les enjeux du plan. */

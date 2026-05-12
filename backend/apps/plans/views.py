@@ -1241,6 +1241,23 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         serializer = PlanGestionDetailSerializer(new_plan)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['get'], url_path='operation-codes')
+    def operation_codes(self, request, pk=None):
+        """
+        Renvoie le dict {id_operation: code_affichage} pour un plan.
+
+        GET /api/plans/plans/{id}/operation-codes/
+
+        Endpoint léger appelé après un DnD pour rafraîchir uniquement les
+        codes (préfixe + rang) sans recharger la totalité de l'arbre du
+        plan via `enjeux/by-plan/`. Le calcul lui-même est ~14 requêtes
+        SQL grâce au prefetch (#228).
+        """
+        plan = self.get_object()
+        from .serializers_operations import compute_operation_codes_for_plan
+        codes = compute_operation_codes_for_plan(plan.pk)
+        return Response(codes)
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """
