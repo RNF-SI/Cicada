@@ -707,8 +707,19 @@
                             </div>
                           </div>
                         } @else {
-                          <!-- Barre OLT (utilise app-section-title réutilisable) -->
-                          <div class="olt-section-header" [id]="'olt-' + olt.id_olt" (click)="toggleOlt(olt.id_olt)">
+                          <!-- Barre OLT (utilise app-section-title réutilisable).
+                               #261 : la poignée de drag est sortie de section-title
+                               (la projection <ng-content> faisait que cdkDragHandle
+                               n'était pas découvert par cdkDrag). -->
+                          <div class="olt-section-header olt-section-header--draggable" [id]="'olt-' + olt.id_olt" (click)="toggleOlt(olt.id_olt)">
+                            @if (canEditPlan()) {
+                              <button class="icon-btn-flat olt-drag-handle" type="button" cdkDragHandle
+                                      (click)="$event.stopPropagation()"
+                                      [title]="'enjeux.dnd.dragHandle' | translate"
+                                      [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                <i class="fi fi-rr-menu-burger"></i>
+                              </button>
+                            }
                             <app-section-title
                               [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
                               icon="fi-rr-eye"
@@ -717,12 +728,6 @@
                               [showLine]="true">
                               <div sectionActions class="olt-header-actions">
                                 @if (canEditPlan()) {
-                                  <button class="icon-btn-flat olt-drag-handle" type="button" cdkDragHandle
-                                          (click)="$event.stopPropagation()"
-                                          [title]="'enjeux.dnd.dragHandle' | translate"
-                                          [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                    <i class="fi fi-rr-menu-burger"></i>
-                                  </button>
                                   <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                     <i class="fi fi-rr-pencil"></i>
                                   </button>
@@ -2016,7 +2021,16 @@
                   </div>
                 } @else {
                   <!-- Barre OO (utilise app-section-title réutilisable) -->
-                  <div class="olt-section-header" [id]="'oo-' + oo.id_oo" (click)="toggleOo(oo.id_oo)">
+                  <!-- Barre OO. #261 : handle de drag sorti de section-title (la projection ng-content masquait cdkDragHandle au cdkDrag parent). -->
+                  <div class="olt-section-header olt-section-header--draggable" [id]="'oo-' + oo.id_oo" (click)="toggleOo(oo.id_oo)">
+                    @if (canEditPlan()) {
+                      <button class="icon-btn-flat oo-drag-handle" type="button" cdkDragHandle
+                              (click)="$event.stopPropagation()"
+                              [title]="'enjeux.dnd.dragHandle' | translate"
+                              [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                        <i class="fi fi-rr-menu-burger"></i>
+                      </button>
+                    }
                     <app-section-title
                       [title]="('enjeux.oo.label' | translate) + ' ' + (ooIdx + 1) + ' : ' + oo.libelle"
                       icon="fi-rr-bullseye-arrow"
@@ -2025,12 +2039,6 @@
                       [showLine]="true">
                       <div sectionActions class="olt-header-actions">
                         @if (canEditPlan()) {
-                          <button class="icon-btn-flat oo-drag-handle" type="button" cdkDragHandle
-                                  (click)="$event.stopPropagation()"
-                                  [title]="'enjeux.dnd.dragHandle' | translate"
-                                  [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                            <i class="fi fi-rr-menu-burger"></i>
-                          </button>
                           <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                             <i class="fi fi-rr-pencil"></i>
                           </button>

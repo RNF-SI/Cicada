@@ -2290,6 +2290,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           this.translate.instant('common.actions.close'),
           { duration: 2000 },
         );
+        // Recharge silencieuse : les enjeux/FCR sont des computed() sur
+        // planEnjeuxData(), donc une mutation d'un tableau copié ne se
+        // reflète pas dans le rendu. La recharge depuis le serveur garantit
+        // l'ordre persisté côté UI (retour utilisateur du 2026-05-12).
+        this.loadPlanData(true);
       },
       error: () => {
         this.snackBar.open(

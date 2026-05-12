@@ -1064,6 +1064,30 @@
   &:hover {
     opacity: 0.9;
   }
+
+  // #261 : variante avec handle de drag externe à app-section-title
+  // (la projection ng-content cachait cdkDragHandle au cdkDrag parent).
+  &--draggable {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    app-section-title {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+}
+
+// Handles OLT / OO en barre — couleur primary pour qu'on les voie.
+.olt-drag-handle,
+.oo-drag-handle {
+  flex-shrink: 0;
+  color: $primary-color;
+  cursor: grab;
+
+  &:active { cursor: grabbing; }
+  &:hover  { background-color: rgba($primary-color, 0.1); }
 }
 
 .olt-header-actions {
