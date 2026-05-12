@@ -1242,14 +1242,19 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
-    @method_decorator(cache_page(60 * 15))  # Cache 15 minutes
     def stats(self, request):
         """
-        Statistiques des Plans de Gestion.
-        
-        GET /api/plans/stats/
+        Statistiques des Plans de Gestion — applique les mêmes filtres que la liste.
+
+        GET /api/plans/plans/stats/?organisme=&statut=&search=…
+
+        #184 : avant ce fix, l'endpoint utilisait `get_queryset()` sans
+        passer par `filter_queryset()`, donc les vignettes côté admin
+        ignoraient le filtre organisme/statut. Le cache 15 min a aussi été
+        retiré (les compteurs doivent refléter immédiatement le choix de
+        l'utilisateur).
         """
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         
         stats = {
             'total': queryset.count(),

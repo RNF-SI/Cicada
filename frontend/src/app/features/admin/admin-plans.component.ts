@@ -123,11 +123,17 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<void>();
   private destroy$ = new Subject<void>();
 
-  // Statistics - based on current page data
-  totalPlans = computed(() => this.totalItems());
-  plansValides = computed(() => this.plans().filter(p => p.statut === 'valide').length);
-  plansBrouillon = computed(() => this.plans().filter(p => p.statut === 'draft').length);
-  plansArchives = computed(() => this.plans().filter(p => p.statut === 'archive').length);
+  // Statistiques agrégées renvoyées par /api/plans/plans/stats/ (#184).
+  // Avant ce fix, les vignettes comptaient les plans visibles dans la page
+  // courante, donc ne reflétaient ni le filtre organisme ni le total.
+  private statsSignal = signal<{ total: number; par_statut: Record<string, number> }>({
+    total: 0,
+    par_statut: {},
+  });
+  totalPlans = computed(() => this.statsSignal().total);
+  plansValides = computed(() => this.statsSignal().par_statut['valide'] || 0);
+  plansBrouillon = computed(() => this.statsSignal().par_statut['draft'] || 0);
+  plansArchives = computed(() => this.statsSignal().par_statut['archive'] || 0);
 
   ngOnInit(): void {
     this.searchSubject.pipe(
@@ -173,14 +179,17 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
         : undefined);
 
     const scope = !this.isSuperAdmin() && !this.isAdminOrganisme() ? 'mine' as const : undefined;
-
-    this.adminService.getPlans({
+    const commonFilters = {
       search: this.searchQuery || undefined,
-      page: this.currentPage(),
-      page_size: this.pageSize,
       statut: this.filterStatut || undefined,
       organisme: organismeFilter,
-      scope
+      scope,
+    };
+
+    this.adminService.getPlans({
+      ...commonFilters,
+      page: this.currentPage(),
+      page_size: this.pageSize,
     }).subscribe({
       next: (response: any) => {
         const mapped = response.results.map((plan: any) => this.mapPlan(plan));
@@ -192,6 +201,12 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
         this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
         this.isLoading.set(false);
       }
+    });
+
+    // #184 — recharger les vignettes selon le filtre courant.
+    this.adminService.getPlanStats(commonFilters).subscribe({
+      next: (stats) => this.statsSignal.set(stats),
+      error: () => { /* ignore — les compteurs gardent leur dernière valeur */ },
     });
   }
 

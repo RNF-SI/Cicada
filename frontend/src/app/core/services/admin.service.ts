@@ -460,6 +460,30 @@ export class AdminService {
   }
 
   /**
+   * Statistiques agrégées des plans, respectant les mêmes filtres que `getPlans`
+   * (#184). Réponse : `{ total, par_statut: { draft, valide, etendu, archive } }`.
+   */
+  getPlanStats(params?: {
+    search?: string;
+    statut?: PlanStatut;
+    organisme?: number;
+    site?: number;
+    scope?: 'mine';
+  }): Observable<{ total: number; par_statut: Record<string, number> }> {
+    let httpParams = new HttpParams();
+    if (params?.search) httpParams = httpParams.set('search', params.search);
+    if (params?.statut) httpParams = httpParams.set('statut', params.statut);
+    if (params?.organisme) httpParams = httpParams.set('organisme', params.organisme.toString());
+    if (params?.site) httpParams = httpParams.set('site_id', params.site.toString());
+    if (params?.scope) httpParams = httpParams.set('scope', params.scope);
+
+    return this.http.get<{ total: number; par_statut: Record<string, number> }>(
+      `${this.plansApiUrl}/plans/stats/`,
+      { params: httpParams },
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
    * Get single plan by ID
    */
   getPlan(id: number): Observable<AdminPlan> {
