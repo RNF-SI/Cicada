@@ -2465,8 +2465,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           this.translate.instant('common.actions.close'),
           { duration: 2000 },
         );
-        // Recharge silencieuse pour resynchroniser les FK côté UI.
-        this.loadPlanData(true);
+        // Pas de reload sur succès : l'optimistic transfer a déjà déplacé
+        // l'indicateur dans la bonne liste côté UI. Reload silencieux
+        // déclenche une race avec le cdkDropList qui peut casser le drop
+        // suivant (#261, retour utilisateur du 2026-05-12).
       },
       error: () => {
         this.snackBar.open(

@@ -2551,7 +2551,8 @@
       "reorderSuccess": "Ordre mis à jour",
       "reorderError": "Réordonnancement impossible",
       "moveSuccess": "Indicateur déplacé",
-      "moveError": "Déplacement impossible"
+      "moveError": "Déplacement impossible",
+      "dropHereIndicateur": "Glisser un indicateur ici"
     },
     "metriques": {
       "label": "Métrique",

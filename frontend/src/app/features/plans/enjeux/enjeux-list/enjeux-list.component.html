@@ -807,8 +807,15 @@
                                          [cdkDropListData]="ne.indicateurs || []"
                                          [cdkDropListConnectedTo]="connectedIndicateurNeDroplistIds(ne.id_ne)"
                                          class="indicateurs-droplist"
+                                         [class.indicateurs-droplist--empty]="!(ne.indicateurs && ne.indicateurs.length)"
                                          [cdkDropListDisabled]="!canEditPlan()"
                                          (cdkDropListDropped)="onIndicateurNeDrop($event, ne)">
+                                    @if (!(ne.indicateurs && ne.indicateurs.length) && canEditPlan()) {
+                                      <div class="droplist-empty-hint">
+                                        <i class="fi fi-rr-arrow-down"></i>
+                                        <span>{{ 'enjeux.dnd.dropHereIndicateur' | translate }}</span>
+                                      </div>
+                                    }
                                     @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
                                       <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                         @if (editingIndicateurId() === ind.id_indicateur) {
@@ -2123,8 +2130,15 @@
                                  [cdkDropListData]="ra.indicateurs || []"
                                  [cdkDropListConnectedTo]="connectedIndicateurRaDroplistIds(ra.id_ra)"
                                  class="indicateurs-droplist"
+                                 [class.indicateurs-droplist--empty]="!(ra.indicateurs && ra.indicateurs.length)"
                                  [cdkDropListDisabled]="!canEditPlan()"
                                  (cdkDropListDropped)="onIndicateurRaDrop($event, ra)">
+                            @if (!(ra.indicateurs && ra.indicateurs.length) && canEditPlan()) {
+                              <div class="droplist-empty-hint">
+                                <i class="fi fi-rr-arrow-down"></i>
+                                <span>{{ 'enjeux.dnd.dropHereIndicateur' | translate }}</span>
+                              </div>
+                            }
                             @for (ind of ra.indicateurs || []; track ind.id_indicateur) {
                               <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                 @if (editingOoIndicateurId() === ind.id_indicateur) {

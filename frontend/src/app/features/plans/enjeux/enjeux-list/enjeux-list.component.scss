@@ -1701,6 +1701,33 @@
   @extend %dnd-droplist;
 }
 
+// #261 — Zone de drop visible quand la liste d'indicateurs est vide.
+// Sans cela, le conteneur se replie à 0 px et il devient impossible
+// de re-déposer un indicateur dans son ancien parent après un déplacement.
+.indicateurs-droplist--empty {
+  min-height: 64px;
+  border: 2px dashed rgba($primary-color, 0.3);
+  border-radius: $border-radius-sm;
+  background-color: rgba($primary-color, 0.03);
+  padding: $spacing-sm;
+}
+
+.droplist-empty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  min-height: 48px;
+  color: $gray-dark;
+  font-style: italic;
+  font-size: 0.875rem;
+
+  i {
+    font-size: 1rem;
+    color: rgba($primary-color, 0.6);
+  }
+}
+
 .facteur-drag-item,
 .pression-drag-item,
 .olt-drag-item,
