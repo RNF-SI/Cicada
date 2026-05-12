@@ -1,4 +1,4 @@
-import { Component, OnInit, input, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, input, inject, signal, computed, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -34,14 +34,20 @@ export class PlanSidebarComponent implements OnInit {
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
   constructor() {
-    // Re-charger les enjeux à chaque changement de planId ou activePage
+    // Re-charger les enjeux à chaque changement de planId ou activePage.
+    // Important : `getPlanEnjeux()` lit puis `set` le signal de cache du
+    // service. Si on ne sort pas l'appel du contexte réactif via
+    // `untracked()`, le `set` post-fetch déclenche un re-run de cet effect,
+    // qui refait l'appel → boucle infinie (#224, retour utilisateur 2026-05-12).
     effect(() => {
       const planId = this.planId();
       this.activePage(); // track pour rafraîchir quand on revient sur la page
       if (planId) {
-        this.enjeuService.getPlanEnjeux(planId, true).subscribe(response => {
-          this.enjeux.set(response.enjeux);
-          this.fcr.set(response.fcr);
+        untracked(() => {
+          this.enjeuService.getPlanEnjeux(planId, true).subscribe(response => {
+            this.enjeux.set(response.enjeux);
+            this.fcr.set(response.fcr);
+          });
         });
       }
     });
