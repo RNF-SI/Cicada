@@ -89,13 +89,22 @@ describe('PlanSidebarComponent', () => {
   let component: PlanSidebarComponent;
   let componentRef: ComponentRef<PlanSidebarComponent>;
   let fixture: ComponentFixture<PlanSidebarComponent>;
-  let mockEnjeuService: { getPlanEnjeux: jest.Mock };
+  let mockEnjeuService: { getPlanEnjeux: jest.Mock; currentPlanEnjeux: jest.Mock };
   let mockRouter: { navigate: jest.Mock };
 
   beforeEach(async () => {
+    // `currentPlanEnjeux()` retourne null avant le premier chargement —
+    // le composant déclenche alors `getPlanEnjeux()` (qui alimente
+    // ensuite le signal). Une fois `getPlanEnjeux` consommé, le test
+    // surcharge le mock pour exposer la réponse aux `computed`.
     mockEnjeuService = {
       getPlanEnjeux: jest.fn().mockReturnValue(of(mockPlanEnjeuxResponse)),
+      currentPlanEnjeux: jest.fn().mockReturnValue(mockPlanEnjeuxResponse),
     };
+    // Force le 1er chargement : la sidebar appelle getPlanEnjeux seulement
+    // si le cache n'a pas le plan demandé. On part de null pour les
+    // assertions qui vérifient l'appel ; les tests qui lisent `enjeux()`
+    // bénéficient quand même de la valeur pré-alimentée.
 
     mockRouter = {
       navigate: jest.fn(),
@@ -127,8 +136,13 @@ describe('PlanSidebarComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should call getPlanEnjeux on init with planId', () => {
-    expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(10, true);
+  it('should call getPlanEnjeux on init with planId when cache is empty', () => {
+    // Cache vide → fetch déclenché. Avec le cache déjà alimenté, l'effect
+    // skip volontairement l'appel (#228 — partage du signal service).
+    mockEnjeuService.currentPlanEnjeux.mockReturnValueOnce(null);
+    componentRef.setInput('planId', 20);  // change planId pour déclencher l'effect
+    fixture.detectChanges();
+    expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalledWith(20, true);
   });
 
   it('should populate enjeux signal from response', () => {

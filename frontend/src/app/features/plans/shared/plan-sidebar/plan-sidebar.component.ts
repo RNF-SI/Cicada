@@ -21,8 +21,31 @@ export class PlanSidebarComponent implements OnInit {
   activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
 
-  enjeux = signal<Enjeu[]>([]);
-  fcr = signal<Enjeu[]>([]);
+  // Signal partagé service : la sidebar reflète automatiquement les
+  // mutations faites côté enjeux-list (DnD, CRUD…). Voir
+  // `EnjeuService.currentPlanEnjeux` qui est mis à jour par
+  // `getPlanEnjeux()` et par `updatePlanEnjeuxCache()`.
+  // Tri par `(ordre, id_enjeu)` pour refléter le DnD enjeux/FCR.
+  enjeux = computed(() => {
+    const data = this.enjeuService.currentPlanEnjeux();
+    if (!data || data.plan_id !== this.planId()) return [];
+    return [...(data.enjeux || [])].sort((a, b) => {
+      const oa = (a as any).ordre ?? 0;
+      const ob = (b as any).ordre ?? 0;
+      if (oa !== ob) return oa - ob;
+      return a.id_enjeu - b.id_enjeu;
+    });
+  });
+  fcr = computed(() => {
+    const data = this.enjeuService.currentPlanEnjeux();
+    if (!data || data.plan_id !== this.planId()) return [];
+    return [...(data.fcr || [])].sort((a, b) => {
+      const oa = (a as any).ordre ?? 0;
+      const ob = (b as any).ordre ?? 0;
+      if (oa !== ob) return oa - ob;
+      return a.id_enjeu - b.id_enjeu;
+    });
+  });
   detailsMenuExpanded = signal(true);
   suivisMenuExpanded = signal(true);
 
@@ -34,22 +57,21 @@ export class PlanSidebarComponent implements OnInit {
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
   constructor() {
-    // Re-charger les enjeux à chaque changement de planId ou activePage.
-    // Important : `getPlanEnjeux()` lit puis `set` le signal de cache du
-    // service. Si on ne sort pas l'appel du contexte réactif via
-    // `untracked()`, le `set` post-fetch déclenche un re-run de cet effect,
-    // qui refait l'appel → boucle infinie (#224, retour utilisateur 2026-05-12).
+    // Charge les enjeux si le cache service ne les a pas (ou pour un autre
+    // plan). Sinon on s'appuie sur le signal partagé `currentPlanEnjeux`
+    // qui est mis à jour par tous les chargements et mutations (DnD).
+    //
+    // `untracked` : `getPlanEnjeux` lit + set le signal de cache, sans
+    // ce wrap on déclencherait une boucle (#224).
     effect(() => {
       const planId = this.planId();
       this.activePage(); // track pour rafraîchir quand on revient sur la page
-      if (planId) {
-        untracked(() => {
-          this.enjeuService.getPlanEnjeux(planId, true).subscribe(response => {
-            this.enjeux.set(response.enjeux);
-            this.fcr.set(response.fcr);
-          });
-        });
-      }
+      if (!planId) return;
+      untracked(() => {
+        const cached = this.enjeuService.currentPlanEnjeux();
+        if (cached && cached.plan_id === planId) return; // sidebar bénéficie déjà du cache
+        this.enjeuService.getPlanEnjeux(planId, true).subscribe();
+      });
     });
   }
 

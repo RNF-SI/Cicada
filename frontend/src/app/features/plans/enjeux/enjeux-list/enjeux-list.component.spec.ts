@@ -315,6 +315,9 @@ describe('EnjeuxListComponent', () => {
       createResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1102, id_oo: 1001, libelle: 'Nouveau RA', date_ajout: '', date_maj: '' })),
       updateResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1101, id_oo: 1001, libelle: 'RA modifié', date_ajout: '', date_maj: '' })),
       deleteResultatAttendu: jest.fn().mockReturnValue(of(void 0)),
+      // Cache signal partagé (sidebar) — #228 retour 2026-05-12
+      currentPlanEnjeux: jest.fn().mockReturnValue(null),
+      updatePlanEnjeuxCache: jest.fn(),
     };
     mockAdminService = {
       getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),
@@ -1716,6 +1719,8 @@ describe('EnjeuxListComponent', () => {
     it('should set errorMessage on loadPlanData failure', () => {
       const errorEnjeuService = {
         getPlanEnjeux: jest.fn().mockReturnValue(throwError(() => new Error('Network error'))),
+        currentPlanEnjeux: jest.fn().mockReturnValue(null),
+        updatePlanEnjeuxCache: jest.fn(),
       } as any;
       const errorAdminService = {
         getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),

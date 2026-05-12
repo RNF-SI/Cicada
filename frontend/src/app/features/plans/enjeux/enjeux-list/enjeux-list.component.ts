@@ -2423,7 +2423,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     //    suffit : Angular signals comparent par référence).
     this.planEnjeuxData.update(d => d ? { ...d } : d);
 
-    // 2) Fetch les codes calculés et les patche dans chaque opération.
+    // 2) Synchroniser le signal partagé du service pour que la sidebar
+    //    (et tout autre consommateur de `currentPlanEnjeux`) reflète
+    //    les nouveaux ordres (retour utilisateur 2026-05-12).
+    const fresh = this.planEnjeuxData();
+    if (fresh) this.enjeuService.updatePlanEnjeuxCache(fresh);
+
+    // 3) Fetch les codes calculés et les patche dans chaque opération.
     const planId = this.planId();
     if (!planId) return;
     this.reorderService.getOperationCodes(planId).pipe(
@@ -2470,6 +2476,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     for (const fcr of (data.fcr || [])) walkEnjeu(fcr);
     // Forcer le re-render après mutation in-place.
     this.planEnjeuxData.update(d => d ? { ...d } : d);
+    // Synchroniser aussi le signal partagé du service (sidebar).
+    const fresh = this.planEnjeuxData();
+    if (fresh) this.enjeuService.updatePlanEnjeuxCache(fresh);
   }
 
   /** Drag-and-drop : réordonne les enjeux du plan. */

@@ -199,6 +199,8 @@ describe('PlanDetailComponent', () => {
   let mockEnjeuService: {
     getPlanEnjeux: jest.Mock;
     getOperationsByPlan: jest.Mock;
+    currentPlanEnjeux: jest.Mock;
+    updatePlanEnjeuxCache: jest.Mock;
   };
 
   let mockValidationService: {
@@ -248,6 +250,8 @@ describe('PlanDetailComponent', () => {
     mockEnjeuService = {
       getPlanEnjeux: jest.fn().mockReturnValue(of({ enjeux: [], fcr: [], plan_id: 1, total_enjeux: 0, total_fcr: 0 })),
       getOperationsByPlan: jest.fn().mockReturnValue(of({ groups: [] })),
+      currentPlanEnjeux: jest.fn().mockReturnValue(null),
+      updatePlanEnjeuxCache: jest.fn(),
     };
 
     // Validation service mock
