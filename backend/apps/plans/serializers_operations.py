@@ -33,59 +33,107 @@ def compute_operation_codes_for_plan(plan_id):
     Retour : dict {id_operation: 'CS1', ...}.
     """
     # Import local pour éviter les cycles d'import.
+    from django.db.models import Prefetch
     from .models import PlanGestion
-    from .models_enjeux import Enjeu
+    from .models_enjeux import (
+        Enjeu, FacteurInfluence, Pression,
+        ObjectifLongTerme, NiveauExigence,
+        ObjectifOperationnel, ResultatAttendu,
+    )
+    from .models_indicateurs import Indicateur, Metrique
 
     plan = PlanGestion.objects.filter(pk=plan_id).first()
     if plan is None:
         return {}
 
-    seen_op_ids = []  # ordre canonique des id_operation rencontrés
-    operations_by_id = {}
-
-    def visit_metrique_operations(metrique):
-        ops = metrique.operations.order_by('ordre', 'id_operation').select_related(
-            'id_type_action', 'id_categorie_action_reserve'
-        )
-        for op in ops:
-            if op.pk in operations_by_id:
-                continue
-            operations_by_id[op.pk] = op
-            seen_op_ids.append(op.pk)
-
-    def visit_indicateur_metriques(indicateur):
-        for metrique in indicateur.metriques.order_by('ordre', 'id_metrique'):
-            visit_metrique_operations(metrique)
-
-    # ---- Parcours : Enjeux du plan ----
+    # Tout le sous-arbre est précháargé en quelques requêtes via Prefetch
+    # (au lieu d'une cascade de queries lazy par niveau). Chaque niveau
+    # impose son tri pour qu'on puisse parcourir sans re-requêter.
+    operations_qs = (
+        Operation.objects
+        .select_related('id_type_action', 'id_categorie_action_reserve')
+        .order_by('ordre', 'id_operation')
+    )
+    metriques_qs = (
+        Metrique.objects
+        .order_by('ordre', 'id_metrique')
+        .prefetch_related(Prefetch('operations', queryset=operations_qs))
+    )
+    indicateurs_qs = (
+        Indicateur.objects
+        .order_by('ordre', 'id_indicateur')
+        .prefetch_related(Prefetch('metriques', queryset=metriques_qs))
+    )
+    ne_qs = (
+        NiveauExigence.objects
+        .order_by('ordre', 'id_ne')
+        .prefetch_related(Prefetch('indicateurs', queryset=indicateurs_qs))
+    )
+    olt_qs = (
+        ObjectifLongTerme.objects
+        .order_by('ordre', 'id_olt')
+        .prefetch_related(Prefetch('niveaux_exigence', queryset=ne_qs))
+    )
+    ra_qs = (
+        ResultatAttendu.objects
+        .order_by('ordre', 'id_ra')
+        .prefetch_related(Prefetch('indicateurs', queryset=indicateurs_qs))
+    )
+    oo_qs = (
+        ObjectifOperationnel.objects
+        .order_by('ordre', 'id_oo')
+        .prefetch_related(Prefetch('resultats_attendus', queryset=ra_qs))
+    )
+    pression_qs = (
+        Pression.objects
+        .order_by('ordre', 'id_pression')
+        .prefetch_related(Prefetch('objectifs_operationnels', queryset=oo_qs))
+    )
+    facteur_qs = (
+        FacteurInfluence.objects
+        .order_by('ordre', 'id_facteur_influence')
+        .prefetch_related(Prefetch('pressions', queryset=pression_qs))
+    )
     enjeux = (
         Enjeu.objects
         .filter(id_pg=plan)
         .order_by('ordre', 'id_enjeu')
         .prefetch_related(
-            'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
-            'facteurs_influence__pressions',
+            Prefetch('objectifs_long_terme', queryset=olt_qs),
+            Prefetch('facteurs_influence', queryset=facteur_qs),
         )
     )
 
-    seen_oos = set()  # OO partagés via M2M Pressions → ne pas re-traverser
+    seen_op_ids = []
+    operations_by_id = {}
+    seen_oos = set()
+
+    def visit_indicateur_metriques(indicateur):
+        # `metriques.all()` et `operations.all()` puisent dans le prefetch
+        # (déjà trié au niveau de la queryset) — aucune nouvelle requête.
+        for metrique in indicateur.metriques.all():
+            for op in metrique.operations.all():
+                if op.pk in operations_by_id:
+                    continue
+                operations_by_id[op.pk] = op
+                seen_op_ids.append(op.pk)
 
     for enjeu in enjeux:
         # Branche NE : Enjeu → OLT → NE → Indicateur → Métrique → Action
-        for olt in enjeu.objectifs_long_terme.order_by('ordre', 'id_olt'):
-            for ne in olt.niveaux_exigence.order_by('ordre', 'id_ne'):
-                for indicateur in ne.indicateurs.order_by('ordre', 'id_indicateur'):
+        for olt in enjeu.objectifs_long_terme.all():
+            for ne in olt.niveaux_exigence.all():
+                for indicateur in ne.indicateurs.all():
                     visit_indicateur_metriques(indicateur)
 
         # Branche OO/RA : Enjeu → Facteur → Pression → OO → RA → Indic → Met → Action
-        for facteur in enjeu.facteurs_influence.order_by('ordre', 'id_facteur_influence'):
-            for pression in facteur.pressions.order_by('ordre', 'id_pression'):
-                for oo in pression.objectifs_operationnels.order_by('ordre', 'id_oo'):
+        for facteur in enjeu.facteurs_influence.all():
+            for pression in facteur.pressions.all():
+                for oo in pression.objectifs_operationnels.all():
                     if oo.pk in seen_oos:
                         continue
                     seen_oos.add(oo.pk)
-                    for ra in oo.resultats_attendus.order_by('ordre', 'id_ra'):
-                        for indicateur in ra.indicateurs.order_by('ordre', 'id_indicateur'):
+                    for ra in oo.resultats_attendus.all():
+                        for indicateur in ra.indicateurs.all():
                             visit_indicateur_metriques(indicateur)
 
     # Calcul des rangs par préfixe dans l'ordre rencontré.
