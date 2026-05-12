@@ -1646,6 +1646,94 @@
   transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
 }
 
+// =============================================================================
+// #249 / #261 — Drag-and-drop sur toute l'arborescence d'un plan (enjeux/FCR,
+// facteurs, pressions, OLT, NE, indicateurs NE, OO, RA, indicateurs RA).
+// Toutes les listes partagent la même apparence : conteneur flex column,
+// item en flex-row avec poignée burger à gauche, qui devient le curseur de
+// drag (cdkDragHandle).
+// =============================================================================
+
+%dnd-droplist {
+  display: flex;
+  flex-direction: column;
+}
+
+%dnd-drag-item {
+  // Wrapper de drag : aligne la poignée à gauche du contenu sur les niveaux
+  // qui n'ont pas d'en-tête propre (enjeux/FCR via <app-enjeu-accordion>).
+}
+
+%dnd-drag-handle {
+  cursor: grab;
+  color: $gray-dark;
+
+  &:hover { color: $primary-color; }
+  &:active { cursor: grabbing; }
+}
+
+// Listes de niveau 1 : enjeux + FCR (poignée externe à l'accordion).
+.enjeux-droplist { @extend %dnd-droplist; }
+.enjeu-drag-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  app-enjeu-accordion {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+.enjeu-drag-handle {
+  @extend %dnd-drag-handle;
+  margin-top: $spacing-sm;
+  flex-shrink: 0;
+}
+
+// Listes intra-enjeu : facteurs / pressions / OLT / NE / indicateurs / OO / RA.
+.facteurs-droplist,
+.pressions-droplist,
+.olt-droplist,
+.ne-droplist,
+.indicateurs-droplist,
+.oo-droplist,
+.ra-droplist {
+  @extend %dnd-droplist;
+}
+
+.facteur-drag-item,
+.pression-drag-item,
+.olt-drag-item,
+.ne-drag-item,
+.indicateur-drag-item,
+.oo-drag-item,
+.ra-drag-item {
+  // Pas de style propre : la card interne gère son apparence.
+}
+
+.facteur-drag-handle,
+.pression-drag-handle,
+.olt-drag-handle,
+.ne-drag-handle,
+.indicateur-drag-handle,
+.oo-drag-handle,
+.ra-drag-handle {
+  @extend %dnd-drag-handle;
+}
+
+// Animations partagées (déjà couvertes par les règles métriques globales
+// .cdk-drag-preview / .cdk-drag-placeholder / .cdk-drag-animating).
+.enjeux-droplist.cdk-drop-list-dragging .enjeu-drag-item:not(.cdk-drag-placeholder),
+.facteurs-droplist.cdk-drop-list-dragging .facteur-drag-item:not(.cdk-drag-placeholder),
+.pressions-droplist.cdk-drop-list-dragging .pression-drag-item:not(.cdk-drag-placeholder),
+.olt-droplist.cdk-drop-list-dragging .olt-drag-item:not(.cdk-drag-placeholder),
+.ne-droplist.cdk-drop-list-dragging .ne-drag-item:not(.cdk-drag-placeholder),
+.indicateurs-droplist.cdk-drop-list-dragging .indicateur-drag-item:not(.cdk-drag-placeholder),
+.oo-droplist.cdk-drop-list-dragging .oo-drag-item:not(.cdk-drag-placeholder),
+.ra-droplist.cdk-drop-list-dragging .ra-drag-item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
 // #2 — Ligne compacte d'une métrique dans le formulaire d'édition d'indicateur.
 // Toujours visible ; cache la card complète par défaut pour réduire le bruit
 // visuel quand un indicateur a plusieurs métriques. Le bouton crayon dépli.

@@ -22,10 +22,11 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../../../core/services/auth.service';
+import { ReorderService, ReorderEntity } from '../../../../core/services/reorder.service';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -102,6 +103,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly reorderService = inject(ReorderService);
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
@@ -2248,6 +2250,234 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   /** Réassigne le champ `ordre` (0..N) selon la position courante. */
   private renumberMetriquesOrdre(metrics: MetriqueFormData[]): void {
     metrics.forEach((m, i) => { m.ordre = i; });
+  }
+
+  // ===========================================================================
+  // #249 / #261 — Drag-and-drop pour réordonner les entités d'un plan
+  // (enjeux/FCR, facteurs, pressions, OLT, NE, indicateurs NE, OO, RA,
+  // indicateurs RA). Pattern : optimistic update + rollback via reload serveur.
+  // ===========================================================================
+
+  /**
+   * Helper générique de réordonnancement avec optimistic update + rollback.
+   * Mute la liste en place (moveItemInArray + champ `ordre`) puis envoie la
+   * requête au backend. En cas d'échec, recharge les données du plan.
+   */
+  private applyReorder(
+    entity: ReorderEntity,
+    parentId: number,
+    list: Array<Record<string, any>>,
+    fromIndex: number,
+    toIndex: number,
+    idKey: string,
+    extra?: { parent_type: 'ne' | 'ra' },
+  ): void {
+    if (fromIndex === toIndex) return;
+    moveItemInArray(list, fromIndex, toIndex);
+    list.forEach((item, i) => { item['ordre'] = i; });
+    const ordered_ids = list
+      .map(item => item[idKey] as number)
+      .filter(id => id != null);
+    const payload = extra
+      ? { parent_id: parentId, ordered_ids, ...extra }
+      : { parent_id: parentId, ordered_ids };
+    this.reorderService.reorder(entity, payload).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.reorderSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 2000 },
+        );
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.reorderError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+        // Rollback : recharge depuis le serveur pour restaurer l'ordre.
+        this.loadPlanData(true);
+      },
+    });
+  }
+
+  /** Drag-and-drop : réordonne les enjeux du plan. */
+  onEnjeuDrop(event: CdkDragDrop<any[]>): void {
+    const planId = this.planId();
+    if (!planId) return;
+    const list = [...this.enjeux()];
+    this.applyReorder('enjeux', planId, list, event.previousIndex, event.currentIndex, 'id_enjeu');
+  }
+
+  /** Drag-and-drop : réordonne les FCR du plan (même endpoint que les enjeux). */
+  onFcrDrop(event: CdkDragDrop<any[]>): void {
+    const planId = this.planId();
+    if (!planId) return;
+    const list = [...this.fcr()];
+    this.applyReorder('enjeux', planId, list, event.previousIndex, event.currentIndex, 'id_enjeu');
+  }
+
+  /** Drag-and-drop : réordonne les facteurs d'influence d'un enjeu. */
+  onFacteurDrop(event: CdkDragDrop<any[]>): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu?.id_enjeu) return;
+    const list = enjeu.facteurs_influence || [];
+    this.applyReorder('facteurs-influence', enjeu.id_enjeu, list, event.previousIndex, event.currentIndex, 'id_facteur_influence');
+  }
+
+  /** Drag-and-drop : réordonne les pressions d'un facteur d'influence. */
+  onPressionDrop(event: CdkDragDrop<any[]>, facteur: FacteurInfluence): void {
+    if (!facteur?.id_facteur_influence) return;
+    const list = facteur.pressions || [];
+    this.applyReorder('pressions', facteur.id_facteur_influence, list, event.previousIndex, event.currentIndex, 'id_pression');
+  }
+
+  /** Drag-and-drop : réordonne les OLT d'un enjeu. */
+  onOltDrop(event: CdkDragDrop<any[]>): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu?.id_enjeu) return;
+    const list = enjeu.objectifs_long_terme || [];
+    this.applyReorder('objectifs-long-terme', enjeu.id_enjeu, list, event.previousIndex, event.currentIndex, 'id_olt');
+  }
+
+  /** Drag-and-drop : réordonne les NE d'un OLT. */
+  onNeDrop(event: CdkDragDrop<any[]>, olt: ObjectifLongTerme): void {
+    if (!olt?.id_olt) return;
+    const list = olt.niveaux_exigence || [];
+    this.applyReorder('niveaux-exigence', olt.id_olt, list, event.previousIndex, event.currentIndex, 'id_ne');
+  }
+
+  /**
+   * Drag-and-drop : réordonne ou déplace un indicateur (NE).
+   * - Intra-NE (`previousContainer === container`) : réordonnancement via reorder.
+   * - Inter-NE (`previousContainer !== container`) : déplacement via move (#261).
+   */
+  onIndicateurNeDrop(event: CdkDragDrop<any[]>, ne: NiveauExigence): void {
+    if (!ne?.id_ne) return;
+    if (event.previousContainer === event.container) {
+      const list = ne.indicateurs || [];
+      this.applyReorder('indicateurs', ne.id_ne, list, event.previousIndex, event.currentIndex, 'id_indicateur', { parent_type: 'ne' });
+    } else {
+      this.applyMoveIndicateur(event, 'ne', ne.id_ne);
+    }
+  }
+
+  /** Drag-and-drop : réordonne les OO d'un enjeu. */
+  onOoDrop(event: CdkDragDrop<any[]>): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu?.id_enjeu) return;
+    const list = [...this.selectedOos()];
+    this.applyReorder('objectifs-operationnels', enjeu.id_enjeu, list, event.previousIndex, event.currentIndex, 'id_oo');
+  }
+
+  /** Drag-and-drop : réordonne les RA d'un OO. */
+  onRaDrop(event: CdkDragDrop<any[]>, oo: ObjectifOperationnel): void {
+    if (!oo?.id_oo) return;
+    const list = oo.resultats_attendus || [];
+    this.applyReorder('resultats-attendus', oo.id_oo, list, event.previousIndex, event.currentIndex, 'id_ra');
+  }
+
+  /**
+   * Drag-and-drop : réordonne ou déplace un indicateur (RA).
+   * - Intra-RA : reorder. Inter-RA : move (#261).
+   */
+  onIndicateurRaDrop(event: CdkDragDrop<any[]>, ra: ResultatAttendu): void {
+    if (!ra?.id_ra) return;
+    if (event.previousContainer === event.container) {
+      const list = ra.indicateurs || [];
+      this.applyReorder('indicateurs', ra.id_ra, list, event.previousIndex, event.currentIndex, 'id_indicateur', { parent_type: 'ra' });
+    } else {
+      this.applyMoveIndicateur(event, 'ra', ra.id_ra);
+    }
+  }
+
+  /**
+   * Liste des IDs des droplists d'indicateurs des autres NE de l'enjeu courant
+   * — utilisé par `cdkDropListConnectedTo` pour activer le DnD inter-NE (#261).
+   */
+  connectedIndicateurNeDroplistIds(currentNeId: number): string[] {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu?.objectifs_long_terme) return [];
+    const ids: string[] = [];
+    for (const olt of enjeu.objectifs_long_terme) {
+      for (const ne of (olt.niveaux_exigence || [])) {
+        if (ne.id_ne !== currentNeId) {
+          ids.push(`indicateurs-droplist-ne-${ne.id_ne}`);
+        }
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * Liste des IDs des droplists d'indicateurs des autres RA de l'enjeu courant
+   * — utilisé par `cdkDropListConnectedTo` pour activer le DnD inter-RA (#261).
+   */
+  connectedIndicateurRaDroplistIds(currentRaId: number): string[] {
+    const ids: string[] = [];
+    const oos = this.selectedOos() || [];
+    for (const oo of oos) {
+      for (const ra of (oo.resultats_attendus || [])) {
+        if (ra.id_ra !== currentRaId) {
+          ids.push(`indicateurs-droplist-ra-${ra.id_ra}`);
+        }
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * Déplacement d'un indicateur entre NE / RA via l'endpoint `move` (#261).
+   * Optimistic transfer côté UI + appel API ; rollback si erreur.
+   */
+  private applyMoveIndicateur(
+    event: CdkDragDrop<any[]>,
+    newParentType: 'ne' | 'ra',
+    newParentId: number,
+  ): void {
+    const indicateur = event.previousContainer.data[event.previousIndex];
+    const indicateurId = indicateur?.id_indicateur;
+    if (!indicateurId) return;
+
+    // Optimistic transfer
+    transferArrayItem(
+      event.previousContainer.data,
+      event.container.data,
+      event.previousIndex,
+      event.currentIndex,
+    );
+    event.container.data.forEach((item: Record<string, any>, i: number) => {
+      item['ordre'] = i;
+    });
+
+    this.reorderService.moveIndicateur(indicateurId, {
+      new_parent_type: newParentType,
+      new_parent_id: newParentId,
+      position: event.currentIndex,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 2000 },
+        );
+        // Recharge silencieuse pour resynchroniser les FK côté UI.
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+        // Rollback : recharge depuis le serveur.
+        this.loadPlanData(true);
+      },
+    });
   }
 
   removeMetriqueFromEdit(index: number): void {

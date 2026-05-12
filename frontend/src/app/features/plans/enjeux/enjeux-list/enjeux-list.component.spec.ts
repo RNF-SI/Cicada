@@ -1756,4 +1756,110 @@ describe('EnjeuxListComponent', () => {
       expect(fix.componentInstance.isLoading()).toBe(false);
     });
   });
+
+  // =========================================================================
+  // #249 / #261 — Drag-and-drop reorder
+  // =========================================================================
+  describe('drag-and-drop reorder', () => {
+    function dropEvent(previousIndex: number, currentIndex: number): any {
+      return { previousIndex, currentIndex };
+    }
+
+    it('onEnjeuDrop calls ReorderService.reorder with planId and ordered ids', () => {
+      setup();
+      component['planId'].set(10);
+      // Override planEnjeuxData to ensure enjeux() returns at least 2 items
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));
+
+      component.onEnjeuDrop(dropEvent(0, 1));
+
+      expect(reorderSpy).toHaveBeenCalledWith(
+        'enjeux',
+        expect.objectContaining({
+          parent_id: 10,
+          // 2 enjeux dans le mock : id_enjeu 1 et 3 ; après swap → [3, 1]
+          ordered_ids: [3, 1],
+        }),
+      );
+      reorderSpy.mockRestore();
+    });
+
+    it('onEnjeuDrop rolls back (reloads data) when reorder API fails', () => {
+      setup();
+      component['planId'].set(10);
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(
+        throwError(() => new Error('boom')),
+      );
+      // Reset the call count for loadPlanData via getPlanEnjeux
+      mockEnjeuService.getPlanEnjeux.mockClear();
+
+      component.onEnjeuDrop(dropEvent(0, 1));
+
+      expect(reorderSpy).toHaveBeenCalled();
+      // Rollback : nouveau fetch des données (silent=true)
+      expect(mockEnjeuService.getPlanEnjeux).toHaveBeenCalled();
+      reorderSpy.mockRestore();
+    });
+
+    it('onIndicateurNeDrop forwards parent_type=ne for indicators of a NE', () => {
+      setup();
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));
+
+      const ne = {
+        id_ne: 99,
+        indicateurs: [
+          { id_indicateur: 10, nom_indicateur: 'A' },
+          { id_indicateur: 11, nom_indicateur: 'B' },
+        ],
+      } as any;
+
+      component.onIndicateurNeDrop(dropEvent(0, 1), ne);
+
+      expect(reorderSpy).toHaveBeenCalledWith(
+        'indicateurs',
+        expect.objectContaining({
+          parent_id: 99,
+          ordered_ids: [11, 10],
+          parent_type: 'ne',
+        }),
+      );
+      reorderSpy.mockRestore();
+    });
+
+    it('onIndicateurRaDrop forwards parent_type=ra for indicators of a RA', () => {
+      setup();
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));
+
+      const ra = {
+        id_ra: 77,
+        indicateurs: [
+          { id_indicateur: 20, nom_indicateur: 'A' },
+          { id_indicateur: 21, nom_indicateur: 'B' },
+        ],
+      } as any;
+
+      component.onIndicateurRaDrop(dropEvent(0, 1), ra);
+
+      expect(reorderSpy).toHaveBeenCalledWith(
+        'indicateurs',
+        expect.objectContaining({
+          parent_id: 77,
+          ordered_ids: [21, 20],
+          parent_type: 'ra',
+        }),
+      );
+      reorderSpy.mockRestore();
+    });
+
+    it('does not call reorder API when previous and current index are equal (no-op)', () => {
+      setup();
+      component['planId'].set(10);
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder');
+
+      component.onEnjeuDrop(dropEvent(1, 1));
+
+      expect(reorderSpy).not.toHaveBeenCalled();
+      reorderSpy.mockRestore();
+    });
+  });
 });

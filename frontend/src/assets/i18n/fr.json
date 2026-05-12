@@ -2546,6 +2546,13 @@
         "reponse": "Réponse"
       }
     },
+    "dnd": {
+      "dragHandle": "Glisser pour réordonner",
+      "reorderSuccess": "Ordre mis à jour",
+      "reorderError": "Réordonnancement impossible",
+      "moveSuccess": "Indicateur déplacé",
+      "moveError": "Déplacement impossible"
+    },
     "metriques": {
       "label": "Métrique",
       "addButton": "Ajouter une métrique",

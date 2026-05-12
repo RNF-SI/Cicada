@@ -339,8 +339,12 @@
 
               <!-- Facteurs d'Influence (enjeux uniquement, pas FCR) -->
               @if (!isSelectedFcr()) {
+                <div cdkDropList
+                     class="facteurs-droplist"
+                     [cdkDropListDisabled]="!canEditPlan()"
+                     (cdkDropListDropped)="onFacteurDrop($event)">
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
-                  <div class="facteur-influence-card" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
+                  <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="facteur-influence-card facteur-drag-item" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
                     <!-- Mode édition facteur -->
                     @if (editingFacteurId() === facteur.id_facteur_influence) {
                       <div class="facteur-card-body">
@@ -372,6 +376,14 @@
                     } @else {
                     <div class="facteur-card-header" (click)="toggleFacteur(facteur.id_facteur_influence)">
                       <div class="facteur-card-left">
+                        @if (canEditPlan()) {
+                          <button class="icon-btn-flat facteur-drag-handle" type="button" cdkDragHandle
+                                  (click)="$event.stopPropagation()"
+                                  [title]="'enjeux.dnd.dragHandle' | translate"
+                                  [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                            <i class="fi fi-rr-menu-burger"></i>
+                          </button>
+                        }
                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                         <h3 class="facteur-card-title">
                           {{ 'enjeux.facteurInfluence.label' | translate }} : {{ facteur.libelle }}
@@ -403,8 +415,12 @@
                         }
 
                         <!-- Pressions du facteur -->
+                        <div cdkDropList
+                             class="pressions-droplist"
+                             [cdkDropListDisabled]="!canEditPlan()"
+                             (cdkDropListDropped)="onPressionDrop($event, facteur)">
                         @for (pression of facteur.pressions || []; track pression.id_pression) {
-                          <div class="pression-card" [id]="'pression-' + pression.id_pression" [class.expanded]="isPressionExpanded(pression.id_pression)">
+                          <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="pression-card pression-drag-item" [id]="'pression-' + pression.id_pression" [class.expanded]="isPressionExpanded(pression.id_pression)">
                             <!-- Mode édition pression -->
                             @if (editingPressionId() === pression.id_pression) {
                               <div class="pression-card-body">
@@ -470,6 +486,14 @@
                             } @else {
                             <div class="pression-card-header" (click)="togglePression(pression.id_pression)">
                               <div class="pression-card-left">
+                                @if (canEditPlan()) {
+                                  <button class="icon-btn-flat pression-drag-handle" type="button" cdkDragHandle
+                                          (click)="$event.stopPropagation()"
+                                          [title]="'enjeux.dnd.dragHandle' | translate"
+                                          [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                    <i class="fi fi-rr-menu-burger"></i>
+                                  </button>
+                                }
                                 <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
                                 <div class="pression-card-title-block">
                                   <h4 class="pression-card-title">
@@ -524,6 +548,7 @@
                             }
                           </div>
                         }
+                        </div> <!-- end pressions-droplist -->
 
                         <!-- Formulaire inline nouvelle pression -->
                         @if (addingPressionForFacteur() === facteur.id_facteur_influence) {
@@ -597,6 +622,7 @@
                     } <!-- end @else (mode lecture facteur) -->
                   </div>
                 }
+                </div> <!-- end facteurs-droplist -->
 
                 <!-- Formulaire inline nouveau facteur d'influence -->
                 @if (addingFacteurInfluence()) {
@@ -649,7 +675,12 @@
               </div>
 
               <!-- Pour chaque OLT de l'enjeu -->
+              <div cdkDropList
+                   class="olt-droplist"
+                   [cdkDropListDisabled]="!canEditPlan()"
+                   (cdkDropListDropped)="onOltDrop($event)">
               @for (olt of selectedEnjeu()?.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
+                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="olt-drag-item">
                         <!-- Mode édition OLT -->
                         @if (editingOltId() === olt.id_olt) {
                           <div class="inline-form olt-inline-form">
@@ -686,6 +717,12 @@
                               [showLine]="true">
                               <div sectionActions class="olt-header-actions">
                                 @if (canEditPlan()) {
+                                  <button class="icon-btn-flat olt-drag-handle" type="button" cdkDragHandle
+                                          (click)="$event.stopPropagation()"
+                                          [title]="'enjeux.dnd.dragHandle' | translate"
+                                          [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                    <i class="fi fi-rr-menu-burger"></i>
+                                  </button>
                                   <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                     <i class="fi fi-rr-pencil"></i>
                                   </button>
@@ -707,7 +744,12 @@
                               }
 
                               <!-- Niveaux d'exigence -->
+                              <div cdkDropList
+                                   class="ne-droplist"
+                                   [cdkDropListDisabled]="!canEditPlan()"
+                                   (cdkDropListDropped)="onNeDrop($event, olt)">
                               @for (ne of olt.niveaux_exigence || []; track ne.id_ne) {
+                                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="ne-drag-item">
                                 <!-- Mode édition NE -->
                                 @if (editingNeId() === ne.id_ne) {
                                   <div class="inline-form ne-inline-form">
@@ -734,6 +776,13 @@
                                   <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne">
                                     <div class="ne-card-header">
                                       <div class="ne-card-left">
+                                        @if (canEditPlan()) {
+                                          <button class="icon-btn-flat ne-drag-handle" type="button" cdkDragHandle
+                                                  [title]="'enjeux.dnd.dragHandle' | translate"
+                                                  [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                            <i class="fi fi-rr-menu-burger"></i>
+                                          </button>
+                                        }
                                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                         <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
                                       </div>
@@ -752,9 +801,16 @@
                                       <p class="ne-description">{{ ne.description }}</p>
                                     }
 
-                                    <!-- Indicateurs de ce NE -->
+                                    <!-- Indicateurs de ce NE (#261 : connecté aux autres NE pour permettre le déplacement) -->
+                                    <div cdkDropList
+                                         [id]="'indicateurs-droplist-ne-' + ne.id_ne"
+                                         [cdkDropListData]="ne.indicateurs || []"
+                                         [cdkDropListConnectedTo]="connectedIndicateurNeDroplistIds(ne.id_ne)"
+                                         class="indicateurs-droplist"
+                                         [cdkDropListDisabled]="!canEditPlan()"
+                                         (cdkDropListDropped)="onIndicateurNeDrop($event, ne)">
                                     @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
-                                      <div class="indicateur-block" [id]="'indicateur-' + ind.id_indicateur">
+                                      <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                         @if (editingIndicateurId() === ind.id_indicateur) {
                                           <!-- Edit mode (extended with metriques) -->
                                           <div class="unified-indicateur-form">
@@ -991,6 +1047,14 @@
                                           <!-- Display mode -->
                                           <div class="indicateur-subtitle" (click)="toggleIndicateur(ind.id_indicateur)">
                                             <div class="indicateur-subtitle-left">
+                                              @if (canEditPlan()) {
+                                                <button class="icon-btn-flat indicateur-drag-handle" type="button" cdkDragHandle
+                                                        (click)="$event.stopPropagation()"
+                                                        [title]="'enjeux.dnd.dragHandle' | translate"
+                                                        [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                  <i class="fi fi-rr-menu-burger"></i>
+                                                </button>
+                                              }
                                               <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
                                               <span class="indicateur-nom">{{ 'enjeux.indicateurs.label' | translate }} : {{ ind.nom_indicateur }}</span>
                                               @if (ind.type_indicateur_label) {
@@ -1549,6 +1613,7 @@
                                         }
                                       </div>
                                     }
+                                    </div> <!-- end indicateurs-droplist (NE) -->
 
                                     <!-- Formulaire unifié ajout indicateur + métriques -->
                                     @if (addingIndicateurForNe() === ne.id_ne) {
@@ -1792,7 +1857,9 @@
                                     }
                                   </div>
                                 }
+                                </div> <!-- end ne-drag-item -->
                               }
+                              </div> <!-- end ne-droplist -->
 
                               <!-- Formulaire inline nouveau NE -->
                               @if (addingNeForOlt() === olt.id_olt) {
@@ -1828,7 +1895,9 @@
                             </div>
                           }
                         }
+                </div> <!-- end olt-drag-item -->
                       }
+              </div> <!-- end olt-droplist -->
 
               <!-- Formulaire inline nouvel OLT -->
               @if (addingOlt()) {
@@ -1895,7 +1964,12 @@
               </div>
 
               <!-- Pour chaque OO de l'enjeu -->
+              <div cdkDropList
+                   class="oo-droplist"
+                   [cdkDropListDisabled]="!canEditPlan()"
+                   (cdkDropListDropped)="onOoDrop($event)">
               @for (oo of selectedOos(); track oo.id_oo; let ooIdx = $index) {
+                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="oo-drag-item">
                 <!-- Mode édition OO -->
                 @if (editingOoId() === oo.id_oo) {
                   <div class="inline-form olt-inline-form">
@@ -1944,6 +2018,12 @@
                       [showLine]="true">
                       <div sectionActions class="olt-header-actions">
                         @if (canEditPlan()) {
+                          <button class="icon-btn-flat oo-drag-handle" type="button" cdkDragHandle
+                                  (click)="$event.stopPropagation()"
+                                  [title]="'enjeux.dnd.dragHandle' | translate"
+                                  [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                            <i class="fi fi-rr-menu-burger"></i>
+                          </button>
                           <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                             <i class="fi fi-rr-pencil"></i>
                           </button>
@@ -1980,7 +2060,12 @@
                       }
 
                       <!-- Résultats attendus -->
+                      <div cdkDropList
+                           class="ra-droplist"
+                           [cdkDropListDisabled]="!canEditPlan()"
+                           (cdkDropListDropped)="onRaDrop($event, oo)">
                       @for (ra of oo.resultats_attendus || []; track ra.id_ra) {
+                        <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="ra-drag-item">
                         <!-- Mode édition RA -->
                         @if (editingRaId() === ra.id_ra) {
                           <div class="inline-form ne-inline-form">
@@ -2007,6 +2092,13 @@
                           <div class="ne-card" [id]="'resultat_attendu-' + ra.id_ra">
                             <div class="ne-card-header">
                               <div class="ne-card-left">
+                                @if (canEditPlan()) {
+                                  <button class="icon-btn-flat ra-drag-handle" type="button" cdkDragHandle
+                                          [title]="'enjeux.dnd.dragHandle' | translate"
+                                          [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                    <i class="fi fi-rr-menu-burger"></i>
+                                  </button>
+                                }
                                 <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                 <h3 class="ne-card-title">{{ 'enjeux.resultatAttendu.label' | translate }} : {{ ra.libelle }}</h3>
                               </div>
@@ -2025,9 +2117,16 @@
                               <p class="ne-description">{{ ra.description }}</p>
                             }
 
-                            <!-- Indicateurs de pression de ce RA -->
+                            <!-- Indicateurs de pression de ce RA (#261 : connecté aux autres RA pour permettre le déplacement) -->
+                            <div cdkDropList
+                                 [id]="'indicateurs-droplist-ra-' + ra.id_ra"
+                                 [cdkDropListData]="ra.indicateurs || []"
+                                 [cdkDropListConnectedTo]="connectedIndicateurRaDroplistIds(ra.id_ra)"
+                                 class="indicateurs-droplist"
+                                 [cdkDropListDisabled]="!canEditPlan()"
+                                 (cdkDropListDropped)="onIndicateurRaDrop($event, ra)">
                             @for (ind of ra.indicateurs || []; track ind.id_indicateur) {
-                              <div class="indicateur-block" [id]="'indicateur-' + ind.id_indicateur">
+                              <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                 @if (editingOoIndicateurId() === ind.id_indicateur) {
                                   <!-- Edit mode (extended with metriques) -->
                                   <div class="unified-indicateur-form">
@@ -2262,6 +2361,14 @@
                                   <!-- Display mode -->
                                   <div class="indicateur-subtitle" (click)="toggleOoIndicateur(ind.id_indicateur)">
                                     <div class="indicateur-subtitle-left">
+                                      @if (canEditPlan()) {
+                                        <button class="icon-btn-flat indicateur-drag-handle" type="button" cdkDragHandle
+                                                (click)="$event.stopPropagation()"
+                                                [title]="'enjeux.dnd.dragHandle' | translate"
+                                                [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                          <i class="fi fi-rr-menu-burger"></i>
+                                        </button>
+                                      }
                                       <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
                                       <span class="indicateur-nom">{{ 'enjeux.indicateurPression.label' | translate }} : {{ ind.nom_indicateur }}</span>
                                       @if (ind.type_indicateur_label) {
@@ -2799,6 +2906,7 @@
                                 }
                               </div>
                             }
+                            </div> <!-- end indicateurs-droplist (RA) -->
 
                             <!-- Formulaire unifié ajout indicateur de pression + métriques -->
                             @if (addingIndicateurForRa() === ra.id_ra) {
@@ -3033,7 +3141,9 @@
                             }
                           </div>
                         }
+                        </div> <!-- end ra-drag-item -->
                       }
+                      </div> <!-- end ra-droplist -->
 
                       <!-- Formulaire inline nouveau RA -->
                       @if (addingRaForOo() === oo.id_oo) {
@@ -3069,7 +3179,9 @@
                     </div>
                   }
                 }
+                </div> <!-- end oo-drag-item -->
               }
+              </div> <!-- end oo-droplist -->
 
               <!-- Formulaire inline nouvel OO -->
               @if (addingOo()) {
@@ -3206,30 +3318,58 @@
 
               <!-- Liste plate : enjeux d'abord, puis FCR -->
               <div class="enjeux-flat-list">
-                @for (enjeu of enjeux(); track enjeu.id_enjeu; let idx = $index) {
-                  <app-enjeu-accordion
-                    [id]="'enjeu-' + enjeu.id_enjeu"
-                    [enjeu]="enjeu"
-                    [displayIndex]="idx + 1"
-                    [initiallyExpanded]="selectedEnjeuId() === enjeu.id_enjeu"
-                    [canEdit]="canEditPlan()"
-                    (edit)="navigateToEdit(enjeu)"
-                    (delete)="onEnjeuDelete(enjeu)"
-                    (navigateToDetail)="navigateToEnjeuDetail($event)">
-                  </app-enjeu-accordion>
-                }
-                @for (item of fcr(); track item.id_enjeu; let idx = $index) {
-                  <app-enjeu-accordion
-                    [id]="'fcr-' + item.id_enjeu"
-                    [enjeu]="item"
-                    [isFcr]="true"
-                    [displayIndex]="idx + 1"
-                    [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
-                    [canEdit]="canEditPlan()"
-                    (edit)="navigateToEdit(item)"
-                    (delete)="onEnjeuDelete(item)">
-                  </app-enjeu-accordion>
-                }
+                <div cdkDropList
+                     class="enjeux-droplist"
+                     [cdkDropListDisabled]="!canEditPlan()"
+                     (cdkDropListDropped)="onEnjeuDrop($event)">
+                  @for (enjeu of enjeux(); track enjeu.id_enjeu; let idx = $index) {
+                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="enjeu-drag-item">
+                      @if (canEditPlan()) {
+                        <button class="icon-btn-flat enjeu-drag-handle" type="button" cdkDragHandle
+                                [title]="'enjeux.dnd.dragHandle' | translate"
+                                [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                          <i class="fi fi-rr-menu-burger"></i>
+                        </button>
+                      }
+                      <app-enjeu-accordion
+                        [id]="'enjeu-' + enjeu.id_enjeu"
+                        [enjeu]="enjeu"
+                        [displayIndex]="idx + 1"
+                        [initiallyExpanded]="selectedEnjeuId() === enjeu.id_enjeu"
+                        [canEdit]="canEditPlan()"
+                        (edit)="navigateToEdit(enjeu)"
+                        (delete)="onEnjeuDelete(enjeu)"
+                        (navigateToDetail)="navigateToEnjeuDetail($event)">
+                      </app-enjeu-accordion>
+                    </div>
+                  }
+                </div>
+                <div cdkDropList
+                     class="enjeux-droplist"
+                     [cdkDropListDisabled]="!canEditPlan()"
+                     (cdkDropListDropped)="onFcrDrop($event)">
+                  @for (item of fcr(); track item.id_enjeu; let idx = $index) {
+                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="enjeu-drag-item">
+                      @if (canEditPlan()) {
+                        <button class="icon-btn-flat enjeu-drag-handle" type="button" cdkDragHandle
+                                [title]="'enjeux.dnd.dragHandle' | translate"
+                                [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                          <i class="fi fi-rr-menu-burger"></i>
+                        </button>
+                      }
+                      <app-enjeu-accordion
+                        [id]="'fcr-' + item.id_enjeu"
+                        [enjeu]="item"
+                        [isFcr]="true"
+                        [displayIndex]="idx + 1"
+                        [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
+                        [canEdit]="canEditPlan()"
+                        (edit)="navigateToEdit(item)"
+                        (delete)="onEnjeuDelete(item)">
+                      </app-enjeu-accordion>
+                    </div>
+                  }
+                </div>
               </div>
             </div>
           }
