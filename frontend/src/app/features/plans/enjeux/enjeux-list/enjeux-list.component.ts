@@ -2302,6 +2302,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const ordered_ids = list
       .map(item => item[idKey] as number)
       .filter(id => id != null);
+    // #228 (2026-05-12) — Les OO (M2M Pressions) et Operations (M2M
+    // Métriques) peuvent exister en plusieurs copies JS dans le payload
+    // by-plan (chaque pression/métrique a sa propre instance JSON).
+    // moveItemInArray ne mute que les références présentes dans `list` ;
+    // les copies dans d'autres branches gardent leur ancien `ordre` et
+    // le dédoublonnage côté UI peut alors retenir une copie obsolète.
+    // On propage les nouveaux ordres à TOUTES les copies de l'arbre.
+    this.propagateOrdresToDuplicates(entity, idKey, ordered_ids);
     const payload = extra
       ? { parent_id: parentId, ordered_ids, ...extra }
       : { parent_id: parentId, ordered_ids };
@@ -2330,6 +2338,72 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.loadPlanData(true);
       },
     });
+  }
+
+  /**
+   * Walk l'arbre `planEnjeuxData` et met à jour `item.ordre` sur TOUTES les
+   * copies JS partagées par M2M (OO ↔ Pressions, Operation ↔ Métriques)
+   * dont l'`id` est dans `ordered_ids`. Indispensable pour que le tri par
+   * ordre dans les computed reflète le DnD (#228).
+   */
+  private propagateOrdresToDuplicates(
+    entity: ReorderEntity,
+    idKey: string,
+    ordered_ids: number[],
+  ): void {
+    const rankById = new Map<number, number>();
+    ordered_ids.forEach((id, idx) => rankById.set(id, idx));
+    const data = this.planEnjeuxData();
+    if (!data) return;
+
+    const updateIfMatch = (obj: any) => {
+      const id = obj?.[idKey];
+      if (id != null && rankById.has(id)) {
+        obj.ordre = rankById.get(id);
+      }
+    };
+
+    const allEnjeux = [...(data.enjeux || []), ...(data.fcr || [])];
+
+    if (entity === 'objectifs-operationnels') {
+      for (const enjeu of allEnjeux) {
+        for (const fi of (enjeu.facteurs_influence || [])) {
+          for (const pression of (fi.pressions || [])) {
+            for (const oo of ((pression as any).objectifs_operationnels || [])) {
+              updateIfMatch(oo);
+            }
+          }
+        }
+      }
+    } else if (entity === 'operations') {
+      for (const enjeu of allEnjeux) {
+        for (const olt of (enjeu.objectifs_long_terme || [])) {
+          for (const ne of (olt.niveaux_exigence || [])) {
+            for (const ind of (ne.indicateurs || [])) {
+              for (const met of (ind.metriques || [])) {
+                for (const op of ((met as any).operations || [])) updateIfMatch(op);
+              }
+            }
+          }
+        }
+        for (const fi of (enjeu.facteurs_influence || [])) {
+          for (const pression of (fi.pressions || [])) {
+            for (const oo of ((pression as any).objectifs_operationnels || [])) {
+              for (const ra of (oo.resultats_attendus || [])) {
+                for (const ind of (ra.indicateurs || [])) {
+                  for (const met of (ind.metriques || [])) {
+                    for (const op of ((met as any).operations || [])) updateIfMatch(op);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // Les autres entités (Enjeu, Facteur, Pression, OLT, NE, RA,
+    // Indicateur) n'ont pas de duplicats : leurs FK sont 1:N, donc
+    // la mutation faite dans applyReorder suffit.
   }
 
   /**
