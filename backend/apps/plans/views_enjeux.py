@@ -218,13 +218,21 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         enjeux_list = enjeux.filter(id_categorie__mnemonique='ENJEU').order_by('id_enjeu')
         fcr_list = enjeux.filter(id_categorie__mnemonique='FCR').order_by('id_enjeu')
 
+        # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
+        # actions du plan (préfixe 2 lettres + rang), passé via context aux
+        # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
+        # de recalculer le mapping pour chaque opération individuellement.
+        from .serializers_operations import compute_operation_codes_for_plan
+        operation_codes = compute_operation_codes_for_plan(plan.pk)
+        ctx = {**self.get_serializer_context(), 'operation_codes': operation_codes}
+
         return Response({
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
             'plan_slug': plan.slug,
             'plan_statut': plan.statut,
-            'enjeux': EnjeuDetailSerializer(enjeux_list, many=True).data,
-            'fcr': EnjeuDetailSerializer(fcr_list, many=True).data,
+            'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
+            'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
             'total_enjeux': enjeux_list.count(),
             'total_fcr': fcr_list.count()
         })

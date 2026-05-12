@@ -961,4 +961,31 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+// #228 — Aperçu du code calculé d'une action (préfixe + rang)
+.preview-code-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+  background-color: rgba($primary-color, 0.05);
+  border-left: 3px solid $primary-color;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+
+  i {
+    margin-right: $spacing-xs;
+  }
+
+  strong {
+    font-weight: 600;
+    font-size: 1.1em;
+  }
+
+  small {
+    color: $gray-dark;
+    font-style: italic;
+  }
+}
+
 // Styles type-action-autocomplete : voir styles.scss (global, car l'overlay CDK est hors du composant)

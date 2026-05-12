@@ -490,6 +490,13 @@ export interface Operation {
   priorite_label?: string;
   id_type_action?: number;
   type_action_label?: string;
+  // #228 — Catégorie d'action réserve CT88 (optionnel)
+  id_categorie_action_reserve?: number | null;
+  categorie_action_reserve_label?: string;
+  categorie_action_reserve_code?: string;
+  // Code calculé : préfixe 2 lettres + rang dans le plan (CS1, IP2, ...)
+  code_prefix?: string;
+  code_affichage?: string;
   id_referentiel_operations?: string;
   code_operation?: string;
   description?: string;
@@ -530,6 +537,8 @@ export interface OperationCreatePayload {
   libelle: string;
   id_priorite?: number;
   id_type_action?: number;
+  // #228 — Catégorie d'action réserve CT88 (optionnel)
+  id_categorie_action_reserve?: number | null;
   id_referentiel_operations?: string;
   code_operation?: string;
   description?: string;

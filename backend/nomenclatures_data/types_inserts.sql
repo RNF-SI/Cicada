@@ -57,3 +57,6 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (64, 'TYPE_PRESSION', 'Type de pression', 'Référentiel PressRef CARET V1 - Types de pressions sur les espaces protégés', 'CICADA/CARET', 'Validé', NOW(), NOW());
 -- Type d'organisme (CICADA - Issue #118)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (65, 'TYPE_ORGANISME', 'Type d''organisme', 'Type de structure gestionnaire (CEN, RNF, DREAL, PNR, OFB, etc.)', 'CICADA', 'Validé', NOW(), NOW());
+-- Catégorie d'action réserve (CICADA - 2026-05-12) — DOMAINES D'ACTIVITÉ réserve CT88
+-- Préfixe à 2 lettres utilisé dans le code calculé des actions (SP1, CS1, IP1, ...).
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (66, 'CATEGORIE_ACTION_RESERVE', 'Catégorie d''action réserve', 'DOMAINES D''ACTIVITÉ réserve CT88', 'CICADA/CT88', 'Validé', NOW(), NOW());

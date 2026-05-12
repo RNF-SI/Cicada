@@ -2385,6 +2385,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Drag-and-drop : réordonne les actions/opérations d'une métrique (#228).
+   * Le code calculé (CS1, IP2, ...) se met à jour automatiquement après
+   * la recharge — le rang est plan-wide, donc déplacer une action peut
+   * renuméroter les autres du même préfixe.
+   */
+  onOperationDrop(event: CdkDragDrop<any[]>, met: { id_metrique?: number; operations?: any[] }): void {
+    if (!met?.id_metrique) return;
+    const list = met.operations || [];
+    this.applyReorder('operations', met.id_metrique, list, event.previousIndex, event.currentIndex, 'id_operation');
+  }
+
+  /**
    * Drag-and-drop : réordonne ou déplace un indicateur (RA).
    * - Intra-RA : reorder. Inter-RA : move (#261).
    */

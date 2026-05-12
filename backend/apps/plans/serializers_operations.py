@@ -11,6 +11,62 @@ from .models_operations import (
 
 
 # =============================================================================
+# Helpers — code d'affichage des opérations (#228 / 2026-05-12)
+# =============================================================================
+
+def compute_operation_codes_for_plan(plan_id):
+    """
+    Calcule pour chaque Operation rattachée au plan son code d'affichage
+    `<prefix><rang>` (ex: 'CS1', 'SP2'). Le rang est 1-based, calculé parmi
+    les opérations partageant le même `code_prefix` dans le plan, ordonnées
+    par (ordre, id_operation).
+
+    Si la même Operation apparaît plusieurs fois (M2M métriques), elle est
+    comptée UNE seule fois — son code est le même partout.
+
+    Retour : dict {id_operation: 'CS1', ...}.
+    """
+    operations = (
+        Operation.objects
+        .filter(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg_id=plan_id)
+        .distinct()
+        .select_related('id_type_action', 'id_categorie_action_reserve')
+        .order_by('ordre', 'id_operation')
+    )
+    # Branche OO/RA aussi : opérations rattachées via RA → indicateur → métrique
+    operations_oo = (
+        Operation.objects
+        .filter(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg_id=plan_id)
+        .distinct()
+        .select_related('id_type_action', 'id_categorie_action_reserve')
+        .order_by('ordre', 'id_operation')
+    )
+
+    seen = {}
+    for op in list(operations) + list(operations_oo):
+        if op.id_operation in seen:
+            continue
+        seen[op.id_operation] = op
+
+    counters = {}  # prefix → next rank
+    codes = {}
+    for op in sorted(seen.values(), key=lambda o: (o.ordre, o.id_operation)):
+        prefix = op.code_prefix
+        counters[prefix] = counters.get(prefix, 0) + 1
+        codes[op.id_operation] = f"{prefix}{counters[prefix]}"
+    return codes
+
+
+def _compute_operation_code_affichage(op):
+    """Fallback : calcule le code pour UNE operation (potentiellement coûteux)."""
+    plan = op.get_plan_de_gestion()
+    if not plan:
+        return f"{op.code_prefix}?"
+    codes = compute_operation_codes_for_plan(plan.pk)
+    return codes.get(op.id_operation, f"{op.code_prefix}?")
+
+
+# =============================================================================
 # Serializers pour les entités nested
 # =============================================================================
 
@@ -147,6 +203,10 @@ class OperationSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Opération."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
     type_action_label = serializers.SerializerMethodField()
+    categorie_action_reserve_label = serializers.SerializerMethodField()
+    categorie_action_reserve_code = serializers.SerializerMethodField()
+    code_prefix = serializers.CharField(read_only=True)
+    code_affichage = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     metriques = serializers.SerializerMethodField()
     metrique_ids = serializers.SerializerMethodField()
@@ -162,6 +222,9 @@ class OperationSerializer(serializers.ModelSerializer):
             'id_operation', 'libelle', 'ordre',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
+            'id_categorie_action_reserve', 'categorie_action_reserve_label',
+            'categorie_action_reserve_code',
+            'code_prefix', 'code_affichage',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -185,6 +248,22 @@ class OperationSerializer(serializers.ModelSerializer):
         if obj.id_type_action:
             return obj.id_type_action.label
         return None
+
+    def get_categorie_action_reserve_label(self, obj):
+        if obj.id_categorie_action_reserve_id:
+            return obj.id_categorie_action_reserve.label
+        return None
+
+    def get_categorie_action_reserve_code(self, obj):
+        if obj.id_categorie_action_reserve_id:
+            return obj.id_categorie_action_reserve.cd_nomenclature
+        return None
+
+    def get_code_affichage(self, obj):
+        cache = self.context.get('operation_codes') if self.context else None
+        if cache is not None:
+            return cache.get(obj.id_operation)
+        return _compute_operation_code_affichage(obj)
 
     def get_metriques(self, obj):
         # Use prefetched data if available — avoids extra query
@@ -216,6 +295,10 @@ class OperationListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Opérations."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
     type_action_label = serializers.SerializerMethodField()
+    categorie_action_reserve_label = serializers.SerializerMethodField()
+    categorie_action_reserve_code = serializers.SerializerMethodField()
+    code_prefix = serializers.CharField(read_only=True)
+    code_affichage = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     metriques = serializers.SerializerMethodField()
     metrique_ids = serializers.SerializerMethodField()
@@ -231,6 +314,9 @@ class OperationListSerializer(serializers.ModelSerializer):
             'id_operation', 'libelle', 'ordre',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
+            'id_categorie_action_reserve', 'categorie_action_reserve_label',
+            'categorie_action_reserve_code',
+            'code_prefix', 'code_affichage',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -253,6 +339,22 @@ class OperationListSerializer(serializers.ModelSerializer):
         if obj.id_type_action:
             return obj.id_type_action.label
         return None
+
+    def get_categorie_action_reserve_label(self, obj):
+        if obj.id_categorie_action_reserve_id:
+            return obj.id_categorie_action_reserve.label
+        return None
+
+    def get_categorie_action_reserve_code(self, obj):
+        if obj.id_categorie_action_reserve_id:
+            return obj.id_categorie_action_reserve.cd_nomenclature
+        return None
+
+    def get_code_affichage(self, obj):
+        cache = self.context.get('operation_codes') if self.context else None
+        if cache is not None:
+            return cache.get(obj.id_operation)
+        return _compute_operation_code_affichage(obj)
 
     def get_metriques(self, obj):
         return [
@@ -390,6 +492,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id_operation', 'libelle', 'ordre',
             'id_priorite', 'id_type_action',
+            'id_categorie_action_reserve',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -408,6 +511,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_operation']
         extra_kwargs = {
             'id_suivi': {'required': False, 'allow_null': True},
+            'id_categorie_action_reserve': {'required': False, 'allow_null': True},
         }
 
     def to_representation(self, instance):

@@ -128,6 +128,35 @@ export class OperationFormComponent implements OnInit {
     return code.startsWith('CS');
   });
 
+  // #228 — Catégorie d'action réserve (CT88, 9 entrées avec code 2 lettres).
+  categorieActionReserveOptions = signal<NomenclatureOption[]>([]);
+  categorieActionReserveCtrl = new FormControl<number | null>(null);
+
+  /**
+   * Préfixe 2 lettres calculé côté UI pour aperçu en temps réel — priorité
+   * à la catégorie d'action réserve, sinon lettres de tête du type d'action.
+   * Le code complet (avec rang) est calculé côté backend.
+   */
+  previewCode = computed<string | null>(() => {
+    const catId = this.categorieActionReserveCtrl.value;
+    if (catId != null) {
+      const cat = this.categorieActionReserveOptions().find(c => c.id_nomenclature === catId);
+      if (cat?.cd_nomenclature) {
+        return cat.cd_nomenclature.substring(0, 2).toUpperCase();
+      }
+    }
+    const ta = this.selectedTypeAction();
+    if (ta) {
+      const code = ta.cd_nomenclature || ta.mnemonique || '';
+      let letters = '';
+      for (const ch of code) {
+        if (/[A-Za-z]/.test(ch)) letters += ch; else break;
+      }
+      if (letters) return letters.substring(0, 2).toUpperCase();
+    }
+    return null;
+  });
+
   /** Inventaires existants chargés (filtrés par type d'action) */
   availableInventaires = signal<{ id_suivi_inventaire: number; intitule: string; type_action_code?: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
@@ -472,6 +501,12 @@ export class OperationFormComponent implements OnInit {
       error: () => this.prioriteOptions.set([])
     });
 
+    // #228 — Charger les 9 catégories d'action réserve (CT88).
+    this.adminService.getNomenclaturesByType('CATEGORIE_ACTION_RESERVE').subscribe({
+      next: (options) => this.categorieActionReserveOptions.set(options),
+      error: () => this.categorieActionReserveOptions.set([])
+    });
+
 
 
     this.adminService.getNomenclaturesByType('CATEGORIE_FINANCE').subscribe({
@@ -591,6 +626,13 @@ export class OperationFormComponent implements OnInit {
     // Restore type action autocomplete
     if (op.id_type_action) {
       this.restoreTypeActionAutocomplete(op.id_type_action);
+    }
+
+    // #228 — Restaurer la catégorie d'action réserve
+    if (op.id_categorie_action_reserve != null) {
+      this.categorieActionReserveCtrl.setValue(op.id_categorie_action_reserve);
+    } else {
+      this.categorieActionReserveCtrl.setValue(null);
     }
 
     // Populate suivi fields from nested suivi_inventaire
@@ -832,6 +874,13 @@ export class OperationFormComponent implements OnInit {
 
     if (fv.id_type_action) payload.id_type_action = fv.id_type_action;
     if (fv.id_priorite) payload.id_priorite = fv.id_priorite;
+    // #228 — Catégorie d'action réserve (optionnel).
+    const catReserve = this.categorieActionReserveCtrl.value;
+    if (catReserve != null) {
+      payload.id_categorie_action_reserve = catReserve;
+    } else {
+      payload.id_categorie_action_reserve = null;
+    }
     if (fv.code_operation?.trim()) payload.code_operation = fv.code_operation.trim();
     if (fv.id_referentiel_operations?.trim()) payload.id_referentiel_operations = fv.id_referentiel_operations.trim();
     if (fv.description?.trim()) payload.description = fv.description.trim();

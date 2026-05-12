@@ -412,8 +412,22 @@ class Operation(models.Model):
         related_name='operations_type_action',
         db_column='id_type_action',
         verbose_name=_("Type d'action"),
-        help_text=_("Type d'action (IP1, CS2, CI2, SP1, etc.)"),
+        help_text=_("Type d'action (IP1, CS2, CI2, SP1, etc.). On utilise le référentiel d'Eden 62 en attendant l'élaboration du nouveau référentiel Gestref."),
         limit_choices_to={'id_type__mnemonique': 'TYPE_ACTION'}
+    )
+    # #228 / 2026-05-12 — Catégorie d'action réserve (CT88). Optionnel.
+    # Si rempli, son préfixe (2 lettres) prend le pas sur celui de type_action
+    # pour le calcul du code d'affichage (CS1, SP1, ...).
+    id_categorie_action_reserve = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='operations_categorie_reserve',
+        db_column='id_categorie_action_reserve',
+        verbose_name=_("Catégorie d'action réserve"),
+        help_text=_("DOMAINES D'ACTIVITÉ réserve CT88"),
+        limit_choices_to={'id_type__mnemonique': 'CATEGORIE_ACTION_RESERVE'},
     )
     id_referentiel_operations = models.CharField(
         _("Référentiel opérations"),
@@ -624,6 +638,40 @@ class Operation(models.Model):
         if first_metrique is not None:
             return first_metrique.get_plan_de_gestion()
         return None
+
+    @property
+    def code_prefix(self):
+        """
+        Préfixe 2 lettres utilisé pour calculer le code d'affichage.
+
+        Priorité : `id_categorie_action_reserve.cd_nomenclature` (CT88, code 2
+        lettres comme SP/CS/IP/...). À défaut, on extrait les lettres de tête
+        de `id_type_action.cd_nomenclature` (CS1.2 → 'CS', IP1 → 'IP'). Si
+        aucun type n'est défini, retourne 'AC' (action) par sécurité.
+        """
+        if self.id_categorie_action_reserve_id:
+            try:
+                code = (self.id_categorie_action_reserve.cd_nomenclature or '').strip()
+                if code:
+                    return code[:2].upper()
+            except Exception:
+                pass
+        if self.id_type_action_id:
+            try:
+                code = (self.id_type_action.cd_nomenclature or '').strip()
+                if code:
+                    # Extraire les lettres de tête (CS1 → CS, IP1.1 → IP, SE → SE)
+                    letters = ''
+                    for ch in code:
+                        if ch.isalpha():
+                            letters += ch
+                        else:
+                            break
+                    if letters:
+                        return letters[:2].upper()
+            except Exception:
+                pass
+        return 'AC'
 
 
 class CorOperationSite(models.Model):

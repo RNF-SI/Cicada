@@ -1714,15 +1714,35 @@
   flex-shrink: 0;
 }
 
-// Listes intra-enjeu : facteurs / pressions / OLT / NE / indicateurs / OO / RA.
+// Listes intra-enjeu : facteurs / pressions / OLT / NE / indicateurs / OO / RA / actions.
 .facteurs-droplist,
 .pressions-droplist,
 .olt-droplist,
 .ne-droplist,
 .indicateurs-droplist,
 .oo-droplist,
-.ra-droplist {
+.ra-droplist,
+.operations-droplist {
   @extend %dnd-droplist;
+}
+
+.operation-drag-handle {
+  @extend %dnd-drag-handle;
+  margin-right: $spacing-xs;
+  flex-shrink: 0;
+  color: $primary-color;
+  &:hover { background-color: rgba($primary-color, 0.1); }
+}
+
+.operation-code {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: $spacing-xs;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+  border-radius: $border-radius-sm;
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 // #261 — Zone de drop visible quand la liste d'indicateurs est vide.

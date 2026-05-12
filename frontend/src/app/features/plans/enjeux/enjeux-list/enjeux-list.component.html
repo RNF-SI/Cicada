@@ -1187,15 +1187,33 @@
                                                 @for (met of ind.metriques; track met.id_metrique) {
                                                   <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
 
-                                                    <!-- Opérations (Actions) de cette métrique -->
+                                                    <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
                                                     @if (met.operations && met.operations.length > 0) {
                                                       <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
+                                                      <div cdkDropList
+                                                           [id]="'operations-droplist-' + met.id_metrique"
+                                                           [cdkDropListData]="met.operations"
+                                                           class="operations-droplist"
+                                                           [cdkDropListDisabled]="!canEditPlan()"
+                                                           (cdkDropListDropped)="onOperationDrop($event, met)">
                                                       @for (op of met.operations; track op.id_operation) {
-                                            <div class="operation-card" [class.expanded]="isOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                            <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
+                                                 class="operation-card operation-drag-item" [class.expanded]="isOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
                                               <!-- En-tête de l'action (cliquable pour expand/collapse) -->
                                               <div class="operation-header" (click)="toggleOperation(op.id_operation)">
                                                 <div class="operation-header-left">
+                                                  @if (canEditPlan()) {
+                                                    <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                            (click)="$event.stopPropagation()"
+                                                            [title]="'enjeux.dnd.dragHandle' | translate"
+                                                            [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                      <i class="fi fi-rr-menu-burger"></i>
+                                                    </button>
+                                                  }
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                  @if (op.code_affichage) {
+                                                    <span class="operation-code">{{ op.code_affichage }}</span>
+                                                  }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                                 </div>
                                                 <div class="operation-header-right">
@@ -1465,6 +1483,7 @@
                                               }
                                             </div>
                                           }
+                                                      </div> <!-- end operations-droplist (NE) #228 -->
                                         }
 
                                                     <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur -->
@@ -2511,14 +2530,32 @@
                                         @for (met of ind.metriques; track met.id_metrique) {
                                           <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
 
-                                            <!-- Opérations (Actions) de cette métrique -->
+                                            <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
                                             @if (met.operations && met.operations.length > 0) {
                                               <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
+                                              <div cdkDropList
+                                                   [id]="'operations-droplist-oo-' + met.id_metrique"
+                                                   [cdkDropListData]="met.operations"
+                                                   class="operations-droplist"
+                                                   [cdkDropListDisabled]="!canEditPlan()"
+                                                   (cdkDropListDropped)="onOperationDrop($event, met)">
                                               @for (op of met.operations; track op.id_operation) {
-                                    <div class="operation-card" [class.expanded]="isOoOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
+                                         class="operation-card operation-drag-item" [class.expanded]="isOoOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
                                       <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                         <div class="operation-header-left">
+                                          @if (canEditPlan()) {
+                                            <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                    (click)="$event.stopPropagation()"
+                                                    [title]="'enjeux.dnd.dragHandle' | translate"
+                                                    [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                              <i class="fi fi-rr-menu-burger"></i>
+                                            </button>
+                                          }
                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                          @if (op.code_affichage) {
+                                            <span class="operation-code">{{ op.code_affichage }}</span>
+                                          }
                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                         </div>
                                         <div class="operation-header-right">
@@ -2776,6 +2813,7 @@
                                       }
                                     </div>
                                   }
+                                              </div> <!-- end operations-droplist (OO) #228 -->
                                 }
 
                                     <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur (OO) -->
