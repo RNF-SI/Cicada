@@ -142,20 +142,14 @@ class Enjeu(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(3)],
         help_text=_("Priorité de l'enjeu (1=haute, 2=moyenne, 3=basse)")
     )
-    # Catégorie écologique/socio-économique - Seulement pour Enjeux
-    # Depuis #260, ces deux booléens sont indépendants : un enjeu peut être
-    # à la fois écologique ET socio-économique (cas des enjeux transversaux).
-    # Au moins un des deux doit être vrai (validé côté serializer).
+    # Catégorie de l'enjeu — exclusivité : un enjeu est soit lié à la
+    # conservation du patrimoine naturel, soit socio-économique, mais pas
+    # les deux (cf. #260 : retour utilisateur, choix binaire imposé).
     categorie_ecologique = models.BooleanField(
         _("Catégorie conservation du patrimoine naturel"),
         default=True,
         null=True,
-        help_text=_("True si l'enjeu relève de la conservation du patrimoine naturel")
-    )
-    categorie_socio_economique = models.BooleanField(
-        _("Catégorie socio-économique"),
-        default=False,
-        help_text=_("True si l'enjeu relève de la dimension socio-économique")
+        help_text=_("True=Conservation du patrimoine naturel, False=Socio-économique")
     )
     # Type d'enjeu écologique (checkboxes) - Seulement pour Enjeux écologiques
     habitat = models.BooleanField(

@@ -220,7 +220,6 @@ class TestEnjeuCreateEndpoint:
             'description': 'Description complète',
             'rang': 3,
             'categorie_ecologique': False,
-            'categorie_socio_economique': True,
             'habitat': True,
             'espece': True,
             'processus': False,

@@ -2107,8 +2107,6 @@
       "categorie": "Catégorie de l'enjeu",
       "ecologique": "Conservation du patrimoine naturel",
       "socioEconomique": "Socio-économique",
-      "transversal": "Transversal (conservation du patrimoine naturel et socio-économique)",
-      "atLeastOneCategoryRequired": "Sélectionnez au moins une catégorie (les deux peuvent être cochées pour un enjeu transversal).",
       "typeEnjeu": "L'enjeu est lié à",
       "enjeuLieAEcologique": "L'enjeu est lié à :",
       "enjeuLieASocioEco": "L'enjeu est lié :",

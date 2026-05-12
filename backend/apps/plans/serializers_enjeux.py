@@ -444,7 +444,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court', 'ordre',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'categorie_socio_economique',
+            'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             # Champs FCR
@@ -504,7 +504,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
             'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'categorie_socio_economique',
+            'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             'etat_enjeu',
@@ -579,7 +579,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             'id_enjeu', 'id_pg', 'slug', 'id_categorie',
             'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
-            'rang', 'categorie_ecologique', 'categorie_socio_economique',
+            'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             'etat_enjeu',
@@ -605,30 +605,6 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
                 # Pour un Enjeu, la priorité est requise
                 if not attrs.get('rang'):
                     attrs['rang'] = 1  # Valeur par défaut
-
-                # #260 : au moins une catégorie (écologique ou socio-éco)
-                # doit être cochée. On ne valide que si l'un des deux champs
-                # est explicitement présent (sinon les valeurs par défaut du
-                # modèle s'appliquent : ecologique=True, socio=False, donc
-                # toujours OK). Pour un PATCH partiel, idem : si l'un est
-                # changé, on revérifie l'invariant en combinant avec
-                # l'instance existante.
-                if 'categorie_ecologique' in attrs or 'categorie_socio_economique' in attrs:
-                    instance = getattr(self, 'instance', None)
-                    is_eco = attrs.get(
-                        'categorie_ecologique',
-                        getattr(instance, 'categorie_ecologique', True),
-                    )
-                    is_socio = attrs.get(
-                        'categorie_socio_economique',
-                        getattr(instance, 'categorie_socio_economique', False),
-                    )
-                    if not (is_eco or is_socio):
-                        raise serializers.ValidationError({
-                            'categorie_ecologique': _(
-                                "Au moins une catégorie (conservation du patrimoine naturel ou socio-économique) doit être sélectionnée."
-                            )
-                        })
 
             elif mnemonique == 'FCR':
                 # Pour un FCR, la catégorie FCR est recommandée

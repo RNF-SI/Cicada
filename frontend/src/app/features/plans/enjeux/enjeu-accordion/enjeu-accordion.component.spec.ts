@@ -229,19 +229,13 @@ describe('EnjeuAccordionComponent', () => {
 
   describe('computed getters', () => {
     it('should return categoryLabel "Conservation du patrimoine naturel" for ecological', () => {
-      component.enjeu = { ...baseEnjeu, categorie_ecologique: true, categorie_socio_economique: false };
+      component.enjeu = { ...baseEnjeu, categorie_ecologique: true };
       expect(component.categoryLabel).toBe('Conservation du patrimoine naturel');
     });
 
     it('should return categoryLabel "Socio-économique" for non-ecological', () => {
-      component.enjeu = { ...baseEnjeu, categorie_ecologique: false, categorie_socio_economique: true };
+      component.enjeu = { ...baseEnjeu, categorie_ecologique: false };
       expect(component.categoryLabel).toBe('Socio-économique');
-    });
-
-    it('should return transversal categoryLabel when both categories are true (#260)', () => {
-      component.enjeu = { ...baseEnjeu, categorie_ecologique: true, categorie_socio_economique: true };
-      // Le test utilise le translate stub qui renvoie la clé brute
-      expect(component.categoryLabel).toBe('enjeux.enjeuForm.transversal');
     });
 
     it('should return empty string categoryLabel when undefined', () => {

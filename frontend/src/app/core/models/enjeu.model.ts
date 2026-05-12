@@ -75,9 +75,8 @@ export interface Enjeu {
 
   // Enjeu-specific fields
   rang?: EnjeuPriorite;
-  // #260 : les deux booléens sont indépendants ; un enjeu transversal a les deux à true
+  // Catégorie exclusive : true = conservation patrimoine naturel, false = socio-économique
   categorie_ecologique?: boolean;
-  categorie_socio_economique?: boolean;
   // Ecological checkboxes
   habitat: boolean;
   espece: boolean;
@@ -706,7 +705,6 @@ export interface EnjeuCreatePayload {
   intitule_court?: string;
   rang: EnjeuPriorite;
   categorie_ecologique: boolean;
-  categorie_socio_economique?: boolean;
   // Ecological checkboxes
   habitat?: boolean;
   espece?: boolean;
@@ -762,7 +760,6 @@ export interface EnjeuUpdatePayload {
   description?: string;
   rang?: EnjeuPriorite;
   categorie_ecologique?: boolean;
-  categorie_socio_economique?: boolean;
   // Ecological checkboxes
   habitat?: boolean;
   espece?: boolean;
