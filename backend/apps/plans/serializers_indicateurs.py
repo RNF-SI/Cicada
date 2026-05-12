@@ -327,7 +327,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
         model = Indicateur
         fields = [
             'id_indicateur', 'id_ne', 'id_resultat_attendu',
-            'nom_indicateur', 'description',
+            'nom_indicateur', 'description', 'ordre',
             'type_indicateur', 'type_indicateur_label',
             'est_standardise',
             # Relations
@@ -353,7 +353,7 @@ class IndicateurListSerializer(serializers.ModelSerializer):
         model = Indicateur
         fields = [
             'id_indicateur', 'id_ne', 'id_resultat_attendu',
-            'nom_indicateur', 'description',
+            'nom_indicateur', 'description', 'ordre',
             'type_indicateur', 'type_indicateur_label',
             'est_standardise',
             'nb_metriques', 'nb_operations',
@@ -386,7 +386,7 @@ class IndicateurCreateSerializer(serializers.ModelSerializer):
         model = Indicateur
         fields = [
             'id_indicateur', 'id_ne', 'id_resultat_attendu',
-            'nom_indicateur', 'description',
+            'nom_indicateur', 'description', 'ordre',
             'type_indicateur', 'est_standardise'
         ]
         read_only_fields = ['id_indicateur']

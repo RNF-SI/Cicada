@@ -1,6 +1,7 @@
 """
 Vues API REST pour les Enjeux, FCR et Responsabilités.
 """
+from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 
@@ -33,6 +34,7 @@ from .serializers_enjeux import (
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
 from .permissions import CanModifyOnlyDraftPlan
 from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
+from .reorder import do_reorder
 
 
 class EnjeuViewSet(viewsets.ModelViewSet):
@@ -173,6 +175,15 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Définir l'utilisateur modificateur."""
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les enjeux d'un plan (#249/#261).
+
+        Payload: { "parent_id": <id_pg>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_pg')
 
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):
@@ -554,6 +565,15 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les facteurs d'influence d'un enjeu (#249/#261).
+
+        Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_enjeu')
+
     @action(detail=False, methods=['get'], url_path=r'by-enjeu/(?P<enjeu_id>\d+)')
     def by_enjeu(self, request, enjeu_id=None):
         """
@@ -638,6 +658,15 @@ class PressionViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les pressions d'un facteur d'influence (#249/#261).
+
+        Payload: { "parent_id": <id_facteur_influence>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_facteur_influence')
+
     @action(detail=False, methods=['get'], url_path=r'by-facteur/(?P<facteur_id>\d+)')
     def by_facteur(self, request, facteur_id=None):
         """
@@ -715,6 +744,15 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les objectifs à long terme d'un enjeu (#249/#261).
+
+        Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_enjeu')
+
     @action(detail=False, methods=['get'], url_path=r'by-enjeu/(?P<enjeu_id>\d+)')
     def by_enjeu(self, request, enjeu_id=None):
         """
@@ -787,6 +825,15 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les niveaux d'exigence d'un OLT (#249/#261).
+
+        Payload: { "parent_id": <id_olt>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_olt')
 
     @action(detail=False, methods=['get'], url_path=r'by-olt/(?P<olt_id>\d+)')
     def by_olt(self, request, olt_id=None):
@@ -872,6 +919,24 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les objectifs opérationnels d'un enjeu (#249/#261).
+
+        Les OO sont rattachés transitivement à un enjeu via leurs pressions
+        (Enjeu → FacteurInfluence → Pression ↔ OO M2M).
+
+        Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(
+            self,
+            request,
+            parent_filter=lambda pid, _req: Q(
+                pressions__id_facteur_influence__id_enjeu=pid
+            ),
+        )
+
     @action(detail=False, methods=['get'], url_path=r'by-pression/(?P<pression_id>\d+)')
     def by_pression(self, request, pression_id=None):
         """
@@ -944,6 +1009,15 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les résultats attendus d'un OO (#249/#261).
+
+        Payload: { "parent_id": <id_oo>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(self, request, parent_filter='id_oo')
 
     @action(detail=False, methods=['get'], url_path=r'by-oo/(?P<oo_id>\d+)')
     def by_oo(self, request, oo_id=None):

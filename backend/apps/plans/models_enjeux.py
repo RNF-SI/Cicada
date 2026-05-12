@@ -287,6 +287,15 @@ class Enjeu(models.Model):
         help_text=_("Emprise géographique de l'enjeu")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -312,7 +321,7 @@ class Enjeu(models.Model):
         db_table_comment = 'Enjeux et Facteurs Clés de Réussite des plans de gestion'
         verbose_name = _("Enjeu / FCR")
         verbose_name_plural = _("Enjeux / FCR")
-        ordering = ['id_enjeu']
+        ordering = ['ordre', 'id_enjeu']
         unique_together = [('id_pg', 'slug'), ('id_pg', 'libelle')]
 
     @property
@@ -390,6 +399,15 @@ class FacteurInfluence(models.Model):
         help_text=_("Description détaillée du facteur d'influence")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -415,7 +433,7 @@ class FacteurInfluence(models.Model):
         db_table_comment = "Facteurs d'influence des enjeux"
         verbose_name = _("Facteur d'influence")
         verbose_name_plural = _("Facteurs d'influence")
-        ordering = ['id_facteur_influence']
+        ordering = ['ordre', 'id_facteur_influence']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
@@ -469,6 +487,15 @@ class Pression(models.Model):
         help_text=_("Description détaillée de la pression")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -494,7 +521,7 @@ class Pression(models.Model):
         db_table_comment = 'Pressions sur les facteurs d\'influence'
         verbose_name = _("Pression")
         verbose_name_plural = _("Pressions")
-        ordering = ['id_pression']
+        ordering = ['ordre', 'id_pression']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_facteur_influence})"
@@ -535,6 +562,15 @@ class ObjectifLongTerme(models.Model):
         help_text=_("Description détaillée de l'objectif à long terme")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -560,7 +596,7 @@ class ObjectifLongTerme(models.Model):
         db_table_comment = "Objectifs à long terme des enjeux"
         verbose_name = _("Objectif à long terme")
         verbose_name_plural = _("Objectifs à long terme")
-        ordering = ['id_olt']
+        ordering = ['ordre', 'id_olt']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_enjeu})"
@@ -596,6 +632,15 @@ class NiveauExigence(models.Model):
         help_text=_("Description détaillée du niveau d'exigence")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -621,7 +666,7 @@ class NiveauExigence(models.Model):
         db_table_comment = "Niveaux d'exigence des objectifs à long terme"
         verbose_name = _("Niveau d'exigence")
         verbose_name_plural = _("Niveaux d'exigence")
-        ordering = ['id_ne']
+        ordering = ['ordre', 'id_ne']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_olt})"
@@ -659,6 +704,15 @@ class ObjectifOperationnel(models.Model):
         help_text=_("Description détaillée de l'objectif opérationnel")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -684,7 +738,7 @@ class ObjectifOperationnel(models.Model):
         db_table_comment = "Objectifs opérationnels liés à des pressions"
         verbose_name = _("Objectif opérationnel")
         verbose_name_plural = _("Objectifs opérationnels")
-        ordering = ['id_oo']
+        ordering = ['ordre', 'id_oo']
 
     def __str__(self):
         return self.libelle
@@ -728,6 +782,15 @@ class ResultatAttendu(models.Model):
         help_text=_("Description détaillée du résultat attendu")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -753,7 +816,7 @@ class ResultatAttendu(models.Model):
         db_table_comment = "Résultats attendus des objectifs opérationnels"
         verbose_name = _("Résultat attendu")
         verbose_name_plural = _("Résultats attendus")
-        ordering = ['id_ra']
+        ordering = ['ordre', 'id_ra']
 
     def __str__(self):
         return f"{self.libelle} ({self.id_oo})"

@@ -20,6 +20,7 @@ from .models_enjeux import NiveauExigence, ResultatAttendu
 from .models import CorRolePlan
 from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan
+from .reorder import do_reorder
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
     MetriqueSerializer, MetriqueListSerializer, MetriqueCreateSerializer,
@@ -96,6 +97,121 @@ class IndicateurViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les indicateurs d'un parent NE ou RA (#249/#261).
+
+        Cas spécial : un indicateur a deux parents possibles (id_ne XOR
+        id_resultat_attendu). Le payload doit donc inclure `parent_type`.
+
+        Payload:
+            {
+                "parent_type": "ne" | "ra",
+                "parent_id": <id_ne|id_ra>,
+                "ordered_ids": [id1, id2, ...]
+            }
+        """
+        parent_type = request.data.get('parent_type')
+        if parent_type not in ('ne', 'ra'):
+            return Response(
+                {"detail": "Le champ 'parent_type' doit valoir 'ne' ou 'ra'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        parent_field = 'id_ne' if parent_type == 'ne' else 'id_resultat_attendu'
+        return do_reorder(self, request, parent_filter=parent_field)
+
+    @action(detail=True, methods=['post'], url_path='move')
+    def move(self, request, pk=None):
+        """
+        Déplace un indicateur entre niveaux d'exigence (NE) ou résultats
+        attendus (RA) — #261.
+
+        Payload : {"new_parent_type": "ne"|"ra", "new_parent_id": <int>, "position": <int>}
+
+        Garde-fous :
+        - Le nouveau parent doit exister et être dans le même plan que l'ancien.
+        - Le plan doit être en brouillon (verrou #248).
+        - Renumérote les siblings dans le nouveau parent.
+        """
+        indicateur = self.get_object()
+        new_parent_type = request.data.get('new_parent_type')
+        new_parent_id = request.data.get('new_parent_id')
+        position = request.data.get('position', 0)
+
+        if new_parent_type not in ('ne', 'ra') or new_parent_id is None:
+            return Response(
+                {"detail": "Payload invalide : 'new_parent_type' ('ne'|'ra') et 'new_parent_id' requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_parent_id = int(new_parent_id)
+            position = int(position)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "'new_parent_id' et 'position' doivent être des entiers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if new_parent_type == 'ne':
+                new_parent = NiveauExigence.objects.get(pk=new_parent_id)
+            else:
+                new_parent = ResultatAttendu.objects.get(pk=new_parent_id)
+        except (NiveauExigence.DoesNotExist, ResultatAttendu.DoesNotExist):
+            return Response(
+                {"detail": "Parent introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Garde : même plan que la source
+        source_plan = indicateur.get_plan_de_gestion()
+        target_plan = new_parent.get_plan_de_gestion()
+        if source_plan and target_plan and source_plan.pk != target_plan.pk:
+            return Response(
+                {"detail": "Déplacement entre plans interdit."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verrou #248 — plan doit être en brouillon
+        if target_plan and target_plan.statut != 'draft':
+            return Response(
+                {"detail": "Modification interdite hors brouillon."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        filter_kwargs = (
+            {'id_ne': new_parent.pk} if new_parent_type == 'ne'
+            else {'id_resultat_attendu': new_parent.pk}
+        )
+
+        with transaction.atomic():
+            if new_parent_type == 'ne':
+                indicateur.id_ne = new_parent
+                indicateur.id_resultat_attendu = None
+            else:
+                indicateur.id_ne = None
+                indicateur.id_resultat_attendu = new_parent
+            indicateur.ordre = position
+            indicateur.save()
+
+            # Renumérotation des siblings dans le nouveau parent
+            siblings = (
+                Indicateur.objects
+                .filter(**filter_kwargs)
+                .exclude(pk=indicateur.pk)
+                .order_by('ordre', 'id_indicateur')
+            )
+            for idx, sib in enumerate(siblings):
+                new_pos = idx if idx < position else idx + 1
+                if sib.ordre != new_pos:
+                    sib.ordre = new_pos
+                    sib.save(update_fields=['ordre'])
+
+        serializer = self.get_serializer(indicateur)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path=r'by-ne/(?P<ne_id>\d+)')
     def by_ne(self, request, ne_id=None):

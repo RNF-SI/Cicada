@@ -64,6 +64,15 @@ class Indicateur(models.Model):
         help_text=_("L'indicateur est-il standardisé ?")
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent NE ou RA).
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -89,7 +98,7 @@ class Indicateur(models.Model):
         db_table_comment = "Indicateurs des niveaux d'exigence et résultats attendus"
         verbose_name = _("Indicateur")
         verbose_name_plural = _("Indicateurs")
-        ordering = ['id_indicateur']
+        ordering = ['ordre', 'id_indicateur']
 
     def clean(self):
         """Valider qu'au moins un parent est défini."""

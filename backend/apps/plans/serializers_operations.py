@@ -159,7 +159,7 @@ class OperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle',
+            'id_operation', 'libelle', 'ordre',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
             'id_referentiel_operations', 'code_operation',
@@ -228,7 +228,7 @@ class OperationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle',
+            'id_operation', 'libelle', 'ordre',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
             'id_referentiel_operations', 'code_operation',
@@ -388,7 +388,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle',
+            'id_operation', 'libelle', 'ordre',
             'id_priorite', 'id_type_action',
             'id_referentiel_operations', 'code_operation',
             'description',

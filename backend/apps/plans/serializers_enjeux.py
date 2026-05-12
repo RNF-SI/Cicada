@@ -109,7 +109,7 @@ class NiveauExigenceSerializer(serializers.ModelSerializer):
         model = NiveauExigence
         fields = [
             'id_ne', 'id_olt',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'indicateurs', 'nb_indicateurs',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -126,7 +126,7 @@ class NiveauExigenceCreateSerializer(serializers.ModelSerializer):
         model = NiveauExigence
         fields = [
             'id_ne', 'id_olt',
-            'libelle', 'description'
+            'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_ne']
 
@@ -147,7 +147,7 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
         model = ResultatAttendu
         fields = [
             'id_ra', 'id_oo',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'indicateurs', 'nb_indicateurs',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -164,7 +164,7 @@ class ResultatAttenduCreateSerializer(serializers.ModelSerializer):
         model = ResultatAttendu
         fields = [
             'id_ra', 'id_oo',
-            'libelle', 'description'
+            'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_ra']
 
@@ -198,7 +198,7 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pressions', 'pression_ids',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -222,7 +222,7 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pressions', 'pression_ids',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -248,7 +248,7 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pression_ids',
-            'libelle', 'description'
+            'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_oo']
 
@@ -281,7 +281,7 @@ class ObjectifLongTermeSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'niveaux_exigence', 'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -300,7 +300,7 @@ class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -317,7 +317,7 @@ class ObjectifLongTermeCreateSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description'
+            'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_olt']
 
@@ -340,7 +340,7 @@ class PressionSerializer(serializers.ModelSerializer):
         fields = [
             'id_pression', 'id_facteur_influence', 'id_pressref',
             'id_type_pression', 'pressref_code', 'pressref_label', 'pressref_definition',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'objectifs_operationnels', 'nb_objectifs_operationnels',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -357,7 +357,7 @@ class PressionCreateSerializer(serializers.ModelSerializer):
         model = Pression
         fields = [
             'id_pression', 'id_facteur_influence', 'id_pressref',
-            'id_type_pression', 'libelle', 'description'
+            'id_type_pression', 'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_pression']
 
@@ -376,7 +376,7 @@ class FacteurInfluenceSerializer(serializers.ModelSerializer):
         model = FacteurInfluence
         fields = [
             'id_facteur_influence', 'id_enjeu',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'pressions', 'nb_pressions',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -395,7 +395,7 @@ class FacteurInfluenceListSerializer(serializers.ModelSerializer):
         model = FacteurInfluence
         fields = [
             'id_facteur_influence', 'id_enjeu',
-            'libelle', 'description',
+            'libelle', 'description', 'ordre',
             'nb_pressions',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -412,7 +412,7 @@ class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
         model = FacteurInfluence
         fields = [
             'id_facteur_influence', 'id_enjeu',
-            'libelle', 'description'
+            'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_facteur_influence']
 
@@ -442,7 +442,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
         fields = [
             'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
-            'libelle', 'intitule_court',
+            'libelle', 'intitule_court', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique', 'categorie_socio_economique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
@@ -502,7 +502,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
-            'libelle', 'intitule_court', 'description',
+            'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique', 'categorie_socio_economique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
@@ -577,7 +577,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         model = Enjeu
         fields = [
             'id_enjeu', 'id_pg', 'slug', 'id_categorie',
-            'libelle', 'intitule_court', 'description',
+            'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique', 'categorie_socio_economique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',

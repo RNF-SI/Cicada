@@ -17,6 +17,7 @@ from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
 from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan
+from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
 )
@@ -129,6 +130,22 @@ class OperationViewSet(viewsets.ModelViewSet):
         except Metrique.DoesNotExist:
             return None
         return metrique.get_plan_de_gestion()
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """
+        Réordonne les opérations d'une métrique (#249/#261).
+
+        L'ordre porte sur les opérations rattachées à une métrique via la M2M
+        `CorOperationMetrique`. Le payload doit indiquer la métrique parent.
+
+        Payload: { "parent_id": <id_metrique>, "ordered_ids": [id1, id2, ...] }
+        """
+        return do_reorder(
+            self,
+            request,
+            parent_filter=lambda pid, _req: Q(metriques=pid),
+        )
 
     @action(detail=False, methods=['get'], url_path=r'by-indicateur/(?P<indicateur_id>\d+)')
     def by_indicateur(self, request, indicateur_id=None):

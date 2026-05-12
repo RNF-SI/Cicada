@@ -565,6 +565,15 @@ class Operation(models.Model):
         blank=True
     )
 
+    # #249 / #261 — Ordre d'affichage parmi les opérations d'une métrique.
+    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage parmi les opérations d'une métrique (0 = haut)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
@@ -590,7 +599,7 @@ class Operation(models.Model):
         db_table_comment = "Opérations (actions) des plans de gestion"
         verbose_name = _("Opération")
         verbose_name_plural = _("Opérations")
-        ordering = ['id_operation']
+        ordering = ['ordre', 'id_operation']
 
     def __str__(self):
         return self.libelle
