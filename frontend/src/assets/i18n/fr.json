@@ -1083,7 +1083,7 @@
         "redacteurs": "Si plusieurs, séparez les noms par une virgule",
         "relecteurs": "Si plusieurs, séparez les noms par une virgule",
         "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)",
-        "docGestion": "Référence du plan dans le système Doc'Gestion de la Fédération des Conservatoires d'Espaces Naturels (FCEN). À ne remplir que si votre conservatoire vous l'a communiqué."
+        "docGestion": "Destiné uniquement à l'instance de la FCEN dans une prochaine version. Pour l'instant, il n'est pas nécessaire de remplir ce champ."
       },
       "createOrganisme": "Créer un organisme",
       "createOrganismePrompt": "Nom du nouvel organisme :",
