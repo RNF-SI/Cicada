@@ -216,10 +216,12 @@ describe('SiteDetailComponent', () => {
     };
 
     const isAdminOrganismeSignal = signal(false);
+    const hasGlobalAccessSignal = signal(false);
 
     const authServiceMock = {
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
       isAdminOrganisme: isAdminOrganismeSignal.asReadonly(),
+      hasGlobalAccess: hasGlobalAccessSignal.asReadonly(),
       isAuthenticated: isAuthenticatedSignal.asReadonly(),
       isImpersonating: isImpersonatingSignal.asReadonly(),
       impersonationInfo: impersonationInfoSignal.asReadonly(),

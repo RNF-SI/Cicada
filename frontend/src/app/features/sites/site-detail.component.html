@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="title-right">
-            @if (isReferent()) {
+            @if (canManageSite()) {
               <button class="btn-edit" (click)="editSite()">
                 <i class="fi fi-rr-edit"></i>
                 <span>{{ 'common.actions.edit' | translate }}</span>
@@ -160,7 +160,7 @@
                   {{ 'sites.detail.organismes' | translate }}
                   <span class="badge">{{ site()?.organismes?.length || 0 }}</span>
                 </h2>
-                @if (isReferent()) {
+                @if (canManageSite()) {
                   <div class="section-actions">
                     <button class="btn-invite" (click)="inviteOrganisme()"
                             [matTooltip]="'sites.detail.inviteOrganisme' | translate">
@@ -217,7 +217,7 @@
                   {{ 'sites.detail.users' | translate }}
                   <span class="badge">{{ siteUsers().length }}</span>
                 </h2>
-                @if (isReferent()) {
+                @if (canManageSite()) {
                   <div class="section-actions">
                     <button class="btn-manage" (click)="manageUsers()"
                             [matTooltip]="'sites.detail.manageUsersTooltip' | translate">

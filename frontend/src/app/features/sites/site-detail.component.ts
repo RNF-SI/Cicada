@@ -279,8 +279,8 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Signal indiquant si l'utilisateur courant peut gerer le site (referent ou super_admin).
-   * Utilise un signal computed pour la reactivite avec le template @if.
+   * Signal indiquant si l'utilisateur courant est *réellement* référent du site
+   * (ou super_admin). Sert au rendu de l'indicateur de statut.
    */
   readonly isReferent = computed(() => {
     // Super admin peut tout faire
@@ -289,6 +289,31 @@ export class SiteDetailComponent implements OnInit {
     }
     const s = this.site();
     return s?.current_user_is_referent === true;
+  });
+
+  /**
+   * Signal indiquant si l'utilisateur courant peut gérer le site (édition,
+   * gestion utilisateurs, etc.). Plus permissif que `isReferent` (#235) :
+   * inclut les admin_organisme dont l'organisme est lié au site, et les
+   * rédacteurs principaux (accès global).
+   */
+  readonly canManageSite = computed(() => {
+    if (this.authService.hasGlobalAccess()) {
+      return true;
+    }
+    const s = this.site();
+    if (!s) return false;
+    if (s.current_user_is_referent === true) {
+      return true;
+    }
+    // #235 — admin_organisme dont l'organisme est gestionnaire du site.
+    if (this.authService.currentUser()?.niveau_role === 'admin_og') {
+      const userOgId = this.authService.currentUser()?.organisme?.id_organisme;
+      if (userOgId && s.organismes?.some(og => og.id_organisme === userOgId)) {
+        return true;
+      }
+    }
+    return false;
   });
 
   /**
@@ -443,14 +468,10 @@ export class SiteDetailComponent implements OnInit {
   // ===================
 
   /**
-   * Signal: true si l'utilisateur peut lier un plan au site (referent du site ou admin_og+).
+   * Signal: true si l'utilisateur peut lier un plan au site (référent du site,
+   * admin_og du site, rédacteur principal, super_admin).
    */
-  readonly canLinkPlan = computed(() => {
-    if (this.authService.isSuperAdmin() || this.authService.isAdminOrganisme()) {
-      return true;
-    }
-    return this.isReferent();
-  });
+  readonly canLinkPlan = computed(() => this.canManageSite());
 
   /**
    * Charge les demandes plan-site en attente pour ce site.
