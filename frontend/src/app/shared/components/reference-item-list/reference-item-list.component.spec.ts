@@ -157,7 +157,7 @@ describe('ReferenceItemListComponent', () => {
       const emitSpy = jest.spyOn(component.itemsChange, 'emit');
       const event = {
         option: {
-          value: { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: 'Lynx boréal', regne: 'Animalia' }
+          value: { cd_nom: 60345, lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', nom_vern: 'Lynx boréal', regne: 'Animalia', id_rang: 'ES' }
         }
       } as MatAutocompleteSelectedEvent;
 
@@ -165,7 +165,24 @@ describe('ReferenceItemListComponent', () => {
 
       expect(component.items.length).toBe(1);
       expect((component.items[0] as TaxonRef).cd_nom).toBe(60345);
+      expect((component.items[0] as TaxonRef).id_rang).toBe('ES');
       expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should preserve id_rang for higher-rank taxa (family, order, etc.)', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const event = {
+        option: {
+          value: { cd_nom: 186210, lb_nom: 'Cervidae', nom_valide: 'Cervidae Goldfuss, 1820', nom_vern: 'Cerfs, Chevreuils', regne: 'Animalia', id_rang: 'FM' }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect((component.items[0] as TaxonRef).id_rang).toBe('FM');
     });
 
     it('should not add duplicate taxon', () => {
@@ -374,12 +391,22 @@ describe('ReferenceItemListComponent', () => {
   describe('getItemSecondary', () => {
     beforeEach(() => fixture.detectChanges());
 
-    it('should return nom_vern for taxon', () => {
+    it('should combine rang and nom_vern for taxon', () => {
+      component.type = 'taxon';
+      expect(component.getItemSecondary({ cd_nom: 60345, nom_vern: 'Lynx boréal', id_rang: 'ES' })).toBe('Espèce · Lynx boréal');
+    });
+
+    it('should fall back to nom_vern alone when id_rang missing', () => {
       component.type = 'taxon';
       expect(component.getItemSecondary({ cd_nom: 60345, nom_vern: 'Lynx boréal' })).toBe('Lynx boréal');
     });
 
-    it('should return empty string for taxon without nom_vern', () => {
+    it('should show rang alone for higher-rank taxa without nom_vern', () => {
+      component.type = 'taxon';
+      expect(component.getItemSecondary({ cd_nom: 186210, id_rang: 'FM' })).toBe('Famille');
+    });
+
+    it('should return empty string for taxon without nom_vern or id_rang', () => {
       component.type = 'taxon';
       expect(component.getItemSecondary({ cd_nom: 60345 })).toBe('');
     });
@@ -413,6 +440,26 @@ describe('ReferenceItemListComponent', () => {
 
   describe('getResultSecondary (autocomplete dropdown)', () => {
     beforeEach(() => fixture.detectChanges());
+
+    it('should include rang and nom_vern for species taxon', () => {
+      const result = { cd_nom: 60345, nom_vern: 'Lynx boréal', id_rang: 'ES' } as any;
+      expect(component.getResultSecondary(result)).toBe('Espèce · Lynx boréal — cd_nom: 60345');
+    });
+
+    it('should show rang alone for higher-rank taxa without nom_vern', () => {
+      const result = { cd_nom: 186210, nom_vern: null, id_rang: 'FM' } as any;
+      expect(component.getResultSecondary(result)).toBe('Famille — cd_nom: 186210');
+    });
+
+    it('should pass through unknown id_rang codes', () => {
+      const result = { cd_nom: 1, nom_vern: null, id_rang: 'XYZ' } as any;
+      expect(component.getResultSecondary(result)).toBe('XYZ — cd_nom: 1');
+    });
+
+    it('should fall back to cd_nom alone when nothing else available', () => {
+      const result = { cd_nom: 99, nom_vern: null, id_rang: null } as any;
+      expect(component.getResultSecondary(result)).toBe('cd_nom: 99');
+    });
 
     it('should include typology, code and cd_hab for habitat', () => {
       const result = {

@@ -83,6 +83,73 @@ export interface BulkValidationResult {
   not_found: BulkValidationNotFoundItem[];
 }
 
+/**
+ * Libellés français des rangs taxonomiques TaxRef (codes id_rang).
+ * Couvre les 47 codes rencontrés dans taxonomie.vm_taxref_list_forautocomplete
+ * (la table taxonomie.bib_taxref_rangs n'en expose que 16).
+ */
+export const TAXREF_RANG_LABELS: Record<string, string> = {
+  KD: 'Règne',
+  SPRG: 'Super-règne',
+  SSRG: 'Sous-règne',
+  IFRG: 'Infra-règne',
+  SBDV: 'Sous-division',
+  PH: 'Embranchement',
+  SBPH: 'Sous-embranchement',
+  IFPH: 'Infra-embranchement',
+  CL: 'Classe',
+  SBCL: 'Sous-classe',
+  SPCL: 'Super-classe',
+  IFCL: 'Infra-classe',
+  PVCL: 'Parv-classe',
+  OR: 'Ordre',
+  SBOR: 'Sous-ordre',
+  SPOR: 'Super-ordre',
+  IFOR: 'Infra-ordre',
+  PVOR: 'Parv-ordre',
+  FM: 'Famille',
+  SBFM: 'Sous-famille',
+  SPFM: 'Super-famille',
+  GN: 'Genre',
+  SSGN: 'Sous-genre',
+  TR: 'Tribu',
+  SSTR: 'Sous-tribu',
+  SPTR: 'Super-tribu',
+  ES: 'Espèce',
+  SSES: 'Sous-espèce',
+  VAR: 'Variété',
+  SVAR: 'Sous-variété',
+  FO: 'Forme',
+  SSFO: 'Sous-forme',
+  FOES: "Forme d'espèce",
+  SC: 'Section',
+  SBSC: 'Sous-section',
+  AGES: 'Agrégat',
+  HYB: 'Hybride',
+  CVAR: 'Cultivar',
+  AB: 'Aberration',
+  CLAD: 'Clade',
+  RACE: 'Race',
+  COH: 'Cohorte',
+  SCO: 'Sous-cohorte',
+  SSCO: 'Sous-cohorte',
+  LEG: 'Légion',
+  SER: 'Série',
+  SSER: 'Sous-série',
+  CAR: 'Caracère',
+  MO: 'Morpho-type',
+  Dumm: 'Indéterminé',
+};
+
+/**
+ * Libellé français d'un rang taxonomique. Si le code est inconnu, le code brut
+ * est retourné pour rester informatif.
+ */
+export function getTaxrefRangLabel(idRang: string | null | undefined): string {
+  if (!idRang) return '';
+  return TAXREF_RANG_LABELS[idRang] || idRang;
+}
+
 @Injectable({
   providedIn: 'root'
 })

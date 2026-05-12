@@ -19,6 +19,7 @@ export interface TaxonRef {
   nom_complet?: string;
   nom_vern?: string;
   regne?: string;
+  id_rang?: string;
 }
 
 /**

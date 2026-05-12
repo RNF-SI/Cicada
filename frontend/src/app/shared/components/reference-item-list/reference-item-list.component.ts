@@ -12,7 +12,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-import { TaxonomyService, TaxrefAutocomplete } from '../../../core/services/taxonomy.service';
+import { TaxonomyService, TaxrefAutocomplete, getTaxrefRangLabel } from '../../../core/services/taxonomy.service';
 import { HabitatService, HabitatAutocomplete } from '../../../core/services/habitat.service';
 import { GeologyService, InpgAutocomplete } from '../../../core/services/geology.service';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
@@ -101,6 +101,7 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
           nom_complet: taxon.nom_valide || taxon.lb_nom,
           nom_vern: taxon.nom_vern || undefined,
           regne: taxon.regne,
+          id_rang: taxon.id_rang || undefined,
         };
         this.items = [...this.items, newItem];
         this.itemsChange.emit(this.items);
@@ -207,7 +208,10 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
 
   getItemSecondary(item: TaxonRef | HabitatRef | GeologieRef): string {
     if (this.type === 'taxon') {
-      return (item as TaxonRef).nom_vern || '';
+      const t = item as TaxonRef;
+      const rang = getTaxrefRangLabel(t.id_rang);
+      const parts = [rang, t.nom_vern].filter(Boolean);
+      return parts.join(' · ');
     }
     if (this.type === 'habitat') {
       return `cd_hab: ${(item as HabitatRef).cd_hab}`;
@@ -241,7 +245,10 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
   getResultSecondary(result: TaxrefAutocomplete | HabitatAutocomplete | InpgAutocomplete): string {
     if ('cd_nom' in result) {
       const t = result as TaxrefAutocomplete;
-      return t.nom_vern ? `${t.nom_vern} (cd_nom: ${t.cd_nom})` : `cd_nom: ${t.cd_nom}`;
+      const rang = getTaxrefRangLabel(t.id_rang);
+      const parts = [rang, t.nom_vern].filter(Boolean);
+      const prefix = parts.length ? `${parts.join(' · ')} — ` : '';
+      return `${prefix}cd_nom: ${t.cd_nom}`;
     }
     if ('cd_hab' in result) {
       const h = result as HabitatAutocomplete;
