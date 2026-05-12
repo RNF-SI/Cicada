@@ -231,7 +231,9 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
       return (result as TaxrefAutocomplete).nom_valide || (result as TaxrefAutocomplete).lb_nom;
     }
     if ('cd_hab' in result) {
-      return (result as HabitatAutocomplete).lb_hab_fr || (result as HabitatAutocomplete).search_name || '';
+      const h = result as HabitatAutocomplete;
+      // lb_hab_fr_complet inclut l'auteur (ex: "Klika 1933") et désambiguïse les variantes
+      return h.lb_hab_fr_complet || h.lb_hab_fr || h.search_name || '';
     }
     return (result as InpgAutocomplete).lb_site || (result as InpgAutocomplete).id_metier || '';
   }
@@ -243,7 +245,10 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
     }
     if ('cd_hab' in result) {
       const h = result as HabitatAutocomplete;
-      return h.lb_code ? `${h.lb_code} (cd_hab: ${h.cd_hab})` : `cd_hab: ${h.cd_hab}`;
+      const typo = h.lb_typo ? h.lb_typo.replace(/_/g, ' ') : '';
+      const parts = [typo, h.lb_code].filter(Boolean);
+      const prefix = parts.length ? `${parts.join(' · ')} — ` : '';
+      return `${prefix}cd_hab: ${h.cd_hab}`;
     }
     const g = result as InpgAutocomplete;
     return g.id_metier ? `${g.id_metier} (id_inpg: ${g.id_inpg})` : `id_inpg: ${g.id_inpg}`;

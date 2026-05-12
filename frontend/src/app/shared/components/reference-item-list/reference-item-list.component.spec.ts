@@ -390,6 +390,60 @@ describe('ReferenceItemListComponent', () => {
     });
   });
 
+  describe('getResultLabel (autocomplete dropdown)', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('should prefer lb_hab_fr_complet for habitat to disambiguate variants', () => {
+      const result = {
+        cd_hab: 25683,
+        lb_hab_fr: 'Quercetalia pubescentis',
+        lb_hab_fr_complet: 'Quercetalia pubescentis Tüxen 1931 nom. nud. (art. 2b, 8)',
+        search_name: '',
+      } as any;
+      expect(component.getResultLabel(result)).toBe(
+        'Quercetalia pubescentis Tüxen 1931 nom. nud. (art. 2b, 8)'
+      );
+    });
+
+    it('should fall back to lb_hab_fr when complet is missing', () => {
+      const result = { cd_hab: 1, lb_hab_fr: 'Hêtraies', search_name: '' } as any;
+      expect(component.getResultLabel(result)).toBe('Hêtraies');
+    });
+  });
+
+  describe('getResultSecondary (autocomplete dropdown)', () => {
+    beforeEach(() => fixture.detectChanges());
+
+    it('should include typology, code and cd_hab for habitat', () => {
+      const result = {
+        cd_hab: 3372,
+        lb_code: '57.0.1',
+        lb_typo: "Unités_phytosociologiques_des_Cahiers_d'habitats",
+        lb_hab_fr: 'Quercetalia pubescenti-sessiliflorae',
+      } as any;
+      expect(component.getResultSecondary(result)).toBe(
+        "Unités phytosociologiques des Cahiers d'habitats · 57.0.1 — cd_hab: 3372"
+      );
+    });
+
+    it('should fall back to typology + cd_hab when lb_code is missing', () => {
+      const result = {
+        cd_hab: 25686,
+        lb_code: null,
+        lb_typo: 'Prodrome_des_végétations_de_France_(PVF1)',
+        lb_hab_fr: 'Quercetalia pubescenti-sessiliflorae',
+      } as any;
+      expect(component.getResultSecondary(result)).toBe(
+        'Prodrome des végétations de France (PVF1) — cd_hab: 25686'
+      );
+    });
+
+    it('should fall back to cd_hab alone when typology and code are missing', () => {
+      const result = { cd_hab: 1000, lb_code: null, lb_typo: null } as any;
+      expect(component.getResultSecondary(result)).toBe('cd_hab: 1000');
+    });
+  });
+
   describe('displayFn', () => {
     beforeEach(() => fixture.detectChanges());
 
