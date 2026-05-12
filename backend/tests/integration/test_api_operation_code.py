@@ -192,6 +192,38 @@ class TestComputeOperationCodes:
         cs_count = sum(1 for v in codes.values() if v.startswith('CS'))
         assert cs_count == 2  # op_cs + op_via_type, PAS 3 (op_cs comptée une fois)
 
+    def test_dnd_intra_metrique_decale_localement(self, plan_with_actions):
+        """
+        Démontre la stabilité du nouveau calcul (#228 v2) :
+        - On part d'un plan avec une seule métrique partagée par 3 actions
+          (op_cs, op_ip, op_via_type) classées dans cet ordre par `ordre`.
+        - On échange op_cs et op_via_type dans la métrique → ordre devient
+          [op_via_type, op_ip, op_cs].
+        - Les codes CS doivent suivre la nouvelle position de lecture :
+            op_via_type (préfixe CS via type_action) → CS1
+            op_cs (préfixe CS via cat. réserve) → CS2
+          Tout autre action conserve son rang relatif.
+        """
+        op_cs = plan_with_actions['op_cs']
+        op_via_type = plan_with_actions['op_via_type']
+
+        # État initial : op_cs = CS1 (ordre=0), op_via_type = CS2 (ordre=2)
+        codes_before = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes_before[op_cs.pk] == 'CS1'
+        assert codes_before[op_via_type.pk] == 'CS2'
+
+        # Échange : op_via_type passe en tête, op_cs en queue.
+        op_via_type.ordre = 0
+        op_via_type.save(update_fields=['ordre'])
+        op_cs.ordre = 2
+        op_cs.save(update_fields=['ordre'])
+
+        codes_after = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes_after[op_via_type.pk] == 'CS1'
+        assert codes_after[op_cs.pk] == 'CS2'
+        # IP1 n'a pas bougé (autre préfixe, autre compteur).
+        assert codes_after[plan_with_actions['op_ip'].pk] == 'IP1'
+
 
 # =============================================================================
 # Endpoint by-plan : code_affichage exposé via serializer context

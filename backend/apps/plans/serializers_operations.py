@@ -17,43 +17,85 @@ from .models_operations import (
 def compute_operation_codes_for_plan(plan_id):
     """
     Calcule pour chaque Operation rattachée au plan son code d'affichage
-    `<prefix><rang>` (ex: 'CS1', 'SP2'). Le rang est 1-based, calculé parmi
-    les opérations partageant le même `code_prefix` dans le plan, ordonnées
-    par (ordre, id_operation).
+    `<prefix><rang>` (ex: 'CS1', 'SP2'), basé sur l'ordre de lecture naturel
+    du plan (#228, version du 2026-05-12) :
 
-    Si la même Operation apparaît plusieurs fois (M2M métriques), elle est
-    comptée UNE seule fois — son code est le même partout.
+      Enjeu → OLT → NE → Indicateur → Métrique → Action
+              (puis branche OO/RA en parallèle)
+              Facteur → Pression → OO → RA → Indicateur → Métrique → Action
+
+    À chaque niveau, le tri se fait par `(ordre, id)`. Une Operation
+    rattachée à plusieurs métriques (M2M) est comptée **une seule fois**
+    selon sa PREMIÈRE occurrence dans le parcours. Le DnD intra-métrique
+    décale donc le rang d'une action localement (typiquement de ±1) et
+    n'affecte pas les actions des autres branches/métriques.
 
     Retour : dict {id_operation: 'CS1', ...}.
     """
-    operations = (
-        Operation.objects
-        .filter(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg_id=plan_id)
-        .distinct()
-        .select_related('id_type_action', 'id_categorie_action_reserve')
-        .order_by('ordre', 'id_operation')
-    )
-    # Branche OO/RA aussi : opérations rattachées via RA → indicateur → métrique
-    operations_oo = (
-        Operation.objects
-        .filter(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg_id=plan_id)
-        .distinct()
-        .select_related('id_type_action', 'id_categorie_action_reserve')
-        .order_by('ordre', 'id_operation')
+    # Import local pour éviter les cycles d'import.
+    from .models import PlanGestion
+    from .models_enjeux import Enjeu
+
+    plan = PlanGestion.objects.filter(pk=plan_id).first()
+    if plan is None:
+        return {}
+
+    seen_op_ids = []  # ordre canonique des id_operation rencontrés
+    operations_by_id = {}
+
+    def visit_metrique_operations(metrique):
+        ops = metrique.operations.order_by('ordre', 'id_operation').select_related(
+            'id_type_action', 'id_categorie_action_reserve'
+        )
+        for op in ops:
+            if op.pk in operations_by_id:
+                continue
+            operations_by_id[op.pk] = op
+            seen_op_ids.append(op.pk)
+
+    def visit_indicateur_metriques(indicateur):
+        for metrique in indicateur.metriques.order_by('ordre', 'id_metrique'):
+            visit_metrique_operations(metrique)
+
+    # ---- Parcours : Enjeux du plan ----
+    enjeux = (
+        Enjeu.objects
+        .filter(id_pg=plan)
+        .order_by('ordre', 'id_enjeu')
+        .prefetch_related(
+            'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
+            'facteurs_influence__pressions',
+        )
     )
 
-    seen = {}
-    for op in list(operations) + list(operations_oo):
-        if op.id_operation in seen:
-            continue
-        seen[op.id_operation] = op
+    seen_oos = set()  # OO partagés via M2M Pressions → ne pas re-traverser
 
-    counters = {}  # prefix → next rank
+    for enjeu in enjeux:
+        # Branche NE : Enjeu → OLT → NE → Indicateur → Métrique → Action
+        for olt in enjeu.objectifs_long_terme.order_by('ordre', 'id_olt'):
+            for ne in olt.niveaux_exigence.order_by('ordre', 'id_ne'):
+                for indicateur in ne.indicateurs.order_by('ordre', 'id_indicateur'):
+                    visit_indicateur_metriques(indicateur)
+
+        # Branche OO/RA : Enjeu → Facteur → Pression → OO → RA → Indic → Met → Action
+        for facteur in enjeu.facteurs_influence.order_by('ordre', 'id_facteur_influence'):
+            for pression in facteur.pressions.order_by('ordre', 'id_pression'):
+                for oo in pression.objectifs_operationnels.order_by('ordre', 'id_oo'):
+                    if oo.pk in seen_oos:
+                        continue
+                    seen_oos.add(oo.pk)
+                    for ra in oo.resultats_attendus.order_by('ordre', 'id_ra'):
+                        for indicateur in ra.indicateurs.order_by('ordre', 'id_indicateur'):
+                            visit_indicateur_metriques(indicateur)
+
+    # Calcul des rangs par préfixe dans l'ordre rencontré.
+    counters = {}
     codes = {}
-    for op in sorted(seen.values(), key=lambda o: (o.ordre, o.id_operation)):
+    for op_id in seen_op_ids:
+        op = operations_by_id[op_id]
         prefix = op.code_prefix
         counters[prefix] = counters.get(prefix, 0) + 1
-        codes[op.id_operation] = f"{prefix}{counters[prefix]}"
+        codes[op_id] = f"{prefix}{counters[prefix]}"
     return codes
 
 
