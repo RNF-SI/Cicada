@@ -175,8 +175,8 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verrou #248 — plan doit être en brouillon
-        if target_plan and target_plan.statut != 'draft':
+        # Verrou #248 — plan doit être en statut éditable (draft ou etendu, #250)
+        if target_plan and target_plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
             return Response(
                 {"detail": "Modification interdite hors brouillon."},
                 status=status.HTTP_403_FORBIDDEN,

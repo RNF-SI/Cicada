@@ -230,4 +230,78 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.getTypeBudget(0).fonct).toBe(10000);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #228 — code calculé (préfixe 2 lettres : catégorie réserve OU type action)
+  // -------------------------------------------------------------------------
+
+  describe('previewCode (code d\'action calculé)', () => {
+    // Le composant principal n'est pas instancié via Angular ; on reproduit ici
+    // les 3 signaux + le computed previewCode pour valider la logique pure.
+    function makeMini() {
+      const categorieActionReserveOptions = signal<any[]>([]);
+      const selectedTypeAction = signal<any>(null);
+      const categorieActionReserveCtrl = { value: null as number | null };
+      const previewCode = computed<string | null>(() => {
+        const catId = categorieActionReserveCtrl.value;
+        if (catId != null) {
+          const cat = categorieActionReserveOptions().find((c: any) => c.id_nomenclature === catId);
+          if (cat?.cd_nomenclature) {
+            return cat.cd_nomenclature.substring(0, 2).toUpperCase();
+          }
+        }
+        const ta = selectedTypeAction();
+        if (ta) {
+          const code = ta.cd_nomenclature || ta.mnemonique || '';
+          let letters = '';
+          for (const ch of code) {
+            if (/[A-Za-z]/.test(ch)) letters += ch; else break;
+          }
+          if (letters) return letters.substring(0, 2).toUpperCase();
+        }
+        return null;
+      });
+      return { categorieActionReserveOptions, selectedTypeAction, categorieActionReserveCtrl, previewCode };
+    }
+
+    it('utilise le code de la catégorie réserve quand renseigné', () => {
+      const m = makeMini();
+      m.categorieActionReserveOptions.set([
+        { id_nomenclature: 1, cd_nomenclature: 'CS', label: 'Connaissance et suivi' },
+      ]);
+      m.categorieActionReserveCtrl.value = 1;
+      expect(m.previewCode()).toBe('CS');
+    });
+
+    it('priorise la catégorie réserve même si un type action est défini', () => {
+      const m = makeMini();
+      m.categorieActionReserveOptions.set([
+        { id_nomenclature: 1, cd_nomenclature: 'IP', label: 'Interventions' },
+      ]);
+      m.categorieActionReserveCtrl.value = 1;
+      m.selectedTypeAction.set({ id_nomenclature: 2, cd_nomenclature: 'CS1', label: 'Surveillance' });
+      expect(m.previewCode()).toBe('IP');
+    });
+
+    it('fallback sur les lettres du type action quand pas de catégorie réserve', () => {
+      const m = makeMini();
+      m.categorieActionReserveCtrl.value = null;
+      m.selectedTypeAction.set({ id_nomenclature: 1, cd_nomenclature: 'CS1.2', label: 'Suivi' });
+      expect(m.previewCode()).toBe('CS');
+    });
+
+    it('extrait IP de IP1.5.3 (lettres de tête uniquement)', () => {
+      const m = makeMini();
+      m.categorieActionReserveCtrl.value = null;
+      m.selectedTypeAction.set({ id_nomenclature: 1, cd_nomenclature: 'IP1.5.3', label: 'Pâturage' });
+      expect(m.previewCode()).toBe('IP');
+    });
+
+    it('retourne null quand ni catégorie réserve ni type action', () => {
+      const m = makeMini();
+      m.categorieActionReserveCtrl.value = null;
+      m.selectedTypeAction.set(null);
+      expect(m.previewCode()).toBeNull();
+    });
+  });
 });

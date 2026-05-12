@@ -3328,6 +3328,15 @@ class EnjeuxSeeder(BaseSeeder):
         prio_op_2 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_2')
         prio_op_3 = self._get_nomenclature('PRIORITE_OPERATION', 'PRIORITE_3')
 
+        # #228 (2026-05-12) — Nomenclatures CATEGORIE_ACTION_RESERVE (CT88).
+        # Préfixe 2 lettres utilisé pour le calcul du code d'affichage des actions.
+        cat_reserve_sp = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'SP')  # Surveillance
+        cat_reserve_cs = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'CS')  # Connaissance et suivi
+        cat_reserve_ip = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'IP')  # Interventions
+        cat_reserve_ci = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'CI')  # Infrastructures
+        cat_reserve_ms = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'MS')  # Management
+        cat_reserve_pa = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'PA')  # Accueil/animation
+
         # --- Opérations Camargue ---
         # Liée à l'indicateur "Surface des habitats humides en bon état de conservation"
         ind_surface = next((i for i in indicateurs_created if 'Surface des habitats humides' in i.nom_indicateur), None)
@@ -3338,6 +3347,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'libelle': 'Restauration hydraulique du marais sud',
                     'id_priorite': prio_op_1,
                     'id_referentiel_operations': 'SE',
+                    'id_categorie_action_reserve': cat_reserve_ip,
                     'description': 'Travaux de remise en eau du marais sud par suppression '
                                    'des endiguements et restauration des connexions hydrauliques.',
                     'annee_min': 2024,
@@ -3355,6 +3365,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'libelle': 'Suivi cartographique des habitats humides',
                     'id_priorite': prio_op_2,
                     'id_referentiel_operations': 'SE',
+                    'id_categorie_action_reserve': cat_reserve_cs,
                     'description': 'Cartographie annuelle de l\'état de conservation '
                                    'des habitats humides par télédétection et terrain.',
                     'annee_min': 2024,
@@ -4291,6 +4302,16 @@ class EnjeuxSeeder(BaseSeeder):
             'TU': type_action_ip1, 'PA': type_action_pa1,
         }
 
+        # #228 — Mapping référentiel → catégorie d'action réserve CT88.
+        # Permet à environ la moitié des actions seedées d'avoir une catégorie
+        # réserve renseignée, pour démontrer l'effet sur le code calculé.
+        ref_to_cat_reserve = {
+            'SE': cat_reserve_cs, 'CS': cat_reserve_cs,
+            'GE': cat_reserve_ip, 'CC': cat_reserve_pa,
+            'IP': cat_reserve_sp, 'PR': cat_reserve_sp,
+            'TU': cat_reserve_ip, 'PA': cat_reserve_pa,
+        }
+
         # Budget/ETP profiles for variety
         budget_profiles = [
             {'base': 1500, 'var': 300},   # 0
@@ -4307,6 +4328,17 @@ class EnjeuxSeeder(BaseSeeder):
                 ta = ref_to_type[op.id_referentiel_operations]
                 if ta:
                     op.id_type_action = ta
+
+            # #228 — Seed la catégorie d'action réserve sur ~la moitié des
+            # actions (celles d'index pair), pour démontrer la cohabitation
+            # avec celles qui n'en ont pas (fallback type_action).
+            if (idx % 2 == 0
+                and op.id_categorie_action_reserve_id is None
+                and op.id_referentiel_operations
+                and op.id_referentiel_operations in ref_to_cat_reserve):
+                cat = ref_to_cat_reserve[op.id_referentiel_operations]
+                if cat:
+                    op.id_categorie_action_reserve = cat
 
             # Per-operation enrichment or fallback
             enrich = op_enrichment.get(op.libelle, None)
