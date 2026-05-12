@@ -1058,19 +1058,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return this.selectedEnjeu()?.objectifs_long_terme?.length || 0;
   });
 
-  // Computed pour les pressions de l'enjeu sélectionné (via facteurs d'influence)
+  // Computed pour les pressions de l'enjeu sélectionné (via facteurs d'influence).
+  // #228 — Dépendance explicite sur `planEnjeuxData()` pour que les mutations
+  // in-place (DnD) déclenchent un re-render. Sans ça, `selectedEnjeu` peut
+  // retourner la même référence après update et bloquer la propagation.
   selectedPressions = computed(() => {
+    this.planEnjeuxData();  // force dep on root signal
     const enjeu = this.selectedEnjeu();
     if (!enjeu) return [];
     return (enjeu.facteurs_influence || []).flatMap(fi => fi.pressions || []);
   });
 
   // Computed pour les OOs de l'enjeu sélectionné (via facteurs → pressions, dédupliqués).
-  // #228 — Tri final par `ordre` puis `id_oo` : le flatMap suit l'ordre des
-  // pressions, mais une fois dédupliqué, il faut imposer le tri canonique
-  // des OO pour que le DnD inter-OO soit visible côté UI (sinon la première
-  // pression rencontrée fige la position du OO).
+  // #228 — Dépendance explicite sur planEnjeuxData + tri final par `ordre`.
+  // Le tri rend visible un DnD inter-OO (les OO partagés par M2M ont leur
+  // ordre propagé par propagateOrdresToDuplicates, donc tous les exemplaires
+  // ont le bon `ordre` au moment où on les lit ici).
   selectedOos = computed(() => {
+    this.planEnjeuxData();  // force dep on root signal
     const seen = new Set<number>();
     const unique = this.selectedPressions()
       .flatMap(p => p.objectifs_operationnels || [])
