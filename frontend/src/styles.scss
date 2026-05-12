@@ -825,12 +825,28 @@ body {
 body.leaflet-map-fullscreen-active {
   overflow: hidden;
 
-  // Hide all page content except the fullscreen map
+  // Hide all page content except the fullscreen map (#173).
+  // L'idée : tout ce qui est rendu en dehors de la carte plein écran
+  // doit être masqué pour éviter le « contenu devant la carte » signalé
+  // par les utilisateurs sur /sites.
   app-header,
   .sidebar-menu,
   .content-column,
   .page-header,
-  .action-bar {
+  .action-bar,
+  .hero-section,
+  .breadcrumb,
+  .breadcrumb-text,
+  .toolbar,
+  .filters-row,
+  .section-header,
+  app-plan-sidebar,
+  // Toute la liste des sites/plans à droite ou en bas de la carte
+  // si elle n'utilise pas une des classes ci-dessus.
+  .sites-list,
+  .plans-list,
+  // Cards d'admin
+  .admin-header {
     display: none !important;
   }
 
