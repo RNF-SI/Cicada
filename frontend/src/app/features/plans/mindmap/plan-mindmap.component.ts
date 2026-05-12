@@ -240,6 +240,18 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
+    // #190 : au niveau racine (enjeux du plan ou actions selon la vue), on
+    // force une hauteur uniforme entre les enfants directs. Sans cela,
+    // l'enjeu le plus dense (le plus de feuilles) écrase visuellement les
+    // enjeux légers (FCR, enjeux géologiques sans OO/OLT) et les pousse
+    // sous la fenêtre. Les niveaux suivants conservent leur poids habituel.
+    if (hierarchy.children && hierarchy.children.length > 1) {
+      const maxChildVal = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
+      for (const child of hierarchy.children) {
+        (child as any).value = maxChildVal;
+      }
+    }
+
     hierarchy.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
     let maxDepth = 0;
@@ -247,16 +259,14 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     const initialVisibleCols = 2;
     const columnWidth = width / initialVisibleCols;
 
-    // Hauteur adaptative (#257) : sur les plans denses, chaque feuille reçoit
-    // viewport / nLeaves px de hauteur — souvent < 20 px, ce qui ne laisse pas
-    // la place pour du texte multi-ligne. On garantit au minimum
-    // MIN_LEAF_HEIGHT par feuille en agrandissant la zone de partition (et
-    // donc le SVG) au-delà du viewport ; le container est scrollable
-    // verticalement (overflow-y: auto) pour les plans riches.
-    const MIN_LEAF_HEIGHT = 50;
-    let leafCount = 0;
-    hierarchy.each(d => { if (!d.children || d.children.length === 0) leafCount++; });
-    const height = Math.max(containerHeight, leafCount * MIN_LEAF_HEIGHT);
+    // #190 : la hauteur du SVG est égale à la viewport — on ne l'étire plus
+    // à `leafCount * MIN_LEAF_HEIGHT`. Avant ce fix, sur un plan dense
+    // (~50 feuilles), le SVG faisait 2500 px et seul le premier enjeu était
+    // visible à l'écran (les autres demandaient un scroll). Désormais, tous
+    // les enjeux tiennent dans le viewport ; la lisibilité des niveaux
+    // profonds est assurée par le zoom au clic (animateToFocus rescale le
+    // sous-arbre focalisé pour qu'il occupe toute la hauteur).
+    const height = containerHeight;
 
     const root = d3.partition<MindmapNode>()
       .size([height, (maxDepth + 1) * columnWidth])

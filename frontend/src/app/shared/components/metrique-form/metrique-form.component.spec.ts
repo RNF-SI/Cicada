@@ -1,8 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule, TranslateLoader, TranslateFakeLoader } from '@ngx-translate/core';
+import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Observable, of } from 'rxjs';
 import { MetriqueFormComponent } from './metrique-form.component';
 import { MetriqueFormData } from '../../../core/models/enjeu.model';
+
+class FakeTranslateLoader implements TranslateLoader {
+  getTranslation(_lang: string): Observable<Record<string, never>> {
+    return of({});
+  }
+}
 
 function freshMetrique(): MetriqueFormData {
   return {
@@ -37,7 +44,7 @@ describe('MetriqueFormComponent', () => {
       imports: [
         MetriqueFormComponent,
         NoopAnimationsModule,
-        TranslateModule.forRoot({ loader: { provide: TranslateLoader, useClass: TranslateFakeLoader } }),
+        TranslateModule.forRoot({ loader: { provide: TranslateLoader, useClass: FakeTranslateLoader } }),
       ],
     }).compileComponents();
 

@@ -100,3 +100,6 @@ scripts/
 
 # Packages Debian
 cicada_*.deb
+
+# Claude Code session artifacts
+.claude/scheduled_tasks.lock
