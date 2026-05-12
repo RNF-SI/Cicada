@@ -24,6 +24,11 @@
         [class.color-salmon]="titleColor === 'salmon'"
         [class.color-yellow]="titleColor === 'yellow'">
       {{ title }}
+      @if (tooltip) {
+        <i class="fi fi-rr-info help-icon"
+           [matTooltip]="tooltip"
+           matTooltipPosition="right"></i>
+      }
     </h2>
   </div>
   <!-- Actions projetées ou lien -->

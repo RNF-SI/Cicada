@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { EllipseIconButtonComponent, EllipseColor } from '../ellipse-icon-button/ellipse-icon-button.component';
 
 /**
@@ -19,7 +20,7 @@ import { EllipseIconButtonComponent, EllipseColor } from '../ellipse-icon-button
 @Component({
   selector: 'app-section-title',
   standalone: true,
-  imports: [CommonModule, RouterModule, EllipseIconButtonComponent],
+  imports: [CommonModule, RouterModule, MatTooltipModule, EllipseIconButtonComponent],
   templateUrl: './section-title.component.html',
   styleUrl: './section-title.component.scss'
 })
@@ -74,6 +75,9 @@ export class SectionTitleComponent {
 
   /** Afficher la ligne de séparation sous le titre */
   @Input() showLine: boolean = true;
+
+  /** Texte du tooltip CT88 affiché au survol d'une icône info à côté du titre (#204) */
+  @Input() tooltip: string = '';
 
   /** Retourne le chemin vers l'image ellipse selon la couleur (sans bordure blanche) */
   getCornerShapePath(): string {

@@ -2105,6 +2105,7 @@
       "priorite2": "2",
       "priorite3": "3",
       "categorie": "Catégorie de l'enjeu",
+      "categorieTooltip": "Distinction entre enjeux de conservation du patrimoine naturel (écologiques) et enjeux socio-économiques liés aux usages, à la valeur paysagère ou culturelle (CT88).",
       "ecologique": "Conservation du patrimoine naturel",
       "socioEconomique": "Socio-économique",
       "typeEnjeu": "L'enjeu est lié à",
@@ -2265,6 +2266,7 @@
       "usageNote": "Utilisez cette section pour définir les objectifs à long terme de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
       "countSuffix": "objectif(s) à long terme (OLT) saisi(s)",
       "label": "OLT",
+      "tooltip": "Objectif à long terme : état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion (CT88).",
       "newTitle": "Nouvel objectif à long terme",
       "editTitle": "Modifier l'OLT",
       "deleteTitle": "Supprimer l'OLT",
@@ -2280,6 +2282,7 @@
     },
     "niveauExigence": {
       "label": "Niveau d'exigence",
+      "tooltip": "Niveau d'exigence (NE) : seuil ou critère mesurable précisant à quel point l'OLT doit être atteint pour considérer la gestion comme efficace (CT88).",
       "newTitle": "Nouveau niveau d'exigence",
       "addButton": "Ajouter un niveau d'exigence",
       "libelleLabel": "Intitulé du niveau d'exigence",
@@ -2292,6 +2295,7 @@
     },
     "oo": {
       "label": "OO",
+      "tooltip": "Objectif opérationnel (OO) : résultat concret attendu pendant la durée du plan de gestion, qui contribue à atteindre l'objectif à long terme (CT88).",
       "countSuffix": "objectif(s) opérationnel(s) (OO) saisi(s)",
       "libelleLabel": "Intitulé de l'objectif opérationnel (OO)",
       "facteurLabel": "Facteur d'influence",
@@ -2316,6 +2320,7 @@
     },
     "resultatAttendu": {
       "label": "Résultat attendu",
+      "tooltip": "Résultat attendu (RA) : effet mesurable et concret attendu d'un objectif opérationnel sur la durée du plan de gestion (CT88).",
       "libelleLabel": "Intitulé du résultat attendu",
       "addButton": "Ajouter un résultat attendu",
       "newTitle": "Nouveau résultat attendu",
@@ -2329,6 +2334,7 @@
     },
     "indicateurPression": {
       "label": "Indicateur de pression",
+      "tooltip": "Indicateur de pression : paramètre mesurable qui renseigne sur l'intensité ou l'évolution d'un facteur d'influence ou d'une pression s'exerçant sur l'enjeu (CT88).",
       "addButton": "Ajouter un indicateur de pression"
     },
     "operations": {
@@ -2484,6 +2490,7 @@
     },
     "facteurInfluence": {
       "label": "Facteur d'influence",
+      "tooltip": "Facteur d'influence : élément ou phénomène (naturel ou anthropique) agissant favorablement ou défavorablement sur l'état de conservation de l'enjeu (CT88).",
       "newTitle": "Nouveau facteur d'influence",
       "addButton": "Ajouter un facteur d'influence",
       "usageNote": "Utilisez cette section pour définir les facteurs d'influence de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
@@ -2501,6 +2508,7 @@
     },
     "pression": {
       "label": "Pression",
+      "tooltip": "Pression : action ou phénomène concret et observable qui matérialise un facteur défavorable et s'exerce sur l'enjeu (CT88).",
       "newTitle": "Nouvelle pression à gérer",
       "addButton": "Ajouter une pression",
       "libelleLabel": "Intitulé de la pression à gérer",
@@ -2520,6 +2528,7 @@
     },
     "indicateurs": {
       "label": "Indicateur d'état",
+      "tooltip": "Indicateur d'état : paramètre mesurable qui renseigne sur l'état de conservation ou les caractéristiques de l'enjeu lui-même (CT88).",
       "addButton": "Ajouter un indicateur",
       "newTitle": "Nouvel indicateur d'état",
       "editTitle": "Modifier l'indicateur",

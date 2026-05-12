@@ -848,6 +848,24 @@
 
 
 // ============================================
+// HELP ICON (#204) — tooltip définition CT88
+// ============================================
+// Petite icône info à côté d'un label de formulaire ou d'un titre de section.
+// Usage : <i class="fi fi-rr-info help-icon" [matTooltip]="'...' | translate" matTooltipPosition="right"></i>
+.help-icon {
+  display: inline-block;
+  margin-left: $spacing-xxs;
+  color: $primary-color;
+  font-size: 0.9rem;
+  cursor: help;
+  vertical-align: middle;
+
+  &:hover {
+    color: $primary-hover;
+  }
+}
+
+// ============================================
 // LOCK BANNER (#248) — plan hors brouillon
 // ============================================
 .lock-banner {

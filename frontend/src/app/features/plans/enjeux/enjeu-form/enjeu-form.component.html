@@ -74,7 +74,12 @@
 
           <!-- Catégorie de l'enjeu (choix exclusif) -->
           <div class="form-group">
-            <label class="form-label">{{ 'enjeux.enjeuForm.categorie' | translate }} <span class="required-star">*</span></label>
+            <label class="form-label">
+              {{ 'enjeux.enjeuForm.categorie' | translate }} <span class="required-star">*</span>
+              <i class="fi fi-rr-info help-icon"
+                 [matTooltip]="'enjeux.enjeuForm.categorieTooltip' | translate"
+                 matTooltipPosition="right"></i>
+            </label>
             <mat-radio-group formControlName="categorie_ecologique" class="category-radio-group">
               <mat-radio-button [value]="true">
                 {{ 'enjeux.enjeuForm.ecologique' | translate }}

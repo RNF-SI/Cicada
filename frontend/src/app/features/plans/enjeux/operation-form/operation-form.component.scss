@@ -1,18 +1,6 @@
 @import 'variables';
 
-// Icône d'aide avec tooltip contextuel
-.help-icon {
-  display: inline-block;
-  margin-left: $spacing-xxs;
-  color: $primary-color;
-  font-size: 0.9rem;
-  cursor: help;
-  vertical-align: middle;
-
-  &:hover {
-    color: darken($primary-color, 10%);
-  }
-}
+// .help-icon est défini globalement dans assets/scss/_components.scss (#204)
 
 .enjeu-form-page {
   min-height: 100vh;

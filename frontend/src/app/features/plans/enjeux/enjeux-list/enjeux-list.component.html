@@ -386,7 +386,12 @@
                         }
                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                         <h3 class="facteur-card-title">
-                          {{ 'enjeux.facteurInfluence.label' | translate }} : {{ facteur.libelle }}
+                          {{ 'enjeux.facteurInfluence.label' | translate }}
+                          <i class="fi fi-rr-info help-icon"
+                             [matTooltip]="'enjeux.facteurInfluence.tooltip' | translate"
+                             matTooltipPosition="right"
+                             (click)="$event.stopPropagation()"></i>
+                          : {{ facteur.libelle }}
                         </h3>
                       </div>
                       <div class="facteur-card-actions">
@@ -497,7 +502,12 @@
                                 <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="pression-bullet">
                                 <div class="pression-card-title-block">
                                   <h4 class="pression-card-title">
-                                    {{ 'enjeux.pression.label' | translate }} : {{ pression.libelle }}
+                                    {{ 'enjeux.pression.label' | translate }}
+                                    <i class="fi fi-rr-info help-icon"
+                                       [matTooltip]="'enjeux.pression.tooltip' | translate"
+                                       matTooltipPosition="right"
+                                       (click)="$event.stopPropagation()"></i>
+                                    : {{ pression.libelle }}
                                   </h4>
                                   @if (pression.pressref_label) {
                                     <div class="pression-card-type">
@@ -722,6 +732,7 @@
                             }
                             <app-section-title
                               [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
+                              [tooltip]="'enjeux.olt.tooltip' | translate"
                               icon="fi-rr-eye"
                               ellipseColor="terra-cotta"
                               size="md"
@@ -789,7 +800,13 @@
                                           </button>
                                         }
                                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
-                                        <h3 class="ne-card-title">{{ 'enjeux.niveauExigence.label' | translate }} : {{ ne.libelle }}</h3>
+                                        <h3 class="ne-card-title">
+                                          {{ 'enjeux.niveauExigence.label' | translate }}
+                                          <i class="fi fi-rr-info help-icon"
+                                             [matTooltip]="'enjeux.niveauExigence.tooltip' | translate"
+                                             matTooltipPosition="right"></i>
+                                          : {{ ne.libelle }}
+                                        </h3>
                                       </div>
                                       @if (canEditPlan()) {
                                         <div class="ne-card-actions">
@@ -1068,7 +1085,14 @@
                                                 </button>
                                               }
                                               <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
-                                              <span class="indicateur-nom">{{ 'enjeux.indicateurs.label' | translate }} : {{ ind.nom_indicateur }}</span>
+                                              <span class="indicateur-nom">
+                                                {{ 'enjeux.indicateurs.label' | translate }}
+                                                <i class="fi fi-rr-info help-icon"
+                                                   [matTooltip]="'enjeux.indicateurs.tooltip' | translate"
+                                                   matTooltipPosition="right"
+                                                   (click)="$event.stopPropagation()"></i>
+                                                : {{ ind.nom_indicateur }}
+                                              </span>
                                               @if (ind.type_indicateur_label) {
                                                 <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
                                               }
@@ -2052,6 +2076,7 @@
                     }
                     <app-section-title
                       [title]="('enjeux.oo.label' | translate) + ' ' + (ooIdx + 1) + ' : ' + oo.libelle"
+                      [tooltip]="'enjeux.oo.tooltip' | translate"
                       icon="fi-rr-bullseye-arrow"
                       ellipseColor="terra-cotta"
                       size="md"
@@ -2134,7 +2159,13 @@
                                   </button>
                                 }
                                 <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
-                                <h3 class="ne-card-title">{{ 'enjeux.resultatAttendu.label' | translate }} : {{ ra.libelle }}</h3>
+                                <h3 class="ne-card-title">
+                                  {{ 'enjeux.resultatAttendu.label' | translate }}
+                                  <i class="fi fi-rr-info help-icon"
+                                     [matTooltip]="'enjeux.resultatAttendu.tooltip' | translate"
+                                     matTooltipPosition="right"></i>
+                                  : {{ ra.libelle }}
+                                </h3>
                               </div>
                               @if (canEditPlan()) {
                                 <div class="ne-card-actions">
@@ -2411,7 +2442,14 @@
                                         </button>
                                       }
                                       <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
-                                      <span class="indicateur-nom">{{ 'enjeux.indicateurPression.label' | translate }} : {{ ind.nom_indicateur }}</span>
+                                      <span class="indicateur-nom">
+                                        {{ 'enjeux.indicateurPression.label' | translate }}
+                                        <i class="fi fi-rr-info help-icon"
+                                           [matTooltip]="'enjeux.indicateurPression.tooltip' | translate"
+                                           matTooltipPosition="right"
+                                           (click)="$event.stopPropagation()"></i>
+                                        : {{ ind.nom_indicateur }}
+                                      </span>
                                       @if (ind.type_indicateur_label) {
                                         <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
                                       }
