@@ -27,7 +27,7 @@
             }
             <mat-chip-set>
               <mat-chip [ngClass]="getStatusClass(item)" highlighted>
-                {{ 'plans.status.' + item.statut | translate }}
+                {{ getStatusLabelKey(item) | translate }}
               </mat-chip>
             </mat-chip-set>
           </div>

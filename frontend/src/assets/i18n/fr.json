@@ -1241,6 +1241,9 @@
       "draft": "Brouillon",
       "valide": "Valide",
       "etendu": "Étendu",
+      "etendu_rnn": "Plan prolongé",
+      "etendu_pnr": "Plan en renouvellement",
+      "etendu_ens": "Plan étendu",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours"

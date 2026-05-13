@@ -342,6 +342,8 @@ export interface PlanSite {
   nom_site: string;
   slug?: string;
   type_site_label?: string;
+  /** Mnémonique du type de site (RNN, RNR, PNR, ENS, ENSD...) — #281 */
+  type_site_mnemonique?: string | null;
   /** Précision du type de site quand le type est "Autre" */
   type_site_precision?: string | null;
   surf_off?: number;

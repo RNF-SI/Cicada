@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { MatChipsModule } from '@angular/material/chips';
 import { TranslateModule } from '@ngx-translate/core';
 import { PlanVersionChainItem } from '../../../core/models/admin.model';
+import { getPlanStatusKey } from '../../utils/plan-status.utils';
 
 @Component({
   selector: 'app-plan-version-timeline',
@@ -15,6 +16,13 @@ import { PlanVersionChainItem } from '../../../core/models/admin.model';
 export class PlanVersionTimelineComponent {
   @Input() chain: PlanVersionChainItem[] = [];
   @Input() currentStatus = 'draft';
+  /** Mnémonique du type de site principal (RNN, RNR, PNR, ENS...) — #281 */
+  @Input() principalSiteTypeMnemonique: string | null = null;
+
+  /** Clé i18n du statut, contextualisée pour `etendu` selon le type d'aire (#281). */
+  getStatusLabelKey(item: PlanVersionChainItem): string {
+    return getPlanStatusKey(item.statut, this.principalSiteTypeMnemonique);
+  }
 
   getNodeIcon(item: PlanVersionChainItem): string {
     switch (item.type_document_mnemonique) {

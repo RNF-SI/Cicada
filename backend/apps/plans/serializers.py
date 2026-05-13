@@ -95,17 +95,25 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
     nom_site = serializers.CharField(source='site.nom_site')
     slug = serializers.SlugField(source='site.slug', read_only=True)
     type_site_label = serializers.SerializerMethodField()
+    type_site_mnemonique = serializers.SerializerMethodField()
     current_user_has_access = serializers.SerializerMethodField()
     organismes = serializers.SerializerMethodField()
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'rang', 'current_user_has_access', 'organismes']
+        fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'type_site_mnemonique',
+                  'rang', 'current_user_has_access', 'organismes']
 
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.label
+        return None
+
+    def get_type_site_mnemonique(self, obj):
+        """Mnémonique du type de site (#281, pour contextualiser libellé `etendu`)."""
+        if obj.site and obj.site.id_type_site:
+            return obj.site.id_type_site.mnemonique
         return None
 
     def get_current_user_has_access(self, obj):
@@ -172,10 +180,13 @@ class PlanSiteMinimalSerializer(serializers.ModelSerializer):
     """Serializer minimal pour les sites dans la liste des plans (pas d'organismes ni access check)."""
     id_site = serializers.IntegerField(source='site.id_site')
     nom_site = serializers.CharField(source='site.nom_site')
+    type_site_mnemonique = serializers.CharField(
+        source='site.id_type_site.mnemonique', read_only=True, allow_null=True
+    )
 
     class Meta:
         model = CorSitePg
-        fields = ['id_site', 'nom_site']
+        fields = ['id_site', 'nom_site', 'type_site_mnemonique']
 
 
 class PlanGestionListSerializer(serializers.ModelSerializer):

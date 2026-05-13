@@ -50,6 +50,7 @@ import {
   ExtendDurationDialogData,
   ExtendDurationDialogResult,
 } from '../../shared/components/modals/extend-duration-dialog/extend-duration-dialog.component';
+import { getPlanStatusKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
   id: string;
@@ -133,6 +134,22 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       } as PlanVersionChainItem];
     }
     return [];
+  });
+
+  // #281 — Mnémonique du type de site principal (premier par rang) pour
+  // contextualiser le libellé du statut `etendu` dans la timeline et le chip.
+  principalSiteTypeMnemonique = computed<string | null>(() => {
+    const sites = this.plan()?.sites || [];
+    if (sites.length === 0) return null;
+    const principal = [...sites].sort((a, b) => (a.rang ?? 99) - (b.rang ?? 99))[0];
+    return principal?.type_site_mnemonique ?? null;
+  });
+
+  // #281 — Clé i18n du statut du plan contextualisée pour `etendu`.
+  statusLabelKey = computed<string>(() => {
+    const p = this.plan();
+    if (!p) return 'plans.status.draft';
+    return getPlanStatusKey(p.statut, this.principalSiteTypeMnemonique());
   });
 
   // Enjeux/FCR data for synthèse and sidebar
