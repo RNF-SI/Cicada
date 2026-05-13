@@ -325,7 +325,7 @@ export interface PlanFichier {
  * Statuts possibles d'un plan de gestion
  * - `etendu` : plan validé prolongé de 1 ou 2 années (#250). Reste éditable comme `draft`.
  */
-export type PlanStatut = 'draft' | 'valide' | 'etendu' | 'archive';
+export type PlanStatut = 'draft' | 'valide' | 'etendu' | 'en_revision' | 'archive';
 
 /**
  * Site associé à un plan de gestion

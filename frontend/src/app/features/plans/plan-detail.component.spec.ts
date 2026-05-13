@@ -593,24 +593,49 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      // #248 : le bouton "edit metadata" n'est rendu que sur les plans en
-      // brouillon (canEditPlan()), donc sur valide on a uniquement les 2
-      // boutons de cycle de vie : toDraft + archive.
-      it('should show exactly two lifecycle buttons (toDraft + archive)', () => {
+      // #248 : edit metadata caché hors brouillon. #278 : ajout du bouton
+      // "Passer en cours de révision" sur statut valide. Total = toDraft +
+      // enRevision + archive = 3 boutons de cycle de vie.
+      it('should show exactly three lifecycle buttons (toDraft + enRevision + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(3);
       });
 
-      it('should show warning button (toDraft) and neutral button (archive)', () => {
+      it('should show warning (toDraft), info (enRevision) and neutral (archive) buttons', () => {
         const warningBtn = fixture.nativeElement.querySelector('.btn-lifecycle-warning');
+        const infoBtn = fixture.nativeElement.querySelector('.btn-lifecycle-info');
         const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
         expect(warningBtn).toBeTruthy();
+        expect(infoBtn).toBeTruthy();
         expect(neutralBtn).toBeTruthy();
       });
 
       it('should NOT show success lifecycle button (validate)', () => {
         const successBtn = fixture.nativeElement.querySelector('.btn-lifecycle-success');
         expect(successBtn).toBeNull();
+      });
+    });
+
+    // #278 — statut "en cours de révision"
+    describe('when plan.statut === en_revision and canManageLifecycle is true', () => {
+      beforeEach(() => {
+        setup({
+          isSuperAdmin: true,
+          plan: createMockPlan({ statut: 'en_revision' as any }),
+        });
+        fixture.detectChanges();
+      });
+
+      it('should show exactly two lifecycle buttons (resume + archive)', () => {
+        const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
+        expect(buttons.length).toBe(2);
+      });
+
+      it('should show warning button (resume) and neutral button (archive)', () => {
+        const warningBtn = fixture.nativeElement.querySelector('.btn-lifecycle-warning');
+        const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
+        expect(warningBtn).toBeTruthy();
+        expect(neutralBtn).toBeTruthy();
       });
     });
 

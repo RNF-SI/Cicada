@@ -1015,11 +1015,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         # Vérifier les transitions autorisées
         # Note : `valide → etendu` passe par l'endpoint `extend-duration` (#250),
         # pas par `change-status`.
+        # #278 — `en_revision` : plan validé en fin de cycle dont la rédaction
+        # du plan suivant est en cours. Accessible depuis `valide` ou `etendu`,
+        # réversible vers `valide`, archivable.
         current = plan.statut
         allowed_transitions = {
             'draft': ['valide'],
-            'valide': ['archive', 'draft'],
-            'etendu': ['archive', 'valide'],
+            'valide': ['archive', 'draft', 'en_revision'],
+            'etendu': ['archive', 'valide', 'en_revision'],
+            'en_revision': ['valide', 'archive'],
             'archive': ['valide'],
         }
 

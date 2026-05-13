@@ -51,10 +51,14 @@ class PlanGestion(models.Model):
     """
 
     # Statuts possibles
+    # #278 — `en_revision` : plan validé dont la période est dépassée mais qui
+    # reste utilisé pendant la rédaction du plan de rang suivant. Verrouillé en
+    # lecture seule comme `valide` (cf. permission CanModifyOnlyDraftPlan).
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
         ('valide', _('Validé')),
         ('etendu', _('Étendu')),
+        ('en_revision', _('En cours de révision')),
         ('archive', _('Archivé')),
     ]
     

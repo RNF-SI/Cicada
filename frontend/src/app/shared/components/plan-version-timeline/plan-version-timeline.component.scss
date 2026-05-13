@@ -142,6 +142,16 @@
     i { color: $info-color; }
   }
 
+  // #278 — En cours de révision : variante info avec bordure pleine plus
+  // marquée pour distinguer du plan étendu.
+  &.dot-en_revision {
+    border-color: $info-color;
+    border-width: 2.5px;
+    background: rgba($info-color, 0.05);
+
+    i { color: $info-color; }
+  }
+
   &.dot-current {
     border-color: $secondary-terra-cotta;
     border-width: 2.5px;

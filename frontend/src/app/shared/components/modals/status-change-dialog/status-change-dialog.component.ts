@@ -72,6 +72,14 @@ export class StatusChangeDialogComponent {
         });
         actions.push({
           action: 'change_status',
+          label: this.translate.instant('plans.lifecycle.actions.enRevision'),
+          description: this.translate.instant('plans.lifecycle.actions.enRevisionDesc'),
+          icon: 'fi-rr-refresh',
+          colorClass: 'action-info',
+          newStatus: 'en_revision',
+        });
+        actions.push({
+          action: 'change_status',
           label: this.translate.instant('plans.lifecycle.actions.archive'),
           description: this.translate.instant('plans.lifecycle.actions.archiveDesc'),
           icon: 'fi-rr-box',
@@ -84,6 +92,25 @@ export class StatusChangeDialogComponent {
           description: this.translate.instant('plans.lifecycle.actions.createEvaluationDesc'),
           icon: 'fi-rr-time-forward',
           colorClass: 'action-terra-cotta',
+        });
+        break;
+
+      case 'en_revision':
+        actions.push({
+          action: 'change_status',
+          label: this.translate.instant('plans.lifecycle.actions.resumeFromRevision'),
+          description: this.translate.instant('plans.lifecycle.actions.resumeFromRevisionDesc'),
+          icon: 'fi-rr-undo',
+          colorClass: 'action-success',
+          newStatus: 'valide',
+        });
+        actions.push({
+          action: 'change_status',
+          label: this.translate.instant('plans.lifecycle.actions.archive'),
+          description: this.translate.instant('plans.lifecycle.actions.archiveDesc'),
+          icon: 'fi-rr-box',
+          colorClass: 'action-neutral',
+          newStatus: 'archive',
         });
         break;
 
@@ -110,6 +137,8 @@ export class StatusChangeDialogComponent {
     const classes: Record<string, string> = {
       draft: 'status-warning',
       valide: 'status-success',
+      etendu: 'status-info',
+      en_revision: 'status-info',
       archive: 'status-neutre',
     };
     return classes[this.data.currentStatus] || '';

@@ -581,6 +581,67 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    # ---------- #278 — en_revision transitions ----------
+
+    def test_valide_to_en_revision(self, api_client):
+        """Transition valide → en_revision autorisée (#278)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'en_revision'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'en_revision'
+
+    def test_en_revision_to_valide(self, api_client):
+        """Transition en_revision → valide autorisée (annulation)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='en_revision')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+
+    def test_en_revision_to_archive(self, api_client):
+        """Transition en_revision → archive autorisée."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='en_revision')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_en_revision_to_draft_forbidden(self, api_client):
+        """Transition en_revision → draft non autorisée."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='en_revision')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_etendu_to_en_revision(self, api_client):
+        """Transition etendu → en_revision autorisée (#278)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='etendu', annees_extension=2)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'en_revision'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+
     # ---------- Validation ----------
 
     def test_missing_new_status(self, api_client):

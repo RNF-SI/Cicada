@@ -40,6 +40,7 @@ export class PlanVersionTimelineComponent {
       draft: 'status-warning',
       valide: 'status-success',
       etendu: 'status-info',
+      en_revision: 'status-info',
       archive: 'status-neutre',
     };
     return classes[item.statut] || '';

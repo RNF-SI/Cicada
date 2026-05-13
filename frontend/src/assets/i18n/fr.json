@@ -1244,6 +1244,7 @@
       "etendu_rnn": "Plan prolongé",
       "etendu_pnr": "Plan en renouvellement",
       "etendu_ens": "Plan étendu",
+      "en_revision": "En cours de révision",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours"
@@ -1329,7 +1330,11 @@
         "extendDuration": "Étendre la durée du plan",
         "extendDurationDesc": "Prolonger ce plan de 1 ou 2 années pendant la rédaction du rang suivant.",
         "revertExtension": "Annuler l'extension",
-        "revertExtensionDesc": "Repasser ce plan en statut validé en annulant son extension."
+        "revertExtensionDesc": "Repasser ce plan en statut validé en annulant son extension.",
+        "enRevision": "Passer en cours de révision",
+        "enRevisionDesc": "Marquer ce plan comme étant en cours de révision : sa période est dépassée mais il reste utilisé pendant la rédaction du plan suivant.",
+        "resumeFromRevision": "Reprendre comme validé",
+        "resumeFromRevisionDesc": "Revenir au statut validé : annule l'état « en cours de révision »."
       },
       "warnings": {
         "validateTitle": "Valider le plan de gestion",
@@ -1344,7 +1349,11 @@
         "reactivateTitle": "Réactiver le plan",
         "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif.",
         "revertExtensionTitle": "Annuler l'extension du plan",
-        "revertExtensionWarning": "Le plan repassera en statut validé. Les actions saisies sur les années étendues resteront, mais ne seront plus marquées comme appartenant à l'extension."
+        "revertExtensionWarning": "Le plan repassera en statut validé. Les actions saisies sur les années étendues resteront, mais ne seront plus marquées comme appartenant à l'extension.",
+        "enRevisionTitle": "Passer le plan en cours de révision",
+        "enRevisionWarning": "Le plan sera marqué comme étant en cours de révision : il reste consultable mais ne sera plus modifiable directement. Le plan suivant peut être rédigé en parallèle.",
+        "resumeFromRevisionTitle": "Reprendre le plan comme validé",
+        "resumeFromRevisionWarning": "Le plan repassera en statut validé."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",

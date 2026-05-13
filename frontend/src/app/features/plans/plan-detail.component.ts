@@ -542,6 +542,31 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * #278 — Validé / Étendu → En cours de révision : la période est dépassée
+   * mais le plan reste utilisé pendant la rédaction du plan de rang suivant.
+   */
+  confirmEnRevision(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.enRevisionTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.enRevisionWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.enRevision'),
+      confirmColor: 'primary',
+      onConfirm: () => this.changeStatus('en_revision'),
+    });
+  }
+
+  /** #278 — En cours de révision → Validé : retour à l'état validé. */
+  confirmResumeFromRevision(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.resumeFromRevisionTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.resumeFromRevisionWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.resumeFromRevision'),
+      confirmColor: 'primary',
+      onConfirm: () => this.changeStatus('valide'),
+    });
+  }
+
+  /**
    * #250 — Ouvre la modale de choix « +1 an » / « +2 ans » pour prolonger
    * la durée du plan. Appel API au choix de l'utilisateur.
    */

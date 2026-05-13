@@ -123,7 +123,7 @@
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
                   }
-                  <!-- Validé → Remettre en brouillon + Étendre (si fenêtre OK, #250) + Archiver -->
+                  <!-- Validé → Remettre en brouillon + Étendre (si fenêtre OK, #250) + Passer en révision (#278) + Archiver -->
                   @if (p.statut === 'valide') {
                     <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
                       <i class="fi fi-rr-undo"></i>
@@ -135,16 +135,35 @@
                         <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
                       </button>
                     }
+                    <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmEnRevision()">
+                      <i class="fi fi-rr-refresh"></i>
+                      <span>{{ 'plans.lifecycle.actions.enRevision' | translate }}</span>
+                    </button>
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
                       <i class="fi fi-rr-box"></i>
                       <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
                     </button>
                   }
-                  <!-- Étendu → Revenir à validé + Archiver -->
+                  <!-- Étendu → Revenir à validé + Passer en révision (#278) + Archiver -->
                   @if (p.statut === 'etendu') {
                     <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmEnRevision()">
+                      <i class="fi fi-rr-refresh"></i>
+                      <span>{{ 'plans.lifecycle.actions.enRevision' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
+                      <i class="fi fi-rr-box"></i>
+                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
+                    </button>
+                  }
+                  <!-- En cours de révision (#278) → Reprendre (revenir à validé) + Archiver -->
+                  @if (p.statut === 'en_revision') {
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmResumeFromRevision()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.resumeFromRevision' | translate }}</span>
                     </button>
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
                       <i class="fi fi-rr-box"></i>
