@@ -36,4 +36,16 @@ export class PlanVersionTimelineComponent {
     };
     return classes[item.statut] || '';
   }
+
+  /**
+   * Indique si un nœud représente le brouillon d'un rang ultérieur au plan
+   * en cours de consultation (#280). Sert à appliquer un style distinct
+   * (cadre pointillé) cf. note Cycle de vie d'un plan de gestion.
+   */
+  isNextRangDraft(item: PlanVersionChainItem): boolean {
+    if (item.statut !== 'draft' || item.rang === undefined) return false;
+    const current = this.chain.find(c => c.is_current);
+    if (!current || current.rang === undefined) return false;
+    return item.rang > current.rang;
+  }
 }

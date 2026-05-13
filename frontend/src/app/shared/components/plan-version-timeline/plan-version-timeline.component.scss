@@ -149,6 +149,16 @@
 
     i { color: $secondary-terra-cotta; }
   }
+
+  // #280 — Brouillon du rang suivant : cadre pointillé sur la teinte primary
+  // (cf. maquette Mermaid de la note Cycle de vie d'un plan de gestion).
+  &.dot-next-rang {
+    border-color: $primary-color;
+    border-style: dashed;
+    background: $white;
+
+    i { color: $primary-color; }
+  }
 }
 
 // ============================================
@@ -194,6 +204,20 @@
   padding: 1px 5px;
   border-radius: $border-radius-sm;
   line-height: 1.4;
+}
+
+// #280 — Badge "Rang N+1" pour le brouillon du rang suivant
+.next-rang-badge {
+  font-size: 0.6rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: $primary-color;
+  background: rgba($primary-color, 0.08);
+  padding: 1px 5px;
+  border-radius: $border-radius-sm;
+  line-height: 1.4;
+  border: 1px dashed rgba($primary-color, 0.3);
 }
 
 .node-type {

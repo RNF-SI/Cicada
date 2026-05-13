@@ -379,6 +379,15 @@ class TestPlanGestionVersionChain:
         assert chain[0]['type_document_mnemonique'] is None
         assert chain[0]['type_document'] is None
 
+    def test_version_chain_exposes_rang(self):
+        """#280 — `rang` est inclus dans l'élément chaîne pour distinguer le rang suivant."""
+        root = PlanGestionFactory(nom='Rang 1', rang=1)
+        next_rang = PlanGestionFactory(nom='Rang 2 brouillon', rang=2, plan_parent=root)
+        chain = root.get_version_chain()
+        ranks = {item['id_pg']: item['rang'] for item in chain}
+        assert ranks[root.id_pg] == 1
+        assert ranks[next_rang.id_pg] == 2
+
     # ==================== get_next_version (entiers, #279) ====================
 
     def test_next_version_solo_plan(self):

@@ -1373,7 +1373,8 @@
       "timeline": {
         "title": "Cycle de vie",
         "planInitial": "Plan initial",
-        "current": "actuel"
+        "current": "actuel",
+        "nextRangDraft": "rang suivant"
       }
     },
     "detail": {

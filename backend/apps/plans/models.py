@@ -385,6 +385,7 @@ class PlanGestion(models.Model):
                 'slug': current.slug,
                 'version': current.version,
                 'statut': current.statut,
+                'rang': current.rang,
                 'annee_debut': current.annee_debut,
                 'annee_fin': current.annee_fin,
                 'type_document': current.id_type_document.label if current.id_type_document else None,

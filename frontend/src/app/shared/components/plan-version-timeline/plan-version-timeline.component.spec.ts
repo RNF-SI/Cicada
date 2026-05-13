@@ -158,4 +158,53 @@ describe('PlanVersionTimelineComponent', () => {
       expect(actions).toBeNull();
     });
   });
+
+  // ==================== isNextRangDraft (#280) ====================
+
+  describe('isNextRangDraft', () => {
+    it('renvoie false pour le plan courant', () => {
+      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
+      component.chain = [current];
+      expect(component.isNextRangDraft(current)).toBe(false);
+    });
+
+    it('renvoie false pour un brouillon de même rang (évaluation mi-parcours)', () => {
+      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
+      const evalDraft = createChainItem({ id_pg: 2, statut: 'draft', rang: 1 });
+      component.chain = [current, evalDraft];
+      expect(component.isNextRangDraft(evalDraft)).toBe(false);
+    });
+
+    it('renvoie true pour un brouillon de rang supérieur', () => {
+      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
+      const nextRang = createChainItem({ id_pg: 2, statut: 'draft', rang: 2 });
+      component.chain = [current, nextRang];
+      expect(component.isNextRangDraft(nextRang)).toBe(true);
+    });
+
+    it('renvoie false pour un plan validé de rang supérieur (déjà validé, pas brouillon)', () => {
+      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
+      const nextRangValide = createChainItem({ id_pg: 2, statut: 'valide', rang: 2 });
+      component.chain = [current, nextRangValide];
+      expect(component.isNextRangDraft(nextRangValide)).toBe(false);
+    });
+
+    it('renvoie false si rang manquant sur l\'élément testé', () => {
+      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
+      const unknown = createChainItem({ id_pg: 2, statut: 'draft', rang: undefined });
+      component.chain = [current, unknown];
+      expect(component.isNextRangDraft(unknown)).toBe(false);
+    });
+
+    it('applique la classe CSS .next-rang-draft sur le DOM', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true }),
+        createChainItem({ id_pg: 2, statut: 'draft', rang: 2 }),
+      ];
+      fixture.detectChanges();
+      const nodes = fixture.nativeElement.querySelectorAll('.timeline-node-row');
+      expect(nodes[0].classList.contains('next-rang-draft')).toBe(false);
+      expect(nodes[1].classList.contains('next-rang-draft')).toBe(true);
+    });
+  });
 });

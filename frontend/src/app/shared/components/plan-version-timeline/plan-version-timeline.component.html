@@ -4,13 +4,15 @@
       <a class="timeline-node-row"
          [routerLink]="item.is_current ? null : ['/plans', item.slug]"
          [class.clickable]="!item.is_current"
-         [class.current]="item.is_current">
+         [class.current]="item.is_current"
+         [class.next-rang-draft]="isNextRangDraft(item)">
         <div class="timeline-rail"
              [class.rail-first]="first"
              [class.rail-last]="last">
           <div class="rail-dot"
                [ngClass]="'dot-' + item.statut"
-               [class.dot-current]="item.is_current">
+               [class.dot-current]="item.is_current"
+               [class.dot-next-rang]="isNextRangDraft(item)">
             <i class="fi" [ngClass]="getNodeIcon(item)"></i>
           </div>
         </div>
@@ -19,6 +21,9 @@
             <span class="node-version">v{{ item.version }}</span>
             @if (item.is_current) {
               <span class="current-badge">{{ 'plans.lifecycle.timeline.current' | translate }}</span>
+            }
+            @if (isNextRangDraft(item)) {
+              <span class="next-rang-badge">{{ 'plans.lifecycle.timeline.nextRangDraft' | translate }}</span>
             }
             <mat-chip-set>
               <mat-chip [ngClass]="getStatusClass(item)" highlighted>

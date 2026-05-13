@@ -388,6 +388,7 @@ export interface PlanVersionChainItem {
   slug: string;
   version: string;
   statut: PlanStatut;
+  rang?: number;
   annee_debut?: number;
   annee_fin?: number;
   type_document?: string;
