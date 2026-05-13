@@ -204,7 +204,7 @@ export class PlanCreateComponent implements OnInit {
 
       // Champs additionnels non affichés
       statut: ['draft'],
-      version: ['1.0', Validators.maxLength(20)],
+      version: ['1', Validators.maxLength(20)],
       commentaire: ['']
     });
   }

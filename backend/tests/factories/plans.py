@@ -23,7 +23,7 @@ class PlanGestionFactory(DjangoModelFactory):
     gestion_partagee = False
     ct88 = False
     risque_incendie = False
-    version = '1.0'
+    version = '1'
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
 
     @factory.post_generation

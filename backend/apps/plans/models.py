@@ -184,8 +184,8 @@ class PlanGestion(models.Model):
     version = models.CharField(
         _("Version"),
         max_length=20,
-        default='1.0',
-        help_text=_("Version du plan (ex: 1.0, 1.1, 2.0...)")
+        default='1',
+        help_text=_("Version du plan dans la chaîne (entier : 1, 2, 3...)")
     )
 
     plan_parent = models.ForeignKey(
@@ -397,14 +397,27 @@ class PlanGestion(models.Model):
         return chain
 
     def get_next_version(self):
-        """Incrémente la version mineure (1.0 → 1.1, 2.3 → 2.4)."""
-        try:
-            parts = self.version.split('.')
-            major = int(parts[0])
-            minor = int(parts[1]) if len(parts) > 1 else 0
-            return f"{major}.{minor + 1}"
-        except (ValueError, IndexError):
-            return '1.1'
+        """
+        Incrémente la version entière dans la chaîne plan_parent (#279).
+
+        Renvoie la prochaine valeur entière disponible : max(versions de la
+        chaîne) + 1. Si les valeurs existantes ne sont pas entières (chaînes
+        historiques au format '1.0', '1.1'...), elles sont ignorées et on
+        recompte à partir de la position dans la chaîne.
+        """
+        chain = self.get_version_chain()
+        max_int = 0
+        for item in chain:
+            try:
+                v = int(item['version'])
+                if v > max_int:
+                    max_int = v
+            except (TypeError, ValueError):
+                continue
+        if max_int == 0:
+            # Aucune version entière dans la chaîne : on reprend depuis la taille
+            return str(len(chain) + 1)
+        return str(max_int + 1)
 
 
 class CorSitePg(models.Model):

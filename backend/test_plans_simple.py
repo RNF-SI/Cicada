@@ -54,7 +54,7 @@ def test_plans_models():
                     gestion_partagee=False,
                     ct88=False,
                     statut='draft',
-                    version='1.0',
+                    version='1',
                     id_evaluation=eval_nomenclature,
                     id_redacteur_type=red_nomenclature,
                     redacteur_nom='Test API',

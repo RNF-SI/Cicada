@@ -23,7 +23,7 @@ function createChainItem(overrides: Partial<PlanVersionChainItem> = {}): PlanVer
     id_pg: 1,
     nom: 'Plan Test',
     slug: 'plan-test',
-    version: '1.0',
+    version: '1',
     statut: 'valide' as PlanStatut,
     annee_debut: 2024,
     annee_fin: 2034,
@@ -128,8 +128,8 @@ describe('PlanVersionTimelineComponent', () => {
 
     it('should display current badge for current item', () => {
       component.chain = [
-        createChainItem({ id_pg: 1, version: '1.0' }),
-        createChainItem({ id_pg: 2, version: '1.1', is_current: true }),
+        createChainItem({ id_pg: 1, version: '1' }),
+        createChainItem({ id_pg: 2, version: '2', is_current: true }),
       ];
       fixture.detectChanges();
       const badge = fixture.nativeElement.querySelector('.current-badge');

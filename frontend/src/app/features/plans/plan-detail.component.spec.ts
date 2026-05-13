@@ -141,7 +141,7 @@ function createMockPlan(overrides: Partial<AdminPlan> = {}): AdminPlan {
     ct88: false,
     risque_incendie: false,
     rang: 1,
-    version: '1.0',
+    version: '1',
     annee_debut: 2024,
     annee_fin: 2034,
     sites: [
@@ -165,7 +165,7 @@ function createChainItem(overrides: Partial<PlanVersionChainItem> = {}): PlanVer
     id_pg: 1,
     nom: 'Plan Test',
     slug: 'plan-test',
-    version: '1.0',
+    version: '1',
     statut: 'valide' as PlanStatut,
     type_document: undefined,
     type_document_mnemonique: undefined,
@@ -435,8 +435,8 @@ describe('PlanDetailComponent', () => {
   describe('versionChain computed signal', () => {
     it('should return API version_chain when present', () => {
       const chain = [
-        createChainItem({ id_pg: 1, version: '1.0' }),
-        createChainItem({ id_pg: 2, version: '1.1', is_current: true }),
+        createChainItem({ id_pg: 1, version: '1' }),
+        createChainItem({ id_pg: 2, version: '2', is_current: true }),
       ];
       setup({ plan: createMockPlan({ version_chain: chain }) });
       expect(component.versionChain()).toEqual(chain);
@@ -448,7 +448,7 @@ describe('PlanDetailComponent', () => {
         id_pg: 7,
         nom: 'Mon Plan',
         slug: 'mon-plan',
-        version: '2.0',
+        version: '2',
         statut: 'valide',
         type_document_display: 'Plan initial',
         version_chain: [],
@@ -460,7 +460,7 @@ describe('PlanDetailComponent', () => {
       expect(chain[0].id_pg).toBe(7);
       expect(chain[0].nom).toBe('Mon Plan');
       expect(chain[0].slug).toBe('mon-plan');
-      expect(chain[0].version).toBe('2.0');
+      expect(chain[0].version).toBe('2');
       expect(chain[0].statut).toBe('valide');
       expect(chain[0].is_current).toBe(true);
     });
@@ -470,7 +470,7 @@ describe('PlanDetailComponent', () => {
         id_pg: 3,
         nom: 'No Chain',
         slug: 'no-chain',
-        version: '1.0',
+        version: '1',
         statut: 'draft',
         version_chain: undefined,
       });

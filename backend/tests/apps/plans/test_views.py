@@ -737,12 +737,12 @@ class TestPlanGestionCreateEvaluation:
     def test_increments_version(self, api_client, plan_with_referent, eval_nomenclature):
         """Version is incremented from source plan."""
         plan, referent, _, _ = plan_with_referent
-        plan.version = '1.0'
+        plan.version = '1'
         plan.save(update_fields=['version'])
         api_client.force_authenticate(user=referent)
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
         new_plan = PlanGestion.objects.get(pk=response.data['id_pg'])
-        assert new_plan.version == '1.1'
+        assert new_plan.version == '2'
 
     def test_copies_sites_with_rang(self, api_client, plan_with_referent, eval_nomenclature):
         """Sites and their rang are copied to new evaluation."""

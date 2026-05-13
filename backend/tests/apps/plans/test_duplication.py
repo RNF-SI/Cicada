@@ -53,7 +53,7 @@ def source_plan(db, user):
     return PlanGestionFactory(
         nom='Plan Original',
         statut='valide',
-        version='2.0',
+        version='2',
         annee_debut=2020,
         annee_fin=2030,
         id_utilisateur_ajout=user,
@@ -106,7 +106,7 @@ class TestDuplicatePlanBasic:
             copy_sites=False, copy_referents=False,
             copy_fichiers=False, copy_enjeux=False,
         )
-        assert new_plan.version == '2.1'
+        assert new_plan.version == '3'
 
     def test_duplicate_plan_parent_set(self, source_plan, user):
         new_plan = PlanDuplicationService.duplicate_plan(
@@ -839,7 +839,7 @@ class TestFullHierarchyDuplication:
         # Verify plan metadata
         assert new_plan.nom == '[En cours d\'élaboration] Plan Complet'
         assert new_plan.statut == 'draft'
-        assert new_plan.version == '1.1'
+        assert new_plan.version == '2'
         assert new_plan.plan_parent == source
 
         # Verify sites copied

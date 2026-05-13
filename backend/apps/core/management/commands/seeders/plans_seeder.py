@@ -50,7 +50,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 3,
                 'surface': 13117,
                 'statut': 'draft',
-                'version': '2.0',
+                'version': '4',
                 'gestion_partagee': True,
                 'ct88': True,
                 'risque_incendie': True,
@@ -83,7 +83,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 2,
                 'surface': 3279,
                 'statut': 'valide',
-                'version': '1.1',
+                'version': '2',
                 'gestion_partagee': False,
                 'ct88': False,
                 'risque_incendie': False,
@@ -110,7 +110,7 @@ class PlansSeeder(BaseSeeder):
                 'annee_debut': 2022,
                 'annee_fin': 2032,
                 'statut': 'draft',
-                'version': '1.0',
+                'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
                 'risque_incendie': False,
@@ -130,7 +130,7 @@ class PlansSeeder(BaseSeeder):
                 'annee_debut': 2021,
                 'annee_fin': 2031,
                 'statut': 'valide',
-                'version': '1.0',
+                'version': '2',
                 'gestion_partagee': True,
                 'ct88': True,
                 'risque_incendie': True,
@@ -151,7 +151,7 @@ class PlansSeeder(BaseSeeder):
                 'annee_debut': 2019,
                 'annee_fin': 2029,
                 'statut': 'archive',
-                'version': '3.0',
+                'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
                 'risque_incendie': False,
@@ -170,7 +170,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 3,
                 'surface': 286,
                 'statut': 'draft',
-                'version': '0.9',
+                'version': '1',
                 'gestion_partagee': True,
                 'ct88': True,
                 'risque_incendie': False,
@@ -200,7 +200,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 2,
                 'surface': 13117,
                 'statut': 'archive',
-                'version': '1.5',
+                'version': '3',
                 'gestion_partagee': True,
                 'ct88': True,
                 'risque_incendie': True,
@@ -222,7 +222,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 1,
                 'surface': 3279,
                 'statut': 'archive',
-                'version': '2.0',
+                'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
                 'risque_incendie': False,
@@ -246,7 +246,7 @@ class PlansSeeder(BaseSeeder):
                 'surface': 1669,
                 'statut': 'etendu',
                 'annees_extension': 2,
-                'version': '1.0',
+                'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
                 'risque_incendie': True,
@@ -273,7 +273,7 @@ class PlansSeeder(BaseSeeder):
                 'rang': 1,
                 'surface': 286,
                 'statut': 'valide',
-                'version': '1.0',
+                'version': '1',
                 'gestion_partagee': False,
                 'ct88': True,
                 'risque_incendie': False,
@@ -303,7 +303,7 @@ class PlansSeeder(BaseSeeder):
             'rang': 1,
             'surface': 5000,
             'statut': 'valide',
-            'version': '1.0',
+            'version': '1',
             'gestion_partagee': True,
             'ct88': False,
             'risque_incendie': False,
@@ -323,7 +323,7 @@ class PlansSeeder(BaseSeeder):
             'rang': 1,
             'surface': 286,
             'statut': 'draft',
-            'version': '0.1',
+            'version': '1',
             'gestion_partagee': False,
             'ct88': False,
             'risque_incendie': False,
@@ -462,7 +462,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': None,
                     'id_type_document': plan_initial_type,
                     'statut': 'archive',
-                    'version': '1.0',
+                    'version': '1',
                     'annee_debut': 2000,
                     'annee_fin': 2010,
                     'rang': 1,
@@ -493,7 +493,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': camargue_root,
                     'id_type_document': eval_mi_type,
                     'statut': 'archive',
-                    'version': '1.1',
+                    'version': '2',
                     'annee_debut': 2000,
                     'annee_fin': 2010,
                     'rang': 1,
@@ -518,13 +518,13 @@ class PlansSeeder(BaseSeeder):
             # Relier le plan révisé 2010-2020 (index 6) au plan initial
             plans[6].plan_parent = camargue_eval1
             plans[6].id_type_document = plan_revise_type
-            plans[6].version = '2.0'
+            plans[6].version = '3'
             plans[6].save(update_fields=['plan_parent', 'id_type_document', 'version'])
 
             # Relier le plan actuel 2020-2030 (index 0) au plan révisé 2010-2020
             plans[0].plan_parent = plans[6]
             plans[0].id_type_document = plan_revise_type
-            plans[0].version = '3.0'
+            plans[0].version = '4'
             plans[0].save(update_fields=['plan_parent', 'id_type_document', 'version'])
 
             # Eval mi-parcours du plan actuel (en cours, draft)
@@ -534,7 +534,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': plans[0],
                     'id_type_document': eval_mi_type,
                     'statut': 'draft',
-                    'version': '3.1',
+                    'version': '5',
                     'annee_debut': 2020,
                     'annee_fin': 2030,
                     'rang': 3,
@@ -574,13 +574,13 @@ class PlansSeeder(BaseSeeder):
 
             # Relier le plan initial (index 7)
             plans[7].id_type_document = plan_initial_type
-            plans[7].version = '1.0'
+            plans[7].version = '1'
             plans[7].save(update_fields=['id_type_document', 'version'])
 
             # Relier le plan actuel (index 1) au plan initial
             plans[1].plan_parent = plans[7]
             plans[1].id_type_document = plan_revise_type
-            plans[1].version = '2.0'
+            plans[1].version = '2'
             plans[1].save(update_fields=['plan_parent', 'id_type_document', 'version'])
 
             # Eval mi-parcours (validée — l'évaluation a été terminée)
@@ -590,7 +590,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': plans[1],
                     'id_type_document': eval_mi_type,
                     'statut': 'valide',
-                    'version': '2.1',
+                    'version': '3',
                     'annee_debut': 2018,
                     'annee_fin': 2028,
                     'rang': 2,
@@ -625,7 +625,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': ar_eval,
                     'id_type_document': plan_revise_type,
                     'statut': 'draft',
-                    'version': '2.2',
+                    'version': '4',
                     'annee_debut': 2018,
                     'annee_fin': 2028,
                     'rang': 2,
@@ -666,7 +666,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': None,
                     'id_type_document': plan_initial_type,
                     'statut': 'archive',
-                    'version': '1.0',
+                    'version': '1',
                     'annee_debut': 2011,
                     'annee_fin': 2021,
                     'rang': 1,
@@ -691,7 +691,7 @@ class PlansSeeder(BaseSeeder):
             # Relier le plan actuel (index 3) au plan initial
             plans[3].plan_parent = vercors_root
             plans[3].id_type_document = plan_revise_type
-            plans[3].version = '2.0'
+            plans[3].version = '2'
             plans[3].save(update_fields=['plan_parent', 'id_type_document', 'version'])
 
             # Eval mi-parcours du plan actuel (draft)
@@ -701,7 +701,7 @@ class PlansSeeder(BaseSeeder):
                     'plan_parent': plans[3],
                     'id_type_document': eval_mi_type,
                     'statut': 'draft',
-                    'version': '2.1',
+                    'version': '3',
                     'annee_debut': 2021,
                     'annee_fin': 2031,
                     'rang': 1,

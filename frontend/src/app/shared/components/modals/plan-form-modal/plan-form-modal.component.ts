@@ -249,7 +249,7 @@ export class PlanFormModalComponent implements OnInit {
 
       // Champs existants gardés mais non affichés dans le formulaire principal
       statut: [plan?.statut || 'draft'],
-      version: [plan?.version || '1.0', Validators.maxLength(20)],
+      version: [plan?.version || '1', Validators.maxLength(20)],
       gestion_partagee: [plan?.gestion_partagee || false],
       risque_incendie: [plan?.risque_incendie || false],
       id_evaluation: [plan?.id_evaluation || null],

@@ -125,7 +125,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         id_pg: p.id_pg,
         nom: p.nom,
         slug: p.slug || '',
-        version: p.version || '1.0',
+        version: p.version || '1',
         statut: p.statut,
         type_document: p.type_document_display || null,
         type_document_mnemonique: undefined,
