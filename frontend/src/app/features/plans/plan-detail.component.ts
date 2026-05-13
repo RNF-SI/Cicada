@@ -50,6 +50,11 @@ import {
   ExtendDurationDialogData,
   ExtendDurationDialogResult,
 } from '../../shared/components/modals/extend-duration-dialog/extend-duration-dialog.component';
+import {
+  MiParcoursPromptDialogComponent,
+  MiParcoursPromptDialogData,
+  MiParcoursPromptDialogResult,
+} from '../../shared/components/modals/mi-parcours-prompt-dialog/mi-parcours-prompt-dialog.component';
 import { getPlanStatusKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
@@ -505,8 +510,54 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       message,
       confirmText: this.translate.instant('plans.lifecycle.actions.validate'),
       confirmColor: 'primary',
-      onConfirm: () => this.changeStatus('valide'),
+      onConfirm: () => this.validateAfterConfirm(),
     });
+  }
+
+  /**
+   * #275 / #276 — Aiguillage post-confirmation : si le plan est une
+   * modification d'un parent validé ET qu'aucun mi-parcours n'existe encore
+   * dans la chaîne, on propose le pop-up "est-ce l'évaluation mi-parcours ?".
+   * Sinon, on enchaîne directement sur la validation.
+   */
+  private validateAfterConfirm(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    if (!this.shouldPromptMiParcours()) {
+      this.changeStatus('valide');
+      return;
+    }
+
+    const dialogData: MiParcoursPromptDialogData = { planName: p.nom };
+    this.dialog
+      .open<MiParcoursPromptDialogComponent, MiParcoursPromptDialogData, MiParcoursPromptDialogResult>(
+        MiParcoursPromptDialogComponent,
+        { data: dialogData, width: '520px', maxWidth: '95vw' }
+      )
+      .afterClosed()
+      .subscribe(result => {
+        if (!result || result.isMiParcours === null) return; // annulation
+        this.changeStatus('valide', { isMiParcours: result.isMiParcours });
+      });
+  }
+
+  /**
+   * Vrai si on doit proposer le pop-up mi-parcours :
+   * - plan_parent est un plan déjà validé (`is_modification` côté serveur),
+   * - aucun `mi_parcours` n'existe encore dans la chaîne.
+   */
+  private shouldPromptMiParcours(): boolean {
+    const p = this.plan();
+    if (!p?.plan_parent_id) return false;
+    const chain = p.version_chain ?? [];
+    const parent = chain.find(item => item.id_pg === p.plan_parent_id);
+    const parentValidated = parent
+      ? ['valide', 'modifie', 'mi_parcours', 'etendu', 'en_revision', 'archive'].includes(parent.statut)
+      : true; // côté serveur, l'absence d'info chaîne ne bloque pas
+    if (!parentValidated) return false;
+    const hasMiParcours = chain.some(item => item.id_pg !== p.id_pg && item.statut === 'mi_parcours');
+    return !hasMiParcours;
   }
 
   confirmArchive(): void {
@@ -624,7 +675,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  private changeStatus(newStatus: PlanStatut): void {
+  private changeStatus(newStatus: PlanStatut, options: { isMiParcours?: boolean } = {}): void {
     const p = this.plan();
     if (!p) return;
 
@@ -634,7 +685,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       ? findPreviousValidatedPlan(p.id_pg, p.version_chain)
       : null;
 
-    this.adminService.changePlanStatus(p.id_pg, newStatus).subscribe({
+    this.adminService.changePlanStatus(p.id_pg, newStatus, options).subscribe({
       next: () => {
         this.snackBar.open(
           this.translate.instant('plans.lifecycle.messages.statusChanged'),

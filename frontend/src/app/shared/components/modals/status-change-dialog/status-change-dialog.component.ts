@@ -62,6 +62,10 @@ export class StatusChangeDialogComponent {
         break;
 
       case 'valide':
+      case 'modifie':
+      case 'mi_parcours':
+        // Mêmes actions pour les 3 statuts "validés" (#275 / #276) :
+        // verrouillage en lecture seule identique au valide.
         actions.push({
           action: 'change_status',
           label: this.translate.instant('plans.lifecycle.actions.toDraft'),
@@ -137,6 +141,8 @@ export class StatusChangeDialogComponent {
     const classes: Record<string, string> = {
       draft: 'status-warning',
       valide: 'status-success',
+      modifie: 'status-success',
+      mi_parcours: 'status-success',
       etendu: 'status-info',
       en_revision: 'status-info',
       archive: 'status-neutre',

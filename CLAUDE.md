@@ -911,7 +911,7 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **9 Plans de Gestion**: Various statuses (valide, draft, archive) with site associations and referents
+- **9 Plans de Gestion**: divers statuts (draft, valide, modifie, mi_parcours, etendu, archive) avec associations sites/référents. Les chaînes Aiguilles Rouges et Vercors-Écrins exposent les statuts `modifie` (plan révisé) et `mi_parcours` (éval validée).
   - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
   - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
@@ -1065,21 +1065,34 @@ class UsersConfig(AppConfig):
 - Upload/download system for plan files (documents, maps, reports)
 - **Cycle de vie des plans** :
   - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
-    - Transitions : `draft↔valide`, `valide→archive`, `archive→valide`
-    - **Pop-up d'archivage automatique (#246)** : à la transition `draft → valide`, le frontend détecte les plans encore `valide` dans la `version_chain` (lien `plan_parent`) et propose d'archiver le plan précédent. Helper `findPreviousValidatedPlan(currentId, version_chain)` exporté depuis `shared/components/modals/archive-previous-plan-dialog/`. Si confirmé, un second `change-status` (`new_status: 'archive'`) est émis. Critère V1 limité à la même chaîne `plan_parent`.
+    - Body : `{ "new_status": "valide" | "draft" | "archive" | "en_revision", "is_mi_parcours"?: boolean }`
+    - Transitions : `draft↔valide`, `valide↔en_revision`, `valide→archive`, `archive→valide`, `etendu↔valide`, `etendu→en_revision`, etc. (cf. `change_status` dans `views.py`).
+    - **Routage automatique `draft → valide` (#275 / #276)** : si le plan a un `plan_parent` déjà validé, la cible devient `modifie` (ou `mi_parcours` si `is_mi_parcours=true`). Sinon (plan original, `plan_parent IS NULL`), reste `valide`. Le flag `is_mi_parcours` n'est applicable qu'à cette transition et **rejette** s'il existe déjà un `mi_parcours` dans la chaîne (unicité).
+    - **Pop-up d'archivage automatique (#246)** : à la transition vers un statut validé (`valide`/`modifie`/`mi_parcours`), le frontend détecte les plans encore `valide` dans la `version_chain` (lien `plan_parent`) et propose d'archiver le plan précédent. Helper `findPreviousValidatedPlan(currentId, version_chain)` exporté depuis `shared/components/modals/archive-previous-plan-dialog/`. Si confirmé, un second `change-status` (`new_status: 'archive'`) est émis.
+    - **Pop-up mi-parcours (#276)** : sur clic « Valider le plan » d'un brouillon enfant d'un plan validé, si **aucun** `mi_parcours` n'existe encore dans la chaîne, on affiche `MiParcoursPromptDialogComponent` (oui / non / annuler). Le choix alimente `is_mi_parcours`. Sinon (mi-parcours déjà présent), validation directe → `modifie`. Helper `shouldPromptMiParcours()` dans `plan-detail.component.ts`.
   - `POST /api/plans/plans/{id}/create-evaluation/` - Création d'une évaluation mi-parcours (référent du plan, admin_og+). Plan source doit être `valide` et de type plan (pas évaluation). Copie sites/référents, version incrémentée.
   - `POST /api/plans/plans/{id}/duplicate/` - Duplication d'un plan avec options sélectives
-  - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature)
-  - Le serializer détail expose `version_chain` pour la timeline frontend
-  - **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+  - Chaîne de versions via `plan_parent` FK et `id_type_document` (nomenclature). Numérotation `version` en **entiers** (1, 2, 3…) par chaîne — `get_next_version()` calcule `max(versions de la chaîne) + 1` (#279).
+  - Le serializer détail expose `version_chain` pour la timeline frontend (inclut `rang` et `type_site_mnemonique` du site principal).
+  - **Statuts** :
+    - `draft` — brouillon (éditable)
+    - `valide` — plan original validé
+    - `modifie` — plan validé puis modifié au moins une fois (plan_parent validé, #275)
+    - `mi_parcours` — modification déclarée comme évaluation mi-parcours, **unique par chaîne** (#276)
+    - `etendu` — années supplémentaires ajoutées (#250, éditable)
+    - `en_revision` — période dépassée mais plan toujours utilisé (#278)
+    - `archive` — terminé
+    - Helpers modèle : `is_modification()`, `chain_has_mi_parcours()`, constante `VALIDATED_STATUSES`.
+  - **Libellés contextualisés du statut `etendu` (#281)** : helper frontend `getPlanStatusKey(statut, mnemonique)` route vers `plans.status.etendu_rnn` (RNN/RNR → « Plan prolongé »), `etendu_pnr` (PNR → « Plan en renouvellement »), `etendu_ens` (ENS/ENSD → « Plan étendu ») ou `etendu` par défaut.
   - **Permissions lifecycle** : référent du plan (`PlanGestion.referents`), admin_og, super_admin. Vérification spécifique au plan dans la vue (pas juste le rôle global).
 - **Verrouillage des modifications hors brouillon (#248)** :
   - Permission DRF `CanModifyOnlyDraftPlan` (`apps/plans/permissions.py`) appliquée aux ViewSets : `PlanGestionViewSet`, `CorPgFichierViewSet`, `EnjeuViewSet`, `FacteurInfluenceViewSet`, `PressionViewSet`, `ObjectifLongTermeViewSet`, `NiveauExigenceViewSet`, `ObjectifOperationnelViewSet`, `ResultatAttenduViewSet`, `IndicateurViewSet`, `MetriqueViewSet`, `MesureViewSet`, `OperationViewSet`, `SuiviInventaireViewSet`. (`ResponsabiliteViewSet` exclue : rattachée à un site.)
   - Toute écriture (POST/PUT/PATCH/DELETE) sur le plan ou ses entités enfants → **403** quand `plan.statut != 'draft'`, indépendamment du rôle.
   - **Actions exemptées** : `change_status`, `duplicate`, `create_evaluation`, `assign_site/remove_site/replace_site`, `assign_referent/remove_referent`, `assign_member/remove_member`, et tout endpoint de consultation (GET).
   - **Mécanisme** : méthode `get_plan_de_gestion()` ajoutée sur tous les modèles concernés (`Enjeu`, `FacteurInfluence`, `Pression`, `OLT`, `NE`, `OO`, `RA`, `Indicateur`, `Métrique`, `Mesure`, `Operation`, `SuiviInventaire`, `CorPgFichier`) pour remonter au plan via la chaîne FK. Les ViewSets racines exposent `get_plan_for_payload(data)` pour bloquer les créations en amont.
-  - **Frontend** : `canEditPlan()` étendu avec un check `isPlanDraft()` côté `plan-detail.component.ts` et `enjeux-list.component.ts`. Bannière `.lock-banner` (« Plan verrouillé en lecture seule ») affichée en haut des deux pages dès que `statut !== 'draft'`. L'endpoint `enjeux/by-plan/` retourne `plan_statut` pour alimenter la bannière. Les actions de cycle de vie (`canManageLifecycle()`) restent **inchangées** (accessibles hors brouillon).
-  - Pour modifier un plan validé : repasser en brouillon (cycle de vie) ou créer une nouvelle version (duplicate / create-evaluation).
+  - **Frontend** : `canEditPlan()` étendu avec un check `isPlanDraft()` côté `plan-detail.component.ts` et `enjeux-list.component.ts`. Bannière `.lock-banner` (« Plan verrouillé en lecture seule ») affichée en haut des deux pages dès que `statut !== 'draft'` (et `!== 'etendu'`). L'endpoint `enjeux/by-plan/` retourne `plan_statut` pour alimenter la bannière. Les actions de cycle de vie (`canManageLifecycle()`) restent **inchangées** (accessibles hors brouillon).
+  - **Statuts verrouillés en lecture seule** : tous sauf `draft` et `etendu` (`valide`, `modifie`, `mi_parcours`, `en_revision`, `archive`). Cf. `EDITABLE_STATUSES` dans `permissions.py`.
+  - Pour modifier un plan validé / modifié / mi-parcours : repasser en brouillon (cycle de vie) ou créer une nouvelle version (duplicate / create-evaluation).
 - Comprehensive documentation in `docs/API_PLANS_GUIDE.md`
 
 **API REST Notifications & Validations:**
@@ -1221,7 +1234,7 @@ Fichiers frontend:
 - Traductions: `frontend/src/assets/i18n/fr.json` (clés `activity.*`)
 
 **Cycle de vie des Plans (`/plans/:slug`):**
-- **Statuts** : `draft` (brouillon), `valide` (actif), `archive` (inactif)
+- **Statuts** : `draft` (brouillon), `valide` (original validé), `modifie` (#275), `mi_parcours` (#276, unique par chaîne), `etendu` (#250), `en_revision` (#278), `archive` (terminé). Cf. note interne *Cycle de vie d'un plan de gestion*.
 - **Droits** : Actions de cycle de vie accessibles uniquement aux **référents du plan**, **admin organisme** et **super admin**. Calculé via `canManageLifecycle` computed dans `plan-detail.component.ts` (vérifie `plan.referents`, `authService.isAdminOrganisme()`, `authService.isSuperAdmin()`).
 - **PlanVersionTimelineComponent** : Timeline verticale des versions dans la colonne latérale (section "Cycle de vie")
   - Nœuds cliquables (cercles avec icône type document), connectés par une ligne verticale

@@ -123,8 +123,10 @@
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
                   }
-                  <!-- Validé → Remettre en brouillon + Étendre (si fenêtre OK, #250) + Passer en révision (#278) + Archiver -->
-                  @if (p.statut === 'valide') {
+                  <!-- Validé / Modifié / Mi-parcours → Remettre en brouillon + Étendre (si fenêtre OK, #250)
+                       + Passer en révision (#278) + Archiver. Les 3 statuts partagent les mêmes actions
+                       (#275 / #276 — verrouillage en lecture seule identique au validé). -->
+                  @if (p.statut === 'valide' || p.statut === 'modifie' || p.statut === 'mi_parcours') {
                     <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>

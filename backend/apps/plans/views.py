@@ -1002,6 +1002,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             )
 
         new_status = request.data.get('new_status')
+        is_mi_parcours = bool(request.data.get('is_mi_parcours', False))
 
         if not new_status:
             return Response({'error': 'new_status requis'},
@@ -1016,12 +1017,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         # Note : `valide → etendu` passe par l'endpoint `extend-duration` (#250),
         # pas par `change-status`.
         # #278 — `en_revision` : plan validé en fin de cycle dont la rédaction
-        # du plan suivant est en cours. Accessible depuis `valide` ou `etendu`,
-        # réversible vers `valide`, archivable.
+        # du plan suivant est en cours.
+        # #275 / #276 — `modifie` et `mi_parcours` sont des cibles dérivées de
+        # `valide` selon que le plan est une modification (cf. is_modification)
+        # et que l'utilisateur a confirmé l'évaluation mi-parcours via le pop-up.
         current = plan.statut
+        validated_set = ['archive', 'draft', 'en_revision']
         allowed_transitions = {
             'draft': ['valide'],
-            'valide': ['archive', 'draft', 'en_revision'],
+            'valide': validated_set,
+            'modifie': validated_set,
+            'mi_parcours': validated_set,
             'etendu': ['archive', 'valide', 'en_revision'],
             'en_revision': ['valide', 'archive'],
             'archive': ['valide'],
@@ -1030,6 +1036,26 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if new_status not in allowed_transitions.get(current, []):
             return Response(
                 {'error': f'Transition {current} → {new_status} non autorisée'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # #275 / #276 — Routage du `valide` cible selon la position dans la
+        # chaîne plan_parent et le flag `is_mi_parcours`.
+        if new_status == 'valide' and current == 'draft' and plan.is_modification():
+            if is_mi_parcours:
+                if plan.chain_has_mi_parcours():
+                    return Response(
+                        {'error': "Une évaluation mi-parcours existe déjà dans la chaîne du plan."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                new_status = 'mi_parcours'
+            else:
+                new_status = 'modifie'
+        elif is_mi_parcours:
+            # Le flag n'a de sens que sur la validation d'un brouillon issu
+            # d'une modification.
+            return Response(
+                {'error': "Le flag is_mi_parcours n'est applicable qu'à la validation d'un brouillon enfant d'un plan validé."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

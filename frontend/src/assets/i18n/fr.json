@@ -1240,6 +1240,8 @@
     "status": {
       "draft": "Brouillon",
       "valide": "Valide",
+      "modifie": "Modifié",
+      "mi_parcours": "Modifié à mi-parcours",
       "etendu": "Étendu",
       "etendu_rnn": "Plan prolongé",
       "etendu_pnr": "Plan en renouvellement",
@@ -1375,6 +1377,13 @@
         "hint": "Si vous archivez, le plan précédent restera consultable mais ne sera plus considéré comme actif. Vous pouvez aussi conserver les deux plans en parallèle (cohabitation) pendant une période transitoire.",
         "keep": "Conserver les deux plans",
         "archive": "Archiver le précédent"
+      },
+      "miParcoursPrompt": {
+        "title": "Évaluation à mi-parcours ?",
+        "intro": "Vous êtes sur le point de valider une modification du plan « {{name}} ».",
+        "hint": "Cette modification correspond-elle à l'évaluation à mi-parcours du plan ? Une seule version peut porter ce statut par chaîne de versions.",
+        "yes": "Oui — évaluation à mi-parcours",
+        "no": "Non — modification ordinaire"
       },
       "extendDuration": {
         "title": "Étendre la durée du plan",
@@ -2456,8 +2465,12 @@
       "createSuccess": "Action créée avec succès",
       "updateSuccess": "Action mise à jour avec succès",
       "saveSuccess": "Modifications enregistrées",
-      "saveTooltip": "Enregistrer sans valider les champs requis",
+      "saveDraftLabel": "Enregistrer le brouillon",
+      "saveTooltip": "Sauvegarde l'action en l'état (sans contrôler les champs requis). Reste sur le formulaire — l'action apparaîtra comme « Brouillon » dans les listes.",
+      "validateTooltip": "Valide l'action : vérifie que tous les champs requis sont remplis, puis retourne à la liste. L'action n'est plus marquée comme brouillon.",
       "draftPlaceholderLibelle": "Action sans titre",
+      "draftChip": "Brouillon",
+      "draftChipTooltip": "Action enregistrée sans validation des champs requis",
       "deleteSuccess": "Action supprimée avec succès",
       "deleteTitle": "Supprimer l'action",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette action ?",

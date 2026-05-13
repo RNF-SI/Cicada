@@ -577,19 +577,24 @@ class PlansSeeder(BaseSeeder):
             plans[7].version = '1'
             plans[7].save(update_fields=['id_type_document', 'version'])
 
-            # Relier le plan actuel (index 1) au plan initial
+            # Relier le plan actuel (index 1) au plan initial.
+            # #275 — Comme c'est un plan révisé après le PG initial archivé,
+            # son statut conceptuel est `modifie` (et non `valide`).
             plans[1].plan_parent = plans[7]
             plans[1].id_type_document = plan_revise_type
             plans[1].version = '2'
-            plans[1].save(update_fields=['plan_parent', 'id_type_document', 'version'])
+            plans[1].statut = 'modifie'
+            plans[1].save(update_fields=['plan_parent', 'id_type_document', 'version', 'statut'])
 
-            # Eval mi-parcours (validée — l'évaluation a été terminée)
+            # Eval mi-parcours (validée — l'évaluation a été terminée).
+            # #276 — Cette modification déclarée comme mi-parcours prend le
+            # statut dédié `mi_parcours` (unique par chaîne).
             ar_eval, _ = PlanGestion.objects.update_or_create(
                 nom='Évaluation mi-parcours 2023 - Aiguilles Rouges',
                 defaults={
                     'plan_parent': plans[1],
                     'id_type_document': eval_mi_type,
-                    'statut': 'valide',
+                    'statut': 'mi_parcours',
                     'version': '3',
                     'annee_debut': 2018,
                     'annee_fin': 2028,
@@ -688,11 +693,13 @@ class PlansSeeder(BaseSeeder):
                 CorSitePg.objects.get_or_create(site=cor_site.site, plan_de_gestion=vercors_root, defaults={'rang': cor_site.rang})
             plans.append(vercors_root)
 
-            # Relier le plan actuel (index 3) au plan initial
+            # Relier le plan actuel (index 3) au plan initial.
+            # #275 — Plan révisé du PG initial archivé → statut `modifie`.
             plans[3].plan_parent = vercors_root
             plans[3].id_type_document = plan_revise_type
             plans[3].version = '2'
-            plans[3].save(update_fields=['plan_parent', 'id_type_document', 'version'])
+            plans[3].statut = 'modifie'
+            plans[3].save(update_fields=['plan_parent', 'id_type_document', 'version', 'statut'])
 
             # Eval mi-parcours du plan actuel (draft)
             vercors_eval, _ = PlanGestion.objects.update_or_create(

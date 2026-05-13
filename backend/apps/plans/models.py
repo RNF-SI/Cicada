@@ -50,13 +50,18 @@ class PlanGestion(models.Model):
     Basé sur t_plan_gestion du schéma general.
     """
 
-    # Statuts possibles
-    # #278 — `en_revision` : plan validé dont la période est dépassée mais qui
-    # reste utilisé pendant la rédaction du plan de rang suivant. Verrouillé en
-    # lecture seule comme `valide` (cf. permission CanModifyOnlyDraftPlan).
+    # Statuts possibles. Cf. note interne "Cycle de vie plan de gestion".
+    # - `valide`      : original validé (plan_parent IS NULL).
+    # - `modifie`     : modification ordinaire d'un plan déjà validé (#275).
+    # - `mi_parcours` : modification déclarée comme évaluation mi-parcours,
+    #                   unique par chaîne plan_parent (#276).
+    # - `en_revision` : période dépassée mais plan toujours utilisé (#278).
+    # Tous les statuts hors `draft`/`etendu` verrouillent l'édition (#248).
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
         ('valide', _('Validé')),
+        ('modifie', _('Modifié')),
+        ('mi_parcours', _('Modifié à mi-parcours')),
         ('etendu', _('Étendu')),
         ('en_revision', _('En cours de révision')),
         ('archive', _('Archivé')),
@@ -400,6 +405,28 @@ class PlanGestion(models.Model):
                 queue.append(child)
 
         return chain
+
+    # Statuts indiquant qu'un plan a déjà été (ou est) à l'état validé. Sert
+    # à savoir si un draft enfant doit être validé en `modifie` plutôt qu'en
+    # `valide` (#275).
+    VALIDATED_STATUSES = frozenset({
+        'valide', 'modifie', 'mi_parcours', 'en_revision', 'etendu', 'archive',
+    })
+
+    def is_modification(self):
+        """#275 — Vrai si ce plan est une modification d'un plan déjà validé."""
+        if not self.plan_parent_id:
+            return False
+        return self.plan_parent.statut in self.VALIDATED_STATUSES
+
+    def chain_has_mi_parcours(self, exclude_self=True):
+        """#276 — Vrai si un autre plan de la chaîne est déjà `mi_parcours`."""
+        for item in self.get_version_chain():
+            if exclude_self and item['id_pg'] == self.id_pg:
+                continue
+            if item['statut'] == 'mi_parcours':
+                return True
+        return False
 
     def get_next_version(self):
         """

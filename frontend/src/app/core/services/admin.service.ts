@@ -535,8 +535,10 @@ export class AdminService {
    * Change plan status via dedicated endpoint with transition validation
    * POST /api/plans/plans/{id}/change-status/
    */
-  changePlanStatus(planId: number, newStatus: PlanStatut): Observable<AdminPlan> {
-    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, { new_status: newStatus })
+  changePlanStatus(planId: number, newStatus: PlanStatut, options: { isMiParcours?: boolean } = {}): Observable<AdminPlan> {
+    const body: { new_status: PlanStatut; is_mi_parcours?: boolean } = { new_status: newStatus };
+    if (options.isMiParcours) body.is_mi_parcours = true;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, body)
       .pipe(catchError(this.handleError));
   }
 

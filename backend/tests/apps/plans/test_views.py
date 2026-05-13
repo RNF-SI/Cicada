@@ -642,6 +642,142 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_200_OK
 
+    # ---------- #275 — routage draft → modifie pour les modifications ----------
+
+    def test_draft_with_validated_parent_becomes_modifie(self, api_client):
+        """Validation d'un brouillon enfant d'un plan validé → statut `modifie`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_draft_without_parent_stays_valide(self, api_client):
+        """Validation d'un brouillon sans parent → statut `valide` (original)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', plan_parent=None)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+
+    def test_draft_with_archived_parent_becomes_modifie(self, api_client):
+        """Un parent `archive` compte aussi comme déjà validé → enfant → `modifie`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='archive')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_draft_with_draft_parent_becomes_valide(self, api_client):
+        """Un parent encore en `draft` (jamais validé) → enfant reste `valide`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='draft')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'valide'
+
+    def test_modifie_to_draft_reversible(self, api_client):
+        """Un plan `modifie` peut repasser en brouillon comme un `valide`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        plan = PlanGestionFactory(nom='Child', statut='modifie', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+
+    def test_modifie_to_archive(self, api_client):
+        """Un plan `modifie` peut être archivé."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        plan = PlanGestionFactory(nom='Child', statut='modifie', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    # ---------- #276 — flag is_mi_parcours ----------
+
+    def test_draft_with_is_mi_parcours_becomes_mi_parcours(self, api_client):
+        """Brouillon enfant validé avec is_mi_parcours=True → statut `mi_parcours`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'mi_parcours'
+
+    def test_is_mi_parcours_rejected_when_chain_already_has_one(self, api_client):
+        """Une seule version mi_parcours par chaîne plan_parent autorisée."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='V1', statut='valide')
+        already_mp = PlanGestionFactory(nom='V2', statut='mi_parcours', plan_parent=parent)
+        new_mod = PlanGestionFactory(nom='V3', statut='draft', plan_parent=already_mp)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(new_mod.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        new_mod.refresh_from_db()
+        assert new_mod.statut == 'draft'
+
+    def test_is_mi_parcours_rejected_on_original_plan(self, api_client):
+        """is_mi_parcours sur un plan sans parent → 400 (flag inapplicable)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', plan_parent=None)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_is_mi_parcours_rejected_on_non_validation_transition(self, api_client):
+        """Le flag is_mi_parcours n'a de sens qu'à la validation, pas ailleurs."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     # ---------- Validation ----------
 
     def test_missing_new_status(self, api_client):

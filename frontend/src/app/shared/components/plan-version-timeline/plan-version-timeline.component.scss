@@ -142,6 +142,24 @@
     i { color: $info-color; }
   }
 
+  // #275 — Modifié : variante du `valide` (vert) avec une teinte plus soutenue.
+  &.dot-modifie {
+    border-color: $success-color;
+    background: rgba($success-color, 0.16);
+
+    i { color: $success-color; }
+  }
+
+  // #276 — Modifié à mi-parcours : variante distincte (terra cotta) avec
+  // bordure pleine épaisse — marque le caractère exceptionnel de l'unicité.
+  &.dot-mi_parcours {
+    border-color: $secondary-terra-cotta;
+    border-width: 2.5px;
+    background: rgba($secondary-terra-cotta, 0.1);
+
+    i { color: $secondary-terra-cotta; }
+  }
+
   // #278 — En cours de révision : variante info avec bordure pleine plus
   // marquée pour distinguer du plan étendu.
   &.dot-en_revision {

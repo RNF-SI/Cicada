@@ -774,7 +774,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with valide when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmValidation();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -788,7 +788,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with draft when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmToDraft();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -802,7 +802,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with archive when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmArchive();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'archive');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'archive', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -816,7 +816,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with valide when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmReactivate();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {

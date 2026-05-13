@@ -1,0 +1,14 @@
+@import 'variables';
+
+.intro {
+  margin-top: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.hint {
+  margin-top: $spacing-sm;
+  font-size: 0.85rem;
+  color: $gray-dark;
+  line-height: 1.4;
+}
