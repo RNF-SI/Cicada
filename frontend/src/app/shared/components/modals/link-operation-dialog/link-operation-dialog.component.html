@@ -54,7 +54,15 @@
               <span class="radio-dot" [class.active]="selectedOperationId() === op.id_operation"></span>
             </div>
             <div class="operation-item-content">
-              <span class="operation-item-libelle">{{ op.libelle }}</span>
+              <span class="operation-item-libelle">
+                {{ op.libelle }}
+                @if (op.statut === 'draft') {
+                  <mat-chip class="operation-draft-chip status-warning"
+                            [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
+                    {{ 'enjeux.operations.draftChip' | translate }}
+                  </mat-chip>
+                }
+              </span>
               <div class="operation-item-meta">
                 @if (op.type_action_label) {
                   <span class="meta-tag">{{ op.type_action_label }}</span>

@@ -184,7 +184,15 @@
                 @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
                   <tr [class.row-alt]="idx % 2 === 1">
                     <td class="col-action">
-                      <div class="action-name">{{ item.operation.libelle }}</div>
+                      <div class="action-name">
+                        {{ item.operation.libelle }}
+                        @if (item.operation.statut === 'draft') {
+                          <mat-chip class="operation-draft-chip status-warning"
+                                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
+                            {{ 'enjeux.operations.draftChip' | translate }}
+                          </mat-chip>
+                        }
+                      </div>
                       @if (item.operation.priorite_label) {
                         <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
                           {{ item.operation.priorite_label }}

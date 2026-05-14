@@ -1239,6 +1239,13 @@
                                                     <span class="operation-code">{{ op.code_affichage }}</span>
                                                   }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                  @if (op.statut === 'draft') {
+                                                    <mat-chip class="operation-draft-chip status-warning"
+                                                              [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                              (click)="$event.stopPropagation()">
+                                                      {{ 'enjeux.operations.draftChip' | translate }}
+                                                    </mat-chip>
+                                                  }
                                                 </div>
                                                 <div class="operation-header-right">
                                                   <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
@@ -2595,6 +2602,13 @@
                                             <span class="operation-code">{{ op.code_affichage }}</span>
                                           }
                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                          @if (op.statut === 'draft') {
+                                            <mat-chip class="operation-draft-chip status-warning"
+                                                      [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                      (click)="$event.stopPropagation()">
+                                              {{ 'enjeux.operations.draftChip' | translate }}
+                                            </mat-chip>
+                                          }
                                         </div>
                                         <div class="operation-header-right">
                                           <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">

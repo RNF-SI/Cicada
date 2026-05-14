@@ -32,7 +32,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
-import { Operation, OperationCreatePayload, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
@@ -835,7 +835,7 @@ export class OperationFormComponent implements OnInit {
       this.scrollToError();
       return;
     }
-    this.submitToApi(this.buildPayload(), { stayOnForm: false });
+    this.submitToApi(this.buildPayload(), { stayOnForm: false, statut: 'valide' });
   }
 
   /**
@@ -844,9 +844,12 @@ export class OperationFormComponent implements OnInit {
    *  - en édition : aucune navigation, snackbar de confirmation
    *  - en création : redirection silencieuse vers l'URL d'édition de l'opération créée,
    *    pour que les enregistrements suivants soient des PATCH plutôt que des POST.
+   *
+   * #251 — Force le statut à 'draft' : tant que l'utilisateur n'a pas explicitement
+   * cliqué sur « Valider », l'action est considérée comme brouillon (chip dans les listes).
    */
   saveDraft(): void {
-    this.submitToApi(this.buildPayload(), { stayOnForm: true });
+    this.submitToApi(this.buildPayload(), { stayOnForm: true, statut: 'draft' });
   }
 
   private buildPayload(): OperationCreatePayload {
@@ -1051,9 +1054,14 @@ export class OperationFormComponent implements OnInit {
    * silencieusement vers l'URL d'édition pour que les saves suivants soient des PATCH.
    * `stayOnForm = false` (save validé) : navigue vers la liste après succès.
    */
-  private submitToApi(payload: OperationCreatePayload, opts: { stayOnForm: boolean }): void {
+  private submitToApi(
+    payload: OperationCreatePayload,
+    opts: { stayOnForm: boolean; statut: OperationStatut },
+  ): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
+
+    payload.statut = opts.statut;
 
     const successKey = opts.stayOnForm
       ? 'enjeux.operations.saveSuccess'

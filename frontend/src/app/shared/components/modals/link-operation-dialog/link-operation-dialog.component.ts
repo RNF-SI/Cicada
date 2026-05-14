@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 
@@ -23,6 +25,7 @@ export interface LinkOperationDialogResult {
 interface OperationItem {
   id_operation: number;
   libelle: string;
+  statut?: 'draft' | 'valide';
   type_action_label?: string;
   priorite_label?: string;
   metrique_ids?: number[];
@@ -36,9 +39,11 @@ interface OperationItem {
     FormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     TranslateModule,
   ],
   templateUrl: './link-operation-dialog.component.html',
@@ -125,6 +130,7 @@ export class LinkOperationDialogComponent {
             ops.push({
               id_operation: op.id_operation,
               libelle: op.libelle,
+              statut: op.statut,
               type_action_label: op.type_action_label,
               priorite_label: op.priorite_label,
               metrique_ids: op.metrique_ids,

@@ -2202,6 +2202,13 @@
   text-overflow: ellipsis;
 }
 
+// #251 — chip "Brouillon" inline à côté du libellé de l'action.
+.operation-draft-chip {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  cursor: default;
+}
+
 .operation-header-right {
   display: flex;
   align-items: center;
