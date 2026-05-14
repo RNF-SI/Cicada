@@ -953,6 +953,64 @@ class TestPlanGestionChangeStatus:
         assert hasattr(plan, 'date_avis_csrpn')
         assert not hasattr(plan, 'date_validation_cspn')
 
+    def test_csrpn_transition_notifies_referents(self, api_client):
+        """Une transition CSRPN crée une notification pour les référents (sauf déclencheur)."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        other_admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', referents=[referent, other_admin])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        # Le déclencheur (admin) ne reçoit pas de notif ; les 2 référents oui.
+        notifs = Notification.objects.filter(
+            related_plan=plan, notification_type='plan_csrpn_transition'
+        )
+        recipients = set(notifs.values_list('recipient_id', flat=True))
+        assert referent.id_role in recipients
+        assert other_admin.id_role in recipients
+        assert admin.id_role not in recipients
+
+    def test_non_csrpn_transition_does_not_notify(self, api_client):
+        """Les transitions hors workflow CSRPN ne déclenchent pas la notif `plan_csrpn_transition`."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert not Notification.objects.filter(
+            related_plan=plan, notification_type='plan_csrpn_transition'
+        ).exists()
+
+    def test_csrpn_to_valide_notifies(self, api_client):
+        """La transition finale CSRPN (sortie d'un statut workflow) notifie aussi."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(
+            statut='arrete_pref', sites=[rnn_site], referents=[referent]
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert Notification.objects.filter(
+            recipient=referent,
+            related_plan=plan,
+            notification_type='plan_csrpn_transition',
+        ).exists()
+
     # ---------- Validation ----------
 
     def test_missing_new_status(self, api_client):

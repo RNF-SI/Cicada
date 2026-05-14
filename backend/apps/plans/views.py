@@ -1122,6 +1122,20 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
 
+        # #277 — Notifier les référents pour les transitions du workflow CSRPN
+        # (entrée/sortie d'un statut intermédiaire). Notification high priority
+        # avec email automatique pour la visibilité demandée.
+        try:
+            from apps.notifications.services import NotificationService
+            NotificationService.notify_csrpn_transition(
+                plan=plan,
+                old_status=old_status,
+                new_status=new_status,
+                triggered_by=request.user,
+            )
+        except Exception:
+            pass
+
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
 

@@ -30,6 +30,9 @@ class Notification(models.Model):
         ('plans_orphaned_summary', _("Récapitulatif des plans orphelins")),
         ('organisme_no_admin', _('Organisme sans administrateur')),
         ('plan_needs_reassignment', _('Plan à réassigner')),
+        # #277 — Transitions du workflow CSRPN (avis demandé, avis rendu,
+        # validation comité, arrêté préfectoral, validation finale).
+        ('plan_csrpn_transition', _('Transition workflow CSRPN')),
         ('system_alert', _('Alerte système')),
         ('info', _('Information')),
     ]
