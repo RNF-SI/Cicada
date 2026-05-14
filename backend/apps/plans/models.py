@@ -51,14 +51,21 @@ class PlanGestion(models.Model):
     """
 
     # Statuts possibles. Cf. note interne "Cycle de vie plan de gestion".
-    # - `valide`      : original validé (plan_parent IS NULL).
-    # - `modifie`     : modification ordinaire d'un plan déjà validé (#275).
-    # - `mi_parcours` : modification déclarée comme évaluation mi-parcours,
-    #                   unique par chaîne plan_parent (#276).
-    # - `en_revision` : période dépassée mais plan toujours utilisé (#278).
+    # - `valide`              : original validé (plan_parent IS NULL).
+    # - `modifie`             : modification ordinaire d'un plan validé (#275).
+    # - `mi_parcours`         : modification déclarée mi-parcours, unique
+    #                           par chaîne plan_parent (#276).
+    # - `avis_csrpn`          : envoyé pour avis CSRPN (workflow #277).
+    # - `comite_consultatif`  : avis CSRPN rendu, attente validation comité.
+    # - `arrete_pref`         : validé par comité, attente arrêté (RNN).
+    # - `en_revision`         : période dépassée, plan toujours utilisé (#278).
+    # - `etendu`              : années ajoutées au plan (#250, éditable).
     # Tous les statuts hors `draft`/`etendu` verrouillent l'édition (#248).
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
+        ('avis_csrpn', _('Avis CSRPN demandé')),
+        ('comite_consultatif', _('Validation comité consultatif')),
+        ('arrete_pref', _('Arrêté préfectoral')),
         ('valide', _('Validé')),
         ('modifie', _('Modifié')),
         ('mi_parcours', _('Modifié à mi-parcours')),
@@ -66,6 +73,11 @@ class PlanGestion(models.Model):
         ('en_revision', _('En cours de révision')),
         ('archive', _('Archivé')),
     ]
+
+    # #277 — Statuts intermédiaires du workflow de validation CSRPN.
+    CSRPN_WORKFLOW_STATUSES = frozenset({
+        'avis_csrpn', 'comite_consultatif', 'arrete_pref',
+    })
     
     id_pg = models.AutoField(primary_key=True)
     id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
@@ -124,10 +136,28 @@ class PlanGestion(models.Model):
         help_text=_("Le risque incendie est-il pris en compte dans le plan ?")
     )
 
-    # Validation CSPN
-    date_validation_cspn = models.DateField(
-        _("Date de validation CSPN"),
-        null=True, blank=True
+    # Workflow de validation CSRPN (#277). Champs renseignés au fil des étapes.
+    # Anciennement `date_validation_cspn` (renommé pour cohérence terminologique).
+    date_avis_csrpn = models.DateField(
+        _("Date d'avis CSRPN"),
+        null=True, blank=True,
+        help_text=_("Date à laquelle l'avis du CSRPN a été rendu.")
+    )
+    date_validation_comite = models.DateField(
+        _("Date de validation comité consultatif"),
+        null=True, blank=True,
+        help_text=_("Date de validation par le comité consultatif de gestion.")
+    )
+    date_arrete_pref = models.DateField(
+        _("Date d'arrêté préfectoral"),
+        null=True, blank=True,
+        help_text=_("Date de l'arrêté préfectoral (RNN uniquement).")
+    )
+    numero_arrete_pref = models.CharField(
+        _("Numéro d'arrêté préfectoral"),
+        max_length=100,
+        null=True, blank=True,
+        help_text=_("Numéro de référence de l'arrêté préfectoral.")
     )
 
     # Identifiant Doc'Gestion FCEN
@@ -427,6 +457,29 @@ class PlanGestion(models.Model):
             if item['statut'] == 'mi_parcours':
                 return True
         return False
+
+    def get_principal_site(self):
+        """#277 / #281 — Site principal du plan (premier par rang).
+
+        Renvoie le `Site` (ou None si le plan n'a pas de site). Permet de
+        détecter si le plan concerne une RNN pour bypasser l'arrêté
+        préfectoral, et de contextualiser les libellés (#281).
+        """
+        first = (
+            self.sites.select_related('site__id_type_site')
+            .order_by('rang')
+            .first()
+        )
+        return first.site if first else None
+
+    def is_rnn(self):
+        """#277 — Vrai si le site principal est une Réserve Naturelle
+        Nationale. Conditionne le passage par l'étape `arrete_pref`.
+        """
+        site = self.get_principal_site()
+        if not site or not site.id_type_site:
+            return False
+        return site.id_type_site.mnemonique == 'RNN'
 
     def get_next_version(self):
         """

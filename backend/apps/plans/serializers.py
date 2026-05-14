@@ -357,7 +357,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'annee_debut', 'annee_fin', 'periode_gestion',
             'annees_extension', 'peut_etre_etendu', 'annee_fin_effective',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
-            'date_validation_cspn', 'id_docgestion_fcen',
+            'date_avis_csrpn', 'id_docgestion_fcen',
             'id_evaluation', 'evaluation_display', 'id_redacteur_type', 'redacteur_type_display',
             'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'statut_display', 'version',
@@ -491,7 +491,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id_pg', 'nom', 'slug', 'id_cdr', 'rang', 'annee_debut', 'annee_fin',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
-            'date_validation_cspn', 'id_docgestion_fcen',
+            'date_avis_csrpn', 'id_docgestion_fcen',
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
             'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'version', 'geometrie',

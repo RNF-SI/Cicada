@@ -778,6 +778,181 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    # ---------- #277 — workflow CSRPN ----------
+
+    def _make_typed_site(self, mnemonique: str):
+        """Helper : crée un site avec id_type_site = nomenclature(mnemonique)."""
+        from apps.core.models import TypeNomenclature, Nomenclature
+        ntype, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='TYPE_SITE',
+            defaults={'label': 'Type de site'},
+        )
+        nomenc, _ = Nomenclature.objects.get_or_create(
+            id_type=ntype,
+            mnemonique=mnemonique,
+            defaults={'label': mnemonique, 'cd_nomenclature': mnemonique},
+        )
+        site = SiteFactory()
+        site.id_type_site = nomenc
+        site.save(update_fields=['id_type_site'])
+        return site
+
+    def test_draft_to_avis_csrpn(self, api_client):
+        """`draft → avis_csrpn` autorisé (envoi pour avis)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'avis_csrpn'
+
+    def test_avis_csrpn_to_comite_with_date(self, api_client):
+        """`avis_csrpn → comite_consultatif` enregistre la date d'avis."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='avis_csrpn')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'comite_consultatif', 'date_avis_csrpn': '2026-03-15'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'comite_consultatif'
+        assert str(plan.date_avis_csrpn) == '2026-03-15'
+
+    def test_comite_to_arrete_pref_only_for_rnn(self, api_client):
+        """`comite_consultatif → arrete_pref` autorisé uniquement pour les RNN."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'arrete_pref'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'arrete_pref'
+
+    def test_comite_to_arrete_pref_rejected_for_non_rnn(self, api_client):
+        """Un plan PNR ne passe pas par `arrete_pref` (ne concerne que les RNN)."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'arrete_pref'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_comite_to_valide_for_non_rnn(self, api_client):
+        """Pour un plan PNR, `comite_consultatif → valide` direct (sans arrêté)."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+
+    def test_comite_to_valide_rejected_for_rnn(self, api_client):
+        """Pour une RNN, on impose le passage par `arrete_pref` (pas de bypass)."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_arrete_pref_to_valide_with_metadata(self, api_client):
+        """`arrete_pref → valide` enregistre date + numéro de l'arrêté."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='arrete_pref', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {
+                'new_status': 'valide',
+                'date_arrete_pref': '2026-04-12',
+                'numero_arrete_pref': 'AP-2026-042',
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+        assert str(plan.date_arrete_pref) == '2026-04-12'
+        assert plan.numero_arrete_pref == 'AP-2026-042'
+
+    def test_csrpn_back_to_draft(self, api_client):
+        """Tout statut CSRPN peut revenir en `draft` (annulation)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='avis_csrpn')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+
+    def test_csrpn_validation_routes_modification_to_modifie(self, api_client):
+        """`arrete_pref → valide` route vers `modifie` si plan_parent validé."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        rnn_site = self._make_typed_site('RNN')
+        child = PlanGestionFactory(
+            statut='arrete_pref',
+            plan_parent=parent,
+            sites=[rnn_site],
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_csrpn_validation_with_is_mi_parcours(self, api_client):
+        """`comite_consultatif → valide` + is_mi_parcours → `mi_parcours` (non-RNN)."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        pnr_site = self._make_typed_site('PNR')
+        child = PlanGestionFactory(
+            statut='comite_consultatif',
+            plan_parent=parent,
+            sites=[pnr_site],
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'mi_parcours'
+
+    def test_field_rename_date_validation_cspn_removed(self, api_client):
+        """`date_validation_cspn` n'existe plus, `date_avis_csrpn` à la place."""
+        plan = PlanGestionFactory()
+        assert hasattr(plan, 'date_avis_csrpn')
+        assert not hasattr(plan, 'date_validation_cspn')
+
     # ---------- Validation ----------
 
     def test_missing_new_status(self, api_client):

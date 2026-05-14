@@ -60,7 +60,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteurs': 'Marie Dupont, Jean-Pierre Martin (RNF)',
                 'relecteurs': 'CSRPN PACA, Commission Biodiversité RNF',
                 'autres_contributeurs': 'Tour du Valat, SNPN, Amis des Marais du Vigueirat',
-                'date_validation_cspn': date(2020, 3, 15),
+                'date_avis_csrpn': date(2020, 3, 15),
                 'organismes_redacteurs_lookup': ['CEN'],
                 'commentaire': 'Plan de gestion validé pour la période 2020-2030. '
                                '3ème plan successif, faisant suite au plan 2010-2020. '
@@ -93,7 +93,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteurs': 'Cabinet Natura Consulting (F. Leroy, A. Bernard)',
                 'relecteurs': 'CSRPN Auvergne-Rhône-Alpes, DREAL ARA',
                 'autres_contributeurs': 'ASTERS, LPO Haute-Savoie',
-                'date_validation_cspn': date(2018, 6, 20),
+                'date_avis_csrpn': date(2018, 6, 20),
                 'organismes_redacteurs_lookup': ['Réserves Naturelles'],
                 'commentaire': 'Plan de gestion en vigueur. Évaluation finale positive. '
                                'Enjeux centrés sur les pelouses alpines, la faune '
@@ -209,7 +209,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Équipe Camargue',
                 'redacteurs': 'P. Grillas, A. Crivelli (Tour du Valat / RNF)',
                 'relecteurs': 'CSRPN PACA',
-                'date_validation_cspn': date(2010, 1, 10),
+                'date_avis_csrpn': date(2010, 1, 10),
                 'commentaire': 'Ancien plan terminé, remplacé par le plan 2020-2030. '
                                'Évaluation finale réalisée en 2019.',
                 'sites': [sites[0], sites[4]],  # Camargue + Marais de Brouage
@@ -231,7 +231,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'Bureau Natura 2000',
                 'redacteurs': 'Bureau Natura 2000 (D. Petit)',
                 'relecteurs': 'CSRPN Rhône-Alpes',
-                'date_validation_cspn': date(2008, 9, 5),
+                'date_avis_csrpn': date(2008, 9, 5),
                 'commentaire': 'Plan archivé suite à la mise en place du nouveau plan 2018-2028. '
                                '1er plan de gestion de la réserve.',
                 'sites': [sites[1]],
@@ -255,7 +255,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Équipe Corse',
                 'redacteurs': 'A. Aboucaya (RNF)',
                 'relecteurs': 'CSRPN Corse',
-                'date_validation_cspn': date(2016, 6, 30),
+                'date_avis_csrpn': date(2016, 6, 30),
                 'commentaire': 'Plan prolongé de 2 ans (2025 → 2027) pendant la rédaction '
                                'du rang suivant (#250).',
                 'sites': [sites[5]],  # Scandola
@@ -282,7 +282,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Équipe Franche-Comté',
                 'redacteurs': 'A. Magny (RNF), équipe Remoray',
                 'relecteurs': 'CSRPN Bourgogne-Franche-Comté',
-                'date_validation_cspn': date(2017, 4, 12),
+                'date_avis_csrpn': date(2017, 4, 12),
                 'commentaire': 'Plan en fin de cycle. Le rang 2 est en cours de rédaction — '
                                'le bouton « Étendre la durée du plan » est disponible (#250).',
                 'sites': [sites[6]],  # Lac de Remoray
@@ -475,7 +475,7 @@ class PlansSeeder(BaseSeeder):
                     'redacteur_nom': 'RNF - Équipe historique Camargue',
                     'redacteurs': 'L. Hoffmann, P. Grillas (Tour du Valat)',
                     'relecteurs': 'CSRPN PACA',
-                    'date_validation_cspn': date(2000, 5, 12),
+                    'date_avis_csrpn': date(2000, 5, 12),
                     'commentaire': 'Premier plan de gestion de la Réserve de Camargue. '
                                    'Diagnostic initial et premières orientations de gestion.',
                     'id_utilisateur_ajout': admin,
@@ -606,7 +606,7 @@ class PlansSeeder(BaseSeeder):
                     'id_evaluation': Nomenclature.objects.filter(mnemonique='Intermédiaire').first(),
                     'id_redacteur_type': Nomenclature.objects.filter(mnemonique='BE').first(),
                     'redacteur_nom': 'Cabinet Natura Consulting',
-                    'date_validation_cspn': date(2023, 11, 15),
+                    'date_avis_csrpn': date(2023, 11, 15),
                     'commentaire': 'Évaluation mi-parcours validée. Bilan globalement positif. '
                                    'Recommandations de renforcer le suivi du gypaète barbu '
                                    'et de mieux encadrer la fréquentation estivale.',
@@ -682,7 +682,7 @@ class PlansSeeder(BaseSeeder):
                     'id_evaluation': Nomenclature.objects.filter(mnemonique='Finale').first(),
                     'id_redacteur_type': Nomenclature.objects.filter(mnemonique='BE').first(),
                     'redacteur_nom': 'DREAL Rhône-Alpes',
-                    'date_validation_cspn': date(2011, 3, 20),
+                    'date_avis_csrpn': date(2011, 3, 20),
                     'commentaire': 'Premier plan inter-sites couvrant le Vercors et les Écrins. '
                                    'Diagnostic partagé entre PNR et Parc National.',
                     'id_utilisateur_ajout': admin,

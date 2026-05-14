@@ -93,7 +93,7 @@ class PlanDuplicationService:
             gestion_partagee=source_plan.gestion_partagee,
             ct88=source_plan.ct88,
             risque_incendie=source_plan.risque_incendie,
-            date_validation_cspn=source_plan.date_validation_cspn,
+            date_avis_csrpn=source_plan.date_avis_csrpn,
             id_docgestion_fcen=source_plan.id_docgestion_fcen,
             id_evaluation=source_plan.id_evaluation,
             id_redacteur_type=source_plan.id_redacteur_type,
