@@ -911,7 +911,7 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
 
   **Password for all test users**: `Test123!`
-- **9 Plans de Gestion**: divers statuts (draft, valide, modifie, mi_parcours, etendu, archive) avec associations sites/référents. Les chaînes Aiguilles Rouges et Vercors-Écrins exposent les statuts `modifie` (plan révisé) et `mi_parcours` (éval validée).
+- **Plans de Gestion (≥10)**: divers statuts (draft, valide, modifie, mi_parcours, etendu, archive, avis_csrpn, comite_consultatif) avec associations sites/référents. Les chaînes Aiguilles Rouges et Vercors-Écrins exposent les statuts `modifie` (plan révisé) et `mi_parcours` (éval validée). Le plan *Grand-Voyeux 2022-2032* est seedé en `avis_csrpn` (workflow non-RNN) et le plan *Aiguilles Rouges 2027-2037* en `comite_consultatif` (workflow RNN, étape arrêté à venir) pour tester #277.
   - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
   - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
@@ -1065,7 +1065,7 @@ class UsersConfig(AppConfig):
 - Upload/download system for plan files (documents, maps, reports)
 - **Cycle de vie des plans** :
   - `POST /api/plans/plans/{id}/change-status/` - Changement de statut (référent du plan, admin_og+)
-    - Body : `{ "new_status": "valide" | "draft" | "archive" | "en_revision", "is_mi_parcours"?: boolean }`
+    - Body : `{ "new_status": "valide" | "draft" | "archive" | "en_revision" | "avis_csrpn" | "comite_consultatif" | "arrete_pref", "is_mi_parcours"?: boolean, "date_avis_csrpn"?: "YYYY-MM-DD", "date_validation_comite"?: "YYYY-MM-DD", "date_arrete_pref"?: "YYYY-MM-DD", "numero_arrete_pref"?: string }`
     - Transitions : `draft↔valide`, `valide↔en_revision`, `valide→archive`, `archive→valide`, `etendu↔valide`, `etendu→en_revision`, etc. (cf. `change_status` dans `views.py`).
     - **Routage automatique `draft → valide` (#275 / #276)** : si le plan a un `plan_parent` déjà validé, la cible devient `modifie` (ou `mi_parcours` si `is_mi_parcours=true`). Sinon (plan original, `plan_parent IS NULL`), reste `valide`. Le flag `is_mi_parcours` n'est applicable qu'à cette transition et **rejette** s'il existe déjà un `mi_parcours` dans la chaîne (unicité).
     - **Pop-up d'archivage automatique (#246)** : à la transition vers un statut validé (`valide`/`modifie`/`mi_parcours`), le frontend détecte les plans encore `valide` dans la `version_chain` (lien `plan_parent`) et propose d'archiver le plan précédent. Helper `findPreviousValidatedPlan(currentId, version_chain)` exporté depuis `shared/components/modals/archive-previous-plan-dialog/`. Si confirmé, un second `change-status` (`new_status: 'archive'`) est émis.
@@ -1076,13 +1076,24 @@ class UsersConfig(AppConfig):
   - Le serializer détail expose `version_chain` pour la timeline frontend (inclut `rang` et `type_site_mnemonique` du site principal).
   - **Statuts** :
     - `draft` — brouillon (éditable)
+    - `avis_csrpn` — envoyé pour avis CSRPN (workflow #277, lecture seule)
+    - `comite_consultatif` — avis CSRPN rendu, en attente de validation comité (workflow #277)
+    - `arrete_pref` — validé par comité, en attente d'arrêté préfectoral (RNN uniquement, #277)
     - `valide` — plan original validé
     - `modifie` — plan validé puis modifié au moins une fois (plan_parent validé, #275)
     - `mi_parcours` — modification déclarée comme évaluation mi-parcours, **unique par chaîne** (#276)
     - `etendu` — années supplémentaires ajoutées (#250, éditable)
     - `en_revision` — période dépassée mais plan toujours utilisé (#278)
     - `archive` — terminé
-    - Helpers modèle : `is_modification()`, `chain_has_mi_parcours()`, constante `VALIDATED_STATUSES`.
+    - Helpers modèle : `is_modification()`, `chain_has_mi_parcours()`, `is_rnn()`, `get_principal_site()`, constantes `VALIDATED_STATUSES` et `CSRPN_WORKFLOW_STATUSES`.
+  - **Workflow CSRPN (#277)** :
+    - Chemin RNN : `draft → avis_csrpn → comite_consultatif → arrete_pref → valide` (ou `modifie`/`mi_parcours` selon `plan_parent` et flag).
+    - Chemin non-RNN : `draft → avis_csrpn → comite_consultatif → valide` direct (l'étape `arrete_pref` est rejetée par le backend).
+    - Annulation : tout statut CSRPN peut revenir en `draft`.
+    - Champ `date_validation_cspn` renommé en `date_avis_csrpn`. Nouveaux champs `date_validation_comite`, `date_arrete_pref`, `numero_arrete_pref` (renseignés au passage de chaque étape).
+    - Backend route automatiquement la transition finale (`comite_consultatif → valide` ou `arrete_pref → valide`) vers `modifie`/`mi_parcours` si le plan a un `plan_parent` validé (#275/#276).
+    - Notifications email + in-app (`plan_csrpn_transition`, priorité high) envoyées aux référents du plan à chaque transition CSRPN, excluant le déclencheur.
+    - Frontend : modale `CsrpnStepDialogComponent` (3 variantes : `csrpn` / `comite` / `arrete`) pour saisir date(s) et numéro d'arrêté. Boutons cycle de vie dédiés par statut.
   - **Libellés contextualisés du statut `etendu` (#281)** : helper frontend `getPlanStatusKey(statut, mnemonique)` route vers `plans.status.etendu_rnn` (RNN/RNR → « Plan prolongé »), `etendu_pnr` (PNR → « Plan en renouvellement »), `etendu_ens` (ENS/ENSD → « Plan étendu ») ou `etendu` par défaut.
   - **Permissions lifecycle** : référent du plan (`PlanGestion.referents`), admin_og, super_admin. Vérification spécifique au plan dans la vue (pas juste le rôle global).
 - **Verrouillage des modifications hors brouillon (#248)** :

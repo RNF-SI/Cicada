@@ -104,12 +104,14 @@ class PlansSeeder(BaseSeeder):
                     (users[0], False),  # super_admin - membre simple
                 ]
             },
-            # Plan Grand-Voyeux: admin.cen referent, user.cen membre
+            # Plan Grand-Voyeux: admin.cen referent, user.cen membre.
+            # #277 — Statut `avis_csrpn` pour exposer le workflow CSRPN
+            # côté testeur. Site = RNR → non-RNN, bypass arrête après comité.
             {
                 'nom': 'Plan de gestion 2022-2032 - Grand-Voyeux',
                 'annee_debut': 2022,
                 'annee_fin': 2032,
-                'statut': 'draft',
+                'statut': 'avis_csrpn',
                 'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
@@ -117,7 +119,8 @@ class PlansSeeder(BaseSeeder):
                 'id_evaluation': None,
                 'id_redacteur_type': redac_gest,
                 'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
-                'commentaire': 'Plan en cours de rédaction',
+                'commentaire': 'Plan envoyé au CSRPN pour avis. Site RNR — pas '
+                               'd\'arrêté préfectoral après validation comité (#277).',
                 'sites': [sites[2]],
                 'membres': [
                     (users[2], True),   # admin.cen - referent
@@ -334,6 +337,32 @@ class PlansSeeder(BaseSeeder):
                            'Sans membres directs, pour tester la demande d\'accès combinée.',
             'sites': [sites[6]],  # Lac de Remoray
             'membres': []
+        })
+        # #277 — Plan en statut `comite_consultatif` sur une RNN (Aiguilles
+        # Rouges) pour tester l'étape arrêté préfectoral du workflow CSRPN.
+        plans.append({
+            'nom': 'Plan de gestion 2027-2037 - Aiguilles Rouges (workflow CSRPN)',
+            'annee_debut': 2027,
+            'annee_fin': 2037,
+            'rang': 3,
+            'surface': 3279,
+            'statut': 'comite_consultatif',
+            'version': '1',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'date_avis_csrpn': date(2026, 9, 18),
+            'id_evaluation': None,
+            'id_redacteur_type': redac_be,
+            'redacteur_nom': 'Cabinet Natura Consulting',
+            'commentaire': 'Avis CSRPN rendu, en attente de validation par le '
+                           'comité consultatif. Site RNN → étape arrêté préfectoral '
+                           'requise après validation (#277).',
+            'sites': [sites[1]],  # Aiguilles Rouges (RNN)
+            'membres': [
+                (users[1], True),  # admin.rnf - referent
+                (users[0], False), # super_admin - membre
+            ],
         })
 
         return plans
