@@ -55,6 +55,12 @@ import {
   MiParcoursPromptDialogData,
   MiParcoursPromptDialogResult,
 } from '../../shared/components/modals/mi-parcours-prompt-dialog/mi-parcours-prompt-dialog.component';
+import {
+  CsrpnStepDialogComponent,
+  CsrpnStepDialogData,
+  CsrpnStepDialogResult,
+  CsrpnStep,
+} from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
 import { getPlanStatusKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
@@ -617,6 +623,86 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ==================== #277 — Workflow CSRPN ====================
+
+  /** Vrai si le site principal du plan est une RNN. Détermine si on passe
+   *  par l'étape arrêté préfectoral après la validation comité. */
+  isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
+
+  /** Étape 1 : `draft → avis_csrpn`. Pas de saisie nécessaire. */
+  submitForCsrpn(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
+      message: this.translate.instant('plans.lifecycle.actions.submitForCsrpnDesc'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
+      confirmColor: 'primary',
+      onConfirm: () => this.changeStatus('avis_csrpn'),
+    });
+  }
+
+  /** Étape 2 : `avis_csrpn → comite_consultatif`. Saisie de la date d'avis. */
+  recordCsrpnOpinion(): void {
+    this.openCsrpnStepDialog('csrpn').subscribe(result => {
+      if (!result) return;
+      this.changeStatus('comite_consultatif', { dateAvisCsrpn: result.date });
+    });
+  }
+
+  /** Étape 3 : `comite_consultatif → arrete_pref` (RNN) ou `→ valide` (non-RNN).
+   *  Saisie de la date de validation comité. */
+  validateByComite(): void {
+    this.openCsrpnStepDialog('comite').subscribe(result => {
+      if (!result) return;
+      const isRnn = this.isRnn();
+      const target: PlanStatut = isRnn ? 'arrete_pref' : 'valide';
+      this.changeStatus(target, {
+        dateValidationComite: result.date,
+        isMiParcours: result.isMiParcours,
+      });
+    });
+  }
+
+  /** Étape 4 (RNN uniquement) : `arrete_pref → valide`. Saisie date + numéro. */
+  recordArretePref(): void {
+    this.openCsrpnStepDialog('arrete').subscribe(result => {
+      if (!result) return;
+      this.changeStatus('valide', {
+        dateArretePref: result.date,
+        numeroArretePref: result.numeroArrete,
+        isMiParcours: result.isMiParcours,
+      });
+    });
+  }
+
+  /** Annule l'étape CSRPN en cours : retour en `draft`. */
+  cancelCsrpn(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
+      message: this.translate.instant('plans.lifecycle.actions.cancelCsrpnDesc'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
+      confirmColor: 'warn',
+      onConfirm: () => this.changeStatus('draft'),
+    });
+  }
+
+  private openCsrpnStepDialog(step: CsrpnStep) {
+    const p = this.plan();
+    const dialogData: CsrpnStepDialogData = {
+      step,
+      planName: p?.nom ?? '',
+      isRnn: this.isRnn(),
+      canDeclareMiParcours: !!(p?.plan_parent_id) && !(p?.version_chain || []).some(
+        v => v.id_pg !== p.id_pg && v.statut === 'mi_parcours',
+      ),
+    };
+    return this.dialog
+      .open<CsrpnStepDialogComponent, CsrpnStepDialogData, CsrpnStepDialogResult | null>(
+        CsrpnStepDialogComponent,
+        { data: dialogData, width: '540px', maxWidth: '95vw' },
+      )
+      .afterClosed();
+  }
+
   /**
    * #250 — Ouvre la modale de choix « +1 an » / « +2 ans » pour prolonger
    * la durée du plan. Appel API au choix de l'utilisateur.
@@ -675,7 +761,16 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  private changeStatus(newStatus: PlanStatut, options: { isMiParcours?: boolean } = {}): void {
+  private changeStatus(
+    newStatus: PlanStatut,
+    options: {
+      isMiParcours?: boolean;
+      dateAvisCsrpn?: string;
+      dateValidationComite?: string;
+      dateArretePref?: string;
+      numeroArretePref?: string;
+    } = {},
+  ): void {
     const p = this.plan();
     if (!p) return;
 

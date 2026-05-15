@@ -566,9 +566,11 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly two lifecycle buttons (edit + validate)', () => {
+      // #277 — sur `draft`, on a maintenant : edit metadata + validate (raccourci)
+      // + submitForCsrpn (envoi pour avis CSRPN, workflow réglementaire).
+      it('should show exactly three lifecycle buttons (edit + validate + submitForCsrpn)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(3);
       });
 
       it('should show the btn-lifecycle-success class (validate action)', () => {

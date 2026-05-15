@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>
+  @if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnTitle' | translate }} }
+  @if (data.step === 'comite') { {{ 'plans.lifecycle.csrpnStep.comiteTitle' | translate }} }
+  @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteTitle' | translate }} }
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="intro">
+      @if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnIntro' | translate }} }
+      @if (data.step === 'comite') { {{ 'plans.lifecycle.csrpnStep.comiteIntro' | translate }} }
+      @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteIntro' | translate }} }
+    </p>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>
+        @if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnDateLabel' | translate }} }
+        @if (data.step === 'comite') { {{ 'plans.lifecycle.csrpnStep.comiteDateLabel' | translate }} }
+        @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteDateLabel' | translate }} }
+      </mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="date" required>
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    @if (data.step === 'comite') {
+      <p class="hint">
+        @if (data.isRnn) { {{ 'plans.lifecycle.csrpnStep.comiteHintRnn' | translate }} }
+        @else { {{ 'plans.lifecycle.csrpnStep.comiteHintOther' | translate }} }
+      </p>
+    }
+
+    @if (data.step === 'arrete') {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'plans.lifecycle.csrpnStep.arreteNumeroLabel' | translate }}</mat-label>
+        <input matInput formControlName="numeroArrete" required>
+        <mat-hint>{{ 'plans.lifecycle.csrpnStep.arreteNumeroHint' | translate }}</mat-hint>
+      </mat-form-field>
+    }
+
+    @if (showMiParcoursToggle) {
+      <mat-checkbox formControlName="isMiParcours" class="mi-parcours-toggle">
+        {{ 'plans.lifecycle.csrpnStep.miParcoursLabel' | translate }}
+      </mat-checkbox>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="cancel()">
+      {{ 'plans.lifecycle.csrpnStep.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">
+      {{ 'plans.lifecycle.csrpnStep.submit' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

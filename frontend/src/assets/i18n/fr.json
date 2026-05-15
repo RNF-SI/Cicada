@@ -1239,6 +1239,9 @@
     },
     "status": {
       "draft": "Brouillon",
+      "avis_csrpn": "Avis CSRPN demandé",
+      "comite_consultatif": "Validation comité consultatif",
+      "arrete_pref": "Arrêté préfectoral",
       "valide": "Valide",
       "modifie": "Modifié",
       "mi_parcours": "Modifié à mi-parcours",
@@ -1336,7 +1339,17 @@
         "enRevision": "Passer en cours de révision",
         "enRevisionDesc": "Marquer ce plan comme étant en cours de révision : sa période est dépassée mais il reste utilisé pendant la rédaction du plan suivant.",
         "resumeFromRevision": "Reprendre comme validé",
-        "resumeFromRevisionDesc": "Revenir au statut validé : annule l'état « en cours de révision »."
+        "resumeFromRevisionDesc": "Revenir au statut validé : annule l'état « en cours de révision »",
+        "submitForCsrpn": "Envoyer pour avis CSRPN",
+        "submitForCsrpnDesc": "Initie le workflow réglementaire : envoi du plan au CSRPN pour avis.",
+        "recordCsrpnOpinion": "Enregistrer l'avis CSRPN",
+        "recordCsrpnOpinionDesc": "L'avis du CSRPN a été rendu : passer à l'étape de validation par le comité consultatif.",
+        "validateByComite": "Valider par le comité consultatif",
+        "validateByComiteDesc": "Le comité consultatif a validé le plan : enregistrer la date et passer à l'arrêté préfectoral (RNN) ou directement à la validation finale.",
+        "recordArretePref": "Enregistrer l'arrêté préfectoral",
+        "recordArretePrefDesc": "L'arrêté préfectoral est pris : enregistrer la date et le numéro, puis valider définitivement le plan.",
+        "cancelCsrpn": "Annuler le workflow CSRPN",
+        "cancelCsrpnDesc": "Repasser le plan en brouillon — annule l'étape CSRPN en cours."
       },
       "warnings": {
         "validateTitle": "Valider le plan de gestion",
@@ -1384,6 +1397,24 @@
         "hint": "Cette modification correspond-elle à l'évaluation à mi-parcours du plan ? Une seule version peut porter ce statut par chaîne de versions.",
         "yes": "Oui — évaluation à mi-parcours",
         "no": "Non — modification ordinaire"
+      },
+      "csrpnStep": {
+        "csrpnTitle": "Avis CSRPN rendu",
+        "csrpnIntro": "Renseignez la date à laquelle l'avis du CSRPN a été rendu.",
+        "csrpnDateLabel": "Date d'avis CSRPN",
+        "comiteTitle": "Validation par le comité consultatif",
+        "comiteIntro": "Enregistrez la date de validation par le comité consultatif de gestion.",
+        "comiteDateLabel": "Date de validation comité consultatif",
+        "comiteHintRnn": "Site principal RNN : le plan passera à l'étape « arrêté préfectoral ».",
+        "comiteHintOther": "Le plan sera directement validé (pas d'arrêté préfectoral nécessaire).",
+        "arreteTitle": "Arrêté préfectoral",
+        "arreteIntro": "Enregistrez la date et le numéro de l'arrêté préfectoral pour finaliser la validation.",
+        "arreteDateLabel": "Date de l'arrêté",
+        "arreteNumeroLabel": "Numéro de l'arrêté",
+        "arreteNumeroHint": "Référence officielle (ex : AP-2026-042).",
+        "submit": "Enregistrer",
+        "cancel": "Annuler",
+        "miParcoursLabel": "Cette validation est l'évaluation à mi-parcours du plan"
       },
       "extendDuration": {
         "title": "Étendre la durée du plan",

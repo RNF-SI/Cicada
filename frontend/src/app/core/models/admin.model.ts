@@ -327,6 +327,9 @@ export interface PlanFichier {
  */
 export type PlanStatut =
   | 'draft'
+  | 'avis_csrpn'
+  | 'comite_consultatif'
+  | 'arrete_pref'
   | 'valide'
   | 'modifie'
   | 'mi_parcours'
@@ -428,7 +431,13 @@ export interface AdminPlan {
   gestion_partagee: boolean;
   ct88: boolean;
   risque_incendie: boolean;
-  date_validation_cspn?: string;
+  date_avis_csrpn?: string;
+  /** #277 — Workflow CSRPN : étape 2 (validation comité consultatif). */
+  date_validation_comite?: string;
+  /** #277 — Workflow CSRPN : étape 3 (arrêté préfectoral, RNN uniquement). */
+  date_arrete_pref?: string;
+  /** #277 — Numéro de référence de l'arrêté préfectoral. */
+  numero_arrete_pref?: string;
   id_docgestion_fcen?: string;
   id_evaluation?: number;
   evaluation_display?: string;
@@ -476,7 +485,7 @@ export interface PlanCreatePayload {
   surface?: number;
   gestion_partagee?: boolean;
   risque_incendie?: boolean;
-  date_validation_cspn?: string;
+  date_avis_csrpn?: string;
   id_docgestion_fcen?: string;
   id_evaluation?: number;
   id_redacteur_type?: number;

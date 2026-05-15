@@ -239,7 +239,7 @@ export class PlanFormModalComponent implements OnInit {
 
       // Champs optionnels
       surface: [plan?.surface || null],
-      date_validation_cspn: [plan?.date_validation_cspn ? new Date(plan.date_validation_cspn) : null],
+      date_avis_csrpn: [plan?.date_avis_csrpn ? new Date(plan.date_avis_csrpn) : null],
       id_docgestion_fcen: [plan?.id_docgestion_fcen || ''],
       id_redacteur_type: [plan?.id_redacteur_type || null],
       redacteur_nom: [plan?.redacteur_nom || '', Validators.maxLength(255)],
@@ -506,8 +506,8 @@ export class PlanFormModalComponent implements OnInit {
 
     // Formater la date pour l'API (YYYY-MM-DD)
     let dateValidationCspn: string | undefined;
-    if (formValue.date_validation_cspn) {
-      const date = new Date(formValue.date_validation_cspn);
+    if (formValue.date_avis_csrpn) {
+      const date = new Date(formValue.date_avis_csrpn);
       dateValidationCspn = date.toISOString().split('T')[0];
     }
 
@@ -522,7 +522,7 @@ export class PlanFormModalComponent implements OnInit {
 
       // Champs optionnels
       surface: formValue.surface || undefined,
-      date_validation_cspn: dateValidationCspn,
+      date_avis_csrpn: dateValidationCspn,
       id_docgestion_fcen: formValue.id_docgestion_fcen || undefined,
       id_redacteur_type: formValue.id_redacteur_type || undefined,
       redacteur_nom: this.selectedOrganisme()?.displayName || formValue.redacteur_nom || undefined,

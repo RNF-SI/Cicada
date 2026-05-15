@@ -116,11 +116,48 @@
                   </button>
                 }
                 @if (canManageLifecycle()) {
-                  <!-- Draft → Valider -->
+                  <!-- Draft → Valider (raccourci) ou Envoyer pour avis CSRPN (workflow #277) -->
                   @if (p.statut === 'draft') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()">
+                      <i class="fi fi-rr-paper-plane"></i>
+                      <span>{{ 'plans.lifecycle.actions.submitForCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
+                  @if (p.statut === 'avis_csrpn') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.recordCsrpnOpinion' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
+                  @if (p.statut === 'comite_consultatif') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.validateByComite' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
+                  @if (p.statut === 'arrete_pref') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.recordArretePref' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
                     </button>
                   }
                   <!-- Validé / Modifié / Mi-parcours → Remettre en brouillon + Étendre (si fenêtre OK, #250)

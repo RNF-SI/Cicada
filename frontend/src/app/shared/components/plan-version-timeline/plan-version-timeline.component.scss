@@ -160,6 +160,18 @@
     i { color: $secondary-terra-cotta; }
   }
 
+  // #277 — Statuts CSRPN : couleur warning avec bordure pleine. La
+  // distinction étape se fait par le label (chip), le dot signale
+  // "en cours réglementaire".
+  &.dot-avis_csrpn,
+  &.dot-comite_consultatif,
+  &.dot-arrete_pref {
+    border-color: $warning-color;
+    background: rgba($warning-color, 0.1);
+
+    i { color: $warning-color; }
+  }
+
   // #278 — En cours de révision : variante info avec bordure pleine plus
   // marquée pour distinguer du plan étendu.
   &.dot-en_revision {

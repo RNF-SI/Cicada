@@ -38,6 +38,11 @@ export class PlanVersionTimelineComponent {
   getStatusClass(item: PlanVersionChainItem): string {
     const classes: Record<string, string> = {
       draft: 'status-warning',
+      // #277 — Statuts intermédiaires CSRPN : couleur "en cours" (warning)
+      // pour signaler qu'une étape réglementaire est en attente.
+      avis_csrpn: 'status-warning',
+      comite_consultatif: 'status-warning',
+      arrete_pref: 'status-warning',
       valide: 'status-success',
       modifie: 'status-success',
       mi_parcours: 'status-success',
