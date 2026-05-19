@@ -565,6 +565,7 @@ export class PlansListComponent implements OnInit {
     const keys: Record<string, string> = {
       'draft': 'plans.status.draft',
       'valide': 'plans.status.valide',
+      'etendu': 'plans.status.etendu',
       'archive': 'plans.status.archive'
     };
     const key = keys[statut];
@@ -575,6 +576,7 @@ export class PlansListComponent implements OnInit {
     const classes: Record<string, string> = {
       'draft': 'status-warning',
       'valide': 'status-success',
+      'etendu': 'status-info',
       'archive': 'status-neutre'
     };
     return classes[statut] || '';

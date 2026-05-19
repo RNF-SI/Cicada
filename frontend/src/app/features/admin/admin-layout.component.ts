@@ -155,7 +155,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
     const labels: Record<string, string> = {
       'super_admin': 'Super Administrateur',
-      'redacteur_principal': 'Rédacteur Principal',
+      'redacteur_principal': 'Rédacteur Général',
       'admin_og': 'Admin Organisme',
       'utilisateur': 'Utilisateur'
     };

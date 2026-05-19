@@ -533,20 +533,9 @@
 
                             @if (isPressionExpanded(pression.id_pression)) {
                               <div class="pression-card-body">
-                                @if (pression.pressref_definition) {
-                                  <div class="pressref-detail">
-                                    <div class="section-block">
-                                      <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefDefinition' | translate }}</h4>
-                                    </div>
-                                    <p class="section-text">{{ parsePressrefDefinition(pression.pressref_definition).definition }}</p>
-                                    @if (parsePressrefDefinition(pression.pressref_definition).examples) {
-                                      <div class="section-block">
-                                        <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefExamples' | translate }}</h4>
-                                      </div>
-                                      <p class="section-text pressref-examples">{{ parsePressrefDefinition(pression.pressref_definition).examples }}</p>
-                                    }
-                                  </div>
-                                }
+                                <!-- #244 — Détails pressref (définition + exemples) retirés
+                                     de l'affichage déplié d'une pression. Le libellé du
+                                     pressref reste visible dans l'en-tête (`pression-card-type`). -->
                                 @if (pression.description) {
                                   <div class="section-block">
                                     <h4 class="section-title-uppercase">{{ 'enjeux.pression.details' | translate }}</h4>

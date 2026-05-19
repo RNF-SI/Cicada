@@ -253,7 +253,7 @@
       },
       "roles": {
         "super_admin": "Super Admin",
-        "redacteur_principal": "Réd. Principal",
+        "redacteur_principal": "Réd. Général",
         "admin_og": "Admin Org.",
         "utilisateur": "Utilisateur"
       },
@@ -475,15 +475,15 @@
       }
     },
     "redacteursPrincipaux": {
-      "title": "Rédacteurs principaux",
+      "title": "Rédacteurs généraux",
       "subtitle": "Utilisateurs ayant accès en édition à tous les plans de gestion",
-      "add": "Ajouter un rédacteur principal",
+      "add": "Ajouter un rédacteur général",
       "remove": "Retirer le rôle",
-      "confirmRemove": "Retirer le rôle de rédacteur principal à {{name}} ? L'utilisateur redeviendra simple utilisateur.",
-      "empty": "Aucun rédacteur principal défini",
+      "confirmRemove": "Retirer le rôle de rédacteur général à {{name}} ? L'utilisateur redeviendra simple utilisateur.",
+      "empty": "Aucun rédacteur général défini",
       "messages": {
-        "added": "{{name}} est maintenant rédacteur principal",
-        "removed": "{{name}} n'est plus rédacteur principal"
+        "added": "{{name}} est maintenant rédacteur général",
+        "removed": "{{name}} n'est plus rédacteur général"
       }
     },
     "validations": {
@@ -1061,7 +1061,7 @@
         "ct88": "Méthode de rédaction CT88",
         "startYear": "Année de début",
         "endYear": "Année de fin",
-        "cspnDate": "Date de validation CSPN",
+        "cspnDate": "Date de l'avis du CSRPN",
         "docGestion": "ID_Doc'Gestion FCEN",
         "editorType": "Type d'organisme rédacteur principal",
         "editorName": "Organisme rédacteur principal",
@@ -1229,7 +1229,7 @@
     "title": "Plans de gestion",
     "newPlan": "NOUVEAU PLAN DE GESTION",
     "redacteurPrincipal": {
-      "banner": "Vous avez le rôle de rédacteur principal de l'instance de Cicada, vous pouvez éditer tous les plans de gestion."
+      "banner": "Vous avez le rôle de rédacteur général de l'instance de Cicada, vous pouvez éditer tous les plans de gestion."
     },
     "scope": {
       "mine": "Mes plans",
@@ -1511,7 +1511,7 @@
         "tableHeader": "Actions (priorité)",
         "leCasEcheant": "le cas échéant",
         "noOperations": "Aucune action n'est encore définie pour ce plan.",
-        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Vision opérationnelle d'un enjeu."
+        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu."
       },
       "tableauDeBord": {
         "title": "Tableau de bord",
@@ -2075,7 +2075,7 @@
     "tabs": {
       "detail": "Détail enjeu",
       "olt": "Vision à long terme",
-      "operations": "Vision opérationnelle"
+      "operations": "Stratégie opérationnelle"
     },
     "count": "{{count}} enjeu(x) ou FCR saisi(s)",
     "countZero": "Aucun enjeu ou FCR",
@@ -2263,7 +2263,7 @@
       "addButton": "Ajouter un objectif à long terme",
       "hint": "Qu'est-ce qu'un objectif à long terme ?",
       "description": "Un objectif à long terme (OLT) traduit l'état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion.",
-      "usageNote": "Utilisez cette section pour définir les objectifs à long terme de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
+      "usageNote": "Utilisez cette section pour définir les objectifs à long terme de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire. Les facteurs d'influence se créent dans l'onglet « Détail » de votre enjeu ou FCR.",
       "countSuffix": "objectif(s) à long terme (OLT) saisi(s)",
       "label": "OLT",
       "tooltip": "Objectif à long terme : état souhaité de l'enjeu ou du facteur clef de réussite à l'issue du plan de gestion (CT88).",
@@ -2311,7 +2311,7 @@
       "deleteSuccess": "Objectif opérationnel supprimé avec succès",
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
-      "usageNote": "Un objectif opérationnel peut être associé à une ou plusieurs pressions identifiées sur l'enjeu.",
+      "usageNote": "Un objectif opérationnel peut être associé à une ou plusieurs pressions identifiées sur l'enjeu. Les facteurs d'influence et les pressions se créent dans l'onglet « Détail » de votre enjeu ou FCR.",
       "descriptionLabel": "Détails / commentaires",
       "noFacteurTitle": "Aucun facteur d'influence",
       "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
