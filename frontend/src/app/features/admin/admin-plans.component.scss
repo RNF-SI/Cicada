@@ -370,6 +370,12 @@
     color: $success-color;
   }
 
+  // #273 — statut « Étendu » : variante info (cyan).
+  &.statut-etendu {
+    background-color: rgba($info-color, 0.15);
+    color: darken($info-color, 15%);
+  }
+
   &.statut-archive {
     background-color: rgba($gray, 0.2);
     color: $gray-dark;

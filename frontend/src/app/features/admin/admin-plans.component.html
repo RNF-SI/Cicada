@@ -72,6 +72,7 @@
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="draft">{{ 'admin.plans.status.draft' | translate }}</option>
         <option value="valide">{{ 'admin.plans.status.valide' | translate }}</option>
+        <option value="etendu">{{ 'admin.plans.status.etendu' | translate }}</option>
         <option value="archive">{{ 'admin.plans.status.archive' | translate }}</option>
       </select>
 
@@ -132,6 +133,9 @@
                     }
                     @case ('valide') {
                       <i class="fi fi-rr-check"></i>
+                    }
+                    @case ('etendu') {
+                      <i class="fi fi-rr-time-add"></i>
                     }
                     @case ('archive') {
                       <i class="fi fi-rr-archive"></i>

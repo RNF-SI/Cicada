@@ -460,6 +460,13 @@ app-plan-gauge {
     background-color: $score-good;
   }
 
+  // #273 — statut « Étendu » : variante info (cyan) du score validé.
+  &.status-info {
+    background-color: $info-color;
+    color: $white;
+  }
+
+  &.status-neutre,
   &.status-neutral {
     background-color: $gray-light;
   }
