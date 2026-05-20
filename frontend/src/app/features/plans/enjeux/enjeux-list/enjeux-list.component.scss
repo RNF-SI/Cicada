@@ -904,6 +904,25 @@
   font-size: $font-size-small;
 }
 
+// #236 — Ligne distincte pour les facteurs d'influence sous les pressions.
+// Margin-top négatif pour rapprocher visuellement les 2 lignes (même bloc
+// conceptuel "Pressions + leurs FI") tout en gardant la lisibilité.
+.oo-facteurs-chips {
+  margin-top: -$spacing-xs;
+}
+
+.oo-facteur-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background-color: rgba($secondary-terra-cotta, 0.08);
+  color: $secondary-terra-cotta;
+  font-size: $font-size-small;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  border: 1px dashed rgba($secondary-terra-cotta, 0.3);
+}
+
 // Note d'usage en haut de l'onglet
 .olt-info-note {
   display: flex;

@@ -2560,6 +2560,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * #236 — Extrait les libellés uniques des facteurs d'influence rattachés
+   * aux pressions d'un OO. Préserve l'ordre d'apparition (premier rencontré
+   * = premier affiché).
+   */
+  uniqueFacteursFromOO(oo: ObjectifOperationnel): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const p of (oo.pressions || [])) {
+      const lib = (p as any).facteur_influence_libelle;
+      if (lib && !seen.has(lib)) {
+        seen.add(lib);
+        out.push(lib);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Drag-and-drop : réordonne les actions/opérations d'une métrique (#228).
    * Le code calculé (CS1, IP2, ...) se met à jour automatiquement après
    * la recharge — le rang est plan-wide, donc déplacer une action peut

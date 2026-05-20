@@ -2099,19 +2099,27 @@
                         <p class="olt-description">{{ oo.description }}</p>
                       }
 
-                      <!-- Pressions associées (M2M) -->
+                      <!-- Pressions et facteurs d'influence associés (M2M).
+                           #236 — affichage sur 2 lignes distinctes (Sophie) :
+                           1) « Pression(s) associée(s) : »
+                           2) « Facteur(s) d'influence : » (dédupliqué) -->
                       @if (oo.pressions && oo.pressions.length > 0) {
                         <div class="oo-pressions-chips">
                           <span class="oo-pressions-label">{{ 'enjeux.oo.pressionLabel' | translate }} :</span>
                           @for (p of oo.pressions; track p.id_pression) {
-                            <span class="oo-pression-chip" [title]="p.facteur_influence_libelle ? ('enjeux.oo.facteurDescription' | translate) + ' : ' + p.facteur_influence_libelle : ''">
-                              @if (p.facteur_influence_libelle) {
-                                <span class="oo-pression-chip-facteur">{{ p.facteur_influence_libelle }} ›</span>
-                              }
-                              {{ p.libelle }}
-                            </span>
+                            <span class="oo-pression-chip">{{ p.libelle }}</span>
                           }
                         </div>
+                        @if (uniqueFacteursFromOO(oo); as facteurs) {
+                          @if (facteurs.length > 0) {
+                            <div class="oo-pressions-chips oo-facteurs-chips">
+                              <span class="oo-pressions-label">{{ 'enjeux.oo.facteursAssocies' | translate }} :</span>
+                              @for (fi of facteurs; track fi) {
+                                <span class="oo-facteur-chip">{{ fi }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       }
 
                       <!-- Résultats attendus -->
