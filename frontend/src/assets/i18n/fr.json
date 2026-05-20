@@ -2301,6 +2301,7 @@
       "facteurLabel": "Facteur d'influence",
       "facteurDescription": "Facteur d'influence",
       "pressionLabel": "Pression(s) associée(s)",
+      "facteursAssocies": "Facteur(s) d'influence",
       "addButton": "Ajouter un objectif opérationnel",
       "newTitle": "Nouvel objectif opérationnel",
       "editTitle": "Modifier l'objectif opérationnel",
