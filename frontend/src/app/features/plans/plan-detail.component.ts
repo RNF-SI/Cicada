@@ -5,6 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -77,6 +79,7 @@ interface OperationSynthItem {
   enjeuSlug?: string;
   ooId?: number;
   operationId: number;
+  statut?: 'draft' | 'valide';
 }
 
 interface SubAccordion {
@@ -96,6 +99,8 @@ interface SubAccordion {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatChipsModule,
+    MatTooltipModule,
     TranslateModule,
     HeaderComponent,
     SectionTitleComponent,
@@ -406,6 +411,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
               enjeuSlug: op.enjeu_slug || undefined,
               ooId: op.oo_id || undefined,
               operationId: op.id_operation,
+              statut: op.statut,
             } as OperationSynthItem;
           })
         }));

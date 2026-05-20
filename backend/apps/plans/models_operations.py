@@ -591,6 +591,11 @@ class Operation(models.Model):
     # #251 — Statut éditorial : 'draft' tant que l'action n'a pas été validée
     # explicitement (tous les champs requis remplis via le bouton "Valider").
     # Permet d'afficher une chip "Brouillon" dans les listes.
+    #
+    # Default = 'valide' : c'est la valeur conservatrice (compatible avec le
+    # comportement historique d'avant #251 et avec les opérations créées via
+    # l'admin ou les seeders qui sont par construction "complètes"). Seul le
+    # frontend (saveDraft) positionne explicitement 'draft'.
     STATUT_DRAFT = 'draft'
     STATUT_VALIDE = 'valide'
     STATUT_CHOICES = [
@@ -601,7 +606,7 @@ class Operation(models.Model):
         _("Statut"),
         max_length=10,
         choices=STATUT_CHOICES,
-        default=STATUT_DRAFT,
+        default=STATUT_VALIDE,
         db_index=True,
         help_text=_("Brouillon tant que l'action n'a pas été validée explicitement")
     )

@@ -1211,7 +1211,10 @@
                                                            (cdkDropListDropped)="onOperationDrop($event, met)">
                                                       @for (op of met.operations; track op.id_operation) {
                                             <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                                 class="operation-card operation-drag-item" [class.expanded]="isOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                                 class="operation-card operation-drag-item"
+                                                 [class.expanded]="isOperationExpanded(op.id_operation)"
+                                                 [class.is-draft]="op.statut === 'draft'"
+                                                 [id]="'operation-' + op.id_operation">
                                               <!-- En-tête de l'action (cliquable pour expand/collapse) -->
                                               <div class="operation-header" (click)="toggleOperation(op.id_operation)">
                                                 <div class="operation-header-left">
@@ -2583,7 +2586,10 @@
                                                    (cdkDropListDropped)="onOperationDrop($event, met)">
                                               @for (op of met.operations; track op.id_operation) {
                                     <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                         class="operation-card operation-drag-item" [class.expanded]="isOoOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                         class="operation-card operation-drag-item"
+                                         [class.expanded]="isOoOperationExpanded(op.id_operation)"
+                                         [class.is-draft]="op.statut === 'draft'"
+                                         [id]="'operation-' + op.id_operation">
                                       <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                         <div class="operation-header-left">
                                           @if (canEditPlan()) {

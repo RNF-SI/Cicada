@@ -303,9 +303,17 @@
                                     @for (item of subItem.items; track item.operationId) {
                                       <li class="action-item"
                                           [class.clickable]="item.enjeuSlug"
+                                          [class.is-draft]="item.statut === 'draft'"
                                           (click)="item.enjeuSlug ? navigateToOperation(item) : null">
                                         <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="action-bullet">
                                         <span class="action-text">{{ item.label }}</span>
+                                        @if (item.statut === 'draft') {
+                                          <mat-chip class="operation-draft-chip status-warning"
+                                                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                    (click)="$event.stopPropagation()">
+                                            {{ 'enjeux.operations.draftChip' | translate }}
+                                          </mat-chip>
+                                        }
                                         @if (item.enjeuSlug) {
                                           <i class="fi fi-rr-angle-small-right action-arrow"></i>
                                         }

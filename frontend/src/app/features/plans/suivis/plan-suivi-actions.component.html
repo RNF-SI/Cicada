@@ -182,7 +182,8 @@
               </thead>
               <tbody>
                 @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
-                  <tr [class.row-alt]="idx % 2 === 1">
+                  <tr [class.row-alt]="idx % 2 === 1"
+                      [class.is-draft]="item.operation.statut === 'draft'">
                     <td class="col-action">
                       <div class="action-name">
                         {{ item.operation.libelle }}

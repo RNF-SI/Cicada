@@ -2181,6 +2181,18 @@
   &.expanded {
     border-color: $secondary-yellow;
   }
+
+  // #251 — Brouillon : bordure gauche terra-cotta, libellé italique grisé.
+  &.is-draft {
+    border-left: 4px solid $secondary-terra-cotta;
+    background: rgba($secondary-terra-cotta, 0.04);
+
+    .operation-libelle {
+      font-style: italic;
+      color: $gray-dark;
+      font-weight: $font-weight-semibold;
+    }
+  }
 }
 
 .operation-header {

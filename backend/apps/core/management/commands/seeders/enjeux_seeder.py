@@ -5224,6 +5224,14 @@ class EnjeuxSeeder(BaseSeeder):
         self.log_summary(len(mesures_created), 'mesures')
         self.log_summary(len(operations_created), 'opérations')
 
+        # #251 — Marquer quelques opérations comme brouillons (chip "Brouillon",
+        # bordure terra-cotta, libellé italique) pour la QA visuelle. Réparti
+        # sur les trois principales chaînes de plans.
+        draft_codes = ['CAM-SE02', 'AR-CS01', 'REM-BA03', 'REM-TU02']
+        n_drafts = Operation.objects.filter(code_operation__in=draft_codes).update(statut='draft')
+        if n_drafts:
+            self.log_item('mis à jour', f"{n_drafts} opération(s) marquée(s) en brouillon")
+
         result = {
             'enjeux': enjeux_created,
             'fcr': fcr_created,
