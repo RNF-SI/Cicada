@@ -380,6 +380,12 @@
     background-color: rgba($gray, 0.2);
     color: $gray-dark;
   }
+
+  // Statuts workflow CSRPN (#277) : avis_csrpn / comite_consultatif / arrete_pref
+  &.statut-csrpn {
+    background-color: rgba($secondary-orange-salmon, 0.25);
+    color: darken($secondary-orange-salmon, 25%);
+  }
 }
 
 // Periode cell
