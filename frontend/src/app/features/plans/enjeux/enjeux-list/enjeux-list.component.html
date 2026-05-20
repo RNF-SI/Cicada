@@ -1525,7 +1525,7 @@
                                               }
 
                                               <!-- Bouton ajout métrique standalone -->
-                                              @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                              @if (canEditPlan() && addingMetriqueForIndicateur() !== ind.id_indicateur) {
                                                 <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
                                                   <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                                 </button>
@@ -2893,7 +2893,7 @@
                                       }
 
                                       <!-- Bouton ajout métrique standalone (OO) -->
-                                      @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                      @if (canEditPlan() && addingMetriqueForIndicateur() !== ind.id_indicateur) {
                                         <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
                                           <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                         </button>

@@ -591,6 +591,16 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_facteur_influence']
     ordering = ['id_facteur_influence']
 
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via l'enjeu parent."""
+        enjeu_id = data.get('id_enjeu')
+        if not enjeu_id:
+            return None
+        try:
+            return Enjeu.objects.only('id_pg').get(pk=enjeu_id).get_plan_de_gestion()
+        except Enjeu.DoesNotExist:
+            return None
+
     def get_serializer_class(self):
         if self.action == 'list':
             return FacteurInfluenceListSerializer
@@ -686,6 +696,16 @@ class PressionViewSet(viewsets.ModelViewSet):
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_pression']
     ordering = ['id_pression']
 
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via le facteur d'influence parent."""
+        fi_id = data.get('id_facteur_influence')
+        if not fi_id:
+            return None
+        try:
+            return FacteurInfluence.objects.select_related('id_enjeu').get(pk=fi_id).get_plan_de_gestion()
+        except FacteurInfluence.DoesNotExist:
+            return None
+
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return PressionCreateSerializer
@@ -770,6 +790,16 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_olt']
     ordering = ['id_olt']
 
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via l'enjeu parent."""
+        enjeu_id = data.get('id_enjeu')
+        if not enjeu_id:
+            return None
+        try:
+            return Enjeu.objects.only('id_pg').get(pk=enjeu_id).get_plan_de_gestion()
+        except Enjeu.DoesNotExist:
+            return None
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ObjectifLongTermeListSerializer
@@ -853,6 +883,16 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ne']
     ordering = ['id_ne']
+
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via l'OLT parent."""
+        olt_id = data.get('id_olt')
+        if not olt_id:
+            return None
+        try:
+            return ObjectifLongTerme.objects.select_related('id_enjeu').get(pk=olt_id).get_plan_de_gestion()
+        except ObjectifLongTerme.DoesNotExist:
+            return None
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -944,6 +984,18 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_oo']
     ordering = ['id_oo']
+
+    def get_plan_for_payload(self, data):
+        """#248 — check draft via la première pression rattachée (M2M)."""
+        pression_ids = data.get('pression_ids') or []
+        if not pression_ids:
+            return None
+        try:
+            return Pression.objects.select_related(
+                'id_facteur_influence__id_enjeu'
+            ).get(pk=pression_ids[0]).get_plan_de_gestion()
+        except Pression.DoesNotExist:
+            return None
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -1037,6 +1089,16 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
     search_fields = ['libelle', 'description']
     ordering_fields = ['libelle', 'date_ajout', 'date_maj', 'id_ra']
     ordering = ['id_ra']
+
+    def get_plan_for_payload(self, data):
+        """#248 — check draft via la première pression liée à l'OO parent."""
+        oo_id = data.get('id_oo')
+        if not oo_id:
+            return None
+        try:
+            return ObjectifOperationnel.objects.get(pk=oo_id).get_plan_de_gestion()
+        except ObjectifOperationnel.DoesNotExist:
+            return None
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
