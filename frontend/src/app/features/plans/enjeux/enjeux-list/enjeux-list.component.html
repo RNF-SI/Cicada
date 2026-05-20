@@ -720,7 +720,7 @@
                               </button>
                             }
                             <app-section-title
-                              [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
+                              [title]="('enjeux.olt.label' | translate) + ' ' + (getOltGlobalNumber(olt.id_olt) || idx + 1) + ' : ' + olt.libelle"
                               [tooltip]="'enjeux.olt.tooltip' | translate"
                               icon="fi-rr-eye"
                               ellipseColor="terra-cotta"
