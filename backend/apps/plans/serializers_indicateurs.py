@@ -3,6 +3,7 @@ Serializers pour l'API REST Indicateurs, Métriques et Mesures.
 """
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from .serializers_enjeux import _prefetched_count
 
 from .models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
@@ -154,18 +155,23 @@ class MetriqueSerializer(serializers.ModelSerializer):
         # Use prefetched data if available (avoids COUNT query)
         if hasattr(obj, '_prefetched_objects_cache') and 'mesures' in obj._prefetched_objects_cache:
             return len(obj.mesures.all())
-        return obj.mesures.count()
+        return _prefetched_count(obj, 'mesures')
 
     def get_operations(self, obj):
         from .serializers_operations import OperationNestedSerializer
-        # Nested serializer: operation_annees + finances, sans les lookups coûteux (enjeu_slug/oo_id)
-        return OperationNestedSerializer(obj.operations.all(), many=True).data
+        # #263 — Propager le contexte (notamment `operation_codes` pré-calculé
+        # dans `by-plan`) au serializer niché. Sans ça, chaque opération
+        # déclenchait un fallback `_compute_operation_code_affichage` qui
+        # traverse RA → OO → FI → Enjeu et fait sauter le prefetch.
+        return OperationNestedSerializer(
+            obj.operations.all(), many=True, context=self.context,
+        ).data
 
     def get_nb_operations(self, obj):
         # Use prefetched data if available (avoids COUNT query)
         if hasattr(obj, '_prefetched_objects_cache') and 'operations' in obj._prefetched_objects_cache:
             return len(obj.operations.all())
-        return obj.operations.count()
+        return _prefetched_count(obj, 'operations')
 
 
 class MetriqueListSerializer(serializers.ModelSerializer):
@@ -187,7 +193,7 @@ class MetriqueListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_metrique', 'date_ajout', 'date_maj']
 
     def get_nb_mesures(self, obj):
-        return obj.mesures.count()
+        return _prefetched_count(obj, 'mesures')
 
 
 class MetriqueCreateSerializer(serializers.ModelSerializer):
@@ -339,7 +345,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_indicateur', 'date_ajout', 'date_maj']
 
     def get_nb_metriques(self, obj):
-        return obj.metriques.count()
+        return _prefetched_count(obj, 'metriques')
 
 
 class IndicateurListSerializer(serializers.ModelSerializer):
@@ -364,7 +370,7 @@ class IndicateurListSerializer(serializers.ModelSerializer):
     def get_nb_metriques(self, obj):
         if hasattr(obj, '_prefetched_objects_cache') and 'metriques' in obj._prefetched_objects_cache:
             return len(obj.metriques.all())
-        return obj.metriques.count()
+        return _prefetched_count(obj, 'metriques')
 
     def get_nb_operations(self, obj):
         # Use prefetched data if available to avoid N+1

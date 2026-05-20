@@ -16,6 +16,25 @@ from .models_enjeux import (
 from apps.core.models import Nomenclature
 
 
+def _prefetched_count(obj, attr):
+    """#263 — Compte les objets liés sans déclencher de requête COUNT si le
+    related manager a déjà été prefetché. Évite N+1 sur les `nb_*` exposés
+    par les serializers imbriqués dans `by-plan`."""
+    cache = getattr(obj, '_prefetched_objects_cache', None)
+    if cache is not None and attr in cache:
+        return len(cache[attr])
+    return getattr(obj, attr).count()
+
+
+def _prefetched_list(obj, attr):
+    """#263 — Récupère la liste des objets liés depuis le cache prefetch
+    si disponible, sinon depuis le manager. Sert à `pression_ids` etc."""
+    cache = getattr(obj, '_prefetched_objects_cache', None)
+    if cache is not None and attr in cache:
+        return list(cache[attr])
+    return list(getattr(obj, attr).all())
+
+
 # =============================================================================
 # Serializers pour les relations taxonomiques
 # =============================================================================
@@ -116,7 +135,7 @@ class NiveauExigenceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_ne', 'date_ajout', 'date_maj']
 
     def get_nb_indicateurs(self, obj):
-        return obj.indicateurs.count()
+        return _prefetched_count(obj, 'indicateurs')
 
 
 class NiveauExigenceCreateSerializer(serializers.ModelSerializer):
@@ -154,7 +173,7 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_ra', 'date_ajout', 'date_maj']
 
     def get_nb_indicateurs(self, obj):
-        return obj.indicateurs.count()
+        return _prefetched_count(obj, 'indicateurs')
 
 
 class ResultatAttenduCreateSerializer(serializers.ModelSerializer):
@@ -205,10 +224,10 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
     def get_nb_resultats_attendus(self, obj):
-        return obj.resultats_attendus.count()
+        return _prefetched_count(obj, 'resultats_attendus')
 
     def get_pression_ids(self, obj):
-        return list(obj.pressions.values_list('id_pression', flat=True))
+        return [p.pk for p in _prefetched_list(obj, 'pressions')]
 
 
 class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
@@ -229,10 +248,10 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
     def get_nb_resultats_attendus(self, obj):
-        return obj.resultats_attendus.count()
+        return _prefetched_count(obj, 'resultats_attendus')
 
     def get_pression_ids(self, obj):
-        return list(obj.pressions.values_list('id_pression', flat=True))
+        return [p.pk for p in _prefetched_list(obj, 'pressions')]
 
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
@@ -288,7 +307,7 @@ class ObjectifLongTermeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_olt', 'date_ajout', 'date_maj']
 
     def get_nb_niveaux_exigence(self, obj):
-        return obj.niveaux_exigence.count()
+        return _prefetched_count(obj, 'niveaux_exigence')
 
 
 class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
@@ -307,7 +326,7 @@ class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_olt', 'date_ajout', 'date_maj']
 
     def get_nb_niveaux_exigence(self, obj):
-        return obj.niveaux_exigence.count()
+        return _prefetched_count(obj, 'niveaux_exigence')
 
 
 class ObjectifLongTermeCreateSerializer(serializers.ModelSerializer):
@@ -347,7 +366,7 @@ class PressionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_pression', 'date_ajout', 'date_maj']
 
     def get_nb_objectifs_operationnels(self, obj):
-        return obj.objectifs_operationnels.count()
+        return _prefetched_count(obj, 'objectifs_operationnels')
 
 
 class PressionCreateSerializer(serializers.ModelSerializer):
@@ -383,7 +402,7 @@ class FacteurInfluenceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_facteur_influence', 'date_ajout', 'date_maj']
 
     def get_nb_pressions(self, obj):
-        return obj.pressions.count()
+        return _prefetched_count(obj, 'pressions')
 
 
 class FacteurInfluenceListSerializer(serializers.ModelSerializer):
@@ -402,7 +421,7 @@ class FacteurInfluenceListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_facteur_influence', 'date_ajout', 'date_maj']
 
     def get_nb_pressions(self, obj):
-        return obj.pressions.count()
+        return _prefetched_count(obj, 'pressions')
 
 
 class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
@@ -459,16 +478,16 @@ class EnjeuListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj']
 
     def get_nb_taxons(self, obj):
-        return obj.taxons.count()
+        return _prefetched_count(obj, 'taxons')
 
     def get_nb_habitats(self, obj):
-        return obj.habitats.count()
+        return _prefetched_count(obj, 'habitats')
 
     def get_nb_geologies(self, obj):
-        return obj.geologies.count()
+        return _prefetched_count(obj, 'geologies')
 
     def get_nb_facteurs_influence(self, obj):
-        return obj.facteurs_influence.count()
+        return _prefetched_count(obj, 'facteurs_influence')
 
 
 class EnjeuDetailSerializer(serializers.ModelSerializer):
@@ -524,10 +543,10 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
 
     def get_nb_facteurs_influence(self, obj):
-        return obj.facteurs_influence.count()
+        return _prefetched_count(obj, 'facteurs_influence')
 
     def get_nb_objectifs_long_terme(self, obj):
-        return obj.objectifs_long_terme.count()
+        return _prefetched_count(obj, 'objectifs_long_terme')
 
 
 class EnjeuCreateSerializer(serializers.ModelSerializer):
@@ -765,13 +784,13 @@ class ResponsabiliteListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_responsabilite', 'date_ajout', 'date_maj']
 
     def get_nb_taxons(self, obj):
-        return obj.taxons.count()
+        return _prefetched_count(obj, 'taxons')
 
     def get_nb_habitats(self, obj):
-        return obj.habitats.count()
+        return _prefetched_count(obj, 'habitats')
 
     def get_nb_enjeux_lies(self, obj):
-        return obj.enjeux_lies.count()
+        return _prefetched_count(obj, 'enjeux_lies')
 
 
 class ResponsabiliteDetailSerializer(serializers.ModelSerializer):

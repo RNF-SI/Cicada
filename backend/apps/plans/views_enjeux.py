@@ -60,57 +60,104 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     - DELETE /api/plans/enjeux/{id}/remove_habitat/{cd_hab}/ - Supprimer un habitat
     """
 
+    # #263 — Perf : le queryset de base est minimal (select_related sur
+    # les FKs directs). Les prefetch profonds (FI/OO/OLT/NE/RA/Ind/Met/Op)
+    # sont construits à la volée dans `_with_deep_prefetch()` pour éviter
+    # le partage d'état mutable entre requêtes.
     queryset = Enjeu.objects.select_related(
         'id_pg', 'id_categorie', 'id_categorie_fcr', 'id_importance',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related(
-        'taxons', 'habitats', 'geologies',
-        'facteurs_influence', 'facteurs_influence__pressions',
-        'facteurs_influence__pressions__id_type_pression',
-        'facteurs_influence__id_utilisateur_ajout',
-        'facteurs_influence__pressions__id_utilisateur_ajout',
-        'objectifs_long_terme', 'objectifs_long_terme__id_utilisateur_ajout',
-        'objectifs_long_terme__niveaux_exigence',
-        'objectifs_long_terme__niveaux_exigence__id_utilisateur_ajout',
-        'objectifs_long_terme__niveaux_exigence__indicateurs',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__type_metrique',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
-        # Prefetch operations M2M pour éviter N+1 sur les métriques NE
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_priorite',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_type_action',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__id_utilisateur_ajout',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__metriques',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__metriques__id_indicateur',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__sites',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__operation_annees',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__operation_annees__organismes',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations__finances',
-        'objectifs_long_terme__niveaux_exigence__indicateurs__id_utilisateur_ajout',
-        'facteurs_influence__pressions__objectifs_operationnels',
-        'facteurs_influence__pressions__objectifs_operationnels__id_utilisateur_ajout',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
-        # Prefetch operations M2M pour éviter N+1 sur les métriques OO
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_priorite',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_type_action',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__id_utilisateur_ajout',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__metriques',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__metriques__id_indicateur',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__sites',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__operation_annees',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__operation_annees__organismes',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations__finances',
-        'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
-    )
+    ).prefetch_related('taxons', 'habitats', 'geologies')
+
+    @classmethod
+    def _build_deep_prefetches(cls):
+        """Construit la liste de `Prefetch` profonds pour l'arborescence
+        Enjeu → FI/Pression/OO/RA et Enjeu → OLT/NE → Indicateur/Métrique/Opération.
+
+        Les FKs accédés par les serializers (createur, types, priorités…) sont
+        passés en `select_related` sur la queryset interne du Prefetch, ce qui
+        permet à chaque `obj.id_xxx` dans le serializer d'utiliser le cache
+        sans déclencher de requête.
+        """
+        from django.db.models import Prefetch
+        from .models_enjeux import (
+            FacteurInfluence, Pression, ObjectifLongTerme, NiveauExigence,
+            ObjectifOperationnel, ResultatAttendu,
+        )
+        from .models_indicateurs import Indicateur, Metrique
+        from .models_operations import Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
+
+        op_annee_organisme_qs = OperationAnneeOrganisme.objects.select_related('id_organisme')
+        finance_qs = FinanceOperation.objects.select_related('id_categorie')
+
+        op_qs = Operation.objects.select_related(
+            'id_priorite', 'id_type_action',
+            'id_categorie_action_reserve', 'id_utilisateur_ajout',
+        ).prefetch_related(
+            Prefetch('metriques', queryset=Metrique.objects.select_related('id_indicateur')),
+            'sites',
+            Prefetch(
+                'operation_annees',
+                queryset=OperationAnnee.objects.prefetch_related(
+                    Prefetch('organismes', queryset=op_annee_organisme_qs),
+                ),
+            ),
+            Prefetch('finances', queryset=finance_qs),
+        )
+
+        metrique_qs = Metrique.objects.select_related(
+            'type_metrique', 'id_indicateur', 'id_utilisateur_ajout',
+        ).prefetch_related(
+            'mesures', 'score_blocks',
+            Prefetch('operations', queryset=op_qs),
+        )
+
+        indicateur_qs = Indicateur.objects.select_related(
+            'type_indicateur', 'id_utilisateur_ajout',
+        ).prefetch_related(
+            'taxons', 'habitats', 'geologies',
+            Prefetch('metriques', queryset=metrique_qs),
+        )
+
+        ne_qs = NiveauExigence.objects.select_related('id_utilisateur_ajout').prefetch_related(
+            Prefetch('indicateurs', queryset=indicateur_qs),
+        )
+
+        ra_qs = ResultatAttendu.objects.select_related('id_utilisateur_ajout').prefetch_related(
+            Prefetch('indicateurs', queryset=indicateur_qs),
+        )
+
+        oo_qs = ObjectifOperationnel.objects.select_related('id_utilisateur_ajout').prefetch_related(
+            Prefetch(
+                'pressions',
+                queryset=Pression.objects.select_related('id_facteur_influence'),
+            ),
+            Prefetch('resultats_attendus', queryset=ra_qs),
+        )
+
+        pression_qs = Pression.objects.select_related(
+            'id_type_pression', 'id_facteur_influence', 'id_utilisateur_ajout',
+        ).prefetch_related(
+            Prefetch('objectifs_operationnels', queryset=oo_qs),
+        )
+
+        fi_qs = FacteurInfluence.objects.select_related('id_utilisateur_ajout').prefetch_related(
+            Prefetch('pressions', queryset=pression_qs),
+        )
+
+        olt_qs = ObjectifLongTerme.objects.select_related('id_utilisateur_ajout').prefetch_related(
+            Prefetch('niveaux_exigence', queryset=ne_qs),
+        )
+
+        return [
+            Prefetch('facteurs_influence', queryset=fi_qs),
+            Prefetch('objectifs_long_terme', queryset=olt_qs),
+        ]
+
+    @classmethod
+    def _with_deep_prefetch(cls, qs):
+        """Applique les prefetch profonds à un queryset Enjeu."""
+        return qs.prefetch_related(*cls._build_deep_prefetches())
 
     permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -212,11 +259,17 @@ class EnjeuViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN
                     )
 
-        enjeux = self.get_queryset().filter(id_pg=plan)
+        # #263 — Applique les prefetch profonds (Prefetch avec select_related
+        # sur les FK des serializers) uniquement à cette vue, pas à toutes les
+        # autres actions du ViewSet (list/retrieve restent légères).
+        enjeux = self._with_deep_prefetch(self.get_queryset().filter(id_pg=plan))
 
-        # Séparer enjeux et FCR
-        enjeux_list = enjeux.filter(id_categorie__mnemonique='ENJEU').order_by('id_enjeu')
-        fcr_list = enjeux.filter(id_categorie__mnemonique='FCR').order_by('id_enjeu')
+        # Séparer enjeux et FCR. Pas de `.filter()` chaîné après — chaque
+        # `.filter()` recommencerait l'évaluation des prefetch. On évalue une
+        # seule fois et on partitionne en Python.
+        enjeux_all = list(enjeux.order_by('id_enjeu'))
+        enjeux_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'ENJEU']
+        fcr_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'FCR']
 
         # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
         # actions du plan (préfixe 2 lettres + rang), passé via context aux
@@ -233,8 +286,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             'plan_statut': plan.statut,
             'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
             'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
-            'total_enjeux': enjeux_list.count(),
-            'total_fcr': fcr_list.count()
+            'total_enjeux': len(enjeux_list),
+            'total_fcr': len(fcr_list),
         })
 
     @action(detail=True, methods=['post'])
