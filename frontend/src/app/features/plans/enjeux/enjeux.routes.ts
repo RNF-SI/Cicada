@@ -3,6 +3,7 @@
  */
 import { Routes } from '@angular/router';
 import { authGuard } from '../../../core/guards/auth.guard';
+import { planEditableGuard } from './guards/plan-editable.guard';
 
 export const ENJEUX_ROUTES: Routes = [
   {
@@ -16,21 +17,21 @@ export const ENJEUX_ROUTES: Routes = [
     path: 'nouveau',
     loadComponent: () => import('./enjeu-form/enjeu-form.component')
       .then(m => m.EnjeuFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Nouvel enjeu'
   },
   {
     path: 'operations/nouveau',
     loadComponent: () => import('./operation-form/operation-form.component')
       .then(m => m.OperationFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Nouvelle action'
   },
   {
     path: 'operations/:operationId/modifier',
     loadComponent: () => import('./operation-form/operation-form.component')
       .then(m => m.OperationFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Modifier action'
   },
   {
@@ -45,21 +46,21 @@ export const ENJEUX_ROUTES: Routes = [
     path: 'fcr/nouveau',
     loadComponent: () => import('./fcr-form/fcr-form.component')
       .then(m => m.FcrFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Nouveau FCR'
   },
   {
     path: 'fcr/:fcrId/modifier',
     loadComponent: () => import('./fcr-form/fcr-form.component')
       .then(m => m.FcrFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Modifier FCR'
   },
   {
     path: ':enjeuSlug/modifier',
     loadComponent: () => import('./enjeu-form/enjeu-form.component')
       .then(m => m.EnjeuFormComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, planEditableGuard],
     title: 'Modifier enjeu'
   },
   {

@@ -3380,20 +3380,22 @@
           @if (!hasData()) {
             <div class="empty-state">
               <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
-              <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
-                <i class="fi fi-rr-plus-small"></i>
-                {{ 'enjeux.addButton' | translate }}
-              </button>
-              <mat-menu #addMenuEmpty="matMenu">
-                <button mat-menu-item (click)="navigateToNewEnjeu()">
-                  <i class="fi fi-rr-bullseye-arrow"></i>
-                  <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+              @if (canEditPlan()) {
+                <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
+                  <i class="fi fi-rr-plus-small"></i>
+                  {{ 'enjeux.addButton' | translate }}
                 </button>
-                <button mat-menu-item (click)="navigateToNewFcr()">
-                  <i class="fi fi-rr-key"></i>
-                  <span>{{ 'enjeux.types.fcr' | translate }}</span>
-                </button>
-              </mat-menu>
+                <mat-menu #addMenuEmpty="matMenu">
+                  <button mat-menu-item (click)="navigateToNewEnjeu()">
+                    <i class="fi fi-rr-bullseye-arrow"></i>
+                    <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                  </button>
+                  <button mat-menu-item (click)="navigateToNewFcr()">
+                    <i class="fi fi-rr-key"></i>
+                    <span>{{ 'enjeux.types.fcr' | translate }}</span>
+                  </button>
+                </mat-menu>
+              }
 
               <div class="info-block">
                 <div class="info-icon">
