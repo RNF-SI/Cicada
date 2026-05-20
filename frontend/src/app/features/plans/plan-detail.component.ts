@@ -168,21 +168,24 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   fcrData = signal<Enjeu[]>([]);
   enjeuxLoading = signal(false);
 
-  // Aggregated OLT/OO across all enjeux
+  // Aggregated OLT/OO across all enjeux AND FCR (#191 — les OLT créés
+  // sur un FCR doivent aussi apparaître dans la synthèse).
   allOlts = computed(() => {
-    return this.enjeuxData().flatMap(enjeu =>
-      (enjeu.objectifs_long_terme || []).map(olt => ({
+    const items = [...this.enjeuxData(), ...this.fcrData()];
+    return items.flatMap(item =>
+      (item.objectifs_long_terme || []).map(olt => ({
         ...olt,
-        enjeu_libelle: enjeu.libelle,
-        enjeu_id: enjeu.id_enjeu
+        enjeu_libelle: item.libelle,
+        enjeu_id: item.id_enjeu
       }))
     );
   });
 
   allOos = computed(() => {
     const seen = new Set<number>();
-    return this.enjeuxData().flatMap(enjeu =>
-      (enjeu.facteurs_influence || []).flatMap(fi =>
+    const items = [...this.enjeuxData(), ...this.fcrData()];
+    return items.flatMap(item =>
+      (item.facteurs_influence || []).flatMap(fi =>
         (fi.pressions || []).flatMap(p =>
           (p.objectifs_operationnels || [])
             .filter(oo => {
@@ -192,8 +195,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
             })
             .map(oo => ({
               ...oo,
-              enjeu_libelle: enjeu.libelle,
-              enjeu_id: enjeu.id_enjeu
+              enjeu_libelle: item.libelle,
+              enjeu_id: item.id_enjeu
             }))
         )
       )
@@ -261,24 +264,27 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   // Accordéons de la section Synthèse
+  // #191 — Tous les accordéons de la synthèse sont ouverts par défaut
+  // pour que les utilisateurs voient immédiatement les OLT et OO créés
+  // (sinon les utilisateurs pensent qu'ils ne s'affichent pas).
   syntheseAccordions = signal<SyntheseAccordion[]>([
     {
       id: 'enjeux',
       title: 'Enjeux et Facteurs clés de réussite',
       colorClass: 'terra-cotta',
-      expanded: false
+      expanded: true
     },
     {
       id: 'objectifs-lt',
       title: 'Objectifs long terme',
       colorClass: 'terra-cotta',
-      expanded: false
+      expanded: true
     },
     {
       id: 'objectifs-op',
       title: 'Objectifs opérationnels',
       colorClass: 'terra-cotta',
-      expanded: false
+      expanded: true
     },
     {
       id: 'actions',
