@@ -53,8 +53,11 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
   /** Filtre optionnel par groupe INPN */
   group2Inpn = input<string | undefined>(undefined);
 
-  /** Nombre max de résultats */
-  limit = input<number>(20);
+  /** Nombre max de résultats — borne haute. #238 — la limite effective est
+   *  dynamique selon la longueur de la requête (20 pour 2-3 chars, jusqu'à
+   *  cette valeur pour 4+ chars) afin de ne pas tronquer les recherches
+   *  précises où l'utilisateur attend de voir SON taxon dans la liste. */
+  limit = input<number>(50);
 
   /** Champ obligatoire */
   required = input<boolean>(false);
@@ -84,8 +87,12 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
             this.isLoading.set(false);
             return [];
           }
+          // #238 — limite dynamique : 20 résultats pour 2-3 chars (autocomplete
+          // exploratoire), jusqu'à `limit` pour 4+ chars (l'utilisateur cherche
+          // un taxon précis et doit pouvoir le voir dans la liste).
+          const effectiveLimit = search.length >= 4 ? this.limit() : Math.min(this.limit(), 20);
           return this.taxonomyService.autocomplete(search, {
-            limit: this.limit(),
+            limit: effectiveLimit,
             regne: this.regne(),
             group2_inpn: this.group2Inpn(),
           });

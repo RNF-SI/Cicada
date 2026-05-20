@@ -115,7 +115,8 @@ describe('ReferenceItemListComponent', () => {
       component.searchControl.setValue('Lynx');
       tick(300); // debounce
 
-      expect(taxonomyService.autocomplete).toHaveBeenCalledWith('Lynx', { limit: 20 });
+      // #238 — limit dynamique : 'Lynx' (4 chars) → limit=50
+      expect(taxonomyService.autocomplete).toHaveBeenCalledWith('Lynx', { limit: 50 });
       expect(component.autocompleteResults().length).toBe(1);
     }));
 
