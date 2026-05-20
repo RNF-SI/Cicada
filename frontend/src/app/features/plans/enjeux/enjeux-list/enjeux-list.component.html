@@ -967,6 +967,7 @@
                                                         </mat-button-toggle-group>
                                                       </div>
                                                     }
+                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                                     <div class="score-threshold-grid">
                                                       @for (level of scoreLevels; track level) {
                                                         <div class="score-column">
@@ -1036,6 +1037,7 @@
                                                         </div>
                                                       }
                                                     </div>
+                                                    }
                                                   </div>
                                                   }
                                                   }
@@ -1580,6 +1582,7 @@
                                                       </mat-button-toggle-group>
                                                     </div>
                                                   }
+                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
                                                   <div class="score-threshold-grid">
                                                     @for (level of scoreLevels; track level) {
                                                       <div class="score-column">
@@ -1649,6 +1652,7 @@
                                                       </div>
                                                     }
                                                   </div>
+                                                  }
                                                   }
                                                   <div class="inline-form-actions">
                                                     <button mat-flat-button color="primary"
@@ -1810,6 +1814,7 @@
                                                   </mat-button-toggle-group>
                                                 </div>
                                               }
+                                              @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                               <div class="score-threshold-grid">
                                                 @for (level of scoreLevels; track level) {
                                                   <div class="score-column">
@@ -1879,6 +1884,7 @@
                                                   </div>
                                                 }
                                               </div>
+                                              }
                                             </div>
                                             }
                                             }
@@ -2342,6 +2348,7 @@
                                                 </mat-button-toggle-group>
                                               </div>
                                             }
+                                            @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                             <div class="score-threshold-grid">
                                               @for (level of scoreLevels; track level) {
                                                 <div class="score-column">
@@ -2411,6 +2418,7 @@
                                                 </div>
                                               }
                                             </div>
+                                            }
                                           </div>
                                           }
                                           }
@@ -2935,6 +2943,7 @@
                                               </mat-button-toggle-group>
                                             </div>
                                           }
+                                          @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
                                           <div class="score-threshold-grid">
                                             @for (level of scoreLevels; track level) {
                                               <div class="score-column">
@@ -3004,6 +3013,7 @@
                                               </div>
                                             }
                                           </div>
+                                          }
                                           <div class="inline-form-actions">
                                             <button mat-flat-button color="primary"
                                               (click)="saveStandaloneMetrique(ind.id_indicateur)"
@@ -3157,6 +3167,7 @@
                                           </mat-button-toggle-group>
                                         </div>
                                       }
+                                      @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                       <div class="score-threshold-grid">
                                         @for (level of scoreLevels; track level) {
                                           <div class="score-column">
@@ -3226,6 +3237,7 @@
                                           </div>
                                         }
                                       </div>
+                                      }
                                     </div>
                                     }
                                     }
