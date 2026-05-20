@@ -9,6 +9,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, Observable } from 'rxjs';
+import { PlanStatut } from '../../../../core/models/admin.model';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
@@ -117,10 +118,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   errorMessage = signal<string | null>(null);
 
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
-   *  verrouiller l'édition hors brouillon (#248). */
-  planStatut = signal<
-    'draft' | 'valide' | 'modifie' | 'mi_parcours' | 'etendu' | 'en_revision' | 'archive' | null
-  >(null);
+   *  verrouiller l'édition hors brouillon (#248).
+   *  #277 — Inclut les statuts CSRPN intermédiaires (verrouillage identique). */
+  planStatut = signal<PlanStatut | null>(null);
 
   /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
   // #250 — `etendu` est aussi éditable (annees d'extension actives).
