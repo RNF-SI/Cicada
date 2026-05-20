@@ -297,6 +297,40 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return [...(data.fcr || [])].sort(EnjeuxListComponent._byOrdreId);
   });
 
+  /**
+   * #229 — Numérotation globale des OLT à travers tous les enjeux du plan,
+   * dans l'ordre de tri des enjeux (`ordre`, puis `id_enjeu`).
+   *
+   * Exemple : enjeu 1 a 2 OLT → OLT 1 et OLT 2 ; enjeu 2 a 2 OLT → OLT 3
+   * et OLT 4. Permet aux gestionnaires de désigner un OLT par son numéro
+   * sans ambiguïté.
+   */
+  oltGlobalRank = computed<Map<number, number>>(() => {
+    const map = new Map<number, number>();
+    let rank = 0;
+    for (const enjeu of this.enjeux()) {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        rank += 1;
+        map.set(olt.id_olt, rank);
+      }
+    }
+    // Les FCR n'ont en principe pas d'OLT, mais on les inclut pour cohérence
+    // au cas où un FCR en porterait (le numérotage global continue).
+    for (const enjeu of this.fcr()) {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        rank += 1;
+        map.set(olt.id_olt, rank);
+      }
+    }
+    return map;
+  });
+
+  /** #229 — Retourne le numéro global d'un OLT (1-based) ou null si inconnu. */
+  getOltGlobalNumber(oltId: number | undefined): number | null {
+    if (oltId === undefined) return null;
+    return this.oltGlobalRank().get(oltId) ?? null;
+  }
+
   // Compteur total
   totalCount = computed(() => {
     const data = this.planEnjeuxData();
