@@ -79,12 +79,16 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
       },
       error: () => this.isSearching.set(false)
     };
+    // #238 — limite dynamique : 20 résultats pour 2-3 chars (exploration),
+    // 50 pour 4+ chars (l'utilisateur connaît son taxon/habitat et doit le
+    // trouver dans la liste).
+    const effectiveLimit = term.length >= 4 ? 50 : 20;
     if (this.type === 'taxon') {
-      this.taxonomyService.autocomplete(term, { limit: 20 }).subscribe(handler);
+      this.taxonomyService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
     } else if (this.type === 'habitat') {
-      this.habitatService.autocomplete(term, { limit: 20 }).subscribe(handler);
+      this.habitatService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
     } else {
-      this.geologyService.autocomplete(term, { limit: 20 }).subscribe(handler);
+      this.geologyService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
     }
   }
 

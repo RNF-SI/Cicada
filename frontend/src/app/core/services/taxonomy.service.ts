@@ -212,8 +212,10 @@ export class TaxonomyService {
       return of([]);
     }
 
-    // Vérifier le cache
-    const cacheKey = `${search}|${options?.regne || ''}|${options?.group2_inpn || ''}`;
+    // Vérifier le cache. #238 — inclure `limit` dans la clé pour éviter
+    // qu'un appel court avec limit=20 ne masque les résultats supplémentaires
+    // que demande un appel ultérieur avec un limit plus haut.
+    const cacheKey = `${search}|${options?.regne || ''}|${options?.group2_inpn || ''}|${options?.limit || ''}`;
     const cached = this.autocompleteCache.get(cacheKey);
     if (cached) {
       return of(cached);

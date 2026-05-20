@@ -103,7 +103,9 @@ export class HabitatService {
       return of([]);
     }
 
-    const cacheKey = `${search}|${options?.cdTypo || ''}`;
+    // #238 — inclure `limit` dans la clé pour éviter qu'un appel court
+    // (limit=20) ne masque les résultats d'un appel ultérieur plus large.
+    const cacheKey = `${search}|${options?.cdTypo || ''}|${options?.limit || ''}`;
     const cached = this.autocompleteCache.get(cacheKey);
     if (cached) {
       return of(cached);
