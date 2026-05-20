@@ -1690,14 +1690,17 @@ export class OperationFormComponent implements OnInit {
 
   updateOrgBudgetFonct(yearIdx: number, orgId: number, value: string): void {
     this.getOrgBudget(yearIdx, orgId).fonct = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateOrgBudgetInvest(yearIdx: number, orgId: number, value: string): void {
     this.getOrgBudget(yearIdx, orgId).invest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateOrgEtp(yearIdx: number, orgId: number, value: string): void {
     this.getOrgBudget(yearIdx, orgId).etp = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   getOrgTotal(yearIdx: number, orgId: number): number {
@@ -1836,10 +1839,12 @@ export class OperationFormComponent implements OnInit {
 
   updateDirectBudget(yearIdx: number, value: string): void {
     this.getDirectTotal(yearIdx).budget = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateDirectEtp(yearIdx: number, value: string): void {
     this.getDirectTotal(yearIdx).etp = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   // ════════════════════════════════════════════════
@@ -1855,14 +1860,17 @@ export class OperationFormComponent implements OnInit {
 
   updateTypeFonct(yearIdx: number, value: string): void {
     this.getTypeBudget(yearIdx).fonct = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateTypeInvest(yearIdx: number, value: string): void {
     this.getTypeBudget(yearIdx).invest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateTypeEtp(yearIdx: number, value: string): void {
     this.getTypeBudget(yearIdx).etp = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   // ════════════════════════════════════════════════
@@ -1877,12 +1885,50 @@ export class OperationFormComponent implements OnInit {
     return this.orgByOrgData[key];
   }
 
+  /**
+   * #245 — Autococher la périodicité dès qu'un budget ou un ETP est saisi
+   * pour une année donnée. Sophie : « si la ligne porte du budget ou des
+   * RH, c'est qu'elle est active — ne pas obliger l'utilisateur à cocher
+   * la case en plus ». Ne décoche jamais : seule l'action explicite sur
+   * la case (cf. `toggleAnneePeriodicite`) peut la repasser à false.
+   */
+  private autoCheckPeriodicite(yearIdx: number): void {
+    const annee = this.operationAnnees[yearIdx];
+    if (!annee) return;
+    if (annee.periodicite) return; // déjà cochée — pas besoin
+    if (this.yearHasAnyAmount(yearIdx)) {
+      annee.periodicite = true;
+    }
+  }
+
+  /** Vrai si l'année a au moins une valeur budget/ETP renseignée
+   *  (toutes ventilations confondues : direct, by_type, by_org). */
+  private yearHasAnyAmount(yearIdx: number): boolean {
+    const direct = this.directTotals[yearIdx];
+    if (direct && ((direct.budget ?? 0) > 0 || (direct.etp ?? 0) > 0)) return true;
+    const type = this.typeBudgets[yearIdx];
+    if (type && ((type.fonct ?? 0) > 0 || (type.invest ?? 0) > 0 || (type.etp ?? 0) > 0)) return true;
+    for (const key of Object.keys(this.orgBudgets)) {
+      if (!key.startsWith(`${yearIdx}-`)) continue;
+      const b = this.orgBudgets[key];
+      if ((b.fonct ?? 0) > 0 || (b.invest ?? 0) > 0 || (b.etp ?? 0) > 0) return true;
+    }
+    for (const key of Object.keys(this.orgByOrgData)) {
+      if (!key.startsWith(`${yearIdx}-`)) continue;
+      const d = this.orgByOrgData[key];
+      if ((d.budget ?? 0) > 0 || (d.etp ?? 0) > 0) return true;
+    }
+    return false;
+  }
+
   updateOrgByOrgBudget(yearIdx: number, orgId: number, value: string): void {
     this.getOrgByOrgData(yearIdx, orgId).budget = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   updateOrgByOrgEtp(yearIdx: number, orgId: number, value: string): void {
     this.getOrgByOrgData(yearIdx, orgId).etp = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
   }
 
   getByOrgYearTotalBudget(yearIdx: number): number {
