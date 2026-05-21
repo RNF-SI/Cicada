@@ -104,7 +104,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
-    { label: 'Rédacteurs principaux', icon: 'fi-rr-pen-nib', route: '/administration/redacteurs-principaux', exactRole: 'super_admin' },
+    { label: 'Rédacteurs généraux', icon: 'fi-rr-pen-nib', route: '/administration/redacteurs-principaux', exactRole: 'super_admin' },
     { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' },
     { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' },
     { label: 'RGPD', icon: 'fi-rr-shield-check', route: '/administration/rgpd', exactRole: 'super_admin' },
