@@ -273,6 +273,33 @@
     }
   }
 
+  // Statut sous forme de chip (revue design #315)
+  &.status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: $border-radius-pill;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+
+    &--draft {
+      background-color: $primary-color;
+      color: $white !important; // override couleur jaune par défaut
+    }
+    &--valide {
+      background-color: $success-color;
+      color: $white !important;
+    }
+    &--modifie {
+      background-color: $secondary-orange-salmon;
+      color: $primary-color !important;
+    }
+    &--archive {
+      background-color: $gray;
+      color: $white !important;
+    }
+  }
+
   // #250 / #278 — badges affichés à côté du chip de statut quand le plan
   // a un attribut indépendant actif (extension, révision en cours).
   &.extension-badge,

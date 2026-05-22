@@ -1582,6 +1582,12 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           objectifs_long_terme: [...(e.objectifs_long_terme || []), createdOlt],
           nb_objectifs_long_terme: (e.nb_objectifs_long_terme || 0) + 1,
         })));
+        // Déplier le nouvel OLT par défaut (revue design #316)
+        this.expandedOltIds.update(s => {
+          const ns = new Set(s);
+          ns.add(createdOlt.id_olt);
+          return ns;
+        });
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));

@@ -15,8 +15,11 @@
   </div>
 }
 
+<!-- Header standard de l'app (revue design #319 : cohérence visuelle) -->
+<app-header></app-header>
+
 <div class="admin-layout" [class.with-impersonation]="isImpersonating()">
-  <!-- Mobile Header -->
+  <!-- Mobile Header (sous le header standard pour la nav admin) -->
   <header class="mobile-header">
     <button class="hamburger-btn" (click)="toggleSidebar()" aria-label="Menu">
       <i class="fi fi-rr-menu-burger"></i>

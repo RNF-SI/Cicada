@@ -74,13 +74,14 @@
                 <span class="count-badge">{{ getSelectedSitesCount() }}</span>
               </label>
               @if (showSiteScopeToggle()) {
+                <!-- Switch avec compteurs (revue design #314) -->
                 <app-view-scope-toggle
                   [currentScope]="siteScope()"
                   [showOrganismeOption]="true"
                   [showAllOption]="isSuperAdmin() || isRedacteurPrincipal()"
-                  [mineLabel]="'modals.planForm.sitesScopeMine' | translate"
-                  [organismeLabel]="'modals.planForm.sitesScopeOrg' | translate"
-                  [allLabel]="'modals.planForm.sitesScopeAll' | translate"
+                  [mineLabel]="('modals.planForm.sitesScopeMine' | translate) + ' (' + mineSitesCount() + ')'"
+                  [organismeLabel]="('modals.planForm.sitesScopeOrg' | translate) + ' (' + organismeSitesCount() + ')'"
+                  [allLabel]="('modals.planForm.sitesScopeAll' | translate) + ' (' + allSitesCount() + ')'"
                   (scopeChange)="onSiteScopeChange($event)">
                 </app-view-scope-toggle>
               }

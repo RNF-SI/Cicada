@@ -175,14 +175,13 @@
                         }
                       </td>
                       <td class="col-status">
+                        <!-- Tag référent : étoile retirée (revue design #310) -->
                         @if (site.isReferent) {
                           <mat-chip class="status-success">
-                            <i class="fi fi-rr-star chip-icon"></i>
                             {{ 'sites.mySites.referent' | translate }}
                           </mat-chip>
                         } @else {
                           <mat-chip class="status-info">
-                            <i class="fi fi-rr-check chip-icon"></i>
                             {{ 'sites.mySites.access' | translate }}
                           </mat-chip>
                         }

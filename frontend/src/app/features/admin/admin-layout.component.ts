@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorLogService } from '../../core/services/error-log.service';
+import { HeaderComponent } from '../../shared/components/header/header.component';
 import { filter } from 'rxjs/operators';
 
 // Note: 'referent' is an access level (is_referent computed), not a role level
@@ -21,7 +22,7 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, HeaderComponent],
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss'
 })

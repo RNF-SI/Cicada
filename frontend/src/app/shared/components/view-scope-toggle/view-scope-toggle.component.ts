@@ -51,10 +51,8 @@ export interface ViewScopeOption {
             [value]="option.value"
             [matTooltip]="option.tooltip"
             [attr.aria-label]="option.tooltip">
+            <!-- Icône check retirée (revue design #310) : le fond coloré suffit pour indiquer la sélection -->
             <span class="toggle-icons">
-              @if (currentScope === option.value) {
-                <i class="fi fi-rr-check check-icon"></i>
-              }
               <i class="fi {{ option.icon }}"></i>
             </span>
             <span class="toggle-label">{{ option.label }}</span>

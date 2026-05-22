@@ -431,6 +431,8 @@
 
       &.col-year {
         min-width: 54px;
+        // Filets entre années (revue design #317)
+        border-right: 1px solid rgba($primary-color, 0.08);
       }
 
       &.col-icons {
@@ -544,13 +546,14 @@
 }
 
 .score-trait-icon {
-  width: 20px;
-  height: 20px;
+  // Icônes scores plus grandes (revue design #317)
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 
   &.legend-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
 }
 

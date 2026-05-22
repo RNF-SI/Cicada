@@ -161,6 +161,15 @@ export class PlanCreateComponent implements OnInit {
     );
   });
 
+  // Compteurs par scope pour les libellés du switch (revue design #314)
+  mineSitesCount = computed(() =>
+    this.availableSites().filter(s => s.accessType && this.directAccessTypes.has(s.accessType)).length
+  );
+  organismeSitesCount = computed(() =>
+    this.availableSites().filter(s => s.accessType && s.accessType !== 'super_admin').length
+  );
+  allSitesCount = computed(() => this.availableSites().length);
+
   // Current year for validation
   currentYear = new Date().getFullYear();
 

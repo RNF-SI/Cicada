@@ -129,10 +129,13 @@
       height: 29px !important;
       line-height: 29px !important;
       font-size: 16px !important;
+      text-decoration: none !important; // Pas de soulignement sur +/- (revue design #310)
+      font-weight: $font-weight-bold;
 
       &:hover {
         background-color: $primary-color !important;
         color: $white !important;
+        text-decoration: none !important;
       }
 
       &.leaflet-disabled {

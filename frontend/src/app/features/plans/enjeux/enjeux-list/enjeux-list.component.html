@@ -3188,7 +3188,8 @@
                             <h4 class="inline-form-title">{{ 'enjeux.resultatAttendu.newTitle' | translate }}</h4>
                           </div>
                           <div class="inline-form-body">
-                            <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.libelleLabel' | translate">
+                            <!-- Astérisque sur libellé RA requis (revue design #316) -->
+                            <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.libelleLabel' | translate" [required]="true">
   <input [(ngModel)]="newRaLibelle">
 </app-form-field>
                             <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.descriptionLabel' | translate">
@@ -3224,7 +3225,8 @@
                     <h4 class="inline-form-title">{{ 'enjeux.oo.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
-                    <app-form-field class="full-width" [label]="'enjeux.oo.libelleLabel' | translate">
+                    <!-- Astérisque sur libellé OO requis (revue design #316) -->
+                    <app-form-field class="full-width" [label]="'enjeux.oo.libelleLabel' | translate" [required]="true">
   <input [(ngModel)]="newOoLibelle">
 </app-form-field>
                     <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">

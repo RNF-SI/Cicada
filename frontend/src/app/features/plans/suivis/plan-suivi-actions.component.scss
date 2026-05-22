@@ -309,6 +309,18 @@
   &.filter-active {
     font-weight: $font-weight-bold;
     background-color: rgba($primary-color, 0.05);
+    // Indicateur visuel d'un filtre actif (revue design #317)
+    border-bottom: 2px solid $primary-color;
+  }
+
+  // Bouton de réinitialisation (revue design #317)
+  &.filter-btn-reset {
+    color: $error-color;
+    font-weight: $font-weight-semibold;
+
+    &:hover {
+      background-color: rgba($error-color, 0.08);
+    }
   }
 }
 

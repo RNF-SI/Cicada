@@ -140,6 +140,14 @@
                 }
               </mat-menu>
               <div class="filter-separator"></div>
+
+              <!-- Bouton réinitialiser les filtres (revue design #317) -->
+              @if (hasActiveFilters()) {
+                <button class="filter-btn filter-btn-reset" (click)="clearFilters()">
+                  <i class="fi fi-rr-cross-small"></i>
+                  {{ 'common.actions.reset' | translate }}
+                </button>
+              }
             </div>
           </div>
           <button class="export-btn">
