@@ -68,11 +68,11 @@
                 (click)="toggleSite(site.id)"
               >
                 <div class="item-info">
-                  <mat-checkbox
+                  <app-checkbox
                     [checked]="isSiteSelected(site.id)"
                     (click)="$event.stopPropagation()"
-                    (change)="toggleSite(site.id)"
-                  ></mat-checkbox>
+                    (checkedChange)="toggleSite(site.id)">
+                  </app-checkbox>
                   <span class="item-name">{{ site.nom }}</span>
                   @if (site.type) {
                     <span class="item-type">{{ site.type }}</span>

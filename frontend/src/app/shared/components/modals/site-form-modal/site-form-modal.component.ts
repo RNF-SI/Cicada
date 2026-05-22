@@ -6,7 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +17,7 @@ import { ValidationRequestListItem } from '../../../../core/models/notification.
 import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
@@ -60,7 +60,7 @@ interface SiteType {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatCheckboxModule,
+    CheckboxComponent,
     MatProgressSpinnerModule,
     MatTabsModule,
     MatIconModule,

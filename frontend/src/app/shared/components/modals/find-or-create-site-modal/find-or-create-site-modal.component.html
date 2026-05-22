@@ -116,12 +116,12 @@
                       </div>
                     } @else if (site.canRequestAccess) {
                       <div class="access-request-options">
-                        <mat-checkbox
+                        <app-checkbox
                           [checked]="isReferentRequest(site)"
-                          (change)="onReferentChange(site, $event.checked)"
-                          class="referent-checkbox">
-                          {{ 'sites.findOrCreate.asReferent' | translate }}
-                        </mat-checkbox>
+                          (checkedChange)="onReferentChange(site, $event)"
+                          class="referent-checkbox"
+                          [label]="'sites.findOrCreate.asReferent' | translate">
+                        </app-checkbox>
                         <button mat-flat-button
                                 color="primary"
                                 class="btn-request-access"
@@ -204,19 +204,19 @@
                                   [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
                       </mat-form-field>
                       <div class="org-link-checkboxes">
-                        <mat-checkbox
+                        <app-checkbox
                           [checked]="orgLinkWithAccess()"
-                          (change)="orgLinkWithAccess.set($event.checked)"
-                          class="org-link-access-checkbox">
-                          {{ 'sites.findOrCreate.orgLinkWithAccess' | translate }}
-                        </mat-checkbox>
+                          (checkedChange)="orgLinkWithAccess.set($event)"
+                          class="org-link-access-checkbox"
+                          [label]="'sites.findOrCreate.orgLinkWithAccess' | translate">
+                        </app-checkbox>
                         @if (orgLinkWithAccess()) {
-                          <mat-checkbox
+                          <app-checkbox
                             [checked]="orgLinkAsReferent()"
-                            (change)="orgLinkAsReferent.set($event.checked)"
-                            class="org-link-referent-checkbox">
-                            {{ 'sites.findOrCreate.asReferent' | translate }}
-                          </mat-checkbox>
+                            (checkedChange)="orgLinkAsReferent.set($event)"
+                            class="org-link-referent-checkbox"
+                            [label]="'sites.findOrCreate.asReferent' | translate">
+                          </app-checkbox>
                         }
                       </div>
                       <div class="org-link-form-actions">

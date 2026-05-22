@@ -248,18 +248,19 @@
         }
 
         <div class="checkbox-row">
-          <mat-checkbox formControlName="marin">{{ 'modals.siteForm.fields.marine' | translate }}</mat-checkbox>
-          <mat-checkbox formControlName="outre_mer">{{ 'modals.siteForm.fields.overseas' | translate }}</mat-checkbox>
-          <mat-checkbox formControlName="active">{{ 'modals.siteForm.fields.active' | translate }}</mat-checkbox>
+          <app-checkbox formControlName="marin" [label]="'modals.siteForm.fields.marine' | translate"></app-checkbox>
+          <app-checkbox formControlName="outre_mer" [label]="'modals.siteForm.fields.overseas' | translate"></app-checkbox>
+          <app-checkbox formControlName="active" [label]="'modals.siteForm.fields.active' | translate"></app-checkbox>
         </div>
 
         <!-- Checkbox for referent request (only in create mode) -->
         @if (!isEditMode) {
           <div class="referent-request-section">
-            <mat-checkbox formControlName="requestAsReferent">
-              {{ 'modals.siteForm.fields.requestAsReferent' | translate }}
-            </mat-checkbox>
-            <p class="help-text">{{ 'modals.siteForm.hints.requestAsReferent' | translate }}</p>
+            <app-checkbox
+              formControlName="requestAsReferent"
+              [label]="'modals.siteForm.fields.requestAsReferent' | translate"
+              [mention]="'modals.siteForm.hints.requestAsReferent' | translate">
+            </app-checkbox>
           </div>
         }
       </form>

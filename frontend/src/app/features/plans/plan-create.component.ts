@@ -15,7 +15,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -32,6 +31,7 @@ import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
+import { CheckboxComponent } from '../../shared/components/checkbox/checkbox.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
@@ -75,7 +75,6 @@ interface OrganismeEntry {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
     MatRadioModule,
     MatDatepickerModule,
@@ -90,6 +89,7 @@ interface OrganismeEntry {
     HeaderComponent,
     ViewScopeToggleComponent,
     SearchBarComponent,
+    CheckboxComponent,
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'

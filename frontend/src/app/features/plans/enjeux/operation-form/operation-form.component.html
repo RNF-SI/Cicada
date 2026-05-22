@@ -575,12 +575,9 @@
                   <span class="field-label">{{ 'enjeux.operations.actionLieeAux' | translate }}</span>
                   <div class="sites-checkboxes">
                     @for (site of planSites(); track site.id_site) {
-                      <mat-checkbox
-                        [checked]="selectedSiteIds[site.id_site]"
+                      <app-checkbox [checked]="selectedSiteIds[site.id_site]"
                         (change)="toggleSite(site.id_site)"
-                        color="primary">
-                        {{ site.nom_site }}
-                      </mat-checkbox>
+                        color="primary" [label]="site.nom_site"></app-checkbox>
                     }
                   </div>
                 </div>
@@ -626,11 +623,9 @@
                           <td class="label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
                           @for (annee of operationAnnees; track annee.annee; let i = $index) {
                             <td>
-                              <mat-checkbox
-                                [checked]="annee.periodicite"
+                              <app-checkbox [checked]="annee.periodicite"
                                 (change)="togglePeriodicite(i)"
-                                color="primary">
-                              </mat-checkbox>
+                                color="primary"></app-checkbox>
                             </td>
                           }
                         </tr>
@@ -935,11 +930,9 @@
                           <td class="label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
                           @for (month of months; track month) {
                             <td>
-                              <mat-checkbox
-                                [checked]="programmationMensuelleDefaut[month.toString()]"
+                              <app-checkbox [checked]="programmationMensuelleDefaut[month.toString()]"
                                 (change)="toggleMensuelleDefaut(month.toString())"
-                                color="primary">
-                              </mat-checkbox>
+                                color="primary"></app-checkbox>
                             </td>
                           }
                         </tr>

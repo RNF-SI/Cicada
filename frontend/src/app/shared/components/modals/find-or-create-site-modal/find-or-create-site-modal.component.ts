@@ -8,8 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { catchError, debounceTime, forkJoin, of, Subject } from 'rxjs';
 
 import { AdminService } from '../../../../core/services/admin.service';
@@ -45,7 +45,7 @@ interface SearchableSite extends AdminSite {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatCheckboxModule,
+    CheckboxComponent,
     TranslateModule
   ],
   templateUrl: './find-or-create-site-modal.component.html',

@@ -7,8 +7,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslateModule } from '@ngx-translate/core';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
 
 /** Type d'étape CSRPN à saisir (#277). */
 export type CsrpnStep = 'csrpn' | 'comite' | 'arrete';
@@ -45,7 +45,7 @@ export interface CsrpnStepDialogResult {
     MatInputModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatCheckboxModule,
+    CheckboxComponent,
     TranslateModule,
   ],
   templateUrl: './csrpn-step-dialog.component.html',

@@ -39,9 +39,11 @@
     }
 
     @if (showMiParcoursToggle) {
-      <mat-checkbox formControlName="isMiParcours" class="mi-parcours-toggle">
-        {{ 'plans.lifecycle.csrpnStep.miParcoursLabel' | translate }}
-      </mat-checkbox>
+      <app-checkbox
+        formControlName="isMiParcours"
+        class="mi-parcours-toggle"
+        [label]="'plans.lifecycle.csrpnStep.miParcoursLabel' | translate">
+      </app-checkbox>
     }
   </mat-dialog-content>
 
