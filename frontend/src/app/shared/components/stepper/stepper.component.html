@@ -1,0 +1,28 @@
+<ol class="app-stepper">
+  @for (step of steps; track step.id; let i = $index, isLast = $last) {
+    <li
+      class="app-stepper__step"
+      [class.app-stepper__step--completed]="isCompleted(step, i)"
+      [class.app-stepper__step--current]="isCurrent(step)"
+      [class.app-stepper__step--clickable]="isClickable(step, i)"
+      [attr.aria-current]="isCurrent(step) ? 'step' : null">
+      <button
+        type="button"
+        class="app-stepper__node"
+        [disabled]="!isClickable(step, i)"
+        (click)="onClick(step, i)">
+        <span class="app-stepper__circle" aria-hidden="true">
+          @if (isCompleted(step, i)) {
+            <i class="fi fi-rr-check"></i>
+          } @else {
+            {{ i + 1 }}
+          }
+        </span>
+        <span class="app-stepper__label">{{ step.label }}</span>
+      </button>
+      @if (!isLast) {
+        <span class="app-stepper__line" [class.app-stepper__line--done]="isCompleted(step, i)" aria-hidden="true"></span>
+      }
+    </li>
+  }
+</ol>

@@ -1,0 +1,28 @@
+<label
+  class="app-checkbox"
+  [class.app-checkbox--checked]="checked"
+  [class.app-checkbox--disabled]="disabled"
+  [class.app-checkbox--with-mention]="!!mention"
+  [attr.for]="inputId">
+  <input
+    type="checkbox"
+    class="app-checkbox__input"
+    [id]="inputId"
+    [checked]="checked"
+    [disabled]="disabled"
+    (change)="toggle($event)"
+  />
+  <span class="app-checkbox__box" aria-hidden="true">
+    @if (checked) {
+      <i class="fi fi-rr-check"></i>
+    }
+  </span>
+  <span class="app-checkbox__text">
+    @if (label) {
+      <span class="app-checkbox__label">{{ label }}</span>
+    }
+    @if (mention) {
+      <span class="app-checkbox__mention">{{ mention }}</span>
+    }
+  </span>
+</label>

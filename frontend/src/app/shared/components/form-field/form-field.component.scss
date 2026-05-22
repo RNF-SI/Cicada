@@ -1,0 +1,136 @@
+@import 'variables';
+
+// FormField compact (issue #300)
+// Label au-dessus du champ, hauteur réduite vs Material
+
+.app-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: $font-family;
+  width: 100%;
+
+  &__label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    line-height: 1.3;
+  }
+
+  &__required {
+    color: $error-color;
+    font-weight: $font-weight-bold;
+  }
+
+  &__help {
+    margin: 0;
+    font-size: 12px;
+    color: $gray-dark;
+    line-height: 1.3;
+  }
+
+  &__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    // Style sur les inputs / selects / textareas projetés
+    :where(input, select, textarea) {
+      flex: 1;
+      min-width: 0;
+      padding: $spacing-xs $spacing-sm;
+      background-color: $white;
+      border: 1px solid $gray-light;
+      border-radius: $border-radius-sm;
+      font-family: $font-family;
+      font-size: $font-size-base;
+      color: $black;
+      line-height: 1.4;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+      min-height: 38px;
+
+      &::placeholder {
+        color: $gray-dark;
+        opacity: 0.6;
+      }
+
+      &:hover:not(:disabled):not(:focus) {
+        border-color: $gray;
+      }
+
+      &:focus,
+      &:focus-visible {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+      }
+
+      &:disabled {
+        background-color: $beige;
+        color: $gray-dark;
+        cursor: not-allowed;
+      }
+    }
+
+    :where(textarea) {
+      resize: vertical;
+      min-height: 70px;
+      padding: $spacing-sm;
+      font-family: $font-family;
+    }
+
+    :where(select) {
+      cursor: pointer;
+      appearance: none;
+      padding-right: $spacing-xl;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23746F6E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right $spacing-sm center;
+      background-size: 12px;
+    }
+  }
+
+  &__suffix {
+    position: absolute;
+    right: $spacing-sm;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-dark;
+    font-size: $font-size-small;
+    pointer-events: none;
+    background-color: $white;
+    padding-left: $spacing-xxs;
+  }
+
+  &--with-suffix {
+    :where(input) {
+      padding-right: $spacing-xl;
+    }
+  }
+
+  &__error {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    font-size: $font-size-small;
+    color: $error-color;
+    line-height: 1.3;
+
+    i { font-size: 12px; }
+  }
+
+  // État erreur
+  &--error &__control {
+    :where(input, select, textarea) {
+      border-color: $error-color;
+
+      &:focus, &:focus-visible {
+        box-shadow: 0 0 0 2px rgba($error-color, 0.15);
+      }
+    }
+  }
+}

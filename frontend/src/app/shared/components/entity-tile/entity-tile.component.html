@@ -1,0 +1,21 @@
+<div
+  class="app-entity-tile"
+  [class.app-entity-tile--clickable]="clickable"
+  [attr.role]="clickable ? 'button' : null"
+  [attr.tabindex]="clickable ? 0 : null"
+  (click)="onClick()"
+  (keydown.enter)="onClick()"
+  (keydown.space)="onClick()">
+  <div class="app-entity-tile__icon">
+    <i class="fi" [class]="icon" aria-hidden="true"></i>
+  </div>
+  <div class="app-entity-tile__info">
+    <span class="app-entity-tile__name">{{ name }}</span>
+    @if (subtitle) {
+      <span class="app-entity-tile__subtitle">{{ subtitle }}</span>
+    }
+  </div>
+  <div class="app-entity-tile__action">
+    <ng-content select="[tileAction]"></ng-content>
+  </div>
+</div>

@@ -23,7 +23,8 @@
       "select": "Sélectionner",
       "moveUp": "Monter",
       "moveDown": "Descendre",
-      "collapse": "Replier"
+      "collapse": "Replier",
+      "clear": "Effacer"
     },
     "status": {
       "active": "Actif",

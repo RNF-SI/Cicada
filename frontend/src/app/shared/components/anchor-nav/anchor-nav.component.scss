@@ -1,0 +1,53 @@
+@import 'variables';
+
+// AnchorNav (issue #304) — boutons tertiaires séparés par `/`
+
+.app-anchor-nav {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px $spacing-xxs;
+  font-family: $font-family;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: $spacing-xxs $spacing-xs;
+    color: $primary-color;
+    text-decoration: none;
+    font-size: $font-size-base;
+    font-weight: $font-weight-regular;
+    line-height: 1.4;
+    border-radius: $border-radius-sm;
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    i {
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    &:hover {
+      background-color: rgba($primary-color, 0.06);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 2px;
+    }
+
+    &--active {
+      font-weight: $font-weight-bold;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  &__separator {
+    color: $gray-dark;
+    user-select: none;
+    line-height: 1.4;
+  }
+}

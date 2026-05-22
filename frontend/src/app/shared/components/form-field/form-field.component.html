@@ -1,0 +1,28 @@
+<div class="app-form-field" [class.app-form-field--error]="hasError" [class.app-form-field--with-suffix]="!!suffix">
+  @if (label) {
+    <label class="app-form-field__label" [attr.for]="fieldId">
+      {{ label }}
+      @if (required) {
+        <span class="app-form-field__required" aria-hidden="true">*</span>
+      }
+    </label>
+  }
+
+  @if (helpText) {
+    <p class="app-form-field__help">{{ helpText }}</p>
+  }
+
+  <div class="app-form-field__control">
+    <ng-content></ng-content>
+    @if (suffix) {
+      <span class="app-form-field__suffix" aria-hidden="true">{{ suffix }}</span>
+    }
+  </div>
+
+  @if (error) {
+    <p class="app-form-field__error" role="alert">
+      <i class="fi fi-rr-exclamation" aria-hidden="true"></i>
+      {{ error }}
+    </p>
+  }
+</div>

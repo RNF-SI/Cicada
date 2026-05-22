@@ -1,0 +1,129 @@
+@import 'variables';
+
+// SearchBar - composant unifié (issue #298)
+
+.search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  width: 100%;
+
+  // Texte d'aide AVANT le champ (accessibilité)
+  &__help {
+    margin: 0;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    color: $gray-dark;
+    line-height: 1.4;
+  }
+
+  // Conteneur du champ + icône + bouton
+  &__field {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: 0 $spacing-sm;
+    background-color: $white;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-pill;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    min-height: 38px;
+  }
+
+  // Icône loupe
+  &__icon {
+    color: $gray-dark;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  // Champ input lui-même
+  &__input {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
+    padding: 0 $spacing-xs;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+
+    &::placeholder {
+      color: $gray-dark;
+      opacity: 0.7;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: $gray-dark;
+    }
+  }
+
+  // Bouton clear (croix)
+  &__clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: $gray-light;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: $gray-dark;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
+
+    i {
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    &:hover {
+      background: $gray;
+      color: $black;
+    }
+  }
+
+  // Bouton "Rechercher" (mode manual)
+  &__submit {
+    display: inline-flex;
+    align-items: center;
+    padding: $spacing-xxs $spacing-md;
+    background: $primary-color;
+    color: $white;
+    border: none;
+    border-radius: $border-radius-pill;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+    height: 28px;
+
+    &:hover:not(:disabled) {
+      background: darken($primary-color, 8%);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  // États
+  &--focus &__field {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+  }
+
+  &--disabled &__field {
+    background: $beige;
+    border-color: $gray-light;
+    opacity: 0.7;
+  }
+}
