@@ -54,6 +54,15 @@ test.describe('Plan archive-previous prompt (#246)', () => {
     });
     await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
 
+    // #276 — Mi-parcours popup may intercept before the archive prompt when
+    // the chain has no mi-parcours yet. Dismiss it as "modification ordinaire".
+    const miParcoursDialog = page.locator('mat-dialog-container').filter({
+      hasText: /Évaluation à mi-parcours/i,
+    });
+    if (await miParcoursDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await miParcoursDialog.getByRole('button', { name: /modification ordinaire/i }).click();
+    }
+
     // The MatDialog appears once the change-status API responds.
     const dialog = page.locator('app-archive-previous-plan-dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });
@@ -84,6 +93,14 @@ test.describe('Plan archive-previous prompt (#246)', () => {
       hasText: /Valider le plan/i,
     });
     await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
+
+    // #276 — Dismiss mi-parcours popup if it intercepts.
+    const miParcoursDialog = page.locator('mat-dialog-container').filter({
+      hasText: /Évaluation à mi-parcours/i,
+    });
+    if (await miParcoursDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await miParcoursDialog.getByRole('button', { name: /modification ordinaire/i }).click();
+    }
 
     const dialog = page.locator('app-archive-previous-plan-dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });

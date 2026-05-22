@@ -35,7 +35,7 @@ test.describe('Plan Create - Form Display', () => {
 
     // Optional fields
     await expect(createPage.surfaceInput).toBeVisible();
-    await expect(createPage.dateValidationCspnInput).toBeVisible();
+    await expect(createPage.dateAvisCsrpnInput).toBeVisible();
     await expect(createPage.docGestionInput).toBeVisible();
     await expect(createPage.redacteurTypeSelect).toBeVisible();
     await expect(createPage.organismeSection).toBeVisible();

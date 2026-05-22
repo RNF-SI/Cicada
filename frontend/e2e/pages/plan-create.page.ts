@@ -19,7 +19,7 @@ export class PlanCreatePage {
 
   // Form fields — optional
   readonly surfaceInput: Locator;
-  readonly dateValidationCspnInput: Locator;
+  readonly dateAvisCsrpnInput: Locator;
   readonly docGestionInput: Locator;
   readonly redacteurTypeSelect: Locator;
 
@@ -84,7 +84,7 @@ export class PlanCreatePage {
 
     // Optional fields
     this.surfaceInput = page.locator('input[formControlName="surface"]');
-    this.dateValidationCspnInput = page.locator('input[formControlName="date_validation_cspn"]');
+    this.dateAvisCsrpnInput = page.locator('input[formControlName="date_avis_csrpn"]');
     this.docGestionInput = page.locator('input[formControlName="id_docgestion_fcen"]');
     this.redacteurTypeSelect = page.locator('mat-select[formControlName="id_redacteur_type"]');
 
