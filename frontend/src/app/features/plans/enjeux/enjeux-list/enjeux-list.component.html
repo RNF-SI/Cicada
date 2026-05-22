@@ -354,14 +354,12 @@
                             <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.editTitle' | translate }}</h4>
                           </div>
                           <div class="inline-form-body">
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.facteurInfluence.libelleLabel' | translate }}</mat-label>
-                              <input matInput [(ngModel)]="editFacteurLibelle">
-                            </mat-form-field>
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.facteurInfluence.descriptionLabel' | translate }}</mat-label>
-                              <textarea matInput [(ngModel)]="editFacteurDescription" rows="2"></textarea>
-                            </mat-form-field>
+                            <app-form-field class="full-width" [label]="'enjeux.facteurInfluence.libelleLabel' | translate">
+  <input [(ngModel)]="editFacteurLibelle">
+</app-form-field>
+                            <app-form-field class="full-width" [label]="'enjeux.facteurInfluence.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editFacteurDescription" rows="2"></textarea>
+</app-form-field>
                           </div>
                           <div class="inline-form-actions">
                             <button mat-flat-button color="primary" (click)="saveEditFacteur(facteur)" [disabled]="!editFacteurLibelle.trim()">
@@ -435,10 +433,9 @@
                                     <h4 class="inline-form-title">{{ 'enjeux.pression.editTitle' | translate }}</h4>
                                   </div>
                                   <div class="inline-form-body">
-                                    <mat-form-field class="full-width" appearance="outline">
-                                      <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
-                                      <input matInput [(ngModel)]="editPressionLibelle">
-                                    </mat-form-field>
+                                    <app-form-field class="full-width" [label]="'enjeux.pression.libelleLabel' | translate">
+  <input [(ngModel)]="editPressionLibelle">
+</app-form-field>
                                     <!-- PressRef autocomplete (edit) -->
                                     <mat-form-field appearance="outline" class="full-width">
                                       <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
@@ -473,10 +470,9 @@
                                       </mat-autocomplete>
                                       <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
                                     </mat-form-field>
-                                    <mat-form-field class="full-width" appearance="outline">
-                                      <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
-                                      <textarea matInput [(ngModel)]="editPressionDescription" rows="2"></textarea>
-                                    </mat-form-field>
+                                    <app-form-field class="full-width" [label]="'enjeux.pression.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editPressionDescription" rows="2"></textarea>
+</app-form-field>
                                   </div>
                                   <div class="inline-form-actions">
                                     <button mat-flat-button color="primary" (click)="saveEditPression(pression)" [disabled]="!editPressionLibelle.trim()">
@@ -592,14 +588,12 @@
                                 <mat-hint>{{ 'enjeux.pression.pressrefHint' | translate }}</mat-hint>
                               </mat-form-field>
                               <!-- Libellé de la pression -->
-                              <mat-form-field appearance="outline" class="full-width">
-                                <mat-label>{{ 'enjeux.pression.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="newPressionLibelle">
-                              </mat-form-field>
-                              <mat-form-field appearance="outline" class="full-width">
-                                <mat-label>{{ 'enjeux.pression.descriptionLabel' | translate }}</mat-label>
-                                <textarea matInput [(ngModel)]="newPressionDescription" rows="3"></textarea>
-                              </mat-form-field>
+                              <app-form-field [label]="'enjeux.pression.libelleLabel' | translate">
+  <input [(ngModel)]="newPressionLibelle">
+</app-form-field>
+                              <app-form-field [label]="'enjeux.pression.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newPressionDescription" rows="3"></textarea>
+</app-form-field>
                             </div>
                             <div class="inline-form-actions">
                               <button mat-flat-button color="primary" (click)="savePression(facteur)" [disabled]="!newPressionLibelle.trim()">
@@ -631,14 +625,12 @@
                       <h4 class="inline-form-title">{{ 'enjeux.facteurInfluence.newTitle' | translate }}</h4>
                     </div>
                     <div class="inline-form-body">
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>{{ 'enjeux.facteurInfluence.libelleLabel' | translate }}</mat-label>
-                        <input matInput [(ngModel)]="newFacteurLibelle">
-                      </mat-form-field>
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>{{ 'enjeux.facteurInfluence.descriptionLabel' | translate }}</mat-label>
-                        <textarea matInput [(ngModel)]="newFacteurDescription" rows="3"></textarea>
-                      </mat-form-field>
+                      <app-form-field [label]="'enjeux.facteurInfluence.libelleLabel' | translate">
+  <input [(ngModel)]="newFacteurLibelle">
+</app-form-field>
+                      <app-form-field [label]="'enjeux.facteurInfluence.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newFacteurDescription" rows="3"></textarea>
+</app-form-field>
                     </div>
                     <div class="inline-form-actions">
                       <button mat-flat-button color="primary" (click)="saveFacteurInfluence()" [disabled]="!newFacteurLibelle.trim()">
@@ -687,14 +679,12 @@
                               <h4 class="inline-form-title">{{ 'enjeux.olt.editTitle' | translate }}</h4>
                             </div>
                             <div class="inline-form-body">
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="editOltLibelle">
-                              </mat-form-field>
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                                <textarea matInput [(ngModel)]="editOltDescription" rows="2"></textarea>
-                              </mat-form-field>
+                              <app-form-field class="full-width" [label]="'enjeux.olt.libelleLabel' | translate">
+  <input [(ngModel)]="editOltLibelle">
+</app-form-field>
+                              <app-form-field class="full-width" [label]="'enjeux.olt.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editOltDescription" rows="2"></textarea>
+</app-form-field>
                             </div>
                             <div class="inline-form-actions">
                               <button mat-flat-button color="primary" (click)="saveEditOlt(olt)" [disabled]="!editOltLibelle.trim()">
@@ -759,14 +749,12 @@
                                 @if (editingNeId() === ne.id_ne) {
                                   <div class="inline-form ne-inline-form">
                                     <div class="inline-form-body">
-                                      <mat-form-field class="full-width" appearance="outline">
-                                        <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
-                                        <input matInput [(ngModel)]="editNeLibelle">
-                                      </mat-form-field>
-                                      <mat-form-field class="full-width" appearance="outline">
-                                        <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
-                                        <textarea matInput [(ngModel)]="editNeDescription" rows="2"></textarea>
-                                      </mat-form-field>
+                                      <app-form-field class="full-width" [label]="'enjeux.niveauExigence.libelleLabel' | translate">
+  <input [(ngModel)]="editNeLibelle">
+</app-form-field>
+                                      <app-form-field class="full-width" [label]="'enjeux.niveauExigence.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editNeDescription" rows="2"></textarea>
+</app-form-field>
                                     </div>
                                     <div class="inline-form-actions">
                                       <button mat-flat-button color="primary" (click)="saveEditNe(ne)" [disabled]="!editNeLibelle.trim()">
@@ -838,10 +826,9 @@
                                             </div>
 
                                             <!-- Intitulé indicateur -->
-                                            <mat-form-field appearance="outline" class="full-width">
-                                              <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                              <input matInput [(ngModel)]="editIndicateurNom">
-                                            </mat-form-field>
+                                            <app-form-field [label]="('enjeux.indicateurs.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="editIndicateurNom">
+</app-form-field>
 
                                             <!-- Indicateur standardisé -->
                                             <div class="form-radio-row">
@@ -853,10 +840,9 @@
                                             </div>
 
                                             <!-- Description -->
-                                            <mat-form-field appearance="outline" class="full-width">
-                                              <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
-                                              <textarea matInput [(ngModel)]="editIndicateurDescription" rows="3"></textarea>
-                                            </mat-form-field>
+                                            <app-form-field [label]="'enjeux.indicateurs.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editIndicateurDescription" rows="3"></textarea>
+</app-form-field>
 
                                             <!-- Section MÉTRIQUES -->
                                             <div class="metriques-section">
@@ -922,20 +908,18 @@
                                                   } @else {
                                                   <div class="metrique-form-block">
                                                     <div class="metrique-row">
-                                                      <mat-form-field appearance="outline" class="flex-grow">
-                                                        <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                                        <input matInput [(ngModel)]="met.nom_metrique">
-                                                      </mat-form-field>
+                                                      <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="met.nom_metrique">
+</app-form-field>
                                                       <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
                                                         <i class="fi fi-rr-trash"></i>
                                                       </button>
                                                     </div>
 
                                                     <div class="metrique-row-2col">
-                                                      <mat-form-field appearance="outline">
-                                                        <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                                        <input matInput [(ngModel)]="met.unite">
-                                                      </mat-form-field>
+                                                      <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="met.unite">
+</app-form-field>
                                                       <mat-form-field appearance="outline">
                                                         <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                                         <mat-select [(ngModel)]="met.type_metrique">
@@ -947,14 +931,12 @@
                                                     </div>
 
                                                     <div class="metrique-row-2col">
-                                                      <mat-form-field appearance="outline" class="col-narrow">
-                                                        <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="met.ponderation">
-                                                      </mat-form-field>
-                                                      <mat-form-field appearance="outline" class="col-wide">
-                                                        <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                                        <input matInput [(ngModel)]="met.etat_reference">
-                                                      </mat-form-field>
+                                                      <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="met.ponderation">
+</app-form-field>
+                                                      <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="met.etat_reference">
+</app-form-field>
                                                     </div>
 
                                                     <!-- Direction selector (NUMERIQUE only) -->
@@ -978,16 +960,14 @@
                                                           <div class="score-column-inputs">
                                                             @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
                                                               @case ('CHIFFRE') {
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                                  <input matInput type="number" [(ngModel)]="met.scores[level].val">
-                                                                </mat-form-field>
+                                                                <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].val">
+</app-form-field>
                                                               }
                                                               @case ('TEXTE') {
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                                  <input matInput [(ngModel)]="met.scores[level].label">
-                                                                </mat-form-field>
+                                                                <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="met.scores[level].label">
+</app-form-field>
                                                               }
                                                               @default {
                                                                 <!-- Fixed-height slot for optional bound checkbox -->
@@ -1004,18 +984,16 @@
                                                                   }
                                                                 </div>
                                                                 <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                                  <mat-form-field appearance="outline" class="score-input">
-                                                                    <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                                    <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                                  <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].inf"
                                                                       [disabled]="isScoreFieldDisabled(met, level, 'inf')"
                                                                       (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-                                                                  </mat-form-field>
-                                                                  <mat-form-field appearance="outline" class="score-input">
-                                                                    <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                                    <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+</app-form-field>
+                                                                  <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].sup"
                                                                       [disabled]="isScoreFieldDisabled(met, level, 'sup')"
                                                                       (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-                                                                  </mat-form-field>
+</app-form-field>
                                                                 </div>
                                                                 <!-- Fixed-height slot for boundary toggle -->
                                                                 <div class="boundary-toggle-slot">
@@ -1539,16 +1517,14 @@
                                                     </app-metrique-form>
                                                   } @else {
                                                   <div class="metrique-row">
-                                                    <mat-form-field appearance="outline" class="flex-grow">
-                                                      <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.nom_metrique">
-                                                    </mat-form-field>
+                                                    <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="standaloneMetriqueForm.nom_metrique">
+</app-form-field>
                                                   </div>
                                                   <div class="metrique-row-2col">
-                                                    <mat-form-field appearance="outline">
-                                                      <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.unite">
-                                                    </mat-form-field>
+                                                    <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.unite">
+</app-form-field>
                                                     <mat-form-field appearance="outline">
                                                       <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                                       <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
@@ -1559,14 +1535,12 @@
                                                     </mat-form-field>
                                                   </div>
                                                   <div class="metrique-row-2col">
-                                                    <mat-form-field appearance="outline" class="col-narrow">
-                                                      <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
-                                                    </mat-form-field>
-                                                    <mat-form-field appearance="outline" class="col-wide">
-                                                      <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                                      <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
-                                                    </mat-form-field>
+                                                    <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
+</app-form-field>
+                                                    <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.etat_reference">
+</app-form-field>
                                                   </div>
                                                   <!-- Direction selector (NUMERIQUE only) -->
                                                   @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
@@ -1589,16 +1563,14 @@
                                                         <div class="score-column-inputs">
                                                           @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
                                                             @case ('CHIFFRE') {
-                                                              <mat-form-field appearance="outline" class="score-input">
-                                                                <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                                <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
-                                                              </mat-form-field>
+                                                              <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
+</app-form-field>
                                                             }
                                                             @case ('TEXTE') {
-                                                              <mat-form-field appearance="outline" class="score-input">
-                                                                <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                                <input matInput [(ngModel)]="standaloneMetriqueForm.scores[level].label">
-                                                              </mat-form-field>
+                                                              <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.scores[level].label">
+</app-form-field>
                                                             }
                                                             @default {
                                                               <!-- Fixed-height slot for optional bound checkbox -->
@@ -1615,18 +1587,16 @@
                                                                 }
                                                               </div>
                                                               <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                                  <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
+                                                                <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
                                                                     [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
                                                                     (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
-                                                                </mat-form-field>
-                                                                <mat-form-field appearance="outline" class="score-input">
-                                                                  <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                                  <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
+</app-form-field>
+                                                                <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
                                                                     [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
                                                                     (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
-                                                                </mat-form-field>
+</app-form-field>
                                                               </div>
                                                               <!-- Fixed-height slot for boundary toggle -->
                                                               <div class="boundary-toggle-slot">
@@ -1676,10 +1646,9 @@
                                         <p class="form-required-note">{{ 'common.requiredFields' | translate }}</p>
 
                                         <!-- Intitulé indicateur -->
-                                        <mat-form-field appearance="outline" class="full-width">
-                                          <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                          <input matInput [(ngModel)]="newIndicateurNom">
-                                        </mat-form-field>
+                                        <app-form-field [label]="('enjeux.indicateurs.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="newIndicateurNom">
+</app-form-field>
 
                                         <!-- Indicateur standardisé -->
                                         <div class="form-radio-row">
@@ -1691,10 +1660,9 @@
                                         </div>
 
                                         <!-- Description -->
-                                        <mat-form-field appearance="outline" class="full-width">
-                                          <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
-                                          <textarea matInput [(ngModel)]="newIndicateurDescription" rows="3"></textarea>
-                                        </mat-form-field>
+                                        <app-form-field [label]="'enjeux.indicateurs.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newIndicateurDescription" rows="3"></textarea>
+</app-form-field>
 
                                         <!-- Section MÉTRIQUES -->
                                         <div class="metriques-section">
@@ -1758,10 +1726,9 @@
                                             <div class="metrique-form-block">
                                               <!-- Row 1: Nom + delete -->
                                               <div class="metrique-row">
-                                                <mat-form-field appearance="outline" class="flex-grow">
-                                                  <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                                  <input matInput [(ngModel)]="met.nom_metrique">
-                                                </mat-form-field>
+                                                <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="met.nom_metrique">
+</app-form-field>
                                                 <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromForm(i)" [title]="'common.actions.delete' | translate">
                                                   <i class="fi fi-rr-trash"></i>
                                                 </button>
@@ -1769,10 +1736,9 @@
 
                                               <!-- Row 2: Unité + Type -->
                                               <div class="metrique-row-2col">
-                                                <mat-form-field appearance="outline">
-                                                  <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                                  <input matInput [(ngModel)]="met.unite">
-                                                </mat-form-field>
+                                                <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="met.unite">
+</app-form-field>
                                                 <mat-form-field appearance="outline">
                                                   <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                                   <mat-select [(ngModel)]="met.type_metrique">
@@ -1785,14 +1751,12 @@
 
                                               <!-- Row 3: Pondération + État de référence -->
                                               <div class="metrique-row-2col">
-                                                <mat-form-field appearance="outline" class="col-narrow">
-                                                  <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                                  <input matInput type="number" [(ngModel)]="met.ponderation">
-                                                </mat-form-field>
-                                                <mat-form-field appearance="outline" class="col-wide">
-                                                  <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                                  <input matInput [(ngModel)]="met.etat_reference">
-                                                </mat-form-field>
+                                                <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="met.ponderation">
+</app-form-field>
+                                                <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="met.etat_reference">
+</app-form-field>
                                               </div>
 
                                               <!-- Score threshold grid -->
@@ -1817,16 +1781,14 @@
                                                     <div class="score-column-inputs">
                                                       @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
                                                         @case ('CHIFFRE') {
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="met.scores[level].val">
-                                                          </mat-form-field>
+                                                          <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].val">
+</app-form-field>
                                                         }
                                                         @case ('TEXTE') {
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                            <input matInput [(ngModel)]="met.scores[level].label">
-                                                          </mat-form-field>
+                                                          <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="met.scores[level].label">
+</app-form-field>
                                                         }
                                                         @default {
                                                           <!-- Fixed-height slot for optional bound checkbox -->
@@ -1843,18 +1805,16 @@
                                                             }
                                                           </div>
                                                           <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                            <mat-form-field appearance="outline" class="score-input">
-                                                              <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                              <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                            <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].inf"
                                                                 [disabled]="isScoreFieldDisabled(met, level, 'inf')"
                                                                 (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-                                                            </mat-form-field>
-                                                            <mat-form-field appearance="outline" class="score-input">
-                                                              <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                              <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+</app-form-field>
+                                                            <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].sup"
                                                                 [disabled]="isScoreFieldDisabled(met, level, 'sup')"
                                                                 (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-                                                            </mat-form-field>
+</app-form-field>
                                                           </div>
                                                           <!-- Fixed-height slot for boundary toggle -->
                                                           <div class="boundary-toggle-slot">
@@ -1916,14 +1876,12 @@
                                     <h4 class="inline-form-title">{{ 'enjeux.niveauExigence.newTitle' | translate }}</h4>
                                   </div>
                                   <div class="inline-form-body">
-                                    <mat-form-field class="full-width" appearance="outline">
-                                      <mat-label>{{ 'enjeux.niveauExigence.libelleLabel' | translate }}</mat-label>
-                                      <input matInput [(ngModel)]="newNeLibelle">
-                                    </mat-form-field>
-                                    <mat-form-field class="full-width" appearance="outline">
-                                      <mat-label>{{ 'enjeux.niveauExigence.descriptionLabel' | translate }}</mat-label>
-                                      <textarea matInput [(ngModel)]="newNeDescription" rows="2"></textarea>
-                                    </mat-form-field>
+                                    <app-form-field class="full-width" [label]="'enjeux.niveauExigence.libelleLabel' | translate">
+  <input [(ngModel)]="newNeLibelle">
+</app-form-field>
+                                    <app-form-field class="full-width" [label]="'enjeux.niveauExigence.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newNeDescription" rows="2"></textarea>
+</app-form-field>
                                   </div>
                                   <div class="inline-form-actions">
                                     <button mat-flat-button color="primary" (click)="saveNe(olt)" [disabled]="!newNeLibelle.trim()">
@@ -1954,14 +1912,12 @@
                     <h4 class="inline-form-title">{{ 'enjeux.olt.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
-                    <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.olt.libelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="newOltLibelle">
-                    </mat-form-field>
-                    <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.olt.descriptionLabel' | translate }}</mat-label>
-                      <textarea matInput [(ngModel)]="newOltDescription" rows="2"></textarea>
-                    </mat-form-field>
+                    <app-form-field class="full-width" [label]="'enjeux.olt.libelleLabel' | translate">
+  <input [(ngModel)]="newOltLibelle">
+</app-form-field>
+                    <app-form-field class="full-width" [label]="'enjeux.olt.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newOltDescription" rows="2"></textarea>
+</app-form-field>
                   </div>
                   <div class="inline-form-actions">
                     <button mat-flat-button color="primary" (click)="saveOlt()" [disabled]="!newOltLibelle.trim()">
@@ -2025,14 +1981,12 @@
                       <h4 class="inline-form-title">{{ 'enjeux.oo.editTitle' | translate }}</h4>
                     </div>
                     <div class="inline-form-body">
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.oo.libelleLabel' | translate }}</mat-label>
-                        <input matInput [(ngModel)]="editOoLibelle">
-                      </mat-form-field>
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.oo.descriptionLabel' | translate }}</mat-label>
-                        <textarea matInput [(ngModel)]="editOoDescription" rows="2"></textarea>
-                      </mat-form-field>
+                      <app-form-field class="full-width" [label]="'enjeux.oo.libelleLabel' | translate">
+  <input [(ngModel)]="editOoLibelle">
+</app-form-field>
+                      <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editOoDescription" rows="2"></textarea>
+</app-form-field>
                       <mat-form-field class="full-width" appearance="outline">
                         <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
                         <mat-select [(ngModel)]="editOoPressionIds" multiple required>
@@ -2130,14 +2084,12 @@
                         @if (editingRaId() === ra.id_ra) {
                           <div class="inline-form ne-inline-form">
                             <div class="inline-form-body">
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.resultatAttendu.libelleLabel' | translate }}</mat-label>
-                                <input matInput [(ngModel)]="editRaLibelle">
-                              </mat-form-field>
-                              <mat-form-field class="full-width" appearance="outline">
-                                <mat-label>{{ 'enjeux.resultatAttendu.descriptionLabel' | translate }}</mat-label>
-                                <textarea matInput [(ngModel)]="editRaDescription" rows="2"></textarea>
-                              </mat-form-field>
+                              <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.libelleLabel' | translate">
+  <input [(ngModel)]="editRaLibelle">
+</app-form-field>
+                              <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editRaDescription" rows="2"></textarea>
+</app-form-field>
                             </div>
                             <div class="inline-form-actions">
                               <button mat-flat-button color="primary" (click)="saveEditRa(ra)" [disabled]="!editRaLibelle.trim()">
@@ -2209,10 +2161,9 @@
                                     </div>
 
                                     <!-- Intitulé indicateur -->
-                                    <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                      <input matInput [(ngModel)]="editOoIndicateurNom">
-                                    </mat-form-field>
+                                    <app-form-field [label]="('enjeux.indicateurs.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="editOoIndicateurNom">
+</app-form-field>
 
                                     <!-- Indicateur standardisé -->
                                     <div class="form-radio-row">
@@ -2224,10 +2175,9 @@
                                     </div>
 
                                     <!-- Description -->
-                                    <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
-                                      <textarea matInput [(ngModel)]="editOoIndicateurDescription" rows="3"></textarea>
-                                    </mat-form-field>
+                                    <app-form-field [label]="'enjeux.indicateurs.descriptionLabel' | translate">
+  <textarea [(ngModel)]="editOoIndicateurDescription" rows="3"></textarea>
+</app-form-field>
 
                                     <!-- Section MÉTRIQUES -->
                                     <div class="metriques-section">
@@ -2291,20 +2241,18 @@
                                           } @else {
                                           <div class="metrique-form-block">
                                             <div class="metrique-row">
-                                              <mat-form-field appearance="outline" class="flex-grow">
-                                                <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                                <input matInput [(ngModel)]="met.nom_metrique">
-                                              </mat-form-field>
+                                              <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="met.nom_metrique">
+</app-form-field>
                                               <button class="icon-btn-flat metrique-delete-btn" (click)="removeOoMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
                                                 <i class="fi fi-rr-trash"></i>
                                               </button>
                                             </div>
 
                                             <div class="metrique-row-2col">
-                                              <mat-form-field appearance="outline">
-                                                <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                                <input matInput [(ngModel)]="met.unite">
-                                              </mat-form-field>
+                                              <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="met.unite">
+</app-form-field>
                                               <mat-form-field appearance="outline">
                                                 <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                                 <mat-select [(ngModel)]="met.type_metrique">
@@ -2316,14 +2264,12 @@
                                             </div>
 
                                             <div class="metrique-row-2col">
-                                              <mat-form-field appearance="outline" class="col-narrow">
-                                                <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                                <input matInput type="number" [(ngModel)]="met.ponderation">
-                                              </mat-form-field>
-                                              <mat-form-field appearance="outline" class="col-wide">
-                                                <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                                <input matInput [(ngModel)]="met.etat_reference">
-                                              </mat-form-field>
+                                              <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="met.ponderation">
+</app-form-field>
+                                              <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="met.etat_reference">
+</app-form-field>
                                             </div>
 
                                             <!-- Direction selector (NUMERIQUE only) -->
@@ -2347,16 +2293,14 @@
                                                   <div class="score-column-inputs">
                                                     @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
                                                       @case ('CHIFFRE') {
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                          <input matInput type="number" [(ngModel)]="met.scores[level].val">
-                                                        </mat-form-field>
+                                                        <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].val">
+</app-form-field>
                                                       }
                                                       @case ('TEXTE') {
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                          <input matInput [(ngModel)]="met.scores[level].label">
-                                                        </mat-form-field>
+                                                        <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="met.scores[level].label">
+</app-form-field>
                                                       }
                                                       @default {
                                                         <!-- Fixed-height slot for optional bound checkbox -->
@@ -2373,18 +2317,16 @@
                                                           }
                                                         </div>
                                                         <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                          <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].inf"
                                                               [disabled]="isScoreFieldDisabled(met, level, 'inf')"
                                                               (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-                                                          </mat-form-field>
-                                                          <mat-form-field appearance="outline" class="score-input">
-                                                            <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                            <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+</app-form-field>
+                                                          <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].sup"
                                                               [disabled]="isScoreFieldDisabled(met, level, 'sup')"
                                                               (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-                                                          </mat-form-field>
+</app-form-field>
                                                         </div>
                                                         <!-- Fixed-height slot for boundary toggle -->
                                                         <div class="boundary-toggle-slot">
@@ -2888,16 +2830,14 @@
                                         <div class="metrique-form-block standalone-metrique-form">
                                           <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
                                           <div class="metrique-row">
-                                            <mat-form-field appearance="outline" class="flex-grow">
-                                              <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                              <input matInput [(ngModel)]="standaloneMetriqueForm.nom_metrique">
-                                            </mat-form-field>
+                                            <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="standaloneMetriqueForm.nom_metrique">
+</app-form-field>
                                           </div>
                                           <div class="metrique-row-2col">
-                                            <mat-form-field appearance="outline">
-                                              <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                              <input matInput [(ngModel)]="standaloneMetriqueForm.unite">
-                                            </mat-form-field>
+                                            <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.unite">
+</app-form-field>
                                             <mat-form-field appearance="outline">
                                               <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                               <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
@@ -2908,14 +2848,12 @@
                                             </mat-form-field>
                                           </div>
                                           <div class="metrique-row-2col">
-                                            <mat-form-field appearance="outline" class="col-narrow">
-                                              <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                              <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
-                                            </mat-form-field>
-                                            <mat-form-field appearance="outline" class="col-wide">
-                                              <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                              <input matInput [(ngModel)]="standaloneMetriqueForm.etat_reference">
-                                            </mat-form-field>
+                                            <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
+</app-form-field>
+                                            <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.etat_reference">
+</app-form-field>
                                           </div>
                                           <!-- Direction selector (NUMERIQUE only) -->
                                           @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
@@ -2938,16 +2876,14 @@
                                                 <div class="score-column-inputs">
                                                   @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
                                                     @case ('CHIFFRE') {
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                        <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
-                                                      </mat-form-field>
+                                                      <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
+</app-form-field>
                                                     }
                                                     @case ('TEXTE') {
-                                                      <mat-form-field appearance="outline" class="score-input">
-                                                        <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                        <input matInput [(ngModel)]="standaloneMetriqueForm.scores[level].label">
-                                                      </mat-form-field>
+                                                      <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="standaloneMetriqueForm.scores[level].label">
+</app-form-field>
                                                     }
                                                     @default {
                                                       <!-- Fixed-height slot for optional bound checkbox -->
@@ -2964,18 +2900,16 @@
                                                         }
                                                       </div>
                                                       <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                          <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
+                                                        <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
                                                             [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
                                                             (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
-                                                        </mat-form-field>
-                                                        <mat-form-field appearance="outline" class="score-input">
-                                                          <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                          <input matInput type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
+</app-form-field>
+                                                        <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
                                                             [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
                                                             (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
-                                                        </mat-form-field>
+</app-form-field>
                                                       </div>
                                                       <!-- Fixed-height slot for boundary toggle -->
                                                       <div class="boundary-toggle-slot">
@@ -3022,10 +2956,9 @@
                                 </div>
                                 <p class="form-required-note">{{ 'common.requiredFields' | translate }}</p>
 
-                                <mat-form-field appearance="outline" class="full-width">
-                                  <mat-label>{{ 'enjeux.indicateurs.nomLabel' | translate }} *</mat-label>
-                                  <input matInput [(ngModel)]="newOoIndicateurNom">
-                                </mat-form-field>
+                                <app-form-field [label]="('enjeux.indicateurs.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="newOoIndicateurNom">
+</app-form-field>
 
                                 <div class="form-radio-row">
                                   <span class="form-radio-label">{{ 'enjeux.indicateurs.standardiseLabel' | translate }} :</span>
@@ -3036,10 +2969,9 @@
                                 </div>
 
                                 <!-- Description -->
-                                <mat-form-field appearance="outline" class="full-width">
-                                  <mat-label>{{ 'enjeux.indicateurs.descriptionLabel' | translate }}</mat-label>
-                                  <textarea matInput [(ngModel)]="newOoIndicateurDescription" rows="3"></textarea>
-                                </mat-form-field>
+                                <app-form-field [label]="'enjeux.indicateurs.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newOoIndicateurDescription" rows="3"></textarea>
+</app-form-field>
 
                                 <!-- Section MÉTRIQUES -->
                                 <div class="metriques-section">
@@ -3102,20 +3034,18 @@
                                     } @else {
                                     <div class="metrique-form-block">
                                       <div class="metrique-row">
-                                        <mat-form-field appearance="outline" class="flex-grow">
-                                          <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} *</mat-label>
-                                          <input matInput [(ngModel)]="met.nom_metrique">
-                                        </mat-form-field>
+                                        <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
+  <input [(ngModel)]="met.nom_metrique">
+</app-form-field>
                                         <button class="icon-btn-flat metrique-delete-btn" (click)="removeOoMetriqueRow(i)" [title]="'common.actions.delete' | translate">
                                           <i class="fi fi-rr-trash"></i>
                                         </button>
                                       </div>
 
                                       <div class="metrique-row-2col">
-                                        <mat-form-field appearance="outline">
-                                          <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }}</mat-label>
-                                          <input matInput [(ngModel)]="met.unite">
-                                        </mat-form-field>
+                                        <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
+  <input [(ngModel)]="met.unite">
+</app-form-field>
                                         <mat-form-field appearance="outline">
                                           <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
                                           <mat-select [(ngModel)]="met.type_metrique">
@@ -3127,14 +3057,12 @@
                                       </div>
 
                                       <div class="metrique-row-2col">
-                                        <mat-form-field appearance="outline" class="col-narrow">
-                                          <mat-label>{{ 'enjeux.metriques.ponderationLabel' | translate }}</mat-label>
-                                          <input matInput type="number" [(ngModel)]="met.ponderation">
-                                        </mat-form-field>
-                                        <mat-form-field appearance="outline" class="col-wide">
-                                          <mat-label>{{ 'enjeux.metriques.etatReferenceLabel' | translate }}</mat-label>
-                                          <input matInput [(ngModel)]="met.etat_reference">
-                                        </mat-form-field>
+                                        <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
+  <input type="number" [(ngModel)]="met.ponderation">
+</app-form-field>
+                                        <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+  <input [(ngModel)]="met.etat_reference">
+</app-form-field>
                                       </div>
 
                                       <!-- Direction selector (NUMERIQUE only) -->
@@ -3158,16 +3086,14 @@
                                             <div class="score-column-inputs">
                                               @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
                                                 @case ('CHIFFRE') {
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.valeur' | translate }}</mat-label>
-                                                    <input matInput type="number" [(ngModel)]="met.scores[level].val">
-                                                  </mat-form-field>
+                                                  <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].val">
+</app-form-field>
                                                 }
                                                 @case ('TEXTE') {
-                                                  <mat-form-field appearance="outline" class="score-input">
-                                                    <mat-label>{{ 'enjeux.metriques.texte' | translate }}</mat-label>
-                                                    <input matInput [(ngModel)]="met.scores[level].label">
-                                                  </mat-form-field>
+                                                  <app-form-field [label]="'enjeux.metriques.texte' | translate">
+  <input [(ngModel)]="met.scores[level].label">
+</app-form-field>
                                                 }
                                                 @default {
                                                   <!-- Fixed-height slot for optional bound checkbox -->
@@ -3184,18 +3110,16 @@
                                                     }
                                                   </div>
                                                   <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.min' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].inf"
+                                                    <app-form-field [label]="'enjeux.metriques.min' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].inf"
                                                         [disabled]="isScoreFieldDisabled(met, level, 'inf')"
                                                         (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-                                                    </mat-form-field>
-                                                    <mat-form-field appearance="outline" class="score-input">
-                                                      <mat-label>{{ 'enjeux.metriques.max' | translate }}</mat-label>
-                                                      <input matInput type="number" [(ngModel)]="met.scores[level].sup"
+</app-form-field>
+                                                    <app-form-field [label]="'enjeux.metriques.max' | translate">
+  <input type="number" [(ngModel)]="met.scores[level].sup"
                                                         [disabled]="isScoreFieldDisabled(met, level, 'sup')"
                                                         (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-                                                    </mat-form-field>
+</app-form-field>
                                                   </div>
                                                   <!-- Fixed-height slot for boundary toggle -->
                                                   <div class="boundary-toggle-slot">
@@ -3255,14 +3179,12 @@
                             <h4 class="inline-form-title">{{ 'enjeux.resultatAttendu.newTitle' | translate }}</h4>
                           </div>
                           <div class="inline-form-body">
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.resultatAttendu.libelleLabel' | translate }}</mat-label>
-                              <input matInput [(ngModel)]="newRaLibelle">
-                            </mat-form-field>
-                            <mat-form-field class="full-width" appearance="outline">
-                              <mat-label>{{ 'enjeux.resultatAttendu.descriptionLabel' | translate }}</mat-label>
-                              <textarea matInput [(ngModel)]="newRaDescription" rows="2"></textarea>
-                            </mat-form-field>
+                            <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.libelleLabel' | translate">
+  <input [(ngModel)]="newRaLibelle">
+</app-form-field>
+                            <app-form-field class="full-width" [label]="'enjeux.resultatAttendu.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newRaDescription" rows="2"></textarea>
+</app-form-field>
                           </div>
                           <div class="inline-form-actions">
                             <button mat-flat-button color="primary" (click)="saveRa(oo)" [disabled]="!newRaLibelle.trim()">
@@ -3293,14 +3215,12 @@
                     <h4 class="inline-form-title">{{ 'enjeux.oo.newTitle' | translate }}</h4>
                   </div>
                   <div class="inline-form-body">
-                    <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.libelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="newOoLibelle">
-                    </mat-form-field>
-                    <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.descriptionLabel' | translate }}</mat-label>
-                      <textarea matInput [(ngModel)]="newOoDescription" rows="2"></textarea>
-                    </mat-form-field>
+                    <app-form-field class="full-width" [label]="'enjeux.oo.libelleLabel' | translate">
+  <input [(ngModel)]="newOoLibelle">
+</app-form-field>
+                    <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
+  <textarea [(ngModel)]="newOoDescription" rows="2"></textarea>
+</app-form-field>
                     <mat-form-field class="full-width" appearance="outline">
                       <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
                       <mat-select [(ngModel)]="newOoPressionIds" multiple required>

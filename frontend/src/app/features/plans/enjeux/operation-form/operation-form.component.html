@@ -152,12 +152,10 @@
             }
 
             <!-- Intitulé de l'action (lecture seule, synchronisé avec l'inventaire) -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
-              <input matInput [value]="libelleDisplay()" disabled
+            <app-form-field [label]="'enjeux.operations.libelleLabel' | translate" [helpText]="'enjeux.operations.libelleAutoFilledHint' | translate">
+  <input [value]="libelleDisplay()" disabled
                      [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
-              <mat-hint>{{ 'enjeux.operations.libelleAutoFilledHint' | translate }}</mat-hint>
-            </mat-form-field>
+</app-form-field>
           }
 
           <!-- Métriques associées -->
@@ -367,13 +365,9 @@
                 </mat-form-field>
 
                 <!-- Nombre d'ETP par cycle de collecte -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>
-                    {{ 'enjeux.operations.nbEtpCycle' | translate }}
-                  </mat-label>
-                  <input matInput type="number" formControlName="nb_etp_cycle">
-                  <mat-hint>{{ 'enjeux.operations.nbEtpCycleHint' | translate }}</mat-hint>
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.nbEtpCycle' | translate" [helpText]="'enjeux.operations.nbEtpCycleHint' | translate">
+  <input type="number" formControlName="nb_etp_cycle">
+</app-form-field>
               }
 
               <!-- Respectez-vous strictement le protocole ? -->
@@ -395,15 +389,13 @@
 
               <!-- Non-respect: Justification + Différences -->
               @if (isNonRespect) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.justificationNonRespect' | translate }}</mat-label>
-                  <textarea matInput formControlName="justification_non_respect" rows="3"></textarea>
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
+  <textarea formControlName="justification_non_respect" rows="3"></textarea>
+</app-form-field>
 
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.differencesProtocole' | translate }}</mat-label>
-                  <textarea matInput formControlName="differences_protocole" rows="3"></textarea>
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
+  <textarea formControlName="differences_protocole" rows="3"></textarea>
+</app-form-field>
               }
 
               <!-- Description du protocole (readonly si Campanule) -->
@@ -415,10 +407,9 @@
                   </div>
                 </div>
               } @else if (isNotCampanule) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.descriptionProtocole' | translate }}</mat-label>
-                  <textarea matInput formControlName="description_protocole" rows="3"></textarea>
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.descriptionProtocole' | translate">
+  <textarea formControlName="description_protocole" rows="3"></textarea>
+</app-form-field>
               }
 
               <!-- Objectif du protocole (readonly si Campanule) -->
@@ -430,10 +421,9 @@
                   </div>
                 </div>
               } @else if (isNotCampanule) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.objectifProtocole' | translate }}</mat-label>
-                  <textarea matInput formControlName="objectif_protocole" rows="3"></textarea>
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.objectifProtocole' | translate">
+  <textarea formControlName="objectif_protocole" rows="3"></textarea>
+</app-form-field>
               }
 
               <!-- Période d'échantillonnage (readonly si Campanule) -->
@@ -445,11 +435,10 @@
                   </div>
                 </div>
               } @else if (isNotCampanule) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.periodeEchantillonnage' | translate }}</mat-label>
-                  <input matInput formControlName="periode_echantillonnage"
+                <app-form-field [label]="'enjeux.operations.periodeEchantillonnage' | translate">
+  <input formControlName="periode_echantillonnage"
                          [placeholder]="'enjeux.operations.periodeEchantillonnagePlaceholder' | translate">
-                </mat-form-field>
+</app-form-field>
               }
 
               <!-- Fréquence de l'action -->
@@ -905,31 +894,27 @@
               }
 
               <!-- Opérateur(s) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.operateursLabel' | translate }}</mat-label>
-                <input matInput formControlName="operateurs">
-              </mat-form-field>
+              <app-form-field [label]="'enjeux.operations.operateursLabel' | translate">
+  <input formControlName="operateurs">
+</app-form-field>
 
               <!-- Partenaire(s) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.partenairesLabel' | translate }}</mat-label>
-                <textarea matInput formControlName="partenaires" rows="2"></textarea>
-              </mat-form-field>
+              <app-form-field [label]="'enjeux.operations.partenairesLabel' | translate">
+  <textarea formControlName="partenaires" rows="2"></textarea>
+</app-form-field>
 
               <!-- Financeur(s) (text field) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.financeursLabel' | translate }}</mat-label>
-                <textarea matInput formControlName="financeurs" rows="2"></textarea>
-              </mat-form-field>
+              <app-form-field [label]="'enjeux.operations.financeursLabel' | translate">
+  <textarea formControlName="financeurs" rows="2"></textarea>
+</app-form-field>
 
               <!-- Finances (relational) -->
               <div class="finances-section">
                 @for (finance of finances; track $index) {
                   <div class="finance-row">
-                    <mat-form-field appearance="outline" class="finance-libelle">
-                      <mat-label>{{ 'enjeux.operations.financeLibelleLabel' | translate }}</mat-label>
-                      <input matInput [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
-                    </mat-form-field>
+                    <app-form-field [label]="'enjeux.operations.financeLibelleLabel' | translate">
+  <input [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
+</app-form-field>
                     <mat-form-field appearance="outline" class="finance-categorie">
                       <mat-label>{{ 'enjeux.operations.categorieFinanceLabel' | translate }}</mat-label>
                       <mat-select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
@@ -957,10 +942,9 @@
         <app-accordion variant="subtle" [title]="'enjeux.operations.detailsLabel' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-<mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.detailsCommentaires' | translate }}</mat-label>
-                <textarea matInput formControlName="description" rows="5"></textarea>
-              </mat-form-field>
+<app-form-field [label]="'enjeux.operations.detailsCommentaires' | translate">
+  <textarea formControlName="description" rows="5"></textarea>
+</app-form-field>
   </div>
 </app-accordion>
 

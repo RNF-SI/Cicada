@@ -20,6 +20,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatRadioModule } from '@angular/material/radio';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -80,6 +81,7 @@ type TabType = 'detail' | 'olt' | 'operations';
     MatSelectModule,
     MatRadioModule,
     CheckboxComponent,
+    FormFieldComponent,
     MatButtonToggleModule,
     MatTooltipModule,
     MatDialogModule,
