@@ -200,7 +200,7 @@ $corner-size: 94px;
   .loading-text {
     font-family: $font-family;
     font-size: $font-size-base;
-    color: #949494;
+    color: $gray-dark;
     animation: pulse 1.5s ease-in-out infinite;
   }
 }
