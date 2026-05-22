@@ -190,19 +190,10 @@
         <!-- (visible uniquement pour les actions CS)        -->
         <!-- ═══════════════════════════════════════════════ -->
         @if (isCSAction()) {
-        <div class="form-card" [class.readonly-section]="estSuiviExistant()">
-          <div class="section-header" (click)="toggleSection('details_suivi')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.detailsSuiviTitle' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['details_suivi']" [class.fi-rr-angle-down]="!sectionsOpen['details_suivi']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['details_suivi']) {
-            <div class="section-content">
-              <!-- Objectif principal (grouped select) -->
+        <app-accordion variant="subtle" [title]="'enjeux.operations.detailsSuiviTitle' | translate" [expanded]="sectionsOpen['details_suivi']" (expandedChange)="sectionsOpen['details_suivi'] = $event" [class.readonly-section]="estSuiviExistant()">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<!-- Objectif principal (grouped select) -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'enjeux.operations.objectifPrincipal' | translate }}</mat-label>
                 <mat-select formControlName="objectif_principal">
@@ -308,26 +299,16 @@
                 <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
                 <mat-datepicker #dateLancementPicker></mat-datepicker>
               </mat-form-field>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Protocole                             -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card" [class.readonly-section]="estSuiviExistant()">
-          <div class="section-header" (click)="toggleSection('protocole')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.protocoleTitle' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['protocole']" [class.fi-rr-angle-down]="!sectionsOpen['protocole']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['protocole']) {
-            <div class="section-content">
-              <!-- Protocole répertorié dans Campanule -->
+        <app-accordion variant="subtle" [title]="'enjeux.operations.protocoleTitle' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event" [class.readonly-section]="estSuiviExistant()">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<!-- Protocole répertorié dans Campanule -->
               <div class="radio-field-row">
                 <span class="radio-field-label">
                   {{ 'enjeux.operations.protocoleCampanule' | translate }}
@@ -500,26 +481,16 @@
                   </button>
                 </div>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage             -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card" [class.readonly-section]="estSuiviExistant()">
-          <div class="section-header" (click)="toggleSection('bancarisation')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.bancarisationTitle' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['bancarisation']" [class.fi-rr-angle-down]="!sectionsOpen['bancarisation']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['bancarisation']) {
-            <div class="section-content">
-              <!-- Outil de bancarisation -->
+        <app-accordion variant="subtle" [title]="'enjeux.operations.bancarisationTitle' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event" [class.readonly-section]="estSuiviExistant()">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<!-- Outil de bancarisation -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'enjeux.operations.outilBancarisation' | translate }}</mat-label>
                 <mat-select formControlName="outil_bancarisation">
@@ -549,27 +520,17 @@
                   <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                 </mat-radio-group>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
         } <!-- fin @if (isCSAction()) — sections Détails/Protocole/Bancarisation -->
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Programmation                         -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('programmation')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.programmationTitle' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['programmation']" [class.fi-rr-angle-down]="!sectionsOpen['programmation']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['programmation']) {
-            <div class="section-content">
-              <!-- L'action est liée au/aux (masqué si plan mono-site) -->
+        <app-accordion variant="subtle" [title]="'enjeux.operations.programmationTitle' | translate" [expanded]="sectionsOpen['programmation']" (expandedChange)="sectionsOpen['programmation'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<!-- L'action est liée au/aux (masqué si plan mono-site) -->
               @if (planSites().length > 1) {
                 <div class="sites-selection">
                   <span class="field-label">{{ 'enjeux.operations.actionLieeAux' | translate }}</span>
@@ -987,76 +948,45 @@
                   + {{ 'enjeux.operations.addFinance' | translate }}
                 </button>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Détails                               -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('details')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.detailsLabel' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['details']" [class.fi-rr-angle-down]="!sectionsOpen['details']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['details']) {
-            <div class="section-content">
-              <mat-form-field appearance="outline" class="full-width">
+        <app-accordion variant="subtle" [title]="'enjeux.operations.detailsLabel' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'enjeux.operations.detailsCommentaires' | translate }}</mat-label>
                 <textarea matInput formControlName="description" rows="5"></textarea>
               </mat-form-field>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Emprise spatiale                      -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('emprise')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.empriseSpatiale' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['emprise']" [class.fi-rr-angle-down]="!sectionsOpen['emprise']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['emprise']) {
-            <div class="section-content">
-              <button type="button" class="add-link-btn">
+        <app-accordion variant="subtle" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<button type="button" class="add-link-btn">
                 + {{ 'enjeux.operations.ajouterEmprise' | translate }}
               </button>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Indicateur(s) de réponse              -->
         <!-- ═══════════════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('indicateurs_reponse')">
-            <div class="section-title-row">
-              <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
-              <h3 class="section-label">{{ 'enjeux.operations.indicateursReponse' | translate }}</h3>
-            </div>
-            <i class="fi section-chevron" [class.fi-rr-angle-up]="sectionsOpen['indicateurs_reponse']" [class.fi-rr-angle-down]="!sectionsOpen['indicateurs_reponse']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['indicateurs_reponse']) {
-            <div class="section-content">
-              <button type="button" class="add-link-btn">
+        <app-accordion variant="subtle" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
+  <div class="section-content">
+<button type="button" class="add-link-btn">
                 + {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
               </button>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
       </form>
     </div>

@@ -21,6 +21,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../shared/components/reference-item-list/reference-item-list.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { ProtocoleCampanuleDialogComponent } from '../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { InventaireService } from '../../../core/services/inventaire.service';
 import { AdminService } from '../../../core/services/admin.service';
@@ -57,7 +58,8 @@ import {
     MatNativeDateModule,
     TranslateModule,
     HeaderComponent,
-    ReferenceItemListComponent
+    ReferenceItemListComponent,
+    AccordionComponent,
   ],
   templateUrl: './inventaire-form.component.html',
   styleUrl: './inventaire-form.component.scss'

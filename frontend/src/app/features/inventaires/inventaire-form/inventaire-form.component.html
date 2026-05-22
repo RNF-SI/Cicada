@@ -272,20 +272,9 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Protocole                      -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('protocole')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.protocole' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['protocole']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['protocole']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['protocole']) {
-            <div class="section-content">
-              <div class="form-grid">
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+  <div class="section-content">
+<div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
                 <div class="radio-field-row" [class.has-error]="shouldShowError('protocole_dans_campanule')">
                   <span class="radio-field-label">
@@ -546,27 +535,15 @@
                   </mat-form-field>
                 }
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage      -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('bancarisation')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.bancarisation' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['bancarisation']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['bancarisation']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['bancarisation']) {
-            <div class="section-content">
-              <div class="form-grid">
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+  <div class="section-content">
+<div class="form-grid">
                 <mat-form-field appearance="outline">
                   <mat-label>{{ 'inventaires.form.outilBancarisation' | translate }}</mat-label>
                   <mat-select formControlName="outil_bancarisation">
@@ -595,36 +572,23 @@
                   </mat-radio-group>
                 </div>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Détails                        -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('details')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.details' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['details']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['details']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['details']) {
-            <div class="section-content">
-              <div class="form-grid">
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+  <div class="section-content">
+<div class="form-grid">
                 <!-- Commentaires -->
                 <mat-form-field appearance="outline">
                   <mat-label>{{ 'inventaires.form.commentaires' | translate }}</mat-label>
                   <textarea matInput formControlName="commentaires" rows="4"></textarea>
                 </mat-form-field>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
       </form>
     </div>
 

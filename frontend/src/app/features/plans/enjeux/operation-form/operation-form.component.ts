@@ -27,6 +27,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
@@ -67,7 +68,8 @@ import {
     MatTooltipModule,
     TranslateModule,
     HeaderComponent,
-    ReferenceItemListComponent
+    ReferenceItemListComponent,
+    AccordionComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
