@@ -20,6 +20,7 @@ import { AccordionComponent } from '../../../../shared/components/accordion/acco
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu, FcrCreatePayload, EnjeuUpdatePayload } from '../../../../core/models/enjeu.model';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 
 interface FcrCategorieOption {
   id: number;
@@ -43,7 +44,8 @@ interface FcrCategorieOption {
     MatTooltipModule,
     MatSnackBarModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    FormFieldComponent,
   ],
   templateUrl: './fcr-form.component.html',
   styleUrl: './fcr-form.component.scss'

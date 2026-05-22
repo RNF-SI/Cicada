@@ -84,14 +84,13 @@
 
           <div class="panel-content">
             <!-- Commentaires -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.fcrForm.commentaires' | translate }}</mat-label>
-              <textarea matInput
+            <app-form-field [label]="'enjeux.fcrForm.commentaires' | translate">
+  <textarea
                         formControlName="description"
                         rows="4"
                         [placeholder]="'enjeux.fcrForm.commentairesPlaceholder' | translate">
               </textarea>
-            </mat-form-field>
+</app-form-field>
           </div>
         </app-accordion>
 

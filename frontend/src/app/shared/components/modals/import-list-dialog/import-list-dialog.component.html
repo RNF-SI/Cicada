@@ -28,15 +28,14 @@
       </p>
     }
 
-    <mat-form-field appearance="outline" class="codes-textarea">
-      <mat-label>{{ (type === 'taxon' ? 'enjeux.importList.codesLabelTaxon' : type === 'habitat' ? 'enjeux.importList.codesLabelHabitat' : 'enjeux.importList.codesLabelGeology') | translate }}</mat-label>
-      <textarea matInput
+    <app-form-field [label]="(type === 'taxon' ? 'enjeux.importList.codesLabelTaxon' : type === 'habitat' ? 'enjeux.importList.codesLabelHabitat' : 'enjeux.importList.codesLabelGeology') | translate">
+  <textarea
                 rows="8"
                 [value]="codesInput()"
                 (input)="codesInput.set($any($event.target).value)"
                 [placeholder]="(type === 'taxon' ? 'enjeux.importList.placeholderTaxon' : type === 'habitat' ? 'enjeux.importList.placeholderHabitat' : 'enjeux.importList.placeholderGeology') | translate">
       </textarea>
-    </mat-form-field>
+</app-form-field>
 
     <div class="file-upload-section">
       <span class="file-upload-label">{{ 'enjeux.importList.orUploadFile' | translate }}</span>

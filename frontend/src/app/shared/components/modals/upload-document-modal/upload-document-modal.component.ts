@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { FichierType } from '../../../../core/models/admin.model';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface UploadDocumentDialogData {
   planId: number;
@@ -32,6 +33,7 @@ export interface UploadDocumentDialogData {
     MatNativeDateModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './upload-document-modal.component.html',
   styleUrl: './upload-document-modal.component.scss',

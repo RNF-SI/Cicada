@@ -10,6 +10,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { TaxonomyService, BulkValidationFoundItem, BulkValidationNotFoundItem } from '../../../../core/services/taxonomy.service';
 import { HabitatService, HabitatBulkFoundItem, HabitatBulkNotFoundItem } from '../../../../core/services/habitat.service';
 import { GeologyService, InpgBulkFoundItem, InpgBulkNotFoundItem } from '../../../../core/services/geology.service';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface ImportListDialogData {
   type: 'taxon' | 'habitat' | 'geology';
@@ -50,6 +51,7 @@ export interface RejectedEntry {
     MatProgressSpinnerModule,
     MatIconModule,
     TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './import-list-dialog.component.html',
   styleUrl: './import-list-dialog.component.scss',

@@ -36,21 +36,18 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>{{ 'plans.detail.documents.upload.titre' | translate }}</mat-label>
-      <input matInput [(ngModel)]="titre">
-    </mat-form-field>
+    <app-form-field [label]="'plans.detail.documents.upload.titre' | translate">
+  <input [(ngModel)]="titre">
+</app-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>{{ 'plans.detail.documents.upload.description' | translate }}</mat-label>
-      <textarea matInput [(ngModel)]="description" rows="3"></textarea>
-    </mat-form-field>
+    <app-form-field [label]="'plans.detail.documents.upload.description' | translate">
+  <textarea [(ngModel)]="description" rows="3"></textarea>
+</app-form-field>
 
     <div class="fields-row">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'plans.detail.documents.upload.auteur' | translate }}</mat-label>
-        <input matInput [(ngModel)]="auteur">
-      </mat-form-field>
+      <app-form-field [label]="'plans.detail.documents.upload.auteur' | translate">
+  <input [(ngModel)]="auteur">
+</app-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>{{ 'plans.detail.documents.upload.dateDocument' | translate }}</mat-label>

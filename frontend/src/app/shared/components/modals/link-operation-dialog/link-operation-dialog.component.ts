@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface LinkOperationDialogData {
   planId: number;
@@ -45,6 +46,7 @@ interface OperationItem {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './link-operation-dialog.component.html',
   styleUrl: './link-operation-dialog.component.scss',
