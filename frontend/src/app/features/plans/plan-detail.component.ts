@@ -53,6 +53,21 @@ import {
   ExtendDurationDialogResult,
 } from '../../shared/components/modals/extend-duration-dialog/extend-duration-dialog.component';
 import {
+  StartRevisionDialogComponent,
+  StartRevisionDialogData,
+  StartRevisionDialogResult,
+} from '../../shared/components/modals/start-revision-dialog/start-revision-dialog.component';
+import {
+  StartMiParcoursDialogComponent,
+  StartMiParcoursDialogData,
+  StartMiParcoursDialogResult,
+} from '../../shared/components/modals/start-mi-parcours-dialog/start-mi-parcours-dialog.component';
+import {
+  DuplicatePlanDialogComponent,
+  DuplicatePlanDialogData,
+  DuplicatePlanDialogResult,
+} from '../../shared/components/modals/duplicate-plan-dialog/duplicate-plan-dialog.component';
+import {
   MiParcoursPromptDialogComponent,
   MiParcoursPromptDialogData,
   MiParcoursPromptDialogResult,
@@ -63,7 +78,7 @@ import {
   CsrpnStepDialogResult,
   CsrpnStep,
 } from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
-import { getPlanStatusKey } from '../../shared/utils/plan-status.utils';
+import { getExtensionBadgeKey, getPlanStatusKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
   id: string;
@@ -153,7 +168,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   // #281 — Mnémonique du type de site principal (premier par rang) pour
-  // contextualiser le libellé du statut `etendu` dans la timeline et le chip.
+  // contextualiser le badge "Étendu" affiché à côté du chip de statut.
   principalSiteTypeMnemonique = computed<string | null>(() => {
     const sites = this.plan()?.sites || [];
     if (sites.length === 0) return null;
@@ -161,12 +176,23 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return principal?.type_site_mnemonique ?? null;
   });
 
-  // #281 — Clé i18n du statut du plan contextualisée pour `etendu`.
+  // Clé i18n du statut du plan.
   statusLabelKey = computed<string>(() => {
     const p = this.plan();
     if (!p) return 'plans.status.draft';
-    return getPlanStatusKey(p.statut, this.principalSiteTypeMnemonique());
+    return getPlanStatusKey(p.statut);
   });
+
+  // #250 / #281 — Indique si le plan est étendu (annees_extension > 0) et
+  // expose la clé i18n du badge contextualisé par type de site.
+  isPlanExtended = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && p.annees_extension && p.annees_extension > 0);
+  });
+
+  extensionBadgeKey = computed<string>(() =>
+    getExtensionBadgeKey(this.principalSiteTypeMnemonique())
+  );
 
   // Enjeux/FCR data for synthèse and sidebar
   enjeuxData = signal<Enjeu[]>([]);
@@ -259,13 +285,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   /**
-   * Plan éditable (#248). Renvoie true pour `draft` et `etendu` (#250 — un plan
-   * prolongé doit rester modifiable pour les actions sur les années ajoutées).
-   * Conserve le nom historique `isPlanDraft` pour limiter le diff.
+   * Plan éditable (#248). Seul le statut `draft` autorise l'édition.
+   * L'extension de durée (#250) est un attribut orthogonal au statut et
+   * ne débloque PAS l'édition.
    */
   isPlanDraft = computed(() => {
-    const s = this.plan()?.statut;
-    return s === 'draft' || s === 'etendu';
+    return this.plan()?.statut === 'draft';
   });
 
   // Accordéons de la section Synthèse
@@ -563,7 +588,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   /**
    * Vrai si on doit proposer le pop-up mi-parcours :
    * - plan_parent est un plan déjà validé (`is_modification` côté serveur),
-   * - aucun `mi_parcours` n'existe encore dans la chaîne.
+   * - aucun plan de la chaîne ne porte le drapeau `is_mi_parcours`.
    */
   private shouldPromptMiParcours(): boolean {
     const p = this.plan();
@@ -571,10 +596,10 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const chain = p.version_chain ?? [];
     const parent = chain.find(item => item.id_pg === p.plan_parent_id);
     const parentValidated = parent
-      ? ['valide', 'modifie', 'mi_parcours', 'etendu', 'en_revision', 'archive'].includes(parent.statut)
+      ? ['valide', 'modifie', 'archive'].includes(parent.statut)
       : true; // côté serveur, l'absence d'info chaîne ne bloque pas
     if (!parentValidated) return false;
-    const hasMiParcours = chain.some(item => item.id_pg !== p.id_pg && item.statut === 'mi_parcours');
+    const hasMiParcours = chain.some(item => item.id_pg !== p.id_pg && item.is_mi_parcours);
     return !hasMiParcours;
   }
 
@@ -611,28 +636,214 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * #278 — Validé / Étendu → En cours de révision : la période est dépassée
-   * mais le plan reste utilisé pendant la rédaction du plan de rang suivant.
+   * #278 — Ouvre la modale de mise en révision (3 options : créer un brouillon
+   * du rang suivant, lier à un plan existant, ou marquer sans lier).
    */
-  confirmEnRevision(): void {
-    this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.warnings.enRevisionTitle'),
-      message: this.translate.instant('plans.lifecycle.warnings.enRevisionWarning'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.enRevision'),
-      confirmColor: 'primary',
-      onConfirm: () => this.changeStatus('en_revision'),
+  confirmStartRevision(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const dialogRef = this.dialog.open<
+      StartRevisionDialogComponent,
+      StartRevisionDialogData,
+      StartRevisionDialogResult
+    >(StartRevisionDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { plan: p },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result || result.mode === 'cancel') return;
+
+      // mode 'create' : le brouillon a déjà été créé par la modale, son id est dans nextRangPlanId
+      // mode 'link'   : nextRangPlanId est l'id du plan existant choisi
+      // mode 'none'   : pas de lien (null)
+      this.startRevision(result.nextRangPlanId ?? null);
     });
   }
 
-  /** #278 — En cours de révision → Validé : retour à l'état validé. */
-  confirmResumeFromRevision(): void {
+  /** #278 — Annuler la révision (retire l'indicateur et le lien). */
+  confirmEndRevision(): void {
     this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.warnings.resumeFromRevisionTitle'),
-      message: this.translate.instant('plans.lifecycle.warnings.resumeFromRevisionWarning'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.resumeFromRevision'),
-      confirmColor: 'primary',
-      onConfirm: () => this.changeStatus('valide'),
+      title: this.translate.instant('plans.lifecycle.warnings.cancelRevisionTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.cancelRevisionWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.cancelRevision'),
+      confirmColor: 'warn',
+      onConfirm: () => this.endRevision(),
     });
+  }
+
+  private startRevision(nextRangPlanId?: number | null): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.startPlanRevision(p.id_pg, nextRangPlanId ?? null).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.revisionStarted'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        this.loadPlan();
+      },
+      error: (err) => {
+        const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.revisionError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  private endRevision(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.endPlanRevision(p.id_pg).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.revisionEnded'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        this.loadPlan();
+      },
+      error: (err) => {
+        const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.revisionError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  /** #278 — Indique si le plan est en cours de révision. */
+  isPlanInRevision = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && p.en_revision);
+  });
+
+  /** #276 — Indique si CE plan porte le drapeau évaluation mi-parcours. */
+  isPlanMiParcours = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && p.is_mi_parcours);
+  });
+
+  /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours
+   *  (sur n'importe laquelle de ses versions). Bloque la création d'une
+   *  nouvelle éval mi-parcours. */
+  chainHasMiParcours = computed<boolean>(() => {
+    const p = this.plan();
+    if (!p) return false;
+    const chain = p.version_chain ?? [];
+    return chain.some(item => item.is_mi_parcours);
+  });
+
+  /** #276 — Vrai si on peut proposer le bouton « Lancer évaluation mi-parcours » :
+   *  le plan est validé (`valide`/`modifie`) et aucune éval mi-parcours
+   *  n'existe encore dans la chaîne ET aucun brouillon enfant déjà ouvert. */
+  canStartMiParcours = computed<boolean>(() => {
+    const p = this.plan();
+    if (!p) return false;
+    const eligible = p.statut === 'valide' || p.statut === 'modifie';
+    return eligible && !this.chainHasMiParcours() && !p.has_draft_child;
+  });
+
+  /** Vrai si on peut créer une nouvelle version (brouillon) à partir de
+   *  ce plan : statut validable + pas de brouillon enfant déjà en cours.
+   *  Calculé côté serveur (`can_create_modification`). */
+  canCreateNewVersion = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && p.can_create_modification);
+  });
+
+  /**
+   * #276 — Ouvre la modale de lancement d'une évaluation mi-parcours.
+   * 2 options : créer un brouillon EVAL_MI_PARCOURS, ou lier à un brouillon
+   * existant. Après confirmation, navigue vers le brouillon.
+   */
+  openStartMiParcoursDialog(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const dialogRef = this.dialog.open<
+      StartMiParcoursDialogComponent,
+      StartMiParcoursDialogData,
+      StartMiParcoursDialogResult
+    >(StartMiParcoursDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { plan: p },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result || result.mode === 'cancel') return;
+
+      const targetSlug = result.mode === 'create' ? result.newPlanSlug : result.linkedPlanSlug;
+      if (!targetSlug) return;
+
+      this.snackBar.open(
+        this.translate.instant(
+          result.mode === 'create'
+            ? 'plans.lifecycle.messages.miParcoursCreated'
+            : 'plans.lifecycle.messages.miParcoursLinked'
+        ),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+      this.router.navigate(['/plans', targetSlug]);
+    });
+  }
+
+  /**
+   * Ouvre la modale « Créer une nouvelle version » : duplique le plan validé
+   * pour produire un brouillon enfant (même rang, version+1). Workflow
+   * standard pour créer une nouvelle modification d'un plan validé.
+   */
+  openCreateNewVersionDialog(): void {
+    const p = this.plan();
+    if (!p) return;
+
+    const data: DuplicatePlanDialogData = {
+      planId: p.id_pg,
+      planName: p.nom,
+      planPeriod: this.formatPeriod(p),
+      planStatus: this.translate.instant('plans.status.' + p.statut),
+      nbSites: (p.sites || []).length,
+    };
+
+    const dialogRef = this.dialog.open(DuplicatePlanDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      data,
+    });
+
+    dialogRef.afterClosed().subscribe((result: DuplicatePlanDialogResult) => {
+      if (!result?.confirmed || !result.options) return;
+      this.adminService.duplicatePlan(p.id_pg, result.options).subscribe({
+        next: (newPlan) => {
+          this.snackBar.open(
+            this.translate.instant('plans.duplicate.success'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          if (newPlan.slug) {
+            this.router.navigate(['/plans', newPlan.slug]);
+          }
+        },
+        error: (err) => {
+          const detail = err?.error?.error || this.translate.instant('plans.duplicate.error');
+          this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+        },
+      });
+    });
+  }
+
+  /** Formatte la période d'un plan pour les modales (string lisible). */
+  private formatPeriod(plan: AdminPlan): string {
+    if (plan.annee_debut && plan.annee_fin) {
+      return `${plan.annee_debut} - ${plan.annee_fin}`;
+    }
+    if (plan.annee_debut) return `Depuis ${plan.annee_debut}`;
+    if (plan.annee_fin) return `Jusqu'en ${plan.annee_fin}`;
+    return '—';
   }
 
   // ==================== #277 — Workflow CSRPN ====================
@@ -704,7 +915,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       planName: p?.nom ?? '',
       isRnn: this.isRnn(),
       canDeclareMiParcours: !!(p?.plan_parent_id) && !(p?.version_chain || []).some(
-        v => v.id_pg !== p.id_pg && v.statut === 'mi_parcours',
+        v => v.id_pg !== p.id_pg && v.is_mi_parcours,
       ),
     };
     return this.dialog
@@ -741,8 +952,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * #250 — Étendu → Validé : annule l'extension en repassant en statut validé.
-   * Le champ `annees_extension` est conservé jusqu'à la prochaine extension.
+   * #250 — Retire l'extension d'un plan (annees_extension → 0). Le statut
+   * du plan n'est pas modifié : l'extension est un attribut indépendant.
    */
   confirmRevertExtension(): void {
     this.openLifecycleConfirm({
@@ -750,7 +961,26 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       message: this.translate.instant('plans.lifecycle.warnings.revertExtensionWarning'),
       confirmText: this.translate.instant('plans.lifecycle.actions.revertExtension'),
       confirmColor: 'warn',
-      onConfirm: () => this.changeStatus('valide'),
+      onConfirm: () => this.removeExtension(),
+    });
+  }
+
+  private removeExtension(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.removePlanExtension(p.id_pg).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.extensionRemoved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        this.loadPlan();
+      },
+      error: (err) => {
+        const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.extensionError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
     });
   }
 

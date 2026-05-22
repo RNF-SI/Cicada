@@ -34,8 +34,29 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | POST | `/api/plans/plans/{id}/change-status/` | Changer le statut d'un plan |
-| POST | `/api/plans/plans/{id}/create-evaluation/` | Créer une évaluation mi-parcours |
-| POST | `/api/plans/plans/{id}/duplicate/` | Dupliquer un plan |
+| POST | `/api/plans/plans/{id}/create-evaluation/` | Créer un brouillon d'évaluation mi-parcours |
+| POST | `/api/plans/plans/{id}/create-next-rang/` | Créer un brouillon du rang suivant |
+| POST | `/api/plans/plans/{id}/duplicate/` | Créer une nouvelle version (brouillon enfant) |
+| POST | `/api/plans/plans/{id}/extend-duration/` | Prolonger de 1 ou 2 années (`annees_extension`) |
+| POST | `/api/plans/plans/{id}/remove-extension/` | Retirer l'extension |
+| POST | `/api/plans/plans/{id}/start-revision/` | Marquer en cours de révision (`en_revision`) |
+| POST | `/api/plans/plans/{id}/end-revision/` | Annuler la révision |
+
+### Statuts et attributs orthogonaux
+
+**Statuts** (`statut`) : `draft`, `avis_csrpn`, `comite_consultatif`, `arrete_pref`, `valide`, `modifie`, `archive`.
+
+**Attributs orthogonaux** (un plan validé peut les cumuler) :
+- `annees_extension` (0, 1, 2) — extension de durée (#250)
+- `en_revision` (bool) — rang suivant en rédaction (#278)
+- `is_mi_parcours` (bool, unique par chaîne) — évaluation mi-parcours déclarée (#276)
+
+**Règles de chaîne** :
+- Un seul **brouillon enfant** par parent (`has_draft_child`)
+- Parents éligibles : `valide`, `modifie`, `archive`
+- `toDraft` refusé si le plan a des descendants → utiliser « Créer nouvelle version »
+- Validation d'un brouillon cascade automatiquement les parents en draft
+- Version (`version`) scopée au rang : repart à `1` quand le rang change
 
 ### Fichiers de plans
 
@@ -630,9 +651,15 @@ La pagination utilise le format standard de Django REST Framework :
 
 **POST /api/plans/plans/{id}/change-status/**
 
-Transitions autorisées : `draft → valide`, `valide → draft`, `valide → archive`, `archive → valide`
+Transitions autorisées : `draft → valide`, `valide ↔ draft` (uniquement si pas de descendants), `valide → archive`, `archive → valide`, workflow CSRPN (`draft → avis_csrpn → comite_consultatif → arrete_pref → valide`).
 
 **Permission** : Référent du plan, admin_og ou super_admin
+
+**Règles importantes** :
+- `valide/modifie → draft` est **refusé** si le plan a au moins un descendant (la chaîne ne peut pas reculer)
+- À la transition `draft → valide`, si le plan a un `plan_parent` validé, le statut cible devient `modifie` automatiquement (#275)
+- Le flag `is_mi_parcours` à la validation route vers `statut='modifie', is_mi_parcours=True` (mi-parcours déclarée, unique par chaîne)
+- Validation d'un brouillon cascade automatiquement la validation de tous ses parents en draft
 
 ```bash
 curl -X POST http://localhost:8000/api/plans/plans/1/change-status/ \

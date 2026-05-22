@@ -196,15 +196,58 @@ describe('PlanVersionTimelineComponent', () => {
       expect(component.isNextRangDraft(unknown)).toBe(false);
     });
 
-    it('applique la classe CSS .next-rang-draft sur le DOM', () => {
+    it('rend un header cliquable pour le rang suivant (pas de timeline-node-row)', () => {
       component.chain = [
         createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true }),
-        createChainItem({ id_pg: 2, statut: 'draft', rang: 2 }),
+        createChainItem({ id_pg: 2, statut: 'draft', rang: 2, slug: 'rang-2-draft' }),
       ];
       fixture.detectChanges();
+      // Le rang courant montre 1 timeline-node-row, le rang suivant montre un header link
       const nodes = fixture.nativeElement.querySelectorAll('.timeline-node-row');
-      expect(nodes[0].classList.contains('next-rang-draft')).toBe(false);
-      expect(nodes[1].classList.contains('next-rang-draft')).toBe(true);
+      expect(nodes.length).toBe(1);
+      const nextRangLink = fixture.nativeElement.querySelector('.rang-next .rang-header-link');
+      expect(nextRangLink).toBeTruthy();
+    });
+  });
+
+  // ==================== rangGroups (sections par rang) ====================
+
+  describe('rangGroups', () => {
+    it('regroupe les items par rang et marque previous/current/next', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'archive' }),
+        createChainItem({ id_pg: 2, rang: 2, statut: 'valide', is_current: true }),
+        createChainItem({ id_pg: 3, rang: 3, statut: 'draft' }),
+      ];
+      fixture.detectChanges();
+      const groups = component.rangGroups();
+      expect(groups.length).toBe(3);
+      expect(groups[0].position).toBe('previous');
+      expect(groups[1].position).toBe('current');
+      expect(groups[2].position).toBe('next');
+    });
+
+    it('choisit la dernière version validée comme cible de navigation', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'archive', version: '1' }),
+        createChainItem({ id_pg: 2, rang: 1, statut: 'archive', version: '2' }),
+        createChainItem({ id_pg: 3, rang: 2, statut: 'valide', is_current: true }),
+      ];
+      fixture.detectChanges();
+      const previous = component.rangGroups().find(g => g.position === 'previous');
+      expect(previous?.navigationTarget?.id_pg).toBe(2);  // v2 archive
+    });
+
+    it('prefere valide/modifie a archive a draft pour la navigation', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'valide', is_current: true }),
+        createChainItem({ id_pg: 2, rang: 2, statut: 'draft', version: '1' }),
+        createChainItem({ id_pg: 3, rang: 2, statut: 'archive', version: '2' }),
+        createChainItem({ id_pg: 4, rang: 2, statut: 'modifie', version: '3' }),
+      ];
+      fixture.detectChanges();
+      const next = component.rangGroups().find(g => g.position === 'next');
+      expect(next?.navigationTarget?.id_pg).toBe(4);  // modifie wins
     });
   });
 });

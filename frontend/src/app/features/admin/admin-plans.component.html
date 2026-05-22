@@ -72,7 +72,6 @@
         <option value="">{{ 'common.filters.allStatus' | translate }}</option>
         <option value="draft">{{ 'admin.plans.status.draft' | translate }}</option>
         <option value="valide">{{ 'admin.plans.status.valide' | translate }}</option>
-        <option value="etendu">{{ 'admin.plans.status.etendu' | translate }}</option>
         <option value="archive">{{ 'admin.plans.status.archive' | translate }}</option>
       </select>
 
@@ -134,15 +133,30 @@
                     @case ('valide') {
                       <i class="fi fi-rr-check"></i>
                     }
-                    @case ('etendu') {
-                      <i class="fi fi-rr-time-add"></i>
-                    }
                     @case ('archive') {
                       <i class="fi fi-rr-archive"></i>
                     }
                   }
                   {{ plan.statutLabel }}
                 </span>
+                @if (plan.annees_extension && plan.annees_extension > 0) {
+                  <span class="extension-badge">
+                    <i class="fi fi-rr-time-add"></i>
+                    {{ getExtensionBadgeKeyForPlan(plan) | translate }} +{{ plan.annees_extension }}{{ plan.annees_extension > 1 ? ' ans' : ' an' }}
+                  </span>
+                }
+                @if (plan.en_revision) {
+                  <span class="revision-badge">
+                    <i class="fi fi-rr-refresh"></i>
+                    {{ 'plans.revision.badge' | translate }}
+                  </span>
+                }
+                @if (plan.is_mi_parcours) {
+                  <span class="mi-parcours-badge">
+                    <i class="fi fi-rr-time-forward"></i>
+                    {{ 'plans.miParcours.badge' | translate }}
+                  </span>
+                }
               </td>
 
               <!-- Periode -->

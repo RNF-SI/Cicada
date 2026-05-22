@@ -944,7 +944,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='duplicate')
     def duplicate(self, request, pk=None):
         """
-        Dupliquer un plan de gestion.
+        Dupliquer un plan de gestion pour en créer une nouvelle version
+        (brouillon enfant, même rang). Sert au workflow « créer une nouvelle
+        modification » à partir d'un plan validé.
 
         POST /api/plans/plans/{id}/duplicate/
         Body: {
@@ -954,13 +956,23 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             "copy_enjeux": true,
             "copy_sub_elements": true
         }
+
+        Conditions :
+        - Source dans DRAFTABLE_PARENT_STATUSES (valide / modifie / archive).
+        - Pas de brouillon enfant déjà présent (règle « un brouillon max
+          par parent en même temps »).
         """
         plan = self.get_object()
 
-        # Seuls les plans validés peuvent servir de base
-        if plan.statut != 'valide':
+        if plan.statut not in PlanGestion.DRAFTABLE_PARENT_STATUSES:
             return Response(
-                {'error': 'Seuls les plans validés peuvent servir de base pour créer un nouveau plan.'},
+                {'error': "Seuls les plans validés (validé, modifié ou archivé) peuvent servir de base pour créer un nouveau plan."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if plan.has_draft_child():
+            return Response(
+                {'error': "Un brouillon est déjà en cours sur ce plan. Validez ou supprimez le brouillon existant avant d'en créer un nouveau."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1019,15 +1031,16 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                           status=status.HTTP_400_BAD_REQUEST)
 
         # Vérifier les transitions autorisées
-        # Note : `valide → etendu` passe par l'endpoint `extend-duration` (#250),
-        # pas par `change-status`.
-        # #278 — `en_revision` : plan validé en fin de cycle.
+        # Note : l'extension de durée (#250) et la mise en révision (#278)
+        # sont des attributs orthogonaux (`annees_extension`, `en_revision`),
+        # gérés par les endpoints `extend-duration`/`remove-extension` et
+        # `start-revision`/`end-revision`. Ils ne changent pas le statut.
         # #275 / #276 — `modifie` et `mi_parcours` sont des cibles dérivées de
         # `valide` selon `is_modification` et le flag `is_mi_parcours`.
         # #277 — Workflow CSRPN (`avis_csrpn` → `comite_consultatif` →
         # éventuellement `arrete_pref` si RNN → `valide`/`modifie`/`mi_parcours`).
         current = plan.statut
-        validated_set = ['archive', 'draft', 'en_revision', 'avis_csrpn']
+        validated_set = ['archive', 'draft', 'avis_csrpn']
         # Le retour en `draft` est autorisé depuis tout statut CSRPN (annulation).
         csrpn_back = ['draft']
         allowed_transitions = {
@@ -1037,9 +1050,6 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             'arrete_pref': csrpn_back + ['valide'],
             'valide': validated_set,
             'modifie': validated_set,
-            'mi_parcours': validated_set,
-            'etendu': ['archive', 'valide', 'en_revision'],
-            'en_revision': ['valide', 'archive'],
             'archive': ['valide'],
         }
 
@@ -1065,10 +1075,27 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Règle « toDraft uniquement sur la feuille de chaîne » : un plan
+        # validé/modifié ne peut être repassé en brouillon que s'il n'a
+        # AUCUN descendant direct. Sinon on créerait une chaîne incohérente
+        # où un brouillon a des descendants validés/archivés.
+        if new_status == 'draft' and current in ('valide', 'modifie') and plan.children.exists():
+            return Response(
+                {'error': (
+                    "Impossible de repasser ce plan en brouillon : il a déjà "
+                    "des versions ultérieures. Pour modifier ce plan, "
+                    "créez une nouvelle version (brouillon enfant) à la place."
+                )},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # #275 / #276 — Routage du `valide` cible selon la position dans la
         # chaîne plan_parent et le flag `is_mi_parcours`. Ce routage s'applique
         # quelle que soit la source : `draft → valide`, `comite_consultatif → valide`
         # ou `arrete_pref → valide`.
+        # Depuis #276 (refonte) : `mi_parcours` n'est plus un statut, c'est un
+        # attribut bool `is_mi_parcours` qui s'ajoute à `statut='modifie'`.
+        set_mi_parcours_flag = False
         if new_status == 'valide' and current in ('draft', 'comite_consultatif', 'arrete_pref') and plan.is_modification():
             if is_mi_parcours:
                 if plan.chain_has_mi_parcours():
@@ -1076,9 +1103,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         {'error': "Une évaluation mi-parcours existe déjà dans la chaîne du plan."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                new_status = 'mi_parcours'
-            else:
-                new_status = 'modifie'
+                set_mi_parcours_flag = True
+            new_status = 'modifie'
         elif is_mi_parcours:
             # Le flag n'a de sens que sur la validation d'un brouillon issu
             # d'une modification.
@@ -1093,6 +1119,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         # #277 — Persister les métadonnées CSRPN éventuellement transmises.
         update_fields = ['statut', 'id_utilisateur_maj', 'date_maj']
+
+        # #276 — Poser le drapeau is_mi_parcours si demandé à la validation.
+        if set_mi_parcours_flag:
+            plan.is_mi_parcours = True
+            update_fields.append('is_mi_parcours')
         if date_avis_csrpn is not None:
             plan.date_avis_csrpn = date_avis_csrpn or None
             update_fields.append('date_avis_csrpn')
@@ -1107,6 +1138,38 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             update_fields.append('numero_arrete_pref')
 
         plan.save(update_fields=update_fields)
+
+        # Règle « cascade de validation vers l'amont » : valider un brouillon
+        # implique que son parent soit lui-même validé. Sous la Règle 2
+        # (toDraft bloqué si descendants), ce filet ne devrait jamais
+        # déclencher en pratique — c'est une sécurité pour la cohérence
+        # des chaînes au cas où un parent serait en brouillon.
+        if new_status in ('valide', 'modifie') and plan.plan_parent_id:
+            ancestor = plan.plan_parent
+            cascaded = []
+            while ancestor is not None and ancestor.statut == 'draft':
+                ancestor.statut = 'valide'
+                ancestor.id_utilisateur_maj = request.user
+                ancestor.save(update_fields=['statut', 'id_utilisateur_maj', 'date_maj'])
+                cascaded.append(ancestor.nom)
+                ancestor = ancestor.plan_parent
+            if cascaded:
+                try:
+                    from apps.core.services import ActivityService
+                    for nom in cascaded:
+                        ActivityService.log(
+                            user=request.user,
+                            action='status_change',
+                            entity_type='plan',
+                            entity_id=plan.id_pg,
+                            entity_name=nom,
+                            description=(
+                                f"Validation en cascade : '{nom}' "
+                                f"automatiquement validé lors de la validation de '{plan.nom}'"
+                            ),
+                        )
+                except Exception:
+                    pass
 
         # Log activity
         try:
@@ -1150,12 +1213,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         Conditions :
         - Référent du plan, admin_og ou super_admin.
-        - Plan en statut `valide` uniquement (pas de double extension).
+        - Plan dans un statut validé (`valide`, `modifie`, `mi_parcours`,
+          `en_revision`). Pas de double extension (annees_extension == 0).
         - Date courante ∈ [annee_fin - 1, annee_fin + 2] (fenêtre de déclenchement).
         - `years` ∈ {1, 2}.
 
-        Effet : statut → `etendu`, `annees_extension` = N. Le plan redevient
-        éditable (permission #248 autorise `etendu` au même titre que `draft`).
+        Effet : `annees_extension` = N. Le statut du plan n'est PAS modifié :
+        « étendu » est un attribut orthogonal au statut. Le plan reste donc
+        verrouillé en lecture seule par #248 si son statut !== `draft`.
         """
         from datetime import date
 
@@ -1169,10 +1234,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Statut compatible.
-        if plan.statut != 'valide':
+        # Statut compatible : tout statut post-validation hors archive.
+        if plan.statut not in PlanGestion.EXTENDABLE_STATUSES:
             return Response(
-                {'error': "Seul un plan au statut 'validé' peut être prolongé."},
+                {'error': "Seul un plan validé (validé, modifié, mi-parcours ou en révision) peut être prolongé."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pas de double extension.
+        if plan.annees_extension and plan.annees_extension > 0:
+            return Response(
+                {'error': "Ce plan est déjà prolongé."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1206,27 +1278,325 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        plan.statut = 'etendu'
         plan.annees_extension = years
         plan.id_utilisateur_maj = request.user
-        plan.save(update_fields=['statut', 'annees_extension', 'id_utilisateur_maj', 'date_maj'])
+        plan.save(update_fields=['annees_extension', 'id_utilisateur_maj', 'date_maj'])
 
         # Log activity
         try:
             from apps.core.services import ActivityService
             ActivityService.log(
                 user=request.user,
-                action='status_change',
+                action='update',
                 entity_type='plan',
                 entity_id=plan.id_pg,
                 entity_name=plan.nom,
-                description=f"Plan prolongé de {years} an{'s' if years > 1 else ''} (statut → étendu)",
+                description=f"Plan prolongé de {years} an{'s' if years > 1 else ''}",
             )
         except Exception:
             pass
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='remove-extension',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def remove_extension(self, request, pk=None):
+        """
+        Retirer l'extension de durée d'un plan (#250).
+
+        POST /api/plans/plans/{id}/remove-extension/
+
+        Repasse `annees_extension` à 0 sans toucher au statut. Réservé aux
+        référents du plan, admin_og et super_admin.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour retirer son extension.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not plan.is_extended():
+            return Response(
+                {'error': "Ce plan n'est pas prolongé."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_years = plan.annees_extension
+        plan.annees_extension = 0
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['annees_extension', 'id_utilisateur_maj', 'date_maj'])
+
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='update',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Extension de {old_years} an(s) retirée",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='start-revision',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def start_revision(self, request, pk=None):
+        """
+        Marquer un plan validé comme « en cours de révision » (#278).
+
+        POST /api/plans/plans/{id}/start-revision/
+        Body (optionnel): {"next_rang_plan_id": <id>}
+
+        Met `en_revision` à True et lie éventuellement le plan du rang suivant.
+        Ne modifie pas le statut : le plan reste validé fonctionnellement.
+        La révision peut être lancée avant ou après le dépassement de
+        `annee_fin` — pas de contrainte de fenêtre temporelle.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour lancer sa révision.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if plan.statut not in PlanGestion.EXTENDABLE_STATUSES:
+            return Response(
+                {'error': "Seul un plan validé (validé, modifié ou mi-parcours) peut entrer en révision."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if plan.en_revision:
+            return Response(
+                {'error': "Ce plan est déjà en cours de révision."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Lien éventuel vers le brouillon du rang suivant
+        next_rang_plan_id = request.data.get('next_rang_plan_id')
+        next_rang_plan = None
+        if next_rang_plan_id is not None:
+            try:
+                next_rang_plan = PlanGestion.objects.get(pk=next_rang_plan_id)
+            except PlanGestion.DoesNotExist:
+                return Response(
+                    {'error': f"Plan id={next_rang_plan_id} introuvable."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if next_rang_plan.pk == plan.pk:
+                return Response(
+                    {'error': "Un plan ne peut pas être son propre rang suivant."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        plan.en_revision = True
+        if next_rang_plan is not None:
+            plan.next_rang_plan = next_rang_plan
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['en_revision', 'next_rang_plan', 'id_utilisateur_maj', 'date_maj'])
+
+        try:
+            from apps.core.services import ActivityService
+            link_info = f" (rang suivant : {next_rang_plan.nom})" if next_rang_plan else ""
+            ActivityService.log(
+                user=request.user,
+                action='update',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Plan placé en cours de révision{link_info}",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='end-revision',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def end_revision(self, request, pk=None):
+        """
+        Arrêter la révision d'un plan (#278).
+
+        POST /api/plans/plans/{id}/end-revision/
+
+        Repasse `en_revision` à False et retire le lien `next_rang_plan`.
+        Le statut du plan n'est pas modifié.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour arrêter sa révision.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not plan.en_revision:
+            return Response(
+                {'error': "Ce plan n'est pas en cours de révision."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        plan.en_revision = False
+        plan.next_rang_plan = None
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=['en_revision', 'next_rang_plan', 'id_utilisateur_maj', 'date_maj'])
+
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='update',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description="Révision arrêtée",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='create-next-rang',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def create_next_rang(self, request, pk=None):
+        """
+        Créer un brouillon du rang suivant à partir d'un plan validé (#278).
+
+        POST /api/plans/plans/{id}/create-next-rang/
+        Body (optionnel) : {
+            "nom": str,           # défaut: "Plan de gestion - rang N+1 - <source>"
+            "annee_debut": int,   # défaut: plan.annee_fin + 1
+            "annee_fin": int,     # défaut: plan.annee_fin + 10
+        }
+
+        Le plan source doit être validé (`valide`/`modifie`/`mi_parcours`).
+        Accessible aux référents du plan, admin_og+.
+
+        Crée un nouveau plan enfant avec :
+        - `plan_parent` = plan source
+        - `rang` = plan.rang + 1
+        - `id_type_document` = PLAN_REVISE
+        - `statut` = draft
+        - Copie des sites et référents
+
+        Utilisé notamment lors du lancement d'une révision (#278) pour
+        matérialiser le brouillon du rang suivant.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': 'Vous devez être référent de ce plan pour créer son rang suivant.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if plan.statut not in PlanGestion.DRAFTABLE_PARENT_STATUSES:
+            return Response(
+                {'error': "Le rang suivant ne peut être créé que depuis un plan validé (validé, modifié ou archivé)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if plan.has_draft_child():
+            return Response(
+                {'error': "Un brouillon est déjà en cours sur ce plan. Validez ou supprimez le brouillon existant avant d'en créer un nouveau."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.core.models import Nomenclature
+        try:
+            revise_type = Nomenclature.objects.get(mnemonique='PLAN_REVISE')
+        except Nomenclature.DoesNotExist:
+            return Response(
+                {'error': "Nomenclature PLAN_REVISE non trouvée. Lancez 'python manage.py import_nomenclatures --force'."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Paramètres avec valeurs par défaut dérivées du plan source
+        annee_debut_source = plan.annee_fin + 1 if plan.annee_fin else None
+        annee_fin_source = plan.annee_fin + 10 if plan.annee_fin else None
+        new_rang = (plan.rang or 1) + 1
+
+        nom = request.data.get('nom') or f"Plan de gestion rang {new_rang} - {plan.nom}"
+        try:
+            annee_debut = request.data.get('annee_debut')
+            annee_debut = int(annee_debut) if annee_debut is not None else annee_debut_source
+        except (TypeError, ValueError):
+            annee_debut = annee_debut_source
+        try:
+            annee_fin = request.data.get('annee_fin')
+            annee_fin = int(annee_fin) if annee_fin is not None else annee_fin_source
+        except (TypeError, ValueError):
+            annee_fin = annee_fin_source
+
+        # Nouveau rang → nouvelle numérotation (v1). Un changement de rang
+        # correspond à un NOUVEAU plan de gestion, pas à une nouvelle version.
+        new_plan = PlanGestion.objects.create(
+            nom=nom,
+            plan_parent=plan,
+            id_type_document=revise_type,
+            statut='draft',
+            version=plan.get_first_version_for_next_rang(),
+            annee_debut=annee_debut,
+            annee_fin=annee_fin,
+            rang=new_rang,
+            surface=plan.surface,
+            gestion_partagee=plan.gestion_partagee,
+            ct88=plan.ct88,
+            risque_incendie=plan.risque_incendie,
+            id_redacteur_type=plan.id_redacteur_type,
+            redacteur_nom=plan.redacteur_nom,
+            id_utilisateur_ajout=request.user,
+            id_utilisateur_maj=request.user,
+        )
+
+        # Copier les sites
+        for cor_site in plan.sites.all():
+            CorSitePg.objects.create(
+                plan_de_gestion=new_plan,
+                site=cor_site.site,
+                rang=cor_site.rang,
+            )
+
+        # Copier les référents
+        new_plan.referents.set(plan.referents.all())
+
+        # Copier les membres (CorRolePlan)
+        from .models import CorRolePlan
+        for membre in plan.membres.all():
+            CorRolePlan.objects.create(
+                id_role=membre.id_role,
+                plan_de_gestion=new_plan,
+                referent=membre.referent,
+            )
+
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='create',
+                entity_type='plan',
+                entity_id=new_plan.id_pg,
+                entity_name=new_plan.nom,
+                description=f"Brouillon du rang {new_rang} créé depuis '{plan.nom}'",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(new_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='create-evaluation',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
@@ -1255,9 +1625,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if plan.statut != 'valide':
+        if plan.statut not in PlanGestion.DRAFTABLE_PARENT_STATUSES:
             return Response(
-                {'error': "Seul un plan validé peut donner lieu à une évaluation"},
+                {'error': "Seul un plan validé (validé, modifié ou archivé) peut donner lieu à une évaluation."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if plan.has_draft_child():
+            return Response(
+                {'error': "Un brouillon est déjà en cours sur ce plan. Validez ou supprimez le brouillon existant avant d'en créer un nouveau."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

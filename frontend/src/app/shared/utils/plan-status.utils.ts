@@ -2,39 +2,42 @@ import { PlanStatut } from '../../core/models/admin.model';
 
 /**
  * Mnémonique des types de sites (nomenclature `TYPE_SITE`) qui pilote le
- * libellé contextuel du statut `etendu` côté UI (#281).
+ * libellé contextuel du badge d'extension d'un plan (#281).
  */
 export type SiteTypeMnemonique = 'RNN' | 'RNR' | 'PNR' | 'ENS' | 'ENSD' | string;
 
 /**
- * Calcule la clé i18n du statut d'un plan en tenant compte du type d'aire
- * protégée du site principal (#281).
+ * Clé i18n du statut d'un plan.
  *
- * - RNN / RNR  → `plans.status.etendu_rnn`  ("Plan prolongé")
- * - PNR        → `plans.status.etendu_pnr`  ("Plan en renouvellement")
- * - ENS / ENSD → `plans.status.etendu_ens`  ("Plan étendu")
- * - défaut     → `plans.status.etendu`       ("Étendu")
- *
- * Pour tous les autres statuts, on retourne la clé `plans.status.<statut>`
- * sans contextualisation.
+ * Depuis le retour de test #250, l'extension n'est plus un statut mais un
+ * attribut indépendant (annees_extension). On retourne donc systématiquement
+ * la clé brute `plans.status.<statut>`. Le badge "Étendu" éventuel est géré
+ * séparément via {@link getExtensionBadgeKey}.
  */
-export function getPlanStatusKey(
-  statut: PlanStatut | string,
-  siteTypeMnemonique?: string | null,
-): string {
-  if (statut !== 'etendu') {
-    return `plans.status.${statut}`;
-  }
+export function getPlanStatusKey(statut: PlanStatut | string): string {
+  return `plans.status.${statut}`;
+}
+
+/**
+ * Clé i18n du badge "Étendu" affiché en complément du statut, lorsque
+ * `annees_extension > 0`. Le libellé est contextualisé selon le type de site
+ * principal du plan (#281) :
+ * - RNN / RNR  → `plans.extension.badge_rnn`  ("Plan prolongé")
+ * - PNR        → `plans.extension.badge_pnr`  ("Plan en renouvellement")
+ * - ENS / ENSD → `plans.extension.badge_ens`  ("Plan étendu")
+ * - défaut     → `plans.extension.badge`       ("Étendu")
+ */
+export function getExtensionBadgeKey(siteTypeMnemonique?: string | null): string {
   switch ((siteTypeMnemonique || '').toUpperCase()) {
     case 'RNN':
     case 'RNR':
-      return 'plans.status.etendu_rnn';
+      return 'plans.extension.badge_rnn';
     case 'PNR':
-      return 'plans.status.etendu_pnr';
+      return 'plans.extension.badge_pnr';
     case 'ENS':
     case 'ENSD':
-      return 'plans.status.etendu_ens';
+      return 'plans.extension.badge_ens';
     default:
-      return 'plans.status.etendu';
+      return 'plans.extension.badge';
   }
 }

@@ -250,12 +250,31 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     // force une hauteur uniforme entre les enfants directs. Sans cela,
     // l'enjeu le plus dense (le plus de feuilles) écrase visuellement les
     // enjeux légers (FCR, enjeux géologiques sans OO/OLT) et les pousse
-    // sous la fenêtre. Les niveaux suivants conservent leur poids habituel.
+    // sous la fenêtre.
+    //
+    // d3.partition divise l'espace au prorata de `child.value / parent.value`.
+    // Si on se contente de réécrire les `value` des enfants sans propager le
+    // nouveau total à `hierarchy.value`, la somme des x-extent dépasse celle
+    // de la racine et les derniers enfants débordent hors du SVG (cells 4–8
+    // hors viewport sur un plan de 8 enjeux/FCR). On rééchelonne donc
+    // chaque sous-arbre direct par un facteur uniforme pour que tous les
+    // depth-1 totalisent la même valeur, puis on met à jour `hierarchy.value`.
+    // Les ratios internes à chaque sous-arbre (depth-2+) sont préservés.
     if (hierarchy.children && hierarchy.children.length > 1) {
-      const maxChildVal = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
+      const targetValue = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
       for (const child of hierarchy.children) {
-        (child as any).value = maxChildVal;
+        const currentValue = (child as any).value || 1;
+        if (currentValue !== targetValue) {
+          const scale = targetValue / currentValue;
+          child.each((d: any) => {
+            d.value = (d.value || 0) * scale;
+          });
+        }
       }
+      (hierarchy as any).value = hierarchy.children.reduce(
+        (s, c) => s + ((c as any).value || 0),
+        0,
+      );
     }
 
     hierarchy.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
@@ -467,14 +486,26 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     const ySpan = maxDescY1 - focus.y0;
     const yScale = (focus === rootNode) ? 1 : (ySpan > 0 ? viewWidth / ySpan : 1);
 
-    partitionRoot.each((d: any) => {
-      d.target = {
-        x0: ((d.x0 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-        x1: ((d.x1 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-        y0: ((d.y0 as number) - focus.y0) * yScale,
-        y1: ((d.y1 as number) - focus.y0) * yScale
-      };
-    });
+    // #190 : quand on revient à la racine, restaurer exactement les positions
+    // d'origine (target = d). La formule générale introduit un offset de
+    // `padding` (1 px) car d3.partition met root.x0/y0 à `padding` plutôt qu'à
+    // 0. Ce 1 px suffit à faire échouer le check `target.y0 + offsetX >= 0`
+    // dans typeVisible et masque le label "Enjeu"/"Opération" de la première
+    // colonne après un click-in/click-out.
+    if (focus === rootNode) {
+      partitionRoot.each((d: any) => {
+        d.target = { x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1 };
+      });
+    } else {
+      partitionRoot.each((d: any) => {
+        d.target = {
+          x0: ((d.x0 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
+          x1: ((d.x1 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
+          y0: ((d.y0 as number) - focus.y0) * yScale,
+          y1: ((d.y1 as number) - focus.y0) * yScale
+        };
+      });
+    }
 
     // Quand on quitte la racine, on ramène le wrapper à offset=0 pour que la
     // cellule focus (target.y0 = 0) s'affiche bien à x=0. Quand on revient à

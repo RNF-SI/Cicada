@@ -63,9 +63,10 @@ export class StatusChangeDialogComponent {
 
       case 'valide':
       case 'modifie':
-      case 'mi_parcours':
-        // Mêmes actions pour les 3 statuts "validés" (#275 / #276) :
+        // Mêmes actions pour les 2 statuts "validés" (#275) :
         // verrouillage en lecture seule identique au valide.
+        // Note : la mise en révision (#278) et le drapeau mi-parcours (#276)
+        // sont des attributs orthogonaux gérés par des endpoints dédiés.
         actions.push({
           action: 'change_status',
           label: this.translate.instant('plans.lifecycle.actions.toDraft'),
@@ -73,14 +74,6 @@ export class StatusChangeDialogComponent {
           icon: 'fi-rr-undo',
           colorClass: 'action-warning',
           newStatus: 'draft',
-        });
-        actions.push({
-          action: 'change_status',
-          label: this.translate.instant('plans.lifecycle.actions.enRevision'),
-          description: this.translate.instant('plans.lifecycle.actions.enRevisionDesc'),
-          icon: 'fi-rr-refresh',
-          colorClass: 'action-info',
-          newStatus: 'en_revision',
         });
         actions.push({
           action: 'change_status',
@@ -96,25 +89,6 @@ export class StatusChangeDialogComponent {
           description: this.translate.instant('plans.lifecycle.actions.createEvaluationDesc'),
           icon: 'fi-rr-time-forward',
           colorClass: 'action-terra-cotta',
-        });
-        break;
-
-      case 'en_revision':
-        actions.push({
-          action: 'change_status',
-          label: this.translate.instant('plans.lifecycle.actions.resumeFromRevision'),
-          description: this.translate.instant('plans.lifecycle.actions.resumeFromRevisionDesc'),
-          icon: 'fi-rr-undo',
-          colorClass: 'action-success',
-          newStatus: 'valide',
-        });
-        actions.push({
-          action: 'change_status',
-          label: this.translate.instant('plans.lifecycle.actions.archive'),
-          description: this.translate.instant('plans.lifecycle.actions.archiveDesc'),
-          icon: 'fi-rr-box',
-          colorClass: 'action-neutral',
-          newStatus: 'archive',
         });
         break;
 
@@ -143,8 +117,6 @@ export class StatusChangeDialogComponent {
       valide: 'status-success',
       modifie: 'status-success',
       mi_parcours: 'status-success',
-      etendu: 'status-info',
-      en_revision: 'status-info',
       archive: 'status-neutre',
     };
     return classes[this.data.currentStatus] || '';

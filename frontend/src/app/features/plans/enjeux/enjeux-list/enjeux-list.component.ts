@@ -122,11 +122,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    *  #277 — Inclut les statuts CSRPN intermédiaires (verrouillage identique). */
   planStatut = signal<PlanStatut | null>(null);
 
-  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
-  // #250 — `etendu` est aussi éditable (annees d'extension actives).
+  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248).
+   *  L'extension de durée (#250) est un attribut indépendant du statut et
+   *  ne débloque PAS l'édition. */
   isPlanDraft = computed(() => {
-    const s = this.planStatut();
-    return s === 'draft' || s === 'etendu';
+    return this.planStatut() === 'draft';
   });
 
   // Permissions édition: super_admin, redacteur_principal, admin_og, ou référent du plan

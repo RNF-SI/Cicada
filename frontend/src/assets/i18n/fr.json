@@ -327,7 +327,6 @@
       "status": {
         "draft": "Brouillon",
         "valide": "Valide",
-        "etendu": "Étendu",
         "archive": "Archivé"
       },
       "periode": {
@@ -1244,15 +1243,23 @@
       "arrete_pref": "Arrêté préfectoral",
       "valide": "Valide",
       "modifie": "Modifié",
-      "mi_parcours": "Modifié à mi-parcours",
-      "etendu": "Étendu",
-      "etendu_rnn": "Plan prolongé",
-      "etendu_pnr": "Plan en renouvellement",
-      "etendu_ens": "Plan étendu",
-      "en_revision": "En cours de révision",
+      "modifieTooltip": "Plan validé puis modifié au moins une fois. Une nouvelle version a été créée et validée à partir d'une version antérieure de la même chaîne.",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours"
+    },
+    "extension": {
+      "badge": "Étendu",
+      "badge_rnn": "Prolongé",
+      "badge_pnr": "En renouvellement",
+      "badge_ens": "Étendu"
+    },
+    "revision": {
+      "badge": "En cours de révision",
+      "viewNextRang": "Voir le brouillon du rang suivant"
+    },
+    "miParcours": {
+      "badge": "Évaluation mi-parcours"
     },
     "list": {
       "title": "Plans de gestion",
@@ -1336,10 +1343,14 @@
         "extendDurationDesc": "Prolonger ce plan de 1 ou 2 années pendant la rédaction du rang suivant.",
         "revertExtension": "Annuler l'extension",
         "revertExtensionDesc": "Repasser ce plan en statut validé en annulant son extension.",
-        "enRevision": "Passer en cours de révision",
-        "enRevisionDesc": "Marquer ce plan comme étant en cours de révision : sa période est dépassée mais il reste utilisé pendant la rédaction du plan suivant.",
-        "resumeFromRevision": "Reprendre comme validé",
-        "resumeFromRevisionDesc": "Revenir au statut validé : annule l'état « en cours de révision »",
+        "startRevision": "Marquer en cours de révision",
+        "startRevisionDesc": "Indiquer qu'un nouveau plan (rang suivant) est en cours d'élaboration. Le plan reste validé fonctionnellement.",
+        "cancelRevision": "Annuler la révision",
+        "cancelRevisionDesc": "Retirer l'indicateur « en cours de révision » et le lien vers le rang suivant. Le statut du plan n'est pas modifié.",
+        "startMiParcours": "Lancer l'évaluation mi-parcours",
+        "startMiParcoursDesc": "Créer ou lier le brouillon de l'évaluation mi-parcours du plan. Unique par chaîne.",
+        "createNewVersion": "Créer une nouvelle version",
+        "createNewVersionDesc": "Crée un brouillon enfant (même rang, version+1) à partir de ce plan validé. Pour modifier le plan validé sans en faire une nouvelle version, utilisez « Remettre en brouillon » (uniquement si pas de versions ultérieures).",
         "submitForCsrpn": "Envoyer pour avis CSRPN",
         "submitForCsrpnDesc": "Initie le workflow réglementaire : envoi du plan au CSRPN pour avis.",
         "recordCsrpnOpinion": "Enregistrer l'avis CSRPN",
@@ -1365,10 +1376,10 @@
         "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif.",
         "revertExtensionTitle": "Annuler l'extension du plan",
         "revertExtensionWarning": "Le plan repassera en statut validé. Les actions saisies sur les années étendues resteront, mais ne seront plus marquées comme appartenant à l'extension.",
-        "enRevisionTitle": "Passer le plan en cours de révision",
-        "enRevisionWarning": "Le plan sera marqué comme étant en cours de révision : il reste consultable mais ne sera plus modifiable directement. Le plan suivant peut être rédigé en parallèle.",
-        "resumeFromRevisionTitle": "Reprendre le plan comme validé",
-        "resumeFromRevisionWarning": "Le plan repassera en statut validé."
+        "startRevisionTitle": "Marquer le plan en cours de révision",
+        "startRevisionWarning": "Le plan reste validé fonctionnellement, mais sera signalé comme « en cours de révision » : un nouveau plan (rang suivant) est en cours de rédaction en parallèle. La révision peut être lancée avant ou après le dépassement de la période.",
+        "cancelRevisionTitle": "Annuler la révision",
+        "cancelRevisionWarning": "L'indicateur « en cours de révision » et le lien vers le rang suivant seront retirés. Le statut du plan reste inchangé. Le plan du rang suivant n'est pas supprimé."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
@@ -1378,7 +1389,13 @@
         "previousArchived": "Le plan précédent a été archivé.",
         "previousArchiveError": "Erreur lors de l'archivage du plan précédent.",
         "extensionApplied": "Plan prolongé de {{years}} an(s).",
-        "extensionError": "Impossible de prolonger le plan."
+        "extensionRemoved": "L'extension du plan a été retirée.",
+        "extensionError": "Impossible de prolonger le plan.",
+        "revisionStarted": "Le plan est désormais marqué en cours de révision.",
+        "revisionEnded": "La révision du plan a été arrêtée.",
+        "revisionError": "Impossible de modifier l'état de révision du plan.",
+        "miParcoursCreated": "Le brouillon de l'évaluation mi-parcours a été créé.",
+        "miParcoursLinked": "Le brouillon a été lié comme évaluation mi-parcours."
       },
       "lockedBanner": {
         "title": "Plan verrouillé en lecture seule",
@@ -1422,11 +1439,52 @@
         "newEnd": "Nouvelle échéance",
         "hint": "Pendant l'extension, le plan reste éditable pour ajouter ou modifier les actions des années ajoutées. Vous pouvez annuler l'extension à tout moment."
       },
+      "startRevision": {
+        "title": "Marquer en cours de révision",
+        "intro": "Vous allez signaler que le plan « {{name}} » est en cours de révision. Vous pouvez créer dès maintenant le brouillon du rang suivant, le lier à un brouillon existant, ou seulement poser l'indicateur.",
+        "modes": {
+          "create": "Créer le brouillon du rang suivant",
+          "createHint": "Crée un nouveau plan de gestion en brouillon (rang N+1), enfant de celui-ci, en copiant les sites et référents.",
+          "createDisabled": "Désactivé : un brouillon enfant existe déjà sur ce plan.",
+          "link": "Lier à un brouillon existant",
+          "linkHint": "Sélectionne un brouillon existant accessible et l'associe comme rang suivant.",
+          "none": "Marquer sans lier de plan",
+          "noneHint": "Pose uniquement l'indicateur « en cours de révision ». Le lien vers le rang suivant pourra être ajouté plus tard."
+        },
+        "form": {
+          "name": "Nom du nouveau plan",
+          "yearStart": "Année de début",
+          "yearEnd": "Année de fin",
+          "selectDraft": "Choisir un brouillon"
+        },
+        "linkEmpty": "Aucun brouillon accessible à lier. Créez d'abord le brouillon du rang suivant."
+      },
+      "startMiParcours": {
+        "title": "Lancer l'évaluation mi-parcours",
+        "intro": "L'évaluation mi-parcours du plan « {{name}} » est un document distinct (unique par chaîne). Choisissez de créer un brouillon dès maintenant ou de lier un brouillon existant.",
+        "modes": {
+          "create": "Créer le brouillon de l'évaluation mi-parcours",
+          "createHint": "Crée un nouveau plan en brouillon de type « Évaluation mi-parcours », enfant du plan courant. Copie sites et référents.",
+          "createDisabled": "Désactivé : un brouillon enfant existe déjà sur ce plan.",
+          "link": "Lier à un brouillon existant",
+          "linkHint": "Sélectionne un brouillon d'évaluation mi-parcours accessible et l'associe au plan courant."
+        },
+        "form": {
+          "selectDraft": "Choisir un brouillon d'évaluation"
+        },
+        "linkEmpty": "Aucun brouillon d'évaluation mi-parcours accessible. Créez d'abord le brouillon."
+      },
       "timeline": {
         "title": "Cycle de vie",
         "planInitial": "Plan initial",
         "current": "actuel",
-        "nextRangDraft": "rang suivant"
+        "nextRangDraft": "rang suivant",
+        "rang": "Rang",
+        "previousRang": "précédent",
+        "nextRang": "à venir",
+        "currentRang": "actuel",
+        "versionsSingular": "version",
+        "versionsPlural": "versions"
       }
     },
     "detail": {

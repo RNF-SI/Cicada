@@ -24,6 +24,19 @@ class PlansSeeder(BaseSeeder):
       → Eval mi-parcours (draft) → Plan révisé (draft)
     - Vercors-Écrins (3 niveaux): Plan initial 2011-2021 (archive)
       → Plan actuel 2021-2031 (valide) → Eval mi-parcours (draft)
+    - Vercors revision/draft (2 niveaux, #250/#278) : rang 1 2014-2024
+      (valide + en_revision=True + étendu +1 an, next_rang_plan = rang 2) ↔
+      rang 2 2026-2036 (draft). Démontre la cohabitation entre un plan validé
+      en cours de révision et le brouillon du rang suivant.
+
+    Panel évaluations mi-parcours (#276, 6 plans couvrant les variantes) :
+    - Camargue eval 2005 : EVAL_MI_PARCOURS, archive (historique)
+    - Camargue eval 2025 : EVAL_MI_PARCOURS, draft
+    - Vercors-Écrins eval 2026 : EVAL_MI_PARCOURS, draft
+    - Lac de Remoray eval 2022 : EVAL_MI_PARCOURS, avis_csrpn (workflow CSRPN)
+    - Vercors 2014-2024 eval 2020 : EVAL_MI_PARCOURS, comite_consultatif
+    - Aiguilles Rouges eval 2023 : modifie + is_mi_parcours=True + étendu +1 an
+      (combinaison des 3 attributs orthogonaux)
     """
 
     name = 'plans'
@@ -38,18 +51,19 @@ class PlansSeeder(BaseSeeder):
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
 
         plans = [
-            # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres
-            # Note: ce plan est en `draft` pour que les E2E qui exercent le CRUD enjeux/OLT/operations
-            # depuis Camargue passent (le verrou hors brouillon #248 bloquerait les édits sinon).
-            # Les tests qui ont besoin d'un plan validé (plan-edit-lock) cherchent un plan validé
-            # n'importe lequel via `findValidatedPlan()`.
+            # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres.
+            # Statut `valide` (avec eval 2025 en brouillon enfant) — chaîne cohérente avec
+            # la règle « brouillon enfant uniquement sur parent validé » (#ND).
+            # Pour les E2E qui font du CRUD sur des plans en brouillon, utiliser
+            # un autre brouillon de la seed (Aiguilles Rouges révisé, Lac de Remoray
+            # phase 2, Camargue+Brouage 2023-2033, etc.) via `findFirstDraft()`.
             {
                 'nom': 'Plan de gestion 2020-2030 - Camargue',
                 'annee_debut': 2020,
                 'annee_fin': 2030,
                 'rang': 3,
                 'surface': 13117,
-                'statut': 'draft',
+                'statut': 'valide',
                 'version': '4',
                 'gestion_partagee': True,
                 'ct88': True,
@@ -240,14 +254,16 @@ class PlansSeeder(BaseSeeder):
                 'sites': [sites[1]],
                 'membres': []
             },
-            # #250 — Plan déjà étendu (statut 'etendu', +2 ans)
+            # #250 — Plan validé ET étendu (+2 ans). Extension = attribut
+            # orthogonal au statut : le plan reste 'valide' (verrouillé en
+            # lecture seule), seul `annees_extension` indique la prolongation.
             {
                 'nom': 'Plan de gestion 2016-2025 - Scandola (étendu)',
                 'annee_debut': 2016,
                 'annee_fin': 2025,
                 'rang': 2,
                 'surface': 1669,
-                'statut': 'etendu',
+                'statut': 'valide',
                 'annees_extension': 2,
                 'version': '1',
                 'gestion_partagee': False,
@@ -259,8 +275,9 @@ class PlansSeeder(BaseSeeder):
                 'redacteurs': 'A. Aboucaya (RNF)',
                 'relecteurs': 'CSRPN Corse',
                 'date_avis_csrpn': date(2016, 6, 30),
-                'commentaire': 'Plan prolongé de 2 ans (2025 → 2027) pendant la rédaction '
-                               'du rang suivant (#250).',
+                'commentaire': 'Plan validé prolongé de 2 ans (2025 → 2027) pendant la rédaction '
+                               'du rang suivant. Le plan reste en lecture seule — '
+                               'l\'extension est un attribut indépendant du statut (#250).',
                 'sites': [sites[5]],  # Scandola
                 'membres': [
                     (users[0], True),  # admin (super_admin) - référent
@@ -365,7 +382,166 @@ class PlansSeeder(BaseSeeder):
             ],
         })
 
+        # #278 — Chaîne de cohabitation Vercors : un plan validé est marqué
+        # « en cours de révision » (attribut `en_revision=True`, statut reste
+        # `valide`) ET étendu de 1 an. Le rang suivant est rédigé en brouillon
+        # en parallèle. La révision peut être déclenchée avant ou après le
+        # dépassement de `annee_fin` — pas de contrainte temporelle.
+        plans.append({
+            'nom': 'Plan de gestion 2014-2024 - Vercors (en cours de révision)',
+            'annee_debut': 2014,
+            'annee_fin': 2024,
+            'rang': 1,
+            'surface': 4500,
+            'statut': 'valide',
+            'en_revision': True,
+            'annees_extension': 1,
+            'version': '1',
+            'gestion_partagee': False,
+            'ct88': True,
+            'risque_incendie': True,
+            'id_evaluation': eval_fin,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+            'redacteurs': 'L. Dupuis (CEN ARA)',
+            'relecteurs': 'CSRPN Auvergne-Rhône-Alpes',
+            'date_avis_csrpn': date(2014, 4, 22),
+            'commentaire': 'Plan validé en fin de cycle, marqué en révision : il reste '
+                           'fonctionnellement validé pendant que le rang suivant est '
+                           'rédigé en brouillon. Prolongé de 1 an pour assurer la '
+                           'transition. Démontre la cohabitation `en_revision` + extension '
+                           '(#250 / #278). Le lien `next_rang_plan` est posé en fin de seed.',
+            'sites': [sites[3]],  # Vercors
+            # admin@test.fr inclus comme membre pour que le plan soit visible
+            # dans « Mes plans » du super_admin par défaut (scope='mine').
+            'membres': [
+                (users[4], True),  # referent.vercors - referent
+                (users[2], True),  # admin.cen - referent
+                (users[6], False), # user.cen - membre
+                (users[0], False), # super_admin - membre simple
+            ],
+        })
+        plans.append({
+            'nom': 'Plan de gestion 2026-2036 - Vercors (rang suivant en préparation)',
+            'annee_debut': 2026,
+            'annee_fin': 2036,
+            'rang': 2,
+            'surface': 4500,
+            'statut': 'draft',
+            'version': '2',
+            'gestion_partagee': False,
+            'ct88': True,
+            'risque_incendie': True,
+            'id_evaluation': None,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+            'commentaire': 'Brouillon du rang 2 en cours de rédaction. Cohabite avec '
+                           'le rang 1 « en cours de révision » jusqu\'à sa validation.',
+            'sites': [sites[3]],  # Vercors
+            'membres': [
+                (users[4], True),  # referent.vercors - referent
+                (users[2], True),  # admin.cen - referent
+                (users[0], False), # super_admin - membre simple
+            ],
+        })
+
+        # #281 — Panel libellés contextualisés du badge d'extension.
+        # Plans validés + étendus sur sites de types différents pour
+        # tester les libellés : RNN/RNR → "Plan prolongé", PNR → "Plan en
+        # renouvellement", ENS/ENSD → "Plan étendu", autre → "Étendu".
+        # admin@test.fr est référent pour visibilité par défaut.
+
+        # Cas RNR — Grand-Voyeux : "Plan prolongé"
+        plans.append({
+            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
+            'annee_debut': 2015,
+            'annee_fin': 2024,
+            'rang': 1,
+            'statut': 'valide',
+            'annees_extension': 1,
+            'version': '1',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': eval_fin,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+            'date_avis_csrpn': date(2015, 4, 8),
+            'commentaire': 'Site RNR → badge contextualisé « Plan prolongé » (#281). '
+                           'Plan validé étendu de 1 an.',
+            'sites': [sites[2]],  # Grand-Voyeux (RNR)
+            'membres': [
+                (users[0], True),  # super_admin - referent
+                (users[2], True),  # admin.cen - referent
+            ],
+        })
+
+        # Cas ENS — Marais de Brouage : "Plan étendu"
+        plans.append({
+            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
+            'annee_debut': 2014,
+            'annee_fin': 2023,
+            'rang': 1,
+            'statut': 'valide',
+            'annees_extension': 2,
+            'version': '1',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': eval_fin,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
+            'date_avis_csrpn': date(2014, 6, 16),
+            'commentaire': 'Site ENS → badge contextualisé « Plan étendu » (#281). '
+                           'Plan validé étendu de 2 ans.',
+            'sites': [sites[4]],  # Marais de Brouage (ENS)
+            'membres': [
+                (users[0], True),  # super_admin - referent
+            ],
+        })
+
         return plans
+
+    def _renumber_versions_per_rang(self) -> None:
+        """Renumérote les versions de chaque chaîne plan_parent par rang.
+
+        Un changement de rang correspond à un NOUVEAU plan de gestion : la
+        version repart à v1. Les versions hardcodées dans les seeds sont
+        normalisées ici pour cohérence avec la règle métier (#ND) et avec
+        la migration `0074_renumber_versions_per_rang`.
+        """
+        roots = PlanGestion.objects.filter(plan_parent__isnull=True)
+        visited = set()
+        for root in roots:
+            if root.pk in visited:
+                continue
+            # BFS de la chaîne complète
+            chain = []
+            queue = [root]
+            local_visited = set()
+            while queue:
+                current = queue.pop(0)
+                if current.pk in local_visited:
+                    continue
+                local_visited.add(current.pk)
+                chain.append(current)
+                for child in PlanGestion.objects.filter(
+                    plan_parent_id=current.pk
+                ).order_by('date_ajout'):
+                    queue.append(child)
+            visited.update(p.pk for p in chain)
+
+            # Grouper par rang, trier chronologiquement, renuméroter
+            by_rang = {}
+            for plan in chain:
+                by_rang.setdefault(plan.rang or 1, []).append(plan)
+            for rang, plans_in_rang in by_rang.items():
+                plans_in_rang.sort(key=lambda p: p.date_ajout or p.pk)
+                for idx, plan in enumerate(plans_in_rang, start=1):
+                    new_version = str(idx)
+                    if plan.version != new_version:
+                        plan.version = new_version
+                        plan.save(update_fields=['version'])
 
     def _set_plan_membres(self, plan: PlanGestion, membres: list) -> None:
         """Synchronise les membres CorRolePlan et le M2M referents pour un plan."""
@@ -558,7 +734,7 @@ class PlansSeeder(BaseSeeder):
 
             # Eval mi-parcours du plan actuel (en cours, draft)
             camargue_eval2, _ = PlanGestion.objects.update_or_create(
-                nom='Évaluation mi-parcours 2025 - Zones humides méditerranéennes',
+                nom='Évaluation mi-parcours 2025 - Camargue (brouillon E2E)',
                 defaults={
                     'plan_parent': plans[0],
                     'id_type_document': eval_mi_type,
@@ -607,23 +783,25 @@ class PlansSeeder(BaseSeeder):
             plans[7].save(update_fields=['id_type_document', 'version'])
 
             # Relier le plan actuel (index 1) au plan initial.
-            # #275 — Comme c'est un plan révisé après le PG initial archivé,
-            # son statut conceptuel est `modifie` (et non `valide`).
+            # #275 — Bien qu'il succède à un plan archivé, c'est la première
+            # version de son propre rang (rang 2). Le statut `modifie` est
+            # réservé aux modifications **intra-rang** : on reste donc en
+            # `valide` (déjà défini dans le dict initial du plan).
             plans[1].plan_parent = plans[7]
             plans[1].id_type_document = plan_revise_type
             plans[1].version = '2'
-            plans[1].statut = 'modifie'
-            plans[1].save(update_fields=['plan_parent', 'id_type_document', 'version', 'statut'])
+            plans[1].save(update_fields=['plan_parent', 'id_type_document', 'version'])
 
             # Eval mi-parcours (validée — l'évaluation a été terminée).
-            # #276 — Cette modification déclarée comme mi-parcours prend le
-            # statut dédié `mi_parcours` (unique par chaîne).
+            # #276 — Cette modification a été déclarée comme évaluation mi-parcours :
+            # statut=`modifie` + drapeau `is_mi_parcours=True` (unique par chaîne).
             ar_eval, _ = PlanGestion.objects.update_or_create(
                 nom='Évaluation mi-parcours 2023 - Aiguilles Rouges',
                 defaults={
                     'plan_parent': plans[1],
                     'id_type_document': eval_mi_type,
-                    'statut': 'mi_parcours',
+                    'statut': 'modifie',
+                    'is_mi_parcours': True,
                     'version': '3',
                     'annee_debut': 2018,
                     'annee_fin': 2028,
@@ -638,7 +816,8 @@ class PlansSeeder(BaseSeeder):
                     'date_avis_csrpn': date(2023, 11, 15),
                     'commentaire': 'Évaluation mi-parcours validée. Bilan globalement positif. '
                                    'Recommandations de renforcer le suivi du gypaète barbu '
-                                   'et de mieux encadrer la fréquentation estivale.',
+                                   'et de mieux encadrer la fréquentation estivale. '
+                                   'Statut "modifié" + drapeau is_mi_parcours=True (#276).',
                     'id_utilisateur_ajout': admin,
                     'id_utilisateur_maj': admin,
                 }
@@ -763,6 +942,152 @@ class PlansSeeder(BaseSeeder):
             plans.append(vercors_eval)
 
             self.log_item('chain', 'Vercors-Écrins: 3 niveaux (initial → révisé → eval)')
+
+            # -----------------------------------------------------------------
+            # Chaîne « validé + en_revision ↔ brouillon » sur Vercors (#250 / #278)
+            # Le rang 1 est validé ET marqué en cours de révision ET étendu d'1 an.
+            # Le rang 2 est en brouillon en parallèle. Lien explicite via
+            # `next_rang_plan` pour exposer « Voir le rang suivant » dans l'UI.
+            # -----------------------------------------------------------------
+            try:
+                rang1 = PlanGestion.objects.get(
+                    nom='Plan de gestion 2014-2024 - Vercors (en cours de révision)'
+                )
+                rang2 = PlanGestion.objects.get(
+                    nom='Plan de gestion 2026-2036 - Vercors (rang suivant en préparation)'
+                )
+                rang1.id_type_document = plan_initial_type
+                rang1.next_rang_plan = rang2
+                rang1.save(update_fields=['id_type_document', 'next_rang_plan'])
+                rang2.plan_parent = rang1
+                rang2.id_type_document = plan_revise_type
+                rang2.save(update_fields=['plan_parent', 'id_type_document'])
+                self.log_item('chain', 'Vercors (revision/draft): validé+étendu+en_revision ↔ brouillon rang 2 (next_rang_plan posé)')
+            except PlanGestion.DoesNotExist:
+                pass
+
+            # -----------------------------------------------------------------
+            # Panel #276 — Variantes d'évaluations mi-parcours
+            # Couvre tous les états d'une éval mi-parcours pour tester l'UI.
+            # Plans déjà présents :
+            #   - Camargue eval 2005 (archive, EVAL_MI_PARCOURS, historique)
+            #   - Camargue eval 2025 (draft, EVAL_MI_PARCOURS)
+            #   - Aiguilles Rouges eval 2023 (modifie + is_mi_parcours=True)
+            #   - Vercors-Écrins eval 2026 (draft, EVAL_MI_PARCOURS)
+            # Nouveaux ajouts ci-dessous : variantes CSRPN + cumul d'attributs.
+            # -----------------------------------------------------------------
+
+            # Cas (a) — EVAL_MI_PARCOURS en avis CSRPN sur Lac de Remoray (validé)
+            try:
+                lr_parent = PlanGestion.objects.filter(
+                    nom__icontains='Lac de Remoray (à étendre)'
+                ).first()
+                if lr_parent:
+                    lr_eval, _ = PlanGestion.objects.update_or_create(
+                        nom='Évaluation mi-parcours 2022 - Lac de Remoray (avis CSRPN)',
+                        defaults={
+                            'plan_parent': lr_parent,
+                            'id_type_document': eval_mi_type,
+                            'statut': 'avis_csrpn',
+                            'version': '2',
+                            'annee_debut': 2017,
+                            'annee_fin': 2026,
+                            'rang': 1,
+                            'gestion_partagee': False,
+                            'ct88': True,
+                            'risque_incendie': False,
+                            'id_redacteur_type': Nomenclature.objects.filter(mnemonique='OG').first(),
+                            'redacteur_nom': 'RNF - Équipe Franche-Comté',
+                            'date_avis_csrpn': date(2022, 5, 14),
+                            'commentaire': 'Évaluation mi-parcours envoyée au CSRPN pour avis. '
+                                           'Workflow #277 → comite_consultatif puis validation '
+                                           '→ modifie + is_mi_parcours=True (#276).',
+                            'id_utilisateur_ajout': admin,
+                            'id_utilisateur_maj': admin,
+                        }
+                    )
+                    for cor_site in lr_parent.sites.all():
+                        CorSitePg.objects.get_or_create(
+                            site=cor_site.site, plan_de_gestion=lr_eval,
+                            defaults={'rang': cor_site.rang},
+                        )
+                    self._set_plan_membres(lr_eval, [
+                        (users[0], True),   # super_admin - referent
+                        (users[1], True),   # admin.rnf - referent
+                    ])
+                    plans.append(lr_eval)
+            except Exception:
+                pass
+
+            # Cas (b) — EVAL_MI_PARCOURS en validation comité sur Vercors 2014-2024
+            # (le plan est validé+étendu+en_revision et n'a pas encore de mi-parcours
+            # dans sa chaîne — donc on peut en ajouter une).
+            try:
+                vc_parent = PlanGestion.objects.filter(
+                    nom__icontains='Vercors (en cours de révision)'
+                ).first()
+                if vc_parent:
+                    vc_eval, _ = PlanGestion.objects.update_or_create(
+                        nom='Évaluation mi-parcours 2020 - Vercors (validation comité)',
+                        defaults={
+                            'plan_parent': vc_parent,
+                            'id_type_document': eval_mi_type,
+                            'statut': 'comite_consultatif',
+                            'version': '2',
+                            'annee_debut': 2014,
+                            'annee_fin': 2024,
+                            'rang': 1,
+                            'gestion_partagee': False,
+                            'ct88': True,
+                            'risque_incendie': True,
+                            'id_redacteur_type': Nomenclature.objects.filter(mnemonique='OG').first(),
+                            'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+                            'date_avis_csrpn': date(2020, 3, 12),
+                            'commentaire': 'Avis CSRPN rendu, en attente de validation par le '
+                                           'comité consultatif. À la validation finale → '
+                                           'statut=modifie + is_mi_parcours=True.',
+                            'id_utilisateur_ajout': admin,
+                            'id_utilisateur_maj': admin,
+                        }
+                    )
+                    for cor_site in vc_parent.sites.all():
+                        CorSitePg.objects.get_or_create(
+                            site=cor_site.site, plan_de_gestion=vc_eval,
+                            defaults={'rang': cor_site.rang},
+                        )
+                    # admin@test.fr (users[0]) ajouté en référent pour que ce
+                    # plan apparaisse dans « Mes plans » du super_admin par défaut.
+                    self._set_plan_membres(vc_eval, [
+                        (users[0], True),   # super_admin - referent
+                        (users[4], True),   # referent.vercors - referent
+                        (users[2], True),   # admin.cen - referent
+                    ])
+                    plans.append(vc_eval)
+            except Exception:
+                pass
+
+            # Cas (c) — combiner is_mi_parcours + extension sur Aiguilles Rouges
+            # (l'évaluation mi-parcours d'Aiguilles Rouges 2023 reçoit aussi
+            # une extension d'1 an pour démontrer la cohabitation des 2 flags).
+            try:
+                ar_eval_existing = PlanGestion.objects.filter(
+                    nom='Évaluation mi-parcours 2023 - Aiguilles Rouges'
+                ).first()
+                if ar_eval_existing:
+                    ar_eval_existing.annees_extension = 1
+                    ar_eval_existing.save(update_fields=['annees_extension'])
+                    self.log_item('chain', 'Aiguilles Rouges eval 2023 : modifie + is_mi_parcours=True + étendu +1 an')
+            except Exception:
+                pass
+
+            self.log_item('chain', 'Panel mi-parcours (#276) : 6 plans (draft, draft, avis_csrpn, comite, modifie+is_mi_parcours, archive)')
+
+        # =====================================================================
+        # Renumérotation des versions par rang (cohérence #ND)
+        # Un rang = un autre plan de gestion, donc la version repart à v1
+        # quand le rang change. On parcourt chaque chaîne et on renumérote.
+        # =====================================================================
+        self._renumber_versions_per_rang()
 
         # =====================================================================
         # Documents de test (fichiers attachés aux plans)

@@ -103,7 +103,40 @@
                     <span class="meta-separator">|</span>
                   }
                   <span class="meta-label">{{ 'modals.planForm.fields.status' | translate }} :</span>
-                  <span class="meta-value status">{{ statusLabelKey() | translate }}</span>
+                  <span class="meta-value status"
+                        [class.has-tooltip]="p.statut === 'modifie'"
+                        [matTooltip]="p.statut === 'modifie' ? ('plans.status.modifieTooltip' | translate) : ''"
+                        matTooltipPosition="above">
+                    {{ statusLabelKey() | translate }}
+                  </span>
+                  @if (isPlanExtended()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value extension-badge">
+                      <i class="fi fi-rr-time-add"></i>
+                      {{ extensionBadgeKey() | translate }} +{{ p.annees_extension }}{{ (p.annees_extension ?? 0) > 1 ? ' ans' : ' an' }}
+                    </span>
+                  }
+                  @if (isPlanInRevision()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value revision-badge">
+                      <i class="fi fi-rr-refresh"></i>
+                      {{ 'plans.revision.badge' | translate }}
+                    </span>
+                    @if (p.next_rang_plan_slug && p.next_rang_plan_nom) {
+                      <a class="next-rang-link"
+                         [routerLink]="['/plans', p.next_rang_plan_slug]">
+                        <i class="fi fi-rr-arrow-up-right-from-square"></i>
+                        {{ 'plans.revision.viewNextRang' | translate }}
+                      </a>
+                    }
+                  }
+                  @if (isPlanMiParcours()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value mi-parcours-badge">
+                      <i class="fi fi-rr-time-forward"></i>
+                      {{ 'plans.miParcours.badge' | translate }}
+                    </span>
+                  }
                 </div>
               </div>
 
@@ -160,50 +193,52 @@
                       <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
                     </button>
                   }
-                  <!-- Validé / Modifié / Mi-parcours → Remettre en brouillon + Étendre (si fenêtre OK, #250)
-                       + Passer en révision (#278) + Archiver. Les 3 statuts partagent les mêmes actions
-                       (#275 / #276 — verrouillage en lecture seule identique au validé). -->
-                  @if (p.statut === 'valide' || p.statut === 'modifie' || p.statut === 'mi_parcours') {
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
-                    </button>
+                  <!-- Validé / Modifié → Remettre en brouillon (uniquement feuille de chaîne)
+                       + Étendre/Retirer extension (#250) + Lancer/Arrêter révision (#278)
+                       + Lancer évaluation mi-parcours (#276) + Créer nouvelle version
+                       + Archiver. Verrouillage en lecture seule identique. -->
+                  @if (p.statut === 'valide' || p.statut === 'modifie') {
+                    @if (!p.children_count || p.children_count === 0) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
+                        <i class="fi fi-rr-undo"></i>
+                        <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+                      </button>
+                    }
                     @if (p.peut_etre_etendu) {
                       <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()">
                         <i class="fi fi-rr-time-add"></i>
                         <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
                       </button>
                     }
-                    <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmEnRevision()">
-                      <i class="fi fi-rr-refresh"></i>
-                      <span>{{ 'plans.lifecycle.actions.enRevision' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
-                      <i class="fi fi-rr-box"></i>
-                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
-                    </button>
-                  }
-                  <!-- Étendu → Revenir à validé + Passer en révision (#278) + Archiver -->
-                  @if (p.statut === 'etendu') {
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmEnRevision()">
-                      <i class="fi fi-rr-refresh"></i>
-                      <span>{{ 'plans.lifecycle.actions.enRevision' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
-                      <i class="fi fi-rr-box"></i>
-                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
-                    </button>
-                  }
-                  <!-- En cours de révision (#278) → Reprendre (revenir à validé) + Archiver -->
-                  @if (p.statut === 'en_revision') {
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmResumeFromRevision()">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.resumeFromRevision' | translate }}</span>
-                    </button>
+                    @if (isPlanExtended()) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
+                        <i class="fi fi-rr-time-delete"></i>
+                        <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
+                      </button>
+                    }
+                    @if (!isPlanInRevision()) {
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmStartRevision()">
+                        <i class="fi fi-rr-refresh"></i>
+                        <span>{{ 'plans.lifecycle.actions.startRevision' | translate }}</span>
+                      </button>
+                    } @else {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmEndRevision()">
+                        <i class="fi fi-rr-cross-circle"></i>
+                        <span>{{ 'plans.lifecycle.actions.cancelRevision' | translate }}</span>
+                      </button>
+                    }
+                    @if (canStartMiParcours()) {
+                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()">
+                        <i class="fi fi-rr-time-forward"></i>
+                        <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
+                      </button>
+                    }
+                    @if (canCreateNewVersion()) {
+                      <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()">
+                        <i class="fi fi-rr-duplicate"></i>
+                        <span>{{ 'plans.lifecycle.actions.createNewVersion' | translate }}</span>
+                      </button>
+                    }
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
                       <i class="fi fi-rr-box"></i>
                       <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>

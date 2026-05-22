@@ -6,9 +6,9 @@ import { catchError, map, of } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
 
 // #248 — Bloque l'accès aux routes de création/édition d'enjeux, FCR et opérations
-// quand le plan n'est pas en brouillon (ou en extension). Le statut éditable est aligné
-// sur EDITABLE_STATUSES côté backend (CanModifyOnlyDraftPlan).
-const EDITABLE_STATUSES = new Set(['draft', 'etendu']);
+// quand le plan n'est pas en brouillon. Aligné sur EDITABLE_STATUSES côté backend
+// (CanModifyOnlyDraftPlan). L'extension de durée (#250) est indépendante du statut.
+const EDITABLE_STATUSES = new Set(['draft']);
 
 const findSlug = (route: ActivatedRouteSnapshot): string | null => {
   let current: ActivatedRouteSnapshot | null = route;

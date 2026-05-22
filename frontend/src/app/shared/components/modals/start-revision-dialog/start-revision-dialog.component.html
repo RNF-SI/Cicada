@@ -1,0 +1,95 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.startRevision.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'plans.lifecycle.startRevision.intro' | translate:{ name: data.plan.nom } }}
+  </p>
+
+  <mat-radio-group [(ngModel)]="mode" class="mode-group">
+    <mat-radio-button value="create" class="mode-option" [disabled]="hasDraftChild">
+      <span class="mode-label">{{ 'plans.lifecycle.startRevision.modes.create' | translate }}</span>
+      <span class="mode-hint">{{ 'plans.lifecycle.startRevision.modes.createHint' | translate }}</span>
+      @if (hasDraftChild) {
+        <span class="mode-disabled-reason">
+          {{ 'plans.lifecycle.startRevision.modes.createDisabled' | translate }}
+        </span>
+      }
+    </mat-radio-button>
+
+    <mat-radio-button value="link" class="mode-option">
+      <span class="mode-label">{{ 'plans.lifecycle.startRevision.modes.link' | translate }}</span>
+      <span class="mode-hint">{{ 'plans.lifecycle.startRevision.modes.linkHint' | translate }}</span>
+    </mat-radio-button>
+
+    <mat-radio-button value="none" class="mode-option">
+      <span class="mode-label">{{ 'plans.lifecycle.startRevision.modes.none' | translate }}</span>
+      <span class="mode-hint">{{ 'plans.lifecycle.startRevision.modes.noneHint' | translate }}</span>
+    </mat-radio-button>
+  </mat-radio-group>
+
+  <!-- Formulaire création -->
+  @if (mode === 'create') {
+    <div class="form-block">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'plans.lifecycle.startRevision.form.name' | translate }}</mat-label>
+        <input matInput [(ngModel)]="nom" required>
+      </mat-form-field>
+
+      <div class="year-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'plans.lifecycle.startRevision.form.yearStart' | translate }}</mat-label>
+          <input matInput type="number" [(ngModel)]="anneeDebut" required>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'plans.lifecycle.startRevision.form.yearEnd' | translate }}</mat-label>
+          <input matInput type="number" [(ngModel)]="anneeFin" required>
+        </mat-form-field>
+      </div>
+    </div>
+  }
+
+  <!-- Dropdown brouillons existants -->
+  @if (mode === 'link') {
+    <div class="form-block">
+      @if (loadingDrafts) {
+        <div class="loading">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>{{ 'common.messages.loading' | translate }}</span>
+        </div>
+      } @else if (availableDrafts.length === 0) {
+        <p class="empty-state">
+          {{ 'plans.lifecycle.startRevision.linkEmpty' | translate }}
+        </p>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'plans.lifecycle.startRevision.form.selectDraft' | translate }}</mat-label>
+          <mat-select [(ngModel)]="selectedDraftId">
+            @for (draft of availableDrafts; track draft.id_pg) {
+              <mat-option [value]="draft.id_pg">{{ draft.nom }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+  }
+
+  @if (errorMessage) {
+    <p class="error">{{ errorMessage }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="submitting">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary"
+          (click)="confirm()"
+          [disabled]="!canConfirm">
+    @if (submitting) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      {{ 'plans.lifecycle.actions.startRevision' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

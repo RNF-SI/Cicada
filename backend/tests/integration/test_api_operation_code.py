@@ -6,7 +6,7 @@ Couvre :
 - Fallback sur `id_type_action.cd_nomenclature` quand pas de catégorie réserve
 - Une même Operation rattachée à plusieurs métriques compte une seule fois
 - L'endpoint by-plan retourne le code calculé dans la branche NE et la branche RA
-- Le move/reorder respecte le verrou hors brouillon (draft/etendu autorisés)
+- Le move/reorder respecte le verrou hors brouillon (seul draft est éditable)
 """
 import pytest
 from rest_framework import status
@@ -262,7 +262,8 @@ class TestByPlanCodeAffichage:
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestReorderEditableStatuses:
-    """Vérifie que reorder accepte draft ET etendu (cf. #250)."""
+    """Vérifie que reorder n'accepte que `draft` ; un plan validé même
+    étendu (#250) reste verrouillé en lecture seule."""
 
     def test_reorder_sur_plan_draft_autorise(self, api_client, plan_with_actions):
         api_client.force_authenticate(user=plan_with_actions['referent'])
@@ -280,10 +281,13 @@ class TestReorderEditableStatuses:
         )
         assert response.status_code == status.HTTP_200_OK, response.data
 
-    def test_reorder_sur_plan_etendu_autorise(self, api_client, plan_with_actions):
+    def test_reorder_sur_plan_etendu_refuse(self, api_client, plan_with_actions):
+        """#250 — Un plan validé ET étendu (annees_extension > 0) reste verrouillé.
+        L'extension est un attribut indépendant du statut et ne débloque pas l'édition."""
         plan = plan_with_actions['plan']
-        plan.statut = 'etendu'
-        plan.save(update_fields=['statut'])
+        plan.statut = 'valide'
+        plan.annees_extension = 2
+        plan.save(update_fields=['statut', 'annees_extension'])
         api_client.force_authenticate(user=plan_with_actions['referent'])
         ids = [plan_with_actions['op_cs'].pk, plan_with_actions['op_ip'].pk]
         response = api_client.post(
@@ -291,8 +295,8 @@ class TestReorderEditableStatuses:
             {'parent_id': plan_with_actions['metrique'].pk, 'ordered_ids': ids},
             format='json',
         )
-        # Verrou autorise 'etendu' (cf. CanModifyOnlyDraftPlan.EDITABLE_STATUSES)
-        assert response.status_code == status.HTTP_200_OK, response.data
+        # Plan validé = lecture seule, même étendu (#250 / #248)
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
 
     def test_reorder_sur_plan_valide_refuse(self, api_client, plan_with_actions):
         plan = plan_with_actions['plan']

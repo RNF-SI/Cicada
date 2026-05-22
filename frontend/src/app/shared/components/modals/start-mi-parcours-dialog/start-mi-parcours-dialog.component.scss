@@ -1,0 +1,87 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-width: 480px;
+}
+
+.intro {
+  margin-bottom: $spacing-md;
+  color: $gray-dark;
+}
+
+.mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.mode-option {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.04);
+  }
+
+  ::ng-deep .mat-mdc-radio-button .mdc-form-field {
+    align-items: flex-start;
+  }
+}
+
+.mode-label {
+  display: block;
+  font-weight: $font-weight-semibold;
+  color: $black;
+}
+
+.mode-hint {
+  display: block;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  margin-top: $spacing-xxs;
+}
+
+.mode-disabled-reason {
+  display: block;
+  font-size: $font-size-small;
+  color: $error-color;
+  margin-top: $spacing-xxs;
+  font-style: italic;
+}
+
+.form-block {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background: rgba($primary-color, 0.04);
+  border-radius: $border-radius-sm;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $gray-dark;
+}
+
+.empty-state {
+  color: $gray-dark;
+  font-style: italic;
+}
+
+.error {
+  color: $error-color;
+  margin-top: $spacing-sm;
+}

@@ -152,15 +152,17 @@ export async function apiDelete(
 // ── Domain-specific helpers ─────────────────────────────────────
 
 /**
- * Find a plan by name fragment. Selection priority:
- * 1. Non-archive plan whose name contains the fragment (any statut, draft included)
- * 2. Valide plan with referents (has active members, more likely to have data)
- * 3. Valide plan (from search results — may match via sites/description)
- * 4. First search result
+ * Find a plan by name fragment. Selection priority (draft FIRST):
+ * 1. Draft plan whose name contains the fragment (best for CRUD tests)
+ * 2. Draft plan related to the fragment (matches via search but not name)
+ * 3. Non-archive plan whose name contains the fragment
+ * 4. Valide plan with referents
+ * 5. Valide plan (from search results — may match via sites/description)
+ * 6. First search result
  *
- * Name match wins over statut: callers who say `findPlan('Camargue')` mean
- * "the Camargue plan" — they don't care whether it's draft or valide. Tests
- * needing a specific statut should use `findValidatedPlan()` etc.
+ * Drafts are preferred because most tests calling `findPlan('Camargue')` go on
+ * to do CRUD on the plan, which requires it to be in `draft` state (verrou
+ * #248). Tests needing a specific statut should use `findValidatedPlan()` etc.
  */
 export async function findPlan(page: Page, nameFragment: string) {
   const { data } = await apiGet(page, 'plans/plans/', { search: nameFragment });
@@ -169,9 +171,12 @@ export async function findPlan(page: Page, nameFragment: string) {
     throw new Error(`Plan "${nameFragment}" not found`);
   }
   const nameMatch = (p: any) => p.nom?.toLowerCase().includes(nameFragment.toLowerCase());
+  const isDraft = (p: any) => p.statut === 'draft';
   const notArchive = (p: any) => p.statut !== 'archive';
   const hasReferents = (p: any) => (p.referents?.length > 0) || (p.nb_referents > 0);
-  const best = results.find((p: any) => notArchive(p) && nameMatch(p))
+  const best = results.find((p: any) => isDraft(p) && nameMatch(p))
+    || results.find((p: any) => isDraft(p))
+    || results.find((p: any) => notArchive(p) && nameMatch(p))
     || results.find((p: any) => p.statut === 'valide' && hasReferents(p))
     || results.find((p: any) => p.statut === 'valide')
     || results.find((p: any) => nameMatch(p))

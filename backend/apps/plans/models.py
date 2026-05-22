@@ -52,15 +52,24 @@ class PlanGestion(models.Model):
 
     # Statuts possibles. Cf. note interne "Cycle de vie plan de gestion".
     # - `valide`              : original validé (plan_parent IS NULL).
-    # - `modifie`             : modification ordinaire d'un plan validé (#275).
-    # - `mi_parcours`         : modification déclarée mi-parcours, unique
-    #                           par chaîne plan_parent (#276).
+    # - `modifie`             : modification d'un plan validé (#275). Le drapeau
+    #                           `is_mi_parcours` indique si cette modification
+    #                           est l'évaluation mi-parcours du plan.
     # - `avis_csrpn`          : envoyé pour avis CSRPN (workflow #277).
     # - `comite_consultatif`  : avis CSRPN rendu, attente validation comité.
     # - `arrete_pref`         : validé par comité, attente arrêté (RNN).
-    # - `en_revision`         : période dépassée, plan toujours utilisé (#278).
-    # - `etendu`              : années ajoutées au plan (#250, éditable).
-    # Tous les statuts hors `draft`/`etendu` verrouillent l'édition (#248).
+    # - `archive`             : terminé, conservé pour historique.
+    #
+    # Attributs ORTHOGONAUX au statut (un plan validé peut les cumuler) :
+    # - « Étendu » (#250) : `annees_extension > 0`.
+    # - « En cours de révision » (#278) : `en_revision = True`. Indique
+    #   qu'on rédige le rang suivant ; le plan reste fonctionnellement validé.
+    #   Ne dépend PAS du dépassement de la période — la révision peut être
+    #   lancée avant ou après `annee_fin`.
+    # - « Mi-parcours » (#276) : `is_mi_parcours = True`. Indique que cette
+    #   version est l'évaluation mi-parcours du plan. Unique par chaîne.
+    #
+    # Tous les statuts hors `draft` verrouillent l'édition (#248).
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
         ('avis_csrpn', _('Avis CSRPN demandé')),
@@ -68,9 +77,6 @@ class PlanGestion(models.Model):
         ('arrete_pref', _('Arrêté préfectoral')),
         ('valide', _('Validé')),
         ('modifie', _('Modifié')),
-        ('mi_parcours', _('Modifié à mi-parcours')),
-        ('etendu', _('Étendu')),
-        ('en_revision', _('En cours de révision')),
         ('archive', _('Archivé')),
     ]
 
@@ -235,13 +241,41 @@ class PlanGestion(models.Model):
     )
 
     # Extension de durée (#250) — 0 (pas d'extension), 1 ou 2 années ajoutées
-    # au plan en fin de vie pour la transition avec le rang suivant. Cohabite
-    # avec le statut `etendu` qui marque visuellement la prolongation.
+    # au plan en fin de vie pour la transition avec le rang suivant. Attribut
+    # indépendant du statut : un plan validé peut être étendu.
     annees_extension = models.PositiveSmallIntegerField(
         _("Années d'extension"),
         default=0,
         validators=[MaxValueValidator(2)],
-        help_text=_("Nombre d'années ajoutées au plan (statut 'étendu'). 0, 1 ou 2.")
+        help_text=_("Nombre d'années ajoutées au plan. 0, 1 ou 2.")
+    )
+
+    # En cours de révision (#278) — attribut orthogonal au statut. Indique
+    # qu'un plan validé est en cours d'élaboration du rang suivant. La
+    # révision peut être lancée avant ou après le dépassement de `annee_fin`.
+    # Le plan reste fonctionnellement validé (verrou édition #248 inchangé).
+    en_revision = models.BooleanField(
+        _("En cours de révision"),
+        default=False,
+        help_text=_("Indique qu'une nouvelle version (rang suivant) est en cours de rédaction.")
+    )
+
+    # Évaluation à mi-parcours (#276) — attribut orthogonal au statut.
+    # Indique que cette version est l'évaluation mi-parcours du plan.
+    # Unique par chaîne plan_parent.
+    is_mi_parcours = models.BooleanField(
+        _("Évaluation mi-parcours"),
+        default=False,
+        help_text=_("Indique que cette version est l'évaluation à mi-parcours du plan. Unique par chaîne.")
+    )
+
+    # Lien explicite vers le brouillon du rang suivant (#278). Permet d'afficher
+    # « Voir le brouillon du rang suivant » depuis le plan en révision.
+    next_rang_plan = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='previous_rang_plans',
+        verbose_name=_("Plan du rang suivant"),
+        help_text=_("Plan correspondant au rang suivant (en cours d'élaboration).")
     )
 
     id_type_document = models.ForeignKey(
@@ -427,6 +461,10 @@ class PlanGestion(models.Model):
                 'rang': current.rang,
                 'annee_debut': current.annee_debut,
                 'annee_fin': current.annee_fin,
+                'annees_extension': current.annees_extension or 0,
+                'en_revision': bool(current.en_revision),
+                'is_mi_parcours': bool(current.is_mi_parcours),
+                'next_rang_plan_id': current.next_rang_plan_id,
                 'type_document': current.id_type_document.label if current.id_type_document else None,
                 'type_document_mnemonique': current.id_type_document.mnemonique if current.id_type_document else None,
                 'is_current': current.pk == self.pk,
@@ -434,27 +472,94 @@ class PlanGestion(models.Model):
             for child in current.children.all().order_by('date_ajout'):
                 queue.append(child)
 
+        # Tri final : rang ascendant, puis version (entier si possible),
+        # puis date_ajout en fallback. Cohérent avec la sémantique #ND
+        # « rang = autre plan, version = itération du même rang ».
+        def _sort_key(item):
+            try:
+                ver_int = int(item.get('version') or 0)
+            except (TypeError, ValueError):
+                ver_int = 0
+            return (item.get('rang') or 0, ver_int)
+        chain.sort(key=_sort_key)
         return chain
 
     # Statuts indiquant qu'un plan a déjà été (ou est) à l'état validé. Sert
     # à savoir si un draft enfant doit être validé en `modifie` plutôt qu'en
     # `valide` (#275).
     VALIDATED_STATUSES = frozenset({
-        'valide', 'modifie', 'mi_parcours', 'en_revision', 'etendu', 'archive',
+        'valide', 'modifie', 'archive',
     })
 
+    # Statuts qui autorisent l'extension de durée (#250), le lancement de la
+    # révision (#278) et le lancement de la mi-parcours (#276). Le plan doit
+    # être à un état post-validation actif (mais pas archivé).
+    EXTENDABLE_STATUSES = frozenset({
+        'valide', 'modifie',
+    })
+
+    # Statuts d'un plan qui peuvent accueillir un nouveau brouillon enfant
+    # (règle métier #ND : un brouillon ne peut être construit que sur un plan
+    # qui a été validé à un moment donné — actif ou archivé). Utilisé par
+    # `duplicate`, `create-evaluation`, `create-next-rang`.
+    DRAFTABLE_PARENT_STATUSES = frozenset({
+        'valide', 'modifie', 'archive',
+    })
+
+    def is_extended(self):
+        """#250 — Vrai si le plan a été prolongé (1 ou 2 années ajoutées)."""
+        return bool(self.annees_extension and self.annees_extension > 0)
+
+    def is_in_revision(self):
+        """#278 — Vrai si le plan est en cours de révision."""
+        return bool(self.en_revision)
+
+    def is_mid_term(self):
+        """#276 — Vrai si cette version est l'évaluation mi-parcours du plan."""
+        return bool(self.is_mi_parcours)
+
+    def has_draft_child(self):
+        """Vrai si ce plan a déjà au moins un enfant direct en brouillon.
+
+        Règle métier : un parent ne peut avoir qu'un seul brouillon enfant en
+        même temps. Utilisé par `duplicate`, `create-evaluation`,
+        `create-next-rang` pour refuser la création d'un nouveau brouillon si
+        un autre est déjà en cours.
+        """
+        return self.children.filter(statut='draft').exists()
+
+    def can_have_new_draft_child(self):
+        """Vrai si on peut créer un nouveau brouillon enfant de ce plan.
+
+        Combine : statut dans DRAFTABLE_PARENT_STATUSES ET pas de brouillon
+        enfant déjà présent.
+        """
+        return (
+            self.statut in self.DRAFTABLE_PARENT_STATUSES
+            and not self.has_draft_child()
+        )
+
     def is_modification(self):
-        """#275 — Vrai si ce plan est une modification d'un plan déjà validé."""
+        """#275 — Vrai si ce plan est une modification d'un plan déjà validé
+        au sein du **même rang**.
+
+        Un changement de rang correspond à un nouveau plan de gestion (et non
+        à une modification du précédent) : la première version d'un nouveau
+        rang doit donc être routée vers `valide`, pas `modifie`, même si elle
+        succède à un plan archivé/validé du rang précédent.
+        """
         if not self.plan_parent_id:
+            return False
+        if self.plan_parent.rang != self.rang:
             return False
         return self.plan_parent.statut in self.VALIDATED_STATUSES
 
     def chain_has_mi_parcours(self, exclude_self=True):
-        """#276 — Vrai si un autre plan de la chaîne est déjà `mi_parcours`."""
+        """#276 — Vrai si un autre plan de la chaîne porte le drapeau is_mi_parcours."""
         for item in self.get_version_chain():
             if exclude_self and item['id_pg'] == self.id_pg:
                 continue
-            if item['statut'] == 'mi_parcours':
+            if item.get('is_mi_parcours'):
                 return True
         return False
 
@@ -483,26 +588,33 @@ class PlanGestion(models.Model):
 
     def get_next_version(self):
         """
-        Incrémente la version entière dans la chaîne plan_parent (#279).
+        Calcule la prochaine version pour une modification du MÊME rang (#279).
 
-        Renvoie la prochaine valeur entière disponible : max(versions de la
-        chaîne) + 1. Si les valeurs existantes ne sont pas entières (chaînes
-        historiques au format '1.0', '1.1'...), elles sont ignorées et on
-        recompte à partir de la position dans la chaîne.
+        Les versions sont scopées au rang : un changement de rang correspond
+        à un NOUVEAU plan de gestion, dont la numérotation repart de v1.
+        Cf. note interne *Cycle de vie d'un plan de gestion* — un rang est
+        un plan distinct, pas une version.
+
+        Renvoie max(versions du même rang dans la chaîne) + 1, ou '1' si
+        aucune version du rang n'existe encore.
         """
+        target_rang = self.rang or 1
         chain = self.get_version_chain()
         max_int = 0
         for item in chain:
+            if item.get('rang') != target_rang:
+                continue
             try:
                 v = int(item['version'])
                 if v > max_int:
                     max_int = v
             except (TypeError, ValueError):
                 continue
-        if max_int == 0:
-            # Aucune version entière dans la chaîne : on reprend depuis la taille
-            return str(len(chain) + 1)
-        return str(max_int + 1)
+        return str(max_int + 1) if max_int > 0 else '1'
+
+    def get_first_version_for_next_rang(self):
+        """Première version pour le rang suivant — toujours '1' (nouveau plan)."""
+        return '1'
 
 
 class CorSitePg(models.Model):

@@ -111,7 +111,7 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
         return None
 
     def get_type_site_mnemonique(self, obj):
-        """Mnémonique du type de site (#281, pour contextualiser libellé `etendu`)."""
+        """Mnémonique du type de site (#281, pour contextualiser le badge d'extension)."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.mnemonique
         return None
@@ -198,11 +198,18 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     """
 
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
+    is_extended = serializers.SerializerMethodField()
+    is_in_revision = serializers.SerializerMethodField()
+    is_mid_term = serializers.SerializerMethodField()
+    has_draft_child = serializers.SerializerMethodField()
+    can_create_modification = serializers.SerializerMethodField()
 
     # Version chain fields
     plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
     type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
     children_count = serializers.IntegerField(read_only=True)
+    next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
+    next_rang_plan_slug = serializers.SlugField(source='next_rang_plan.slug', read_only=True, allow_null=True)
 
     # Nested — minimal
     sites = PlanSiteMinimalSerializer(many=True, read_only=True)
@@ -213,10 +220,29 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
         model = PlanGestion
         fields = [
             'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
-            'annee_debut', 'annee_fin', 'annees_extension',
+            'annee_debut', 'annee_fin', 'annees_extension', 'is_extended',
+            'en_revision', 'is_in_revision',
+            'is_mi_parcours', 'is_mid_term',
+            'has_draft_child', 'can_create_modification',
+            'next_rang_plan_id', 'next_rang_plan_slug',
             'plan_parent_id', 'type_document_display', 'children_count',
             'sites', 'referents', 'membres',
         ]
+
+    def get_is_extended(self, obj):
+        return obj.is_extended()
+
+    def get_is_in_revision(self, obj):
+        return obj.is_in_revision()
+
+    def get_is_mid_term(self, obj):
+        return obj.is_mid_term()
+
+    def get_has_draft_child(self, obj):
+        return obj.has_draft_child()
+
+    def get_can_create_modification(self, obj):
+        return obj.can_have_new_draft_child()
 
     def get_referents(self, obj):
         return [
@@ -260,11 +286,20 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     sites_list = serializers.SerializerMethodField()
 
     # #250 : éligibilité à l'extension de durée. Vrai si :
-    #   - statut = 'valide'
+    #   - statut ∈ EXTENDABLE_STATUSES (valide / modifie / mi_parcours)
+    #   - annees_extension == 0 (pas déjà étendu)
     #   - annee_fin renseignée
     #   - année courante ∈ [annee_fin - 1, annee_fin + 2]
     peut_etre_etendu = serializers.SerializerMethodField()
     annee_fin_effective = serializers.SerializerMethodField()
+    is_extended = serializers.SerializerMethodField()
+    is_in_revision = serializers.SerializerMethodField()
+    is_mid_term = serializers.SerializerMethodField()
+    has_draft_child = serializers.SerializerMethodField()
+    can_create_modification = serializers.SerializerMethodField()
+    next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
+    next_rang_plan_nom = serializers.CharField(source='next_rang_plan.nom', read_only=True, allow_null=True)
+    next_rang_plan_slug = serializers.SlugField(source='next_rang_plan.slug', read_only=True, allow_null=True)
 
     # Champs display
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
@@ -290,20 +325,54 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
 
     def get_peut_etre_etendu(self, obj):
-        """Indique si le plan est dans la fenêtre permettant l'extension (#250)."""
+        """Indique si le plan est dans la fenêtre permettant l'extension (#250).
+
+        L'extension est ouverte aux plans validés (valide / modifie /
+        mi_parcours) qui ne sont pas déjà étendus. L'attribut `en_revision`
+        peut cohabiter mais n'est pas requis.
+        """
         from datetime import date
-        if obj.statut != 'valide' or not obj.annee_fin:
+        if obj.statut not in PlanGestion.EXTENDABLE_STATUSES:
+            return False
+        if obj.annees_extension and obj.annees_extension > 0:
+            return False
+        if not obj.annee_fin:
             return False
         current_year = date.today().year
         return obj.annee_fin - 1 <= current_year <= obj.annee_fin + 2
 
     def get_annee_fin_effective(self, obj):
-        """Année de fin effective (annee_fin + annees_extension si statut étendu)."""
+        """Année de fin effective (annee_fin + annees_extension si étendu)."""
         if obj.annee_fin is None:
             return None
-        if obj.statut == 'etendu':
-            return obj.annee_fin + (obj.annees_extension or 0)
-        return obj.annee_fin
+        return obj.annee_fin + (obj.annees_extension or 0)
+
+    def get_is_extended(self, obj):
+        """#250 — Vrai si le plan a été prolongé (annees_extension > 0)."""
+        return obj.is_extended()
+
+    def get_is_in_revision(self, obj):
+        """#278 — Vrai si le plan est en cours de révision."""
+        return obj.is_in_revision()
+
+    def get_is_mid_term(self, obj):
+        """#276 — Vrai si cette version est l'évaluation mi-parcours du plan."""
+        return obj.is_mid_term()
+
+    def get_has_draft_child(self, obj):
+        """Vrai si le plan a déjà au moins un brouillon enfant.
+
+        Utilisé côté frontend pour griser les actions « créer un nouveau
+        brouillon » (duplicate, create-evaluation, create-next-rang).
+        """
+        return obj.has_draft_child()
+
+    def get_can_create_modification(self, obj):
+        """Vrai si on peut créer une nouvelle version (brouillon) de ce plan.
+
+        Combine : statut validé/modifié/archivé ET pas de brouillon enfant.
+        """
+        return obj.can_have_new_draft_child()
 
     def get_organismes_gestionnaires(self, obj):
         """Retourne la liste des noms des organismes gestionnaires."""
@@ -355,7 +424,11 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id_pg', 'nom', 'slug', 'id_cdr', 'rang',
             'annee_debut', 'annee_fin', 'periode_gestion',
-            'annees_extension', 'peut_etre_etendu', 'annee_fin_effective',
+            'annees_extension', 'peut_etre_etendu', 'annee_fin_effective', 'is_extended',
+            'en_revision', 'is_in_revision',
+            'is_mi_parcours', 'is_mid_term',
+            'has_draft_child', 'can_create_modification',
+            'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_avis_csrpn', 'id_docgestion_fcen',
             'id_evaluation', 'evaluation_display', 'id_redacteur_type', 'redacteur_type_display',
@@ -371,7 +444,10 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id_pg', 'slug', 'date_ajout', 'date_maj',
-            'peut_etre_etendu', 'annee_fin_effective',
+            'peut_etre_etendu', 'annee_fin_effective', 'is_extended',
+            'is_in_revision', 'is_mid_term',
+            'has_draft_child', 'can_create_modification',
+            'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
         ]
     
     def validate(self, data):

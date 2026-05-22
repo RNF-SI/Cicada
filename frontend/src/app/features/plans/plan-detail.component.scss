@@ -267,6 +267,69 @@
 .meta-value {
   &.status {
     color: $secondary-yellow;
+
+    &.has-tooltip {
+      cursor: help;
+    }
+  }
+
+  // #250 / #278 — badges affichés à côté du chip de statut quand le plan
+  // a un attribut indépendant actif (extension, révision en cours).
+  &.extension-badge,
+  &.revision-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: 2px $spacing-xs;
+    border-radius: $border-radius-pill;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    background-color: rgba($info-color, 0.15);
+    color: darken($info-color, 15%);
+
+    i {
+      font-size: 11px;
+    }
+  }
+
+  // #276 — Badge « Évaluation mi-parcours » : variante terra cotta pour
+  // souligner le caractère unique par chaîne.
+  &.mi-parcours-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: 2px $spacing-xs;
+    border-radius: $border-radius-pill;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    background-color: rgba($secondary-terra-cotta, 0.15);
+    color: $secondary-terra-cotta;
+
+    i {
+      font-size: 11px;
+    }
+  }
+}
+
+.next-rang-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-left: $spacing-xs;
+  padding: 2px $spacing-xs;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+  text-decoration: none;
+  border: 1px dashed rgba($primary-color, 0.4);
+
+  i {
+    font-size: 11px;
+  }
+
+  &:hover {
+    background-color: rgba($primary-color, 0.06);
+    text-decoration: none;
   }
 }
 
@@ -348,6 +411,13 @@
   // #250 — Bouton « Étendre la durée du plan »
   &-info {
     background-color: $info-color;
+    color: $white;
+  }
+
+  // #276 — Bouton « Lancer évaluation mi-parcours » (terra cotta pour
+  // distinguer fortement cette action exceptionnelle, unique par chaîne).
+  &-terra-cotta {
+    background-color: $secondary-terra-cotta;
     color: $white;
   }
 }

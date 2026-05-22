@@ -1,0 +1,68 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.startMiParcours.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'plans.lifecycle.startMiParcours.intro' | translate:{ name: data.plan.nom } }}
+  </p>
+
+  <mat-radio-group [(ngModel)]="mode" class="mode-group">
+    <mat-radio-button value="create" class="mode-option" [disabled]="hasDraftChild">
+      <span class="mode-label">{{ 'plans.lifecycle.startMiParcours.modes.create' | translate }}</span>
+      <span class="mode-hint">{{ 'plans.lifecycle.startMiParcours.modes.createHint' | translate }}</span>
+      @if (hasDraftChild) {
+        <span class="mode-disabled-reason">
+          {{ 'plans.lifecycle.startMiParcours.modes.createDisabled' | translate }}
+        </span>
+      }
+    </mat-radio-button>
+
+    <mat-radio-button value="link" class="mode-option">
+      <span class="mode-label">{{ 'plans.lifecycle.startMiParcours.modes.link' | translate }}</span>
+      <span class="mode-hint">{{ 'plans.lifecycle.startMiParcours.modes.linkHint' | translate }}</span>
+    </mat-radio-button>
+  </mat-radio-group>
+
+  <!-- Dropdown brouillons existants -->
+  @if (mode === 'link') {
+    <div class="form-block">
+      @if (loadingDrafts) {
+        <div class="loading">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>{{ 'common.messages.loading' | translate }}</span>
+        </div>
+      } @else if (availableDrafts.length === 0) {
+        <p class="empty-state">
+          {{ 'plans.lifecycle.startMiParcours.linkEmpty' | translate }}
+        </p>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'plans.lifecycle.startMiParcours.form.selectDraft' | translate }}</mat-label>
+          <mat-select [(ngModel)]="selectedDraftId">
+            @for (draft of availableDrafts; track draft.id_pg) {
+              <mat-option [value]="draft.id_pg">{{ draft.nom }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+  }
+
+  @if (errorMessage) {
+    <p class="error">{{ errorMessage }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="submitting">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary"
+          (click)="confirm()"
+          [disabled]="!canConfirm">
+    @if (submitting) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      {{ 'plans.lifecycle.actions.startMiParcours' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

@@ -12,6 +12,7 @@ import { debounceTime } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, AdminOrganisme } from '../../core/models/admin.model';
+import { getExtensionBadgeKey } from '../../shared/utils/plan-status.utils';
 import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-plan-site-modal/link-plan-site-modal.component';
 import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -22,6 +23,8 @@ interface DisplaySiteLie {
   id: number;
   nom: string;
   type?: string;
+  /** Mnémonique du type de site (RNN, RNR, PNR, ENS...) — #281 */
+  typeMnemonique?: string;
   rang?: number;
 }
 
@@ -51,6 +54,12 @@ interface DisplayPlan {
   periodeDebut?: number;
   periodeFin?: number;
   periode: string;
+  /** #250 — Années d'extension (0, 1 ou 2). Affichage via badge séparé. */
+  annees_extension?: number;
+  /** #278 — Plan en cours de révision. Affichage via badge séparé. */
+  en_revision?: boolean;
+  /** #276 — Plan portant l'évaluation mi-parcours. Affichage via badge séparé. */
+  is_mi_parcours?: boolean;
   gestionPartagee: boolean;
   ct88: boolean;
   risqueIncendie: boolean;
@@ -227,6 +236,9 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
       periodeDebut: plan.annee_debut,
       periodeFin: plan.annee_fin,
       periode,
+      annees_extension: plan.annees_extension,
+      en_revision: plan.en_revision,
+      is_mi_parcours: plan.is_mi_parcours,
       gestionPartagee: plan.gestion_partagee,
       ct88: plan.ct88,
       risqueIncendie: plan.risque_incendie,
@@ -239,6 +251,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
         id: s.id_site,
         nom: s.nom_site,
         type: s.type_site_label,
+        typeMnemonique: s.type_site_mnemonique || undefined,
         rang: s.rang
       })),
       referents: (plan.referents || []).map(r => ({
@@ -432,6 +445,16 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** #281 — Clé i18n du badge d'extension contextualisée par le type de site
+   *  principal du plan. */
+  getExtensionBadgeKeyForPlan(plan: DisplayPlan): string {
+    const sortedSites = [...(plan.sites || [])].sort(
+      (a, b) => (a.rang ?? 99) - (b.rang ?? 99),
+    );
+    const principalMnemonique = sortedSites[0]?.typeMnemonique ?? null;
+    return getExtensionBadgeKey(principalMnemonique);
+  }
+
   // Helper methods for display
   getStatutClass(statut: PlanStatut): string {
     const classes: Record<PlanStatut, string> = {
@@ -441,9 +464,6 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
       'arrete_pref': 'statut-csrpn',
       'valide': 'statut-valide',
       'modifie': 'statut-valide',
-      'mi_parcours': 'statut-valide',
-      'etendu': 'statut-etendu',
-      'en_revision': 'statut-draft',
       'archive': 'statut-archive',
     };
     return classes[statut] || '';

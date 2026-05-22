@@ -595,20 +595,24 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      // #248 : edit metadata caché hors brouillon. #278 : ajout du bouton
-      // "Passer en cours de révision" sur statut valide. Total = toDraft +
-      // enRevision + archive = 3 boutons de cycle de vie.
-      it('should show exactly three lifecycle buttons (toDraft + enRevision + archive)', () => {
+      // #248 : edit metadata caché hors brouillon.
+      // #278 : bouton "Marquer en cours de révision" sur statut validé.
+      // #276 : bouton "Lancer évaluation mi-parcours" sur statut validé
+      // (visible si aucune mi-parcours dans la chaîne — c'est le cas par défaut).
+      // Total = toDraft + startRevision + startMiParcours + archive = 4 boutons.
+      it('should show exactly four lifecycle buttons (toDraft + startRevision + startMiParcours + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(3);
+        expect(buttons.length).toBe(4);
       });
 
-      it('should show warning (toDraft), info (enRevision) and neutral (archive) buttons', () => {
+      it('should show warning (toDraft), info (startRevision), terra-cotta (startMiParcours) and neutral (archive) buttons', () => {
         const warningBtn = fixture.nativeElement.querySelector('.btn-lifecycle-warning');
         const infoBtn = fixture.nativeElement.querySelector('.btn-lifecycle-info');
+        const terraBtn = fixture.nativeElement.querySelector('.btn-lifecycle-terra-cotta');
         const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
         expect(warningBtn).toBeTruthy();
         expect(infoBtn).toBeTruthy();
+        expect(terraBtn).toBeTruthy();
         expect(neutralBtn).toBeTruthy();
       });
 
@@ -618,25 +622,29 @@ describe('PlanDetailComponent', () => {
       });
     });
 
-    // #278 — statut "en cours de révision"
-    describe('when plan.statut === en_revision and canManageLifecycle is true', () => {
+    // #278 — Plan validé ET en cours de révision : le bouton "Marquer en
+    // cours de révision" devient "Annuler la révision".
+    describe('when plan.statut === valide and en_revision=true', () => {
       beforeEach(() => {
         setup({
           isSuperAdmin: true,
-          plan: createMockPlan({ statut: 'en_revision' as any }),
+          plan: createMockPlan({ statut: 'valide', en_revision: true } as any),
         });
         fixture.detectChanges();
       });
 
-      it('should show exactly two lifecycle buttons (resume + archive)', () => {
+      // toDraft + cancelRevision + startMiParcours + archive = 4 boutons
+      it('should show 4 lifecycle buttons (toDraft + cancelRevision + startMiParcours + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(4);
       });
 
-      it('should show warning button (resume) and neutral button (archive)', () => {
-        const warningBtn = fixture.nativeElement.querySelector('.btn-lifecycle-warning');
+      it('should show two warning buttons (toDraft + cancelRevision), one terra-cotta (startMiParcours) and one neutral (archive)', () => {
+        const warningBtns = fixture.nativeElement.querySelectorAll('.btn-lifecycle-warning');
+        const terraBtn = fixture.nativeElement.querySelector('.btn-lifecycle-terra-cotta');
         const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
-        expect(warningBtn).toBeTruthy();
+        expect(warningBtns.length).toBe(2);
+        expect(terraBtn).toBeTruthy();
         expect(neutralBtn).toBeTruthy();
       });
     });
