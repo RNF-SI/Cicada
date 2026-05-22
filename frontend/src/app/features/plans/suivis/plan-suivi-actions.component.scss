@@ -551,13 +551,13 @@ tr.is-draft {
   p {
     font-family: $font-family;
     font-size: $font-size-base;
-    color: $gray-dark;
+    color: $black;
     margin: 0;
   }
 
   .empty-hint {
     font-size: $font-size-small;
-    color: $gray;
+    color: $gray-dark;
     margin-top: $spacing-sm;
   }
 }

@@ -212,7 +212,7 @@
 .notification-item-message {
   display: block;
   font-size: $font-size-small;
-  color: $gray-dark;
+  color: $black;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -224,7 +224,7 @@
 .notification-time {
   display: block;
   font-size: $font-size-small;
-  color: $gray;
+  color: $gray-dark;
   margin-top: 5px;
 }
 

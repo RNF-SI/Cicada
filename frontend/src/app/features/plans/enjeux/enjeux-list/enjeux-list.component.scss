@@ -2081,7 +2081,7 @@
       color: $black;
 
       .mat-button-toggle-label-content {
-        font-family: 'Nunito', sans-serif;
+        font-family: $font-family;
         font-size: $font-size-small;
         font-weight: $font-weight-medium;
         line-height: 32px;
@@ -2117,7 +2117,7 @@
 // Optional bound checkbox — keep Material defaults intact for click behavior
 .optional-bound-checkbox {
   ::ng-deep .mdc-label {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: 11px;
     color: $gray-dark;
   }

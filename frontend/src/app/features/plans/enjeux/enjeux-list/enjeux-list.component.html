@@ -215,8 +215,7 @@
                       <i class="fi fi-rr-eye"></i>
                     </button>
                     <button class="icon-btn-flat icon-btn-flat--action" (click)="toggleEnjeuDetail(); $event.stopPropagation()">
-                      <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
-
+                      <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
                     </button>
                   </div>
                 </div>
@@ -404,7 +403,7 @@
                           </button>
                         }
                         <button class="icon-btn-flat icon-btn-flat--action" (click)="$event.stopPropagation(); toggleFacteur(facteur.id_facteur_influence)">
-                          <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+                          <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
                         </button>
                       </div>
                     </div>
@@ -526,7 +525,7 @@
                                   </button>
                                 }
                                 <button class="icon-btn-flat icon-btn-flat--action" (click)="$event.stopPropagation(); togglePression(pression.id_pression)">
-                                  <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+                                  <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
                                 </button>
                               </div>
                             </div>

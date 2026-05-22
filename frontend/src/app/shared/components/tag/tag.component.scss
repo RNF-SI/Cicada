@@ -1,0 +1,127 @@
+@import 'variables';
+
+// Composant Tag unifié (issue #296)
+// Style pill, sans bordure, compact
+
+.app-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-weight: $font-weight-semibold;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: none;
+  user-select: none;
+
+  // Taille md (par défaut)
+  &--md {
+    padding: 4px 12px;
+    font-size: $font-size-small;
+
+    i {
+      font-size: 12px;
+    }
+  }
+
+  // Taille sm (compacte, pour tableaux denses)
+  &--sm {
+    padding: 2px 8px;
+    font-size: 11px;
+
+    i {
+      font-size: 10px;
+    }
+  }
+
+  // ============================================
+  // VARIANTES SÉMANTIQUES (texte blanc sur fond)
+  // ============================================
+
+  &--success {
+    background-color: $success-color;
+    color: $white;
+  }
+
+  &--error {
+    background-color: $error-color;
+    color: $white;
+  }
+
+  &--info,
+  &--primary {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  // ============================================
+  // VARIANTES DÉCORATIVES (texte noir/primary sur pastel)
+  // ============================================
+
+  &--warning {
+    background-color: $secondary-orange-salmon;
+    color: $black;
+  }
+
+  &--draft {
+    background-color: $secondary-yellow;
+    color: $black;
+  }
+
+  &--neutral {
+    background-color: $secondary-pale-green;
+    color: $black;
+  }
+
+  &--muted {
+    background-color: $gray-light;
+    color: $black;
+  }
+
+  // ============================================
+  // SCORES (texte noir sur pastel, AA)
+  // ============================================
+
+  &--score-very-bad {
+    background-color: $score-very-bad;
+    color: $black;
+  }
+
+  &--score-bad {
+    background-color: $score-bad;
+    color: $black;
+  }
+
+  &--score-neutral {
+    background-color: $score-neutral;
+    color: $black;
+  }
+
+  &--score-good {
+    background-color: $score-good;
+    color: $black;
+  }
+
+  &--score-very-good {
+    background-color: $score-very-good;
+    color: $black;
+  }
+
+  // ============================================
+  // ÉTAT CLIQUABLE
+  // ============================================
+
+  &--clickable {
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+}

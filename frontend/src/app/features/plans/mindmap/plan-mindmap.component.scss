@@ -320,7 +320,7 @@
 :host ::ng-deep {
   .icicle-container svg {
     cursor: pointer;
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
 
     rect {
       transition: filter 0.15s;
