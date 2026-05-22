@@ -464,6 +464,15 @@ export class SitesListComponent implements OnInit {
   }
 
   /**
+   * Tooltip listant les organismes supplémentaires d'un site (revue design #310).
+   */
+  getOtherOrganismesNames(site: { organismes?: Array<{ nom_organisme: string }> }): string {
+    const orgs = site.organismes || [];
+    if (orgs.length <= 1) return '';
+    return orgs.slice(1).map(o => o.nom_organisme).join(', ');
+  }
+
+  /**
    * Verifie si une page est un nombre.
    */
   isPageNumber(page: number | string): boolean {

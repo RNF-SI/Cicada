@@ -168,7 +168,12 @@
                         @if (site.organismes && site.organismes.length > 0) {
                           {{ site.organismes[0].nom_organisme }}
                           @if (site.organismes.length > 1) {
-                            <span class="others">+{{ site.organismes.length - 1 }}</span>
+                            <!-- Tooltip listant les organismes supplémentaires (revue design #310) -->
+                            <span class="others"
+                                  [matTooltip]="getOtherOrganismesNames(site)"
+                                  matTooltipPosition="above">
+                              +{{ site.organismes.length - 1 }}
+                            </span>
                           }
                         } @else {
                           -

@@ -61,6 +61,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   private map: L.Map | null = null;
   private geoJsonLayer: L.GeoJSON | null = null;
   readonly isFullscreen = signal(false);
+  // Suivi du déplacement utilisateur pour afficher le bouton "Recentrer" (revue design #310)
+  readonly userHasMoved = signal(false);
   private readonly renderer = inject(Renderer2);
 
   // Couleurs du design system
@@ -118,6 +120,11 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
       maxZoom: 19
     }).addTo(this.map);
 
+    // Suivre les déplacements utilisateur pour afficher le bouton "Recentrer" (revue design #310)
+    this.map.on('movestart zoomstart', () => {
+      this.userHasMoved.set(true);
+    });
+
     // Ajouter les données GeoJSON si présentes
     if (this.geojsonData) {
       this.updateGeoJSON();
@@ -126,6 +133,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
     // Forcer le rafraîchissement de la carte après le rendu
     setTimeout(() => {
       this.map?.invalidateSize();
+      // Reset le flag : les `setView`/`fitBounds` initiaux ne comptent pas comme déplacement utilisateur
+      this.userHasMoved.set(false);
     }, 100);
   }
 
@@ -220,6 +229,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
     } else if (this.map) {
       this.map.setView(this.center, this.zoom);
     }
+    // Reset l'état "déplacé" pour cacher le bouton (revue design #310)
+    this.userHasMoved.set(false);
   }
 
   /**

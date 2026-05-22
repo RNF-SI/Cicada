@@ -282,7 +282,13 @@
   width: 540px !important;
   max-width: 95vw !important;
 
+  // Background gris très clair (revue design #307 : meilleur contraste avec items)
+  .mat-mdc-menu-panel {
+    background-color: #F6F6F6 !important;
+  }
+
   .mat-mdc-menu-content {
     padding: 0;
+    background-color: #F6F6F6;
   }
 }
