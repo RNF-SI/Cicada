@@ -9,6 +9,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, Observable } from 'rxjs';
+import { PlanStatut } from '../../../../core/models/admin.model';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
@@ -117,14 +118,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   errorMessage = signal<string | null>(null);
 
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
-   *  verrouiller l'édition hors brouillon (#248). */
-  planStatut = signal<'draft' | 'valide' | 'etendu' | 'archive' | null>(null);
+   *  verrouiller l'édition hors brouillon (#248).
+   *  #277 — Inclut les statuts CSRPN intermédiaires (verrouillage identique). */
+  planStatut = signal<PlanStatut | null>(null);
 
-  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248). */
-  // #250 — `etendu` est aussi éditable (annees d'extension actives).
+  /** Plan en brouillon : seul état autorisant l'édition de contenu (#248).
+   *  L'extension de durée (#250) est un attribut indépendant du statut et
+   *  ne débloque PAS l'édition. */
   isPlanDraft = computed(() => {
-    const s = this.planStatut();
-    return s === 'draft' || s === 'etendu';
+    return this.planStatut() === 'draft';
   });
 
   // Permissions édition: super_admin, redacteur_principal, admin_og, ou référent du plan
@@ -296,6 +298,40 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (!data) return [];
     return [...(data.fcr || [])].sort(EnjeuxListComponent._byOrdreId);
   });
+
+  /**
+   * #229 — Numérotation globale des OLT à travers tous les enjeux du plan,
+   * dans l'ordre de tri des enjeux (`ordre`, puis `id_enjeu`).
+   *
+   * Exemple : enjeu 1 a 2 OLT → OLT 1 et OLT 2 ; enjeu 2 a 2 OLT → OLT 3
+   * et OLT 4. Permet aux gestionnaires de désigner un OLT par son numéro
+   * sans ambiguïté.
+   */
+  oltGlobalRank = computed<Map<number, number>>(() => {
+    const map = new Map<number, number>();
+    let rank = 0;
+    for (const enjeu of this.enjeux()) {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        rank += 1;
+        map.set(olt.id_olt, rank);
+      }
+    }
+    // Les FCR n'ont en principe pas d'OLT, mais on les inclut pour cohérence
+    // au cas où un FCR en porterait (le numérotage global continue).
+    for (const enjeu of this.fcr()) {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        rank += 1;
+        map.set(olt.id_olt, rank);
+      }
+    }
+    return map;
+  });
+
+  /** #229 — Retourne le numéro global d'un OLT (1-based) ou null si inconnu. */
+  getOltGlobalNumber(oltId: number | undefined): number | null {
+    if (oltId === undefined) return null;
+    return this.oltGlobalRank().get(oltId) ?? null;
+  }
 
   // Compteur total
   totalCount = computed(() => {
@@ -2555,6 +2591,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (!oo?.id_oo) return;
     const list = oo.resultats_attendus || [];
     this.applyReorder('resultats-attendus', oo.id_oo, list, event.previousIndex, event.currentIndex, 'id_ra');
+  }
+
+  /**
+   * #236 — Extrait les libellés uniques des facteurs d'influence rattachés
+   * aux pressions d'un OO. Préserve l'ordre d'apparition (premier rencontré
+   * = premier affiché).
+   */
+  uniqueFacteursFromOO(oo: ObjectifOperationnel): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const p of (oo.pressions || [])) {
+      const lib = (p as any).facteur_influence_libelle;
+      if (lib && !seen.has(lib)) {
+        seen.add(lib);
+        out.push(lib);
+      }
+    }
+    return out;
   }
 
   /**

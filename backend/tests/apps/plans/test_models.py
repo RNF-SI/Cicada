@@ -38,7 +38,7 @@ class TestPlanGestionModel:
         assert plan.gestion_partagee is False
         assert plan.ct88 is False
         assert plan.risque_incendie is False
-        assert plan.version == '1.0'
+        assert plan.version == '1'
 
     def test_plan_statut_choices(self):
         """Test plan status choices."""
@@ -323,8 +323,8 @@ class TestPlanGestionVersionChain:
 
     def test_version_chain_linear_two(self):
         """root→child chain has 2 items, child is_current when called on child."""
-        root = PlanGestionFactory(nom='Root', version='1.0')
-        child = PlanGestionFactory(nom='Child', version='1.1', plan_parent=root)
+        root = PlanGestionFactory(nom='Root', version='1')
+        child = PlanGestionFactory(nom='Child', version='2', plan_parent=root)
         chain = child.get_version_chain()
         assert len(chain) == 2
         # Root is first
@@ -336,9 +336,9 @@ class TestPlanGestionVersionChain:
 
     def test_version_chain_linear_three(self):
         """A→B→C called on B returns 3 items, B is_current."""
-        plan_a = PlanGestionFactory(nom='A', version='1.0')
-        plan_b = PlanGestionFactory(nom='B', version='1.1', plan_parent=plan_a)
-        plan_c = PlanGestionFactory(nom='C', version='1.2', plan_parent=plan_b)
+        plan_a = PlanGestionFactory(nom='A', version='1')
+        plan_b = PlanGestionFactory(nom='B', version='2', plan_parent=plan_a)
+        plan_c = PlanGestionFactory(nom='C', version='3', plan_parent=plan_b)
         chain = plan_b.get_version_chain()
         assert len(chain) == 3
         current_items = [item for item in chain if item['is_current']]
@@ -379,29 +379,38 @@ class TestPlanGestionVersionChain:
         assert chain[0]['type_document_mnemonique'] is None
         assert chain[0]['type_document'] is None
 
-    # ==================== get_next_version ====================
+    def test_version_chain_exposes_rang(self):
+        """#280 — `rang` est inclus dans l'élément chaîne pour distinguer le rang suivant."""
+        root = PlanGestionFactory(nom='Rang 1', rang=1)
+        next_rang = PlanGestionFactory(nom='Rang 2 brouillon', rang=2, plan_parent=root)
+        chain = root.get_version_chain()
+        ranks = {item['id_pg']: item['rang'] for item in chain}
+        assert ranks[root.id_pg] == 1
+        assert ranks[next_rang.id_pg] == 2
 
-    def test_next_version_standard(self):
-        """'1.0' increments to '1.1'."""
-        plan = PlanGestionFactory(version='1.0')
-        assert plan.get_next_version() == '1.1'
+    # ==================== get_next_version (entiers, #279) ====================
 
-    def test_next_version_higher_minor(self):
-        """'2.3' increments to '2.4'."""
-        plan = PlanGestionFactory(version='2.3')
-        assert plan.get_next_version() == '2.4'
+    def test_next_version_solo_plan(self):
+        """Plan seul de version '1' → prochaine version '2'."""
+        plan = PlanGestionFactory(version='1')
+        assert plan.get_next_version() == '2'
 
-    def test_next_version_no_minor(self):
-        """'3' (no minor) increments to '3.1'."""
-        plan = PlanGestionFactory(version='3')
-        assert plan.get_next_version() == '3.1'
+    def test_next_version_in_chain(self):
+        """Dans une chaîne root(1) → child(2), la prochaine version est '3'."""
+        root = PlanGestionFactory(nom='Root', version='1')
+        child = PlanGestionFactory(nom='Child', version='2', plan_parent=root)
+        assert child.get_next_version() == '3'
+        # Idempotent : appeler depuis le root donne la même valeur (chaîne complète prise en compte).
+        assert root.get_next_version() == '3'
 
-    def test_next_version_malformed(self):
-        """Malformed version 'abc' falls back to '1.1'."""
-        plan = PlanGestionFactory(version='abc')
-        assert plan.get_next_version() == '1.1'
+    def test_next_version_skips_non_integer_legacy(self):
+        """Versions historiques non entières ignorées : on retombe sur la taille de la chaîne."""
+        root = PlanGestionFactory(nom='Root', version='1.0')
+        child = PlanGestionFactory(nom='Child', version='1.1', plan_parent=root)
+        # Aucune version entière → fallback = len(chain) + 1 = 3
+        assert child.get_next_version() == '3'
 
-    def test_next_version_empty(self):
-        """Empty version string falls back to '1.1'."""
+    def test_next_version_empty_fallback(self):
+        """Plan avec version vide → fallback sur taille de la chaîne (= 2 pour solo)."""
         plan = PlanGestionFactory(version='')
-        assert plan.get_next_version() == '1.1'
+        assert plan.get_next_version() == '2'

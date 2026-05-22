@@ -59,6 +59,24 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nom_indicateur', 'date_ajout', 'date_maj', 'id_indicateur']
     ordering = ['id_indicateur']
 
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via le parent (NE ou RA)."""
+        ne_id = data.get('id_ne')
+        if ne_id:
+            try:
+                return NiveauExigence.objects.select_related(
+                    'id_olt__id_enjeu'
+                ).get(pk=ne_id).get_plan_de_gestion()
+            except NiveauExigence.DoesNotExist:
+                return None
+        ra_id = data.get('id_resultat_attendu')
+        if ra_id:
+            try:
+                return ResultatAttendu.objects.get(pk=ra_id).get_plan_de_gestion()
+            except ResultatAttendu.DoesNotExist:
+                return None
+        return None
+
     def get_serializer_class(self):
         if self.action == 'list':
             return IndicateurListSerializer
@@ -175,7 +193,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verrou #248 — plan doit être en statut éditable (draft ou etendu, #250)
+        # Verrou #248 — plan doit être en statut éditable (draft uniquement)
         if target_plan and target_plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
             return Response(
                 {"detail": "Modification interdite hors brouillon."},
@@ -392,6 +410,18 @@ class MetriqueViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nom_metrique', 'date_ajout', 'date_maj', 'id_metrique']
     ordering = ['id_metrique']
 
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via l'indicateur parent."""
+        indicateur_id = data.get('id_indicateur')
+        if not indicateur_id:
+            return None
+        try:
+            return Indicateur.objects.select_related(
+                'id_ne__id_olt__id_enjeu', 'id_resultat_attendu'
+            ).get(pk=indicateur_id).get_plan_de_gestion()
+        except Indicateur.DoesNotExist:
+            return None
+
     def get_serializer_class(self):
         if self.action == 'list':
             return MetriqueListSerializer
@@ -467,6 +497,19 @@ class MesureViewSet(viewsets.ModelViewSet):
     search_fields = ['valeur', 'commentaire']
     ordering_fields = ['date_mesure', 'date_ajout', 'date_maj']
     ordering = ['-date_mesure', '-date_ajout']
+
+    def get_plan_for_payload(self, data):
+        """#248 — check draft à la création via la métrique parent."""
+        metrique_id = data.get('id_metrique')
+        if not metrique_id:
+            return None
+        try:
+            return Metrique.objects.select_related(
+                'id_indicateur__id_ne__id_olt__id_enjeu',
+                'id_indicateur__id_resultat_attendu',
+            ).get(pk=metrique_id).get_plan_de_gestion()
+        except Metrique.DoesNotExist:
+            return None
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

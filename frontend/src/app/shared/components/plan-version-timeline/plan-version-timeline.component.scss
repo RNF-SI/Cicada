@@ -4,6 +4,102 @@
   padding: 0;
 }
 
+// Section par rang : un rang = un plan de gestion distinct.
+// Les rangs précédents/suivants sont affichés en mode résumé cliquable ;
+// seul le rang courant montre les versions en détail.
+.rang-section {
+  margin-bottom: $spacing-sm;
+
+  &.rang-current {
+    background: rgba($primary-color, 0.025);
+    border-radius: $border-radius-sm;
+    padding: $spacing-xxs;
+    margin: $spacing-xs (-$spacing-xxs);
+  }
+}
+
+// Header de section rang
+.rang-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  text-decoration: none;
+  border-radius: $border-radius-sm;
+
+  i {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .rang-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+
+  .rang-position-tag {
+    font-size: 0.65rem;
+    font-weight: $font-weight-regular;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $gray-dark;
+    padding: 1px $spacing-xs;
+    border-radius: $border-radius-sm;
+    background: rgba($gray, 0.15);
+  }
+
+  .rang-summary-versions {
+    font-size: 0.7rem;
+    font-weight: $font-weight-regular;
+    color: $gray-dark;
+  }
+
+  .rang-chevron {
+    color: $gray-dark;
+    font-size: 0.85rem;
+  }
+}
+
+// Rang précédent ou suivant : cliquable, fond gris léger au hover
+.rang-header-link {
+  cursor: pointer;
+  border: 1px solid $gray-lighter;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.05);
+    border-color: rgba($primary-color, 0.2);
+
+    .rang-chevron {
+      color: $primary-color;
+    }
+  }
+}
+
+// Rang courant : tag "actuel" en couleur terra cotta
+.rang-header-current {
+  .rang-position-current {
+    color: $white;
+    background: $secondary-terra-cotta;
+    font-weight: $font-weight-bold;
+  }
+}
+
+// Rang suivant : tag colorée primary avec bordure pointillée
+.rang-section.rang-next .rang-header-link {
+  .rang-position-tag {
+    color: $primary-color;
+    background: rgba($primary-color, 0.08);
+    border: 1px dashed rgba($primary-color, 0.3);
+  }
+}
+
 .timeline-track {
   display: flex;
   flex-direction: column;
@@ -134,12 +230,24 @@
     i { color: $gray-dark; }
   }
 
-  // #250 — Plan étendu : variation du « validé » avec accent info
-  &.dot-etendu {
-    border-color: $info-color;
-    background: rgba($info-color, 0.1);
+  // #275 — Modifié : variante du `valide` (vert) avec une teinte plus soutenue.
+  &.dot-modifie {
+    border-color: $success-color;
+    background: rgba($success-color, 0.16);
 
-    i { color: $info-color; }
+    i { color: $success-color; }
+  }
+
+  // #277 — Statuts CSRPN : couleur warning avec bordure pleine. La
+  // distinction étape se fait par le label (chip), le dot signale
+  // "en cours réglementaire".
+  &.dot-avis_csrpn,
+  &.dot-comite_consultatif,
+  &.dot-arrete_pref {
+    border-color: $warning-color;
+    background: rgba($warning-color, 0.1);
+
+    i { color: $warning-color; }
   }
 
   &.dot-current {
@@ -148,6 +256,16 @@
     box-shadow: 0 0 0 2px rgba($secondary-terra-cotta, 0.15);
 
     i { color: $secondary-terra-cotta; }
+  }
+
+  // #280 — Brouillon du rang suivant : cadre pointillé sur la teinte primary
+  // (cf. maquette Mermaid de la note Cycle de vie d'un plan de gestion).
+  &.dot-next-rang {
+    border-color: $primary-color;
+    border-style: dashed;
+    background: $white;
+
+    i { color: $primary-color; }
   }
 }
 
@@ -194,6 +312,20 @@
   padding: 1px 5px;
   border-radius: $border-radius-sm;
   line-height: 1.4;
+}
+
+// #280 — Badge "Rang N+1" pour le brouillon du rang suivant
+.next-rang-badge {
+  font-size: 0.6rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: $primary-color;
+  background: rgba($primary-color, 0.08);
+  padding: 1px 5px;
+  border-radius: $border-radius-sm;
+  line-height: 1.4;
+  border: 1px dashed rgba($primary-color, 0.3);
 }
 
 .node-type {
@@ -282,4 +414,44 @@
   font-weight: $font-weight-regular;
   opacity: 0.7;
   margin-left: auto;
+}
+
+// #250 — Badge "Étendu" affiché à côté du chip de statut quand le plan est
+// prolongé (annees_extension > 0). Couleur info (cyan) pour bien le distinguer
+// du statut de base.
+:host ::ng-deep mat-chip.extension-badge {
+  background-color: rgba($info-color, 0.15) !important;
+  color: darken($info-color, 15%) !important;
+  font-weight: $font-weight-bold;
+
+  i {
+    font-size: 11px;
+    margin-right: $spacing-xxs;
+  }
+}
+
+// #278 — Badge "En cours de révision" affiché à côté du chip de statut quand
+// le plan est en cours de révision (en_revision=true). Variante info (cyan).
+:host ::ng-deep mat-chip.revision-badge {
+  background-color: rgba($info-color, 0.15) !important;
+  color: darken($info-color, 15%) !important;
+  font-weight: $font-weight-bold;
+
+  i {
+    font-size: 11px;
+    margin-right: $spacing-xxs;
+  }
+}
+
+// #276 — Badge "Évaluation mi-parcours" affiché à côté du chip de statut.
+// Variante terra cotta pour marquer le caractère exceptionnel (unique par chaîne).
+:host ::ng-deep mat-chip.mi-parcours-badge {
+  background-color: rgba($secondary-terra-cotta, 0.15) !important;
+  color: $secondary-terra-cotta !important;
+  font-weight: $font-weight-bold;
+
+  i {
+    font-size: 11px;
+    margin-right: $spacing-xxs;
+  }
 }

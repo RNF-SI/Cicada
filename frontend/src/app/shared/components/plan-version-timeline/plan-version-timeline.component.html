@@ -1,34 +1,109 @@
 <div class="version-timeline">
-  <div class="timeline-track">
-    @for (item of chain; track item.id_pg; let i = $index; let first = $first; let last = $last) {
-      <a class="timeline-node-row"
-         [routerLink]="item.is_current ? null : ['/plans', item.slug]"
-         [class.clickable]="!item.is_current"
-         [class.current]="item.is_current">
-        <div class="timeline-rail"
-             [class.rail-first]="first"
-             [class.rail-last]="last">
-          <div class="rail-dot"
-               [ngClass]="'dot-' + item.statut"
-               [class.dot-current]="item.is_current">
-            <i class="fi" [ngClass]="getNodeIcon(item)"></i>
+  @for (group of rangGroups(); track group.rang) {
+    <div class="rang-section"
+         [class.rang-previous]="group.position === 'previous'"
+         [class.rang-current]="group.position === 'current'"
+         [class.rang-next]="group.position === 'next'">
+
+      <!-- Rangs précédents/suivants : header cliquable, pas de détails -->
+      @if (group.position !== 'current') {
+        @if (group.navigationTarget) {
+          <a class="rang-header rang-header-link"
+             [routerLink]="['/plans', group.navigationTarget.slug]">
+            <i class="fi" [ngClass]="group.position === 'previous' ? 'fi-rr-arrow-up' : 'fi-rr-arrow-down'"></i>
+            <span class="rang-label">
+              {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
+              <span class="rang-position-tag">
+                @if (group.position === 'previous') {
+                  {{ 'plans.lifecycle.timeline.previousRang' | translate }}
+                } @else {
+                  {{ 'plans.lifecycle.timeline.nextRang' | translate }}
+                }
+              </span>
+            </span>
+            <span class="rang-summary-versions">
+              {{ group.items.length }}
+              {{ (group.items.length > 1
+                  ? 'plans.lifecycle.timeline.versionsPlural'
+                  : 'plans.lifecycle.timeline.versionsSingular') | translate }}
+            </span>
+            <i class="fi fi-rr-angle-small-right rang-chevron"></i>
+          </a>
+        } @else {
+          <div class="rang-header">
+            <i class="fi" [ngClass]="group.position === 'previous' ? 'fi-rr-arrow-up' : 'fi-rr-arrow-down'"></i>
+            <span class="rang-label">
+              {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
+            </span>
           </div>
+        }
+      }
+
+      <!-- Rang courant : header avec tag « actuel » + détails complets -->
+      @if (group.position === 'current') {
+        <div class="rang-header rang-header-current">
+          <i class="fi fi-rr-circle-small"></i>
+          <span class="rang-label">
+            {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
+            <span class="rang-position-tag rang-position-current">
+              {{ 'plans.lifecycle.timeline.currentRang' | translate }}
+            </span>
+          </span>
         </div>
-        <div class="node-info">
-          <div class="node-header">
-            <span class="node-version">v{{ item.version }}</span>
-            @if (item.is_current) {
-              <span class="current-badge">{{ 'plans.lifecycle.timeline.current' | translate }}</span>
-            }
-            <mat-chip-set>
-              <mat-chip [ngClass]="getStatusClass(item)" highlighted>
-                {{ 'plans.status.' + item.statut | translate }}
-              </mat-chip>
-            </mat-chip-set>
-          </div>
-          <span class="node-type">{{ item.type_document || ('plans.lifecycle.timeline.planInitial' | translate) }}</span>
+
+        <div class="timeline-track">
+          @for (item of group.items; track item.id_pg; let first = $first; let last = $last) {
+            <a class="timeline-node-row"
+               [routerLink]="item.is_current ? null : ['/plans', item.slug]"
+               [class.clickable]="!item.is_current"
+               [class.current]="item.is_current">
+              <div class="timeline-rail"
+                   [class.rail-first]="first"
+                   [class.rail-last]="last">
+                <div class="rail-dot"
+                     [ngClass]="'dot-' + item.statut"
+                     [class.dot-current]="item.is_current">
+                  <i class="fi" [ngClass]="getNodeIcon(item)"></i>
+                </div>
+              </div>
+              <div class="node-info">
+                <div class="node-header">
+                  <span class="node-version">v{{ item.version }}</span>
+                  @if (item.is_current) {
+                    <span class="current-badge">{{ 'plans.lifecycle.timeline.current' | translate }}</span>
+                  }
+                  <mat-chip-set>
+                    <mat-chip [ngClass]="getStatusClass(item)" highlighted
+                              [matTooltip]="item.statut === 'modifie' ? ('plans.status.modifieTooltip' | translate) : ''"
+                              matTooltipPosition="above">
+                      {{ getStatusLabelKey(item) | translate }}
+                    </mat-chip>
+                    @if (isItemExtended(item)) {
+                      <mat-chip class="extension-badge" highlighted>
+                        <i class="fi fi-rr-time-add"></i>
+                        {{ getExtensionBadgeLabelKey() | translate }} +{{ item.annees_extension }}
+                      </mat-chip>
+                    }
+                    @if (isItemInRevision(item)) {
+                      <mat-chip class="revision-badge" highlighted>
+                        <i class="fi fi-rr-refresh"></i>
+                        {{ 'plans.revision.badge' | translate }}
+                      </mat-chip>
+                    }
+                    @if (isItemMiParcours(item)) {
+                      <mat-chip class="mi-parcours-badge" highlighted>
+                        <i class="fi fi-rr-time-forward"></i>
+                        {{ 'plans.miParcours.badge' | translate }}
+                      </mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+                <span class="node-type">{{ item.type_document || ('plans.lifecycle.timeline.planInitial' | translate) }}</span>
+              </div>
+            </a>
+          }
         </div>
-      </a>
-    }
-  </div>
+      }
+    </div>
+  }
 </div>

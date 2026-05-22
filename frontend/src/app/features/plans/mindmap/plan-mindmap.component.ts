@@ -77,12 +77,16 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
   private icicleFocus!: IcicleNode;
   private icicleWidth = 0;
   private icicleHeight = 0;
+  private icicleCellsParent!: d3.Selection<SVGGElement, unknown, null, undefined>;
+  private icicleInitialOffsetX = 0;
 
   // Icicle view state (inverse)
   private icicleInverseRoot!: IcicleNode;
   private icicleInverseFocus!: IcicleNode;
   private icicleInverseWidth = 0;
   private icicleInverseHeight = 0;
+  private icicleInverseCellsParent!: d3.Selection<SVGGElement, unknown, null, undefined>;
+  private icicleInverseInitialOffsetX = 0;
 
   // D3 element references for programmatic focus
   private icicleSvg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -210,6 +214,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     defs: d3.Selection<SVGDefsElement, unknown, null, undefined>;
     typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
     nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
+    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>;
+    initialOffsetX: number;
     width: number;
     height: number;
   } {
@@ -244,12 +250,31 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     // force une hauteur uniforme entre les enfants directs. Sans cela,
     // l'enjeu le plus dense (le plus de feuilles) écrase visuellement les
     // enjeux légers (FCR, enjeux géologiques sans OO/OLT) et les pousse
-    // sous la fenêtre. Les niveaux suivants conservent leur poids habituel.
+    // sous la fenêtre.
+    //
+    // d3.partition divise l'espace au prorata de `child.value / parent.value`.
+    // Si on se contente de réécrire les `value` des enfants sans propager le
+    // nouveau total à `hierarchy.value`, la somme des x-extent dépasse celle
+    // de la racine et les derniers enfants débordent hors du SVG (cells 4–8
+    // hors viewport sur un plan de 8 enjeux/FCR). On rééchelonne donc
+    // chaque sous-arbre direct par un facteur uniforme pour que tous les
+    // depth-1 totalisent la même valeur, puis on met à jour `hierarchy.value`.
+    // Les ratios internes à chaque sous-arbre (depth-2+) sont préservés.
     if (hierarchy.children && hierarchy.children.length > 1) {
-      const maxChildVal = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
+      const targetValue = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
       for (const child of hierarchy.children) {
-        (child as any).value = maxChildVal;
+        const currentValue = (child as any).value || 1;
+        if (currentValue !== targetValue) {
+          const scale = targetValue / currentValue;
+          child.each((d: any) => {
+            d.value = (d.value || 0) * scale;
+          });
+        }
       }
+      (hierarchy as any).value = hierarchy.children.reduce(
+        (s, c) => s + ((c as any).value || 0),
+        0,
+      );
     }
 
     hierarchy.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
@@ -283,13 +308,13 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // #258 : quand on saute le nœud racine, on enveloppe les cellules dans
     // un <g> translaté de -columnWidth pour décaler tout le rendu vers la
-    // gauche d'une colonne. Les positions internes (y0/y1) restent
-    // inchangées, donc les animations et calculs de focus continuent de
-    // marcher sans modification.
-    if (skipRoot) {
-      svg.append('g').attr('class', 'cells-shift').attr('transform', `translate(${-columnWidth},0)`);
-    }
-    const cellsParent: any = skipRoot ? svg.select('g.cells-shift') : svg;
+    // gauche d'une colonne. On utilise toujours un <g> wrapper (même sans
+    // skipRoot) pour garder l'animation symétrique avec/sans shift.
+    const initialOffsetX = skipRoot ? -columnWidth : 0;
+    const cellsParent = svg.append('g')
+      .attr('class', 'cells-shift')
+      .attr('transform', `translate(${initialOffsetX},0)`) as
+        d3.Selection<SVGGElement, unknown, null, undefined>;
 
     const cell = cellsParent.selectAll('g')
       .data(root.descendants())
@@ -324,20 +349,20 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       .attr('x', 6)
       .attr('y', 14)
       .attr('fill', d => this.getTextColor(MINDMAP_COLORS[d.data.entityType] || '#555'))
-      .attr('fill-opacity', d => this.typeVisible(d, width) ? 1 : 0)
+      .attr('fill-opacity', d => this.typeVisible(d, width, initialOffsetX) ? 1 : 0)
       .text(d => MINDMAP_LABELS[d.data.entityType] || d.data.entityType);
 
     const nameText = textGroup.append('text')
       .attr('class', 'icicle-name')
       .attr('x', 6)
-      .attr('y', d => this.typeVisible(d, width) ? 28 : 13)
+      .attr('y', d => this.typeVisible(d, width, initialOffsetX) ? 28 : 13)
       .attr('fill', d => this.getTextColor(MINDMAP_COLORS[d.data.entityType] || '#555'))
-      .attr('fill-opacity', d => this.nameVisible(d, width) ? 1 : 0);
+      .attr('fill-opacity', d => this.nameVisible(d, width, initialOffsetX) ? 1 : 0);
 
     this.wrapIcicleText(
       nameText,
       d => Math.max(0, (d.y1 - d.y0) - 12),
-      d => this.icicleRectHeight(d) - (this.typeVisible(d, width) ? 22 : 8),
+      d => this.icicleRectHeight(d) - (this.typeVisible(d, width, initialOffsetX) ? 22 : 8),
     );
 
     // Custom HTML tooltip (#257) en remplacement de l'attribut SVG `title`
@@ -356,7 +381,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.tooltipNode.set(null);
     });
 
-    return { root, svg, cell, rect, defs, typeText, nameText, width, height };
+    return { root, svg, cell, rect, defs, typeText, nameText, cellsParent, initialOffsetX, width, height };
   }
 
   private setupClickHandler(
@@ -370,6 +395,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
     typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
     nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
+    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>,
+    initialOffsetX: number,
     viewWidth: number,
     viewHeight: number
   ): void {
@@ -379,7 +406,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
         ? (p.parent as IcicleNode || getRoot())
         : p;
       setFocus(focus);
-      this.animateToFocus(focus, getRoot(), root, svg, cell, rect, defs, typeText, nameText, viewWidth, viewHeight);
+      this.animateToFocus(focus, getRoot(), root, svg, cell, rect, defs, typeText, nameText, cellsParent, initialOffsetX, viewWidth, viewHeight);
     });
 
     cell.on('dblclick', (event, p) => {
@@ -448,6 +475,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
     typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
     nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
+    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>,
+    initialOffsetX: number,
     viewWidth: number,
     viewHeight: number
   ): void {
@@ -457,16 +486,36 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     const ySpan = maxDescY1 - focus.y0;
     const yScale = (focus === rootNode) ? 1 : (ySpan > 0 ? viewWidth / ySpan : 1);
 
-    partitionRoot.each((d: any) => {
-      d.target = {
-        x0: ((d.x0 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-        x1: ((d.x1 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-        y0: ((d.y0 as number) - focus.y0) * yScale,
-        y1: ((d.y1 as number) - focus.y0) * yScale
-      };
-    });
+    // #190 : quand on revient à la racine, restaurer exactement les positions
+    // d'origine (target = d). La formule générale introduit un offset de
+    // `padding` (1 px) car d3.partition met root.x0/y0 à `padding` plutôt qu'à
+    // 0. Ce 1 px suffit à faire échouer le check `target.y0 + offsetX >= 0`
+    // dans typeVisible et masque le label "Enjeu"/"Opération" de la première
+    // colonne après un click-in/click-out.
+    if (focus === rootNode) {
+      partitionRoot.each((d: any) => {
+        d.target = { x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1 };
+      });
+    } else {
+      partitionRoot.each((d: any) => {
+        d.target = {
+          x0: ((d.x0 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
+          x1: ((d.x1 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
+          y0: ((d.y0 as number) - focus.y0) * yScale,
+          y1: ((d.y1 as number) - focus.y0) * yScale
+        };
+      });
+    }
+
+    // Quand on quitte la racine, on ramène le wrapper à offset=0 pour que la
+    // cellule focus (target.y0 = 0) s'affiche bien à x=0. Quand on revient à
+    // la racine, on restaure l'offset initial pour cacher la colonne plan.
+    const newOffsetX = (focus === rootNode) ? initialOffsetX : 0;
 
     const t = svg.transition().duration(750) as any;
+
+    cellsParent.transition(t)
+      .attr('transform', `translate(${newOffsetX},0)`);
 
     cell.transition(t)
       .attr('transform', (d: any) => `translate(${d.target.y0},${d.target.x0})`);
@@ -486,11 +535,11 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     typeText.transition(t)
-      .attr('fill-opacity', (d: any) => this.typeVisible(d.target, viewWidth) ? 1 : 0);
+      .attr('fill-opacity', (d: any) => this.typeVisible(d.target, viewWidth, newOffsetX) ? 1 : 0);
 
     nameText.transition(t)
-      .attr('y', (d: any) => this.typeVisible(d.target, viewWidth) ? 28 : 13)
-      .attr('fill-opacity', (d: any) => this.nameVisible(d.target, viewWidth) ? 1 : 0);
+      .attr('y', (d: any) => this.typeVisible(d.target, viewWidth, newOffsetX) ? 28 : 13)
+      .attr('fill-opacity', (d: any) => this.nameVisible(d.target, viewWidth, newOffsetX) ? 1 : 0);
   }
 
   // ========== NORMAL ICICLE (Enjeux view) ==========
@@ -518,6 +567,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.icicleDefs = result.defs;
     this.icicleTypeText = result.typeText;
     this.icicleNameText = result.nameText;
+    this.icicleCellsParent = result.cellsParent;
+    this.icicleInitialOffsetX = result.initialOffsetX;
     this.icicleViewWidth = result.width;
     this.icicleViewHeight = result.height;
 
@@ -528,6 +579,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       () => this.icicleRoot,
       result.svg, result.cell, result.rect, result.defs,
       result.typeText, result.nameText,
+      result.cellsParent, result.initialOffsetX,
       result.width, result.height
     );
   }
@@ -539,6 +591,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.icicleRoot, this.icicleRoot, this.icicleRoot,
       this.icicleSvg, this.icicleCell, this.icicleRect, this.icicleDefs,
       this.icicleTypeText, this.icicleNameText,
+      this.icicleCellsParent, this.icicleInitialOffsetX,
       this.icicleViewWidth, this.icicleViewHeight
     );
   }
@@ -555,6 +608,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       firstEnjeu, this.icicleRoot, this.icicleRoot,
       this.icicleSvg, this.icicleCell, this.icicleRect, this.icicleDefs,
       this.icicleTypeText, this.icicleNameText,
+      this.icicleCellsParent, this.icicleInitialOffsetX,
       this.icicleViewWidth, this.icicleViewHeight
     );
   }
@@ -566,7 +620,14 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     const container = this.icicleInverseContainerRef?.nativeElement;
     if (!data || !container) return;
 
-    const result = this.buildIcicle(container, data, 'clip-inv');
+    // skipRoot=true : on saute le nœud Plan, l'arborescence inverse démarre
+    // aux opérations directement (cohérent avec la vue Enjeux qui démarre
+    // aux enjeux/FCR). Filtre des enfants : on ne garde que les opérations.
+    const result = this.buildIcicle(
+      container, data, 'clip-inv',
+      children => children.filter(c => c.entityType === 'operation'),
+      true,
+    );
 
     this.icicleInverseRoot = result.root;
     this.icicleInverseFocus = result.root;
@@ -578,6 +639,8 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.icicleInverseDefs = result.defs;
     this.icicleInverseTypeText = result.typeText;
     this.icicleInverseNameText = result.nameText;
+    this.icicleInverseCellsParent = result.cellsParent;
+    this.icicleInverseInitialOffsetX = result.initialOffsetX;
     this.icicleInverseViewWidth = result.width;
     this.icicleInverseViewHeight = result.height;
 
@@ -588,6 +651,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       () => this.icicleInverseRoot,
       result.svg, result.cell, result.rect, result.defs,
       result.typeText, result.nameText,
+      result.cellsParent, result.initialOffsetX,
       result.width, result.height
     );
   }
@@ -599,6 +663,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       this.icicleInverseRoot, this.icicleInverseRoot, this.icicleInverseRoot,
       this.icicleInverseSvg, this.icicleInverseCell, this.icicleInverseRect, this.icicleInverseDefs,
       this.icicleInverseTypeText, this.icicleInverseNameText,
+      this.icicleInverseCellsParent, this.icicleInverseInitialOffsetX,
       this.icicleInverseViewWidth, this.icicleInverseViewHeight
     );
   }
@@ -614,6 +679,7 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       firstOp, this.icicleInverseRoot, this.icicleInverseRoot,
       this.icicleInverseSvg, this.icicleInverseCell, this.icicleInverseRect, this.icicleInverseDefs,
       this.icicleInverseTypeText, this.icicleInverseNameText,
+      this.icicleInverseCellsParent, this.icicleInverseInitialOffsetX,
       this.icicleInverseViewWidth, this.icicleInverseViewHeight
     );
   }
@@ -695,12 +761,12 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private typeVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number): boolean {
-    return d.y1 <= viewWidth && d.y0 >= 0 && (d.x1 - d.x0) > 26;
+  private typeVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number, offsetX: number = 0): boolean {
+    return (d.y1 + offsetX) <= viewWidth && (d.y0 + offsetX) >= 0 && (d.x1 - d.x0) > 26;
   }
 
-  private nameVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number): boolean {
-    return d.y1 <= viewWidth && d.y0 >= 0 && (d.x1 - d.x0) > 13;
+  private nameVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number, offsetX: number = 0): boolean {
+    return (d.y1 + offsetX) <= viewWidth && (d.y0 + offsetX) >= 0 && (d.x1 - d.x0) > 13;
   }
 
   private getTextColor(hexColor: string): string {

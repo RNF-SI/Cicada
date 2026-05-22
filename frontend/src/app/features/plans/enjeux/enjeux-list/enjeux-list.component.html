@@ -533,20 +533,9 @@
 
                             @if (isPressionExpanded(pression.id_pression)) {
                               <div class="pression-card-body">
-                                @if (pression.pressref_definition) {
-                                  <div class="pressref-detail">
-                                    <div class="section-block">
-                                      <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefDefinition' | translate }}</h4>
-                                    </div>
-                                    <p class="section-text">{{ parsePressrefDefinition(pression.pressref_definition).definition }}</p>
-                                    @if (parsePressrefDefinition(pression.pressref_definition).examples) {
-                                      <div class="section-block">
-                                        <h4 class="section-title-uppercase">{{ 'enjeux.pression.pressrefExamples' | translate }}</h4>
-                                      </div>
-                                      <p class="section-text pressref-examples">{{ parsePressrefDefinition(pression.pressref_definition).examples }}</p>
-                                    }
-                                  </div>
-                                }
+                                <!-- #244 — Détails pressref (définition + exemples) retirés
+                                     de l'affichage déplié d'une pression. Le libellé du
+                                     pressref reste visible dans l'en-tête (`pression-card-type`). -->
                                 @if (pression.description) {
                                   <div class="section-block">
                                     <h4 class="section-title-uppercase">{{ 'enjeux.pression.details' | translate }}</h4>
@@ -731,7 +720,7 @@
                               </button>
                             }
                             <app-section-title
-                              [title]="('enjeux.olt.label' | translate) + ' ' + (idx + 1) + ' : ' + olt.libelle"
+                              [title]="('enjeux.olt.label' | translate) + ' ' + (getOltGlobalNumber(olt.id_olt) || idx + 1) + ' : ' + olt.libelle"
                               [tooltip]="'enjeux.olt.tooltip' | translate"
                               icon="fi-rr-eye"
                               ellipseColor="terra-cotta"
@@ -978,6 +967,7 @@
                                                         </mat-button-toggle-group>
                                                       </div>
                                                     }
+                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                                     <div class="score-threshold-grid">
                                                       @for (level of scoreLevels; track level) {
                                                         <div class="score-column">
@@ -1047,6 +1037,7 @@
                                                         </div>
                                                       }
                                                     </div>
+                                                    }
                                                   </div>
                                                   }
                                                   }
@@ -1222,7 +1213,10 @@
                                                            (cdkDropListDropped)="onOperationDrop($event, met)">
                                                       @for (op of met.operations; track op.id_operation) {
                                             <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                                 class="operation-card operation-drag-item" [class.expanded]="isOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                                 class="operation-card operation-drag-item"
+                                                 [class.expanded]="isOperationExpanded(op.id_operation)"
+                                                 [class.is-draft]="op.statut === 'draft'"
+                                                 [id]="'operation-' + op.id_operation">
                                               <!-- En-tête de l'action (cliquable pour expand/collapse) -->
                                               <div class="operation-header" (click)="toggleOperation(op.id_operation)">
                                                 <div class="operation-header-left">
@@ -1239,6 +1233,13 @@
                                                     <span class="operation-code">{{ op.code_affichage }}</span>
                                                   }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                  @if (op.statut === 'draft') {
+                                                    <mat-chip class="operation-draft-chip status-warning"
+                                                              [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                              (click)="$event.stopPropagation()">
+                                                      {{ 'enjeux.operations.draftChip' | translate }}
+                                                    </mat-chip>
+                                                  }
                                                 </div>
                                                 <div class="operation-header-right">
                                                   <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
@@ -1524,7 +1525,7 @@
                                               }
 
                                               <!-- Bouton ajout métrique standalone -->
-                                              @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                              @if (canEditPlan() && addingMetriqueForIndicateur() !== ind.id_indicateur) {
                                                 <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
                                                   <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                                 </button>
@@ -1581,6 +1582,7 @@
                                                       </mat-button-toggle-group>
                                                     </div>
                                                   }
+                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
                                                   <div class="score-threshold-grid">
                                                     @for (level of scoreLevels; track level) {
                                                       <div class="score-column">
@@ -1650,6 +1652,7 @@
                                                       </div>
                                                     }
                                                   </div>
+                                                  }
                                                   }
                                                   <div class="inline-form-actions">
                                                     <button mat-flat-button color="primary"
@@ -1811,6 +1814,7 @@
                                                   </mat-button-toggle-group>
                                                 </div>
                                               }
+                                              @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                               <div class="score-threshold-grid">
                                                 @for (level of scoreLevels; track level) {
                                                   <div class="score-column">
@@ -1880,6 +1884,7 @@
                                                   </div>
                                                 }
                                               </div>
+                                              }
                                             </div>
                                             }
                                             }
@@ -2103,19 +2108,27 @@
                         <p class="olt-description">{{ oo.description }}</p>
                       }
 
-                      <!-- Pressions associées (M2M) -->
+                      <!-- Pressions et facteurs d'influence associés (M2M).
+                           #236 — affichage sur 2 lignes distinctes (Sophie) :
+                           1) « Pression(s) associée(s) : »
+                           2) « Facteur(s) d'influence : » (dédupliqué) -->
                       @if (oo.pressions && oo.pressions.length > 0) {
                         <div class="oo-pressions-chips">
                           <span class="oo-pressions-label">{{ 'enjeux.oo.pressionLabel' | translate }} :</span>
                           @for (p of oo.pressions; track p.id_pression) {
-                            <span class="oo-pression-chip" [title]="p.facteur_influence_libelle ? ('enjeux.oo.facteurDescription' | translate) + ' : ' + p.facteur_influence_libelle : ''">
-                              @if (p.facteur_influence_libelle) {
-                                <span class="oo-pression-chip-facteur">{{ p.facteur_influence_libelle }} ›</span>
-                              }
-                              {{ p.libelle }}
-                            </span>
+                            <span class="oo-pression-chip">{{ p.libelle }}</span>
                           }
                         </div>
+                        @if (uniqueFacteursFromOO(oo); as facteurs) {
+                          @if (facteurs.length > 0) {
+                            <div class="oo-pressions-chips oo-facteurs-chips">
+                              <span class="oo-pressions-label">{{ 'enjeux.oo.facteursAssocies' | translate }} :</span>
+                              @for (fi of facteurs; track fi) {
+                                <span class="oo-facteur-chip">{{ fi }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       }
 
                       <!-- Résultats attendus -->
@@ -2335,6 +2348,7 @@
                                                 </mat-button-toggle-group>
                                               </div>
                                             }
+                                            @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                             <div class="score-threshold-grid">
                                               @for (level of scoreLevels; track level) {
                                                 <div class="score-column">
@@ -2404,6 +2418,7 @@
                                                 </div>
                                               }
                                             </div>
+                                            }
                                           </div>
                                           }
                                           }
@@ -2579,7 +2594,10 @@
                                                    (cdkDropListDropped)="onOperationDrop($event, met)">
                                               @for (op of met.operations; track op.id_operation) {
                                     <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                         class="operation-card operation-drag-item" [class.expanded]="isOoOperationExpanded(op.id_operation)" [id]="'operation-' + op.id_operation">
+                                         class="operation-card operation-drag-item"
+                                         [class.expanded]="isOoOperationExpanded(op.id_operation)"
+                                         [class.is-draft]="op.statut === 'draft'"
+                                         [id]="'operation-' + op.id_operation">
                                       <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                         <div class="operation-header-left">
                                           @if (canEditPlan()) {
@@ -2595,6 +2613,13 @@
                                             <span class="operation-code">{{ op.code_affichage }}</span>
                                           }
                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                          @if (op.statut === 'draft') {
+                                            <mat-chip class="operation-draft-chip status-warning"
+                                                      [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                      (click)="$event.stopPropagation()">
+                                              {{ 'enjeux.operations.draftChip' | translate }}
+                                            </mat-chip>
+                                          }
                                         </div>
                                         <div class="operation-header-right">
                                           <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
@@ -2868,7 +2893,7 @@
                                       }
 
                                       <!-- Bouton ajout métrique standalone (OO) -->
-                                      @if (addingMetriqueForIndicateur() !== ind.id_indicateur) {
+                                      @if (canEditPlan() && addingMetriqueForIndicateur() !== ind.id_indicateur) {
                                         <button class="add-item-btn" (click)="startAddStandaloneMetrique(ind.id_indicateur)">
                                           <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.metriques.addButton' | translate }}
                                         </button>
@@ -2918,6 +2943,7 @@
                                               </mat-button-toggle-group>
                                             </div>
                                           }
+                                          @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
                                           <div class="score-threshold-grid">
                                             @for (level of scoreLevels; track level) {
                                               <div class="score-column">
@@ -2987,6 +3013,7 @@
                                               </div>
                                             }
                                           </div>
+                                          }
                                           <div class="inline-form-actions">
                                             <button mat-flat-button color="primary"
                                               (click)="saveStandaloneMetrique(ind.id_indicateur)"
@@ -3140,6 +3167,7 @@
                                           </mat-button-toggle-group>
                                         </div>
                                       }
+                                      @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
                                       <div class="score-threshold-grid">
                                         @for (level of scoreLevels; track level) {
                                           <div class="score-column">
@@ -3209,6 +3237,7 @@
                                           </div>
                                         }
                                       </div>
+                                      }
                                     </div>
                                     }
                                     }
@@ -3363,20 +3392,22 @@
           @if (!hasData()) {
             <div class="empty-state">
               <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
-              <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
-                <i class="fi fi-rr-plus-small"></i>
-                {{ 'enjeux.addButton' | translate }}
-              </button>
-              <mat-menu #addMenuEmpty="matMenu">
-                <button mat-menu-item (click)="navigateToNewEnjeu()">
-                  <i class="fi fi-rr-bullseye-arrow"></i>
-                  <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+              @if (canEditPlan()) {
+                <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
+                  <i class="fi fi-rr-plus-small"></i>
+                  {{ 'enjeux.addButton' | translate }}
                 </button>
-                <button mat-menu-item (click)="navigateToNewFcr()">
-                  <i class="fi fi-rr-key"></i>
-                  <span>{{ 'enjeux.types.fcr' | translate }}</span>
-                </button>
-              </mat-menu>
+                <mat-menu #addMenuEmpty="matMenu">
+                  <button mat-menu-item (click)="navigateToNewEnjeu()">
+                    <i class="fi fi-rr-bullseye-arrow"></i>
+                    <span>{{ 'enjeux.types.enjeu' | translate }}</span>
+                  </button>
+                  <button mat-menu-item (click)="navigateToNewFcr()">
+                    <i class="fi fi-rr-key"></i>
+                    <span>{{ 'enjeux.types.fcr' | translate }}</span>
+                  </button>
+                </mat-menu>
+              }
 
               <div class="info-block">
                 <div class="info-icon">

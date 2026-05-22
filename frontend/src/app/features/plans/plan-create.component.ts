@@ -195,7 +195,7 @@ export class PlanCreateComponent implements OnInit {
 
       // Champs optionnels
       surface: [null],
-      date_validation_cspn: [null],
+      date_avis_csrpn: [null],
       id_docgestion_fcen: [''],
       id_redacteur_type: [null],
       redacteurs: [''],
@@ -204,7 +204,7 @@ export class PlanCreateComponent implements OnInit {
 
       // Champs additionnels non affichés
       statut: ['draft'],
-      version: ['1.0', Validators.maxLength(20)],
+      version: ['1', Validators.maxLength(20)],
       commentaire: ['']
     });
   }
@@ -461,8 +461,8 @@ export class PlanCreateComponent implements OnInit {
 
     // Formater la date pour l'API (YYYY-MM-DD)
     let dateValidationCspn: string | undefined;
-    if (formValue.date_validation_cspn) {
-      const date = new Date(formValue.date_validation_cspn);
+    if (formValue.date_avis_csrpn) {
+      const date = new Date(formValue.date_avis_csrpn);
       dateValidationCspn = date.toISOString().split('T')[0];
     }
 
@@ -484,7 +484,7 @@ export class PlanCreateComponent implements OnInit {
 
       // Champs optionnels
       surface: formValue.surface || undefined,
-      date_validation_cspn: dateValidationCspn,
+      date_avis_csrpn: dateValidationCspn,
       id_docgestion_fcen: formValue.id_docgestion_fcen || undefined,
       id_redacteur_type: formValue.id_redacteur_type || undefined,
       redacteur_nom: redacteurNom,

@@ -52,7 +52,7 @@ class Role(AbstractUser):
     ROLE_CHOICES = [
         ('utilisateur', _('Utilisateur')),
         ('admin_og', _('Administrateur Organisme')),
-        ('redacteur_principal', _('Rédacteur Principal')),
+        ('redacteur_principal', _('Rédacteur Général')),
         ('super_admin', _('Super Administrateur')),
     ]
     

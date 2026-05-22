@@ -904,6 +904,25 @@
   font-size: $font-size-small;
 }
 
+// #236 — Ligne distincte pour les facteurs d'influence sous les pressions.
+// Margin-top négatif pour rapprocher visuellement les 2 lignes (même bloc
+// conceptuel "Pressions + leurs FI") tout en gardant la lisibilité.
+.oo-facteurs-chips {
+  margin-top: -$spacing-xs;
+}
+
+.oo-facteur-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background-color: rgba($secondary-terra-cotta, 0.08);
+  color: $secondary-terra-cotta;
+  font-size: $font-size-small;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  border: 1px dashed rgba($secondary-terra-cotta, 0.3);
+}
+
 // Note d'usage en haut de l'onglet
 .olt-info-note {
   display: flex;
@@ -2162,6 +2181,18 @@
   &.expanded {
     border-color: $secondary-yellow;
   }
+
+  // #251 — Brouillon : bordure gauche terra-cotta, libellé italique grisé.
+  &.is-draft {
+    border-left: 4px solid $secondary-terra-cotta;
+    background: rgba($secondary-terra-cotta, 0.04);
+
+    .operation-libelle {
+      font-style: italic;
+      color: $gray-dark;
+      font-weight: $font-weight-semibold;
+    }
+  }
 }
 
 .operation-header {
@@ -2200,6 +2231,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// #251 — chip "Brouillon" inline à côté du libellé de l'action.
+.operation-draft-chip {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  cursor: default;
 }
 
 .operation-header-right {

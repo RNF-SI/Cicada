@@ -59,7 +59,7 @@ describe('PlanFormModalComponent', () => {
     id_pg: 1,
     nom: 'Plan Test',
     statut: 'valide',
-    version: '2.0',
+    version: '2',
     annee_debut: 2020,
     annee_fin: 2030,
     gestion_partagee: true,
@@ -165,7 +165,7 @@ describe('PlanFormModalComponent', () => {
 
       expect(component.form.get('nom')?.value).toBe('');
       expect(component.form.get('statut')?.value).toBe('draft');
-      expect(component.form.get('version')?.value).toBe('1.0');
+      expect(component.form.get('version')?.value).toBe('1');
       expect(component.form.get('gestion_partagee')?.value).toBe(false);
     }));
 
@@ -228,7 +228,7 @@ describe('PlanFormModalComponent', () => {
 
       expect(component.form.get('nom')?.value).toBe('Plan Test');
       expect(component.form.get('statut')?.value).toBe('valide');
-      expect(component.form.get('version')?.value).toBe('2.0');
+      expect(component.form.get('version')?.value).toBe('2');
       expect(component.form.get('annee_debut')?.value).toBe(2020);
       expect(component.form.get('annee_fin')?.value).toBe(2030);
       expect(component.form.get('gestion_partagee')?.value).toBe(true);

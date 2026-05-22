@@ -995,6 +995,53 @@ class NotificationService:
             send_email=True
         )
 
+    @staticmethod
+    def notify_csrpn_transition(plan, old_status, new_status, triggered_by):
+        """#277 — Notifie les référents d'un plan d'une transition du workflow CSRPN.
+
+        Une notification + email est envoyée à chaque référent du plan pour
+        chaque transition CSRPN (entrée/sortie d'un statut intermédiaire).
+        L'utilisateur qui a déclenché la transition n'est pas notifié.
+        """
+        from apps.plans.models import PlanGestion
+
+        # Ne notifier que pour les transitions impliquant un statut CSRPN ou
+        # une finalisation depuis un statut CSRPN.
+        csrpn = PlanGestion.CSRPN_WORKFLOW_STATUSES
+        is_csrpn_transition = (
+            new_status in csrpn or old_status in csrpn
+        )
+        if not is_csrpn_transition:
+            return
+
+        labels = dict(PlanGestion.STATUT_CHOICES)
+        old_label = labels.get(old_status, old_status)
+        new_label = labels.get(new_status, new_status)
+        triggered_by_name = (
+            triggered_by.get_full_name() if triggered_by else "Système"
+        )
+        title = f"Plan « {plan.nom} » — {new_label}"
+        message = (
+            f"Le plan « {plan.nom} » est passé de \"{old_label}\" à "
+            f"\"{new_label}\". Action effectuée par {triggered_by_name}."
+        )
+
+        recipients = list(plan.referents.filter(active=True))
+        for referent in recipients:
+            if triggered_by and referent.pk == triggered_by.pk:
+                continue
+            NotificationService.create_notification(
+                recipient=referent,
+                notification_type='plan_csrpn_transition',
+                title=title,
+                message=message,
+                priority='high',
+                related_plan=plan,
+                related_user=triggered_by,
+                action_url=f"/plans/{plan.slug}",
+                send_email=True,
+            )
+
 
 class ValidationService:
     """Service pour la gestion des validations."""

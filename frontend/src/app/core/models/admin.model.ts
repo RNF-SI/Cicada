@@ -322,10 +322,26 @@ export interface PlanFichier {
 // ==================== PLANS DE GESTION ====================
 
 /**
- * Statuts possibles d'un plan de gestion
- * - `etendu` : plan validé prolongé de 1 ou 2 années (#250). Reste éditable comme `draft`.
+ * Statuts possibles d'un plan de gestion.
+ *
+ * Notes — attributs orthogonaux au statut (un plan validé peut les cumuler) :
+ * - « Étendu » (#250) : `annees_extension > 0`.
+ * - « En cours de révision » (#278) : `en_revision = true`. Le plan reste
+ *   fonctionnellement validé pendant la rédaction du rang suivant. La
+ *   révision peut être lancée avant ou après le dépassement de `annee_fin`.
+ * - « Évaluation mi-parcours » (#276) : `is_mi_parcours = true`. Indique
+ *   qu'une modification est l'évaluation mi-parcours du plan. Unique par chaîne.
+ *
+ * Seul `draft` autorise l'édition (#248).
  */
-export type PlanStatut = 'draft' | 'valide' | 'etendu' | 'archive';
+export type PlanStatut =
+  | 'draft'
+  | 'avis_csrpn'
+  | 'comite_consultatif'
+  | 'arrete_pref'
+  | 'valide'
+  | 'modifie'
+  | 'archive';
 
 /**
  * Site associé à un plan de gestion
@@ -342,6 +358,8 @@ export interface PlanSite {
   nom_site: string;
   slug?: string;
   type_site_label?: string;
+  /** Mnémonique du type de site (RNN, RNR, PNR, ENS, ENSD...) — #281 */
+  type_site_mnemonique?: string | null;
   /** Précision du type de site quand le type est "Autre" */
   type_site_precision?: string | null;
   surf_off?: number;
@@ -388,8 +406,17 @@ export interface PlanVersionChainItem {
   slug: string;
   version: string;
   statut: PlanStatut;
+  rang?: number;
   annee_debut?: number;
   annee_fin?: number;
+  /** #250 — Années d'extension (0, 1 ou 2) du plan de la chaîne. */
+  annees_extension?: number;
+  /** #278 — Plan en cours de révision. */
+  en_revision?: boolean;
+  /** #276 — Plan portant l'évaluation mi-parcours. */
+  is_mi_parcours?: boolean;
+  /** #278 — Lien vers le brouillon du rang suivant. */
+  next_rang_plan_id?: number | null;
   type_document?: string;
   type_document_mnemonique?: string;
   is_current: boolean;
@@ -408,17 +435,48 @@ export interface AdminPlan {
   version?: string;
   annee_debut?: number;
   annee_fin?: number;
-  /** #250 — Années d'extension (0, 1 ou 2) appliquées quand statut = 'etendu' */
+  /** #250 — Années d'extension ajoutées au plan (0, 1 ou 2). Attribut
+   *  indépendant du statut : un plan validé/modifié peut être étendu. */
   annees_extension?: number;
-  /** #250 — Indique si le plan est dans la fenêtre [annee_fin-1, annee_fin+2] et donc éligible à l'extension (read-only API) */
+  /** #250 — Vrai quand annees_extension > 0 (read-only API). */
+  is_extended?: boolean;
+  /** #250 — Vrai si le plan est éligible à l'extension : statut validé,
+   *  pas déjà étendu, et année courante ∈ [annee_fin-1, annee_fin+2] (read-only API). */
   peut_etre_etendu?: boolean;
-  /** #250 — annee_fin + annees_extension si statut='etendu', sinon annee_fin (read-only API) */
+  /** #250 — annee_fin + annees_extension (read-only API) */
   annee_fin_effective?: number | null;
+  /** #278 — Plan en cours de révision (le rang suivant est en rédaction).
+   *  Attribut orthogonal au statut : le plan reste validé fonctionnellement. */
+  en_revision?: boolean;
+  /** #278 — Identique à `en_revision` (read-only API). */
+  is_in_revision?: boolean;
+  /** #278 — Lien vers le brouillon du rang suivant. */
+  next_rang_plan_id?: number | null;
+  next_rang_plan_nom?: string | null;
+  next_rang_plan_slug?: string | null;
+  /** #276 — Cette version est l'évaluation mi-parcours du plan.
+   *  Attribut orthogonal au statut. Unique par chaîne. */
+  is_mi_parcours?: boolean;
+  /** #276 — Identique à `is_mi_parcours` (read-only API). */
+  is_mid_term?: boolean;
+  /** Vrai si le plan a déjà un brouillon enfant en cours.
+   *  Bloque la création d'une nouvelle version (read-only API). */
+  has_draft_child?: boolean;
+  /** Vrai si on peut créer une nouvelle version (brouillon enfant) :
+   *  statut ∈ {valide, modifie, archive} ET pas de brouillon enfant.
+   *  (read-only API) */
+  can_create_modification?: boolean;
   surface?: number;
   gestion_partagee: boolean;
   ct88: boolean;
   risque_incendie: boolean;
-  date_validation_cspn?: string;
+  date_avis_csrpn?: string;
+  /** #277 — Workflow CSRPN : étape 2 (validation comité consultatif). */
+  date_validation_comite?: string;
+  /** #277 — Workflow CSRPN : étape 3 (arrêté préfectoral, RNN uniquement). */
+  date_arrete_pref?: string;
+  /** #277 — Numéro de référence de l'arrêté préfectoral. */
+  numero_arrete_pref?: string;
   id_docgestion_fcen?: string;
   id_evaluation?: number;
   evaluation_display?: string;
@@ -466,7 +524,7 @@ export interface PlanCreatePayload {
   surface?: number;
   gestion_partagee?: boolean;
   risque_incendie?: boolean;
-  date_validation_cspn?: string;
+  date_avis_csrpn?: string;
   id_docgestion_fcen?: string;
   id_evaluation?: number;
   id_redacteur_type?: number;

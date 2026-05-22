@@ -588,6 +588,29 @@ class Operation(models.Model):
         help_text=_("Ordre d'affichage parmi les opérations d'une métrique (0 = haut)")
     )
 
+    # #251 — Statut éditorial : 'draft' tant que l'action n'a pas été validée
+    # explicitement (tous les champs requis remplis via le bouton "Valider").
+    # Permet d'afficher une chip "Brouillon" dans les listes.
+    #
+    # Default = 'valide' : c'est la valeur conservatrice (compatible avec le
+    # comportement historique d'avant #251 et avec les opérations créées via
+    # l'admin ou les seeders qui sont par construction "complètes"). Seul le
+    # frontend (saveDraft) positionne explicitement 'draft'.
+    STATUT_DRAFT = 'draft'
+    STATUT_VALIDE = 'valide'
+    STATUT_CHOICES = [
+        (STATUT_DRAFT, _("Brouillon")),
+        (STATUT_VALIDE, _("Validé")),
+    ]
+    statut = models.CharField(
+        _("Statut"),
+        max_length=10,
+        choices=STATUT_CHOICES,
+        default=STATUT_VALIDE,
+        db_index=True,
+        help_text=_("Brouillon tant que l'action n'a pas été validée explicitement")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

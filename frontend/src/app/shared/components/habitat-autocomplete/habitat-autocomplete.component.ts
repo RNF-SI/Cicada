@@ -51,7 +51,9 @@ export class HabitatAutocompleteComponent implements OnInit, OnDestroy, ControlV
   cdTypo = input<number | undefined>(undefined);
 
   /** Nombre max de résultats */
-  limit = input<number>(20);
+  // #238 — borne haute (la limite effective est dynamique : 20 pour 2-3
+  // chars, jusqu'à `limit` pour 4+ chars).
+  limit = input<number>(50);
 
   /** Champ obligatoire */
   required = input<boolean>(false);
@@ -81,9 +83,11 @@ export class HabitatAutocompleteComponent implements OnInit, OnDestroy, ControlV
             this.isLoading.set(false);
             return [];
           }
+          // #238 — limite dynamique selon longueur de recherche.
+          const effectiveLimit = search.length >= 4 ? this.limit() : Math.min(this.limit(), 20);
           return this.habitatService.autocomplete(search, {
             cdTypo: this.cdTypo(),
-            limit: this.limit(),
+            limit: effectiveLimit,
           });
         }),
       ).subscribe(results => {

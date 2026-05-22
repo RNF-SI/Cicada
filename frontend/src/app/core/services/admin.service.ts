@@ -461,7 +461,7 @@ export class AdminService {
 
   /**
    * Statistiques agrégées des plans, respectant les mêmes filtres que `getPlans`
-   * (#184). Réponse : `{ total, par_statut: { draft, valide, etendu, archive } }`.
+   * (#184). Réponse : `{ total, par_statut: { draft, valide, archive, ... } }`.
    */
   getPlanStats(params?: {
     search?: string;
@@ -535,8 +535,24 @@ export class AdminService {
    * Change plan status via dedicated endpoint with transition validation
    * POST /api/plans/plans/{id}/change-status/
    */
-  changePlanStatus(planId: number, newStatus: PlanStatut): Observable<AdminPlan> {
-    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, { new_status: newStatus })
+  changePlanStatus(
+    planId: number,
+    newStatus: PlanStatut,
+    options: {
+      isMiParcours?: boolean;
+      dateAvisCsrpn?: string;
+      dateValidationComite?: string;
+      dateArretePref?: string;
+      numeroArretePref?: string;
+    } = {},
+  ): Observable<AdminPlan> {
+    const body: Record<string, unknown> = { new_status: newStatus };
+    if (options.isMiParcours) body['is_mi_parcours'] = true;
+    if (options.dateAvisCsrpn) body['date_avis_csrpn'] = options.dateAvisCsrpn;
+    if (options.dateValidationComite) body['date_validation_comite'] = options.dateValidationComite;
+    if (options.dateArretePref) body['date_arrete_pref'] = options.dateArretePref;
+    if (options.numeroArretePref) body['numero_arrete_pref'] = options.numeroArretePref;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, body)
       .pipe(catchError(this.handleError));
   }
 
@@ -557,6 +573,58 @@ export class AdminService {
     return this.http.post<AdminPlan>(
       `${this.plansApiUrl}/plans/${planId}/extend-duration/`,
       { years }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #250 — Remove the extension of a plan (annees_extension → 0)
+   * POST /api/plans/plans/{id}/remove-extension/
+   */
+  removePlanExtension(planId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/remove-extension/`,
+      {}
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #278 — Mark a validated plan as "en cours de révision" with an optional
+   * link to the next rang plan.
+   * POST /api/plans/plans/{id}/start-revision/
+   */
+  startPlanRevision(planId: number, nextRangPlanId?: number | null): Observable<AdminPlan> {
+    const payload: { next_rang_plan_id?: number } = {};
+    if (nextRangPlanId != null) {
+      payload.next_rang_plan_id = nextRangPlanId;
+    }
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/start-revision/`,
+      payload
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #278 — Create the draft of the next rang from a validated plan.
+   * POST /api/plans/plans/{id}/create-next-rang/
+   */
+  createNextRangPlan(
+    planId: number,
+    options?: { nom?: string; annee_debut?: number; annee_fin?: number }
+  ): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/create-next-rang/`,
+      options ?? {}
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #278 — Stop the revision of a plan (en_revision → false).
+   * POST /api/plans/plans/{id}/end-revision/
+   */
+  endPlanRevision(planId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/end-revision/`,
+      {}
     ).pipe(catchError(this.handleError));
   }
 

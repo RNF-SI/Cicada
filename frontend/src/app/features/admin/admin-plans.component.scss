@@ -374,6 +374,50 @@
     background-color: rgba($gray, 0.2);
     color: $gray-dark;
   }
+
+  // Statuts workflow CSRPN (#277) : avis_csrpn / comite_consultatif / arrete_pref
+  &.statut-csrpn {
+    background-color: rgba($secondary-orange-salmon, 0.25);
+    color: darken($secondary-orange-salmon, 25%);
+  }
+}
+
+// #250 / #278 — Badges "Étendu" et "En cours de révision" affichés en
+// complément du chip de statut. Variante info (cyan), distincte du statut.
+.extension-badge,
+.revision-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  margin-left: $spacing-xxs;
+  background-color: rgba($info-color, 0.15);
+  color: darken($info-color, 15%);
+
+  i {
+    font-size: 11px;
+  }
+}
+
+// #276 — Badge "Évaluation mi-parcours" : variante terra cotta.
+.mi-parcours-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xxs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  margin-left: $spacing-xxs;
+  background-color: rgba($secondary-terra-cotta, 0.15);
+  color: $secondary-terra-cotta;
+
+  i {
+    font-size: 11px;
+  }
 }
 
 // Periode cell

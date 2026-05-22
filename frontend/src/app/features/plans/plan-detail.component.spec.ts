@@ -141,7 +141,7 @@ function createMockPlan(overrides: Partial<AdminPlan> = {}): AdminPlan {
     ct88: false,
     risque_incendie: false,
     rang: 1,
-    version: '1.0',
+    version: '1',
     annee_debut: 2024,
     annee_fin: 2034,
     sites: [
@@ -165,7 +165,7 @@ function createChainItem(overrides: Partial<PlanVersionChainItem> = {}): PlanVer
     id_pg: 1,
     nom: 'Plan Test',
     slug: 'plan-test',
-    version: '1.0',
+    version: '1',
     statut: 'valide' as PlanStatut,
     type_document: undefined,
     type_document_mnemonique: undefined,
@@ -435,8 +435,8 @@ describe('PlanDetailComponent', () => {
   describe('versionChain computed signal', () => {
     it('should return API version_chain when present', () => {
       const chain = [
-        createChainItem({ id_pg: 1, version: '1.0' }),
-        createChainItem({ id_pg: 2, version: '1.1', is_current: true }),
+        createChainItem({ id_pg: 1, version: '1' }),
+        createChainItem({ id_pg: 2, version: '2', is_current: true }),
       ];
       setup({ plan: createMockPlan({ version_chain: chain }) });
       expect(component.versionChain()).toEqual(chain);
@@ -448,7 +448,7 @@ describe('PlanDetailComponent', () => {
         id_pg: 7,
         nom: 'Mon Plan',
         slug: 'mon-plan',
-        version: '2.0',
+        version: '2',
         statut: 'valide',
         type_document_display: 'Plan initial',
         version_chain: [],
@@ -460,7 +460,7 @@ describe('PlanDetailComponent', () => {
       expect(chain[0].id_pg).toBe(7);
       expect(chain[0].nom).toBe('Mon Plan');
       expect(chain[0].slug).toBe('mon-plan');
-      expect(chain[0].version).toBe('2.0');
+      expect(chain[0].version).toBe('2');
       expect(chain[0].statut).toBe('valide');
       expect(chain[0].is_current).toBe(true);
     });
@@ -470,7 +470,7 @@ describe('PlanDetailComponent', () => {
         id_pg: 3,
         nom: 'No Chain',
         slug: 'no-chain',
-        version: '1.0',
+        version: '1',
         statut: 'draft',
         version_chain: undefined,
       });
@@ -566,9 +566,11 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      it('should show exactly two lifecycle buttons (edit + validate)', () => {
+      // #277 — sur `draft`, on a maintenant : edit metadata + validate (raccourci)
+      // + submitForCsrpn (envoi pour avis CSRPN, workflow réglementaire).
+      it('should show exactly three lifecycle buttons (edit + validate + submitForCsrpn)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(3);
       });
 
       it('should show the btn-lifecycle-success class (validate action)', () => {
@@ -593,24 +595,57 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      // #248 : le bouton "edit metadata" n'est rendu que sur les plans en
-      // brouillon (canEditPlan()), donc sur valide on a uniquement les 2
-      // boutons de cycle de vie : toDraft + archive.
-      it('should show exactly two lifecycle buttons (toDraft + archive)', () => {
+      // #248 : edit metadata caché hors brouillon.
+      // #278 : bouton "Marquer en cours de révision" sur statut validé.
+      // #276 : bouton "Lancer évaluation mi-parcours" sur statut validé
+      // (visible si aucune mi-parcours dans la chaîne — c'est le cas par défaut).
+      // Total = toDraft + startRevision + startMiParcours + archive = 4 boutons.
+      it('should show exactly four lifecycle buttons (toDraft + startRevision + startMiParcours + archive)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(4);
       });
 
-      it('should show warning button (toDraft) and neutral button (archive)', () => {
+      it('should show warning (toDraft), info (startRevision), terra-cotta (startMiParcours) and neutral (archive) buttons', () => {
         const warningBtn = fixture.nativeElement.querySelector('.btn-lifecycle-warning');
+        const infoBtn = fixture.nativeElement.querySelector('.btn-lifecycle-info');
+        const terraBtn = fixture.nativeElement.querySelector('.btn-lifecycle-terra-cotta');
         const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
         expect(warningBtn).toBeTruthy();
+        expect(infoBtn).toBeTruthy();
+        expect(terraBtn).toBeTruthy();
         expect(neutralBtn).toBeTruthy();
       });
 
       it('should NOT show success lifecycle button (validate)', () => {
         const successBtn = fixture.nativeElement.querySelector('.btn-lifecycle-success');
         expect(successBtn).toBeNull();
+      });
+    });
+
+    // #278 — Plan validé ET en cours de révision : le bouton "Marquer en
+    // cours de révision" devient "Annuler la révision".
+    describe('when plan.statut === valide and en_revision=true', () => {
+      beforeEach(() => {
+        setup({
+          isSuperAdmin: true,
+          plan: createMockPlan({ statut: 'valide', en_revision: true } as any),
+        });
+        fixture.detectChanges();
+      });
+
+      // toDraft + cancelRevision + startMiParcours + archive = 4 boutons
+      it('should show 4 lifecycle buttons (toDraft + cancelRevision + startMiParcours + archive)', () => {
+        const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
+        expect(buttons.length).toBe(4);
+      });
+
+      it('should show two warning buttons (toDraft + cancelRevision), one terra-cotta (startMiParcours) and one neutral (archive)', () => {
+        const warningBtns = fixture.nativeElement.querySelectorAll('.btn-lifecycle-warning');
+        const terraBtn = fixture.nativeElement.querySelector('.btn-lifecycle-terra-cotta');
+        const neutralBtn = fixture.nativeElement.querySelector('.btn-lifecycle-neutral');
+        expect(warningBtns.length).toBe(2);
+        expect(terraBtn).toBeTruthy();
+        expect(neutralBtn).toBeTruthy();
       });
     });
 
@@ -749,7 +784,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with valide when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmValidation();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -763,7 +798,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with draft when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmToDraft();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -777,7 +812,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with archive when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmArchive();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'archive');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'archive', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {
@@ -791,7 +826,7 @@ describe('PlanDetailComponent', () => {
       it('should call changePlanStatus with valide when dialog is confirmed', () => {
         mockDialogConfirmed(true);
         component.confirmReactivate();
-        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide');
+        expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'valide', {});
       });
 
       it('should NOT call changePlanStatus when dialog is cancelled', () => {

@@ -483,9 +483,13 @@ export interface MetriqueRef {
   indicateur_nom: string;
 }
 
+export type OperationStatut = 'draft' | 'valide';
+
 export interface Operation {
   id_operation: number;
   libelle: string;
+  /** #251 — Brouillon tant que la validation complète n'a pas été déclenchée. */
+  statut?: OperationStatut;
   id_priorite?: number;
   priorite_label?: string;
   id_type_action?: number;
@@ -535,6 +539,8 @@ export interface Operation {
  */
 export interface OperationCreatePayload {
   libelle: string;
+  /** #251 — Statut envoyé selon le bouton utilisé : 'valide' pour Valider, 'draft' pour Enregistrer. */
+  statut?: OperationStatut;
   id_priorite?: number;
   id_type_action?: number;
   // #228 — Catégorie d'action réserve CT88 (optionnel)

@@ -34,17 +34,21 @@ class CanModifyOnlyDraftPlan(BasePermission):
         "Pour modifier ce plan, repassez-le en brouillon ou créez une nouvelle version."
     )
 
-    # Statuts qui autorisent les modifications. `etendu` (#250) est inclus :
-    # un plan prolongé doit rester éditable pour les actions sur les années
-    # supplémentaires.
-    EDITABLE_STATUSES = frozenset({"draft", "etendu"})
+    # Statuts qui autorisent les modifications. Seul `draft` est éditable :
+    # l'extension de durée (#250) est un attribut orthogonal au statut
+    # (`annees_extension`), pas un statut qui débloquerait l'édition.
+    EDITABLE_STATUSES = frozenset({"draft"})
 
     EXEMPT_ACTIONS = frozenset({
         # Cycle de vie / versions
         "change_status",
         "duplicate",
         "create_evaluation",
+        "create_next_rang",
         "extend_duration",
+        "remove_extension",
+        "start_revision",
+        "end_revision",
         # Associations plan ↔ site
         "assign_site",
         "remove_site",

@@ -473,6 +473,27 @@
   color: $primary-color;
   line-height: 1.3;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+// #251 — Ligne brouillon : bordure terra-cotta gauche + libellé italique grisé
+tr.is-draft {
+  td.col-action {
+    border-left: 3px solid $secondary-terra-cotta;
+  }
+
+  .action-name {
+    font-style: italic;
+    color: $gray-dark;
+  }
+}
+
+.operation-draft-chip {
+  flex-shrink: 0;
+  cursor: default;
 }
 
 .action-priority {

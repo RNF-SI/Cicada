@@ -309,7 +309,7 @@ class OperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle', 'ordre',
+            'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
@@ -401,7 +401,7 @@ class OperationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle', 'ordre',
+            'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
@@ -523,6 +523,11 @@ class OperationNestedSerializer(OperationListSerializer):
     Étend OperationListSerializer avec operation_annees et finances
     pour afficher les données de programmation dans la vue détail,
     sans les champs coûteux (enjeu_slug, oo_id) du serializer complet.
+
+    #263 — `enjeu_slug` et `oo_id` étaient effectivement listés dans
+    Meta.fields hérités → ils déclenchaient un N+1 massif (traversée
+    métrique → indicateur → NE/RA → OLT/OO → enjeu/pression) à chaque
+    opération nichée. On les exclut explicitement.
     """
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
@@ -530,7 +535,7 @@ class OperationNestedSerializer(OperationListSerializer):
     class Meta(OperationListSerializer.Meta):
         fields = [
             f for f in OperationListSerializer.Meta.fields
-            if f not in ('nb_operation_annees', 'nb_finances')
+            if f not in ('nb_operation_annees', 'nb_finances', 'enjeu_slug', 'oo_id')
         ] + ['operation_annees', 'finances', 'ventilation_mode']
 
 
@@ -580,7 +585,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
         fields = [
-            'id_operation', 'libelle', 'ordre',
+            'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve',
             'id_referentiel_operations', 'code_operation',

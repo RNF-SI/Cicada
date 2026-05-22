@@ -103,7 +103,40 @@
                     <span class="meta-separator">|</span>
                   }
                   <span class="meta-label">{{ 'modals.planForm.fields.status' | translate }} :</span>
-                  <span class="meta-value status">{{ 'plans.status.' + p.statut | translate }}</span>
+                  <span class="meta-value status"
+                        [class.has-tooltip]="p.statut === 'modifie'"
+                        [matTooltip]="p.statut === 'modifie' ? ('plans.status.modifieTooltip' | translate) : ''"
+                        matTooltipPosition="above">
+                    {{ statusLabelKey() | translate }}
+                  </span>
+                  @if (isPlanExtended()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value extension-badge">
+                      <i class="fi fi-rr-time-add"></i>
+                      {{ extensionBadgeKey() | translate }} +{{ p.annees_extension }}{{ (p.annees_extension ?? 0) > 1 ? ' ans' : ' an' }}
+                    </span>
+                  }
+                  @if (isPlanInRevision()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value revision-badge">
+                      <i class="fi fi-rr-refresh"></i>
+                      {{ 'plans.revision.badge' | translate }}
+                    </span>
+                    @if (p.next_rang_plan_slug && p.next_rang_plan_nom) {
+                      <a class="next-rang-link"
+                         [routerLink]="['/plans', p.next_rang_plan_slug]">
+                        <i class="fi fi-rr-arrow-up-right-from-square"></i>
+                        {{ 'plans.revision.viewNextRang' | translate }}
+                      </a>
+                    }
+                  }
+                  @if (isPlanMiParcours()) {
+                    <span class="meta-separator">|</span>
+                    <span class="meta-value mi-parcours-badge">
+                      <i class="fi fi-rr-time-forward"></i>
+                      {{ 'plans.miParcours.badge' | translate }}
+                    </span>
+                  }
                 </div>
               </div>
 
@@ -116,36 +149,96 @@
                   </button>
                 }
                 @if (canManageLifecycle()) {
-                  <!-- Draft → Valider -->
+                  <!-- Draft → Valider (raccourci) ou Envoyer pour avis CSRPN (workflow #277) -->
                   @if (p.statut === 'draft') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
-                  }
-                  <!-- Validé → Remettre en brouillon + Étendre (si fenêtre OK, #250) + Archiver -->
-                  @if (p.statut === 'valide') {
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()">
+                      <i class="fi fi-rr-paper-plane"></i>
+                      <span>{{ 'plans.lifecycle.actions.submitForCsrpn' | translate }}</span>
                     </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
+                  @if (p.statut === 'avis_csrpn') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.recordCsrpnOpinion' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
+                  @if (p.statut === 'comite_consultatif') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.validateByComite' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
+                  @if (p.statut === 'arrete_pref') {
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()">
+                      <i class="fi fi-rr-check"></i>
+                      <span>{{ 'plans.lifecycle.actions.recordArretePref' | translate }}</span>
+                    </button>
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                      <i class="fi fi-rr-undo"></i>
+                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
+                    </button>
+                  }
+                  <!-- Validé / Modifié → Remettre en brouillon (uniquement feuille de chaîne)
+                       + Étendre/Retirer extension (#250) + Lancer/Arrêter révision (#278)
+                       + Lancer évaluation mi-parcours (#276) + Créer nouvelle version
+                       + Archiver. Verrouillage en lecture seule identique. -->
+                  @if (p.statut === 'valide' || p.statut === 'modifie') {
+                    @if (!p.children_count || p.children_count === 0) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
+                        <i class="fi fi-rr-undo"></i>
+                        <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
+                      </button>
+                    }
                     @if (p.peut_etre_etendu) {
                       <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()">
                         <i class="fi fi-rr-time-add"></i>
                         <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
                       </button>
                     }
-                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
-                      <i class="fi fi-rr-box"></i>
-                      <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
-                    </button>
-                  }
-                  <!-- Étendu → Revenir à validé + Archiver -->
-                  @if (p.statut === 'etendu') {
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
-                    </button>
+                    @if (isPlanExtended()) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
+                        <i class="fi fi-rr-time-delete"></i>
+                        <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
+                      </button>
+                    }
+                    @if (!isPlanInRevision()) {
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmStartRevision()">
+                        <i class="fi fi-rr-refresh"></i>
+                        <span>{{ 'plans.lifecycle.actions.startRevision' | translate }}</span>
+                      </button>
+                    } @else {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmEndRevision()">
+                        <i class="fi fi-rr-cross-circle"></i>
+                        <span>{{ 'plans.lifecycle.actions.cancelRevision' | translate }}</span>
+                      </button>
+                    }
+                    @if (canStartMiParcours()) {
+                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()">
+                        <i class="fi fi-rr-time-forward"></i>
+                        <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
+                      </button>
+                    }
+                    @if (canCreateNewVersion()) {
+                      <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()">
+                        <i class="fi fi-rr-duplicate"></i>
+                        <span>{{ 'plans.lifecycle.actions.createNewVersion' | translate }}</span>
+                      </button>
+                    }
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
                       <i class="fi fi-rr-box"></i>
                       <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
@@ -245,9 +338,17 @@
                                     @for (item of subItem.items; track item.operationId) {
                                       <li class="action-item"
                                           [class.clickable]="item.enjeuSlug"
+                                          [class.is-draft]="item.statut === 'draft'"
                                           (click)="item.enjeuSlug ? navigateToOperation(item) : null">
                                         <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="action-bullet">
                                         <span class="action-text">{{ item.label }}</span>
+                                        @if (item.statut === 'draft') {
+                                          <mat-chip class="operation-draft-chip status-warning"
+                                                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                    (click)="$event.stopPropagation()">
+                                            {{ 'enjeux.operations.draftChip' | translate }}
+                                          </mat-chip>
+                                        }
                                         @if (item.enjeuSlug) {
                                           <i class="fi fi-rr-angle-small-right action-arrow"></i>
                                         }
@@ -283,6 +384,8 @@
                                 <span class="synthese-section-title">{{ 'enjeux.sidebar.enjeux' | translate }} ({{ enjeuxData().length }})</span>
                                 @for (enjeu of enjeuxData(); track enjeu.id_enjeu) {
                                   <div class="synthese-enjeu-block">
+                                    <!-- #243 — OLT/OO retirés de la liste des enjeux/FCR
+                                         dans la synthèse pour clarifier la vue. -->
                                     <div class="synthese-item" (click)="navigateToEnjeuDetail(enjeu)">
                                       <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                       <span class="synthese-item-label">{{ enjeu.libelle }}</span>
@@ -290,32 +393,6 @@
                                         <span class="synthese-item-priority">P{{ enjeu.rang }}</span>
                                       }
                                     </div>
-                                    <!-- OLT sous l'enjeu -->
-                                    @if (enjeu.objectifs_long_terme && enjeu.objectifs_long_terme.length > 0) {
-                                      <div class="synthese-sub-list">
-                                        @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
-                                          <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
-                                            <span class="synthese-sub-tag olt">{{ 'enjeux.olt.label' | translate }}</span>
-                                            <span class="synthese-sub-label">{{ olt.libelle }}</span>
-                                          </div>
-                                        }
-                                      </div>
-                                    }
-                                    <!-- OO sous l'enjeu (via facteurs → pressions) -->
-                                    @for (fi of enjeu.facteurs_influence || []; track fi.id_facteur_influence) {
-                                      @for (pression of fi.pressions || []; track pression.id_pression) {
-                                        @if (pression.objectifs_operationnels && pression.objectifs_operationnels.length > 0) {
-                                          <div class="synthese-sub-list">
-                                            @for (oo of pression.objectifs_operationnels; track oo.id_oo) {
-                                              <div class="synthese-sub-item" (click)="navigateToEnjeuDetail(enjeu)">
-                                                <span class="synthese-sub-tag oo">{{ 'enjeux.oo.label' | translate }}</span>
-                                                <span class="synthese-sub-label">{{ oo.libelle }}</span>
-                                              </div>
-                                            }
-                                          </div>
-                                        }
-                                      }
-                                    }
                                   </div>
                                 }
                               </div>
@@ -546,7 +623,8 @@
             </app-section-title>
             <app-plan-version-timeline
               [chain]="versionChain()"
-              [currentStatus]="plan()?.statut || 'draft'">
+              [currentStatus]="plan()?.statut || 'draft'"
+              [principalSiteTypeMnemonique]="principalSiteTypeMnemonique()">
             </app-plan-version-timeline>
           </div>
 

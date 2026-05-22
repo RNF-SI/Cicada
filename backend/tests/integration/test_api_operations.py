@@ -655,6 +655,79 @@ class TestOperationUpdateEndpoint:
 
 
 # =============================================================================
+# TestOperationStatut — #251 (Brouillon vs Validé)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationStatut:
+    """Tests for #251 — statut 'draft' / 'valide' on Operation."""
+
+    def test_default_statut_is_draft(self, api_client, operation_test_data):
+        """Statut par défaut à la création (sans champ fourni) = 'draft'."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action sans statut explicite',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['statut'] == 'draft'
+
+    def test_create_with_explicit_draft(self, api_client, operation_test_data):
+        """saveDraft envoie statut='draft'."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Brouillon',
+            'statut': 'draft',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['statut'] == 'draft'
+
+    def test_create_with_valide(self, api_client, operation_test_data):
+        """save (Valider) envoie statut='valide'."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Validée',
+            'statut': 'valide',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['statut'] == 'valide'
+
+    def test_patch_promotes_to_valide(self, api_client, operation_test_data):
+        """PATCH avec statut='valide' fait passer un brouillon à validé."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        op.statut = 'draft'
+        op.save()
+        response = api_client.patch(f'/api/plans/operations/{op.id_operation}/', {
+            'statut': 'valide'
+        })
+        assert response.status_code == status.HTTP_200_OK
+        op.refresh_from_db()
+        assert op.statut == 'valide'
+
+    def test_patch_demotes_to_draft(self, api_client, operation_test_data):
+        """PATCH avec statut='draft' fait régresser une action validée en brouillon
+        (cas où on enregistre des modifs WIP sur une action déjà validée)."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        op.statut = 'valide'
+        op.save()
+        response = api_client.patch(f'/api/plans/operations/{op.id_operation}/', {
+            'statut': 'draft'
+        })
+        assert response.status_code == status.HTTP_200_OK
+        op.refresh_from_db()
+        assert op.statut == 'draft'
+
+    def test_list_exposes_statut(self, api_client, operation_test_data):
+        """La liste expose le statut pour permettre l'affichage de la chip."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.get('/api/plans/operations/')
+        assert response.status_code == status.HTTP_200_OK
+        assert all('statut' in op for op in response.data['results'])
+
+
+# =============================================================================
 # TestOperationDeleteEndpoint
 # =============================================================================
 

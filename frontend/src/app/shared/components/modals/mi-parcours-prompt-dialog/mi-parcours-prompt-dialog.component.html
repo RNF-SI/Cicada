@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.miParcoursPrompt.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'plans.lifecycle.miParcoursPrompt.intro' | translate:{ name: data.planName } }}
+  </p>
+  <p class="hint">
+    {{ 'plans.lifecycle.miParcoursPrompt.hint' | translate }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-stroked-button (click)="pickModifie()">
+    {{ 'plans.lifecycle.miParcoursPrompt.no' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="pickMiParcours()">
+    {{ 'plans.lifecycle.miParcoursPrompt.yes' | translate }}
+  </button>
+</mat-dialog-actions>

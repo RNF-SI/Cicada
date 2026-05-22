@@ -418,6 +418,25 @@ def eval_nomenclature(db):
     return nomenclature
 
 
+@pytest.fixture
+def plan_revise_nomenclature(db):
+    """Create the PLAN_REVISE nomenclature needed for create-next-rang."""
+    from apps.core.models import Nomenclature, TypeNomenclature
+    ntype, _ = TypeNomenclature.objects.get_or_create(
+        mnemonique='TYPE_DOCUMENT_PLAN',
+        defaults={'label': 'Type de document plan'},
+    )
+    nomenclature, _ = Nomenclature.objects.get_or_create(
+        mnemonique='PLAN_REVISE',
+        defaults={
+            'id_type': ntype,
+            'label': 'Plan révisé',
+            'cd_nomenclature': 'REVISE',
+        },
+    )
+    return nomenclature
+
+
 # ==================== Phase 2: change-status tests ====================
 
 
@@ -508,7 +527,7 @@ class TestPlanGestionChangeStatus:
         assert plan.statut == 'valide'
 
     def test_valide_to_draft(self, api_client):
-        """Transition valide → draft succeeds."""
+        """Transition valide → draft succeeds (feuille de chaîne)."""
         admin = SuperAdminFactory()
         plan = PlanGestionValideFactory()
         api_client.force_authenticate(user=admin)
@@ -519,6 +538,37 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'draft'
+
+    def test_valide_to_draft_blocked_when_has_children(self, api_client):
+        """Règle 2 — toDraft refusé si le plan a des descendants."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionValideFactory()
+        PlanGestionFactory(statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(parent.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        parent.refresh_from_db()
+        assert parent.statut == 'valide'
+
+    def test_validation_cascades_to_draft_parent(self, api_client):
+        """Règle 3 — valider un brouillon valide aussi son parent en draft."""
+        admin = SuperAdminFactory()
+        # Setup direct via ORM (bypasse les règles à la création) :
+        # parent en draft, enfant en draft.
+        parent = PlanGestionFactory(statut='draft')
+        child = PlanGestionFactory(statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        parent.refresh_from_db()
+        # Le parent en draft est automatiquement validé
+        assert parent.statut == 'valide'
 
     def test_valide_to_archive(self, api_client):
         """Transition valide → archive succeeds."""
@@ -580,6 +630,495 @@ class TestPlanGestionChangeStatus:
             {'new_status': 'draft'},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    # ---------- #278 — en_revision attribut orthogonal ----------
+
+    def test_start_revision_on_valide(self, api_client):
+        """Lancer la révision d'un plan validé via start-revision (#278)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/start-revision/')
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut inchangé
+        assert plan.en_revision is True
+
+    def test_start_revision_with_next_rang_plan(self, api_client):
+        """Lien explicite vers le plan du rang suivant."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        next_plan = PlanGestionFactory(statut='draft', plan_parent=plan)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            f'/api/plans/plans/{plan.id_pg}/start-revision/',
+            {'next_rang_plan_id': next_plan.id_pg},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.en_revision is True
+        assert plan.next_rang_plan_id == next_plan.id_pg
+
+    def test_end_revision(self, api_client):
+        """Arrêter la révision via end-revision."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide', en_revision=True)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/end-revision/')
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut inchangé
+        assert plan.en_revision is False
+        assert plan.next_rang_plan is None
+
+    def test_start_revision_on_draft_forbidden(self, api_client):
+        """Impossible de lancer une révision sur un brouillon."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/start-revision/')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_start_revision_already_in_revision(self, api_client):
+        """Un plan déjà en révision ne peut pas être remis en révision."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide', en_revision=True)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/start-revision/')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_valide_en_revision_etendu_combined(self, api_client):
+        """Un plan validé peut être à la fois étendu ET en cours de révision."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide', annees_extension=2, en_revision=True)
+        api_client.force_authenticate(user=admin)
+        # Le plan reste verrouillé en lecture seule via le verrou #248
+        # (testé ailleurs) ; on s'assure ici que les attributs cohabitent.
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+        assert plan.annees_extension == 2
+        assert plan.en_revision is True
+        assert plan.is_extended()
+        assert plan.is_in_revision()
+
+    def test_create_next_rang(self, api_client, plan_revise_nomenclature):
+        """create-next-rang crée un brouillon enfant rang+1 du plan source."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(
+            statut='valide', rang=1, annee_debut=2014, annee_fin=2024,
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/create-next-rang/')
+        assert response.status_code == status.HTTP_201_CREATED
+        new_id = response.data['id_pg']
+        from apps.plans.models import PlanGestion as PG
+        new_plan = PG.objects.get(pk=new_id)
+        assert new_plan.statut == 'draft'
+        assert new_plan.plan_parent_id == plan.id_pg
+        assert new_plan.rang == 2
+        assert new_plan.annee_debut == 2025  # plan.annee_fin + 1
+        assert new_plan.annee_fin == 2034    # plan.annee_fin + 10
+
+    def test_create_next_rang_on_draft_forbidden(self, api_client, plan_revise_nomenclature):
+        """create-next-rang refuse si le plan source est un brouillon."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/create-next-rang/')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    # ---------- #275 — routage draft → modifie pour les modifications ----------
+
+    def test_draft_with_validated_parent_becomes_modifie(self, api_client):
+        """Validation d'un brouillon enfant d'un plan validé → statut `modifie`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_draft_without_parent_stays_valide(self, api_client):
+        """Validation d'un brouillon sans parent → statut `valide` (original)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', plan_parent=None)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+
+    def test_draft_with_archived_parent_becomes_modifie(self, api_client):
+        """Un parent `archive` compte aussi comme déjà validé → enfant → `modifie`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='archive', rang=1)
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent, rang=1)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_draft_with_different_rang_stays_valide(self, api_client):
+        """Un brouillon de rang N+1 enfant d'un plan validé de rang N → `valide`
+        (pas `modifie`) : un changement de rang est un nouveau plan, pas une
+        modification du précédent."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='archive', rang=1)
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent, rang=2)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'valide'
+
+    def test_draft_with_draft_parent_becomes_valide(self, api_client):
+        """Un parent encore en `draft` (jamais validé) → enfant reste `valide`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='draft')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'valide'
+
+    def test_modifie_to_draft_reversible(self, api_client):
+        """Un plan `modifie` peut repasser en brouillon comme un `valide`."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        plan = PlanGestionFactory(nom='Child', statut='modifie', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+
+    def test_modifie_to_archive(self, api_client):
+        """Un plan `modifie` peut être archivé."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        plan = PlanGestionFactory(nom='Child', statut='modifie', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    # ---------- #276 — flag is_mi_parcours ----------
+
+    def test_draft_with_is_mi_parcours_becomes_modifie_with_flag(self, api_client):
+        """Brouillon enfant validé avec is_mi_parcours=True → statut `modifie` + drapeau."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='Parent', statut='valide')
+        child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        # Depuis #276 (refonte) : mi_parcours n'est plus un statut mais un flag
+        assert child.statut == 'modifie'
+        assert child.is_mi_parcours is True
+
+    def test_is_mi_parcours_rejected_when_chain_already_has_one(self, api_client):
+        """Une seule version is_mi_parcours par chaîne plan_parent autorisée."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(nom='V1', statut='valide')
+        already_mp = PlanGestionFactory(
+            nom='V2', statut='modifie', is_mi_parcours=True, plan_parent=parent,
+        )
+        new_mod = PlanGestionFactory(nom='V3', statut='draft', plan_parent=already_mp)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(new_mod.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        new_mod.refresh_from_db()
+        assert new_mod.statut == 'draft'
+        assert new_mod.is_mi_parcours is False
+
+    def test_is_mi_parcours_rejected_on_original_plan(self, api_client):
+        """is_mi_parcours sur un plan sans parent → 400 (flag inapplicable)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', plan_parent=None)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_is_mi_parcours_rejected_on_non_validation_transition(self, api_client):
+        """Le flag is_mi_parcours n'a de sens qu'à la validation, pas ailleurs."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    # ---------- #277 — workflow CSRPN ----------
+
+    def _make_typed_site(self, mnemonique: str):
+        """Helper : crée un site avec id_type_site = nomenclature(mnemonique)."""
+        from apps.core.models import TypeNomenclature, Nomenclature
+        ntype, _ = TypeNomenclature.objects.get_or_create(
+            mnemonique='TYPE_SITE',
+            defaults={'label': 'Type de site'},
+        )
+        nomenc, _ = Nomenclature.objects.get_or_create(
+            id_type=ntype,
+            mnemonique=mnemonique,
+            defaults={'label': mnemonique, 'cd_nomenclature': mnemonique},
+        )
+        site = SiteFactory()
+        site.id_type_site = nomenc
+        site.save(update_fields=['id_type_site'])
+        return site
+
+    def test_draft_to_avis_csrpn(self, api_client):
+        """`draft → avis_csrpn` autorisé (envoi pour avis)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'avis_csrpn'
+
+    def test_avis_csrpn_to_comite_with_date(self, api_client):
+        """`avis_csrpn → comite_consultatif` enregistre la date d'avis."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='avis_csrpn')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'comite_consultatif', 'date_avis_csrpn': '2026-03-15'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'comite_consultatif'
+        assert str(plan.date_avis_csrpn) == '2026-03-15'
+
+    def test_comite_to_arrete_pref_only_for_rnn(self, api_client):
+        """`comite_consultatif → arrete_pref` autorisé uniquement pour les RNN."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'arrete_pref'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'arrete_pref'
+
+    def test_comite_to_arrete_pref_rejected_for_non_rnn(self, api_client):
+        """Un plan PNR ne passe pas par `arrete_pref` (ne concerne que les RNN)."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'arrete_pref'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_comite_to_valide_for_non_rnn(self, api_client):
+        """Pour un plan PNR, `comite_consultatif → valide` direct (sans arrêté)."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+
+    def test_comite_to_valide_rejected_for_rnn(self, api_client):
+        """Pour une RNN, on impose le passage par `arrete_pref` (pas de bypass)."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_arrete_pref_to_valide_with_metadata(self, api_client):
+        """`arrete_pref → valide` enregistre date + numéro de l'arrêté."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='arrete_pref', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {
+                'new_status': 'valide',
+                'date_arrete_pref': '2026-04-12',
+                'numero_arrete_pref': 'AP-2026-042',
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+        assert str(plan.date_arrete_pref) == '2026-04-12'
+        assert plan.numero_arrete_pref == 'AP-2026-042'
+
+    def test_csrpn_back_to_draft(self, api_client):
+        """Tout statut CSRPN peut revenir en `draft` (annulation)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='avis_csrpn')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+
+    def test_csrpn_validation_routes_modification_to_modifie(self, api_client):
+        """`arrete_pref → valide` route vers `modifie` si plan_parent validé."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        rnn_site = self._make_typed_site('RNN')
+        child = PlanGestionFactory(
+            statut='arrete_pref',
+            plan_parent=parent,
+            sites=[rnn_site],
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        assert child.statut == 'modifie'
+
+    def test_csrpn_validation_with_is_mi_parcours(self, api_client):
+        """`comite_consultatif → valide` + is_mi_parcours → `modifie` + drapeau (non-RNN)."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        pnr_site = self._make_typed_site('PNR')
+        child = PlanGestionFactory(
+            statut='comite_consultatif',
+            plan_parent=parent,
+            sites=[pnr_site],
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(child.id_pg),
+            {'new_status': 'valide', 'is_mi_parcours': True},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        child.refresh_from_db()
+        # Depuis #276 (refonte) : mi_parcours n'est plus un statut mais un flag
+        assert child.statut == 'modifie'
+        assert child.is_mi_parcours is True
+
+    def test_field_rename_date_validation_cspn_removed(self, api_client):
+        """`date_validation_cspn` n'existe plus, `date_avis_csrpn` à la place."""
+        plan = PlanGestionFactory()
+        assert hasattr(plan, 'date_avis_csrpn')
+        assert not hasattr(plan, 'date_validation_cspn')
+
+    def test_csrpn_transition_notifies_referents(self, api_client):
+        """Une transition CSRPN crée une notification pour les référents (sauf déclencheur)."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        other_admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', referents=[referent, other_admin])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        # Le déclencheur (admin) ne reçoit pas de notif ; les 2 référents oui.
+        notifs = Notification.objects.filter(
+            related_plan=plan, notification_type='plan_csrpn_transition'
+        )
+        recipients = set(notifs.values_list('recipient_id', flat=True))
+        assert referent.id_role in recipients
+        assert other_admin.id_role in recipients
+        assert admin.id_role not in recipients
+
+    def test_non_csrpn_transition_does_not_notify(self, api_client):
+        """Les transitions hors workflow CSRPN ne déclenchent pas la notif `plan_csrpn_transition`."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'archive'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert not Notification.objects.filter(
+            related_plan=plan, notification_type='plan_csrpn_transition'
+        ).exists()
+
+    def test_csrpn_to_valide_notifies(self, api_client):
+        """La transition finale CSRPN (sortie d'un statut workflow) notifie aussi."""
+        from apps.notifications.models import Notification
+        admin = SuperAdminFactory()
+        referent = ReferentFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(
+            statut='arrete_pref', sites=[rnn_site], referents=[referent]
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'valide'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert Notification.objects.filter(
+            recipient=referent,
+            related_plan=plan,
+            notification_type='plan_csrpn_transition',
+        ).exists()
 
     # ---------- Validation ----------
 
@@ -694,12 +1233,21 @@ class TestPlanGestionCreateEvaluation:
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_archive_plan_returns_400(self, api_client, eval_nomenclature):
-        """Cannot create evaluation from archived plan."""
+    def test_archive_plan_returns_201(self, api_client, eval_nomenclature):
+        """Archive (validé dans le passé) accepted as parent for evaluation."""
         admin = SuperAdminFactory()
         plan = PlanGestionArchiveFactory()
         api_client.force_authenticate(user=admin)
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_returns_400_if_has_draft_child(self, api_client, eval_nomenclature):
+        """Règle « 1 brouillon max par parent » : refuser si déjà un brouillon enfant."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        PlanGestionFactory(statut='draft', plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL_TEMPLATE.format(parent.id_pg))
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     # ---------- Success behavior ----------
@@ -737,12 +1285,12 @@ class TestPlanGestionCreateEvaluation:
     def test_increments_version(self, api_client, plan_with_referent, eval_nomenclature):
         """Version is incremented from source plan."""
         plan, referent, _, _ = plan_with_referent
-        plan.version = '1.0'
+        plan.version = '1'
         plan.save(update_fields=['version'])
         api_client.force_authenticate(user=referent)
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
         new_plan = PlanGestion.objects.get(pk=response.data['id_pg'])
-        assert new_plan.version == '1.1'
+        assert new_plan.version == '2'
 
     def test_copies_sites_with_rang(self, api_client, plan_with_referent, eval_nomenclature):
         """Sites and their rang are copied to new evaluation."""

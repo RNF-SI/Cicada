@@ -2,8 +2,10 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
@@ -25,8 +27,8 @@ interface FlatOperation {
   selector: 'app-plan-suivi-actions',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, MatButtonModule, MatMenuModule,
-    MatProgressSpinnerModule, TranslateModule,
+    CommonModule, RouterModule, MatButtonModule, MatChipsModule, MatMenuModule,
+    MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
