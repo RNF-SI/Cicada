@@ -43,6 +43,12 @@
       </button>
       <h2>Administration</h2>
       <span class="role-badge">{{ roleLabel() }}</span>
+
+      <!-- Retour à l'accueil déplacé en haut sous le tag rôle (revue design #319) -->
+      <a routerLink="/accueil" class="back-link-top">
+        <i class="fi fi-rr-arrow-left"></i>
+        <span>Retour à l'accueil</span>
+      </a>
     </div>
 
     <nav class="sidebar-nav">
@@ -59,13 +65,6 @@
         </a>
       }
     </nav>
-
-    <div class="sidebar-footer">
-      <a routerLink="/accueil" class="back-link">
-        <i class="fi fi-rr-arrow-left"></i>
-        <span>Retour à l'accueil</span>
-      </a>
-    </div>
   </aside>
 
   <!-- Main Content -->

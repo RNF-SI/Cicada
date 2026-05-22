@@ -77,7 +77,8 @@ $form-side-margin: $page-gutter;
 // ============================================
 
 .info-block {
-  margin: 0 0 $spacing-lg 0;
+  // Marges sur les côtés et en haut pour détacher du header (revue design #318)
+  margin: $spacing-lg $spacing-sm $spacing-lg $spacing-sm;
 }
 
 // ============================================

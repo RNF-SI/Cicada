@@ -550,17 +550,22 @@
 }
 
 .btn-icon {
+  // Boutons d'actions plus grands (revue design #319 : éviter clic erroné)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 29px;
-  height: 29px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   color: $primary-color;
   cursor: pointer;
   border-radius: $border-radius-sm;
   transition: all $transition-fast;
+
+  i {
+    font-size: 16px;
+  }
 
   &:hover {
     background-color: rgba($primary-color, 0.1);

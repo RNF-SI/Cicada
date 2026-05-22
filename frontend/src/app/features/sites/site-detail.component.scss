@@ -56,9 +56,17 @@ h1 { @include sites-h1; }
   background-color: $white; border: none; color: $primary-color;
   &:hover { background-color: rgba($white, 0.9); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
 }
+// Bouton retour en style tertiaire (revue design #312 : bouton tertiaire au-dessus du sous-titre)
 .btn-back {
-  background-color: $primary-color; border: none; color: $white;
-  &:hover { background-color: $primary-hover; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+  background-color: transparent; border: none; color: $white;
+  box-shadow: none;
+  padding-left: 0;
+  font-weight: $font-weight-semibold;
+  &:hover {
+    background-color: rgba($white, 0.15);
+    box-shadow: none;
+    text-decoration: none;
+  }
 }
 .btn-request-referent {
   background-color: $white; border: none; color: $primary-color;
