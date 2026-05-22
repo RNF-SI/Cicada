@@ -58,12 +58,12 @@
   }
 }
 
-// Header du menu
+// Header du menu (revue design #307 : ajouter espace avant le titre - pas collé au header)
 .notification-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-md $spacing-md;
+  padding: $spacing-lg $spacing-md $spacing-md $spacing-md;
 
   .notification-title {
     font-weight: 700;
@@ -116,6 +116,15 @@
 
   &.unread {
     background-color: rgba($info-color, 0.1);
+  }
+
+  // Notification sans action_url : pas d'effet de hover (revue design #307)
+  &.no-action {
+    cursor: default !important;
+
+    &:hover {
+      background-color: inherit !important;
+    }
   }
 
   &.priority-high,

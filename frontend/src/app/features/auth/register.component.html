@@ -7,6 +7,9 @@
     </div>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      <!-- Accessibilité (revue design #305) -->
+      <p class="required-fields-note">{{ 'common.requiredFields' | translate }}</p>
+
       @if (errorMessage()) {
         <div class="error-banner">
           <i class="fi fi-rr-exclamation"></i>

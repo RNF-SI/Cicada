@@ -111,7 +111,13 @@ export interface ModuleAccessRequestDialogData {
     mat-dialog-actions button {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+    }
+
+    /* Force gap entre icône et span dans le bouton Envoyer (revue design #308) */
+    mat-dialog-actions button i + span,
+    mat-dialog-actions button .fi + span {
+      margin-left: 4px;
     }
   `]
 })

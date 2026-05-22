@@ -307,6 +307,14 @@ $corner-size: 94px;
   width: 100%;
 }
 
+// Retire le logo du header sur la page d'accueil connectée (revue design #306)
+// Pour éviter le doublon avec le logo CICADA déjà affiché dans le hero
+:host ::ng-deep app-header.home-header-auth {
+  .header-logo {
+    display: none;
+  }
+}
+
 .guest-hero__actions {
   display: flex;
   flex-direction: row;
@@ -335,6 +343,23 @@ $corner-size: 94px;
       background-color: #013d42;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(2, 83, 89, 0.25);
+    }
+  }
+
+  // Bouton secondaire "Se connecter" (revue design #305)
+  &--secondary {
+    background-color: transparent;
+    color: $primary-color;
+    border: 1.5px solid $primary-color;
+
+    i {
+      font-size: 14px;
+    }
+
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+      transform: translateY(-1px);
     }
   }
 }

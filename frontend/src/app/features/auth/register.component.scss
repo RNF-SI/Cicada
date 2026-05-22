@@ -48,6 +48,13 @@ h1 {
   gap: $spacing-md;
 }
 
+.required-fields-note {
+  margin: 0;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+}
+
 .form-row {
   display: flex;
   gap: $spacing-md;

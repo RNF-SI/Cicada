@@ -1,5 +1,7 @@
-<!-- Header -->
-<app-header></app-header>
+<!-- Header (masqué en mode non connecté pour éviter le doublon logo + bouton connexion - revue design #305) -->
+@if (isAuthenticated()) {
+  <app-header class="home-header-auth"></app-header>
+}
 
 <!-- Main Content -->
 <main class="home-main">
@@ -23,14 +25,14 @@
           <!-- Subtitle -->
           <p class="guest-hero__subtitle">{{ 'home.guest.subtitle' | translate }}</p>
 
-          <!-- CTA Button -->
+          <!-- CTA Buttons (revue design #305 : Se connecter en bouton secondaire avec icône) -->
           <div class="guest-hero__actions">
             <a routerLink="/auth/register" mat-flat-button class="guest-hero__btn guest-hero__btn--primary">
               {{ 'home.guest.createAccount' | translate }}
             </a>
-            <a routerLink="/auth/login" class="guest-hero__link">
+            <a routerLink="/auth/login" mat-stroked-button class="guest-hero__btn guest-hero__btn--secondary">
+              <i class="fi fi-rr-sign-in-alt"></i>
               {{ 'home.guest.actions.login.title' | translate }}
-              <i class="fi fi-rr-arrow-right"></i>
             </a>
           </div>
         </div>
@@ -81,7 +83,7 @@
             <div class="search-content">
               <h2 class="search-title">
                 {{ 'home.exploration.title' | translate }}
-                <i class="fi fi-rr-arrow-small-right"></i>
+                <i class="fi fi-rr-arrow-right"></i>
               </h2>
               <p class="search-description">{{ 'home.exploration.description' | translate }}</p>
             </div>

@@ -364,18 +364,18 @@
   }
 
   &.active {
-    background-color: rgba($white, 0.15);
-    font-weight: $font-weight-medium;
+    background-color: rgba($white, 0.18);
+    font-weight: $font-weight-bold;
 
-    // Active indicator bar on left
+    // Active indicator bar on left - plus visible (revue design #309)
     &::before {
       content: '';
       position: absolute;
       left: 0;
       top: 0;
       bottom: 0;
-      width: 3px;
-      background-color: $white;
+      width: 4px;
+      background-color: $secondary-yellow;
     }
   }
 
