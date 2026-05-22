@@ -208,6 +208,10 @@
   }
 
   mat-chip {
+    // Filet retiré autour des chips de logs (revue design #319 : harmoniser kit UI)
+    --mdc-chip-outline-color: transparent;
+    --mdc-chip-outline-width: 0;
+
     i {
       margin-right: $spacing-xxs;
       font-size: 0.9rem;

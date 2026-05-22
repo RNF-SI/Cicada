@@ -1528,7 +1528,7 @@
         "actions": "Actions et suivis"
       },
       "actions": {
-        "editMetadata": "Modifier les métadonnées"
+        "editMetadata": "Modifier le plan de gestion"
       },
       "organismesRedacteurs": "Organismes rédacteurs",
       "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",

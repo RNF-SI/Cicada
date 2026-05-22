@@ -143,10 +143,11 @@
 }
 
 @mixin sites-subtitle {
+  // Texte en bleu-vert (revue design #310 : titres header en primary color)
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  color: $black;
+  color: $primary-color;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -156,7 +157,8 @@
 }
 
 @mixin sites-h1 {
-  color: $black;
+  // Titre H1 en bleu-vert (revue design #310)
+  color: $primary-color;
   font-size: $font-size-h1;
   font-weight: $font-weight-bold;
   font-family: $font-family;
