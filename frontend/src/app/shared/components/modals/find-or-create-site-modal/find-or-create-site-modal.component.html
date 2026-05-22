@@ -54,15 +54,14 @@
       {{ 'sites.findOrCreate.searchTitle' | translate }}
     </h4>
 
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>{{ 'sites.findOrCreate.searchLabel' | translate }}</mat-label>
-      <input matInput
-             type="text"
+    <app-form-field class="search-field"
+                    [label]="'sites.findOrCreate.searchLabel' | translate">
+      <input type="text"
              [value]="searchTerm()"
              (input)="onSearchChange($event)"
              [placeholder]="'sites.findOrCreate.searchPlaceholder' | translate">
-      <i matSuffix class="fi fi-rr-search search-icon"></i>
-    </mat-form-field>
+      <i suffixSlot class="fi fi-rr-search search-icon"></i>
+    </app-form-field>
 
     <p class="search-hint">{{ 'sites.findOrCreate.searchHint' | translate }}</p>
 

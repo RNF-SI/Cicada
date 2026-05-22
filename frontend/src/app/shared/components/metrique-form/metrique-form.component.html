@@ -1,15 +1,15 @@
 <div class="metrique-form">
   <!-- Ligne 1 : Intitulé + bouton supprimer -->
   <div class="row row-with-action">
-    <mat-form-field appearance="outline" class="flex-1">
-      <mat-label>{{ 'enjeux.metriques.nomLabel' | translate }} <span class="required">*</span></mat-label>
-      <input matInput
-             type="text"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.nomLabel' | translate"
+                    [required]="true">
+      <input type="text"
              [(ngModel)]="metrique.nom_metrique"
              (ngModelChange)="emitChange()"
              [placeholder]="'enjeux.metriques.nomPlaceholder' | translate"
              required>
-    </mat-form-field>
+    </app-form-field>
     <button type="button"
             class="btn-delete"
             (click)="onMetriqueDelete()"
@@ -21,14 +21,14 @@
 
   <!-- Ligne 2 : Unité + Type de métrique -->
   <div class="row">
-    <mat-form-field appearance="outline" class="flex-1">
-      <mat-label>{{ 'enjeux.metriques.uniteLabel' | translate }} <span class="required">*</span></mat-label>
-      <input matInput
-             type="text"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.uniteLabel' | translate"
+                    [required]="true">
+      <input type="text"
              [(ngModel)]="metrique.unite"
              (ngModelChange)="emitChange()"
              required>
-    </mat-form-field>
+    </app-form-field>
 
     <mat-form-field appearance="outline" class="flex-1">
       <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
