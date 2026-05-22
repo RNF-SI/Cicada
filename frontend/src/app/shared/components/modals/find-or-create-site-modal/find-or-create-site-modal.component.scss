@@ -233,7 +233,8 @@ mat-dialog-content {
   }
 
   &.site-org-other {
-    color: darken($secondary-orange-salmon, 10%);
+    // Texte en gris foncé (revue design #311 : ne pas écrire en saumon)
+    color: $gray-dark;
   }
 }
 
@@ -314,15 +315,16 @@ mat-dialog-content {
 }
 
 .btn-link-org {
+  // Bouton "Demander à lier" en bleu-vert (revue design #311 : pas en saumon)
   padding: $spacing-xs $spacing-sm;
   font-size: 0.85rem;
   height: auto;
   min-height: 29px;
-  border-color: $secondary-orange-salmon;
-  color: darken($secondary-orange-salmon, 10%);
+  border-color: $primary-color;
+  color: $primary-color;
 
   &:hover:not(:disabled) {
-    background-color: rgba($secondary-orange-salmon, 0.08);
+    background-color: rgba($primary-color, 0.08);
   }
 
   i {

@@ -76,9 +76,21 @@
       padding: 0 $spacing-md;
     }
 
-    .mdc-tab--active .tab-badge {
-      background-color: $secondary-yellow;
-      color: $black;
+    // Onglet actif : texte + icône en bleu-vert + bold (revue design #307)
+    .mdc-tab--active {
+      .mdc-tab__text-label {
+        color: $primary-color !important;
+        font-weight: $font-weight-bold !important;
+      }
+
+      .tab-label i {
+        color: $primary-color !important;
+      }
+
+      .tab-badge {
+        background-color: $secondary-yellow;
+        color: $black;
+      }
     }
   }
 }
@@ -147,9 +159,12 @@
     margin-bottom: $spacing-xl;
 
     .group-header {
+      // Style sous-titre librairie (revue design #307 : "Avril 2026" en typo sous-titre)
       color: $primary-color;
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: $font-size-small;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       margin-bottom: $spacing-md;
       padding-bottom: $spacing-xs;
       border-bottom: 2px solid $gray-lighter;

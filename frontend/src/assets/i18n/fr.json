@@ -1880,7 +1880,7 @@
       "title": "Accéder ou créer un site",
       "description": "Recherchez un site existant pour demander l'accès, ou créez-en un nouveau.",
       "button": "Rechercher ou créer",
-      "dialogTitle": "Gérer mes sites",
+      "dialogTitle": "Rechercher un site ou en créer un nouveau",
       "searchTitle": "Rechercher un site existant",
       "searchLabel": "Nom du site",
       "searchPlaceholder": "Rechercher un site...",
