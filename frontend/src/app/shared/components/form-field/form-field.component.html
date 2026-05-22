@@ -13,7 +13,18 @@
   }
 
   <div class="app-form-field__control">
+    <!-- Slot pour préfixe (icône, bouton à gauche) -->
+    <span class="app-form-field__prefix">
+      <ng-content select="[prefixSlot]"></ng-content>
+    </span>
+
     <ng-content></ng-content>
+
+    <!-- Slot pour suffixe (icône, bouton à droite) -->
+    <span class="app-form-field__suffix-slot">
+      <ng-content select="[suffixSlot]"></ng-content>
+    </span>
+
     @if (suffix) {
       <span class="app-form-field__suffix" aria-hidden="true">{{ suffix }}</span>
     }

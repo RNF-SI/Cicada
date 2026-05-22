@@ -105,6 +105,62 @@
     padding-left: $spacing-xxs;
   }
 
+  // Slots prefix / suffix (icônes, boutons projetés)
+  &__prefix,
+  &__suffix-slot {
+    display: inline-flex;
+    align-items: center;
+    color: $gray-dark;
+
+    &:empty {
+      display: none;
+    }
+
+    // Boutons projetés : style compact transparent
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: $gray-dark;
+      border-radius: 50%;
+
+      &:hover {
+        background-color: rgba($primary-color, 0.08);
+        color: $primary-color;
+      }
+
+      i { font-size: 14px; }
+    }
+
+    i.fi {
+      font-size: 14px;
+    }
+  }
+
+  &__prefix {
+    margin-left: $spacing-xs;
+    margin-right: $spacing-xxs;
+
+    &:empty {
+      margin: 0;
+    }
+  }
+
+  &__suffix-slot {
+    margin-right: $spacing-xs;
+    margin-left: $spacing-xxs;
+
+    &:empty {
+      margin: 0;
+    }
+  }
+
   &--with-suffix {
     :where(input) {
       padding-right: $spacing-xl;
