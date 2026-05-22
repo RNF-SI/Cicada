@@ -17,6 +17,7 @@ import { ValidationService } from '../../../../core/services/validation.service'
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite } from '../../../../core/models/admin.model';
 import { SiteFormModalComponent, SiteFormModalData } from '../site-form-modal/site-form-modal.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface FindOrCreateSiteModalData {
   // Données optionnelles
@@ -46,7 +47,8 @@ interface SearchableSite extends AdminSite {
     MatProgressSpinnerModule,
     MatDividerModule,
     CheckboxComponent,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './find-or-create-site-modal.component.html',
   styleUrl: './find-or-create-site-modal.component.scss'

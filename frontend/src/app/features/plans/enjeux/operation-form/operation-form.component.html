@@ -143,14 +143,13 @@
               </mat-form-field>
             } @else {
               <!-- Si Non → intitulé de l'inventaire en texte libre (requis) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.intituleSuiviLabel' | translate }} <span class="required-star">*</span></mat-label>
-                <input matInput formControlName="intitule_suivi"
+              <app-form-field [label]="'enjeux.operations.intituleSuiviLabel' | translate" [required]="true">
+  <input formControlName="intitule_suivi"
                        [placeholder]="'enjeux.operations.intituleSuiviPlaceholder' | translate">
                 @if (form.get('intitule_suivi')?.hasError('required') && form.get('intitule_suivi')?.touched) {
-                  <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                  
                 }
-              </mat-form-field>
+</app-form-field>
             }
 
             <!-- Intitulé de l'action (lecture seule, synchronisé avec l'inventaire) -->
@@ -358,13 +357,9 @@
               <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
               @if (isNotCampanule) {
                 <!-- Nom du protocole (libre) -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>
-                    {{ 'enjeux.operations.nomProtocole' | translate }}
-                    <span class="required-star">*</span>
-                  </mat-label>
-                  <input matInput formControlName="nom_protocole">
-                </mat-form-field>
+                <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [required]="true">
+  <input formControlName="nom_protocole">
+</app-form-field>
 
                 <!-- Nombre d'ETP par cycle de collecte -->
                 <app-form-field [label]="'enjeux.operations.nbEtpCycle' | translate" [helpText]="'enjeux.operations.nbEtpCycleHint' | translate">

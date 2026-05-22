@@ -314,7 +314,7 @@ export class FcrFormComponent implements OnInit {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      const invalid = this.elRef.nativeElement.querySelector('input.ng-invalid, textarea.ng-invalid, mat-form-field.ng-invalid');
       invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }

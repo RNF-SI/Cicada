@@ -52,14 +52,13 @@
 
           <div class="form-grid">
             <!-- Intitulé -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.intitule' | translate }} <span class="required-star">*</span></mat-label>
-              <input matInput formControlName="intitule"
+            <app-form-field [label]="'inventaires.form.intitule' | translate" [required]="true">
+  <input formControlName="intitule"
                 [placeholder]="'inventaires.form.intitulePlaceholder' | translate">
               @if (shouldShowError('intitule')) {
-                <mat-error>{{ getErrorMessage('intitule') }}</mat-error>
+                
               }
-            </mat-form-field>
+</app-form-field>
 
             <!-- Type (codes CS - autocomplete groupé) -->
             <mat-form-field appearance="outline">
@@ -334,16 +333,12 @@
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
                 @if (isNotCampanule) {
                   <!-- Nom du protocole (libre) -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>
-                      {{ 'inventaires.form.nomProtocole' | translate }}
-                      <span class="required-star">*</span>
-                    </mat-label>
-                    <input matInput formControlName="nom_protocole">
+                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [required]="true">
+  <input formControlName="nom_protocole">
                     @if (shouldShowError('nom_protocole')) {
-                      <mat-error>{{ getErrorMessage('nom_protocole') }}</mat-error>
+                      
                     }
-                  </mat-form-field>
+</app-form-field>
                 }
 
                 <!-- Fréquence de mise en oeuvre (both modes) -->
@@ -422,17 +417,13 @@
                   }
 
                   <!-- Nombre d'ETP par cycle de collecte -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>
-                      {{ 'inventaires.form.nbEtpCycle' | translate }}
-                      <span class="required-star">*</span>
-                    </mat-label>
-                    <input matInput type="number" formControlName="nb_etp_cycle">
-                    <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
+                  <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [required]="true" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
+  <input type="number" formControlName="nb_etp_cycle">
+                    
                     @if (shouldShowError('nb_etp_cycle')) {
-                      <mat-error>{{ getErrorMessage('nb_etp_cycle') }}</mat-error>
+                      
                     }
-                  </mat-form-field>
+</app-form-field>
 
                   <!-- Descriptif du protocole -->
                   <app-form-field [label]="'inventaires.form.descriptionProtocole' | translate">

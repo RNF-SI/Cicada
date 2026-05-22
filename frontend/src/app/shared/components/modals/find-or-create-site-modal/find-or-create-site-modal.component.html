@@ -195,14 +195,13 @@
                   <!-- Formulaire de demande pleine largeur -->
                   @if (expandedOrgLinkSite() === site.id_site && site.canRequestOrgLink) {
                     <div class="org-link-form">
-                      <mat-form-field appearance="outline" class="justification-field">
-                        <mat-label>{{ 'sites.findOrCreate.orgLinkJustificationLabel' | translate }}</mat-label>
-                        <textarea matInput
+                      <app-form-field [label]="'sites.findOrCreate.orgLinkJustificationLabel' | translate">
+  <textarea
                                   rows="2"
                                   [value]="orgLinkJustification()"
                                   (input)="onOrgLinkJustificationChange($event)"
                                   [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
-                      </mat-form-field>
+</app-form-field>
                       <div class="org-link-checkboxes">
                         <app-checkbox
                           [checked]="orgLinkWithAccess()"

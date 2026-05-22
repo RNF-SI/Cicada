@@ -32,20 +32,19 @@
           <!-- Required fields notice -->
           <p class="required-notice">{{ 'enjeux.fcrForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.fcrForm.requiredAfter' | translate }}</p>
           <!-- Intitulé -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.fcrForm.libelle' | translate }} <span class="required-star">*</span></mat-label>
-            <textarea matInput
+          <app-form-field [label]="'enjeux.fcrForm.libelle' | translate" [required]="true">
+  <textarea
                       formControlName="libelle"
                       rows="3"
                       [placeholder]="'enjeux.fcrForm.libellePlaceholder' | translate">
             </textarea>
             @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
-              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              
             }
             @if (form.get('libelle')?.hasError('maxlength')) {
-              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+              
             }
-          </mat-form-field>
+</app-form-field>
 
           <!-- Intitulé court -->
           <mat-form-field appearance="outline" class="full-width">

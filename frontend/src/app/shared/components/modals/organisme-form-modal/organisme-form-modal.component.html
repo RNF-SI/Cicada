@@ -36,10 +36,9 @@
     </mat-form-field>
 
     <div class="form-row">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'modals.organismeForm.address' | translate }}</mat-label>
-        <input matInput formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
-      </mat-form-field>
+      <app-form-field [label]="'modals.organismeForm.address' | translate">
+  <input formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
+</app-form-field>
     </div>
 
     <div class="form-row two-columns">
@@ -53,17 +52,15 @@
   </ng-container>
 </app-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'modals.organismeForm.city' | translate }}</mat-label>
-        <input matInput formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
-      </mat-form-field>
+      <app-form-field [label]="'modals.organismeForm.city' | translate">
+  <input formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
+</app-form-field>
     </div>
 
     <div class="form-row two-columns">
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'modals.organismeForm.phone' | translate }}</mat-label>
-        <input matInput formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
-      </mat-form-field>
+      <app-form-field [label]="'modals.organismeForm.phone' | translate">
+  <input formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
+</app-form-field>
 
       <app-form-field [label]="'modals.organismeForm.email' | translate">
   <input type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
@@ -76,11 +73,9 @@
 </app-form-field>
     </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>{{ 'modals.organismeForm.website' | translate }}</mat-label>
-      <input matInput formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
-      <mat-hint>{{ 'modals.organismeForm.websiteHint' | translate }}</mat-hint>
-    </mat-form-field>
+    <app-form-field [label]="'modals.organismeForm.website' | translate" [helpText]="'modals.organismeForm.websiteHint' | translate">
+  <input formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
+</app-form-field>
   </form>
 </mat-dialog-content>
 

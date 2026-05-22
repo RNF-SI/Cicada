@@ -9,15 +9,13 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="toolbar-row">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>{{ 'plans.duplicate.searchPlaceholder' | translate }}</mat-label>
-        <input
-          matInput
+      <app-form-field [label]="'plans.duplicate.searchPlaceholder' | translate">
+  <input
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
           type="text"
         />
-      </mat-form-field>
+</app-form-field>
 
       <button mat-stroked-button routerLink="/plans">
         {{ 'plans.duplicate.dialog.cancel' | translate }}
