@@ -35,8 +35,9 @@
           {{ 'plans.lifecycle.startMiParcours.linkEmpty' | translate }}
         </p>
       } @else {
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'plans.lifecycle.startMiParcours.form.selectDraft' | translate }}</mat-label>
+        <label class="app-mat-label">{{ 'plans.lifecycle.startMiParcours.form.selectDraft' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+          <mat-label></mat-label>
           <mat-select [(ngModel)]="selectedDraftId">
             @for (draft of availableDrafts; track draft.id_pg) {
               <mat-option [value]="draft.id_pg">{{ draft.nom }}</mat-option>

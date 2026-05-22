@@ -97,8 +97,9 @@
         </h3>
 
         <div class="add-site-form">
-          <mat-form-field appearance="outline" class="site-search-field">
-            <mat-label>Rechercher un site</mat-label>
+          <label class="app-mat-label">Rechercher un site</label>
+      <mat-form-field class="app-mat-form-field site-search-field" appearance="outline">>
+            <mat-label></mat-label>
             <input matInput
                    [formControl]="siteControl"
                    [matAutocomplete]="siteAuto"

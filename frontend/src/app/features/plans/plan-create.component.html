@@ -200,8 +200,9 @@
           </div>
 
           <!-- Date validation CSPN -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.cspnDate' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.planForm.fields.cspnDate' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+            <mat-label></mat-label>
             <input matInput [matDatepicker]="cspnPicker" formControlName="date_avis_csrpn">
             <mat-datepicker-toggle matIconSuffix [for]="cspnPicker"></mat-datepicker-toggle>
             <mat-datepicker #cspnPicker></mat-datepicker>
@@ -213,8 +214,9 @@
 </app-form-field>
 
           <!-- Type organisme rédacteur -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.planForm.fields.editorType' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+            <mat-label></mat-label>
             <mat-select formControlName="id_redacteur_type">
               <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
               @for (type of redacteurTypes(); track type.id_nomenclature) {

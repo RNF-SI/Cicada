@@ -33,8 +33,9 @@
   }
 
   <!-- Autocomplete search -->
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ getPlaceholder() }}</mat-label>
+  <label class="app-mat-label">{{ getPlaceholder() }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+    <mat-label></mat-label>
     <input
       matInput
       [formControl]="searchControl"

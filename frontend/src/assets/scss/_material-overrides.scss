@@ -378,6 +378,81 @@ a[mat-raised-button][color="primary"] {
   }
 }
 
+// ============================================
+// FORM FIELD COMPACT (.app-mat-form-field)
+// ============================================
+// Style mat-form-field pour qu'il ressemble à <app-form-field> :
+// - Label au-dessus (pas flottant)
+// - Champ compact (~38px de hauteur)
+// - Suit le kit UI design system
+// À utiliser sur les mat-form-field qui contiennent mat-select/datepicker/autocomplete
+// (ces directives requièrent mat-form-field, donc on ne peut pas migrer vers app-form-field).
+
+.mat-mdc-form-field.app-mat-form-field {
+  // Outline
+  &.mat-form-field-appearance-outline {
+    .mat-mdc-text-field-wrapper {
+      background-color: $white;
+      border-radius: $border-radius-sm !important;
+      padding: 0;
+    }
+
+    // Cache l'encoche d'étiquette flottante
+    .mat-mdc-notched-outline {
+      .mdc-notched-outline__notch {
+        border-right: none !important;
+      }
+    }
+
+    // Cache le label flottant Material
+    .mat-mdc-floating-label,
+    .mdc-floating-label {
+      display: none !important;
+    }
+  }
+
+  // Hauteur compacte
+  .mat-mdc-form-field-infix {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    min-height: 34px !important;
+  }
+
+  // Wrapper sans le souscrit (hint/error pris en charge par .form-error-msg / mat-hint séparés)
+  .mat-mdc-form-field-subscript-wrapper {
+    padding: 4px 0 0 0;
+
+    .mat-mdc-form-field-hint-wrapper,
+    .mat-mdc-form-field-error-wrapper {
+      padding: 0;
+    }
+  }
+
+  .mat-mdc-form-field-hint {
+    color: $gray-dark;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
+
+// Label "app-form-field-style" au-dessus du mat-form-field
+.app-mat-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  line-height: 1.3;
+  margin-bottom: 4px;
+
+  .required-star {
+    color: $error-color;
+    font-weight: $font-weight-bold;
+  }
+}
+
 // Select dropdowns
 .mat-mdc-select {
   font-family: $font-family !important;

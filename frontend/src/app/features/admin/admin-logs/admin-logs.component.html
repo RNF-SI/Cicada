@@ -20,8 +20,9 @@
 
   <!-- Filtres -->
   <div class="filters-bar">
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>{{ 'admin.logs.filters.level' | translate }}</mat-label>
+    <label class="app-mat-label">{{ 'admin.logs.filters.level' | translate }}</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="levelFilter" (selectionChange)="applyFilters()">
         @for (option of levelOptions; track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
@@ -29,8 +30,9 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>{{ 'admin.logs.filters.acknowledged' | translate }}</mat-label>
+    <label class="app-mat-label">{{ 'admin.logs.filters.acknowledged' | translate }}</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="acknowledgedFilter" (selectionChange)="applyFilters()">
         @for (option of acknowledgedOptions; track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>

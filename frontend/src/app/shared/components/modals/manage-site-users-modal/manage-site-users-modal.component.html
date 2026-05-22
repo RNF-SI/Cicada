@@ -53,8 +53,9 @@
           <!-- Filtre par organisme -->
           @if (linkedOrganismes().length > 1) {
             <div class="organisme-filter">
-              <mat-form-field appearance="outline" class="filter-field">
-                <mat-label>{{ 'modals.manageSiteUsers.filterByOrganisme' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'modals.manageSiteUsers.filterByOrganisme' | translate }}</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select [value]="selectedOrganismeFilter()" (selectionChange)="onOrganismeFilterChange($event.value)">
                   <mat-option [value]="null">{{ 'modals.manageSiteUsers.allOrganismes' | translate }}</mat-option>
                   @for (org of linkedOrganismes(); track org.id_organisme) {
@@ -69,8 +70,9 @@
 
           <!-- Recherche utilisateur -->
           <div class="user-search">
-            <mat-form-field appearance="outline" class="search-field">
-              <mat-label>{{ 'modals.manageSiteUsers.searchUser' | translate }}</mat-label>
+            <label class="app-mat-label">{{ 'modals.manageSiteUsers.searchUser' | translate }}</label>
+      <mat-form-field class="app-mat-form-field search-field" appearance="outline">>
+              <mat-label></mat-label>
               <input
                 matInput
                 type="text"

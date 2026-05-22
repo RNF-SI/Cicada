@@ -27,8 +27,9 @@
 
   <!-- Metadata fields -->
   <div class="metadata-fields">
-    <mat-form-field appearance="outline">
-      <mat-label>{{ 'plans.detail.documents.upload.type' | translate }}</mat-label>
+    <label class="app-mat-label">{{ 'plans.detail.documents.upload.type' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="typeFichier">
         @for (type of fichierTypes; track type.value) {
           <mat-option [value]="type.value">{{ type.labelKey | translate }}</mat-option>
@@ -49,8 +50,9 @@
   <input [(ngModel)]="auteur">
 </app-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>{{ 'plans.detail.documents.upload.dateDocument' | translate }}</mat-label>
+      <label class="app-mat-label">{{ 'plans.detail.documents.upload.dateDocument' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+        <mat-label></mat-label>
         <input matInput [matDatepicker]="picker" [(ngModel)]="dateDocument">
         <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>

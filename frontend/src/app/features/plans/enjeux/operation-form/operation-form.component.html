@@ -40,8 +40,9 @@
           <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
 
           <!-- Type d'action (autocomplete groupé par catégorie) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.typeActionLabel' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'enjeux.operations.typeActionLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+            <mat-label></mat-label>
             <input matInput
               [formControl]="typeActionSearchCtrl"
               [matAutocomplete]="autoTypeAction"
@@ -74,8 +75,9 @@
           </mat-form-field>
 
           <!-- Catégorie d'action réserve (CT88) — optionnel, prend le pas sur le préfixe du type d'action -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.categorieActionReserveLabel' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'enjeux.operations.categorieActionReserveLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+            <mat-label></mat-label>
             <mat-select [formControl]="categorieActionReserveCtrl"
                         [placeholder]="'enjeux.operations.categorieActionReservePlaceholder' | translate">
               <mat-option [value]="null">—</mat-option>
@@ -124,8 +126,9 @@
 
             <!-- Si Oui → sélecteur d'inventaires existants -->
             @if (estSuiviExistant()) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.intituleSuiviLabel' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'enjeux.operations.intituleSuiviLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select formControlName="id_suivi">
                   <mat-option [value]="null">—</mat-option>
                   @for (inv of availableInventaires(); track inv.id_suivi_inventaire) {
@@ -160,8 +163,9 @@
           }
 
           <!-- Métriques associées -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+            <mat-label></mat-label>
             <mat-select formControlName="metrique_ids" multiple>
               @for (met of planMetriques(); track met.id_metrique) {
                 <mat-option [value]="met.id_metrique">
@@ -193,8 +197,9 @@
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- Objectif principal (grouped select) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.objectifPrincipal' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'enjeux.operations.objectifPrincipal' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select formControlName="objectif_principal">
                   <mat-option [value]="''">—</mat-option>
                   @for (group of objectifGroups(); track group.groupLabel) {
@@ -215,8 +220,9 @@
 
               <!-- Objectif secondaire (conditional: only if objectif principal is set) -->
               @if (hasObjectifPrincipal) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.objectifSecondaire' | translate }}</mat-label>
+                <label class="app-mat-label">{{ 'enjeux.operations.objectifSecondaire' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                  <mat-label></mat-label>
                   <mat-select formControlName="objectif_secondaire">
                     <mat-option [value]="''">—</mat-option>
                     @for (group of objectifGroups(); track group.groupLabel) {
@@ -237,8 +243,9 @@
               }
 
               <!-- Cible principale -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.ciblesPrincipales' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select formControlName="cibles_principales">
                   <mat-option [value]="null">—</mat-option>
                   @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
@@ -278,8 +285,9 @@
 
               <!-- Cible secondaire (conditional: only if cible principale is set) -->
               @if (hasCiblePrincipale) {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.operations.cibleSecondaire' | translate }}</mat-label>
+                <label class="app-mat-label">{{ 'enjeux.operations.cibleSecondaire' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                  <mat-label></mat-label>
                   <mat-select formControlName="cible_secondaire">
                     <mat-option [value]="''">—</mat-option>
                     @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
@@ -291,8 +299,9 @@
               }
 
               <!-- Date de lancement du suivi (date picker) -->
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.dateLancement' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'inventaires.form.dateLancement' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                <mat-label></mat-label>
                 <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
                   [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
                 <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
@@ -322,11 +331,10 @@
               <!-- ═══ MODE CAMPANULE (Oui) ═══ -->
               @if (isCampanule) {
                 <!-- Autocomplete Protocole Campanule -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>
-                    {{ 'enjeux.operations.protocoleNom' | translate }}
-                    <span class="required-star">*</span>
-                  </mat-label>
+                <label class="app-mat-label">{{ 'enjeux.operations.protocoleNom' | translate }}
+                    <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                  <mat-label></mat-label>
                   <input matInput
                     [formControl]="campanuleSearchCtrl"
                     [matAutocomplete]="campanuleAuto"
@@ -477,8 +485,9 @@
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- Outil de bancarisation -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.outilBancarisation' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'enjeux.operations.outilBancarisation' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select formControlName="outil_bancarisation">
                   <mat-option [value]="null">—</mat-option>
                   @for (opt of bancarisationOptions(); track opt.mnemonique) {
@@ -488,8 +497,9 @@
               </mat-form-field>
 
               <!-- Existe t-il un outil de saisie ? -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'enjeux.operations.outilSaisie' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'enjeux.operations.outilSaisie' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                <mat-label></mat-label>
                 <mat-select formControlName="outil_saisie">
                   <mat-option [value]="null">—</mat-option>
                   @for (opt of outilSaisieOptions(); track opt.mnemonique) {
@@ -912,8 +922,9 @@
                     <app-form-field [label]="'enjeux.operations.financeLibelleLabel' | translate">
   <input [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
 </app-form-field>
-                    <mat-form-field appearance="outline" class="finance-categorie">
-                      <mat-label>{{ 'enjeux.operations.categorieFinanceLabel' | translate }}</mat-label>
+                    <label class="app-mat-label">{{ 'enjeux.operations.categorieFinanceLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field finance-categorie" appearance="outline">>
+                      <mat-label></mat-label>
                       <mat-select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
                         <mat-option [value]="null">—</mat-option>
                         @for (cat of categorieFinanceOptions(); track cat.id_nomenclature) {

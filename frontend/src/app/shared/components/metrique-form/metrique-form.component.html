@@ -30,8 +30,9 @@
              required>
     </app-form-field>
 
-    <mat-form-field appearance="outline" class="flex-1">
-      <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+    <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field flex-1" appearance="outline">>
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="metrique.type_metrique" (selectionChange)="emitChange()">
         @for (opt of typeMetriqueOptions; track trackByOptionId($index, opt)) {
           <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>

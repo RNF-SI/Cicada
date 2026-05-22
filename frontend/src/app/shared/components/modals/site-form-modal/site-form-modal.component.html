@@ -211,8 +211,9 @@
         </div>
 
         <div class="form-row two-columns">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.type' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.siteForm.fields.type' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+            <mat-label></mat-label>
             <mat-select formControlName="id_type_site">
               <mat-option [value]="null">-- {{ 'common.actions.select' | translate }} --</mat-option>
               @if (isLoadingTypes()) {

@@ -104,8 +104,9 @@
         </h3>
 
         <div class="add-referent-form">
-          <mat-form-field appearance="outline" class="user-search-field">
-            <mat-label>{{ 'modals.linkPlanReferent.searchUser' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.linkPlanReferent.searchUser' | translate }}</label>
+      <mat-form-field class="app-mat-form-field user-search-field" appearance="outline">>
+            <mat-label></mat-label>
             <input matInput
                    [formControl]="userControl"
                    [matAutocomplete]="userAuto"

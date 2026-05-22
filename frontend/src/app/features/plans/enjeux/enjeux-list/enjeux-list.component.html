@@ -437,8 +437,9 @@
   <input [(ngModel)]="editPressionLibelle">
 </app-form-field>
                                     <!-- PressRef autocomplete (edit) -->
-                                    <mat-form-field appearance="outline" class="full-width">
-                                      <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
+                                    <label class="app-mat-label">{{ 'enjeux.pression.pressrefLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                                      <mat-label></mat-label>
                                       <input matInput
                                         [formControl]="editPressrefSearchCtrl"
                                         [matAutocomplete]="autoEditPressref"
@@ -554,8 +555,9 @@
                             </div>
                             <div class="inline-form-body">
                               <!-- PressRef autocomplete (au-dessus du libellé pour éviter d'écraser la saisie) -->
-                              <mat-form-field appearance="outline" class="full-width">
-                                <mat-label>{{ 'enjeux.pression.pressrefLabel' | translate }}</mat-label>
+                              <label class="app-mat-label">{{ 'enjeux.pression.pressrefLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+                                <mat-label></mat-label>
                                 <input matInput
                                   [formControl]="pressrefSearchCtrl"
                                   [matAutocomplete]="autoPressref"
@@ -920,8 +922,9 @@
                                                       <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="met.unite">
 </app-form-field>
-                                                      <mat-form-field appearance="outline">
-                                                        <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                      <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                                        <mat-label></mat-label>
                                                         <mat-select [(ngModel)]="met.type_metrique">
                                                           @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                                             <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -1525,8 +1528,9 @@
                                                     <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="standaloneMetriqueForm.unite">
 </app-form-field>
-                                                    <mat-form-field appearance="outline">
-                                                      <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                    <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                                      <mat-label></mat-label>
                                                       <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
                                                         @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                                           <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -1739,8 +1743,9 @@
                                                 <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="met.unite">
 </app-form-field>
-                                                <mat-form-field appearance="outline">
-                                                  <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                                <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                                  <mat-label></mat-label>
                                                   <mat-select [(ngModel)]="met.type_metrique">
                                                     @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                                       <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -1987,8 +1992,9 @@
                       <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="editOoDescription" rows="2"></textarea>
 </app-form-field>
-                      <mat-form-field class="full-width" appearance="outline">
-                        <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
+                      <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
+      <mat-form-field class="full-width app-mat-form-field" appearance="outline">
+                        <mat-label></mat-label>
                         <mat-select [(ngModel)]="editOoPressionIds" multiple required>
                           @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                             <mat-optgroup [label]="fi.libelle">
@@ -2253,8 +2259,9 @@
                                               <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="met.unite">
 </app-form-field>
-                                              <mat-form-field appearance="outline">
-                                                <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                              <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                                <mat-label></mat-label>
                                                 <mat-select [(ngModel)]="met.type_metrique">
                                                   @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                                     <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -2838,8 +2845,9 @@
                                             <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="standaloneMetriqueForm.unite">
 </app-form-field>
-                                            <mat-form-field appearance="outline">
-                                              <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                            <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                              <mat-label></mat-label>
                                               <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
                                                 @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                                   <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -3046,8 +3054,9 @@
                                         <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
   <input [(ngModel)]="met.unite">
 </app-form-field>
-                                        <mat-form-field appearance="outline">
-                                          <mat-label>{{ 'enjeux.metriques.typeLabel' | translate }}</mat-label>
+                                        <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                                          <mat-label></mat-label>
                                           <mat-select [(ngModel)]="met.type_metrique">
                                             @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
                                               <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
@@ -3221,8 +3230,9 @@
                     <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="newOoDescription" rows="2"></textarea>
 </app-form-field>
-                    <mat-form-field class="full-width" appearance="outline">
-                      <mat-label>{{ 'enjeux.oo.pressionLabel' | translate }} *</mat-label>
+                    <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
+      <mat-form-field class="full-width app-mat-form-field" appearance="outline">
+                      <mat-label></mat-label>
                       <mat-select [(ngModel)]="newOoPressionIds" multiple required>
                         @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                           <mat-optgroup [label]="fi.libelle">

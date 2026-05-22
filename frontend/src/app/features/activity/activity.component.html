@@ -40,8 +40,9 @@
         (search)="applyFilters()">
       </app-search-bar>
 
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>{{ 'activity.filters.entityType' | translate }}</mat-label>
+      <label class="app-mat-label">{{ 'activity.filters.entityType' | translate }}</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+        <mat-label></mat-label>
         <mat-select [(ngModel)]="entityTypeFilter" (selectionChange)="applyFilters()">
           <mat-option value="">{{ 'common.all' | translate }}</mat-option>
           <mat-option value="site">{{ 'activity.entityTypes.site' | translate }}</mat-option>

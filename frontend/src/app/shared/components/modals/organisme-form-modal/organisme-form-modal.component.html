@@ -25,8 +25,9 @@
   </ng-container>
 </app-form-field>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>{{ 'modals.organismeForm.parent' | translate }}</mat-label>
+    <label class="app-mat-label">{{ 'modals.organismeForm.parent' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">>
+      <mat-label></mat-label>
       <mat-select formControlName="parent_id">
         <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
         @for (org of parentOrganismes(); track org.id_organisme) {
