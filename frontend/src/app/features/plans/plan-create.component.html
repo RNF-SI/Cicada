@@ -84,16 +84,12 @@
               }
             </div>
 
-            <div class="search-box">
-              <i class="fi fi-rr-search"></i>
-              <input
-                type="text"
-                [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
-                [(ngModel)]="siteSearchQuery"
-                [ngModelOptions]="{standalone: true}"
-                (ngModelChange)="filterSites()"
-              />
-            </div>
+            <app-search-bar
+              [(value)]="siteSearchQuery"
+              [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
+              [ariaLabel]="'modals.planForm.placeholders.searchSite' | translate"
+              (valueChange)="filterSites()">
+            </app-search-bar>
 
             <div class="selection-list">
               @for (site of filteredSites(); track site.id) {

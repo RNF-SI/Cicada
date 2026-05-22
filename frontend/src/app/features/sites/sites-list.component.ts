@@ -32,6 +32,7 @@ import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
 import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
@@ -77,7 +78,8 @@ interface SiteWithAccess extends SiteWithUsers {
     HeaderComponent,
     LeafletMapComponent,
     ViewScopeToggleComponent,
-    SiteTypeDisplayPipe
+    SiteTypeDisplayPipe,
+    SearchBarComponent,
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'

@@ -104,20 +104,13 @@
 
             <!-- Barre de recherche -->
             @if (scopedSites().length > 0) {
-              <div class="search-bar">
-                <i class="fi fi-rr-search search-icon"></i>
-                <input
-                  type="text"
-                  class="search-input"
-                  [value]="searchTerm()"
-                  (input)="onSearchChange($event)"
-                  [placeholder]="'sites.mySites.searchPlaceholder' | translate">
-                @if (searchTerm()) {
-                  <button class="search-clear" (click)="clearSearch()">
-                    <i class="fi fi-rr-cross-small"></i>
-                  </button>
-                }
-              </div>
+              <app-search-bar
+                [value]="searchTerm()"
+                [placeholder]="'sites.mySites.searchPlaceholder' | translate"
+                [ariaLabel]="'sites.mySites.searchPlaceholder' | translate"
+                (valueChange)="searchTerm.set($event)"
+                (cleared)="clearSearch()">
+              </app-search-bar>
             }
           </div>
 

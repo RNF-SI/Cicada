@@ -224,23 +224,17 @@
               } @else {
                 <div class="users-list">
                   @for (ua of siteUsers(); track ua.user.id_role) {
-                    <div class="user-card">
-                      <div class="user-avatar">
-                        <i class="fi fi-rr-user"></i>
-                      </div>
-                      <div class="user-info">
-                        <span class="user-name">{{ getUserDisplayName(ua.user) }}</span>
-                        <span class="user-email">{{ ua.user.email }}</span>
-                        @if (ua.user.organisme) {
-                          <span class="user-org">{{ ua.user.organisme }}</span>
-                        }
-                      </div>
-                      <div class="user-role">
-                        <mat-chip [class]="getUserRoleClass(ua)">
-                          {{ getUserRoleLabel(ua) }}
-                        </mat-chip>
-                      </div>
-                    </div>
+                    <app-entity-tile
+                      icon="fi-rr-user"
+                      [name]="getUserDisplayName(ua.user)"
+                      [subtitle]="ua.user.email">
+                      @if (ua.user.organisme) {
+                        <span class="user-org">{{ ua.user.organisme }}</span>
+                      }
+                      <span tileAction class="user-role-tag" [class]="getUserRoleClass(ua)">
+                        {{ getUserRoleLabel(ua) }}
+                      </span>
+                    </app-entity-tile>
                   }
                 </div>
               }

@@ -78,15 +78,9 @@
           </div>
         </div>
 
-        <!-- Section Détails (accordéon) -->
-        <mat-expansion-panel class="details-panel" hideToggle>
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
-              <span class="panel-title-text">{{ 'enjeux.fcrForm.details' | translate }}</span>
-              <i class="fi fi-rr-menu-burger panel-toggle-icon"></i>
-            </mat-panel-title>
-          </mat-expansion-panel-header>
+        <!-- Section Détails (#303 accordion fcr) -->
+        <app-accordion variant="fcr" [title]="'enjeux.fcrForm.details' | translate">
+          <img accordionIcon src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
 
           <div class="panel-content">
             <!-- Commentaires -->
@@ -99,7 +93,7 @@
               </textarea>
             </mat-form-field>
           </div>
-        </mat-expansion-panel>
+        </app-accordion>
 
       </form>
     </div>

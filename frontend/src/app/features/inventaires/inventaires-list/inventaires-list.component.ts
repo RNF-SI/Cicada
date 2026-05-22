@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { HeaderComponent } from '../../../shared/components/header/header.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { InventaireService } from '../../../core/services/inventaire.service';
 import { AdminService } from '../../../core/services/admin.service';
 import { SuiviInventaireList } from '../../../core/models/inventaire.model';
@@ -27,7 +28,8 @@ import { SuiviInventaireList } from '../../../core/models/inventaire.model';
     MatMenuModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    SearchBarComponent,
   ],
   templateUrl: './inventaires-list.component.html',
   styleUrl: './inventaires-list.component.scss'

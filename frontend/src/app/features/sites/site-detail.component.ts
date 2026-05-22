@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AnchorNavComponent, AnchorNavItem } from '../../shared/components/anchor-nav/anchor-nav.component';
+import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -72,6 +73,7 @@ interface SiteUserAssignment {
     LeafletMapComponent,
     SiteTypeDisplayPipe,
     AnchorNavComponent,
+    EntityTileComponent,
   ],
   templateUrl: './site-detail.component.html',
   styleUrl: './site-detail.component.scss'

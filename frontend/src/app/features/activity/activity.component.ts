@@ -21,6 +21,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   ActivityLogListItem,
   ActivityFilters,
@@ -48,7 +49,8 @@ import {
     MatPaginatorModule,
     MatTooltipModule,
     MatExpansionModule,
-    TranslateModule
+    TranslateModule,
+    SearchBarComponent,
   ],
   templateUrl: './activity.component.html',
   styleUrl: './activity.component.scss'

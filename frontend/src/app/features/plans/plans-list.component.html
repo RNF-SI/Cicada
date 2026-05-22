@@ -104,15 +104,13 @@
       <section class="content-section my-plans-section">
         <!-- Toolbar: Recherche + Anciennes versions -->
         <div class="toolbar">
-          <div class="search-box">
-            <i class="fi fi-rr-search"></i>
-            <input
-              type="text"
-              [placeholder]="'plans.list.search' | translate"
-              (input)="onMyPlansSearch($event)"
-              data-testid="plans-search-input"
-            />
-          </div>
+          <app-search-bar
+            [value]="myPlansSearchQuery()"
+            [placeholder]="'plans.list.search' | translate"
+            [ariaLabel]="'plans.list.search' | translate"
+            (valueChange)="myPlansSearchQuery.set($event)"
+            data-testid="plans-search-input">
+          </app-search-bar>
           <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
             @if (showOldVersions()) {
               <span>{{ 'plans.list.hideOldVersions' | translate }}</span>
@@ -354,19 +352,12 @@
         <p class="section-description">{{ 'plans.requestAccess.description' | translate }}</p>
 
         <!-- Barre de recherche -->
-        <div class="search-bar">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-icon matPrefix class="search-icon">
-              <i class="fi fi-rr-search"></i>
-            </mat-icon>
-            <input
-              matInput
-              type="text"
-              [placeholder]="'plans.requestAccess.searchPlaceholder' | translate"
-              (input)="onSearch($event)"
-            />
-          </mat-form-field>
-        </div>
+        <app-search-bar
+          [value]="searchQuery()"
+          [placeholder]="'plans.requestAccess.searchPlaceholder' | translate"
+          [ariaLabel]="'plans.requestAccess.searchPlaceholder' | translate"
+          (valueChange)="searchQuery.set($event)">
+        </app-search-bar>
 
         @if (otherPlans().length === 0) {
           <div class="empty-state empty-state--small">

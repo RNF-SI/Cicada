@@ -215,15 +215,9 @@
           }
         </div>
 
-        <!-- Section Détails (accordéon) -->
-        <mat-expansion-panel class="details-panel" hideToggle>
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
-              <span class="panel-title-text">{{ 'enjeux.enjeuForm.details' | translate }}</span>
-              <i class="fi fi-rr-menu-burger panel-toggle-icon"></i>
-            </mat-panel-title>
-          </mat-expansion-panel-header>
+        <!-- Section Détails (#303 accordion enjeu) -->
+        <app-accordion variant="enjeu" [title]="'enjeux.enjeuForm.details' | translate">
+          <img accordionIcon src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
 
           <div class="panel-content">
             <!-- État de l'enjeu -->
@@ -246,7 +240,7 @@
               </textarea>
             </mat-form-field>
           </div>
-        </mat-expansion-panel>
+        </app-accordion>
 
       </form>
     </div>

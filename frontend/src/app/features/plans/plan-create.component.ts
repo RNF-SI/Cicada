@@ -31,6 +31,7 @@ import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
@@ -87,7 +88,8 @@ interface OrganismeEntry {
     MatSnackBarModule,
     TranslateModule,
     HeaderComponent,
-    ViewScopeToggleComponent
+    ViewScopeToggleComponent,
+    SearchBarComponent,
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'
