@@ -18,6 +18,7 @@ import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, Du
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
@@ -61,6 +62,7 @@ interface SiteType {
     MatButtonModule,
     MatSelectModule,
     CheckboxComponent,
+    FormFieldComponent,
     MatProgressSpinnerModule,
     MatTabsModule,
     MatIconModule,

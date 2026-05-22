@@ -154,12 +154,12 @@
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.surface' | translate }}</mat-label>
-              <input matInput type="number" formControlName="surface" step="0.01">
-              <span matTextSuffix>ha</span>
-              <mat-hint>{{ 'modals.planForm.hints.surface' | translate }}</mat-hint>
-            </mat-form-field>
+            <app-form-field
+              [label]="'modals.planForm.fields.surface' | translate"
+              [helpText]="'modals.planForm.hints.surface' | translate"
+              suffix="ha">
+              <input type="number" formControlName="surface" step="0.01">
+            </app-form-field>
           </div>
 
           <!-- CT88 (Radio buttons) -->
@@ -199,11 +199,9 @@
           </mat-form-field>
 
           <!-- ID Doc'Gestion FCEN -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
-            <input matInput formControlName="id_docgestion_fcen">
-            <mat-hint>{{ 'modals.planForm.hints.docGestion' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.planForm.fields.docGestion' | translate" [helpText]="'modals.planForm.hints.docGestion' | translate">
+  <input formControlName="id_docgestion_fcen">
+</app-form-field>
 
           <!-- Type organisme rédacteur -->
           <mat-form-field appearance="outline" class="full-width">
@@ -265,41 +263,33 @@
           </div>
 
           <!-- Rédacteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.redacteurs' | translate" [helpText]="'modals.planForm.hints.redacteurs' | translate">
+  <textarea
               formControlName="redacteurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
               data-testid="redacteurs-input"
             ></textarea>
-            <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
-          </mat-form-field>
+</app-form-field>
 
           <!-- Relecteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.relecteurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.relecteurs' | translate" [helpText]="'modals.planForm.hints.relecteurs' | translate">
+  <textarea
               formControlName="relecteurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
               data-testid="relecteurs-input"
             ></textarea>
-            <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
-          </mat-form-field>
+</app-form-field>
 
           <!-- Autres rédacteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.autresContributeurs' | translate">
+  <textarea
               formControlName="autres_contributeurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
             ></textarea>
-          </mat-form-field>
+</app-form-field>
         </form>
       </div>
     }

@@ -199,17 +199,13 @@
         </mat-form-field>
 
         <div class="form-row two-columns">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.localId' | translate }}</mat-label>
-            <input matInput formControlName="id_local" placeholder="Ex: RN13">
-            <mat-hint>{{ 'modals.siteForm.hints.localId' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.siteForm.fields.localId' | translate" [helpText]="'modals.siteForm.hints.localId' | translate">
+  <input formControlName="id_local" placeholder="Ex: RN13">
+</app-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.inpnId' | translate }}</mat-label>
-            <input matInput formControlName="id_inpn" placeholder="Ex: FR3600013" (input)="onInpnInput($event)">
-            <mat-hint>{{ 'modals.siteForm.hints.inpnId' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.siteForm.fields.inpnId' | translate" [helpText]="'modals.siteForm.hints.inpnId' | translate">
+  <input formControlName="id_inpn" placeholder="Ex: FR3600013" (input)="onInpnInput($event)">
+</app-form-field>
         </div>
 
         <div class="form-row two-columns">
@@ -240,11 +236,9 @@
 
         <!-- Precision field (only shown when type is "Autre") -->
         @if (isTypeAutre) {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.siteForm.fields.typePrecision' | translate }} *</mat-label>
-            <input matInput formControlName="type_site_precision" [placeholder]="'modals.siteForm.hints.typePrecision' | translate">
-            <mat-hint>{{ 'modals.siteForm.hints.typePrecision' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="('modals.siteForm.fields.typePrecision' | translate) + ' *'" [helpText]="'modals.siteForm.hints.typePrecision' | translate">
+  <input formControlName="type_site_precision" [placeholder]="'modals.siteForm.hints.typePrecision' | translate">
+</app-form-field>
         }
 
         <div class="checkbox-row">

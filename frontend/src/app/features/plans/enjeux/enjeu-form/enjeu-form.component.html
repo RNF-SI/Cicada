@@ -48,7 +48,7 @@
           </mat-form-field>
 
           <!-- Intitulé court -->
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>{{ 'enjeux.enjeuForm.intituleCourt' | translate }} <span class="required-star">*</span></mat-label>
             <input matInput
                    formControlName="intitule_court"
@@ -151,13 +151,12 @@
             <!-- Précision "Autre écologique" (si coché) -->
             @if (form.get('autre_ecologique')?.value) {
               <div class="form-group sub-question">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.enjeuForm.autreEcologiquePrecision' | translate }}</mat-label>
-                  <input matInput
+                <app-form-field [label]="'enjeux.enjeuForm.autreEcologiquePrecision' | translate">
+  <input
                          formControlName="autre_ecologique_precision"
                          maxlength="255"
                          [placeholder]="'enjeux.enjeuForm.autreEcologiquePrecisionPlaceholder' | translate">
-                </mat-form-field>
+</app-form-field>
               </div>
             }
           } @else {
@@ -177,13 +176,12 @@
             <!-- Précision "Autre socio-économique" (si coché) -->
             @if (form.get('autre_socioeco')?.value) {
               <div class="form-group sub-question">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'enjeux.enjeuForm.autreSocioEcoPrecision' | translate }}</mat-label>
-                  <input matInput
+                <app-form-field [label]="'enjeux.enjeuForm.autreSocioEcoPrecision' | translate">
+  <input
                          formControlName="autre_socioeco_precision"
                          maxlength="255"
                          [placeholder]="'enjeux.enjeuForm.autreSocioEcoPrecisionPlaceholder' | translate">
-                </mat-form-field>
+</app-form-field>
               </div>
             }
           }
@@ -195,24 +193,22 @@
 
           <div class="panel-content">
             <!-- État de l'enjeu -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.enjeuForm.etatEnjeu' | translate }}</mat-label>
-              <textarea matInput
+            <app-form-field [label]="'enjeux.enjeuForm.etatEnjeu' | translate">
+  <textarea
                         formControlName="etat_enjeu"
                         rows="4"
                         [placeholder]="'enjeux.enjeuForm.etatEnjeuPlaceholder' | translate">
               </textarea>
-            </mat-form-field>
+</app-form-field>
 
             <!-- Commentaires -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.enjeuForm.commentaires' | translate }}</mat-label>
-              <textarea matInput
+            <app-form-field [label]="'enjeux.enjeuForm.commentaires' | translate">
+  <textarea
                         formControlName="description"
                         rows="4"
                         [placeholder]="'enjeux.enjeuForm.commentairesPlaceholder' | translate">
               </textarea>
-            </mat-form-field>
+</app-form-field>
           </div>
         </app-accordion>
 

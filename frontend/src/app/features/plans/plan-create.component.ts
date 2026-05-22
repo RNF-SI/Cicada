@@ -32,6 +32,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { CheckboxComponent } from '../../shared/components/checkbox/checkbox.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
@@ -90,6 +91,7 @@ interface OrganismeEntry {
     ViewScopeToggleComponent,
     SearchBarComponent,
     CheckboxComponent,
+    FormFieldComponent,
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'
