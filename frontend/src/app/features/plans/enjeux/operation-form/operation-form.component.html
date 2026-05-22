@@ -458,7 +458,7 @@
                     <button type="button" class="freq-btn" (click)="incrementFrequence()">+</button>
                   </div>
                   <span class="frequence-separator">{{ 'enjeux.operations.foisPar' | translate }}</span>
-                  <mat-form-field appearance="outline" class="frequence-unite-field">
+                  <mat-form-field appearance="outline" class="frequence-unite-field app-mat-form-field">
                     <mat-select formControlName="frequence_unite">
                       <mat-option [value]="null">—</mat-option>
                       @for (unite of frequenceUnites; track unite.value) {

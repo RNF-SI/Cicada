@@ -106,7 +106,7 @@
                 <tr>
                   <td class="prop-name">{{ prop }}</td>
                   <td>
-                    <mat-form-field appearance="outline" class="mapping-select">
+                    <mat-form-field appearance="outline" class="mapping-select app-mat-form-field">
                       <mat-select [value]="fieldMapping()[prop] || ''"
                                   (selectionChange)="onMappingChange(prop, $event.value)">
                         <mat-option value="">{{ 'modals.bulkImport.mapping.ignore' | translate }}</mat-option>
