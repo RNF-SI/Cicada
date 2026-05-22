@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 
+import { FormFieldComponent } from '../../form-field/form-field.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ValidationService } from '../../../../core/services/validation.service';
 import { AdminOrganisme, AdminSite, AdminUser } from '../../../../core/models/admin.model';
@@ -40,7 +41,8 @@ export interface InviteModalData {
     MatProgressSpinnerModule,
     MatInputModule,
     MatIconModule,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './invite-modal.component.html',
   styleUrl: './invite-modal.component.scss'

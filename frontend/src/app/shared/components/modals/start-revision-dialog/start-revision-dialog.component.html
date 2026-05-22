@@ -30,21 +30,22 @@
   <!-- Formulaire création -->
   @if (mode === 'create') {
     <div class="form-block">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'plans.lifecycle.startRevision.form.name' | translate }}</mat-label>
-        <input matInput [(ngModel)]="nom" required>
-      </mat-form-field>
+      <app-form-field class="full-width"
+                      [label]="'plans.lifecycle.startRevision.form.name' | translate"
+                      [required]="true">
+        <input [(ngModel)]="nom" required>
+      </app-form-field>
 
       <div class="year-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'plans.lifecycle.startRevision.form.yearStart' | translate }}</mat-label>
-          <input matInput type="number" [(ngModel)]="anneeDebut" required>
-        </mat-form-field>
+        <app-form-field [label]="'plans.lifecycle.startRevision.form.yearStart' | translate"
+                        [required]="true">
+          <input type="number" [(ngModel)]="anneeDebut" required>
+        </app-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'plans.lifecycle.startRevision.form.yearEnd' | translate }}</mat-label>
-          <input matInput type="number" [(ngModel)]="anneeFin" required>
-        </mat-form-field>
+        <app-form-field [label]="'plans.lifecycle.startRevision.form.yearEnd' | translate"
+                        [required]="true">
+          <input type="number" [(ngModel)]="anneeFin" required>
+        </app-form-field>
       </div>
     </div>
   }

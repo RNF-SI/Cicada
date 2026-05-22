@@ -36,17 +36,17 @@
     <span>{{ 'profile.rgpd.dialog.gracePeriod' | translate }}</span>
   </div>
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ 'profile.rgpd.dialog.confirmLabel' | translate }}</mat-label>
+  <app-form-field
+    class="full-width"
+    [label]="'profile.rgpd.dialog.confirmLabel' | translate"
+    [helpText]="data.userEmail">
     <input
-      matInput
       type="email"
       [(ngModel)]="confirmEmail"
       [placeholder]="'profile.rgpd.dialog.confirmPlaceholder' | translate"
       autocomplete="off"
     />
-    <mat-hint>{{ data.userEmail }}</mat-hint>
-  </mat-form-field>
+  </app-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

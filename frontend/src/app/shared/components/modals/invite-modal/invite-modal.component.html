@@ -89,16 +89,16 @@
   }
 
   <!-- Justification (optionnel) -->
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ 'modals.invite.justification' | translate }}</mat-label>
+  <app-form-field
+    class="full-width"
+    [label]="'modals.invite.justification' | translate"
+    [helpText]="'modals.invite.justificationHint' | translate">
     <textarea
-      matInput
       [formControl]="justificationControl"
       [placeholder]="'modals.invite.justificationPlaceholder' | translate"
       rows="3">
     </textarea>
-    <mat-hint>{{ 'modals.invite.justificationHint' | translate }}</mat-hint>
-  </mat-form-field>
+  </app-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

@@ -31,11 +31,13 @@
     }
 
     @if (data.step === 'arrete') {
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'plans.lifecycle.csrpnStep.arreteNumeroLabel' | translate }}</mat-label>
-        <input matInput formControlName="numeroArrete" required>
-        <mat-hint>{{ 'plans.lifecycle.csrpnStep.arreteNumeroHint' | translate }}</mat-hint>
-      </mat-form-field>
+      <app-form-field
+        class="full-width"
+        [label]="'plans.lifecycle.csrpnStep.arreteNumeroLabel' | translate"
+        [required]="true"
+        [helpText]="'plans.lifecycle.csrpnStep.arreteNumeroHint' | translate">
+        <input formControlName="numeroArrete" required>
+      </app-form-field>
     }
 
     @if (showMiParcoursToggle) {
