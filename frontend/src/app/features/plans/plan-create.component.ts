@@ -525,8 +525,9 @@ export class PlanCreateComponent implements OnInit {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
-      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Cherche le premier champ invalide : input/textarea natif (dans app-form-field) ou mat-form-field
+      const invalidNative = this.elRef.nativeElement.querySelector('input.ng-invalid, textarea.ng-invalid, mat-form-field.ng-invalid');
+      invalidNative?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

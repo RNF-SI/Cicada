@@ -25,4 +25,9 @@
       {{ error }}
     </p>
   }
+
+  <!-- Slot pour erreurs personnalisées (multi-error avec conditions) -->
+  <div class="app-form-field__error-slot" role="alert">
+    <ng-content select="[errorSlot]"></ng-content>
+  </div>
 </div>

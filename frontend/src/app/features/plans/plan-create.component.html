@@ -56,13 +56,15 @@
           }
 
           <!-- Nom du plan * -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.name' | translate }} *</mat-label>
-            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+          <app-form-field [label]="('modals.planForm.fields.name' | translate) + ' *'" [required]="true">
+  <input formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
             @if (form.get('nom')?.hasError('required')) {
-              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+              
             }
-          </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.nameRequired' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
           <!-- Choix des sites * -->
           <div class="form-section-box sites-section">
@@ -142,17 +144,20 @@
 
           <!-- Rang et Surface -->
           <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.rang' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="rang" min="1">
-              <mat-hint>{{ 'modals.planForm.hints.rang' | translate }}</mat-hint>
+            <app-form-field [label]="('modals.planForm.fields.rang' | translate) + ' *'" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
+  <input type="number" formControlName="rang" min="1">
+              
               @if (form.get('rang')?.hasError('required')) {
-                <mat-error>{{ 'modals.planForm.validation.rangRequired' | translate }}</mat-error>
+                
               }
               @if (form.get('rang')?.hasError('min')) {
-                <mat-error>{{ 'modals.planForm.validation.rangMin' | translate }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
             <app-form-field
               [label]="'modals.planForm.fields.surface' | translate"
@@ -173,21 +178,25 @@
 
           <!-- Année début et Année fin -->
           <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.startYear' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="annee_debut" min="1900" max="2100">
+            <app-form-field [label]="('modals.planForm.fields.startYear' | translate) + ' *'" [required]="true">
+  <input type="number" formControlName="annee_debut" min="1900" max="2100">
               @if (form.get('annee_debut')?.hasError('required')) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.endYear' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="annee_fin" min="1900" max="2100">
+            <app-form-field [label]="('modals.planForm.fields.endYear' | translate) + ' *'" [required]="true">
+  <input type="number" formControlName="annee_fin" min="1900" max="2100">
               @if (form.get('annee_fin')?.hasError('required')) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+  </ng-container>
+</app-form-field>
           </div>
 
           <!-- Date validation CSPN -->

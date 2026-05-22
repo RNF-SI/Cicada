@@ -23,6 +23,7 @@ import { OrganismeFormModalComponent } from '../organisme-form-modal/organisme-f
 import { AuthService } from '../../../../core/services/auth.service';
 import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 import {
   AdminPlan,
   PlanCreatePayload,
@@ -90,7 +91,8 @@ interface OrganismeEntry {
     MatSnackBarModule,
     TranslateModule,
     RouterModule,
-    ViewScopeToggleComponent
+    ViewScopeToggleComponent,
+    FormFieldComponent,
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'

@@ -35,22 +35,24 @@
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>{{ 'auth.register.lastName' | translate }}</mat-label>
-          <input
-            matInput
+        <app-form-field [label]="'auth.register.lastName' | translate" [required]="true">
+  <input
             type="text"
             formControlName="nom"
             [placeholder]="'auth.register.lastNamePlaceholder' | translate"
             autocomplete="family-name"
           >
           @if (registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched) {
-            <mat-error>{{ 'auth.register.errors.lastNameRequired' | translate }}</mat-error>
+            
           }
           @if (registerForm.get('nom')?.hasError('maxlength')) {
-            <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</mat-error>
+            
           }
-        </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.lastNameRequired' | translate }}</p>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</p>
+  </ng-container>
+</app-form-field>
       </div>
 
       <mat-form-field appearance="outline" class="full-width">
@@ -176,19 +178,20 @@
         }
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.justification' | translate }}</mat-label>
-        <textarea
-          matInput
+      <app-form-field [label]="'auth.register.justification' | translate" [helpText]="'auth.register.justificationHint' | translate">
+  <textarea
           formControlName="justification"
           rows="3"
           [placeholder]="'auth.register.justificationPlaceholder' | translate"
         ></textarea>
-        <mat-hint>{{ 'auth.register.justificationHint' | translate }}</mat-hint>
+        
         @if (registerForm.get('justification')?.hasError('maxlength')) {
-          <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</mat-error>
+          
         }
-      </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</p>
+  </ng-container>
+</app-form-field>
 
       <div class="info-box">
         <i class="fi fi-rr-info"></i>

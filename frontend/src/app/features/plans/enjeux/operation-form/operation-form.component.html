@@ -99,15 +99,17 @@
 
           <!-- Intitulé de l'action : contrôle formulaire (caché quand CS, affiché en position basse) -->
           <div [style.display]="isCSAction() ? 'none' : ''">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.operations.libelleLabel' | translate }}</mat-label>
-              <input matInput formControlName="libelle"
+            <app-form-field [label]="'enjeux.operations.libelleLabel' | translate" [helpText]="'enjeux.operations.libelleHint' | translate">
+  <input formControlName="libelle"
                      [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
-              <mat-hint>{{ 'enjeux.operations.libelleHint' | translate }}</mat-hint>
+              
               @if (form.get('libelle')?.hasError('maxlength')) {
-                <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.maxLength' | translate:{ max: 500 } }}</p>
+  </ng-container>
+</app-form-field>
           </div>
 
           <!-- Question suivi existant (visible uniquement pour les actions CS) -->

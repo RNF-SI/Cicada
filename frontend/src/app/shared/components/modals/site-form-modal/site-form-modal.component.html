@@ -190,13 +190,15 @@
       }
 
       <form [formGroup]="form" class="site-form">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.siteForm.fields.name' | translate }} *</mat-label>
-          <input matInput formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue" (input)="onNameInput($event)">
+        <app-form-field [label]="('modals.siteForm.fields.name' | translate) + ' *'" [required]="true">
+  <input formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue" (input)="onNameInput($event)">
           @if (form.get('nom_site')?.hasError('required') && form.get('nom_site')?.touched) {
-            <mat-error>{{ 'modals.siteForm.errors.nameRequired' | translate }}</mat-error>
+            
           }
-        </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.siteForm.errors.nameRequired' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
         <div class="form-row two-columns">
           <app-form-field [label]="'modals.siteForm.fields.localId' | translate" [helpText]="'modals.siteForm.hints.localId' | translate">
@@ -225,13 +227,15 @@
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.surface' | translate }}</mat-label>
-            <input matInput type="number" formControlName="surf_off" placeholder="Ex: 1500">
+          <app-form-field [label]="'modals.siteForm.fields.surface' | translate">
+  <input type="number" formControlName="surf_off" placeholder="Ex: 1500">
             @if (form.get('surf_off')?.hasError('min')) {
-              <mat-error>{{ 'modals.siteForm.errors.surfacePositive' | translate }}</mat-error>
+              
             }
-          </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.siteForm.errors.surfacePositive' | translate }}</p>
+  </ng-container>
+</app-form-field>
         </div>
 
         <!-- Precision field (only shown when type is "Autre") -->
