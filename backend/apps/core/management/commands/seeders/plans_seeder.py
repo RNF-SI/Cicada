@@ -205,7 +205,7 @@ class PlansSeeder(BaseSeeder):
                     (users[0], True),   # super_admin - referent
                     (users[1], False),  # admin.rnf - membre simple
                     (users[5], False),  # user.rnf - membre simple
-                    (users[3], False),  # referent.camargue - membre simple
+                    (users[3], True),   # referent.camargue - referent (E2E #292 cluster 1)
                     (users[6], False),  # user.cen - membre simple
                 ]
             },

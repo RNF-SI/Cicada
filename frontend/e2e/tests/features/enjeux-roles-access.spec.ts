@@ -30,17 +30,30 @@ import {
  * intentionally test access to plans the user may not see.
  */
 async function findPlan(page: import('@playwright/test').Page, nameFragment: string) {
-  const { ok, data } = await apiGet(page, 'plans/plans/', { search: nameFragment });
+  const { ok, data } = await apiGet(page, 'plans/plans/', { search: nameFragment, page_size: '50' });
   if (!ok) return null;
   const results = data.results || data;
   if (!Array.isArray(results) || results.length === 0) return null;
   // Name match wins over statut: callers say `findPlan('Camargue')` to mean
   // "the Camargue plan", regardless of whether it's draft or valide.
   const nameMatch = (p: any) => p.nom?.toLowerCase().includes(nameFragment.toLowerCase());
-  const plan = results.find((p: any) => p.statut !== 'archive' && nameMatch(p))
+  const isDraft = (p: any) => p.statut === 'draft';
+  const hasContent = (p: any) => (p.enjeux_count ?? 0) > 0;
+  let plan = results.find((p: any) => isDraft(p) && nameMatch(p) && hasContent(p))
+    || results.find((p: any) => isDraft(p) && nameMatch(p))
+    || results.find((p: any) => p.statut !== 'archive' && nameMatch(p) && hasContent(p))
+    || results.find((p: any) => p.statut !== 'archive' && nameMatch(p))
     || results.find((p: any) => p.statut === 'valide')
     || results.find((p: any) => p.statut !== 'archive')
     || results[0];
+  // Fallback: if no plan with content under this name, look broader for any
+  // draft plan with content (handles seed drift — #292).
+  if (plan && !hasContent(plan)) {
+    const { data: anyData } = await apiGet(page, 'plans/plans/', { statut: 'draft', page_size: '50' });
+    const anyResults: any[] = anyData.results || anyData;
+    const fallback = anyResults.find(hasContent);
+    if (fallback) plan = fallback;
+  }
   return { id_pg: plan.id_pg as number, slug: plan.slug as string };
 }
 

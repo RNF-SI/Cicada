@@ -171,7 +171,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             ).prefetch_related(
                 'sites__site', 'referents', 'membres__id_role'
             ).annotate(
-                children_count=Count('children')
+                children_count=Count('children', distinct=True),
+                enjeux_count=Count('enjeux', distinct=True),
             )
         else:
             queryset = self.queryset

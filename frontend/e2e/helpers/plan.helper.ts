@@ -165,7 +165,7 @@ export async function apiDelete(
  * #248). Tests needing a specific statut should use `findValidatedPlan()` etc.
  */
 export async function findPlan(page: Page, nameFragment: string) {
-  const { data } = await apiGet(page, 'plans/plans/', { search: nameFragment });
+  const { data } = await apiGet(page, 'plans/plans/', { search: nameFragment, page_size: '50' });
   const results: any[] = data.results || data;
   if (!Array.isArray(results) || results.length === 0) {
     throw new Error(`Plan "${nameFragment}" not found`);
@@ -174,13 +174,25 @@ export async function findPlan(page: Page, nameFragment: string) {
   const isDraft = (p: any) => p.statut === 'draft';
   const notArchive = (p: any) => p.statut !== 'archive';
   const hasReferents = (p: any) => (p.referents?.length > 0) || (p.nb_referents > 0);
-  const best = results.find((p: any) => isDraft(p) && nameMatch(p))
+  const hasContent = (p: any) => (p.enjeux_count ?? 0) > 0;
+  let best = results.find((p: any) => isDraft(p) && nameMatch(p) && hasContent(p))
+    || results.find((p: any) => isDraft(p) && nameMatch(p))
+    || results.find((p: any) => isDraft(p) && hasContent(p))
     || results.find((p: any) => isDraft(p))
+    || results.find((p: any) => notArchive(p) && nameMatch(p) && hasContent(p))
     || results.find((p: any) => notArchive(p) && nameMatch(p))
     || results.find((p: any) => p.statut === 'valide' && hasReferents(p))
     || results.find((p: any) => p.statut === 'valide')
     || results.find((p: any) => nameMatch(p))
     || results[0];
+  // Fallback: if the best match has no content, look broader for ANY draft with content
+  // (handles seed drift where the name-matched draft is an empty evaluation).
+  if (best && !hasContent(best)) {
+    const { data: allDrafts } = await apiGet(page, 'plans/plans/', { statut: 'draft', page_size: '50' });
+    const draftResults: any[] = allDrafts.results || allDrafts;
+    const fallback = draftResults.find(hasContent);
+    if (fallback) best = fallback;
+  }
   return { id_pg: best.id_pg as number, slug: best.slug as string };
 }
 

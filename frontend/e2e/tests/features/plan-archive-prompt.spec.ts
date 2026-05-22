@@ -55,12 +55,21 @@ test.describe('Plan archive-previous prompt (#246)', () => {
     await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
 
     // #276 — Mi-parcours popup may intercept before the archive prompt when
-    // the chain has no mi-parcours yet. Dismiss it as "modification ordinaire".
+    // the chain has no mi-parcours yet. Wait for whichever dialog opens first
+    // and dismiss the mi-parcours one as "modification ordinaire" if applicable.
     const miParcoursDialog = page.locator('mat-dialog-container').filter({
       hasText: /Évaluation à mi-parcours/i,
     });
-    if (await miParcoursDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await miParcoursDialog.getByRole('button', { name: /modification ordinaire/i }).click();
+    const archiveDialogEarly = page.locator('app-archive-previous-plan-dialog');
+    await Promise.race([
+      miParcoursDialog.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      archiveDialogEarly.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+    ]);
+    if (await miParcoursDialog.isVisible().catch(() => false)) {
+      // Click "Non — modification ordinaire" — the middle button.
+      // Use locator with hasText for robust matching (em-dash + accents).
+      await miParcoursDialog.locator('button').filter({ hasText: /modification ordinaire/i }).click();
+      await miParcoursDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     }
 
     // The MatDialog appears once the change-status API responds.
@@ -94,12 +103,20 @@ test.describe('Plan archive-previous prompt (#246)', () => {
     });
     await lifecycleConfirm.getByRole('button', { name: /Valider le plan/i }).click();
 
-    // #276 — Dismiss mi-parcours popup if it intercepts.
+    // #276 — Mi-parcours popup may intercept; race to detect it.
     const miParcoursDialog = page.locator('mat-dialog-container').filter({
       hasText: /Évaluation à mi-parcours/i,
     });
-    if (await miParcoursDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await miParcoursDialog.getByRole('button', { name: /modification ordinaire/i }).click();
+    const archiveDialogEarly = page.locator('app-archive-previous-plan-dialog');
+    await Promise.race([
+      miParcoursDialog.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      archiveDialogEarly.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+    ]);
+    if (await miParcoursDialog.isVisible().catch(() => false)) {
+      // Click "Non — modification ordinaire" — the middle button.
+      // Use locator with hasText for robust matching (em-dash + accents).
+      await miParcoursDialog.locator('button').filter({ hasText: /modification ordinaire/i }).click();
+      await miParcoursDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     }
 
     const dialog = page.locator('app-archive-previous-plan-dialog');

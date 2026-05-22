@@ -210,6 +210,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     children_count = serializers.IntegerField(read_only=True)
     next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
     next_rang_plan_slug = serializers.SlugField(source='next_rang_plan.slug', read_only=True, allow_null=True)
+    enjeux_count = serializers.IntegerField(read_only=True)
 
     # Nested — minimal
     sites = PlanSiteMinimalSerializer(many=True, read_only=True)
@@ -225,7 +226,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             'is_mi_parcours', 'is_mid_term',
             'has_draft_child', 'can_create_modification',
             'next_rang_plan_id', 'next_rang_plan_slug',
-            'plan_parent_id', 'type_document_display', 'children_count',
+            'plan_parent_id', 'type_document_display', 'children_count', 'enjeux_count',
             'sites', 'referents', 'membres',
         ]
 
