@@ -400,7 +400,8 @@
   gap: $spacing-xs;
   padding: $spacing-xs $spacing-md;
   border: none;
-  border-radius: $border-radius-sm;
+  // Boutons plus arrondis (revue design #315)
+  border-radius: $border-radius-pill;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
@@ -414,9 +415,16 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 
+  // Bouton "Valider" en blanc sur fond bleu-vert (revue design #315 : meilleur contraste)
   &-success {
-    background-color: $success-color;
-    color: $white;
+    background-color: $white;
+    color: $primary-color;
+    border: 1px solid $primary-color;
+
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+    }
   }
 
   &-warning {

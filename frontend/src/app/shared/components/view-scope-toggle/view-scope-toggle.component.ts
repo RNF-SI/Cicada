@@ -69,6 +69,8 @@ export interface ViewScopeOption {
     /* Groupe principal - MDC et legacy */
     :host ::ng-deep .mat-button-toggle-group,
     :host ::ng-deep .mat-mdc-button-toggle-group {
+      // Background blanc (revue design #314 : fond du switch en blanc, pas en gris)
+      background-color: #FFFFFF !important;
       border: 1px solid #C6C6C6 !important;
       border-radius: 9999px !important;
       overflow: hidden !important;

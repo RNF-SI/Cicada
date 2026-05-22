@@ -57,11 +57,10 @@
                   {{ 'enjeux.title' | translate }}
                 </a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-                <a [routerLink]="['/plans', planSlug(), 'enjeux', selectedEnjeuSlug()]" class="breadcrumb-link" (click)="setActiveTab('detail')">
+                <!-- Nom de l'enjeu = dernier niveau non cliquable (revue design #316) -->
+                <span class="breadcrumb-current">
                   {{ selectedEnjeu()!.intitule_court || selectedEnjeu()!.libelle }}
-                </a>
-                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-                <span class="breadcrumb-current">{{ 'enjeux.tabs.' + activeTab() | translate }}</span>
+                </span>
               } @else {
                 <span class="breadcrumb-current">{{ 'enjeux.title' | translate }}</span>
               }

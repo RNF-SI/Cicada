@@ -162,13 +162,20 @@
                         <td class="col-name">
                           <div class="ancestor-indent">
                             <span class="tree-line" [class.first]="first" [class.last]="false"></span>
-                            <span class="ancestor-name">{{ ancestor.nom }}</span>
-                            @if (ancestor.type_document_display) {
-                              <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
-                            }
-                            @if (ancestor.version) {
-                              <span class="ancestor-version">v{{ ancestor.version }}</span>
-                            }
+                            <div class="ancestor-name-block">
+                              <span class="ancestor-name">{{ ancestor.nom }}</span>
+                              <!-- Tags type/version sur une ligne en dessous (revue design #313) -->
+                              @if (ancestor.type_document_display || ancestor.version) {
+                                <div class="ancestor-meta-line">
+                                  @if (ancestor.type_document_display) {
+                                    <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
+                                  }
+                                  @if (ancestor.version) {
+                                    <span class="ancestor-version">v{{ ancestor.version }}</span>
+                                  }
+                                </div>
+                              }
+                            </div>
                           </div>
                         </td>
                         <td class="col-period">

@@ -612,6 +612,20 @@ tr.is-child {
   }
 }
 
+// Bloc nom + meta sur lignes séparées (revue design #313)
+.ancestor-name-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.ancestor-meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
 .ancestor-name {
   color: $gray-dark;
   font-size: $font-size-small;

@@ -10,6 +10,18 @@
   background-color: $beige;
 }
 
+// Menu dropdown Ajouter Enjeu/FCR : gap entre icône et texte (revue design #316)
+::ng-deep {
+  .mat-mdc-menu-item .mdc-list-item__primary-text {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+  .mat-mdc-menu-item i.fi {
+    margin-right: $spacing-xs;
+  }
+}
+
 .enjeux-layout {
   display: flex;
   min-height: calc(100vh - 58px);
