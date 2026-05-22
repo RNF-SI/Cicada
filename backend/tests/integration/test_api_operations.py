@@ -663,14 +663,14 @@ class TestOperationUpdateEndpoint:
 class TestOperationStatut:
     """Tests for #251 — statut 'draft' / 'valide' on Operation."""
 
-    def test_default_statut_is_draft(self, api_client, operation_test_data):
-        """Statut par défaut à la création (sans champ fourni) = 'draft'."""
+    def test_default_statut_is_valide(self, api_client, operation_test_data):
+        """Statut par défaut à la création (sans champ fourni) = 'valide' (cf. commit 4fbf736)."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.post('/api/plans/operations/', {
             'libelle': 'Action sans statut explicite',
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data['statut'] == 'draft'
+        assert response.data['statut'] == 'valide'
 
     def test_create_with_explicit_draft(self, api_client, operation_test_data):
         """saveDraft envoie statut='draft'."""

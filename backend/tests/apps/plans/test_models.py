@@ -404,13 +404,13 @@ class TestPlanGestionVersionChain:
         assert root.get_next_version() == '3'
 
     def test_next_version_skips_non_integer_legacy(self):
-        """Versions historiques non entières ignorées : on retombe sur la taille de la chaîne."""
+        """Versions historiques non entières ignorées : fallback à '1' (#279)."""
         root = PlanGestionFactory(nom='Root', version='1.0')
         child = PlanGestionFactory(nom='Child', version='1.1', plan_parent=root)
-        # Aucune version entière → fallback = len(chain) + 1 = 3
-        assert child.get_next_version() == '3'
+        # Aucune version entière du même rang → fallback = '1'
+        assert child.get_next_version() == '1'
 
     def test_next_version_empty_fallback(self):
-        """Plan avec version vide → fallback sur taille de la chaîne (= 2 pour solo)."""
+        """Plan avec version vide → fallback à '1' (aucune version entière) (#279)."""
         plan = PlanGestionFactory(version='')
-        assert plan.get_next_version() == '2'
+        assert plan.get_next_version() == '1'
