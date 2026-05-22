@@ -1,10 +1,44 @@
-<h2 mat-dialog-title>
-  @if (isEditMode) {
-    {{ 'modals.siteForm.editTitle' | translate }}
-  } @else {
-    {{ 'modals.siteForm.createTitle' | translate }}
-  }
-</h2>
+<!-- Header en mode plein page (revue design #311) -->
+@if (isPageMode) {
+  <div class="page-header">
+    <nav class="page-breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+        <i class="fi fi-rr-home"></i>
+      </a>
+      <i class="fi fi-rr-angle-small-right"></i>
+      <a routerLink="/sites" class="breadcrumb-link">{{ 'sites.title' | translate }}</a>
+      <i class="fi fi-rr-angle-small-right"></i>
+      <span class="breadcrumb-current">
+        @if (isEditMode) {
+          {{ 'modals.siteForm.editTitle' | translate }}
+        } @else {
+          {{ 'modals.siteForm.createTitle' | translate }}
+        }
+      </span>
+    </nav>
+    <div class="page-title-row">
+      <button type="button" class="btn-back-page" (click)="onCancel()" [title]="'common.actions.back' | translate">
+        <i class="fi fi-rr-arrow-left"></i>
+        <span>{{ 'common.actions.back' | translate }}</span>
+      </button>
+      <h1 class="page-title">
+        @if (isEditMode) {
+          {{ 'modals.siteForm.editTitle' | translate }}
+        } @else {
+          {{ 'modals.siteForm.createTitle' | translate }}
+        }
+      </h1>
+    </div>
+  </div>
+} @else {
+  <h2 mat-dialog-title>
+    @if (isEditMode) {
+      {{ 'modals.siteForm.editTitle' | translate }}
+    } @else {
+      {{ 'modals.siteForm.createTitle' | translate }}
+    }
+  </h2>
+}
 
 <mat-dialog-content>
   @if (errorMessage()) {

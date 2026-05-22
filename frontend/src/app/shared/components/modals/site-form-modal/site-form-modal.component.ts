@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +27,8 @@ export interface SiteFormModalData {
   principal?: boolean; // If true, set as principal site for the organisme
   existingPolygon?: GeoJSONGeometry | null; // Existing polygon geometry
   existingPoint?: GeoJSONGeometry | null; // Existing point geometry
+  /** Si true, ouvre le formulaire en mode pleine page (revue design #311) */
+  isPageMode?: boolean;
 }
 
 /**
@@ -68,7 +71,8 @@ interface SiteType {
     MatIconModule,
     TranslateModule,
     LeafletMapEditComponent,
-    SiteTypeDisplayPipe
+    SiteTypeDisplayPipe,
+    RouterLink,
   ],
   templateUrl: './site-form-modal.component.html',
   styleUrl: './site-form-modal.component.scss'
@@ -108,6 +112,11 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
 
   get isEditMode(): boolean {
     return !!this.data?.site;
+  }
+
+  /** Mode plein page (revue design #311) */
+  get isPageMode(): boolean {
+    return !!this.data?.isPageMode;
   }
 
   /** Check if there's an exact INPN match (blocking) */

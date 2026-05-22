@@ -1,6 +1,102 @@
 @import 'variables';
 
 // ============================================
+// PAGE HEADER (revue design #311 : mode plein page)
+// ============================================
+
+.page-header {
+  background-color: $sites-accent;
+  padding: $spacing-md $spacing-xxl;
+  border-radius: 0 0 $border-radius-lg $border-radius-lg;
+  margin: 0 $spacing-xxl $spacing-lg $spacing-xxl;
+}
+
+.page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+
+  .breadcrumb-home {
+    color: $primary-color;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover { opacity: 0.8; }
+
+    i { font-size: 14px; }
+  }
+
+  .breadcrumb-link {
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .breadcrumb-current {
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+  }
+
+  i.fi-rr-angle-small-right {
+    font-size: 12px;
+    color: $primary-color;
+  }
+}
+
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.page-title {
+  margin: 0;
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.btn-back-page {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+
+  i { font-size: 14px; }
+}
+
+// Dans le mode page : le contenu prend toute la largeur
+:host-context(.site-form-page-mode) {
+  ::ng-deep mat-dialog-content {
+    padding: 0 $spacing-xxl $spacing-xl $spacing-xxl;
+    max-height: none;
+    overflow-y: auto;
+  }
+  ::ng-deep mat-dialog-actions {
+    padding: $spacing-md $spacing-xxl;
+    background-color: $white;
+    border-top: 1px solid $gray-lighter;
+  }
+}
+
+// ============================================
 // THREE-COLUMN LAYOUT (conditional)
 // ============================================
 

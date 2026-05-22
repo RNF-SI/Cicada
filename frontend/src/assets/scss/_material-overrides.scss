@@ -435,6 +435,35 @@ a[mat-raised-button][color="primary"] {
   }
 }
 
+// ============================================
+// FULL-SCREEN DIALOG MODE (revue design #311)
+// Modale ouverte en plein écran qui ressemble à une page
+// (utilisée notamment pour "Nouveau site")
+// ============================================
+
+.cdk-overlay-pane.site-form-page-mode {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  position: relative !important;
+  inset: 0 !important;
+
+  .mat-mdc-dialog-container {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background-color: $beige !important;
+    padding: 0 !important;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background-color: $beige !important;
+      padding: 0 !important;
+    }
+  }
+}
+
 // Label "app-form-field-style" au-dessus du mat-form-field
 .app-mat-label {
   display: inline-flex;

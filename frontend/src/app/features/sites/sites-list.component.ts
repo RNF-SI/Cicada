@@ -494,13 +494,19 @@ export class SitesListComponent implements OnInit {
       return;
     }
 
+    // Nouveau site en plein écran (revue design #311 : page plutôt que modale)
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1300px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      width: '100vw',
+      maxWidth: '100vw',
+      height: '100vh',
+      maxHeight: '100vh',
+      panelClass: 'site-form-page-mode',
+      hasBackdrop: false,
+      autoFocus: false,
       data: {
         organismeId: currentUser.organisme.id_organisme,
-        principal: false
+        principal: false,
+        isPageMode: true,
       } as SiteFormModalData
     });
 
