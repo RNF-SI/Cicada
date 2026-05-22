@@ -64,15 +64,12 @@
           </button>
         </div>
         <div class="dialog-body">
-          <div class="search-box">
-            <i class="fi fi-rr-search"></i>
-            <input
-              type="text"
-              [placeholder]="'admin.users.search' | translate"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event); onSearch()"
-            />
-          </div>
+          <app-search-bar
+            [value]="searchQuery()"
+            [placeholder]="'admin.users.search' | translate"
+            [ariaLabel]="'admin.users.search' | translate"
+            (valueChange)="searchQuery.set($event); onSearch()">
+          </app-search-bar>
 
           @if (isSearching()) {
             <div class="search-loading">

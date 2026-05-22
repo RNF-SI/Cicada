@@ -195,7 +195,7 @@ describe('DuplicatePlanDialogComponent', () => {
 
   describe('UI rendering', () => {
     it('should render 5 checkboxes', () => {
-      const checkboxes = fixture.nativeElement.querySelectorAll('mat-checkbox');
+      const checkboxes = fixture.nativeElement.querySelectorAll('app-checkbox');
       expect(checkboxes.length).toBe(5);
     });
 

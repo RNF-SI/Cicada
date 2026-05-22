@@ -15,64 +15,48 @@
     </div>
   </div>
 
-  <!-- Copy options -->
+  <!-- Copy options — Composant Checkbox unifié avec mention (#299) -->
   <div class="options-list">
-    <div class="option-item">
-      <mat-checkbox
-        [checked]="copySites()"
-        (change)="copySites.set($event.checked)"
-        color="primary"
-      >
-        {{ 'plans.duplicate.dialog.options.sites' | translate }}
-      </mat-checkbox>
-      <span class="option-description">{{ 'plans.duplicate.dialog.options.sitesDescription' | translate }}</span>
-    </div>
+    <app-checkbox
+      class="option-item"
+      [checked]="copySites()"
+      [label]="'plans.duplicate.dialog.options.sites' | translate"
+      [mention]="'plans.duplicate.dialog.options.sitesDescription' | translate"
+      (checkedChange)="copySites.set($event)">
+    </app-checkbox>
 
-    <div class="option-item">
-      <mat-checkbox
-        [checked]="copyReferents()"
-        (change)="copyReferents.set($event.checked)"
-        color="primary"
-      >
-        {{ 'plans.duplicate.dialog.options.referents' | translate }}
-      </mat-checkbox>
-      <span class="option-description">{{ 'plans.duplicate.dialog.options.referentsDescription' | translate }}</span>
-    </div>
+    <app-checkbox
+      class="option-item"
+      [checked]="copyReferents()"
+      [label]="'plans.duplicate.dialog.options.referents' | translate"
+      [mention]="'plans.duplicate.dialog.options.referentsDescription' | translate"
+      (checkedChange)="copyReferents.set($event)">
+    </app-checkbox>
 
-    <div class="option-item">
-      <mat-checkbox
-        [checked]="copyFichiers()"
-        (change)="copyFichiers.set($event.checked)"
-        color="primary"
-      >
-        {{ 'plans.duplicate.dialog.options.fichiers' | translate }}
-      </mat-checkbox>
-      <span class="option-description">{{ 'plans.duplicate.dialog.options.fichiersDescription' | translate }}</span>
-    </div>
+    <app-checkbox
+      class="option-item"
+      [checked]="copyFichiers()"
+      [label]="'plans.duplicate.dialog.options.fichiers' | translate"
+      [mention]="'plans.duplicate.dialog.options.fichiersDescription' | translate"
+      (checkedChange)="copyFichiers.set($event)">
+    </app-checkbox>
 
-    <div class="option-item">
-      <mat-checkbox
-        [checked]="copyEnjeux()"
-        (change)="onEnjeuxChange($event.checked)"
-        color="primary"
-      >
-        {{ 'plans.duplicate.dialog.options.enjeux' | translate }}
-      </mat-checkbox>
-      <span class="option-description">{{ 'plans.duplicate.dialog.options.enjeuxDescription' | translate }}</span>
-    </div>
+    <app-checkbox
+      class="option-item"
+      [checked]="copyEnjeux()"
+      [label]="'plans.duplicate.dialog.options.enjeux' | translate"
+      [mention]="'plans.duplicate.dialog.options.enjeuxDescription' | translate"
+      (checkedChange)="onEnjeuxChange($event)">
+    </app-checkbox>
 
     <div class="option-item option-nested">
-      <mat-checkbox
+      <app-checkbox
         [checked]="copySubElements()"
-        (change)="copySubElements.set($event.checked)"
+        [label]="'plans.duplicate.dialog.options.subElements' | translate"
+        [mention]="'plans.duplicate.dialog.options.subElementsDescription' | translate"
         [disabled]="subElementsDisabled()"
-        color="primary"
-      >
-        {{ 'plans.duplicate.dialog.options.subElements' | translate }}
-      </mat-checkbox>
-      <span class="option-description">
-        {{ 'plans.duplicate.dialog.options.subElementsDescription' | translate }}
-      </span>
+        (checkedChange)="copySubElements.set($event)">
+      </app-checkbox>
       <span class="option-hint" *ngIf="subElementsDisabled()">
         {{ 'plans.duplicate.dialog.hints.subElementsDisabled' | translate }}
       </span>

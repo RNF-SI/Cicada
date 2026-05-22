@@ -22,15 +22,13 @@
   <!-- Search (Super Admin only) -->
   @if (isSuperAdmin()) {
     <div class="filters-bar">
-      <div class="search-box">
-        <i class="fi fi-rr-search"></i>
-        <input
-          type="text"
-          [placeholder]="'admin.organismes.search' | translate"
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearchChange()"
-        />
-      </div>
+      <app-search-bar
+        class="filters-search"
+        [(value)]="searchQuery"
+        [placeholder]="'admin.organismes.search' | translate"
+        [ariaLabel]="'admin.organismes.search' | translate"
+        (valueChange)="onSearchChange()">
+      </app-search-bar>
     </div>
   }
 

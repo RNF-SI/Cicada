@@ -112,24 +112,16 @@
 
       <!-- Contenu (droite) -->
       <div class="content-column">
-        <!-- Menu sidebar (visuel) -->
-        <nav class="sidebar-menu">
-          @for (item of menuItems; track item.id) {
-            <button
-              class="sidebar-menu-item"
-              [class.active]="activeMenuItem() === item.id"
-              (click)="setActiveMenuItem(item.id)">
-              <i class="fi {{ item.icon }}"></i>
-              <span>{{ item.label | translate }}</span>
-            </button>
-          }
-        </nav>
+        <!-- Navigation interne par ancres (#304) -->
+        <app-anchor-nav
+          class="site-detail-anchor-nav"
+          [items]="anchorNavItems"
+          [activeId]="activeAnchorId()"
+          (itemClick)="onAnchorClick($event)">
+        </app-anchor-nav>
 
-        <!-- Contenu selon menu actif -->
         <div class="content-panel">
-          <!-- Vue d'ensemble -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'info') {
-            <section class="info-section">
+          <section id="site-info" class="info-section">
               <h2 class="section-title">
                 <i class="fi fi-rr-info"></i>
                 {{ 'sites.detail.info' | translate }}
@@ -149,11 +141,9 @@
                 }
               </div>
             </section>
-          }
 
-          <!-- Organismes gestionnaires -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'organismes') {
-            <section class="organismes-section">
+            <!-- Organismes gestionnaires -->
+            <section id="site-organismes" class="organismes-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-building"></i>
@@ -206,11 +196,9 @@
                 </div>
               }
             </section>
-          }
 
-          <!-- Utilisateurs du site -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'users') {
-            <section class="users-section">
+            <!-- Utilisateurs du site -->
+            <section id="site-users" class="users-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-users"></i>
@@ -257,11 +245,9 @@
                 </div>
               }
             </section>
-          }
 
-          <!-- Plans de gestion -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'plans') {
-            <section class="plans-section">
+            <!-- Plans de gestion -->
+            <section id="site-plans" class="plans-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-document"></i>
@@ -325,7 +311,6 @@
                 </div>
               }
             </section>
-          }
 
         </div>
       </div>

@@ -68,15 +68,12 @@ h1 { @include sites-h1; }
 }
 .btn-pending { background-color: $gray-light; border: none; color: $gray-dark; cursor: default; }
 
-// Sidebar menu
-.sidebar-menu { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 1px solid $gray-light; }
-.sidebar-menu-item {
-  @include sites-btn-pill;
-  padding: $spacing-xs $spacing-md; background-color: $white;
-  border: 1px solid $gray-light; font-size: $font-size-small; color: $gray-dark;
-  i { font-size: 13px; }
-  &:hover { border-color: $primary-color; color: $primary-color; }
-  &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
+// Navigation interne par ancres (#304)
+.site-detail-anchor-nav {
+  display: block;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $gray-light;
 }
 
 // Subsection title
@@ -199,12 +196,10 @@ h1 { @include sites-h1; }
   @include sites-responsive-tablet;
   .title-section { flex-direction: column; gap: $spacing-md; }
   .breadcrumb { flex-wrap: wrap; }
-  .sidebar-menu { justify-content: center; }
 }
 @media (max-width: $breakpoint-mobile) {
   @include sites-responsive-mobile;
   .btn-back { padding: 8px 14px; font-size: $font-size-small; }
-  .sidebar-menu-item { padding: $spacing-xs $spacing-sm; font-size: 11px; }
   .section-title { font-size: $font-size-base; }
   .info-item { padding: $spacing-sm; }
   .info-icon { width: 29px; height: 29px; i { font-size: 13px; } }

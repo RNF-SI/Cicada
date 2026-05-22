@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 /**
  * EntityTile - Tuile compacte pour site / utilisateur / organisme (issue #302)
@@ -34,7 +35,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-entity-tile',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './entity-tile.component.html',
   styleUrl: './entity-tile.component.scss',
 })
@@ -48,14 +49,27 @@ export class EntityTileComponent {
   /** Sous-info (ligne 2, gris foncé) */
   @Input() subtitle?: string;
 
-  /** Si true, ajoute curseur et hover */
+  /** Si fourni, la tuile devient un lien (navigateur ou Router). Auto-active clickable. */
+  @Input() routerLink?: string | unknown[];
+
+  /** Si fourni (alternative à routerLink), URL externe via <a href> */
+  @Input() href?: string;
+
+  /** État verrouillé (icône lock, opacité réduite) — pour sites sans accès */
+  @Input() locked: boolean = false;
+
+  /** Active curseur + hover sans navigation (utilise tileClick) */
   @Input() clickable: boolean = false;
 
-  /** Émis au clic si clickable */
+  /** Émis au clic (utile sans routerLink ni href) */
   @Output() tileClick = new EventEmitter<void>();
 
+  get isInteractive(): boolean {
+    return this.clickable || !!this.routerLink || !!this.href;
+  }
+
   onClick(): void {
-    if (this.clickable) {
+    if (this.clickable && !this.locked) {
       this.tileClick.emit();
     }
   }

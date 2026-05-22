@@ -12,8 +12,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { AnchorNavComponent, AnchorNavItem } from '../../shared/components/anchor-nav/anchor-nav.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -52,11 +52,6 @@ interface SiteUserAssignment {
   conservateur: boolean;
 }
 
-interface MenuItem {
-  id: string;
-  label: string;
-  icon: string;
-}
 
 @Component({
   selector: 'app-site-detail',
@@ -71,12 +66,12 @@ interface MenuItem {
     MatSnackBarModule,
     MatIconModule,
     MatTooltipModule,
-    MatTabsModule,
     MatDialogModule,
     TranslateModule,
     HeaderComponent,
     LeafletMapComponent,
-    SiteTypeDisplayPipe
+    SiteTypeDisplayPipe,
+    AnchorNavComponent,
   ],
   templateUrl: './site-detail.component.html',
   styleUrl: './site-detail.component.scss'
@@ -101,15 +96,15 @@ export class SiteDetailComponent implements OnInit {
   readonly hasPendingReferentRequest = signal(false);
   readonly pendingPlanRequests = signal<ValidationRequestListItem[]>([]);
 
-  // Menu sidebar (visuel uniquement)
-  readonly menuItems: MenuItem[] = [
-    { id: 'overview', label: 'sites.detail.menu.overview', icon: 'fi-rr-eye' },
-    { id: 'info', label: 'sites.detail.menu.info', icon: 'fi-rr-info' },
-    { id: 'organismes', label: 'sites.detail.menu.organismes', icon: 'fi-rr-building' },
-    { id: 'users', label: 'sites.detail.menu.users', icon: 'fi-rr-users' },
-    { id: 'plans', label: 'sites.detail.menu.plans', icon: 'fi-rr-document' }
+  // Navigation interne par ancres (#304 — choix design : option 2 boutons tertiaires)
+  // Toutes les sections sont toujours visibles ; les ancres scrollent vers la section.
+  readonly anchorNavItems: AnchorNavItem[] = [
+    { id: 'site-info', label: 'sites.detail.menu.info' },
+    { id: 'site-organismes', label: 'sites.detail.menu.organismes' },
+    { id: 'site-users', label: 'sites.detail.menu.users' },
+    { id: 'site-plans', label: 'sites.detail.menu.plans' },
   ];
-  readonly activeMenuItem = signal<string>('overview');
+  readonly activeAnchorId = signal<string>('site-info');
 
   // GeoJSON pour la carte
   readonly mapGeoJSON = computed(() => {
@@ -213,10 +208,10 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Change l'element du menu actif (visuel uniquement).
+   * Mise à jour de l'ancre active (visuel uniquement, scroll géré par AnchorNav).
    */
-  setActiveMenuItem(itemId: string): void {
-    this.activeMenuItem.set(itemId);
+  onAnchorClick(item: AnchorNavItem): void {
+    this.activeAnchorId.set(item.id);
   }
 
   /**

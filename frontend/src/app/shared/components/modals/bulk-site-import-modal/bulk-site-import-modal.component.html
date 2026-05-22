@@ -4,25 +4,17 @@
 </h2>
 
 <mat-dialog-content>
-  <!-- Stepper header always visible -->
-  <mat-stepper #stepper [linear]="false" [selectedIndex]="currentStep()" (selectionChange)="currentStep.set($event.selectedIndex)">
+  <!-- Stepper (#301) — composant unifié -->
+  <app-stepper
+    class="bulk-import-stepper"
+    [steps]="stepperStepsComputed()"
+    [currentStep]="currentStep()"
+    (stepClick)="onStepClick($event)">
+  </app-stepper>
 
-    <!-- Custom step icons (Uicons Flaticon - Rounded Regular) -->
-    <!-- Per-step custom state icons -->
-    <ng-template matStepperIcon="upload"><i class="fi fi-rr-cloud-upload-alt"></i></ng-template>
-    <ng-template matStepperIcon="mapping"><i class="fi fi-rr-shuffle"></i></ng-template>
-    <ng-template matStepperIcon="preview"><i class="fi fi-rr-eye"></i></ng-template>
-    <ng-template matStepperIcon="results"><i class="fi fi-rr-check"></i></ng-template>
-    <!-- Fallback icons for completed steps (edit = completed+editable, done = completed+non-editable) -->
-    <ng-template matStepperIcon="edit"><i class="fi fi-rr-check"></i></ng-template>
-    <ng-template matStepperIcon="done"><i class="fi fi-rr-check"></i></ng-template>
-    <ng-template matStepperIcon="number"><i class="fi fi-rr-circle-small"></i></ng-template>
-
-    <!-- Step 1: Upload -->
-    <mat-step [completed]="validationResult() !== null" state="upload">
-      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.upload' | translate }}</ng-template>
-
-      <div class="step-content">
+  <!-- Step 1: Upload -->
+  @if (currentStep() === 0) {
+    <div class="step-content">
         <p class="step-description">{{ 'modals.bulkImport.upload.description' | translate }}</p>
 
         <div class="format-info">
@@ -92,14 +84,12 @@
             <i class="fi fi-rr-angle-right"></i>
           </button>
         </div>
-      </div>
-    </mat-step>
+    </div>
+  }
 
-    <!-- Step 2: Mapping -->
-    <mat-step [completed]="currentStep() > 1" state="mapping">
-      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.mapping' | translate }}</ng-template>
-
-      <div class="step-content">
+  <!-- Step 2: Mapping -->
+  @if (currentStep() === 1) {
+    <div class="step-content">
         <p class="step-description">{{ 'modals.bulkImport.mapping.description' | translate }}</p>
 
         <div class="mapping-table-wrapper">
@@ -153,14 +143,12 @@
             </button>
           </div>
         </div>
-      </div>
-    </mat-step>
+    </div>
+  }
 
-    <!-- Step 3: Preview -->
-    <mat-step [completed]="currentStep() > 2" state="preview">
-      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.preview' | translate }}</ng-template>
-
-      <div class="step-content">
+  <!-- Step 3: Preview -->
+  @if (currentStep() === 2) {
+    <div class="step-content">
         <p class="step-description">{{ 'modals.bulkImport.preview.description' | translate }}</p>
 
         <!-- Summary bar -->
@@ -270,14 +258,12 @@
         @if (totalValid() === 0) {
           <p class="no-valid-text">{{ 'modals.bulkImport.preview.noValidSites' | translate }}</p>
         }
-      </div>
-    </mat-step>
+    </div>
+  }
 
-    <!-- Step 4: Results -->
-    <mat-step state="results">
-      <ng-template matStepLabel>{{ 'modals.bulkImport.steps.results' | translate }}</ng-template>
-
-      <div class="step-content">
+  <!-- Step 4: Results -->
+  @if (currentStep() === 3) {
+    <div class="step-content">
         @if (importing()) {
           <div class="import-progress">
             <p>{{ 'modals.bulkImport.results.importing' | translate }}</p>
@@ -340,9 +326,8 @@
             }
           </div>
         }
-      </div>
-    </mat-step>
-  </mat-stepper>
+    </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

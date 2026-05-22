@@ -14,6 +14,7 @@ import { AdminService } from '../../core/services/admin.service';
 import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../core/models/admin.model';
 import { UserRole } from '../../core/models/user.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   LinkUserOrganismeModalComponent,
   LinkUserSiteModalComponent,
@@ -77,7 +78,8 @@ interface DisplayOrganisme {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
-    PaginationComponent
+    PaginationComponent,
+    SearchBarComponent,
   ],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'

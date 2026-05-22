@@ -7,6 +7,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
 interface RedacteurPrincipal {
   id: number;
@@ -29,7 +30,7 @@ interface SearchUser {
   selector: 'app-admin-redacteurs-principaux',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule
+    CommonModule, FormsModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule, SearchBarComponent,
   ],
   templateUrl: './admin-redacteurs-principaux.component.html',
   styleUrls: ['./admin-redacteurs-principaux.component.scss']

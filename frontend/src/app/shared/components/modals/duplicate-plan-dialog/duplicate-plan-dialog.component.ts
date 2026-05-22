@@ -2,11 +2,11 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { PlanDuplicateOptions } from '../../../../core/models/admin.model';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
 
 export interface DuplicatePlanDialogData {
   planId: number;
@@ -29,9 +29,9 @@ export interface DuplicatePlanDialogResult {
     FormsModule,
     MatDialogModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    CheckboxComponent,
   ],
   templateUrl: './duplicate-plan-dialog.component.html',
   styleUrl: './duplicate-plan-dialog.component.scss',

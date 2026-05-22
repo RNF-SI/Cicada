@@ -17,6 +17,7 @@ import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-
 import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
 // Interface for linked site display
 interface DisplaySiteLie {
@@ -90,7 +91,8 @@ interface DisplayOrganisme {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
-    PaginationComponent
+    PaginationComponent,
+    SearchBarComponent,
   ],
   templateUrl: './admin-plans.component.html',
   styleUrl: './admin-plans.component.scss'

@@ -10,6 +10,8 @@
   background-color: $gray-lighter; // background tableau kit UI
   border-radius: $border-radius-md;
   font-family: $font-family;
+  text-decoration: none;
+  color: inherit;
   transition: background-color 0.15s ease;
 
   &__icon {
@@ -78,6 +80,25 @@
     &:focus-visible {
       outline: 2px solid $primary-color;
       outline-offset: 2px;
+    }
+  }
+
+  // Variante verrouillée (site sans accès)
+  &--locked {
+    opacity: 0.85;
+
+    .app-entity-tile__icon i {
+      color: $gray-dark;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+
+    &:empty {
+      display: none;
     }
   }
 }

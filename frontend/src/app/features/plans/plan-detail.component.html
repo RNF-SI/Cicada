@@ -494,38 +494,33 @@
               <div class="sites-list">
                 @for (site of plan()!.sites!; track site.id_site) {
                   @if (site.current_user_has_access !== false) {
-                    <a class="site-card" [routerLink]="['/sites', site.slug]"
-                       [title]="'sites.actions.view' | translate">
-                      <div class="site-info">
-                        <span class="site-name">{{ site.nom_site }}</span>
-                        @if (site.type_site_label) {
-                          <span class="site-type">{{ site.type_site_label }}</span>
-                        }
-                      </div>
-                      <span class="site-card-cta" aria-hidden="true">
+                    <app-entity-tile
+                      icon="fi-rr-marker"
+                      [name]="site.nom_site"
+                      [subtitle]="site.type_site_label || ''"
+                      [routerLink]="['/sites', site.slug]"
+                      [title]="'sites.actions.view' | translate">
+                      <span tileAction class="site-card-cta" aria-hidden="true">
                         <i class="fi fi-rr-arrow-right"></i>
                       </span>
-                    </a>
+                    </app-entity-tile>
                   } @else {
-                    <div class="site-card site-card-locked">
-                      <div class="site-info">
-                        <span class="site-name">{{ site.nom_site }}</span>
-                        @if (site.type_site_label) {
-                          <span class="site-type">{{ site.type_site_label }}</span>
-                        }
-                        <div class="site-request-actions">
-                          @if (authService.isAdminOrganisme()) {
-                            <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
-                              {{ 'plans.detail.linkSitePersonal' | translate }}
-                            </button>
-                          }
-                          <button class="site-request-access-btn" (click)="requestSiteOrgLink(site)">
-                            {{ 'plans.detail.linkSiteOrg' | translate }}
+                    <app-entity-tile
+                      icon="fi-rr-marker"
+                      [name]="site.nom_site"
+                      [subtitle]="site.type_site_label || ''"
+                      [locked]="true">
+                      <div class="site-request-actions">
+                        @if (authService.isAdminOrganisme()) {
+                          <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
+                            {{ 'plans.detail.linkSitePersonal' | translate }}
                           </button>
-                        </div>
+                        }
+                        <button class="site-request-access-btn" (click)="requestSiteOrgLink(site)">
+                          {{ 'plans.detail.linkSiteOrg' | translate }}
+                        </button>
                       </div>
-                      <i class="fi fi-rr-lock"></i>
-                    </div>
+                    </app-entity-tile>
                   }
                 }
               </div>
@@ -542,13 +537,11 @@
                 <span class="pending-sites-label">{{ 'plans.detail.pendingSites' | translate }}</span>
                 <div class="pending-sites-list">
                   @for (req of pendingSiteRequests(); track req.id) {
-                    <div class="site-card site-card-pending">
-                      <div class="site-info">
-                        <span class="site-name">{{ req.target_name }}</span>
-                        <span class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
-                      </div>
-                      <i class="fi fi-rr-hourglass"></i>
-                    </div>
+                    <app-entity-tile
+                      icon="fi-rr-hourglass"
+                      [name]="req.target_name || ''">
+                      <span tileAction class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                    </app-entity-tile>
                   }
                 </div>
               </div>
@@ -575,17 +568,16 @@
             @if (planMembers().length > 0) {
               <div class="users-list">
                 @for (member of planMembers(); track member.id_role) {
-                  <div class="user-card-small">
-                    <div class="user-avatar-small">
-                      <i class="fi fi-rr-user"></i>
-                    </div>
-                    <div class="user-info-small">
-                      <span class="user-name-small">{{ member.nom_complet || member.email }}</span>
-                      <span class="user-role-chip" [class.role-referent]="member.referent" [class.role-member]="!member.referent">
-                        {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
-                      </span>
-                    </div>
-                  </div>
+                  <app-entity-tile
+                    icon="fi-rr-user"
+                    [name]="member.nom_complet || member.email">
+                    <span tileAction
+                          class="user-role-chip"
+                          [class.role-referent]="member.referent"
+                          [class.role-member]="!member.referent">
+                      {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
+                    </span>
+                  </app-entity-tile>
                 }
               </div>
             } @else {
