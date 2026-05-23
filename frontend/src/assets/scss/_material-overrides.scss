@@ -854,6 +854,9 @@ a[mat-raised-button][color="primary"] {
   padding: $spacing-xxs $spacing-sm;
   height: auto;
   min-height: 24px;
+  // Pas de bordure outline sur les tags (revue design #308 : valable pour tous les tags de l'app)
+  --mdc-chip-outline-width: 0 !important;
+  --mdc-chip-outline-color: transparent !important;
 
   &.mat-primary {
     background-color: $primary-color !important;

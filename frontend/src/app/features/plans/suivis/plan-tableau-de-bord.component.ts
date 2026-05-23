@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
@@ -34,7 +35,7 @@ interface IndicatorRow {
   standalone: true,
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
-    MatProgressSpinnerModule, TranslateModule,
+    MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './plan-tableau-de-bord.component.html',
@@ -94,6 +95,12 @@ export class PlanTableauDeBordComponent implements OnInit {
 
   getScoreIcons(level: ScoreLevel): string[] {
     return (this.scoreIconMap[level] || []).map(f => this.scoreIconsBasePath + f);
+  }
+
+  /** Libellé du score pour tooltip (revue design #317). */
+  getScoreLabel(level: ScoreLevel): string {
+    const item = this.legendItems.find(i => i.level === level);
+    return item ? this.translate.instant(item.labelKey) : '';
   }
 
   ngOnInit(): void {

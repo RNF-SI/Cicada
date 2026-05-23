@@ -112,7 +112,8 @@
   border: none;
   font-family: $font-family;
   font-size: $font-size-base;
-  font-weight: $font-weight-bold;
+  // Items en regular pour bien différencier de l'item actif en bold (revue design #309)
+  font-weight: $font-weight-regular;
   color: $primary-color;
   cursor: pointer;
   text-align: left;

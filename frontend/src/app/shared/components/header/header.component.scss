@@ -212,6 +212,25 @@
 }
 
 // Dropdown menu styles
+// Style librairie (revue design #308) : fond blanc, détaché, aligné sur le bouton
+:host ::ng-deep .user-dropdown-menu {
+  background-color: $white !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  min-width: 220px !important;
+  margin-top: $spacing-xs !important;
+
+  .mat-mdc-menu-content {
+    background-color: $white;
+    padding: $spacing-xs 0;
+  }
+
+  // Survol des items : fond gris-clair (conserver icônes et filets)
+  .mat-mdc-menu-item:hover:not([disabled]) {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
 .menu-user-info {
   padding: $spacing-sm $spacing-md;
   display: flex;

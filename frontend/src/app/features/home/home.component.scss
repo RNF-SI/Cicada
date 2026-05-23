@@ -85,15 +85,17 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
   position: relative;
   margin-top: $bar-top-offset;
   background-color: #025359;
-  // Coins asymétriques selon Kit UI: bas-gauche 20px, haut-droit 48px
-  border-radius: 0 48px 20px 0;
+  // Arrondi bas-gauche + arrondi haut-droit pour harmonie avec autres blocs (revue design #306)
+  // top-left, top-right, bottom-right, bottom-left
+  border-radius: 0 48px 0 20px;
   padding: 24px $spacing-xl;
   padding-right: 108px; // Espace pour le corner
   display: flex;
   align-items: center;
   gap: $spacing-lg;
   overflow: hidden;
-  box-shadow: -1px 1px 4px 0px rgba(0, 0, 0, 0.1);
+  // Ombre légère (revue design #306 : cohérence avec autres blocs)
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
   transition: box-shadow 200ms ease-out, transform 200ms ease-out;
   min-height: 115px;
 }
@@ -235,7 +237,8 @@ $corner-size: 94px;
 }
 
 .referentials-link {
-  display: flex;
+  // Lien tertiaire avec hover de la librairie (revue design #306)
+  display: inline-flex;
   align-items: center;
   gap: $spacing-sm;
   padding: 16px $spacing-lg;
@@ -244,10 +247,16 @@ $corner-size: 94px;
   font-family: 'Nunito', sans-serif;
   font-size: $font-size-base;
   font-weight: 600;
-  transition: opacity 150ms ease-in-out;
+  border-radius: $border-radius-pill;
+  transition: background-color 150ms ease-in-out, color 150ms ease-in-out;
 
   &:hover {
-    opacity: 0.8;
+    background-color: rgba(#025359, 0.08);
+    text-decoration: underline;
+
+    .arrow {
+      transform: translateX(2px);
+    }
   }
 
   i {
@@ -256,6 +265,7 @@ $corner-size: 94px;
 
   .arrow {
     margin-left: $spacing-xxs;
+    transition: transform 150ms ease-in-out;
   }
 }
 
@@ -275,6 +285,8 @@ $corner-size: 94px;
   flex-direction: column;
   gap: $spacing-md;
   width: 100%;
+  // Largeur 960 max pour meilleure lecture (revue design #305)
+  max-width: 960px;
 }
 
 .guest-hero__logo {

@@ -166,7 +166,8 @@
                       @for (year of yearColumns(); track year) {
                         <td class="col-year">
                           @if (getScoreForYear(row, year); as score) {
-                            <span class="score-trait-icons">
+                            <!-- Tooltip de signification du score (revue design #317) -->
+                            <span class="score-trait-icons" [matTooltip]="getScoreLabel(score)" matTooltipPosition="above">
                               @for (icon of getScoreIcons(score); track $index) {
                                 <img [src]="icon" class="score-trait-icon" alt="">
                               }
