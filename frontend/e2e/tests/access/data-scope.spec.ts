@@ -11,15 +11,11 @@ test.describe('Data Scope by Role', () => {
     const rowCount = await usersPage.getRowCount();
     expect(rowCount).toBeGreaterThan(0);
 
-    // Admin RNF should see fewer users than super admin (only their organisme)
-    // RNF test users: 5 active + 1 inactive + 1 pending + 1 deletion-requested = 8
-    expect(rowCount).toBeLessThanOrEqual(10);
-
-    // Verify known RNF users are visible
+    // Scope semantique : RNF doit voir RNF, jamais CEN — assertion fiable face
+    // à l'accumulation de comptes E2E entre runs (seed --reset peut échouer).
     const rnfUserRow = usersPage.getRowByEmail('user.rnf@test.fr');
     await expect(rnfUserRow).toBeVisible();
 
-    // CEN users should NOT be visible
     const cenUserRow = usersPage.getRowByEmail('user.cen@test.fr');
     await expect(cenUserRow).not.toBeVisible();
   });

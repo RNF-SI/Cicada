@@ -29,8 +29,11 @@ async function gotoOperationsTab(page: import('@playwright/test').Page, nameFrag
 
 /** Cancel the last visible inline form. */
 async function cancelInlineForm(page: import('@playwright/test').Page) {
+  // Press Escape first to dismiss any open mat-select overlay (cdk-overlay) covering the form
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
   const form = page.locator('.unified-indicateur-form, .olt-inline-form, .ne-inline-form, .inline-form').last();
-  await form.locator('.inline-form-actions button[mat-stroked-button]').click();
+  await form.locator('.inline-form-actions button[mat-stroked-button]').click({ force: true });
   await page.waitForTimeout(300);
 }
 
