@@ -2106,11 +2106,12 @@
                             </div>
                           </div>
                         } @else {
-                          <div class="ne-card" [id]="'resultat_attendu-' + ra.id_ra">
-                            <div class="ne-card-header">
+                          <div class="ne-card" [id]="'resultat_attendu-' + ra.id_ra" [class.collapsed]="!isRaExpanded(ra.id_ra)">
+                            <div class="ne-card-header" (click)="toggleRa(ra.id_ra)">
                               <div class="ne-card-left">
                                 @if (canEditPlan()) {
                                   <button class="icon-btn-flat ra-drag-handle" type="button" cdkDragHandle
+                                          (click)="$event.stopPropagation()"
                                           [title]="'enjeux.dnd.dragHandle' | translate"
                                           [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
                                     <i class="fi fi-rr-menu-burger"></i>
@@ -2121,21 +2122,29 @@
                                   {{ 'enjeux.resultatAttendu.label' | translate }}
                                   <i class="fi fi-rr-info help-icon"
                                      [matTooltip]="'enjeux.resultatAttendu.tooltip' | translate"
-                                     matTooltipPosition="right"></i>
+                                     matTooltipPosition="right"
+                                     (click)="$event.stopPropagation()"></i>
                                   : {{ ra.libelle }}
                                 </h3>
                               </div>
-                              @if (canEditPlan()) {
-                                <div class="ne-card-actions">
-                                  <button class="icon-btn-flat" (click)="startEditRa(ra)" [title]="'common.actions.edit' | translate">
+                              <div class="ne-card-actions">
+                                @if (canEditPlan()) {
+                                  <button class="icon-btn-flat" (click)="startEditRa(ra); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                     <i class="fi fi-rr-pencil"></i>
                                   </button>
-                                  <button class="icon-btn-flat" (click)="deleteRa(ra)" [title]="'common.actions.delete' | translate">
+                                  <button class="icon-btn-flat" (click)="deleteRa(ra); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                                     <i class="fi fi-rr-trash"></i>
                                   </button>
-                                </div>
-                              }
+                                }
+                                <button class="icon-btn-flat icon-btn-flat--action ra-toggle" type="button"
+                                        (click)="$event.stopPropagation(); toggleRa(ra.id_ra)"
+                                        [attr.aria-expanded]="isRaExpanded(ra.id_ra)"
+                                        [title]="(isRaExpanded(ra.id_ra) ? 'common.actions.collapse' : 'common.actions.expand') | translate">
+                                  <i class="fi" [ngClass]="isRaExpanded(ra.id_ra) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"></i>
+                                </button>
+                              </div>
                             </div>
+                            @if (isRaExpanded(ra.id_ra)) {
                             @if (ra.description) {
                               <p class="ne-description">{{ ra.description }}</p>
                             }
@@ -3174,6 +3183,7 @@
                                 <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurPression.addButton' | translate }}
                               </button>
                             }
+                            } <!-- end @if (isRaExpanded) -->
                           </div>
                         }
                         </div> <!-- end ra-drag-item -->

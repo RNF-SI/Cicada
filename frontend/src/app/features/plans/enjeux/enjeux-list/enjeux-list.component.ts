@@ -210,6 +210,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   // Opérations expand/collapse
   expandedOperationIds = signal<Set<number>>(new Set());
+  // Résultats Attendus expand/collapse (vision opérationnelle, revue design Amandine)
+  expandedRaIds = signal<Set<number>>(new Set());
   // Pending scroll to a specific operation after data loads
   pendingScrollToOperation = signal<number | null>(null);
   // Pending scroll to a specific métrique after data loads (retour depuis form action annulé)
@@ -624,6 +626,22 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       this.restoreUiState(hasUrlScrollTarget);
       this.hasRestoredUiState = true;
     }
+    // Au premier chargement, déplier tous les RA par défaut (revue design Amandine)
+    if (this.expandedRaIds().size === 0) {
+      const allRaIds = new Set<number>();
+      for (const enjeu of this.planEnjeuxData()?.enjeux || []) {
+        for (const fi of enjeu.facteurs_influence || []) {
+          for (const pression of fi.pressions || []) {
+            for (const oo of pression.objectifs_operationnels || []) {
+              for (const ra of oo.resultats_attendus || []) {
+                allRaIds.add(ra.id_ra);
+              }
+            }
+          }
+        }
+      }
+      if (allRaIds.size > 0) this.expandedRaIds.set(allRaIds);
+    }
     this.expandAndScrollToOperation();
     this.expandAndScrollToMetrique();
     this.expandAndScrollToAnchor();
@@ -845,6 +863,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       expandedOoIds: Array.from(this.expandedOoIds()),
       expandedOoIndicateurIds: Array.from(this.expandedOoIndicateurIds()),
       expandedOoOperationIds: Array.from(this.expandedOoOperationIds()),
+      expandedRaIds: Array.from(this.expandedRaIds()),
       scrollY: window.scrollY,
       anchor: this.lastScrollAnchor,
     };
@@ -877,6 +896,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         expandedOoIds: number[];
         expandedOoIndicateurIds: number[];
         expandedOoOperationIds: number[];
+        expandedRaIds: number[];
         scrollY: number;
         anchor: { type: 'operation' | 'metrique'; id: number } | null;
       }>;
@@ -895,6 +915,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       this.expandedOoIds.set(new Set<number>(state.expandedOoIds ?? []));
       this.expandedOoIndicateurIds.set(new Set<number>(state.expandedOoIndicateurIds ?? []));
       this.expandedOoOperationIds.set(new Set<number>(state.expandedOoOperationIds ?? []));
+      this.expandedRaIds.set(new Set<number>(state.expandedRaIds ?? []));
       if (!skipScroll) {
         // Priorité à l'ancre élément (plus fiable que window.scrollTo qui peut clamper
         // si la hauteur du document n'est pas encore stabilisée).
@@ -925,6 +946,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.expandedOoIds.set(new Set());
     this.expandedOoIndicateurIds.set(new Set());
     this.expandedOoOperationIds.set(new Set());
+    this.expandedRaIds.set(new Set());
     this.lastScrollAnchor = null;
   }
 
@@ -1517,6 +1539,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   isOltExpanded(id: number): boolean {
     return this.expandedOltIds().has(id);
+  }
+
+  // ============================================
+  // Résultats Attendus (RA) — déplier/replier indicateurs (revue design Amandine)
+  // ============================================
+
+  toggleRa(id: number): void {
+    this.expandedRaIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) {
+        newIds.delete(id);
+      } else {
+        newIds.add(id);
+      }
+      return newIds;
+    });
+  }
+
+  isRaExpanded(id: number): boolean {
+    return this.expandedRaIds().has(id);
   }
 
   startAddOlt(): void {
