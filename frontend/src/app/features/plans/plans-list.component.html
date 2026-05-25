@@ -40,12 +40,20 @@
             <i class="fi fi-rr-angle-small-down"></i>
           </button>
 
-          <mat-menu #createMenu="matMenu" class="create-dropdown">
-            <button mat-menu-item routerLink="/plans/nouveau">
-              {{ 'plans.list.newBlankPlan' | translate }}
+          <mat-menu #createMenu="matMenu" class="create-dropdown" xPosition="before">
+            <button mat-menu-item routerLink="/plans/nouveau" class="create-menu-item">
+              <i class="fi fi-rr-document"></i>
+              <span class="menu-item-text">
+                <span class="menu-item-title">{{ 'plans.list.newBlankPlan' | translate }}</span>
+                <span class="menu-item-desc">{{ 'plans.list.newBlankPlanDesc' | translate }}</span>
+              </span>
             </button>
-            <button mat-menu-item routerLink="/plans/dupliquer">
-              {{ 'plans.list.duplicatePlan' | translate }}
+            <button mat-menu-item routerLink="/plans/dupliquer" class="create-menu-item">
+              <i class="fi fi-rr-copy"></i>
+              <span class="menu-item-text">
+                <span class="menu-item-title">{{ 'plans.list.duplicatePlan' | translate }}</span>
+                <span class="menu-item-desc">{{ 'plans.list.duplicatePlanDesc' | translate }}</span>
+              </span>
             </button>
           </mat-menu>
         </div>

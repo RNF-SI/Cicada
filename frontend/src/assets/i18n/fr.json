@@ -847,6 +847,8 @@
     },
     "linkPlanToSite": {
       "title": "Lier un plan de gestion",
+      "explanation": "Sélectionnez un plan de gestion existant pour le rattacher à ce site. Le plan apparaîtra alors dans la liste des plans associés au site et son équipe pourra y accéder.",
+      "explanationLabel": "À propos de cette liaison",
       "search": "Rechercher un plan...",
       "noResults": "Aucun plan disponible",
       "success": "Plan lié au site avec succès",
@@ -1274,7 +1276,9 @@
       "empty": "Aucun plan de gestion",
       "createPlan": "Créer un plan de gestion",
       "newBlankPlan": "À partir d'une base vierge",
+      "newBlankPlanDesc": "Créer un nouveau plan de gestion depuis le début",
       "duplicatePlan": "Sur la base d'un PG existant",
+      "duplicatePlanDesc": "Dupliquer un plan déjà existant comme modèle",
       "oldVersions": "Voir les anciennes versions",
       "hideOldVersions": "Masquer les anciennes versions",
       "multisites": "multisites",
