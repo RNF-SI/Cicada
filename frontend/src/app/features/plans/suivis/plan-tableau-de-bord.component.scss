@@ -465,8 +465,9 @@
     background-color: rgba($secondary-pale-green, 0.2);
   }
 
+  // Hover plus distinct du background normal (revue design Amandine)
   &:hover {
-    background-color: rgba($primary-color, 0.03);
+    background-color: $primary-bg-subtle;
   }
 }
 

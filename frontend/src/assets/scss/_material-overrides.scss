@@ -1146,6 +1146,26 @@ a[mat-raised-button][color="primary"] {
     color: $white;
     font-weight: $font-weight-bold;
   }
+
+  // Style du snackbar par défaut Cicada (revue design Amandine — durée 6s + bouton fermer plus visible)
+  &.ccd-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $primary-color;
+      min-width: 300px;
+      max-width: 600px;
+    }
+
+    .mat-mdc-button {
+      color: $white;
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+
+      &:hover {
+        background-color: rgba($white, 0.12);
+      }
+    }
+  }
 }
 
 // ============================================

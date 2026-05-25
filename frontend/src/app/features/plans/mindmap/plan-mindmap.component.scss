@@ -295,20 +295,36 @@
   color: $black;
 }
 
-// Controls
+// Toolbar (revue design Amandine) : view-toggle gauche + actions droites
+.mindmap-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+
+  // Le view-toggle interne perd sa margin (héritée du conteneur)
+  .view-toggle {
+    margin-bottom: 0;
+  }
+}
+
+// Controls — boutons icône uniquement en haut droite (revue design Amandine)
 .mindmap-controls {
   display: flex;
-  gap: $spacing-md;
-  margin-top: $spacing-md;
-  justify-content: center;
+  align-items: center;
+  gap: $spacing-xs;
 
   button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: $spacing-xs;
+    justify-content: center;
+    min-width: 40px;
+    padding: $spacing-xs $spacing-sm !important;
 
     i {
-      font-size: 14px;
+      font-size: 16px;
     }
   }
 }

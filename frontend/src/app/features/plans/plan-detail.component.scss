@@ -267,7 +267,10 @@
 
 .meta-value {
   &.status {
-    color: $secondary-yellow;
+    // Couleur par défaut neutre — la couleur effective est portée par le chip
+    // de statut (variantes --draft / --valide / --modifie / --archive ci-dessous).
+    // Revue design Amandine : ne pas écrire en jaune (illisible).
+    color: $primary-color;
 
     &.has-tooltip {
       cursor: help;
@@ -288,6 +291,7 @@
       color: $white !important; // override couleur jaune par défaut
     }
     &--valide {
+      // Contraste AA renforcé (revue design Amandine — était illisible avant)
       background-color: $success-color;
       color: $white !important;
     }
@@ -296,7 +300,8 @@
       color: $primary-color !important;
     }
     &--archive {
-      background-color: $gray;
+      // Contraste AA : gris foncé sur fond clair (revue design Amandine — gris/white illisible)
+      background-color: $gray-dark;
       color: $white !important;
     }
   }
@@ -468,8 +473,10 @@
 }
 
 .content-grid {
+  // Colonne latérale élargie pour éviter que les titres ("Arborescence", "Cycle de vie")
+  // ne débordent en deux lignes (revue design Amandine).
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 420px);
   gap: $spacing-xl;
 }
 
@@ -1180,27 +1187,31 @@
   }
 }
 
+// Bouton « Ajouter un document » — style kit UI bouton secondaire pill (revue design Amandine)
 .btn-add-document {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
-  margin-top: $spacing-sm;
+  padding: $spacing-xs $spacing-lg;
+  margin-top: $spacing-md;
   background-color: $white;
   border: 1px solid $primary-color;
-  border-radius: $border-radius-sm;
+  border-radius: $border-radius-pill;
   color: $primary-color;
   font-family: $font-family;
-  font-size: $font-size-small;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
+  transition: background-color $transition-fast, color $transition-fast;
 
   i {
-    font-size: $font-size-small;
+    font-size: $font-size-base;
   }
 
   &:hover {
-    background-color: $primary-bg-soft;
+    background-color: $primary-color;
+    color: $white;
   }
 }
 

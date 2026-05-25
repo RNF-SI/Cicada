@@ -61,15 +61,16 @@
 }
 
 .toolbar-btn-import {
-  background-color: $secondary-yellow;
-  border-color: $secondary-yellow;
-  color: $black;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  // Harmonisé avec les autres toolbar-btn (revue design Amandine — survol icônes blanc)
+  background-color: $white;
+  border-color: $primary-bg-medium;
+  color: $primary-color;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover:not(:disabled) {
-    background-color: darken($secondary-yellow, 8%);
-    color: $black;
-    border-color: darken($secondary-yellow, 8%);
+    background-color: $primary-color;
+    color: $white;
+    border-color: $primary-color;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   }
 
