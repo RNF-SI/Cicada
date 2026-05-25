@@ -205,17 +205,12 @@
                     <h3 class="card-section-name">{{ enjeu.intitule_court || enjeu.libelle }}</h3>
                   </div>
                   <div class="card-section-actions">
-                    @if (canEditPlan()) {
-                      <button class="icon-btn-flat icon-btn-flat--action" (click)="navigateToEdit(enjeu); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                        <i class="fi fi-rr-pencil"></i>
-                      </button>
-                    }
+                    <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du header) -->
                     <button class="icon-btn-flat icon-btn-flat--action" (click)="navigateToEnjeuDetail(enjeu); $event.stopPropagation()" [title]="'common.actions.view' | translate">
                       <i class="fi fi-rr-eye"></i>
                     </button>
                     <button class="icon-btn-flat icon-btn-flat--action" (click)="toggleEnjeuDetail(); $event.stopPropagation()">
                       <i class="fi" [ngClass]="enjeuDetailExpanded() ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
-
                     </button>
                   </div>
                 </div>
@@ -3316,7 +3311,7 @@
                 </button>
                 <mat-menu #addMenuEmpty="matMenu">
                   <button mat-menu-item (click)="navigateToNewEnjeu()">
-                    <i class="fi fi-rr-bullseye-arrow"></i>
+                    <i class="fi fi-rr-mountains"></i>
                     <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                   </button>
                   <button mat-menu-item (click)="navigateToNewFcr()">
@@ -3351,7 +3346,7 @@
                   </button>
                   <mat-menu #addMenu="matMenu">
                     <button mat-menu-item (click)="navigateToNewEnjeu()">
-                      <i class="fi fi-rr-bullseye-arrow"></i>
+                      <i class="fi fi-rr-mountains"></i>
                       <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="navigateToNewFcr()">
