@@ -84,7 +84,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.nomInput.fill('');
     await createPage.submit();
 
-    const nameError = page.locator('mat-error').filter({ hasText: 'nom est requis' });
+    const nameError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: 'nom est requis' });
     await expect(nameError).toBeVisible();
   });
 
@@ -96,7 +96,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.rangInput.fill('');
     await createPage.submit();
 
-    const rangError = page.locator('mat-error').filter({ hasText: /rang/i });
+    const rangError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /rang/i });
     await expect(rangError).toBeVisible();
   });
 
@@ -127,7 +127,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.rangInput.fill('0');
     await createPage.submit();
 
-    const minError = page.locator('mat-error').filter({ hasText: /minimum 1/i });
+    const minError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /minimum 1/i });
     await expect(minError).toBeVisible();
   });
 });

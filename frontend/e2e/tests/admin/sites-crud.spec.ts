@@ -43,7 +43,7 @@ test.describe.serial('Admin Sites - CRUD', () => {
       await submitBtn.click();
       await page.waitForTimeout(500);
       // Should show validation errors (mat-error) or submit button disabled
-      const errors = dialog.locator('mat-error');
+      const errors = dialog.locator('mat-error, .app-form-field__error, .form-error-msg');
       const errorCount = await errors.count();
       const isDisabled = await submitBtn.isDisabled().catch(() => false);
       expect(errorCount > 0 || isDisabled).toBeTruthy();

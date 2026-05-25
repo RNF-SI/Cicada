@@ -70,7 +70,7 @@ export class InventaireFormPage {
 
     // Main card
     this.intituleInput = page.locator('input[formControlName="intitule"]');
-    this.typeActionInput = page.locator('mat-form-field').filter({ hasText: /type/i }).locator('input[matInput]').first();
+    this.typeActionInput = page.locator('mat-form-field').filter({ hasText: /type/i }).locator('input').first();
     this.integrePgOui = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').first();
     this.integrePgNon = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').nth(1);
     this.objectifPrincipalSelect = page.locator('mat-select[formControlName="objectif_principal"]');
@@ -217,7 +217,7 @@ export class InventaireFormPage {
   async hasIntituleError(): Promise<boolean> {
     // Soit un mat-error inline (ancien comportement), soit la nouvelle bannière
     // qui liste les champs manquants après un submit invalide (#197 / a0c6ddc).
-    const matError = await this.page.locator('mat-error').first().isVisible().catch(() => false);
+    const matError = await this.page.locator('mat-error, .app-form-field__error, .form-error-msg').first().isVisible().catch(() => false);
     if (matError) return true;
     const banner = await this.page.locator('.error-banner').first().isVisible().catch(() => false);
     return banner;

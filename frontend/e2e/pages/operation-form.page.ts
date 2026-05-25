@@ -276,7 +276,7 @@ export class OperationFormPage {
     await this.addFinanceBtn.click();
     await this.page.waitForTimeout(200);
     const lastRow = this.financeRows.last();
-    await lastRow.locator('input[matInput]').fill(libelle);
+    await lastRow.locator('input').fill(libelle);
   }
 
   /** Click Validate to submit the form. */
@@ -311,6 +311,6 @@ export class OperationFormPage {
 
   /** Check if the form contains a validation error for required libelle. */
   async hasLibelleError(): Promise<boolean> {
-    return this.page.locator('mat-error').isVisible().catch(() => false);
+    return this.page.locator('mat-error, .app-form-field__error, .form-error-msg').isVisible().catch(() => false);
   }
 }

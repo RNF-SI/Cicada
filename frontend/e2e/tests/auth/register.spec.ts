@@ -61,7 +61,7 @@ test.describe('Registration', () => {
     await registerPage.firstNameInput.click();
 
     // Either mat-error is shown or submit button stays disabled due to password mismatch
-    const mismatchError = page.locator('mat-error').filter({ hasText: /correspondent|match/i });
+    const mismatchError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /correspondent|match/i });
     const hasError = await mismatchError.isVisible({ timeout: 3000 }).catch(() => false);
     if (!hasError) {
       // Fallback: verify submit button is disabled (form invalid due to mismatch)

@@ -20,7 +20,7 @@ export class ActivityPage {
     this.pageTitle = page.locator('.page-header h1');
     this.subtitle = page.locator('.page-header .subtitle');
     this.tabs = page.locator('mat-tab-group .mat-mdc-tab');
-    this.searchInput = page.locator('.filters-bar input[matInput]');
+    this.searchInput = page.locator('.filters-bar input');
     this.entityTypeFilter = page.locator('.filter-field mat-select');
     this.resetButton = page.locator('.filters-bar button', { hasText: 'Réinitialiser' });
     this.timelineGroups = page.locator('.timeline-group');

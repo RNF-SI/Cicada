@@ -29,7 +29,7 @@ async function gotoOltTab(page: import('@playwright/test').Page, nameFragment: s
 /** Get visible inline form and fill libelle + description. */
 async function fillInlineForm(page: import('@playwright/test').Page, libelle: string, description?: string) {
   const form = page.locator('.olt-inline-form, .ne-inline-form, .unified-indicateur-form, .inline-form').last();
-  await form.locator('input[matInput]').first().fill(libelle);
+  await form.locator('input').first().fill(libelle);
   if (description) {
     await form.locator('textarea[matInput]').first().fill(description);
   }
@@ -151,7 +151,7 @@ test.describe('OLT Tab - Indicateurs', () => {
       await expect(form).toBeVisible();
 
       // Indicateur fields: nom, type, est_standardise, description
-      const nomInput = form.locator('input[matInput]').first();
+      const nomInput = form.locator('input').first();
       await expect(nomInput).toBeVisible();
 
       // Cancel
@@ -170,7 +170,7 @@ test.describe('OLT Tab - Indicateurs', () => {
       await referentPage.waitForTimeout(500);
 
       const form = referentPage.locator('.unified-indicateur-form').last();
-      await form.locator('input[matInput]').first().fill(`E2E Indicateur ${Date.now()}`);
+      await form.locator('input').first().fill(`E2E Indicateur ${Date.now()}`);
       await saveInlineForm(referentPage);
 
       // Should close form without error

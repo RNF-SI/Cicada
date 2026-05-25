@@ -71,22 +71,22 @@ export class EnjeuFormPage {
     this.categorieSocioEcoRadio = page.locator('mat-radio-group[formControlName="categorie_ecologique"] mat-radio-button').nth(1);
 
     // Ecological checkboxes
-    this.habitatCheckbox = page.locator('mat-checkbox[formControlName="habitat"]');
-    this.especeCheckbox = page.locator('mat-checkbox[formControlName="espece"]');
-    this.patrimoineGeologiqueCheckbox = page.locator('mat-checkbox[formControlName="patrimoine_geologique"]');
-    this.fonctionnaliteEcosystemeCheckbox = page.locator('mat-checkbox[formControlName="fonctionnalite_ecosysteme"]');
-    this.autreEcologiqueCheckbox = page.locator('mat-checkbox[formControlName="autre_ecologique"]');
+    this.habitatCheckbox = page.locator('app-checkbox[formControlName="habitat"]');
+    this.especeCheckbox = page.locator('app-checkbox[formControlName="espece"]');
+    this.patrimoineGeologiqueCheckbox = page.locator('app-checkbox[formControlName="patrimoine_geologique"]');
+    this.fonctionnaliteEcosystemeCheckbox = page.locator('app-checkbox[formControlName="fonctionnalite_ecosysteme"]');
+    this.autreEcologiqueCheckbox = page.locator('app-checkbox[formControlName="autre_ecologique"]');
     this.autreEcologiquePrecision = page.locator('input[formControlName="autre_ecologique_precision"]');
-    this.geoExSituCheckbox = page.locator('mat-checkbox[formControlName="geo_ex_situ"]');
-    this.geoInSituCheckbox = page.locator('mat-checkbox[formControlName="geo_in_situ"]');
+    this.geoExSituCheckbox = page.locator('app-checkbox[formControlName="geo_ex_situ"]');
+    this.geoInSituCheckbox = page.locator('app-checkbox[formControlName="geo_in_situ"]');
 
     // Socio-economic checkboxes
-    this.valeurPaysagereCheckbox = page.locator('mat-checkbox[formControlName="valeur_paysagere"]');
-    this.patrimoineCulturelCheckbox = page.locator('mat-checkbox[formControlName="patrimoine_culturel"]');
-    this.developpementDurableCheckbox = page.locator('mat-checkbox[formControlName="developpement_durable"]');
-    this.usagesCheckbox = page.locator('mat-checkbox[formControlName="usages"]');
-    this.valeurAjouteeCheckbox = page.locator('mat-checkbox[formControlName="valeur_ajoutee"]');
-    this.autreSocioEcoCheckbox = page.locator('mat-checkbox[formControlName="autre_socioeco"]');
+    this.valeurPaysagereCheckbox = page.locator('app-checkbox[formControlName="valeur_paysagere"]');
+    this.patrimoineCulturelCheckbox = page.locator('app-checkbox[formControlName="patrimoine_culturel"]');
+    this.developpementDurableCheckbox = page.locator('app-checkbox[formControlName="developpement_durable"]');
+    this.usagesCheckbox = page.locator('app-checkbox[formControlName="usages"]');
+    this.valeurAjouteeCheckbox = page.locator('app-checkbox[formControlName="valeur_ajoutee"]');
+    this.autreSocioEcoCheckbox = page.locator('app-checkbox[formControlName="autre_socioeco"]');
     this.autreSocioEcoPrecision = page.locator('input[formControlName="autre_socioeco_precision"]');
 
     // Reference lists

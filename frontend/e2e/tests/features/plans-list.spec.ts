@@ -193,7 +193,7 @@ test.describe('Plans List - Access Request', () => {
     await plansPage.waitForData();
 
     // Look for the search input in the access section
-    const searchField = page.locator('input[matInput]').filter({
+    const searchField = page.locator('input').filter({
       has: page.locator('[placeholder]'),
     });
     const isVisible = await searchField.first().isVisible().catch(() => false);

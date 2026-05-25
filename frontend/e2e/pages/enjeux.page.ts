@@ -103,7 +103,7 @@ export class EnjeuxPage {
 
     // Inline forms (general)
     this.inlineForms = page.locator('.inline-form');
-    this.inlineFormLibelleInput = page.locator('.inline-form-body mat-form-field input[matInput]').first();
+    this.inlineFormLibelleInput = page.locator('.inline-form-body mat-form-field input').first();
     this.inlineFormDescriptionInput = page.locator('.inline-form-body mat-form-field textarea[matInput]').first();
     this.inlineFormSaveButton = page.locator('.inline-form-actions button[mat-flat-button]');
     this.inlineFormCancelButton = page.locator('.inline-form-actions button[mat-stroked-button]');
@@ -269,7 +269,7 @@ export class EnjeuxPage {
     const countBefore = await this.facteurCards.count();
     await this.clickAddFacteur();
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.facteur-bullet') });
-    await form.locator('input[matInput]').fill(libelle);
+    await form.locator('input').fill(libelle);
     if (description) {
       await form.locator('textarea[matInput]').fill(description);
     }
@@ -293,7 +293,7 @@ export class EnjeuxPage {
   async editFacteur(index: number, libelle: string, description?: string) {
     await this.clickEditFacteur(index);
     const form = this.facteurCards.nth(index).locator('.inline-form, .edit-inline-form').first();
-    await form.locator('input[matInput]').fill(libelle);
+    await form.locator('input').fill(libelle);
     if (description !== undefined) {
       await form.locator('textarea[matInput]').fill(description);
     }
@@ -328,7 +328,7 @@ export class EnjeuxPage {
     await this.clickAddPression(facteurIndex);
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.pression-bullet') });
     // Le libellé est le 2e input (après le PressRef autocomplete)
-    await form.locator('input[matInput]').nth(1).fill(libelle);
+    await form.locator('input').nth(1).fill(libelle);
     if (description) {
       await form.locator('textarea[matInput]').fill(description);
     }
@@ -354,7 +354,7 @@ export class EnjeuxPage {
     await this.clickEditPression(facteurIndex, pressionIndex);
     const facteur = this.facteurCards.nth(facteurIndex);
     const form = facteur.locator('.pression-card').nth(pressionIndex).locator('.inline-form, .edit-inline-form').first();
-    await form.locator('input[matInput]').first().fill(libelle);
+    await form.locator('input').first().fill(libelle);
     if (description !== undefined) {
       await form.locator('textarea[matInput]').fill(description);
     }
