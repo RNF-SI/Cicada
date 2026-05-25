@@ -156,7 +156,10 @@
                 </thead>
                 <tbody>
                   @for (site of paginatedMySites(); track site.id_site; let i = $index) {
-                    <tr [class.odd]="i % 2 === 1">
+                    <!-- Clic ligne → focus carte + bouton Accéder (revue design Amandine) -->
+                    <tr [class.odd]="i % 2 === 1"
+                        [class.row-focused]="focusedSiteId() === site.id_site"
+                        (click)="selectSiteRow(site)">
                       <td class="col-name">
                         <span class="site-name">{{ site.nom_site }}</span>
                       </td>
@@ -192,9 +195,17 @@
                         }
                       </td>
                       <td class="col-actions">
-                        <button class="btn-action" (click)="viewSite(site)">
-                          <span>{{ 'common.actions.view' | translate }}</span>
-                          <i class="fi fi-rr-eye"></i>
+                        <!-- Bouton secondaire par défaut, devient « Accéder » primaire si ligne sélectionnée -->
+                        <button class="btn-action"
+                                [class.btn-access]="focusedSiteId() === site.id_site"
+                                (click)="viewSite(site); $event.stopPropagation()">
+                          @if (focusedSiteId() === site.id_site) {
+                            <span>{{ 'sites.mySites.access' | translate }}</span>
+                            <i class="fi fi-rr-arrow-right"></i>
+                          } @else {
+                            <span>{{ 'common.actions.view' | translate }}</span>
+                            <i class="fi fi-rr-eye"></i>
+                          }
                         </button>
                       </td>
                     </tr>

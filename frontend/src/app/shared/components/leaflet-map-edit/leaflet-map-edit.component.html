@@ -49,23 +49,28 @@
     </button>
   </div>
 
-  <!-- Instructions -->
+  <!-- Instructions enrichies (revue design Amandine — clarifier édition/suppression) -->
   <div class="map-instructions">
     @if (geometryType === 'both') {
-      <span>
+      <span class="instructions-line">
         <i class="fi fi-rr-draw-polygon"></i>
-        Contour : dessinez un polygone
-        <span class="separator">|</span>
+        <strong>Tracer un contour</strong> ou
         <i class="fi fi-rr-marker"></i>
-        Point : placez un marqueur
+        <strong>placer un point</strong> via les outils en haut à gauche de la carte
+      </span>
+      <span class="instructions-line instructions-edit">
+        <i class="fi fi-rr-pencil"></i>
+        <strong>Modifier</strong> ou
+        <i class="fi fi-rr-trash"></i>
+        <strong>supprimer</strong> une géométrie via les boutons sous les outils. Cliquez sur une forme pour la sélectionner.
       </span>
     } @else if (geometryType === 'polygon') {
-      <span>
+      <span class="instructions-line">
         <i class="fi fi-rr-pencil"></i>
         Dessinez le contour : cliquez point par point, puis double-cliquez ou cliquez sur le 1er point pour fermer
       </span>
     } @else {
-      <span>
+      <span class="instructions-line">
         <i class="fi fi-rr-marker"></i>
         Cliquez sur la carte pour placer le point
       </span>

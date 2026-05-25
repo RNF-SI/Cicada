@@ -3,7 +3,7 @@
  * Affiche les sites avec hero section, carte Leaflet, tableau et pagination.
  * Design inspiré de plans-list.component.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -408,13 +408,31 @@ export class SitesListComponent implements OnInit {
     }
   }
 
+  // Référence carte pour focus programmatique au clic sur une ligne (revue design Amandine)
+  @ViewChild(LeafletMapComponent) leafletMap?: LeafletMapComponent;
+
+  /** Id du site sélectionné dans le tableau (focus carte + ligne mise en avant) */
+  readonly focusedSiteId = signal<number | null>(null);
+
   /**
    * Clic sur une feature de la carte.
    * Affiche le popup avec le nom du site (gere par LeafletMapComponent).
    */
   onMapFeatureClick(feature: any): void {
-    // Le popup est automatiquement affiche par LeafletMapComponent
-    // Pas de navigation automatique
+    // Synchronisation : marquer la ligne correspondante comme sélectionnée
+    const id = feature?.properties?.id_site ?? feature?.properties?.id;
+    if (typeof id === 'number') {
+      this.focusedSiteId.set(id);
+    }
+  }
+
+  /**
+   * Clic sur une ligne du tableau → zoome la carte sur le site + sélectionne la ligne
+   * (revue design Amandine). Le bouton « Accéder » apparaît sur la ligne sélectionnée.
+   */
+  selectSiteRow(site: SiteWithAccess): void {
+    this.focusedSiteId.set(site.id_site);
+    this.leafletMap?.focusFeatureById(site.id_site);
   }
 
   /**

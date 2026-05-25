@@ -259,4 +259,31 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   refresh(): void {
     this.map?.invalidateSize();
   }
+
+  /**
+   * Zoome la carte sur une feature spécifique identifiée par son id (champ properties.id ou id_site).
+   * Utilisé par le tableau Sites pour focuser au clic sur une ligne (revue design Amandine).
+   */
+  focusFeatureById(featureId: number | string | null): void {
+    if (!this.map || !this.geoJsonLayer || featureId == null) return;
+    let targetBounds: L.LatLngBounds | null = null;
+    this.geoJsonLayer.eachLayer((layer: L.Layer) => {
+      const props = (layer as any).feature?.properties || {};
+      const id = props.id_site ?? props.id ?? props.id_espace_protege;
+      if (id === featureId) {
+        const path = layer as L.Path & { getBounds?: () => L.LatLngBounds };
+        if (typeof path.getBounds === 'function') {
+          targetBounds = path.getBounds();
+        } else if ((layer as any).getLatLng) {
+          // Point marker : créer un petit bounds autour
+          const ll = (layer as any).getLatLng() as L.LatLng;
+          targetBounds = L.latLngBounds([ll, ll]);
+        }
+      }
+    });
+    if (targetBounds && (targetBounds as L.LatLngBounds).isValid()) {
+      this.map.fitBounds(targetBounds, { padding: [40, 40], maxZoom: 14 });
+      this.userHasMoved.set(true);
+    }
+  }
 }

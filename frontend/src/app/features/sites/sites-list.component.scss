@@ -148,7 +148,20 @@ h1 { @include sites-h1; }
     &:last-child { border-right: none; }
   }
   tbody {
-    tr { background-color: $white; border-bottom: 1px solid $gray-light; &.odd { background-color: $gray-lightest; } &:last-child { border-bottom: none; } }
+    tr {
+      background-color: $white;
+      border-bottom: 1px solid $gray-light;
+      cursor: pointer;
+      transition: background-color $transition-fast;
+      &.odd { background-color: $gray-lightest; }
+      &:last-child { border-bottom: none; }
+      &:hover { background-color: $primary-bg-subtle; }
+      // Ligne sélectionnée : fond plus marqué + accent à gauche (revue design Amandine)
+      &.row-focused {
+        background-color: $primary-bg-light;
+        td:first-child { border-left: 3px solid $primary-color; padding-left: 11px; }
+      }
+    }
     td { border-right: 1px solid $gray-light; height: 58px; &:first-child { border-right: 2px solid $primary-color; } &:last-child { border-right: none; } }
   }
 }
@@ -181,6 +194,13 @@ h1 { @include sites-h1; }
   &:hover {
     background-color: $primary-bg-subtle;
     text-decoration: none;
+  }
+
+  // Variante « Accéder » quand la ligne est sélectionnée (revue design Amandine)
+  &.btn-access {
+    background-color: $primary-color;
+    color: $white;
+    &:hover { background-color: $primary-hover; }
   }
 }
 .action-buttons { display: flex; gap: $spacing-sm; flex-wrap: wrap; }
