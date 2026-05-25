@@ -147,16 +147,13 @@
           <div class="form-row">
             <app-form-field [label]="('modals.planForm.fields.rang' | translate) + ' *'" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
   <input type="number" formControlName="rang" min="1">
-              
-              @if (form.get('rang')?.hasError('required')) {
-                
-              }
-              @if (form.get('rang')?.hasError('min')) {
-                
-              }
   <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
+    @if (form.get('rang')?.touched && form.get('rang')?.hasError('required')) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
+    }
+    @if (form.get('rang')?.touched && form.get('rang')?.hasError('min')) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
+    }
   </ng-container>
 </app-form-field>
 

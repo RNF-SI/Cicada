@@ -106,7 +106,7 @@ test.describe('Inventaires - List Page', () => {
     await referentPage.goto('/inventaires');
     await referentPage.waitForTimeout(2000);
 
-    const searchInput = referentPage.locator('.search-input');
+    const searchInput = referentPage.locator('app-search-bar input');
     await expect(searchInput).toBeVisible();
   });
 
