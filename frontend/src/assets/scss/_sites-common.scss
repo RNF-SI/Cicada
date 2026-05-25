@@ -347,14 +347,15 @@
 }
 
 // Card base
-// Revue design Amandine : pas d'effet hover sur tuile non cliquable
-// (sites-detail Organismes/Utilisateurs sont en lecture seule)
+// Revue design Amandine :
+// - Pas d'effet hover sur tuile non cliquable (Organismes/Utilisateurs en lecture seule)
+// - Fond gris TRÈS clair (#F6F6F6) au lieu du $gray-lighter (#E4E4E4)
 @mixin sites-card-base {
   display: flex;
   align-items: center;
   gap: $spacing-md;
   padding: $spacing-md;
-  background-color: $gray-lighter;
+  background-color: #F6F6F6;
   border-radius: $border-radius-sm;
 }
 
