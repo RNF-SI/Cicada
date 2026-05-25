@@ -148,7 +148,7 @@ h1 { @include sites-h1; }
     &:last-child { border-right: none; }
   }
   tbody {
-    tr { background-color: $white; border-bottom: 1px solid $gray-light; &.odd { background-color: #f6f6f6; } &:last-child { border-bottom: none; } }
+    tr { background-color: $white; border-bottom: 1px solid $gray-light; &.odd { background-color: $gray-lightest; } &:last-child { border-bottom: none; } }
     td { border-right: 1px solid $gray-light; height: 58px; &:first-child { border-right: 2px solid $primary-color; } &:last-child { border-right: none; } }
   }
 }

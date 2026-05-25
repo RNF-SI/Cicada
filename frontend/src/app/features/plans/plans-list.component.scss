@@ -360,7 +360,7 @@ h1 {
       border-bottom: 1px solid $gray-light;
 
       &.odd {
-        background-color: #f6f6f6;
+        background-color: $gray-lightest;
       }
 
       &:last-child {

@@ -286,11 +286,11 @@
 
   // Background gris très clair (revue design #307 : meilleur contraste avec items)
   .mat-mdc-menu-panel {
-    background-color: #F6F6F6 !important;
+    background-color: $gray-lightest !important;
   }
 
   .mat-mdc-menu-content {
     padding: 0;
-    background-color: #F6F6F6;
+    background-color: $gray-lightest;
   }
 }
