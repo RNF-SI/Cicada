@@ -2029,6 +2029,7 @@
         "clearAll": "Effacer tout",
         "recenter": "Recentrer la carte",
         "import": {
+          "button": "Importer un fichier",
           "tooltip": "Importer un fichier géographique\n\n• GeoJSON (.geojson, .json)\n• Shapefile : fichier ZIP contenant\n  .shp, .shx, .dbf et .prj\n\n⚠ Format WGS84 (EPSG:4326) uniquement",
           "success": "Géométrie importée avec succès",
           "error": "Erreur lors de l'import. Vérifiez le format du fichier.",

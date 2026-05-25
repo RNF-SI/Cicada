@@ -235,6 +235,30 @@
   }
 }
 
+// Header de colonne carte : titre + bouton « Importer un fichier » sur la même ligne
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin: 0 0 $spacing-md;
+  flex-wrap: wrap;
+
+  .column-title {
+    margin: 0;
+  }
+}
+
+.btn-import-geom {
+  display: inline-flex !important;
+  align-items: center;
+  gap: $spacing-xs;
+
+  i {
+    font-size: $font-size-base;
+  }
+}
+
 .column-title {
   // Titres "Localisation" et "Informations du site" en style H4 (revue design #311)
   display: flex;

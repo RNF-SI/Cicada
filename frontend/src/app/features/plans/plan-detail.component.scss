@@ -1079,24 +1079,17 @@
 
 // Placeholders
 
-.mindmap-placeholder {
-  display: flex;
-  flex-direction: column;
+.btn-view-mindmap {
+  // Bouton secondaire pleine largeur pour ouvrir le tableau d'arborescence
+  width: 100%;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  height: 80px;
-  background-color: rgba($secondary-pale-green, 0.08);
-  border-radius: $border-radius-sm;
-  color: $primary-color;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
 
   i {
-    font-size: $font-size-h2;
-    margin-bottom: $spacing-xs;
-  }
-
-  span {
-    font-size: $font-size-small;
-    font-weight: $font-weight-semibold;
+    font-size: $font-size-base;
   }
 }
 
@@ -1164,21 +1157,25 @@
 }
 
 .btn-delete-doc {
+  // Icône poubelle bien visible (revue design Amandine)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 25px;
-  height: 25px;
+  width: 28px;
+  height: 28px;
   background: transparent;
   border: none;
-  color: $gray;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
   cursor: pointer;
+  transition: background-color $transition-fast, color $transition-fast;
 
   i {
     font-size: $font-size-base;
   }
 
   &:hover {
+    background-color: rgba($error-color, 0.1);
     color: $error-color;
   }
 }

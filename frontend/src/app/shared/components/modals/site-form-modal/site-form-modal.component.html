@@ -141,10 +141,18 @@
   <div class="site-form-layout" [class.has-suggestions]="showDuplicateWarning() && !isEditMode">
     <!-- Colonne Gauche: Carte unique avec outils polygone + point -->
     <div class="map-column">
-      <h3 class="column-title">
-        <i class="fi fi-rr-map-marker"></i>
-        {{ 'sites.form.geometry.title' | translate }}
-      </h3>
+      <div class="column-header">
+        <h3 class="column-title">
+          <i class="fi fi-rr-map-marker"></i>
+          {{ 'sites.form.geometry.title' | translate }}
+        </h3>
+
+        <!-- Bouton secondaire « Importer un fichier » avant la carte (revue design Amandine) -->
+        <button mat-stroked-button type="button" class="btn-import-geom" (click)="triggerGeometryImport()">
+          <i class="fi fi-rr-folder-upload"></i>
+          {{ 'sites.form.geometry.import.button' | translate }}
+        </button>
+      </div>
 
       <div class="map-container">
         <app-leaflet-map-edit

@@ -592,7 +592,7 @@
           </div>
 
           <!-- Mindmap -->
-          <div class="section-card compact clickable" (click)="navigateToMindmap()">
+          <div class="section-card compact">
             <app-section-title
               [title]="'plans.detail.sections.mindmap' | translate"
               icon="fi-rr-apps"
@@ -601,10 +601,11 @@
               size="md"
               [showLine]="true">
             </app-section-title>
-            <div class="mindmap-placeholder">
+            <!-- Bouton secondaire (revue design Amandine — était un click-zone placeholder) -->
+            <button mat-stroked-button class="btn-view-mindmap" (click)="navigateToMindmap()">
               <i class="fi fi-rr-apps"></i>
-              <span>{{ 'plans.mindmap.viewMindmap' | translate }}</span>
-            </div>
+              {{ 'plans.mindmap.viewMindmap' | translate }}
+            </button>
           </div>
 
           <!-- Historique des versions / Cycle de vie -->

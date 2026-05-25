@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -85,11 +85,19 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
   private readonly translate = inject(TranslateService);
   readonly data = inject<SiteFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
+  // Référence pour déclencher l'import géométrique depuis un bouton externe (revue design Amandine)
+  @ViewChild(LeafletMapEditComponent) leafletMapEdit?: LeafletMapEditComponent;
+
   form!: FormGroup;
   isLoading = signal(false);
   isLoadingTypes = signal(true);
   errorMessage = signal<string | null>(null);
   siteTypes = signal<SiteType[]>([]);
+
+  /** Déclenche l'import depuis le bouton secondaire externe (revue design Amandine) */
+  triggerGeometryImport(): void {
+    this.leafletMapEdit?.triggerGeometryImport();
+  }
 
   // Geometry signals
   polygonGeometry = signal<GeoJSONGeometry | null>(null);

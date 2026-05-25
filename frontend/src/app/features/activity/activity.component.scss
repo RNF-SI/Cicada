@@ -1,12 +1,19 @@
 @import 'variables';
 
+// Header blanc en haut (revue design Amandine — aligné avec les pages admin)
+:host {
+  display: block;
+  background-color: $white;
+  min-height: calc(100vh - #{$nav-height});
+}
+
 .activity-page {
   padding: $spacing-lg;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-// Back link
+// Back link — rapproché du titre (revue design Amandine)
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -15,7 +22,7 @@
   text-decoration: none;
   font-size: $font-size-base;
   font-weight: 500;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-xs;
   transition: opacity 0.2s;
 
   i {
