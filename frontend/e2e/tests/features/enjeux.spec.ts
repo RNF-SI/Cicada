@@ -317,7 +317,7 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
     const form = page.locator('.inline-form').filter({ has: page.locator('.facteur-bullet') });
     await expect(form).toBeVisible();
     await expect(form.locator('input')).toBeVisible();
-    await expect(form.locator('textarea[matInput]')).toBeVisible();
+    await expect(form.locator('textarea').first()).toBeVisible();
   });
 
   test('should have save button disabled when libelle is empty', async ({ referentPage: page }) => {

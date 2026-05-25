@@ -21,7 +21,8 @@ test.describe('Site Duplicate Detection', () => {
    */
   async function openSiteCreationForm(page: any) {
     // Click "Gérer mes sites" button
-    const findOrCreateBtn = page.locator('.btn-request:has(.fi-rr-search), button:has-text("Gérer mes sites"), button:has-text("Trouver")').first();
+    // Le bouton dit "Rechercher ou créer" (i18n actuel) après la revue design
+    const findOrCreateBtn = page.locator('button.btn-request:has-text("Rechercher"), button:has-text("Gérer mes sites")').first();
     await findOrCreateBtn.click();
 
     // Wait for FindOrCreateSiteModal

@@ -2233,6 +2233,10 @@
       "required": "Les champs avec * sont obligatoires",
       "requiredBefore": "Les champs avec",
       "requiredAfter": "sont obligatoires",
+      "errors": {
+        "libelleRequired": "L'intitulé de l'enjeu est obligatoire",
+        "libelleMaxLength": "L'intitulé est trop long"
+      },
       "libelle": "Intitulé de l'enjeu",
       "libellePlaceholder": "Saisissez l'intitulé de l'enjeu",
       "intituleCourt": "Intitulé court de l'enjeu",

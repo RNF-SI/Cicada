@@ -103,8 +103,8 @@ export class EnjeuxPage {
 
     // Inline forms (general)
     this.inlineForms = page.locator('.inline-form');
-    this.inlineFormLibelleInput = page.locator('.inline-form-body mat-form-field input').first();
-    this.inlineFormDescriptionInput = page.locator('.inline-form-body mat-form-field textarea[matInput]').first();
+    this.inlineFormLibelleInput = page.locator('.inline-form-body app-form-field input, .inline-form-body mat-form-field input').first();
+    this.inlineFormDescriptionInput = page.locator('.inline-form-body app-form-field textarea, .inline-form-body mat-form-field textarea').first();
     this.inlineFormSaveButton = page.locator('.inline-form-actions button[mat-flat-button]');
     this.inlineFormCancelButton = page.locator('.inline-form-actions button[mat-stroked-button]');
 
@@ -271,7 +271,7 @@ export class EnjeuxPage {
     const form = this.page.locator('.inline-form').filter({ has: this.page.locator('.facteur-bullet') });
     await form.locator('input').fill(libelle);
     if (description) {
-      await form.locator('textarea[matInput]').fill(description);
+      await form.locator('textarea').fill(description);
     }
     await form.locator('.inline-form-actions button[mat-flat-button]').click();
     // Wait for the new card to appear instead of a fixed timeout
@@ -295,7 +295,7 @@ export class EnjeuxPage {
     const form = this.facteurCards.nth(index).locator('.inline-form, .edit-inline-form').first();
     await form.locator('input').fill(libelle);
     if (description !== undefined) {
-      await form.locator('textarea[matInput]').fill(description);
+      await form.locator('textarea').fill(description);
     }
     await form.locator('button[mat-flat-button]').click();
     await this.page.waitForTimeout(500);
@@ -330,7 +330,7 @@ export class EnjeuxPage {
     // Le libellé est le 2e input (après le PressRef autocomplete)
     await form.locator('input').nth(1).fill(libelle);
     if (description) {
-      await form.locator('textarea[matInput]').fill(description);
+      await form.locator('textarea').fill(description);
     }
     await form.locator('.inline-form-actions button[mat-flat-button]').click();
     // Wait for the new pression card to appear
@@ -356,7 +356,7 @@ export class EnjeuxPage {
     const form = facteur.locator('.pression-card').nth(pressionIndex).locator('.inline-form, .edit-inline-form').first();
     await form.locator('input').first().fill(libelle);
     if (description !== undefined) {
-      await form.locator('textarea[matInput]').fill(description);
+      await form.locator('textarea').fill(description);
     }
     await form.locator('button[mat-flat-button]').click();
     await this.page.waitForTimeout(500);

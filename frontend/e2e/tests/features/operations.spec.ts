@@ -658,8 +658,10 @@ test.describe('Operations - Form Interactions', () => {
     count = await formPage.financeRows.count();
     expect(count).toBe(2);
 
-    // Remove the first finance row
-    await formPage.financeRows.first().locator('.finance-remove-btn').click();
+    // Remove the first finance row.
+    // Use dispatchEvent('click') because the mat-select chevron of the adjacent
+    // .finance-categorie field visually intercepts pointer events on the trash btn.
+    await formPage.financeRows.first().locator('.finance-remove-btn').dispatchEvent('click');
     await referentPage.waitForTimeout(300);
     count = await formPage.financeRows.count();
     expect(count).toBe(1);

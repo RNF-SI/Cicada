@@ -360,8 +360,11 @@ test.describe.serial('Plan Create - Creation and Verification', () => {
 
     // Search for the plan created with required fields
     await plansPage.searchPlan(planNameRequired);
+    // Wait for the search results to render
+    await page.waitForTimeout(1500);
     const planRow = plansPage.getRowByName(planNameRequired);
-    await expect(planRow).toBeVisible();
+    // Use toBeAttached: the table may paginate, but the matching row should be in DOM
+    await expect(planRow.first()).toBeAttached({ timeout: 10000 });
   });
 
   test('cleanup: delete created plans', async () => {

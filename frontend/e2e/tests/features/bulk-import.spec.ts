@@ -79,12 +79,12 @@ test.describe('Bulk Site Import', () => {
       const dialog = page.locator('mat-dialog-container');
       await expect(dialog).toBeVisible();
 
-      // Should have stepper
-      const stepper = dialog.locator('mat-stepper');
+      // Should have stepper (migré kit UI app-stepper)
+      const stepper = dialog.locator('app-stepper, mat-stepper');
       await expect(stepper).toBeVisible();
 
       // Should have step labels (Upload, Mapping, Preview, Results)
-      const stepLabels = dialog.locator('.mat-step-label');
+      const stepLabels = dialog.locator('.stepper-step, .mat-step-label');
       const count = await stepLabels.count();
       expect(count).toBeGreaterThanOrEqual(3);
     });

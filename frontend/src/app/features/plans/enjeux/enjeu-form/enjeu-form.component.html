@@ -38,12 +38,14 @@
                       rows="3"
                       [placeholder]="'enjeux.enjeuForm.libellePlaceholder' | translate">
             </textarea>
-            @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
-              
-            }
-            @if (form.get('libelle')?.hasError('maxlength')) {
-              
-            }
+  <ng-container errorSlot>
+    @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'enjeux.enjeuForm.errors.libelleRequired' | translate }}</p>
+    }
+    @if (form.get('libelle')?.hasError('maxlength')) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'enjeux.enjeuForm.errors.libelleMaxLength' | translate }}</p>
+    }
+  </ng-container>
 </app-form-field>
 
           <!-- Intitulé court -->

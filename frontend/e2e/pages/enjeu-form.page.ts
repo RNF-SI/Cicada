@@ -95,7 +95,7 @@ export class EnjeuFormPage {
     this.geologyRefList = page.locator('app-reference-item-list[type="geology"]');
 
     // Details accordion
-    this.detailsPanel = page.locator('.details-panel, mat-expansion-panel');
+    this.detailsPanel = page.locator('app-accordion, .details-panel, mat-expansion-panel');
     this.etatEnjeuTextarea = page.locator('textarea[formControlName="etat_enjeu"]');
     this.descriptionTextarea = page.locator('textarea[formControlName="description"]');
 
@@ -156,7 +156,8 @@ export class EnjeuFormPage {
   }
 
   async expandDetailsPanel() {
-    const panelHeader = this.detailsPanel.locator('mat-expansion-panel-header');
+    // Le formulaire utilise désormais <app-accordion> avec un header cliquable
+    const panelHeader = this.detailsPanel.locator('.app-accordion__header, mat-expansion-panel-header').first();
     await panelHeader.click();
     await this.page.waitForTimeout(300);
   }
