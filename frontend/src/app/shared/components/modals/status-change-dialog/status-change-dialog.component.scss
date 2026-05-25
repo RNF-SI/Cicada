@@ -1,14 +1,40 @@
 @import 'variables';
 
+// Style kit UI : padding et tokens uniformes (revue design Amandine)
+:host ::ng-deep .mat-mdc-dialog-content {
+  padding: $spacing-lg $spacing-xl $spacing-md !important;
+  max-height: 75vh;
+}
+
+:host ::ng-deep .mat-mdc-dialog-actions {
+  padding: $spacing-md $spacing-xl $spacing-lg !important;
+  min-height: auto;
+}
+
+:host ::ng-deep h2.mat-mdc-dialog-title {
+  padding: $spacing-lg $spacing-xl $spacing-sm !important;
+  font-family: $font-family;
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: 0;
+}
+
 .plan-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
+  background-color: $gray-lightest;
+  border-left: 3px solid $primary-color;
+  border-radius: $border-radius-md;
 
   .plan-name {
-    display: block;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
     color: $primary-color;
-    margin-bottom: $spacing-sm;
   }
 
   .plan-meta {
@@ -18,7 +44,7 @@
 
     .plan-period {
       color: $gray-dark;
-      font-size: 0.9rem;
+      font-size: $font-size-small;
     }
   }
 }
@@ -33,18 +59,25 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  padding: $spacing-md;
+  padding: $spacing-md $spacing-lg;
   border: 1px solid $gray-light;
-  border-radius: $border-radius-sm;
+  border-radius: $border-radius-md;
   background: $white;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color $transition-fast, box-shadow $transition-fast, transform $transition-fast;
   text-align: left;
   width: 100%;
 
   &:hover {
     border-color: $primary-color;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px $primary-bg-focus;
   }
 
   .action-icon {
@@ -57,7 +90,7 @@
     flex-shrink: 0;
 
     i {
-      font-size: 1.1rem;
+      font-size: $font-size-h4;
     }
   }
 
@@ -65,36 +98,42 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: $spacing-xxs;
 
     .action-label {
-      font-weight: 700;
-      font-size: 0.95rem;
+      font-family: $font-family;
+      font-weight: $font-weight-bold;
+      font-size: $font-size-base;
       color: $black;
+      line-height: 1.3;
     }
 
     .action-description {
-      font-size: 0.85rem;
+      font-family: $font-family;
+      font-size: $font-size-small;
       color: $gray-dark;
+      line-height: 1.4;
     }
   }
 
   .action-arrow {
-    color: $gray;
-    font-size: 0.9rem;
+    color: $primary-color;
+    font-size: $font-size-h4;
     flex-shrink: 0;
+    transition: transform $transition-fast;
   }
 
-  // Color variants
+  &:hover .action-arrow {
+    transform: translateX(2px);
+  }
+
+  // Color variants (kit UI — chaque action a sa couleur d'accent)
   &.action-success {
     .action-icon {
       background: rgba($success-color, 0.1);
       color: $success-color;
     }
-
-    &:hover {
-      border-color: $success-color;
-    }
+    &:hover { border-color: $success-color; }
   }
 
   &.action-neutral {
@@ -109,10 +148,7 @@
       background: rgba($secondary-terra-cotta, 0.1);
       color: $secondary-terra-cotta;
     }
-
-    &:hover {
-      border-color: $secondary-terra-cotta;
-    }
+    &:hover { border-color: $secondary-terra-cotta; }
   }
 
   &.action-warning {
@@ -120,10 +156,7 @@
       background: rgba($warning-color, 0.1);
       color: $warning-color;
     }
-
-    &:hover {
-      border-color: $warning-color;
-    }
+    &:hover { border-color: $warning-color; }
   }
 }
 
@@ -131,11 +164,15 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  padding: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  background-color: $primary-bg-soft;
+  border-left: 3px solid $primary-color;
+  border-radius: $border-radius-md;
   color: $gray-dark;
-  font-size: 0.9rem;
+  font-size: $font-size-small;
 
   i {
-    font-size: 1.2rem;
+    font-size: $font-size-h4;
+    color: $primary-color;
   }
 }

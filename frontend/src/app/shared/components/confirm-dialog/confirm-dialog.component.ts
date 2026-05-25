@@ -1,5 +1,8 @@
 /**
  * Composant de dialogue de confirmation réutilisable.
+ *
+ * Supporte une liste d'impact pour les suppressions en cascade (revue design Amandine) :
+ * passer `impactList` pour afficher explicitement les entités qui seront supprimées.
  */
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -7,12 +10,27 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
 
+export interface CascadeImpactGroup {
+  /** Nom du type d'entité au pluriel (ex: "Pressions", "Objectifs à long terme") */
+  label: string;
+  /** Nombre d'entités impactées de ce type */
+  count: number;
+  /** Icône Flaticon (ex: "fi-rr-mountains") */
+  icon?: string;
+}
+
 export interface ConfirmDialogData {
   title: string;
   message: string;
+  /** Liste structurée des entités qui seront supprimées en cascade */
+  impactList?: CascadeImpactGroup[];
+  /** Texte d'avertissement complémentaire (ex: "Cette action est irréversible") */
+  warningText?: string;
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'accent' | 'warn';
+  /** Variante destructive : icône d'alerte + couleur rouge */
+  destructive?: boolean;
 }
 
 @Component({
@@ -25,42 +43,51 @@ export interface ConfirmDialogData {
     TranslateModule
   ],
   template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <h2 mat-dialog-title>
+      @if (data.destructive) {
+        <i class="fi fi-rr-exclamation title-icon"></i>
+      }
+      {{ data.title }}
+    </h2>
     <mat-dialog-content>
-      <p>{{ data.message }}</p>
+      <p class="message">{{ data.message }}</p>
+
+      @if (data.impactList && data.impactList.length > 0) {
+        <div class="impact-block">
+          <p class="impact-title">{{ 'common.cascadeDelete.impactTitle' | translate }}</p>
+          <ul class="impact-list">
+            @for (group of data.impactList; track group.label) {
+              <li class="impact-item">
+                @if (group.icon) {
+                  <i class="fi" [class]="group.icon"></i>
+                }
+                <span class="impact-count">{{ group.count }}</span>
+                <span class="impact-label">{{ group.label }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (data.warningText) {
+        <p class="warning-text">
+          <i class="fi fi-rr-triangle-warning"></i>
+          {{ data.warningText }}
+        </p>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-stroked-button (click)="onCancel()">
         {{ data.cancelText || ('common.actions.cancel' | translate) }}
       </button>
       <button mat-flat-button
-              [color]="data.confirmColor || 'primary'"
+              [color]="data.confirmColor || (data.destructive ? 'warn' : 'primary')"
               (click)="onConfirm()">
         {{ data.confirmText || ('common.actions.confirm' | translate) }}
       </button>
     </mat-dialog-actions>
   `,
-  styles: [`
-    h2 {
-      margin: 0;
-      font-weight: 600;
-    }
-
-    mat-dialog-content {
-      padding: 16px 0;
-
-      p {
-        margin: 0;
-        color: #746F6E;
-        white-space: pre-line;
-      }
-    }
-
-    mat-dialog-actions {
-      padding-top: 16px;
-      gap: 8px;
-    }
-  `]
+  styleUrl: './confirm-dialog.component.scss'
 })
 export class ConfirmDialogComponent {
   constructor(

@@ -42,6 +42,10 @@
     "none": "Aucun",
     "createdAt": "Créé le",
     "by": "par",
+    "cascadeDelete": {
+      "impactTitle": "Cette action supprimera également :",
+      "warning": "Cette suppression est définitive et ne peut pas être annulée."
+    },
     "retry": "Réessayer",
     "messages": {
       "loading": "Chargement...",
@@ -2186,6 +2190,15 @@
     "network": "Erreur de connexion. Vérifiez votre connexion internet."
   },
   "enjeux": {
+    "cascade": {
+      "facteurs": "Facteur(s) d'influence",
+      "pressions": "Pression(s)",
+      "olt": "Objectif(s) à long terme",
+      "ne": "Niveau(x) d'exigence",
+      "oo": "Objectif(s) opérationnel(s)",
+      "ra": "Résultat(s) attendu(s)",
+      "indicateurs": "Indicateur(s) (avec leurs métriques et opérations)"
+    },
     "title": "Enjeux et facteurs clés de réussite",
     "subtitle": "Plan de gestion",
     "empty": {

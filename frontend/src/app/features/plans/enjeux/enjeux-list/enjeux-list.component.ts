@@ -1159,8 +1159,43 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // Event handlers pour les accordéons
   onEnjeuDelete(enjeu: Enjeu): void {
     const isFcr = enjeu.categorie_mnemonique === 'FCR';
+
+    // Calcul de l'impact cascade (revue design Amandine — afficher explicitement
+    // les entités qui seront supprimées avec l'enjeu)
+    const impactList: { label: string; count: number; icon?: string }[] = [];
+    if (!isFcr) {
+      let nbFacteurs = 0, nbPressions = 0, nbOlts = 0, nbNes = 0, nbOos = 0, nbRas = 0, nbIndicateurs = 0;
+      for (const fi of enjeu.facteurs_influence || []) {
+        nbFacteurs++;
+        for (const p of fi.pressions || []) {
+          nbPressions++;
+          for (const oo of p.objectifs_operationnels || []) {
+            nbOos++;
+            for (const ra of oo.resultats_attendus || []) {
+              nbRas++;
+              nbIndicateurs += (ra.indicateurs || []).length;
+            }
+          }
+        }
+      }
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        nbOlts++;
+        for (const ne of olt.niveaux_exigence || []) {
+          nbNes++;
+          nbIndicateurs += (ne.indicateurs || []).length;
+        }
+      }
+      if (nbFacteurs) impactList.push({ label: this.translate.instant('enjeux.cascade.facteurs', { count: nbFacteurs }), count: nbFacteurs, icon: 'fi-rr-chart-tree' });
+      if (nbPressions) impactList.push({ label: this.translate.instant('enjeux.cascade.pressions', { count: nbPressions }), count: nbPressions, icon: 'fi-rr-triangle-warning' });
+      if (nbOlts) impactList.push({ label: this.translate.instant('enjeux.cascade.olt', { count: nbOlts }), count: nbOlts, icon: 'fi-rr-bullseye-arrow' });
+      if (nbNes) impactList.push({ label: this.translate.instant('enjeux.cascade.ne', { count: nbNes }), count: nbNes, icon: 'fi-rr-target' });
+      if (nbOos) impactList.push({ label: this.translate.instant('enjeux.cascade.oo', { count: nbOos }), count: nbOos, icon: 'fi-rr-bullseye-arrow' });
+      if (nbRas) impactList.push({ label: this.translate.instant('enjeux.cascade.ra', { count: nbRas }), count: nbRas, icon: 'fi-rr-check' });
+      if (nbIndicateurs) impactList.push({ label: this.translate.instant('enjeux.cascade.indicateurs', { count: nbIndicateurs }), count: nbIndicateurs, icon: 'fi-rr-chart-line-up' });
+    }
+
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '450px',
+      width: '520px',
       data: {
         title: isFcr
           ? this.translate.instant('enjeux.messages.fcrDeleteConfirmTitle')
@@ -1168,9 +1203,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         message: isFcr
           ? this.translate.instant('enjeux.messages.fcrDeleteConfirm')
           : this.translate.instant('enjeux.messages.enjeuDeleteConfirm'),
+        impactList: impactList.length > 0 ? impactList : undefined,
+        warningText: impactList.length > 0 ? this.translate.instant('common.cascadeDelete.warning') : undefined,
         confirmText: this.translate.instant('common.actions.delete'),
         cancelText: this.translate.instant('common.actions.cancel'),
-        confirmColor: 'warn'
+        destructive: true
       }
     });
 
