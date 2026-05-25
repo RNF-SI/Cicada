@@ -10,11 +10,11 @@
       #input
       type="text"
       class="search-bar__input"
-      [value]="value"
+      [ngModel]="value"
+      (ngModelChange)="onInput($event)"
       [placeholder]="placeholder"
       [disabled]="disabled"
       [attr.aria-label]="ariaLabel"
-      (input)="onInput($any($event.target).value)"
       (keydown.enter)="onEnter()"
       (focus)="onFocus()"
       (blur)="onBlur()"

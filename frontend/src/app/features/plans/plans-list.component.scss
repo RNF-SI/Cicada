@@ -351,6 +351,26 @@ h1 {
         margin-left: $spacing-xs;
         opacity: 0.6;
       }
+
+      // Colonnes triables (revue design Amandine — bug tri colonnes)
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color $transition-fast;
+
+        &:hover {
+          background-color: $primary-hover;
+        }
+
+        i.sort-idle {
+          font-size: $font-size-base;
+          opacity: 0.35;
+        }
+      }
+
+      &.sorted i {
+        opacity: 1;
+      }
     }
   }
 

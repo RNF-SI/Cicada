@@ -149,14 +149,35 @@
             <table class="plans-table" data-testid="plans-table">
               <thead>
                 <tr>
-                  <th class="col-name">
+                  <th class="col-name sortable" (click)="onSort('name')" [class.sorted]="sortIconDir('name') !== null">
                     {{ 'plans.list.table.name' | translate }}
-                    <i class="fi fi-rr-arrow-small-down"></i>
+                    @if (sortIconDir('name') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('name') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
                   </th>
-                  <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
-                  <th class="col-status">
+                  <th class="col-period sortable" (click)="onSort('period')" [class.sorted]="sortIconDir('period') !== null">
+                    {{ 'plans.list.table.period' | translate }}
+                    @if (sortIconDir('period') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('period') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
+                  </th>
+                  <th class="col-status sortable" (click)="onSort('status')" [class.sorted]="sortIconDir('status') !== null">
                     {{ 'plans.list.table.status' | translate }}
-                    <i class="fi fi-rr-arrow-small-down"></i>
+                    @if (sortIconDir('status') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('status') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
                   </th>
                   <th class="col-actions"></th>
                 </tr>

@@ -115,6 +115,25 @@ export class PlansListComponent implements OnInit {
   // Search pour "Mes plans"
   myPlansSearchQuery = signal('');
 
+  // Tri colonnes (revue design Amandine — le tri ne marchait pas)
+  readonly sortField = signal<'name' | 'period' | 'status' | null>(null);
+  readonly sortDir = signal<'asc' | 'desc'>('asc');
+
+  onSort(field: 'name' | 'period' | 'status'): void {
+    if (this.sortField() === field) {
+      this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  /** Retourne 'asc' / 'desc' / null pour la flèche d'en-tête de colonne */
+  sortIconDir(field: 'name' | 'period' | 'status'): 'asc' | 'desc' | null {
+    return this.sortField() === field ? this.sortDir() : null;
+  }
+
   // Toggle anciennes versions
   readonly showOldVersions = signal(false);
 
@@ -182,11 +201,25 @@ export class PlansListComponent implements OnInit {
   readonly myPlans = computed(() => {
     const tab = this.activeTab();
     const search = this.myPlansSearchQuery().toLowerCase();
-    return this.scopedPlans().filter(p => {
+    const filtered = this.scopedPlans().filter(p => {
       const tabMatch = tab === 'actifs' ? p.statut !== 'archive' : p.statut === 'archive';
       const searchMatch = !search || p.nom.toLowerCase().includes(search);
       const isLeaf = !p.children_count || p.children_count === 0;
       return tabMatch && searchMatch && isLeaf;
+    });
+
+    // Tri colonnes (revue design Amandine)
+    const field = this.sortField();
+    if (!field) return filtered;
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      let av: string | number = '', bv: string | number = '';
+      if (field === 'name') { av = a.nom?.toLowerCase() || ''; bv = b.nom?.toLowerCase() || ''; }
+      else if (field === 'period') { av = a.annee_debut ?? 0; bv = b.annee_debut ?? 0; }
+      else if (field === 'status') { av = a.statut || ''; bv = b.statut || ''; }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
     });
   });
 
