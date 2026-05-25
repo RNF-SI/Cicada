@@ -228,8 +228,17 @@ test.describe('Operations - Create', () => {
     const uniqueName = `E2E Op Metrique ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
 
-    // Select first available metrique
-    await formPage.metriqueSelect.click();
+    // Select first available metrique : scroll dans la vue + click sur le trigger
+    // car le mat-select multiple peut être hors viewport. Retry si le panel
+    // n'ouvre pas (mat-select multiple parfois récalcitrant).
+    await formPage.metriqueSelect.scrollIntoViewIfNeeded();
+    const trigger = formPage.metriqueSelect.locator('.mat-mdc-select-trigger');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await trigger.click();
+      await referentPage.waitForTimeout(400);
+      const panelOpen = await referentPage.locator('.mat-mdc-select-panel').isVisible().catch(() => false);
+      if (panelOpen) break;
+    }
     await referentPage.locator('mat-option').filter({ hasNotText: '--' }).first().click({ timeout: 10000 });
     // Press Escape to ensure the autocomplete overlay is dismissed before
     // clicking submit (otherwise cdk-overlay-backdrop intercepts pointer events).
