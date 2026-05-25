@@ -1,5 +1,10 @@
 @import 'variables';
 
+:host {
+  display: block;
+  width: 100%;
+}
+
 // AnchorNav (issue #304) — boutons tertiaires séparés par `/`
 
 .app-anchor-nav {

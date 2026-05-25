@@ -1,5 +1,10 @@
 @import 'variables';
 
+:host {
+  display: block;
+  width: 100%;
+}
+
 // SearchBar - composant unifié (issue #298)
 
 .search-bar {

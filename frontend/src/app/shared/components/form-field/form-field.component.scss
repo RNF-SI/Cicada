@@ -3,6 +3,14 @@
 // FormField compact (issue #300)
 // Label au-dessus du champ, hauteur réduite vs Material
 
+// IMPORTANT : par défaut un composant Angular a le display:inline du host.
+// Sans cette règle, le wrapper interne (width:100%) n'a pas la largeur attendue
+// dans les contextes non-flex. Cf bug visible operation-form / inventaire-form.
+:host {
+  display: block;
+  width: 100%;
+}
+
 .app-form-field {
   display: flex;
   flex-direction: column;
