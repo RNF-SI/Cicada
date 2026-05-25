@@ -391,41 +391,38 @@ a[mat-raised-button][color="primary"] {
 .mat-mdc-form-field.app-mat-form-field {
   // Outline
   &.mat-form-field-appearance-outline {
+    // On REMPLACE l'outline notched (3 segments avec notch pour label flottant)
+    // par une bordure simple sur le wrapper. Plus robuste qu'essayer de masquer
+    // le notch sans casser la continuité du trait — Material utilise un flex
+    // layout sur les 3 segments qui crée toujours un petit espace dans le bord
+    // top quand le notch a une largeur, et c'est compliqué à éliminer
+    // proprement avec les pseudo-classes Material.
     .mat-mdc-text-field-wrapper {
       background-color: $white;
+      border: 1px solid $input-border-color;
       border-radius: $border-radius-sm !important;
       padding: 0;
     }
 
-    // L'outline notched de Material a 3 segments :
-    // [leading]----[notch (espace pour le label flottant)]----[trailing]
-    // Quand le label flottant est masqué, le notch garde quand même un espace
-    // vide qui casse le bord en haut → "trou" visible (~5mm) dans le border.
-    // Fix : on neutralise complètement le notch + on étend le bord supérieur
-    // du leading et trailing pour avoir un trait continu.
-    .mat-mdc-notched-outline {
-      .mdc-notched-outline__leading {
-        border-right: none !important;
-      }
-      .mdc-notched-outline__notch {
-        // Largeur zéro pour ne pas créer de gap, et plus de border non plus
-        max-width: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        // Le contenu (label) reste caché de toute façon
-        > * { display: none !important; }
-      }
-      .mdc-notched-outline__trailing {
-        border-left: none !important;
-        // Le trailing reprend toute la largeur restante avec un border top continu
-        flex-grow: 1 !important;
-      }
+    // Cache complètement la structure notched-outline (leading, notch, trailing)
+    .mat-mdc-notched-outline,
+    .mdc-notched-outline {
+      display: none !important;
     }
 
-    // Cache le label flottant Material
+    // Cache le label flottant Material (qui reste vide dans .app-mat-form-field)
     .mat-mdc-floating-label,
     .mdc-floating-label {
       display: none !important;
+    }
+
+    // États focus / error sur le wrapper (cohérent avec form-field natif)
+    &.mat-focused .mat-mdc-text-field-wrapper {
+      border-color: $input-focus-color;
+      box-shadow: 0 0 0 2px rgba($input-focus-color, 0.12);
+    }
+    &.mat-form-field-invalid .mat-mdc-text-field-wrapper {
+      border-color: $input-error-color;
     }
   }
 
