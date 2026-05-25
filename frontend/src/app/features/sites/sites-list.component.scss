@@ -58,7 +58,7 @@ h1 { @include sites-h1; }
   min-width: 180px;
   max-width: 270px;
   transition: all $transition-fast;
-  &:focus-within { border-color: $primary-color; box-shadow: 0 0 0 2px rgba($primary-color, 0.1); }
+  &:focus-within { border-color: $primary-color; box-shadow: 0 0 0 2px $primary-bg-light; }
 }
 .search-icon { font-size: 14px; color: $gray; flex-shrink: 0; }
 .search-input {
@@ -179,7 +179,7 @@ h1 { @include sites-h1; }
   white-space: nowrap;
   i { font-size: 16px; }
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
     text-decoration: none;
   }
 }
@@ -196,7 +196,7 @@ h1 { @include sites-h1; }
   &:first-child { border-radius: 8px 0 0 7px; }
   &:last-child { border-radius: 0 8px 8px 0; border-right: 1px solid $gray-light; }
   &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
-  &:hover:not(.active):not(:disabled) { background-color: rgba($primary-color, 0.08); }
+  &:hover:not(.active):not(:disabled) { background-color: $primary-bg-subtle; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
   i { font-size: 18px; }
 }

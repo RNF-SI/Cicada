@@ -73,8 +73,8 @@
   transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    background-color: rgba($primary-color, 0.05);
-    border-color: rgba($primary-color, 0.2);
+    background-color: $primary-bg-soft;
+    border-color: $primary-bg-medium;
 
     .rang-chevron {
       color: $primary-color;
@@ -95,7 +95,7 @@
 .rang-section.rang-next .rang-header-link {
   .rang-position-tag {
     color: $primary-color;
-    background: rgba($primary-color, 0.08);
+    background: $primary-bg-subtle;
     border: 1px dashed rgba($primary-color, 0.3);
   }
 }
@@ -321,7 +321,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: $primary-color;
-  background: rgba($primary-color, 0.08);
+  background: $primary-bg-subtle;
   padding: 1px 5px;
   border-radius: $border-radius-sm;
   line-height: 1.4;

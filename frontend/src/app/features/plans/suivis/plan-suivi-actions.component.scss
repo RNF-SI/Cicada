@@ -230,7 +230,7 @@
   font-weight: $font-weight-bold;
   color: $primary-color;
   background: $white;
-  border: 1px solid rgba($primary-color, 0.2);
+  border: 1px solid $primary-bg-medium;
   cursor: pointer;
   transition: all $transition-fast;
   min-width: 120px;
@@ -308,7 +308,7 @@
 
   &.filter-active {
     font-weight: $font-weight-bold;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
     // Indicateur visuel d'un filtre actif (revue design #317)
     border-bottom: 2px solid $primary-color;
   }
@@ -356,7 +356,7 @@
   margin-bottom: $spacing-lg;
   background-color: $white;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.08);
+  border: 1px solid $primary-bg-subtle;
 }
 
 .legend-label {
@@ -392,7 +392,7 @@
 .table-wrapper {
   overflow-x: auto;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.12);
+  border: 1px solid $primary-bg-focus;
 }
 
 .actions-table {
@@ -434,7 +434,7 @@
   tbody {
     tr {
       background-color: $white;
-      border-bottom: 1px solid rgba($primary-color, 0.08);
+      border-bottom: 1px solid $primary-bg-subtle;
 
       &.row-alt {
         background-color: rgba($secondary-pale-green, 0.2);
@@ -540,7 +540,7 @@ tr.is-draft {
   i { font-size: 16px; }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 

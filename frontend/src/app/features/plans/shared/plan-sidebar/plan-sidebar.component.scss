@@ -80,7 +80,7 @@
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   // Figma active state: primary bg, white text, pill-right shape

@@ -107,7 +107,7 @@
     ::ng-deep textarea:focus,
     ::ng-deep textarea:focus-visible {
       border-color: $primary-color;
-      box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+      box-shadow: 0 0 0 2px $primary-bg-focus;
     }
 
     ::ng-deep input:disabled,
@@ -174,7 +174,7 @@
       border-radius: 50%;
 
       &:hover {
-        background-color: rgba($primary-color, 0.08);
+        background-color: $primary-bg-subtle;
         color: $primary-color;
       }
 

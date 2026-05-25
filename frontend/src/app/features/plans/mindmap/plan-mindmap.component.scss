@@ -230,7 +230,7 @@
     }
 
     &:not(.active):hover {
-      background: rgba($primary-color, 0.08);
+      background: $primary-bg-subtle;
     }
 
     i {
@@ -256,7 +256,7 @@
   min-height: 600px;
   background: $white;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.08);
+  border: 1px solid $primary-bg-subtle;
   // #257 : la partition peut être plus grande que la fenêtre quand le plan
   // est dense (chaque feuille a min 50 px). On rend le conteneur scrollable
   // verticalement pour permettre l'affichage multi-ligne du texte.
@@ -273,7 +273,7 @@
   margin-bottom: $spacing-md;
   background-color: $white;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.08);
+  border: 1px solid $primary-bg-subtle;
 }
 
 .legend-entry {

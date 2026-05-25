@@ -76,7 +76,7 @@
   border-radius: $border-radius-sm;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 
   i { font-size: 14px; }
@@ -230,7 +230,7 @@
 
     &:hover {
       color: $primary-color;
-      background-color: rgba($primary-color, 0.05);
+      background-color: $primary-bg-soft;
     }
   }
 }
@@ -392,7 +392,7 @@
     display: inline-flex;
     align-items: center;
     padding: 2px $spacing-xs;
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
     font-size: 9px;
     font-weight: $font-weight-semibold;
@@ -450,7 +450,7 @@
 
   &:hover {
     border-color: $primary-color;
-    box-shadow: 0 2px 8px rgba($primary-color, 0.1);
+    box-shadow: 0 2px 8px $primary-bg-light;
   }
 
   // Compact mode for suggestions column
@@ -509,7 +509,7 @@
     align-items: center;
     gap: $spacing-xxs;
     color: $primary-color;
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     font-size: 9px;
     font-weight: $font-weight-semibold;
     text-transform: uppercase;

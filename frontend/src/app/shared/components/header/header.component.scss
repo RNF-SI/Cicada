@@ -131,7 +131,7 @@
   border-radius: $border-radius-md;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   // Hide on desktop only when on home page
@@ -181,7 +181,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -273,7 +273,7 @@
   min-height: 40px;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 

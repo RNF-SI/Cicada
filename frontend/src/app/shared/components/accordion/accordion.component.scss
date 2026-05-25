@@ -99,7 +99,7 @@
     transition: background-color 0.15s ease;
 
     &:hover {
-      background-color: rgba($primary-color, 0.1);
+      background-color: $primary-bg-light;
     }
 
     &:disabled {

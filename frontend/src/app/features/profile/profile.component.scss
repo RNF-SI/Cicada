@@ -201,7 +201,7 @@ $white: #fff;
 }
 
 .role-chip {
-  background-color: rgba($primary-color, 0.1) !important;
+  background-color: $primary-bg-light !important;
   color: $primary-color !important;
   font-size: 11px;
 }

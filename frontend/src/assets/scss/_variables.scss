@@ -10,6 +10,13 @@ $primary-color: #025359;  // Boutons & actions, navigation, titres
 $primary-hover: lighten($primary-color, 8%);
 $primary-active: lighten($primary-color, 15%);
 
+// Primary translucides (états hover / focus / badges discrets)
+$primary-bg-soft: rgba($primary-color, 0.05);    // Fond très léger (encart info)
+$primary-bg-subtle: rgba($primary-color, 0.08);  // Hover tertiaire / bouton plat
+$primary-bg-light: rgba($primary-color, 0.1);    // Pastille / chip / badge discret
+$primary-bg-focus: rgba($primary-color, 0.12);   // Bague de focus / box-shadow
+$primary-bg-medium: rgba($primary-color, 0.2);   // Bordure légère / séparateur
+
 // Secondary Colors
 $secondary-yellow: #FEC180;       // Jaune (décoratif/fond)
 $secondary-orange-salmon: #F5B399; // Orange saumon (décoratif/fond)

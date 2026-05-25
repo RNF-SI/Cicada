@@ -100,7 +100,7 @@
     transition: all 0.15s ease;
 
     &:hover {
-      background: rgba($primary-color, 0.08);
+      background: $primary-bg-subtle;
       border-color: $primary-color;
     }
 
@@ -168,7 +168,7 @@
     transition: background 0.15s ease, border-color 0.15s ease;
 
     &:hover {
-      background: rgba($primary-color, 0.12);
+      background: $primary-bg-focus;
       border-color: rgba($primary-color, 0.3);
     }
   }
@@ -364,7 +364,7 @@
   z-index: 2;
 
   &:hover {
-    background: rgba($primary-color, 0.08);
+    background: $primary-bg-subtle;
     border-color: $primary-color;
     color: $primary-color;
   }

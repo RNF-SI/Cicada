@@ -78,7 +78,7 @@
   width: 60%;
   height: 100%;
   opacity: 0.2;
-  background: radial-gradient(circle at 70% 50%, rgba($primary-color, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 70% 50%, $primary-bg-subtle 0%, transparent 60%);
 }
 
 .hero-content {
@@ -360,7 +360,7 @@
     width: 80px;
     height: 80px;
     border-radius: $border-radius-round;
-    background: rgba($primary-color, 0.08);
+    background: $primary-bg-subtle;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -618,7 +618,7 @@
   }
 
   &:hover:not(.active):not(:disabled) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   &:disabled {

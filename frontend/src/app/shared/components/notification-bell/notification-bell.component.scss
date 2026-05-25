@@ -9,7 +9,7 @@
   border-radius: 50%;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 
   .bell-container {
@@ -273,7 +273,7 @@
 
     // Hover : fond léger (revue design Amandine — pas de soulignement)
     &:hover {
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
       text-decoration: none;
     }
   }

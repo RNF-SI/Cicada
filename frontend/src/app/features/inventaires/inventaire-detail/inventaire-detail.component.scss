@@ -44,7 +44,7 @@ $detail-side-margin: $page-gutter;
   width: 60%;
   height: 100%;
   opacity: 0.2;
-  background: radial-gradient(circle at 70% 50%, rgba($primary-color, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 70% 50%, $primary-bg-subtle 0%, transparent 60%);
 }
 
 .hero-content {
@@ -252,7 +252,7 @@ $detail-side-margin: $page-gutter;
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 

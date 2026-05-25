@@ -70,7 +70,7 @@
 
   &.action-primary {
     .action-icon {
-      background: rgba($primary-color, 0.1);
+      background: $primary-bg-light;
       color: $primary-color;
     }
 
@@ -128,7 +128,7 @@
 
   &.selected {
     border-color: $primary-color;
-    background: rgba($primary-color, 0.05);
+    background: $primary-bg-soft;
   }
 
   .operation-item-radio {

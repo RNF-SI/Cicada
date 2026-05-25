@@ -232,7 +232,7 @@ a[mat-raised-button][color="primary"] {
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08) !important;
+    background-color: $primary-bg-subtle !important;
   }
 
   &:active {
@@ -263,7 +263,7 @@ a[mat-raised-button][color="primary"] {
   }
 
   &:hover:not([disabled]) {
-    background-color: rgba($primary-color, 0.08) !important;
+    background-color: $primary-bg-subtle !important;
   }
 
   &:active:not([disabled]) {
@@ -531,8 +531,8 @@ a[mat-raised-button][color="primary"] {
   --mat-datepicker-calendar-date-selected-state-text-color: #{$white};
   --mat-datepicker-calendar-date-today-outline-color: #{$primary-color};
   --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$primary-color};
-  --mat-datepicker-calendar-date-focus-state-background-color: #{rgba($primary-color, 0.12)};
-  --mat-datepicker-calendar-date-hover-state-background-color: #{rgba($primary-color, 0.08)};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{$primary-bg-focus};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{$primary-bg-subtle};
   --mat-datepicker-calendar-date-in-range-state-background-color: #{rgba($primary-color, 0.15)};
   --mat-datepicker-calendar-date-text-color: #{$black};
   --mat-datepicker-calendar-body-label-text-color: #{$gray-dark};
@@ -1371,12 +1371,12 @@ a[mat-raised-button][color="primary"] {
   // Ripple and state layer
   // ============================================
   .mdc-checkbox__ripple {
-    background-color: rgba($primary-color, 0.1) !important;
+    background-color: $primary-bg-light !important;
   }
 
   .mat-mdc-checkbox-ripple,
   .mat-ripple-element {
-    background-color: rgba($primary-color, 0.1) !important;
+    background-color: $primary-bg-light !important;
   }
 
   // ============================================
@@ -1431,8 +1431,8 @@ a[mat-raised-button][color="primary"] {
   --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
 
   // Ripple
-  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
-  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-checked-ripple-color: #{$primary-bg-light};
+  --mat-radio-ripple-color: #{$primary-bg-light};
 
   // ============================================
   // Direct MDC component styling

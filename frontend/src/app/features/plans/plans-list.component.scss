@@ -251,7 +251,7 @@ h1 {
   }
 
   &:hover:not(.active) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -699,7 +699,7 @@ tr.is-child {
   }
 
   &:hover:not(.active):not(:disabled) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   &:disabled {

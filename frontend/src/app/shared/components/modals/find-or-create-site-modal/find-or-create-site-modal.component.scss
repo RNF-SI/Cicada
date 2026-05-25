@@ -87,7 +87,7 @@ mat-dialog-content {
   }
 
   &.results-category-my-org {
-    border: 1px solid rgba($primary-color, 0.2);
+    border: 1px solid $primary-bg-medium;
     background-color: rgba($primary-color, 0.02);
 
     .category-title {
@@ -323,7 +323,7 @@ mat-dialog-content {
   color: $primary-color;
 
   &:hover:not(:disabled) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   i {
@@ -388,14 +388,14 @@ mat-dialog-content {
 
 // Section création
 .create-section {
-  background-color: rgba($primary-color, 0.05);
+  background-color: $primary-bg-soft;
   border: 1px dashed rgba($primary-color, 0.3);
   border-radius: $border-radius-md;
   padding: $spacing-md;
 
   &.create-section-primary {
-    background-color: rgba($primary-color, 0.08);
-    border: 1px solid rgba($primary-color, 0.2);
+    background-color: $primary-bg-subtle;
+    border: 1px solid $primary-bg-medium;
 
     button {
       margin-top: $spacing-xs;

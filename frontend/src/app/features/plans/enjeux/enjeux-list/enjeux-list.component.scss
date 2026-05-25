@@ -482,7 +482,7 @@
 
   &:hover {
     color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 
   // Variante "action" pour les icônes d'édition/expand dans les cartes enjeu/facteur/pression
@@ -491,7 +491,7 @@
 
     &:hover {
       color: darken($primary-color, 10%);
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
     }
   }
 }
@@ -1119,7 +1119,7 @@
   cursor: grab;
 
   &:active { cursor: grabbing; }
-  &:hover  { background-color: rgba($primary-color, 0.1); }
+  &:hover  { background-color: $primary-bg-light; }
 }
 
 .olt-header-actions {
@@ -1763,14 +1763,14 @@
   margin-right: $spacing-xs;
   flex-shrink: 0;
   color: $primary-color;
-  &:hover { background-color: rgba($primary-color, 0.1); }
+  &:hover { background-color: $primary-bg-light; }
 }
 
 .operation-code {
   display: inline-block;
   padding: 2px 8px;
   margin-right: $spacing-xs;
-  background-color: rgba($primary-color, 0.1);
+  background-color: $primary-bg-light;
   color: $primary-color;
   border-radius: $border-radius-sm;
   font-weight: 600;
@@ -2163,7 +2163,7 @@
   &.inclusive {
     color: $primary-color;
     border-color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 

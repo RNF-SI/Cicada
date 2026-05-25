@@ -78,7 +78,7 @@
   font-size: $font-size-h3;
 
   &.total {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
   }
 
@@ -568,7 +568,7 @@
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 
   &.success {

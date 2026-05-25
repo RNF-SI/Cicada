@@ -204,14 +204,14 @@ html {
   --mdc-outlined-button-label-text-color: #{$primary-color};
   --mdc-outlined-button-icon-color: #{$primary-color};
   --mat-outlined-button-state-layer-color: #{$primary-color};
-  --mat-outlined-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-outlined-button-ripple-color: #{$primary-bg-focus};
   --mat-outlined-button-icon-color: #{$primary-color};
 
   // Buttons (text)
   --mdc-text-button-label-text-color: #{$primary-color};
   --mdc-text-button-icon-color: #{$primary-color};
   --mat-text-button-state-layer-color: #{$primary-color};
-  --mat-text-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-text-button-ripple-color: #{$primary-bg-focus};
   --mat-text-button-icon-color: #{$primary-color};
 
   // Checkbox - CRITICAL: checkmark must be WHITE on teal background
@@ -241,8 +241,8 @@ html {
   --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
   --mdc-radio-unselected-hover-icon-color: #{$primary-color};
   --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
-  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
-  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-checked-ripple-color: #{$primary-bg-light};
+  --mat-radio-ripple-color: #{$primary-bg-light};
 
   // Slide toggle - Track (background)
   --mdc-switch-selected-track-color: #{$primary-color};
@@ -297,8 +297,8 @@ html {
   --mat-datepicker-calendar-date-selected-state-text-color: #{$white};
   --mat-datepicker-calendar-date-today-outline-color: #{$primary-color};
   --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$primary-color};
-  --mat-datepicker-calendar-date-focus-state-background-color: #{rgba($primary-color, 0.12)};
-  --mat-datepicker-calendar-date-hover-state-background-color: #{rgba($primary-color, 0.08)};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{$primary-bg-focus};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{$primary-bg-subtle};
   --mat-datepicker-calendar-date-text-color: #{$black};
   --mat-datepicker-calendar-body-label-text-color: #{$gray-dark};
   --mat-datepicker-calendar-period-button-text-color: #{$black};
@@ -902,7 +902,7 @@ body.leaflet-map-fullscreen-active {
       font-weight: 700;
       font-size: 12px;
       color: $primary-color;
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
       padding: 1px 6px;
       border-radius: $border-radius-sm;
       margin-right: $spacing-xs;

@@ -33,7 +33,7 @@
   width: 29px;
   height: 29px;
   background-color: $white;
-  border: 2px solid rgba($primary-color, 0.2);
+  border: 2px solid $primary-bg-medium;
   border-radius: $border-radius-sm;
   cursor: pointer;
   transition: all $transition-fast;
@@ -124,7 +124,7 @@
   .leaflet-draw-toolbar {
     a {
       background-color: $white;
-      border-color: rgba($primary-color, 0.2);
+      border-color: $primary-bg-medium;
 
       &:hover {
         background-color: $primary-color;

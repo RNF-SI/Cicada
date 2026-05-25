@@ -713,7 +713,7 @@
     padding: $spacing-xs $spacing-sm;
 
     &:hover {
-      background-color: rgba($primary-color, 0.05);
+      background-color: $primary-bg-soft;
     }
 
     .action-arrow {
@@ -781,7 +781,7 @@
   transition: background-color $transition-fast, transform $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
     transform: translateX(4px);
 
     .site-card-cta {
@@ -951,7 +951,7 @@
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
     border-color: $primary-color;
   }
 }
@@ -1015,7 +1015,7 @@
   width: 28px;
   height: 28px;
   border-radius: $border-radius-round;
-  background-color: rgba($primary-color, 0.1);
+  background-color: $primary-bg-light;
   color: $primary-color;
   flex-shrink: 0;
 
@@ -1203,7 +1203,7 @@
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 

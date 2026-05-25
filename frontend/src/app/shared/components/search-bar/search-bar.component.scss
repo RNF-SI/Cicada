@@ -123,7 +123,7 @@
   // États
   &--focus &__field {
     border-color: $primary-color;
-    box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+    box-shadow: 0 0 0 2px $primary-bg-focus;
   }
 
   &--disabled &__field {

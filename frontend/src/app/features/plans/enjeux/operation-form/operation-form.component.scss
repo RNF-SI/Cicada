@@ -671,7 +671,7 @@ $form-side-margin: $spacing-xxl;
   transition: background-color $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 
@@ -956,7 +956,7 @@ $form-side-margin: $spacing-xxl;
   gap: $spacing-xxs;
   padding: $spacing-sm $spacing-md;
   margin-bottom: $spacing-md;
-  background-color: rgba($primary-color, 0.05);
+  background-color: $primary-bg-soft;
   border-left: 3px solid $primary-color;
   border-radius: $border-radius-sm;
   color: $primary-color;

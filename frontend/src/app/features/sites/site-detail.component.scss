@@ -135,7 +135,7 @@ h1 { @include sites-h1; }
 .plan-card {
   display: flex; justify-content: space-between; align-items: center; padding: $spacing-md;
   background-color: $gray-lighter; border-radius: $border-radius-sm; cursor: pointer;
-  &:hover { background-color: rgba($primary-color, 0.08); transform: translateX(4px); }
+  &:hover { background-color: $primary-bg-subtle; transform: translateX(4px); }
 }
 .plan-info { display: flex; flex-direction: column; gap: 2px; }
 .plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }

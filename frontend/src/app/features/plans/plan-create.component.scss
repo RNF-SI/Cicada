@@ -357,11 +357,11 @@
   transition: all $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 
   &.selected {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     border: 1px solid rgba($primary-color, 0.3);
   }
 
