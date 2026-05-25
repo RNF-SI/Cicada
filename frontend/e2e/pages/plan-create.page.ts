@@ -90,7 +90,7 @@ export class PlanCreatePage {
 
     // Sites selection
     this.sitesSection = page.locator('.sites-section');
-    this.siteSearchInput = page.locator('.search-box input');
+    this.siteSearchInput = page.locator('app-search-bar input');
     this.siteItems = page.locator('.selection-item');
     this.siteCheckboxes = page.locator('.selection-item mat-checkbox');
     this.siteCountBadge = page.locator('.sites-section .count-badge');

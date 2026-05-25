@@ -106,12 +106,12 @@ export class OperationFormPage {
     this.intituleSuiviInput = page.locator('input[formControlName="intitule_suivi"]');
 
     // Section headers
-    this.sectionDetailsSuivi = page.locator('.section-header').filter({ hasText: /inventaire|suivi/i }).first();
-    this.sectionProtocole = page.locator('.section-header').filter({ hasText: /protocole/i }).first();
-    this.sectionBancarisation = page.locator('.section-header').filter({ hasText: /bancarisation/i });
-    this.sectionProgrammation = page.locator('.section-header').filter({ hasText: /programmation/i });
-    this.sectionDetails = page.locator('.section-header').filter({ hasText: /détail/i }).first();
-    this.sectionEmprise = page.locator('.section-header').filter({ hasText: /emprise/i });
+    this.sectionDetailsSuivi = page.locator('.app-accordion__header').filter({ hasText: /inventaire|suivi/i }).first();
+    this.sectionProtocole = page.locator('.app-accordion__header').filter({ hasText: /protocole/i }).first();
+    this.sectionBancarisation = page.locator('.app-accordion__header').filter({ hasText: /bancarisation/i });
+    this.sectionProgrammation = page.locator('.app-accordion__header').filter({ hasText: /programmation/i });
+    this.sectionDetails = page.locator('.app-accordion__header').filter({ hasText: /détail/i }).first();
+    this.sectionEmprise = page.locator('.app-accordion__header').filter({ hasText: /emprise/i });
 
     // Détails suivi section
     this.objectifPrincipalSelect = page.locator('mat-select[formControlName="objectif_principal"]');

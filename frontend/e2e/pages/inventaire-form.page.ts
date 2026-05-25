@@ -80,9 +80,9 @@ export class InventaireFormPage {
     this.anneeFinInput = page.locator('input[formControlName="annee_fin_suivi"]');
 
     // Section headers
-    this.sectionProtocole = page.locator('.section-header').filter({ hasText: /protocole/i });
-    this.sectionBancarisation = page.locator('.section-header').filter({ hasText: /bancarisation/i });
-    this.sectionDetails = page.locator('.section-header').filter({ hasText: /détail/i });
+    this.sectionProtocole = page.locator('.app-accordion__header').filter({ hasText: /protocole/i });
+    this.sectionBancarisation = page.locator('.app-accordion__header').filter({ hasText: /bancarisation/i });
+    this.sectionDetails = page.locator('.app-accordion__header').filter({ hasText: /détail/i });
 
     // Protocole
     this.protocoleCampanuleOui = page.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').first();
