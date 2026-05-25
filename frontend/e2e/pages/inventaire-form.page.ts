@@ -70,7 +70,9 @@ export class InventaireFormPage {
 
     // Main card
     this.intituleInput = page.locator('input[formControlName="intitule"]');
-    this.typeActionInput = page.locator('mat-form-field').filter({ hasText: /type/i }).locator('input').first();
+    // L'autocomplete type est lié au matAutocomplete `autoTypeActionInv` (seul autocomplete
+    // de la 1re section : il est unique dans la card principale).
+    this.typeActionInput = page.locator('.form-card input[aria-autocomplete="list"]').first();
     this.integrePgOui = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').first();
     this.integrePgNon = page.locator('mat-radio-group[formControlName="integre_plan_gestion"] mat-radio-button').nth(1);
     this.objectifPrincipalSelect = page.locator('mat-select[formControlName="objectif_principal"]');

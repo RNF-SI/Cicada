@@ -84,7 +84,7 @@ test.describe('Bulk Site Import', () => {
       await expect(stepper).toBeVisible();
 
       // Should have step labels (Upload, Mapping, Preview, Results)
-      const stepLabels = dialog.locator('.stepper-step, .mat-step-label');
+      const stepLabels = dialog.locator('.app-stepper__step, .stepper-step, .mat-step-label');
       const count = await stepLabels.count();
       expect(count).toBeGreaterThanOrEqual(3);
     });
