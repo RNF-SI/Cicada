@@ -132,9 +132,8 @@
           
         }
   <button suffixSlot
-         
-         
           type="button"
+          class="password-toggle"
           (click)="togglePasswordVisibility()"
           [attr.aria-label]="(hidePassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
@@ -159,9 +158,8 @@
           
         }
   <button suffixSlot
-         
-         
           type="button"
+          class="password-toggle"
           (click)="toggleConfirmPasswordVisibility()"
           [attr.aria-label]="(hideConfirmPassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >

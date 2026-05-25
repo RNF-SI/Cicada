@@ -225,15 +225,12 @@ export class ActivityComponent implements OnInit {
   }
 
   /**
-   * Obtient l'icone d'une action.
-   * Pour les validations, utilise des icones specifiques selon l'etat.
+   * Icône unique pour toutes les activités (revue design Amandine — harmonisation
+   * panel notif / page activité : une seule icône générique partout). La classe
+   * `marker-icon` colorée par action reste différenciante.
    */
-  getActionIcon(action: string, entityType?: string): string {
-    // Pour les validations, utiliser les icones specifiques
-    if (entityType === 'validation' && VALIDATION_ACTION_ICONS[action]) {
-      return VALIDATION_ACTION_ICONS[action];
-    }
-    return ACTION_ICONS[action as keyof typeof ACTION_ICONS] || 'fi-rr-info';
+  getActionIcon(_action: string, _entityType?: string): string {
+    return 'fi-rr-clock-three';
   }
 
   /**
