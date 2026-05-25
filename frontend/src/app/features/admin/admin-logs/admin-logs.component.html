@@ -21,7 +21,7 @@
   <!-- Filtres -->
   <div class="filters-bar">
     <label class="app-mat-label">{{ 'admin.logs.filters.level' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
       <mat-label></mat-label>
       <mat-select [(ngModel)]="levelFilter" (selectionChange)="applyFilters()">
         @for (option of levelOptions; track option.value) {
@@ -31,7 +31,7 @@
     </mat-form-field>
 
     <label class="app-mat-label">{{ 'admin.logs.filters.acknowledged' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
       <mat-label></mat-label>
       <mat-select [(ngModel)]="acknowledgedFilter" (selectionChange)="applyFilters()">
         @for (option of acknowledgedOptions; track option.value) {
@@ -40,22 +40,16 @@
       </mat-select>
     </mat-form-field>
 
-    <app-form-field class="filter-field search-field" [label]="'admin.logs.filters.search' | translate">
-      <input
-        [(ngModel)]="searchFilter"
-        (keyup.enter)="applyFilters()"
-        [placeholder]="'admin.logs.filters.searchPlaceholder' | translate"
-      >
-      @if (searchFilter) {
-        <button suffixSlot (click)="searchFilter = ''; applyFilters()">
-          <i class="fi fi-rr-cross-small"></i>
-        </button>
-      }
-    </app-form-field>
-
-    <button mat-icon-button (click)="applyFilters()" [matTooltip]="'common.actions.search' | translate">
-      <i class="fi fi-rr-search"></i>
-    </button>
+    <!-- Recherche manuelle avec composant kit UI (revue design) -->
+    <app-search-bar
+      class="search-field"
+      mode="manual"
+      [(value)]="searchFilter"
+      [placeholder]="'admin.logs.filters.searchPlaceholder' | translate"
+      [ariaLabel]="'admin.logs.filters.search' | translate"
+      (search)="applyFilters()"
+      (cleared)="applyFilters()">
+    </app-search-bar>
 
     @if (levelFilter || acknowledgedFilter || searchFilter) {
       <button mat-button (click)="resetFilters()">

@@ -54,7 +54,7 @@
           @if (linkedOrganismes().length > 1) {
             <div class="organisme-filter">
               <label class="app-mat-label">{{ 'modals.manageSiteUsers.filterByOrganisme' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
                 <mat-label></mat-label>
                 <mat-select [value]="selectedOrganismeFilter()" (selectionChange)="onOrganismeFilterChange($event.value)">
                   <mat-option [value]="null">{{ 'modals.manageSiteUsers.allOrganismes' | translate }}</mat-option>
@@ -71,7 +71,7 @@
           <!-- Recherche utilisateur -->
           <div class="user-search">
             <label class="app-mat-label">{{ 'modals.manageSiteUsers.searchUser' | translate }}</label>
-      <mat-form-field class="app-mat-form-field search-field" appearance="outline">>
+      <mat-form-field class="app-mat-form-field search-field" appearance="outline">
               <mat-label></mat-label>
               <input
                 matInput

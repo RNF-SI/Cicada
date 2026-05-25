@@ -58,6 +58,18 @@
         opacity: 0.6;
       }
 
+      // Neutralise le fond bleu/jaune Chrome/Edge sur l'autofill
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus,
+      &:-webkit-autofill:active {
+        -webkit-text-fill-color: $black !important;
+        -webkit-box-shadow: 0 0 0 30px $white inset !important;
+        box-shadow: 0 0 0 30px $white inset !important;
+        transition: background-color 9999s ease-out 0s;
+        caret-color: $black;
+      }
+
       &:hover:not(:disabled):not(:focus) {
         border-color: $gray;
       }

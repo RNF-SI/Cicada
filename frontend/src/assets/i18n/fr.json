@@ -327,7 +327,12 @@
       },
       "status": {
         "draft": "Brouillon",
-        "valide": "Valide",
+        "avis_csrpn": "Envoyé pour avis CSRPN",
+        "comite_consultatif": "En comité consultatif",
+        "arrete_pref": "En attente arrêté préfectoral",
+        "valide": "Validé",
+        "modifie": "Modifié",
+        "mi_parcours": "Évaluation mi-parcours",
         "archive": "Archivé"
       },
       "periode": {
