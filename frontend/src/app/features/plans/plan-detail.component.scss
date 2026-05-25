@@ -155,10 +155,11 @@
 }
 
 // Lignes horizontales blanches (design Figma)
+// Étendues jusqu'au bord droit du hero (revue design Amandine — « allonger filet jusqu'au bout »)
 .breadcrumb-lines {
   position: absolute;
   left: 22px;
-  right: 0;
+  right: -$spacing-xl;
   top: 0;
   bottom: 0;
   display: flex;

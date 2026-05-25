@@ -60,12 +60,6 @@ mat-dialog-content {
   }
 }
 
-.search-hint {
-  font-size: 0.8rem;
-  color: $gray;
-  margin: 0 0 $spacing-md;
-}
-
 // Loading
 .loading-search {
   display: flex;
@@ -86,6 +80,11 @@ mat-dialog-content {
   margin-bottom: $spacing-lg;
   border-radius: $border-radius-md;
   overflow: hidden;
+
+  // Espace avant chaque catégorie (revue design Amandine)
+  & + & {
+    margin-top: $spacing-xl;
+  }
 
   &.results-category-my-org {
     border: 1px solid rgba($primary-color, 0.2);

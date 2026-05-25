@@ -172,11 +172,16 @@ h1 { @include sites-h1; }
 
 // Buttons
 .btn-action {
+  // Bouton "Voir" — style librairie (revue design Amandine)
   @include sites-btn-pill;
   padding: $spacing-xs $spacing-md; background: transparent; border: none;
-  color: $primary-color; font-size: $font-size-base; white-space: nowrap;
-  i { font-size: 18px; }
-  &:hover { text-decoration: underline; }
+  color: $primary-color; font-size: $font-size-base; font-weight: $font-weight-semibold;
+  white-space: nowrap;
+  i { font-size: 16px; }
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+    text-decoration: none;
+  }
 }
 .action-buttons { display: flex; gap: $spacing-sm; flex-wrap: wrap; }
 .btn-request { @include sites-btn-secondary-sm; padding: $spacing-xs $spacing-md; }

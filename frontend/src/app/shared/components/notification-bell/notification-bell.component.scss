@@ -271,8 +271,10 @@
     color: $primary-color;
     text-decoration: none;
 
+    // Hover : fond léger (revue design Amandine — pas de soulignement)
     &:hover {
-      text-decoration: underline;
+      background-color: rgba($primary-color, 0.08);
+      text-decoration: none;
     }
   }
 }

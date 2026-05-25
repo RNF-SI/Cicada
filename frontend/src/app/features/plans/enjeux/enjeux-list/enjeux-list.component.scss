@@ -748,9 +748,10 @@
 }
 
 .pression-card-title-block {
+  // Plus d'air entre l'intitulé et le type (revue design Amandine)
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $spacing-xs;
 }
 
 .pression-card-title {

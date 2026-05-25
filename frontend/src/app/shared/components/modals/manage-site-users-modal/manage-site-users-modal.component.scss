@@ -386,11 +386,12 @@
 }
 
 .btn-restore {
-  background-color: rgba($info-color, 0.1);
-  color: $info-color;
+  // Couleur primaire bleu-vert (revue design Amandine)
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
 
   &:hover {
-    background-color: $info-color;
+    background-color: $primary-color;
     color: $white;
   }
 }

@@ -60,20 +60,24 @@
 }
 
 @mixin sites-breadcrumb-home {
+  // Pastille bleu-vert avec icône blanche (revue design Amandine)
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  background-color: $white;
+  background-color: $primary-color;
   border-radius: 50%;
-  color: $primary-color;
+  color: $white;
   text-decoration: none;
-  transition: transform $transition-fast;
+  transition: transform $transition-fast, background-color $transition-fast;
   flex-shrink: 0;
   z-index: 2;
-  i { font-size: 24px; }
-  &:hover { transform: scale(1.05); }
+  i { font-size: 24px; color: $white; }
+  &:hover {
+    transform: scale(1.05);
+    background-color: $primary-hover;
+  }
 }
 
 // Lignes horizontales décoratives (design Figma)
@@ -343,6 +347,8 @@
 }
 
 // Card base
+// Revue design Amandine : pas d'effet hover sur tuile non cliquable
+// (sites-detail Organismes/Utilisateurs sont en lecture seule)
 @mixin sites-card-base {
   display: flex;
   align-items: center;
@@ -350,7 +356,6 @@
   padding: $spacing-md;
   background-color: $gray-lighter;
   border-radius: $border-radius-sm;
-  &:hover { background-color: rgba($primary-color, 0.05); }
 }
 
 // Avatar circle

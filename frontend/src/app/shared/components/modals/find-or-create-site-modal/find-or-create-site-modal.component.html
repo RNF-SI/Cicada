@@ -55,15 +55,14 @@
     </h4>
 
     <app-form-field class="search-field"
-                    [label]="'sites.findOrCreate.searchLabel' | translate">
+                    [label]="'sites.findOrCreate.searchLabel' | translate"
+                    [helpText]="'sites.findOrCreate.searchHint' | translate">
       <input type="text"
              [value]="searchTerm()"
              (input)="onSearchChange($event)"
              [placeholder]="'sites.findOrCreate.searchPlaceholder' | translate">
       <i suffixSlot class="fi fi-rr-search search-icon"></i>
     </app-form-field>
-
-    <p class="search-hint">{{ 'sites.findOrCreate.searchHint' | translate }}</p>
 
     <!-- Spinner de recherche -->
     @if (isSearching()) {
