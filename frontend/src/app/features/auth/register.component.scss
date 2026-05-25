@@ -92,17 +92,20 @@ h1 {
 }
 
 // Bouton œil afficher/masquer mot de passe — fond transparent, pas de bordure
-.password-toggle {
-  display: inline-flex;
+:host ::ng-deep .password-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  padding: 0;
+  padding: 0 !important;
   margin-left: $spacing-xs;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
   border-radius: $border-radius-sm;
+  box-shadow: none !important;
   color: $gray-dark;
   cursor: pointer;
   transition: color $transition-fast, background-color $transition-fast;
@@ -111,13 +114,13 @@ h1 {
 
   &:hover {
     color: $primary-color;
-    background-color: $primary-bg-subtle;
+    background-color: $primary-bg-subtle !important;
   }
 
   &:focus-visible {
     outline: none;
     color: $primary-color;
-    background-color: $primary-bg-subtle;
+    background-color: $primary-bg-subtle !important;
   }
 }
 
