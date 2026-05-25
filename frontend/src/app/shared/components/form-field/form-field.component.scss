@@ -44,10 +44,16 @@
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
 
     // Style sur les inputs / selects / textareas projetés
-    :where(input, select, textarea) {
-      flex: 1;
+    // Note : sélecteurs directs (pas :where()) pour avoir une spécificité suffisante
+    // afin de battre d'éventuels styles globaux (input { ... }).
+    & > input,
+    & > select,
+    & > textarea {
+      flex: 1 1 auto;
+      width: 100%;
       min-width: 0;
       padding: $spacing-xs $spacing-sm;
       background-color: $white;
@@ -60,6 +66,7 @@
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
       outline: none;
       min-height: 38px;
+      box-sizing: border-box;
 
       &::placeholder {
         color: $gray-dark;
@@ -95,14 +102,14 @@
       }
     }
 
-    :where(textarea) {
+    & > textarea {
       resize: vertical;
       min-height: 70px;
       padding: $spacing-sm;
       font-family: $font-family;
     }
 
-    :where(select) {
+    & > select {
       cursor: pointer;
       appearance: none;
       padding-right: $spacing-xl;
@@ -182,7 +189,7 @@
   }
 
   &--with-suffix {
-    :where(input) {
+    .app-form-field__control > input {
       padding-right: $spacing-xl;
     }
   }
@@ -212,7 +219,9 @@
 
   // État erreur
   &--error &__control {
-    :where(input, select, textarea) {
+    & > input,
+    & > select,
+    & > textarea {
       border-color: $error-color;
 
       &:focus, &:focus-visible {
