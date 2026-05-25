@@ -226,11 +226,11 @@ export class ActivityComponent implements OnInit {
 
   /**
    * Icône unique pour toutes les activités (revue design Amandine — harmonisation
-   * panel notif / page activité : une seule icône générique partout). La classe
+   * panel notif / page activité : MÊME icône `fi-rr-bell` partout). La classe
    * `marker-icon` colorée par action reste différenciante.
    */
   getActionIcon(_action: string, _entityType?: string): string {
-    return 'fi-rr-clock-three';
+    return 'fi-rr-bell';
   }
 
   /**

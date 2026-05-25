@@ -203,8 +203,9 @@
     flex-shrink: 0;
 
     .marker-icon {
-      width: 32px;
-      height: 32px;
+      // Revue design Amandine — taille harmonisée avec .notification-icon du panel
+      width: 36px;
+      height: 36px;
       border-radius: $border-radius-round;
       display: flex;
       align-items: center;
@@ -213,7 +214,7 @@
       color: $gray-dark;
 
       i {
-        font-size: 1rem;
+        font-size: 18px;
       }
     }
 
