@@ -168,7 +168,9 @@
 
     .app-accordion__body {
       border-top: none;
-      padding: $spacing-sm 0;
+      // Padding latéral pour que le contenu ne touche pas les bords du conteneur
+      // (Figma : ~40px d'inset par rapport au .form-card)
+      padding: $spacing-md $spacing-xl;
     }
   }
 

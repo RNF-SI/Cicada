@@ -11,13 +11,11 @@
   width: 100%;
 }
 
-// Espacement vertical par défaut entre 2 <app-form-field> consécutifs (Figma : 24px).
-// Centralisé ici pour ne plus avoir à ajouter de `gap` sur chaque parent.
-// Note : ne s'applique pas quand un autre élément est intercalé (radio group, etc.) —
-// dans ce cas le parent gère son propre espacement.
-:host + :host {
-  margin-top: $spacing-lg;
-}
+// NB : L'espacement vertical entre champs successifs (Figma : 24px) est défini
+// globalement dans `styles.scss` via `app-form-field + app-form-field` (et autres
+// combinaisons avec mat-form-field/labels). On évite ainsi les soucis de matching
+// de `:host + :host` quand Angular insère des comments de @if/@else entre les
+// éléments.
 
 .app-form-field {
   display: flex;

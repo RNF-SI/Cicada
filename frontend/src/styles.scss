@@ -984,3 +984,20 @@ select:-webkit-autofill:active {
   transition: background-color 9999s ease-out 0s;
   caret-color: $black;
 }
+
+// ============================================
+// FORM FIELD SPACING (global — Figma : 24px entre champs successifs)
+// ============================================
+// Règle UNIQUE qui définit l'écart vertical entre 2 champs successifs
+// (app-form-field, mat-form-field stylé, ou label app-mat-label pour mat-form-field).
+// Centralisé ici pour éviter d'avoir à configurer le gap sur chaque parent.
+
+app-form-field + app-form-field,
+app-form-field + label.app-mat-label,
+app-form-field + .mat-mdc-form-field.app-mat-form-field,
+.mat-mdc-form-field.app-mat-form-field + app-form-field,
+.mat-mdc-form-field.app-mat-form-field + label.app-mat-label,
+label.app-mat-label + app-form-field,
+.mat-mdc-form-field.app-mat-form-field + .mat-mdc-form-field.app-mat-form-field {
+  margin-top: $spacing-lg;
+}
