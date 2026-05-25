@@ -46,14 +46,15 @@
     align-items: center;
     width: 100%;
 
-    // Style sur les inputs / selects / textareas projetés
-    // Note : sélecteurs directs (pas :where()) pour avoir une spécificité suffisante
-    // afin de battre d'éventuels styles globaux (input { ... }).
-    & > input,
-    & > select,
-    & > textarea {
-      flex: 1 1 auto;
-      width: 100%;
+    // IMPORTANT : les <input>/<select>/<textarea> sont PROJETÉS via <ng-content>
+    // Angular ViewEncapsulation.Emulated ne style PAS le contenu projeté avec
+    // des sélecteurs scopés normaux (l'attribut [_ngcontent-xyz] n'est ajouté
+    // qu'aux éléments du template du composant, pas aux projetés). Il faut
+    // utiliser ::ng-deep pour cibler les éléments projetés.
+    ::ng-deep input,
+    ::ng-deep select,
+    ::ng-deep textarea {
+      flex: 1 1 0;
       min-width: 0;
       padding: $spacing-xs $spacing-sm;
       background-color: $white;
@@ -67,49 +68,58 @@
       outline: none;
       min-height: 38px;
       box-sizing: border-box;
-
-      &::placeholder {
-        color: $gray-dark;
-        opacity: 0.6;
-      }
-
-      // Neutralise le fond bleu/jaune Chrome/Edge sur l'autofill
-      &:-webkit-autofill,
-      &:-webkit-autofill:hover,
-      &:-webkit-autofill:focus,
-      &:-webkit-autofill:active {
-        -webkit-text-fill-color: $black !important;
-        -webkit-box-shadow: 0 0 0 30px $white inset !important;
-        box-shadow: 0 0 0 30px $white inset !important;
-        transition: background-color 9999s ease-out 0s;
-        caret-color: $black;
-      }
-
-      &:hover:not(:disabled):not(:focus) {
-        border-color: $gray;
-      }
-
-      &:focus,
-      &:focus-visible {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
-      }
-
-      &:disabled {
-        background-color: $beige;
-        color: $gray-dark;
-        cursor: not-allowed;
-      }
     }
 
-    & > textarea {
+    ::ng-deep input::placeholder,
+    ::ng-deep textarea::placeholder {
+      color: $gray-dark;
+      opacity: 0.6;
+    }
+
+    // Neutralise le fond bleu/jaune Chrome/Edge sur l'autofill
+    ::ng-deep input:-webkit-autofill,
+    ::ng-deep input:-webkit-autofill:hover,
+    ::ng-deep input:-webkit-autofill:focus,
+    ::ng-deep input:-webkit-autofill:active {
+      -webkit-text-fill-color: $black !important;
+      -webkit-box-shadow: 0 0 0 30px $white inset !important;
+      box-shadow: 0 0 0 30px $white inset !important;
+      transition: background-color 9999s ease-out 0s;
+      caret-color: $black;
+    }
+
+    ::ng-deep input:hover:not(:disabled):not(:focus),
+    ::ng-deep select:hover:not(:disabled):not(:focus),
+    ::ng-deep textarea:hover:not(:disabled):not(:focus) {
+      border-color: $gray;
+    }
+
+    ::ng-deep input:focus,
+    ::ng-deep input:focus-visible,
+    ::ng-deep select:focus,
+    ::ng-deep select:focus-visible,
+    ::ng-deep textarea:focus,
+    ::ng-deep textarea:focus-visible {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+    }
+
+    ::ng-deep input:disabled,
+    ::ng-deep select:disabled,
+    ::ng-deep textarea:disabled {
+      background-color: $beige;
+      color: $gray-dark;
+      cursor: not-allowed;
+    }
+
+    ::ng-deep textarea {
       resize: vertical;
       min-height: 70px;
       padding: $spacing-sm;
       font-family: $font-family;
     }
 
-    & > select {
+    ::ng-deep select {
       cursor: pointer;
       appearance: none;
       padding-right: $spacing-xl;
@@ -189,7 +199,7 @@
   }
 
   &--with-suffix {
-    .app-form-field__control > input {
+    .app-form-field__control ::ng-deep input {
       padding-right: $spacing-xl;
     }
   }
@@ -217,11 +227,11 @@
     }
   }
 
-  // État erreur
+  // État erreur (sur contenu projeté → ::ng-deep)
   &--error &__control {
-    & > input,
-    & > select,
-    & > textarea {
+    ::ng-deep input,
+    ::ng-deep select,
+    ::ng-deep textarea {
       border-color: $error-color;
 
       &:focus, &:focus-visible {
