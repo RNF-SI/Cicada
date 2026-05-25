@@ -123,10 +123,11 @@ $form-side-margin: $page-gutter;
 // ============================================
 
 .form-grid {
+  // L'espacement vertical entre champs successifs est géré par app-form-field
+  // (règle :host + :host margin-top dans form-field.component.scss).
+  // Pas de gap ici pour ne pas additionner deux espacements.
   display: flex;
   flex-direction: column;
-  // Figma : 24px entre champs successifs
-  gap: $spacing-lg;
 }
 
 // ============================================

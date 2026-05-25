@@ -11,6 +11,14 @@
   width: 100%;
 }
 
+// Espacement vertical par défaut entre 2 <app-form-field> consécutifs (Figma : 24px).
+// Centralisé ici pour ne plus avoir à ajouter de `gap` sur chaque parent.
+// Note : ne s'applique pas quand un autre élément est intercalé (radio group, etc.) —
+// dans ce cas le parent gère son propre espacement.
+:host + :host {
+  margin-top: $spacing-lg;
+}
+
 .app-form-field {
   display: flex;
   flex-direction: column;
