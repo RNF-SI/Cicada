@@ -14,7 +14,7 @@
 .app-form-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px; // Figma : label/help → input à 6px
   font-family: $font-family;
   width: 100%;
 

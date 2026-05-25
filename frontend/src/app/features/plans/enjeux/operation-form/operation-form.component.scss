@@ -164,6 +164,10 @@ $form-side-margin: $spacing-xxl;
 
 .section-content {
   margin-top: $spacing-lg;
+  // Figma : 24px entre champs successifs (label/help/input/error)
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
 }
 
 // ═══════════════════════════════════════════════

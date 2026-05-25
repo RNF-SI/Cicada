@@ -397,10 +397,28 @@ a[mat-raised-button][color="primary"] {
       padding: 0;
     }
 
-    // Cache l'encoche d'étiquette flottante
+    // L'outline notched de Material a 3 segments :
+    // [leading]----[notch (espace pour le label flottant)]----[trailing]
+    // Quand le label flottant est masqué, le notch garde quand même un espace
+    // vide qui casse le bord en haut → "trou" visible (~5mm) dans le border.
+    // Fix : on neutralise complètement le notch + on étend le bord supérieur
+    // du leading et trailing pour avoir un trait continu.
     .mat-mdc-notched-outline {
-      .mdc-notched-outline__notch {
+      .mdc-notched-outline__leading {
         border-right: none !important;
+      }
+      .mdc-notched-outline__notch {
+        // Largeur zéro pour ne pas créer de gap, et plus de border non plus
+        max-width: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        // Le contenu (label) reste caché de toute façon
+        > * { display: none !important; }
+      }
+      .mdc-notched-outline__trailing {
+        border-left: none !important;
+        // Le trailing reprend toute la largeur restante avec un border top continu
+        flex-grow: 1 !important;
       }
     }
 

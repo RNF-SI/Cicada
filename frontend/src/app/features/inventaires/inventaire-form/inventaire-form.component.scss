@@ -125,7 +125,8 @@ $form-side-margin: $page-gutter;
 .form-grid {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  // Figma : 24px entre champs successifs
+  gap: $spacing-lg;
 }
 
 // ============================================
