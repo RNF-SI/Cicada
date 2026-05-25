@@ -71,4 +71,22 @@
       </span>
     }
   </div>
+
+  <!-- Légende visuelle (revue design Amandine — distinguer le contour du point sur la carte) -->
+  @if (geometryType === 'both') {
+    <div class="map-legend" aria-label="Légende de la carte">
+      <div class="legend-item">
+        <span class="legend-symbol legend-symbol-polygon" aria-hidden="true">
+          <span class="polygon-shape"></span>
+        </span>
+        <span class="legend-label">Contour du site</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-symbol legend-symbol-marker" aria-hidden="true">
+          <i class="fi fi-rr-marker"></i>
+        </span>
+        <span class="legend-label">Point central</span>
+      </div>
+    </div>
+  }
 </div>

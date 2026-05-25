@@ -125,7 +125,7 @@
             </div>
           } @else {
             <div class="users-list">
-              @for (assignment of userAssignments(); track assignment.user.id_role) {
+              @for (assignment of sortedAssignments(); track assignment.user.id_role) {
                 <div class="user-card" [class.deleted]="assignment.isDeleted" [class.new]="assignment.isNew" [class.modified]="assignment.isModified">
                   <div class="user-info">
                     <div class="user-avatar">

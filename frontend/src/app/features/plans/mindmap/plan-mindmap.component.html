@@ -65,17 +65,25 @@
 
             <div class="mindmap-controls">
               @if (viewMode() === 'enjeux') {
-                <button mat-stroked-button (click)="resetIcicle()" [title]="'plans.mindmap.resetZoomPlan' | translate">
+                <button mat-stroked-button (click)="resetIcicle()"
+                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
                   <i class="fi fi-rr-marker"></i>
                 </button>
-                <button mat-stroked-button (click)="focusOnEnjeu()" [title]="'plans.mindmap.focusEnjeu' | translate">
+                <button mat-stroked-button (click)="focusOnEnjeu()"
+                        [matTooltip]="'plans.mindmap.focusEnjeuTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.focusEnjeu' | translate">
                   <i class="fi fi-rr-target"></i>
                 </button>
               } @else {
-                <button mat-stroked-button (click)="resetIcicleInverse()" [title]="'plans.mindmap.resetZoomPlan' | translate">
+                <button mat-stroked-button (click)="resetIcicleInverse()"
+                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
                   <i class="fi fi-rr-marker"></i>
                 </button>
-                <button mat-stroked-button (click)="focusOnOperation()" [title]="'plans.mindmap.focusOperation' | translate">
+                <button mat-stroked-button (click)="focusOnOperation()"
+                        [matTooltip]="'plans.mindmap.focusOperationTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.focusOperation' | translate">
                   <i class="fi fi-rr-target"></i>
                 </button>
               }

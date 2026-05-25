@@ -106,6 +106,20 @@ export class ManageSiteUsersModalComponent implements OnInit {
     return this.userAssignments().filter(a => !a.isDeleted);
   });
 
+  // Liste triée : nouveaux utilisateurs en haut (revue design Amandine)
+  readonly sortedAssignments = computed(() => {
+    return [...this.userAssignments()].sort((a, b) => {
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      if (a.isModified && !b.isModified) return -1;
+      if (!a.isModified && b.isModified) return 1;
+      // Sinon par nom
+      const an = ((a.user.nom_role || '') + ' ' + (a.user.prenom_role || '')).toLowerCase();
+      const bn = ((b.user.nom_role || '') + ' ' + (b.user.prenom_role || '')).toLowerCase();
+      return an.localeCompare(bn);
+    });
+  });
+
   // Utilisateurs disponibles pour ajout (pas deja assignes)
   readonly availableUsersForAdd = computed(() => {
     const assignedIds = new Set(
