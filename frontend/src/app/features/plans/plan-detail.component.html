@@ -155,7 +155,8 @@
                 }
                 @if (canManageLifecycle()) {
                   <!-- Draft → Valider (raccourci) ou Envoyer pour avis CSRPN (workflow #277) -->
-                  @if (p.statut === 'draft') {
+                  <!-- Brouillon hors workflow CSRPN : valider + lancer CSRPN -->
+                  @if (p.statut === 'draft' && !p.validation_step) {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()"
                             [matTooltip]="'plans.lifecycle.actions.validateDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
@@ -168,7 +169,7 @@
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
-                  @if (p.statut === 'avis_csrpn') {
+                  @if (p.statut === 'draft' && p.validation_step === 'avis_csrpn') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()"
                             [matTooltip]="'plans.lifecycle.actions.recordCsrpnOpinionDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
@@ -181,7 +182,7 @@
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
-                  @if (p.statut === 'comite_consultatif') {
+                  @if (p.statut === 'draft' && p.validation_step === 'comite_consultatif') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()"
                             [matTooltip]="'plans.lifecycle.actions.validateByComiteDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
@@ -194,7 +195,7 @@
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
-                  @if (p.statut === 'arrete_pref') {
+                  @if (p.statut === 'draft' && p.validation_step === 'arrete_pref') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()"
                             [matTooltip]="'plans.lifecycle.actions.recordArretePrefDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>

@@ -461,9 +461,6 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
   getStatutClass(statut: PlanStatut): string {
     const classes: Record<PlanStatut, string> = {
       'draft': 'statut-draft',
-      'avis_csrpn': 'statut-csrpn',
-      'comite_consultatif': 'statut-csrpn',
-      'arrete_pref': 'statut-csrpn',
       'valide': 'statut-valide',
       'modifie': 'statut-valide',
       'archive': 'statut-archive',

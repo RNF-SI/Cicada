@@ -532,7 +532,10 @@ export class AdminService {
   }
 
   /**
-   * Change plan status via dedicated endpoint with transition validation
+   * Change plan status via dedicated endpoint with transition validation.
+   * Depuis #277 refactor : ne gère plus que {draft, valide, modifie, archive}.
+   * Pour piloter le workflow CSRPN, utiliser {@link changeCsrpnStep}.
+   *
    * POST /api/plans/plans/{id}/change-status/
    */
   changePlanStatus(
@@ -540,19 +543,38 @@ export class AdminService {
     newStatus: PlanStatut,
     options: {
       isMiParcours?: boolean;
+    } = {},
+  ): Observable<AdminPlan> {
+    const body: Record<string, unknown> = { new_status: newStatus };
+    if (options.isMiParcours) body['is_mi_parcours'] = true;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, body)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #277 — Gérer le workflow CSRPN (étape orthogonale au statut).
+   *
+   * POST /api/plans/plans/{id}/csrpn-step/
+   * @param planId — Plan en `draft`.
+   * @param step — `avis_csrpn` | `comite_consultatif` | `arrete_pref` | `null` (annulation).
+   * @param options — Dates et numéro d'arrêté optionnels.
+   */
+  changeCsrpnStep(
+    planId: number,
+    step: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref' | null,
+    options: {
       dateAvisCsrpn?: string;
       dateValidationComite?: string;
       dateArretePref?: string;
       numeroArretePref?: string;
     } = {},
   ): Observable<AdminPlan> {
-    const body: Record<string, unknown> = { new_status: newStatus };
-    if (options.isMiParcours) body['is_mi_parcours'] = true;
+    const body: Record<string, unknown> = { step };
     if (options.dateAvisCsrpn) body['date_avis_csrpn'] = options.dateAvisCsrpn;
     if (options.dateValidationComite) body['date_validation_comite'] = options.dateValidationComite;
     if (options.dateArretePref) body['date_arrete_pref'] = options.dateArretePref;
     if (options.numeroArretePref) body['numero_arrete_pref'] = options.numeroArretePref;
-    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/change-status/`, body)
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/csrpn-step/`, body)
       .pipe(catchError(this.handleError));
   }
 

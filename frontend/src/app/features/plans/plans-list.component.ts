@@ -595,12 +595,14 @@ export class PlansListComponent implements OnInit {
 
   /**
    * Labels et classes CSS pour les statuts.
+   * Depuis #277 (refactor CSRPN), 4 statuts uniquement : draft / valide / modifie / archive.
    */
   getStatutLabel(statut: string): string {
     const keys: Record<string, string> = {
       'draft': 'plans.status.draft',
       'valide': 'plans.status.valide',
-      'archive': 'plans.status.archive'
+      'modifie': 'plans.status.modifie',
+      'archive': 'plans.status.archive',
     };
     const key = keys[statut];
     return key ? this.translate.instant(key) : statut;
@@ -610,7 +612,8 @@ export class PlansListComponent implements OnInit {
     const classes: Record<string, string> = {
       'draft': 'status-warning',
       'valide': 'status-success',
-      'archive': 'status-neutre'
+      'modifie': 'status-info',
+      'archive': 'status-neutre',
     };
     return classes[statut] || '';
   }

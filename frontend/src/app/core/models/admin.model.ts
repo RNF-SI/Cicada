@@ -333,15 +333,25 @@ export interface PlanFichier {
  *   qu'une modification est l'évaluation mi-parcours du plan. Unique par chaîne.
  *
  * Seul `draft` autorise l'édition (#248).
+ *
+ * Depuis #277 (refactor) : le workflow CSRPN (avis_csrpn → comite_consultatif →
+ * arrete_pref) est extrait dans l'attribut orthogonal {@link ValidationStep}.
  */
 export type PlanStatut =
   | 'draft'
-  | 'avis_csrpn'
-  | 'comite_consultatif'
-  | 'arrete_pref'
   | 'valide'
   | 'modifie'
   | 'archive';
+
+/**
+ * #277 — Étape du workflow de validation CSRPN. Attribut orthogonal au
+ * statut, présent uniquement sur les plans `draft` en cours de validation.
+ * `null` (ou absent) = pas dans le workflow.
+ */
+export type ValidationStep =
+  | 'avis_csrpn'
+  | 'comite_consultatif'
+  | 'arrete_pref';
 
 /**
  * Site associé à un plan de gestion
@@ -459,6 +469,13 @@ export interface AdminPlan {
   is_mi_parcours?: boolean;
   /** #276 — Identique à `is_mi_parcours` (read-only API). */
   is_mid_term?: boolean;
+  /** #277 — Étape du workflow CSRPN en cours (orthogonal au statut).
+   *  null/absent = pas dans le workflow. Présent uniquement sur les drafts. */
+  validation_step?: ValidationStep | null;
+  /** #277 — Libellé traduit de validation_step (read-only API). */
+  validation_step_display?: string | null;
+  /** #277 — Vrai si validation_step renseigné (read-only API). */
+  is_in_csrpn_workflow?: boolean;
   /** Vrai si le plan a déjà un brouillon enfant en cours.
    *  Bloque la création d'une nouvelle version (read-only API). */
   has_draft_child?: boolean;
