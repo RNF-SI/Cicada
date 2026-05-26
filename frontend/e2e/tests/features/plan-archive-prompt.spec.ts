@@ -16,11 +16,15 @@ interface SeedPlan {
   nom: string;
   slug: string;
   statut: string;
+  /** #277 — Étape CSRPN en cours (null = pas dans le workflow). */
+  validation_step?: string | null;
   plan_parent_id?: number | null;
   plan_parent_nom?: string | null;
 }
 
-/** Cherche un plan brouillon dont le plan_parent est encore validé. */
+/** Cherche un plan brouillon (hors workflow CSRPN) dont le plan_parent est
+ *  encore validé. Les drafts en workflow CSRPN n'exposent PAS le bouton
+ *  "Valider le plan" — ils utilisent les actions dédiées au workflow. */
 async function findDraftWithValidatedParent(
   page: import('@playwright/test').Page,
 ): Promise<{ child: SeedPlan; parent: SeedPlan } | null> {
@@ -28,6 +32,7 @@ async function findDraftWithValidatedParent(
   const drafts: SeedPlan[] = data.results || data;
   for (const draft of drafts) {
     if (!draft.plan_parent_id) continue;
+    if (draft.validation_step) continue;  // exclure les drafts en workflow CSRPN
     const { data: parentData } = await apiGet(page, `plans/plans/${draft.plan_parent_id}/`);
     if (parentData?.statut === 'valide') {
       return { child: draft, parent: parentData };
