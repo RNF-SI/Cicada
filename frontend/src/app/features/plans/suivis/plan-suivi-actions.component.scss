@@ -9,11 +9,13 @@
 .suivis-layout {
   display: flex;
   min-height: calc(100vh - 58px);
+  gap: $spacing-lg; // Écart entre sidebar et contenu (aligné Figma node 50:11287)
 }
 
 .plan-main {
   flex: 1;
   min-width: 0;
+  padding-right: $spacing-lg; // Marge droite (cohérent Figma)
 }
 
 // Loading / Error
