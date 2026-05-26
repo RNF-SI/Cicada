@@ -211,7 +211,8 @@
                           <span class="ancestor-text">{{ formatPeriod(ancestor) }}</span>
                         </td>
                         <td class="col-status">
-                          <span class="status-tag" [class]="getStatutClass(ancestor.statut)">
+                          <span class="status-tag has-tooltip" [class]="getStatutClass(ancestor.statut)"
+                                [matTooltip]="getStatutTooltip(ancestor.statut) | translate" matTooltipPosition="above">
                             {{ getStatutLabel(ancestor.statut) }}
                           </span>
                         </td>
@@ -258,7 +259,8 @@
                     </td>
                     <td class="col-status">
                       <div class="status-content">
-                        <span class="status-tag" [class]="getStatutClass(plan.statut)">
+                        <span class="status-tag has-tooltip" [class]="getStatutClass(plan.statut)"
+                              [matTooltip]="getStatutTooltip(plan.statut) | translate" matTooltipPosition="above">
                           {{ getStatutLabel(plan.statut) }}
                         </span>
                         @if (!isRedacteurPrincipal()) {

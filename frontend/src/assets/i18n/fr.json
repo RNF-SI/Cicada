@@ -1252,10 +1252,13 @@
       "draft": "Brouillon",
       "valide": "Valide",
       "modifie": "Modifié",
-      "modifieTooltip": "Plan validé puis modifié au moins une fois. Une nouvelle version a été créée et validée à partir d'une version antérieure de la même chaîne.",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
-      "midterm": "Évaluation mi-parcours"
+      "midterm": "Évaluation mi-parcours",
+      "draftTooltip": "Plan en cours de rédaction. Seul statut qui autorise les modifications du contenu du plan.",
+      "valideTooltip": "Plan validé : il a été approuvé et n'est plus modifiable. Pour le faire évoluer, créez une nouvelle version (modification ou évaluation à mi-parcours).",
+      "modifieTooltip": "Plan validé puis modifié au moins une fois. Une nouvelle version a été créée et validée à partir d'une version antérieure de la même chaîne.",
+      "archiveTooltip": "Plan archivé : terminé et conservé pour historique. Une nouvelle version validée a pris le relais."
     },
     "validationStep": {
       "avis_csrpn": "Avis CSRPN demandé",

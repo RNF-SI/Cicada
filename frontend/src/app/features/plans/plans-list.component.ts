@@ -619,6 +619,14 @@ export class PlansListComponent implements OnInit {
   }
 
   /**
+   * Clé i18n du tooltip pédagogique pour le chip statut. Explique à
+   * l'utilisateur la signification de chaque statut au survol.
+   */
+  getStatutTooltip(statut: string): string {
+    return `plans.status.${statut}Tooltip`;
+  }
+
+  /**
    * Recherche dans "Mes plans".
    */
   onMyPlansSearch(event: Event): void {

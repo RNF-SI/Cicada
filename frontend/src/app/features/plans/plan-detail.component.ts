@@ -79,7 +79,7 @@ import {
   CsrpnStepDialogResult,
   CsrpnStep,
 } from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
-import { getExtensionBadgeKey, getPlanStatusKey } from '../../shared/utils/plan-status.utils';
+import { getExtensionBadgeKey, getPlanStatusKey, getPlanStatusTooltipKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
   id: string;
@@ -183,6 +183,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const p = this.plan();
     if (!p) return 'plans.status.draft';
     return getPlanStatusKey(p.statut);
+  });
+
+  // Tooltip pédagogique du chip statut (draft / valide / modifie / archive).
+  statusTooltipKey = computed<string>(() => {
+    const p = this.plan();
+    if (!p) return 'plans.status.draftTooltip';
+    return getPlanStatusTooltipKey(p.statut);
   });
 
   // #250 / #281 — Indique si le plan est étendu (annees_extension > 0) et
