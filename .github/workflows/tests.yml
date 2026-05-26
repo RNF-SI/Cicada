@@ -1,8 +1,11 @@
 name: Tests
 
+# Triggers réduits pour économiser les minutes GitHub Actions :
+# - Les push sur main/develop sont déjà testés via la PR avant merge
+# - Les tags v* lancent un retest avant la production release
+# - Le manual dispatch permet de relancer en cas de besoin (tests email, etc.)
 on:
   push:
-    branches: [main, develop]
     tags:
       - 'v*'
   pull_request:
