@@ -75,46 +75,27 @@
 .plan-main {
   flex: 1;
   min-width: 0;
-  padding-right: $spacing-lg; // Espace à droite seulement
+  padding-right: $spacing-lg; // Espace à droite (cohérent Figma node 50:11287)
 }
 
 // ============================================
-// HERO SECTION
+// HERO SECTION — factorisé via mixin (assets/scss/_components.scss)
 // ============================================
 
 .hero-section {
-  position: relative;
-  background-color: $primary-color;
-  border-radius: 0 0 0 $border-radius-xl;
-  margin: 0;
-  margin-right: -$spacing-lg; // Étend jusqu'au bord droit
-  padding: $spacing-lg $spacing-xl $spacing-xl;
-  min-height: 252px;
-  overflow: hidden;
+  @include plan-page-hero(252px);
 }
 
 .hero-background {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
+  @include plan-page-hero-background;
 }
 
 .hero-pattern {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 100%;
-  background-image: url('/assets/images/banner-waves.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: right center;
-  opacity: 1;
+  @include plan-page-hero-pattern;
 }
 
 .hero-content {
-  position: relative;
-  z-index: 1;
+  @include plan-page-hero-content;
 }
 
 // Breadcrumb (design Figma: lignes horizontales blanches)

@@ -44,37 +44,22 @@
 // HERO SECTION
 // ============================================
 
+// HERO SECTION — factorisé via mixin (assets/scss/_components.scss)
 .hero-section {
-  position: relative;
-  background-color: $primary-color;
-  border-radius: 0 0 20px 20px;
-  padding: $spacing-lg $spacing-xl $spacing-xl;
-  min-height: 280px;
-  overflow: hidden;
+  @include plan-page-hero(280px);
 }
 
 .hero-background {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
+  @include plan-page-hero-background;
 }
 
 .hero-pattern {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 100%;
-  background-image: url('/assets/images/banner-waves.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: right center;
+  @include plan-page-hero-pattern;
   opacity: 0.2;
 }
 
 .hero-content {
-  position: relative;
-  z-index: 1;
+  @include plan-page-hero-content;
 }
 
 .breadcrumb {
