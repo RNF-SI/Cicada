@@ -10,9 +10,23 @@ on:
       - 'v*'
   pull_request:
     branches: [main, develop]
+    # Skip si seuls les fichiers documentation / configuration éditoriale changent
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'KitUI/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'CHANGELOG.md'
   workflow_dispatch:
     # Permet de lancer le workflow manuellement depuis GitHub
     # Utile pour les tests d'intégration email
+
+# Annule les runs précédents quand on pousse à nouveau sur la même PR/branche.
+# Économise des minutes en évitant de tester des commits intermédiaires obsolètes.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ============================================
