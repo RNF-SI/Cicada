@@ -23,6 +23,11 @@ import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AdminSite, GeoJSONFeature, AdminPlan } from '../../core/models/admin.model';
+import {
+  getPlanStatusClass as planStatusClass,
+  getPlanStatusKey,
+  getPlanStatusTooltipKey,
+} from '../../shared/utils/plan-status.utils';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
@@ -252,27 +257,25 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Obtient la classe CSS du statut d'un plan.
+   * Classe CSS du chip statut d'un plan (centralisé dans plan-status.utils).
+   * Couvre les 4 statuts : draft / valide / modifie / archive.
    */
   getPlanStatusClass(statut: string): string {
-    switch (statut) {
-      case 'valide': return 'status-success';
-      case 'draft': return 'status-warning';
-      case 'archive': return 'status-neutre';
-      default: return 'status-neutre';
-    }
+    return planStatusClass(statut);
   }
 
   /**
-   * Obtient le label du statut d'un plan.
+   * Clé i18n du label du statut d'un plan (centralisé dans plan-status.utils).
    */
-  getPlanStatusLabel(statut: string): string {
-    switch (statut) {
-      case 'valide': return 'Valide';
-      case 'draft': return 'Brouillon';
-      case 'archive': return 'Archive';
-      default: return statut;
-    }
+  getPlanStatusKey(statut: string): string {
+    return getPlanStatusKey(statut);
+  }
+
+  /**
+   * Clé i18n du tooltip pédagogique du statut (centralisé).
+   */
+  getPlanStatusTooltip(statut: string): string {
+    return getPlanStatusTooltipKey(statut);
   }
 
   /**

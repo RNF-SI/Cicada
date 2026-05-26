@@ -277,8 +277,10 @@
                         <span class="plan-period">{{ formatPlanPeriod(plan) }}</span>
                       </div>
                       <div class="plan-actions">
-                        <mat-chip [class]="getPlanStatusClass(plan.statut)">
-                          {{ getPlanStatusLabel(plan.statut) }}
+                        <mat-chip [class]="getPlanStatusClass(plan.statut)"
+                                  [matTooltip]="getPlanStatusTooltip(plan.statut) | translate"
+                                  matTooltipPosition="above">
+                          {{ getPlanStatusKey(plan.statut) | translate }}
                         </mat-chip>
                         <i class="fi fi-rr-angle-right"></i>
                       </div>
