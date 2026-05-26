@@ -314,47 +314,18 @@ describe('NotificationBellComponent', () => {
   // ==================== NOTIFICATION ICONS ====================
 
   describe('Notification Icons', () => {
-    it('should return correct icon for welcome type', () => {
-      expect(component.getNotificationIcon('welcome')).toBe('fi-rr-hand-wave');
-    });
-
-    it('should return correct icon for validation_request type', () => {
-      expect(component.getNotificationIcon('validation_request')).toBe('fi-rr-check-circle');
-    });
-
-    it('should return correct icon for validation_approved type', () => {
-      expect(component.getNotificationIcon('validation_approved')).toBe('fi-rr-check');
-    });
-
-    it('should return correct icon for validation_rejected type', () => {
-      expect(component.getNotificationIcon('validation_rejected')).toBe('fi-rr-cross');
-    });
-
-    it('should return correct icon for user_associated_site type', () => {
-      expect(component.getNotificationIcon('user_associated_site')).toBe('fi-rr-marker');
-    });
-
-    it('should return correct icon for user_associated_plan type', () => {
-      expect(component.getNotificationIcon('user_associated_plan')).toBe('fi-rr-document');
-    });
-
-    it('should return correct icon for account_deactivated type', () => {
-      expect(component.getNotificationIcon('account_deactivated')).toBe('fi-rr-user-slash');
-    });
-
-    it('should return correct icon for account_activated type', () => {
-      expect(component.getNotificationIcon('account_activated')).toBe('fi-rr-user-check');
-    });
-
-    it('should return correct icon for system_alert type', () => {
+    // Revue design Amandine — icône unique générique partout (harmonisation panel/page)
+    it('should return fi-rr-bell for any type', () => {
+      expect(component.getNotificationIcon('welcome')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('validation_request')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('validation_approved')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('validation_rejected')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('user_associated_site')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('user_associated_plan')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('account_deactivated')).toBe('fi-rr-bell');
+      expect(component.getNotificationIcon('account_activated')).toBe('fi-rr-bell');
       expect(component.getNotificationIcon('system_alert')).toBe('fi-rr-bell');
-    });
-
-    it('should return correct icon for info type', () => {
-      expect(component.getNotificationIcon('info')).toBe('fi-rr-info');
-    });
-
-    it('should return default icon for unknown type', () => {
+      expect(component.getNotificationIcon('info')).toBe('fi-rr-bell');
       expect(component.getNotificationIcon('unknown_type')).toBe('fi-rr-bell');
     });
   });

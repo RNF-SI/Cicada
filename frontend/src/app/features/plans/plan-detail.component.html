@@ -68,13 +68,13 @@
                 </div>
                 @if (p.organismes_redacteurs_list && p.organismes_redacteurs_list.length > 0) {
                   <div class="meta-row">
-                    <i class="fi fi-rr-pencil meta-icon"></i>
+                    <!-- Icône crayon retirée (revue design #315 : trompeur, ressemble à un bouton edit) -->
                     <span class="meta-label">{{ 'plans.detail.organismeRedacteur' | translate }} :</span>
                     <span class="meta-value">{{ p.organismes_redacteurs_list[0].nom_organisme }}</span>
                   </div>
                 } @else if (p.redacteur_nom) {
                   <div class="meta-row">
-                    <i class="fi fi-rr-pencil meta-icon"></i>
+                    <!-- Icône crayon retirée (revue design #315 : trompeur, ressemble à un bouton edit) -->
                     <span class="meta-label">{{ 'plans.detail.organismeRedacteur' | translate }} :</span>
                     <span class="meta-value">{{ p.redacteur_nom }}</span>
                   </div>
@@ -103,7 +103,12 @@
                     <span class="meta-separator">|</span>
                   }
                   <span class="meta-label">{{ 'modals.planForm.fields.status' | translate }} :</span>
-                  <span class="meta-value status"
+                  <!-- Statut affiché en chip (revue design #315) : brouillon texte blanc sur fond bleu-vert -->
+                  <span class="meta-value status status-chip"
+                        [class.status-chip--draft]="p.statut === 'draft'"
+                        [class.status-chip--valide]="p.statut === 'valide'"
+                        [class.status-chip--modifie]="p.statut === 'modifie'"
+                        [class.status-chip--archive]="p.statut === 'archive'"
                         [class.has-tooltip]="p.statut === 'modifie'"
                         [matTooltip]="p.statut === 'modifie' ? ('plans.status.modifieTooltip' | translate) : ''"
                         matTooltipPosition="above">
@@ -151,44 +156,52 @@
                 @if (canManageLifecycle()) {
                   <!-- Draft → Valider (raccourci) ou Envoyer pour avis CSRPN (workflow #277) -->
                   @if (p.statut === 'draft') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()">
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()"
+                            [matTooltip]="'plans.lifecycle.actions.validateDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
-                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()">
+                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()"
+                            [matTooltip]="'plans.lifecycle.actions.submitForCsrpnDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-paper-plane"></i>
                       <span>{{ 'plans.lifecycle.actions.submitForCsrpn' | translate }}</span>
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
                   @if (p.statut === 'avis_csrpn') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()">
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()"
+                            [matTooltip]="'plans.lifecycle.actions.recordCsrpnOpinionDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.recordCsrpnOpinion' | translate }}</span>
                     </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
+                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
                   @if (p.statut === 'comite_consultatif') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()">
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()"
+                            [matTooltip]="'plans.lifecycle.actions.validateByComiteDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.validateByComite' | translate }}</span>
                     </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
+                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
                     </button>
                   }
                   <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
                   @if (p.statut === 'arrete_pref') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()">
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()"
+                            [matTooltip]="'plans.lifecycle.actions.recordArretePrefDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.recordArretePref' | translate }}</span>
                     </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()">
+                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
+                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
                     </button>
@@ -199,54 +212,63 @@
                        + Archiver. Verrouillage en lecture seule identique. -->
                   @if (p.statut === 'valide' || p.statut === 'modifie') {
                     @if (!p.children_count || p.children_count === 0) {
-                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()">
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()"
+                              [matTooltip]="'plans.lifecycle.actions.toDraftDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-undo"></i>
                         <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
                       </button>
                     }
                     @if (p.peut_etre_etendu) {
-                      <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()">
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()"
+                              [matTooltip]="'plans.lifecycle.actions.extendDurationDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-time-add"></i>
                         <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
                       </button>
                     }
                     @if (isPlanExtended()) {
-                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()">
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()"
+                              [matTooltip]="'plans.lifecycle.actions.revertExtensionDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-time-delete"></i>
                         <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
                       </button>
                     }
                     @if (!isPlanInRevision()) {
-                      <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmStartRevision()">
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="confirmStartRevision()"
+                              [matTooltip]="'plans.lifecycle.actions.startRevisionDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-refresh"></i>
                         <span>{{ 'plans.lifecycle.actions.startRevision' | translate }}</span>
                       </button>
                     } @else {
-                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmEndRevision()">
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmEndRevision()"
+                              [matTooltip]="'plans.lifecycle.actions.cancelRevisionDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-cross-circle"></i>
                         <span>{{ 'plans.lifecycle.actions.cancelRevision' | translate }}</span>
                       </button>
                     }
                     @if (canStartMiParcours()) {
-                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()">
+                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()"
+                              [matTooltip]="'plans.lifecycle.actions.startMiParcoursDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-time-forward"></i>
                         <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
                       </button>
                     }
                     @if (canCreateNewVersion()) {
-                      <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()">
+                      <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()"
+                              [matTooltip]="'plans.lifecycle.actions.createNewVersionDesc' | translate" matTooltipPosition="below">
                         <i class="fi fi-rr-duplicate"></i>
                         <span>{{ 'plans.lifecycle.actions.createNewVersion' | translate }}</span>
                       </button>
                     }
-                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()">
+                    <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()"
+                            [matTooltip]="'plans.lifecycle.actions.archiveDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-box"></i>
                       <span>{{ 'plans.lifecycle.actions.archive' | translate }}</span>
                     </button>
                   }
                   <!-- Archivé → Réactiver -->
                   @if (p.statut === 'archive') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmReactivate()">
+                    <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmReactivate()"
+                            [matTooltip]="'plans.lifecycle.actions.reactivateDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-undo"></i>
                       <span>{{ 'plans.lifecycle.actions.reactivate' | translate }}</span>
                     </button>
@@ -349,9 +371,7 @@
                                             {{ 'enjeux.operations.draftChip' | translate }}
                                           </mat-chip>
                                         }
-                                        @if (item.enjeuSlug) {
-                                          <i class="fi fi-rr-angle-small-right action-arrow"></i>
-                                        }
+                                        <!-- Flèche retirée (revue design #315 : cohérence avec autres items cliquables sans flèche) -->
                                       </li>
                                     }
                                   </ul>
@@ -494,38 +514,33 @@
               <div class="sites-list">
                 @for (site of plan()!.sites!; track site.id_site) {
                   @if (site.current_user_has_access !== false) {
-                    <a class="site-card" [routerLink]="['/sites', site.slug]"
-                       [title]="'sites.actions.view' | translate">
-                      <div class="site-info">
-                        <span class="site-name">{{ site.nom_site }}</span>
-                        @if (site.type_site_label) {
-                          <span class="site-type">{{ site.type_site_label }}</span>
-                        }
-                      </div>
-                      <span class="site-card-cta" aria-hidden="true">
+                    <app-entity-tile
+                      icon="fi-rr-marker"
+                      [name]="site.nom_site"
+                      [subtitle]="site.type_site_label || ''"
+                      [routerLink]="['/sites', site.slug]"
+                      [title]="'sites.actions.view' | translate">
+                      <span tileAction class="site-card-cta" aria-hidden="true">
                         <i class="fi fi-rr-arrow-right"></i>
                       </span>
-                    </a>
+                    </app-entity-tile>
                   } @else {
-                    <div class="site-card site-card-locked">
-                      <div class="site-info">
-                        <span class="site-name">{{ site.nom_site }}</span>
-                        @if (site.type_site_label) {
-                          <span class="site-type">{{ site.type_site_label }}</span>
-                        }
-                        <div class="site-request-actions">
-                          @if (authService.isAdminOrganisme()) {
-                            <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
-                              {{ 'plans.detail.linkSitePersonal' | translate }}
-                            </button>
-                          }
-                          <button class="site-request-access-btn" (click)="requestSiteOrgLink(site)">
-                            {{ 'plans.detail.linkSiteOrg' | translate }}
+                    <app-entity-tile
+                      icon="fi-rr-marker"
+                      [name]="site.nom_site"
+                      [subtitle]="site.type_site_label || ''"
+                      [locked]="true">
+                      <div class="site-request-actions">
+                        @if (authService.isAdminOrganisme()) {
+                          <button class="site-request-access-btn" (click)="requestSiteAccess(site)">
+                            {{ 'plans.detail.linkSitePersonal' | translate }}
                           </button>
-                        </div>
+                        }
+                        <button class="site-request-access-btn" (click)="requestSiteOrgLink(site)">
+                          {{ 'plans.detail.linkSiteOrg' | translate }}
+                        </button>
                       </div>
-                      <i class="fi fi-rr-lock"></i>
-                    </div>
+                    </app-entity-tile>
                   }
                 }
               </div>
@@ -542,13 +557,11 @@
                 <span class="pending-sites-label">{{ 'plans.detail.pendingSites' | translate }}</span>
                 <div class="pending-sites-list">
                   @for (req of pendingSiteRequests(); track req.id) {
-                    <div class="site-card site-card-pending">
-                      <div class="site-info">
-                        <span class="site-name">{{ req.target_name }}</span>
-                        <span class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
-                      </div>
-                      <i class="fi fi-rr-hourglass"></i>
-                    </div>
+                    <app-entity-tile
+                      icon="fi-rr-hourglass"
+                      [name]="req.target_name || ''">
+                      <span tileAction class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                    </app-entity-tile>
                   }
                 </div>
               </div>
@@ -575,17 +588,16 @@
             @if (planMembers().length > 0) {
               <div class="users-list">
                 @for (member of planMembers(); track member.id_role) {
-                  <div class="user-card-small">
-                    <div class="user-avatar-small">
-                      <i class="fi fi-rr-user"></i>
-                    </div>
-                    <div class="user-info-small">
-                      <span class="user-name-small">{{ member.nom_complet || member.email }}</span>
-                      <span class="user-role-chip" [class.role-referent]="member.referent" [class.role-member]="!member.referent">
-                        {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
-                      </span>
-                    </div>
-                  </div>
+                  <app-entity-tile
+                    icon="fi-rr-user"
+                    [name]="member.nom_complet || member.email">
+                    <span tileAction
+                          class="user-role-chip"
+                          [class.role-referent]="member.referent"
+                          [class.role-member]="!member.referent">
+                      {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
+                    </span>
+                  </app-entity-tile>
                 }
               </div>
             } @else {
@@ -597,7 +609,7 @@
           </div>
 
           <!-- Mindmap -->
-          <div class="section-card compact clickable" (click)="navigateToMindmap()">
+          <div class="section-card compact">
             <app-section-title
               [title]="'plans.detail.sections.mindmap' | translate"
               icon="fi-rr-apps"
@@ -606,10 +618,11 @@
               size="md"
               [showLine]="true">
             </app-section-title>
-            <div class="mindmap-placeholder">
+            <!-- Bouton secondaire (revue design Amandine — était un click-zone placeholder) -->
+            <button mat-stroked-button class="btn-view-mindmap" (click)="navigateToMindmap()">
               <i class="fi fi-rr-apps"></i>
-              <span>{{ 'plans.mindmap.viewMindmap' | translate }}</span>
-            </div>
+              {{ 'plans.mindmap.viewMindmap' | translate }}
+            </button>
           </div>
 
           <!-- Historique des versions / Cycle de vie -->

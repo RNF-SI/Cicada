@@ -490,7 +490,7 @@
     }
 
     &:hover:not(.active) {
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
     }
 
     &.active {

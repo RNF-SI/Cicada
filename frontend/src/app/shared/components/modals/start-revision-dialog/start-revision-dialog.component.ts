@@ -12,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
 
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminPlan } from '../../../../core/models/admin.model';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface StartRevisionDialogData {
   /** Plan source qui va être marqué en révision. */
@@ -48,6 +49,7 @@ type ChoiceMode = 'create' | 'link' | 'none';
     MatRadioModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './start-revision-dialog.component.html',
   styleUrl: './start-revision-dialog.component.scss',

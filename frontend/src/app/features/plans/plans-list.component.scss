@@ -251,7 +251,7 @@ h1 {
   }
 
   &:hover:not(.active) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -351,6 +351,26 @@ h1 {
         margin-left: $spacing-xs;
         opacity: 0.6;
       }
+
+      // Colonnes triables (revue design Amandine — bug tri colonnes)
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color $transition-fast;
+
+        &:hover {
+          background-color: $primary-hover;
+        }
+
+        i.sort-idle {
+          font-size: $font-size-base;
+          opacity: 0.35;
+        }
+      }
+
+      &.sorted i {
+        opacity: 1;
+      }
     }
   }
 
@@ -360,7 +380,7 @@ h1 {
       border-bottom: 1px solid $gray-light;
 
       &.odd {
-        background-color: #f6f6f6;
+        background-color: $gray-lightest;
       }
 
       &:last-child {
@@ -612,6 +632,20 @@ tr.is-child {
   }
 }
 
+// Bloc nom + meta sur lignes séparées (revue design #313)
+.ancestor-name-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.ancestor-meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
 .ancestor-name {
   color: $gray-dark;
   font-size: $font-size-small;
@@ -685,7 +719,7 @@ tr.is-child {
   }
 
   &:hover:not(.active):not(:disabled) {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   &:disabled {

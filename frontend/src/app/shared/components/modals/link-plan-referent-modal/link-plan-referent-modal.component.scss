@@ -81,7 +81,7 @@
   padding: $spacing-sm;
   background: white;
   border-radius: 5px;
-  color: #6c757d;
+  color: $gray-dark;
   font-size: 12px;
 
   i {
@@ -119,11 +119,11 @@
     .referent-item-info {
       .referent-name {
         text-decoration: line-through;
-        color: #6c757d;
+        color: $gray-dark;
       }
 
       i {
-        color: #6c757d;
+        color: $gray-dark;
       }
     }
   }
@@ -154,7 +154,7 @@
 
   .referent-email {
     font-size: 11px;
-    color: #6c757d;
+    color: $gray-dark;
     white-space: nowrap;
   }
 }
@@ -210,7 +210,7 @@
   padding: $spacing-xxs 9px;
   background: transparent;
   border: 1px solid #6c757d;
-  color: #6c757d;
+  color: $gray-dark;
   cursor: pointer;
   border-radius: $border-radius-sm;
   font-size: 11px;
@@ -263,7 +263,7 @@
 
   &:hover {
     opacity: 1;
-    background: rgba($primary-color, 0.1);
+    background: $primary-bg-light;
   }
 
   i {
@@ -318,7 +318,7 @@
 
   .option-email {
     font-size: 11px;
-    color: #6c757d;
+    color: $gray-dark;
   }
 }
 
@@ -356,7 +356,7 @@
   gap: $spacing-md;
 
   p {
-    color: #6c757d;
+    color: $gray-dark;
     margin: 0;
   }
 }

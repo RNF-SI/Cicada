@@ -50,16 +50,44 @@
         </div>
       } @else {
         <div class="mindmap-wrapper">
-          <!-- View toggle: Enjeux vs Actions -->
-          <div class="view-toggle">
-            <button [class.active]="viewMode() === 'enjeux'" (click)="switchView('enjeux')">
-              <i class="fi fi-rr-apps"></i>
-              {{ 'plans.mindmap.viewEnjeux' | translate }}
-            </button>
-            <button [class.active]="viewMode() === 'actions'" (click)="switchView('actions')">
-              <i class="fi fi-rr-refresh"></i>
-              {{ 'plans.mindmap.viewActions' | translate }}
-            </button>
+          <!-- Toolbar : view toggle à gauche, boutons d'action à droite (revue design Amandine) -->
+          <div class="mindmap-toolbar">
+            <div class="view-toggle">
+              <button [class.active]="viewMode() === 'enjeux'" (click)="switchView('enjeux')">
+                <i class="fi fi-rr-apps"></i>
+                {{ 'plans.mindmap.viewEnjeux' | translate }}
+              </button>
+              <button [class.active]="viewMode() === 'actions'" (click)="switchView('actions')">
+                <i class="fi fi-rr-refresh"></i>
+                {{ 'plans.mindmap.viewActions' | translate }}
+              </button>
+            </div>
+
+            <div class="mindmap-controls">
+              @if (viewMode() === 'enjeux') {
+                <button mat-stroked-button (click)="resetIcicle()"
+                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
+                  <i class="fi fi-rr-marker"></i>
+                </button>
+                <button mat-stroked-button (click)="focusOnEnjeu()"
+                        [matTooltip]="'plans.mindmap.focusEnjeuTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.focusEnjeu' | translate">
+                  <i class="fi fi-rr-target"></i>
+                </button>
+              } @else {
+                <button mat-stroked-button (click)="resetIcicleInverse()"
+                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
+                  <i class="fi fi-rr-marker"></i>
+                </button>
+                <button mat-stroked-button (click)="focusOnOperation()"
+                        [matTooltip]="'plans.mindmap.focusOperationTooltip' | translate" matTooltipPosition="below"
+                        [attr.aria-label]="'plans.mindmap.focusOperation' | translate">
+                  <i class="fi fi-rr-target"></i>
+                </button>
+              }
+            </div>
           </div>
 
           <!-- Legend -->
@@ -78,33 +106,9 @@
           @if (viewMode() === 'enjeux') {
             <!-- Icicle Container (normal: Enjeux → Actions) -->
             <div class="icicle-container" #icicleContainer></div>
-
-            <!-- Controls -->
-            <div class="mindmap-controls">
-              <button mat-stroked-button (click)="resetIcicle()">
-                <i class="fi fi-rr-marker"></i>
-                {{ 'plans.mindmap.resetZoomPlan' | translate }}
-              </button>
-              <button mat-stroked-button (click)="focusOnEnjeu()">
-                <i class="fi fi-rr-target"></i>
-                {{ 'plans.mindmap.focusEnjeu' | translate }}
-              </button>
-            </div>
           } @else {
             <!-- Icicle Container (inverse: Actions → Enjeux) -->
             <div class="icicle-container" #icicleInverseContainer></div>
-
-            <!-- Controls -->
-            <div class="mindmap-controls">
-              <button mat-stroked-button (click)="resetIcicleInverse()">
-                <i class="fi fi-rr-marker"></i>
-                {{ 'plans.mindmap.resetZoomPlan' | translate }}
-              </button>
-              <button mat-stroked-button (click)="focusOnOperation()">
-                <i class="fi fi-rr-target"></i>
-                {{ 'plans.mindmap.focusOperation' | translate }}
-              </button>
-            </div>
           }
         </div>
       }

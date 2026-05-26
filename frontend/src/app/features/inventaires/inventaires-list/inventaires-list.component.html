@@ -35,16 +35,12 @@
     <!-- Content Area -->
     <section class="content-section">
       <!-- Search Bar -->
-      <div class="search-bar">
-        <i class="fi fi-rr-search search-icon"></i>
-        <input
-          type="text"
-          class="search-input"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="onSearch($event)"
-          [placeholder]="'common.actions.search' | translate">
-        <div class="search-underline"></div>
-      </div>
+      <app-search-bar
+        [value]="searchQuery()"
+        [placeholder]="'common.actions.search' | translate"
+        [ariaLabel]="'common.actions.search' | translate"
+        (valueChange)="onSearch($event)">
+      </app-search-bar>
 
       <!-- Filter Bar + Add Button Row -->
       <div class="toolbar-row">

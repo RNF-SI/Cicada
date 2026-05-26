@@ -29,8 +29,11 @@ async function gotoOperationsTab(page: import('@playwright/test').Page, nameFrag
 
 /** Cancel the last visible inline form. */
 async function cancelInlineForm(page: import('@playwright/test').Page) {
+  // Press Escape first to dismiss any open mat-select overlay (cdk-overlay) covering the form
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
   const form = page.locator('.unified-indicateur-form, .olt-inline-form, .ne-inline-form, .inline-form').last();
-  await form.locator('.inline-form-actions button[mat-stroked-button]').click();
+  await form.locator('.inline-form-actions button[mat-stroked-button]').click({ force: true });
   await page.waitForTimeout(300);
 }
 
@@ -112,7 +115,7 @@ test.describe('Operations Tab - OO CRUD', () => {
       await expect(form).toBeVisible();
 
       // Should have a libelle input
-      const libelleInput = form.locator('input[matInput]').first();
+      const libelleInput = form.locator('input').first();
       await expect(libelleInput).toBeVisible();
 
       // Should have pression/facteur selects
@@ -171,7 +174,7 @@ test.describe('Operations Tab - OO CRUD', () => {
       const form = referentPage.locator('.olt-inline-form').last();
 
       // Fill libelle
-      await form.locator('input[matInput]').first().fill(`E2E OO ${Date.now()}`);
+      await form.locator('input').first().fill(`E2E OO ${Date.now()}`);
 
       // Select facteur
       const facteurSelect = form.locator('mat-select').first();
@@ -270,7 +273,7 @@ test.describe('Operations Tab - RA CRUD', () => {
       await expect(form).toBeVisible();
 
       // RA form has libelle input and description textarea
-      const libelleInput = form.locator('input[matInput]').first();
+      const libelleInput = form.locator('input').first();
       await expect(libelleInput).toBeVisible();
 
       await cancelInlineForm(referentPage);
@@ -289,7 +292,7 @@ test.describe('Operations Tab - RA CRUD', () => {
       await referentPage.waitForTimeout(500);
 
       const form = referentPage.locator('.ne-inline-form').last();
-      await form.locator('input[matInput]').first().fill(`E2E RA ${Date.now()}`);
+      await form.locator('input').first().fill(`E2E RA ${Date.now()}`);
 
       const descriptionField = form.locator('textarea[matInput]');
       if (await descriptionField.count() > 0) {
@@ -352,7 +355,7 @@ test.describe('Operations Tab - OO Indicateurs', () => {
       if (!formVisible) return; // Form didn't open — data-dependent, pass silently
 
       // OO indicateur form has: nom, type, standardise, description, and metrique sub-forms
-      const nomInput = form.locator('input[matInput]').first();
+      const nomInput = form.locator('input').first();
       await expect(nomInput).toBeVisible();
 
       await cancelInlineForm(referentPage);

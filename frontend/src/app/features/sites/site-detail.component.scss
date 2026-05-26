@@ -56,9 +56,17 @@ h1 { @include sites-h1; }
   background-color: $white; border: none; color: $primary-color;
   &:hover { background-color: rgba($white, 0.9); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
 }
+// Bouton retour en style tertiaire (revue design #312 : bouton tertiaire au-dessus du sous-titre)
 .btn-back {
-  background-color: $primary-color; border: none; color: $white;
-  &:hover { background-color: $primary-hover; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+  background-color: transparent; border: none; color: $white;
+  box-shadow: none;
+  padding-left: 0;
+  font-weight: $font-weight-semibold;
+  &:hover {
+    background-color: rgba($white, 0.15);
+    box-shadow: none;
+    text-decoration: none;
+  }
 }
 .btn-request-referent {
   background-color: $white; border: none; color: $primary-color;
@@ -68,15 +76,12 @@ h1 { @include sites-h1; }
 }
 .btn-pending { background-color: $gray-light; border: none; color: $gray-dark; cursor: default; }
 
-// Sidebar menu
-.sidebar-menu { display: flex; flex-wrap: wrap; gap: $spacing-xs; margin-bottom: $spacing-lg; padding-bottom: $spacing-md; border-bottom: 1px solid $gray-light; }
-.sidebar-menu-item {
-  @include sites-btn-pill;
-  padding: $spacing-xs $spacing-md; background-color: $white;
-  border: 1px solid $gray-light; font-size: $font-size-small; color: $gray-dark;
-  i { font-size: 13px; }
-  &:hover { border-color: $primary-color; color: $primary-color; }
-  &.active { background-color: $primary-color; border-color: $primary-color; color: $white; }
+// Navigation interne par ancres (#304)
+.site-detail-anchor-nav {
+  display: block;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $gray-light;
 }
 
 // Subsection title
@@ -130,7 +135,7 @@ h1 { @include sites-h1; }
 .plan-card {
   display: flex; justify-content: space-between; align-items: center; padding: $spacing-md;
   background-color: $gray-lighter; border-radius: $border-radius-sm; cursor: pointer;
-  &:hover { background-color: rgba($primary-color, 0.08); transform: translateX(4px); }
+  &:hover { background-color: $primary-bg-subtle; transform: translateX(4px); }
 }
 .plan-info { display: flex; flex-direction: column; gap: 2px; }
 .plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
@@ -199,12 +204,10 @@ h1 { @include sites-h1; }
   @include sites-responsive-tablet;
   .title-section { flex-direction: column; gap: $spacing-md; }
   .breadcrumb { flex-wrap: wrap; }
-  .sidebar-menu { justify-content: center; }
 }
 @media (max-width: $breakpoint-mobile) {
   @include sites-responsive-mobile;
   .btn-back { padding: 8px 14px; font-size: $font-size-small; }
-  .sidebar-menu-item { padding: $spacing-xs $spacing-sm; font-size: 11px; }
   .section-title { font-size: $font-size-base; }
   .info-item { padding: $spacing-sm; }
   .info-icon { width: 29px; height: 29px; i { font-size: 13px; } }

@@ -32,35 +32,34 @@
           <!-- Required fields notice -->
           <p class="required-notice">{{ 'enjeux.fcrForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.fcrForm.requiredAfter' | translate }}</p>
           <!-- Intitulé -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.fcrForm.libelle' | translate }} <span class="required-star">*</span></mat-label>
-            <textarea matInput
+          <app-form-field [label]="'enjeux.fcrForm.libelle' | translate" [required]="true">
+  <textarea
                       formControlName="libelle"
                       rows="3"
                       [placeholder]="'enjeux.fcrForm.libellePlaceholder' | translate">
             </textarea>
             @if (form.get('libelle')?.hasError('required') && form.get('libelle')?.touched) {
-              <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+              
             }
             @if (form.get('libelle')?.hasError('maxlength')) {
-              <mat-error>{{ 'common.validation.maxLength' | translate:{ max: 500 } }}</mat-error>
+              
             }
-          </mat-form-field>
+</app-form-field>
 
           <!-- Intitulé court -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'enjeux.fcrForm.intituleCourt' | translate }} <span class="required-star">*</span></mat-label>
-            <input matInput
-                   formControlName="intitule_court"
+          <app-form-field class="full-width"
+                          [label]="'enjeux.fcrForm.intituleCourt' | translate"
+                          [required]="true"
+                          [helpText]="intituleCourtLength + '/25'">
+            <input formControlName="intitule_court"
                    maxlength="25"
                    [placeholder]="'enjeux.fcrForm.intituleCourtPlaceholder' | translate">
-            <mat-hint align="end">{{ intituleCourtLength }}/25</mat-hint>
-            <button mat-icon-button matSuffix type="button"
+            <button suffixSlot type="button"
                     [matTooltip]="'enjeux.fcrForm.intituleCourtHint' | translate"
                     matTooltipPosition="above">
               <i class="fi fi-rr-interrogation"></i>
             </button>
-          </mat-form-field>
+          </app-form-field>
 
           <!-- Catégorie FCR -->
           <div class="form-group">
@@ -78,28 +77,21 @@
           </div>
         </div>
 
-        <!-- Section Détails (accordéon) -->
-        <mat-expansion-panel class="details-panel" hideToggle>
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
-              <span class="panel-title-text">{{ 'enjeux.fcrForm.details' | translate }}</span>
-              <i class="fi fi-rr-menu-burger panel-toggle-icon"></i>
-            </mat-panel-title>
-          </mat-expansion-panel-header>
+        <!-- Section Détails (#303 accordion fcr) -->
+        <app-accordion variant="fcr" [title]="'enjeux.fcrForm.details' | translate">
+          <img accordionIcon src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
 
           <div class="panel-content">
             <!-- Commentaires -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'enjeux.fcrForm.commentaires' | translate }}</mat-label>
-              <textarea matInput
+            <app-form-field [label]="'enjeux.fcrForm.commentaires' | translate">
+  <textarea
                         formControlName="description"
                         rows="4"
                         [placeholder]="'enjeux.fcrForm.commentairesPlaceholder' | translate">
               </textarea>
-            </mat-form-field>
+</app-form-field>
           </div>
-        </mat-expansion-panel>
+        </app-accordion>
 
       </form>
     </div>

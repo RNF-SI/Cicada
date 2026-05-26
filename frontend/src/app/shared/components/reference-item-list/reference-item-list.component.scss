@@ -42,8 +42,8 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  background-color: rgba($primary-color, 0.08);
-  border: 1px solid rgba($primary-color, 0.2);
+  background-color: $primary-bg-subtle;
+  border: 1px solid $primary-bg-medium;
   border-radius: $border-radius-pill;
   padding: $spacing-xxs $spacing-xs $spacing-xxs $spacing-sm;
   max-width: 100%;

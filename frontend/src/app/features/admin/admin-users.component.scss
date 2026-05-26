@@ -321,7 +321,7 @@
   }
 
   &.role-admin_og {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
   }
 
@@ -404,7 +404,7 @@
   align-items: center;
   gap: $spacing-xxs;
   padding: 2px $spacing-xs;
-  background-color: rgba($primary-color, 0.08);
+  background-color: $primary-bg-subtle;
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: $primary-color;
@@ -534,7 +534,7 @@
   transition: all $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 
   &.danger {

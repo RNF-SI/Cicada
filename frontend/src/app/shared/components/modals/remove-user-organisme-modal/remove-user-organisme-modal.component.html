@@ -24,16 +24,17 @@
 
     <!-- Reason field -->
     <div class="reason-section">
-      <label class="reason-label">Raison du retrait *</label>
-      <mat-form-field appearance="outline" class="full-width">
+      <app-form-field
+        class="full-width"
+        label="Raison du retrait"
+        [required]="true"
+        [helpText]="reason.length + ' / 10 caracteres minimum'">
         <textarea
-          matInput
           [(ngModel)]="reason"
           placeholder="Indiquez la raison du retrait (minimum 10 caracteres)..."
           rows="3"
         ></textarea>
-        <mat-hint>{{ reason.length }} / 10 caracteres minimum</mat-hint>
-      </mat-form-field>
+      </app-form-field>
 
       @if (errorMessage()) {
         <div class="error-message">

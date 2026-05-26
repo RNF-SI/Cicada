@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 
 interface OrganismeOption {
   id: number;
@@ -31,7 +32,8 @@ interface OrganismeOption {
     MatProgressSpinnerModule,
     MatSelectModule,
     MatAutocompleteModule,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss'

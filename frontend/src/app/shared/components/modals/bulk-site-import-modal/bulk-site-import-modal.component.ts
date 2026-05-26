@@ -1,10 +1,9 @@
-import { Component, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatStepper, MatStepperModule } from '@angular/material/stepper';
-import { STEPPER_GLOBAL_OPTIONS } from '@angular/cdk/stepper';
 import { MatButtonModule } from '@angular/material/button';
+import { StepperComponent, StepperStep } from '../../stepper/stepper.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
@@ -50,8 +49,8 @@ const TARGET_FIELDS = [
     CommonModule,
     FormsModule,
     MatDialogModule,
-    MatStepperModule,
     MatButtonModule,
+    StepperComponent,
     MatFormFieldModule,
     MatSelectModule,
     MatTableModule,
@@ -65,22 +64,37 @@ const TARGET_FIELDS = [
   ],
   templateUrl: './bulk-site-import-modal.component.html',
   styleUrl: './bulk-site-import-modal.component.scss',
-  providers: [
-    {
-      provide: STEPPER_GLOBAL_OPTIONS,
-      useValue: { displayDefaultIndicatorType: false },
-    },
-  ],
 })
 export class BulkSiteImportModalComponent {
   private readonly dialogRef = inject(MatDialogRef<BulkSiteImportModalComponent>);
   private readonly adminService = inject(AdminService);
   private readonly translate = inject(TranslateService);
 
-  @ViewChild('stepper') stepper!: MatStepper;
-
   // Step state
   readonly currentStep = signal(0);
+
+  // Configuration du stepper (#301)
+  readonly stepperSteps: StepperStep[] = [
+    { id: 0, label: 'Fichier' },
+    { id: 1, label: 'Correspondance' },
+    { id: 2, label: 'Vérification' },
+    { id: 3, label: 'Résultats' },
+  ];
+
+  readonly stepperStepsComputed = computed(() =>
+    this.stepperSteps.map((step, index) => ({
+      ...step,
+      completed: index < this.currentStep(),
+    })),
+  );
+
+  onStepClick(step: StepperStep): void {
+    // Permet de revenir en arrière uniquement (les complétées sont cliquables)
+    const targetIndex = typeof step.id === 'number' ? step.id : 0;
+    if (targetIndex < this.currentStep()) {
+      this.currentStep.set(targetIndex);
+    }
+  }
 
   // Step 1: Upload
   readonly selectedFile = signal<File | null>(null);
@@ -250,13 +264,11 @@ export class BulkSiteImportModalComponent {
   }
 
   stepNext(): void {
-    this.stepper.next();
-    this.currentStep.set(this.stepper.selectedIndex);
+    this.currentStep.update((s) => Math.min(s + 1, this.stepperSteps.length - 1));
   }
 
   stepPrevious(): void {
-    this.stepper.previous();
-    this.currentStep.set(this.stepper.selectedIndex);
+    this.currentStep.update((s) => Math.max(s - 1, 0));
   }
 
   // Step 3: Preview

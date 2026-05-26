@@ -5,6 +5,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { MAT_DATE_LOCALE, MAT_DATE_FORMATS, DateAdapter, MAT_NATIVE_DATE_FORMATS, NativeDateAdapter } from '@angular/material/core';
+import { MAT_SNACK_BAR_DEFAULT_OPTIONS, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 
@@ -24,6 +25,14 @@ const FR_DATE_FORMATS = {
     ...MAT_NATIVE_DATE_FORMATS.display,
     dateInput: { day: 'numeric', month: 'numeric', year: 'numeric' } as Intl.DateTimeFormatOptions,
   },
+};
+
+// Snackbar : durée allongée + bouton fermer ajouté quand absent (revue design Amandine)
+const SNACKBAR_DEFAULT_OPTIONS: MatSnackBarConfig = {
+  duration: 6000,
+  horizontalPosition: 'right',
+  verticalPosition: 'bottom',
+  panelClass: ['ccd-snackbar'],
 };
 
 export const appConfig: ApplicationConfig = {
@@ -54,5 +63,6 @@ export const appConfig: ApplicationConfig = {
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
     { provide: MAT_DATE_FORMATS, useValue: FR_DATE_FORMATS },
     { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: SNACKBAR_DEFAULT_OPTIONS },
   ]
 };

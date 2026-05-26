@@ -14,48 +14,44 @@
         </div>
       }
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.login.username' | translate }}</mat-label>
+      <app-form-field class="full-width" [label]="'auth.login.username' | translate">
+        <i prefixSlot class="fi fi-rr-user field-icon"></i>
         <input
-          matInput
           type="text"
           formControlName="username"
           [placeholder]="'auth.login.usernamePlaceholder' | translate"
           autocomplete="username"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-user"></i>
-        </mat-icon>
-        @if (loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched) {
-          <mat-error>{{ 'auth.login.errors.usernameRequired' | translate }}</mat-error>
-        }
-      </mat-form-field>
+        <ng-container errorSlot>
+          @if (loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched) {
+            <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.login.errors.usernameRequired' | translate }}</p>
+          }
+        </ng-container>
+      </app-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.login.password' | translate }}</mat-label>
+      <app-form-field class="full-width" [label]="'auth.login.password' | translate">
+        <i prefixSlot class="fi fi-rr-lock field-icon"></i>
         <input
-          matInput
           [type]="hidePassword() ? 'password' : 'text'"
           formControlName="password"
           [placeholder]="'auth.login.passwordPlaceholder' | translate"
           autocomplete="current-password"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-lock"></i>
-        </mat-icon>
         <button
-          mat-icon-button
-          matSuffix
+          suffixSlot
           type="button"
+          class="password-toggle"
           (click)="togglePasswordVisibility()"
           [attr.aria-label]="(hidePassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
           <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
         </button>
-        @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
-          <mat-error>{{ 'auth.login.errors.passwordRequired' | translate }}</mat-error>
-        }
-      </mat-form-field>
+        <ng-container errorSlot>
+          @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+            <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.login.errors.passwordRequired' | translate }}</p>
+          }
+        </ng-container>
+      </app-form-field>
 
       <button
         mat-flat-button

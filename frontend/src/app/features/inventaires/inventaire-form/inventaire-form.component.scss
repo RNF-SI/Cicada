@@ -77,7 +77,8 @@ $form-side-margin: $page-gutter;
 // ============================================
 
 .info-block {
-  margin: 0 0 $spacing-lg 0;
+  // Marges sur les côtés et en haut pour détacher du header (revue design #318)
+  margin: $spacing-lg $spacing-sm $spacing-lg $spacing-sm;
 }
 
 // ============================================
@@ -122,9 +123,11 @@ $form-side-margin: $page-gutter;
 // ============================================
 
 .form-grid {
+  // L'espacement vertical entre champs successifs est géré par app-form-field
+  // (règle :host + :host margin-top dans form-field.component.scss).
+  // Pas de gap ici pour ne pas additionner deux espacements.
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
 }
 
 // ============================================

@@ -327,7 +327,7 @@ test.describe('Enjeu Form - Validation', () => {
     await referentPage.waitForTimeout(1000);
 
     expect(referentPage.url()).toContain('/nouveau');
-    const matError = referentPage.locator('mat-error');
+    const matError = referentPage.locator('mat-error, .app-form-field__error, .form-error-msg');
     await expect(matError.first()).toBeVisible();
   });
 
@@ -432,7 +432,7 @@ test.describe('FCR Form - Validation', () => {
     await referentPage.waitForTimeout(1000);
 
     expect(referentPage.url()).toContain('/fcr/nouveau');
-    const matError = referentPage.locator('mat-error');
+    const matError = referentPage.locator('mat-error, .app-form-field__error, .form-error-msg');
     await expect(matError.first()).toBeVisible();
   });
 

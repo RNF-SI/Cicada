@@ -33,7 +33,7 @@
   width: 29px;
   height: 29px;
   background-color: $white;
-  border: 2px solid rgba($primary-color, 0.2);
+  border: 2px solid $primary-bg-medium;
   border-radius: $border-radius-sm;
   cursor: pointer;
   transition: all $transition-fast;
@@ -61,15 +61,16 @@
 }
 
 .toolbar-btn-import {
-  background-color: $secondary-yellow;
-  border-color: $secondary-yellow;
-  color: $black;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  // Harmonisé avec les autres toolbar-btn (revue design Amandine — survol icônes blanc)
+  background-color: $white;
+  border-color: $primary-bg-medium;
+  color: $primary-color;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover:not(:disabled) {
-    background-color: darken($secondary-yellow, 8%);
-    color: $black;
-    border-color: darken($secondary-yellow, 8%);
+    background-color: $primary-color;
+    color: $white;
+    border-color: $primary-color;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   }
 
@@ -85,23 +86,35 @@
   margin: $spacing-xxs 0;
 }
 
-// Instructions en bas
+// Instructions en bas — 2 lignes possibles (dessiner + modifier/supprimer)
 .map-instructions {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   padding: $spacing-xs $spacing-md;
-  background: linear-gradient(transparent, rgba($black, 0.7));
+  background: linear-gradient(transparent, rgba($black, 0.75));
   color: $white;
   font-size: $font-size-small;
   z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
 
-  span {
+  .instructions-line {
     display: flex;
     align-items: center;
     gap: $spacing-xs;
     flex-wrap: wrap;
+
+    strong {
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .instructions-edit {
+    opacity: 0.92;
+    font-size: 12px;
   }
 
   i {
@@ -111,6 +124,54 @@
   .separator {
     color: rgba($white, 0.5);
     margin: 0 $spacing-xs;
+  }
+}
+
+// Légende visuelle (revue design Amandine — icônes distinctes pour contour vs point)
+.map-legend {
+  position: absolute;
+  top: $spacing-sm;
+  left: $spacing-sm;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background-color: $white;
+  border-radius: $border-radius-sm;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    color: $black;
+  }
+
+  .legend-symbol {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  // Symbole polygone : carré contour primary, fond translucide
+  .legend-symbol-polygon .polygon-shape {
+    display: block;
+    width: 18px;
+    height: 14px;
+    border: 2px solid $primary-color;
+    background-color: $primary-bg-light;
+  }
+
+  // Symbole marker : icône avec couleur primary
+  .legend-symbol-marker i {
+    color: $primary-color;
+    font-size: 18px;
   }
 }
 
@@ -124,7 +185,7 @@
   .leaflet-draw-toolbar {
     a {
       background-color: $white;
-      border-color: rgba($primary-color, 0.2);
+      border-color: $primary-bg-medium;
 
       &:hover {
         background-color: $primary-color;

@@ -112,24 +112,16 @@
 
       <!-- Contenu (droite) -->
       <div class="content-column">
-        <!-- Menu sidebar (visuel) -->
-        <nav class="sidebar-menu">
-          @for (item of menuItems; track item.id) {
-            <button
-              class="sidebar-menu-item"
-              [class.active]="activeMenuItem() === item.id"
-              (click)="setActiveMenuItem(item.id)">
-              <i class="fi {{ item.icon }}"></i>
-              <span>{{ item.label | translate }}</span>
-            </button>
-          }
-        </nav>
+        <!-- Navigation interne par ancres (#304) -->
+        <app-anchor-nav
+          class="site-detail-anchor-nav"
+          [items]="anchorNavItems"
+          [activeId]="activeAnchorId()"
+          (itemClick)="onAnchorClick($event)">
+        </app-anchor-nav>
 
-        <!-- Contenu selon menu actif -->
         <div class="content-panel">
-          <!-- Vue d'ensemble -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'info') {
-            <section class="info-section">
+          <section id="site-info" class="info-section">
               <h2 class="section-title">
                 <i class="fi fi-rr-info"></i>
                 {{ 'sites.detail.info' | translate }}
@@ -149,11 +141,9 @@
                 }
               </div>
             </section>
-          }
 
-          <!-- Organismes gestionnaires -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'organismes') {
-            <section class="organismes-section">
+            <!-- Organismes gestionnaires -->
+            <section id="site-organismes" class="organismes-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-building"></i>
@@ -190,9 +180,9 @@
                         }
                       </div>
                       <div class="organisme-role">
+                        <!-- Tag organisme principal : étoile retirée (revue design #310) -->
                         @if (org.principal) {
                           <mat-chip class="role-principal">
-                            <i class="fi fi-rr-star chip-icon"></i>
                             {{ 'sites.detail.principalOrg' | translate }}
                           </mat-chip>
                         } @else {
@@ -206,11 +196,9 @@
                 </div>
               }
             </section>
-          }
 
-          <!-- Utilisateurs du site -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'users') {
-            <section class="users-section">
+            <!-- Utilisateurs du site -->
+            <section id="site-users" class="users-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-users"></i>
@@ -236,32 +224,24 @@
               } @else {
                 <div class="users-list">
                   @for (ua of siteUsers(); track ua.user.id_role) {
-                    <div class="user-card">
-                      <div class="user-avatar">
-                        <i class="fi fi-rr-user"></i>
-                      </div>
-                      <div class="user-info">
-                        <span class="user-name">{{ getUserDisplayName(ua.user) }}</span>
-                        <span class="user-email">{{ ua.user.email }}</span>
-                        @if (ua.user.organisme) {
-                          <span class="user-org">{{ ua.user.organisme }}</span>
-                        }
-                      </div>
-                      <div class="user-role">
-                        <mat-chip [class]="getUserRoleClass(ua)">
-                          {{ getUserRoleLabel(ua) }}
-                        </mat-chip>
-                      </div>
-                    </div>
+                    <app-entity-tile
+                      icon="fi-rr-user"
+                      [name]="getUserDisplayName(ua.user)"
+                      [subtitle]="ua.user.email">
+                      @if (ua.user.organisme) {
+                        <span class="user-org">{{ ua.user.organisme }}</span>
+                      }
+                      <span tileAction class="user-role-tag" [class]="getUserRoleClass(ua)">
+                        {{ getUserRoleLabel(ua) }}
+                      </span>
+                    </app-entity-tile>
                   }
                 </div>
               }
             </section>
-          }
 
-          <!-- Plans de gestion -->
-          @if (activeMenuItem() === 'overview' || activeMenuItem() === 'plans') {
-            <section class="plans-section">
+            <!-- Plans de gestion -->
+            <section id="site-plans" class="plans-section">
               <div class="section-header">
                 <h2 class="section-title">
                   <i class="fi fi-rr-document"></i>
@@ -325,7 +305,6 @@
                 </div>
               }
             </section>
-          }
 
         </div>
       </div>

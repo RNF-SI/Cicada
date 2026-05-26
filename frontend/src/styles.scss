@@ -50,11 +50,16 @@
 // Error: Rouge (#E12329)
 
 // Use cyan palette as base (closest to our teal #025359)
+// Typography: Nunito everywhere — design review #294
 $theme: mat.define-theme((
   color: (
     theme-type: light,
     primary: mat.$cyan-palette,
     tertiary: mat.$orange-palette,
+  ),
+  typography: (
+    plain-family: 'Nunito, sans-serif',
+    brand-family: 'Nunito, sans-serif',
   ),
 ));
 
@@ -204,14 +209,14 @@ html {
   --mdc-outlined-button-label-text-color: #{$primary-color};
   --mdc-outlined-button-icon-color: #{$primary-color};
   --mat-outlined-button-state-layer-color: #{$primary-color};
-  --mat-outlined-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-outlined-button-ripple-color: #{$primary-bg-focus};
   --mat-outlined-button-icon-color: #{$primary-color};
 
   // Buttons (text)
   --mdc-text-button-label-text-color: #{$primary-color};
   --mdc-text-button-icon-color: #{$primary-color};
   --mat-text-button-state-layer-color: #{$primary-color};
-  --mat-text-button-ripple-color: #{rgba($primary-color, 0.12)};
+  --mat-text-button-ripple-color: #{$primary-bg-focus};
   --mat-text-button-icon-color: #{$primary-color};
 
   // Checkbox - CRITICAL: checkmark must be WHITE on teal background
@@ -241,8 +246,8 @@ html {
   --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
   --mdc-radio-unselected-hover-icon-color: #{$primary-color};
   --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
-  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
-  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-checked-ripple-color: #{$primary-bg-light};
+  --mat-radio-ripple-color: #{$primary-bg-light};
 
   // Slide toggle - Track (background)
   --mdc-switch-selected-track-color: #{$primary-color};
@@ -297,8 +302,8 @@ html {
   --mat-datepicker-calendar-date-selected-state-text-color: #{$white};
   --mat-datepicker-calendar-date-today-outline-color: #{$primary-color};
   --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$primary-color};
-  --mat-datepicker-calendar-date-focus-state-background-color: #{rgba($primary-color, 0.12)};
-  --mat-datepicker-calendar-date-hover-state-background-color: #{rgba($primary-color, 0.08)};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{$primary-bg-focus};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{$primary-bg-subtle};
   --mat-datepicker-calendar-date-text-color: #{$black};
   --mat-datepicker-calendar-body-label-text-color: #{$gray-dark};
   --mat-datepicker-calendar-period-button-text-color: #{$black};
@@ -902,7 +907,7 @@ body.leaflet-map-fullscreen-active {
       font-weight: 700;
       font-size: 12px;
       color: $primary-color;
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
       padding: 1px 6px;
       border-radius: $border-radius-sm;
       margin-right: $spacing-xs;
@@ -955,6 +960,108 @@ body.leaflet-map-fullscreen-active {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
       }
+    }
+  }
+}
+// ============================================
+// AUTOFILL GLOBAL (Chrome/Edge fix)
+// ============================================
+// Neutralise le fond bleu/jaune que les navigateurs ajoutent
+// automatiquement sur les champs auto-remplis (autofill).
+// Sans ce fix, les inputs/textarea (login, recherche, etc.) se
+// retrouvent avec un fond violet/jaune incohérent avec le kit UI.
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: $black !important;
+  -webkit-box-shadow: 0 0 0 30px $white inset !important;
+  box-shadow: 0 0 0 30px $white inset !important;
+  transition: background-color 9999s ease-out 0s;
+  caret-color: $black;
+}
+
+// ============================================
+// FORM FIELD SPACING (global — Figma : 24px entre champs successifs)
+// ============================================
+// Règle UNIQUE qui définit l'écart vertical entre 2 champs successifs
+// (app-form-field, mat-form-field stylé, ou label app-mat-label pour mat-form-field).
+// Centralisé ici pour éviter d'avoir à configurer le gap sur chaque parent.
+
+app-form-field + app-form-field,
+app-form-field + label.app-mat-label,
+app-form-field + .mat-mdc-form-field.app-mat-form-field,
+.mat-mdc-form-field.app-mat-form-field + app-form-field,
+.mat-mdc-form-field.app-mat-form-field + label.app-mat-label,
+label.app-mat-label + app-form-field,
+.mat-mdc-form-field.app-mat-form-field + .mat-mdc-form-field.app-mat-form-field {
+  margin-top: $spacing-lg;
+}
+
+// ============================================
+// CREATE PLAN DROPDOWN (revue design Amandine — style maquette)
+// ============================================
+// Dropdown enrichi : icône + titre + description par option.
+.create-dropdown.mat-mdc-menu-panel {
+  min-width: 320px !important;
+  max-width: 400px !important;
+  margin-top: 6px;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+
+  .mat-mdc-menu-content {
+    padding: $spacing-xs 0;
+  }
+
+  .create-menu-item.mat-mdc-menu-item {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
+    min-height: auto;
+    height: auto;
+
+    &:hover {
+      background-color: $primary-bg-subtle;
+    }
+
+    > i {
+      color: $primary-color;
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .menu-item-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .menu-item-title {
+      font-family: $font-family;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $black;
+      line-height: 1.3;
+    }
+
+    .menu-item-desc {
+      font-family: $font-family;
+      font-size: $font-size-small;
+      color: $gray-dark;
+      line-height: 1.3;
+      white-space: normal;
     }
   }
 }

@@ -8,8 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { catchError, debounceTime, forkJoin, of, Subject } from 'rxjs';
 
 import { AdminService } from '../../../../core/services/admin.service';
@@ -17,6 +17,7 @@ import { ValidationService } from '../../../../core/services/validation.service'
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSite } from '../../../../core/models/admin.model';
 import { SiteFormModalComponent, SiteFormModalData } from '../site-form-modal/site-form-modal.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface FindOrCreateSiteModalData {
   // Données optionnelles
@@ -45,8 +46,9 @@ interface SearchableSite extends AdminSite {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatCheckboxModule,
-    TranslateModule
+    CheckboxComponent,
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './find-or-create-site-modal.component.html',
   styleUrl: './find-or-create-site-modal.component.scss'

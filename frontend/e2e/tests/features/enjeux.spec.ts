@@ -316,8 +316,8 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
     // Inline form should appear
     const form = page.locator('.inline-form').filter({ has: page.locator('.facteur-bullet') });
     await expect(form).toBeVisible();
-    await expect(form.locator('input[matInput]')).toBeVisible();
-    await expect(form.locator('textarea[matInput]')).toBeVisible();
+    await expect(form.locator('input')).toBeVisible();
+    await expect(form.locator('textarea').first()).toBeVisible();
   });
 
   test('should have save button disabled when libelle is empty', async ({ referentPage: page }) => {
@@ -447,8 +447,8 @@ test.describe('Enjeux - CRUD Facteurs d\'Influence', () => {
       const facteur = enjeuxPage.facteurCards.first();
       const form = facteur.locator('.inline-form, .edit-inline-form').first();
       await expect(form).toBeVisible();
-      await expect(form.locator('input[matInput]')).toBeVisible();
-      const inputValue = await form.locator('input[matInput]').inputValue();
+      await expect(form.locator('input')).toBeVisible();
+      const inputValue = await form.locator('input').inputValue();
       expect(inputValue.length).toBeGreaterThan(0);
     }
   });
@@ -629,7 +629,7 @@ test.describe('Enjeux - CRUD Pressions', () => {
         const pression = facteur.locator('.pression-card').first();
         const form = pression.locator('.inline-form, .edit-inline-form').first();
         await expect(form).toBeVisible();
-        const inputValue = await form.locator('input[matInput]').first().inputValue();
+        const inputValue = await form.locator('input').first().inputValue();
         expect(inputValue.length).toBeGreaterThan(0);
       }
     }
@@ -915,7 +915,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // Form should appear
     const form = page.locator('.olt-inline-form');
     await expect(form).toBeVisible();
-    await expect(form.locator('input[matInput]')).toBeVisible();
+    await expect(form.locator('input')).toBeVisible();
   });
 
   test('should cancel adding an OLT', async ({ referentPage: page }) => {
@@ -955,7 +955,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // Fill and submit the form
     await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
-    await form.locator('input[matInput]').fill('E2E Temp OLT Direct');
+    await form.locator('input').fill('E2E Temp OLT Direct');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
@@ -996,7 +996,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     const form = page.locator('.olt-inline-form');
     await expect(form).toBeVisible();
-    await form.locator('input[matInput]').fill('E2E Temp OLT');
+    await form.locator('input').fill('E2E Temp OLT');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
@@ -1043,7 +1043,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
 
     const form = page.locator('.ne-inline-form');
     await expect(form).toBeVisible({ timeout: 5000 });
-    await form.locator('input[matInput]').fill('E2E Temp NE');
+    await form.locator('input').fill('E2E Temp NE');
     await form.locator('button[mat-flat-button]').click();
     // Wait for the new NE card to appear
     await page.locator('.ne-card').nth(initialNeCount).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
@@ -1064,7 +1064,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // First create a temp OLT so we don't delete seeded data
     await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
-    await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer');
+    await form.locator('input').fill('E2E Temp OLT - À Supprimer');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
@@ -1095,7 +1095,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // First create a temp OLT
     await clickAddOltWithConfirm(page);
     const form = page.locator('.olt-inline-form');
-    await form.locator('input[matInput]').fill('E2E Temp OLT - À Supprimer 2');
+    await form.locator('input').fill('E2E Temp OLT - À Supprimer 2');
     await form.locator('button[mat-flat-button]').click();
     await page.waitForTimeout(1000);
 
@@ -1131,7 +1131,7 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // Should show inline edit form
     const editForm = page.locator('.olt-inline-form');
     await expect(editForm).toBeVisible();
-    await expect(editForm.locator('input[matInput]')).toBeVisible();
+    await expect(editForm.locator('input')).toBeVisible();
 
     // Cancel to restore
     await editForm.locator('button[mat-stroked-button]').click();

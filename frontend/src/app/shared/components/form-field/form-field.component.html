@@ -1,0 +1,44 @@
+<div class="app-form-field" [class.app-form-field--error]="hasError" [class.app-form-field--with-suffix]="!!suffix">
+  @if (label) {
+    <label class="app-form-field__label" [attr.for]="fieldId">
+      {{ label }}
+      @if (required) {
+        <span class="app-form-field__required" aria-hidden="true">*</span>
+      }
+    </label>
+  }
+
+  @if (helpText) {
+    <p class="app-form-field__help">{{ helpText }}</p>
+  }
+
+  <div class="app-form-field__control">
+    <!-- Slot pour préfixe (icône, bouton à gauche) -->
+    <span class="app-form-field__prefix">
+      <ng-content select="[prefixSlot]"></ng-content>
+    </span>
+
+    <ng-content></ng-content>
+
+    <!-- Slot pour suffixe (icône, bouton à droite) -->
+    <span class="app-form-field__suffix-slot">
+      <ng-content select="[suffixSlot]"></ng-content>
+    </span>
+
+    @if (suffix) {
+      <span class="app-form-field__suffix" aria-hidden="true">{{ suffix }}</span>
+    }
+  </div>
+
+  @if (error) {
+    <p class="app-form-field__error" role="alert">
+      <i class="fi fi-rr-exclamation" aria-hidden="true"></i>
+      {{ error }}
+    </p>
+  }
+
+  <!-- Slot pour erreurs personnalisées (multi-error avec conditions) -->
+  <div class="app-form-field__error-slot" role="alert">
+    <ng-content select="[errorSlot]"></ng-content>
+  </div>
+</div>

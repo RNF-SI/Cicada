@@ -518,29 +518,29 @@ describe('SiteDetailComponent', () => {
 
   // ==================== SIDEBAR MENU ====================
 
-  describe('Sidebar Menu', () => {
+  describe('Anchor Navigation (#304)', () => {
     beforeEach(fakeAsync(() => {
       fixture.detectChanges();
       tick();
     }));
 
-    it('should have menu items defined', () => {
-      expect(component.menuItems).toHaveLength(5);
-      expect(component.menuItems.map(m => m.id)).toEqual([
-        'overview', 'info', 'organismes', 'users', 'plans'
+    it('should have anchor nav items defined', () => {
+      expect(component.anchorNavItems).toHaveLength(4);
+      expect(component.anchorNavItems.map(m => m.id)).toEqual([
+        'site-info', 'site-organismes', 'site-users', 'site-plans'
       ]);
     });
 
-    it('should set default active menu item to overview', () => {
-      expect(component.activeMenuItem()).toBe('overview');
+    it('should set default active anchor to site-info', () => {
+      expect(component.activeAnchorId()).toBe('site-info');
     });
 
-    it('should change active menu item', () => {
-      component.setActiveMenuItem('users');
-      expect(component.activeMenuItem()).toBe('users');
+    it('should change active anchor on click', () => {
+      component.onAnchorClick({ id: 'site-users', label: 'users' });
+      expect(component.activeAnchorId()).toBe('site-users');
 
-      component.setActiveMenuItem('plans');
-      expect(component.activeMenuItem()).toBe('plans');
+      component.onAnchorClick({ id: 'site-plans', label: 'plans' });
+      expect(component.activeAnchorId()).toBe('site-plans');
     });
   });
 

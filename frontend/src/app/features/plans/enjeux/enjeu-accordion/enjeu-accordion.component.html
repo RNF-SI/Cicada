@@ -24,17 +24,10 @@
     </div>
 
     <!-- Header actions -->
+    <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
     <div class="header-actions">
-      @if (expanded()) {
-        <button mat-icon-button
-                class="action-btn"
-                (click)="onEdit($event)"
-                [matTooltip]="'common.actions.edit' | translate">
-          <i class="fi fi-rr-pencil"></i>
-        </button>
-      }
       <button mat-icon-button class="expand-btn">
-        <i class="fi" [ngClass]="expanded() ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+        <i class="fi" [ngClass]="expanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
       </button>
     </div>
   </div>

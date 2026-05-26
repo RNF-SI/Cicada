@@ -160,8 +160,8 @@ test.describe('Plans List - Navigation', () => {
     await plansPage.createButton.click();
     await page.waitForTimeout(500);
 
-    // Click "Nouveau plan vierge" menu item
-    const newBlankOption = page.locator('button, a').filter({ hasText: /nouveau plan vierge/i });
+    // Click "À partir d'une base vierge" menu item (libellé i18n actuel)
+    const newBlankOption = page.locator('button, a').filter({ hasText: /base vierge|nouveau plan vierge/i });
     const isVisible = await newBlankOption.isVisible().catch(() => false);
 
     if (isVisible) {
@@ -193,7 +193,7 @@ test.describe('Plans List - Access Request', () => {
     await plansPage.waitForData();
 
     // Look for the search input in the access section
-    const searchField = page.locator('input[matInput]').filter({
+    const searchField = page.locator('input').filter({
       has: page.locator('[placeholder]'),
     });
     const isVisible = await searchField.first().isVisible().catch(() => false);

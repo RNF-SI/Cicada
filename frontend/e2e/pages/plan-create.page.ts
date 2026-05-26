@@ -90,7 +90,7 @@ export class PlanCreatePage {
 
     // Sites selection
     this.sitesSection = page.locator('.sites-section');
-    this.siteSearchInput = page.locator('.search-box input');
+    this.siteSearchInput = page.locator('app-search-bar input');
     this.siteItems = page.locator('.selection-item');
     this.siteCheckboxes = page.locator('.selection-item mat-checkbox');
     this.siteCountBadge = page.locator('.sites-section .count-badge');
@@ -104,7 +104,7 @@ export class PlanCreatePage {
 
     // Organisme rédacteur
     this.organismeSection = page.locator('.organisme-section');
-    this.organismeInput = page.locator('.organisme-section input[matInput]');
+    this.organismeInput = page.locator('.organisme-section input');
     this.organismeChip = page.locator('.selected-organisme mat-chip-row');
     this.organismeRemoveBtn = page.locator('.selected-organisme button[matChipRemove]');
 
@@ -125,7 +125,7 @@ export class PlanCreatePage {
     this.cancelButton = page.locator('.action-bar button[mat-stroked-button]');
 
     // Error messages
-    this.errorMessages = page.locator('mat-error');
+    this.errorMessages = page.locator('mat-error, .app-form-field__error, .form-error-msg');
 
     // Snackbar
     this.snackbar = page.locator('mat-snack-bar-container');

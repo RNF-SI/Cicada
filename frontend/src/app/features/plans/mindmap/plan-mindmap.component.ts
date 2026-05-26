@@ -7,6 +7,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription, fromEvent, forkJoin } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import * as d3 from 'd3';
@@ -29,7 +30,7 @@ interface IcicleNode extends d3.HierarchyRectangularNode<MindmapNode> {
   standalone: true,
   imports: [
     CommonModule, RouterModule, TranslateModule,
-    MatProgressSpinnerModule, MatButtonModule,
+    MatProgressSpinnerModule, MatButtonModule, MatTooltipModule,
     HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './plan-mindmap.component.html',

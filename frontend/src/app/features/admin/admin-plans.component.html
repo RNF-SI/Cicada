@@ -57,15 +57,13 @@
 
   <!-- Filters -->
   <div class="filters-bar">
-    <div class="search-box">
-      <i class="fi fi-rr-search"></i>
-      <input
-        type="text"
-        [placeholder]="'admin.plans.search' | translate"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange()"
-      />
-    </div>
+    <app-search-bar
+      class="filters-search"
+      [(value)]="searchQuery"
+      [placeholder]="'admin.plans.search' | translate"
+      [ariaLabel]="'admin.plans.search' | translate"
+      (valueChange)="onSearchChange()">
+    </app-search-bar>
 
     <div class="filters">
       <select [(ngModel)]="filterStatut" (ngModelChange)="onFilterChange()">

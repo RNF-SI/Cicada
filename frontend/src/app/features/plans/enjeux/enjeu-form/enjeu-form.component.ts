@@ -10,15 +10,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
+import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
@@ -33,14 +34,15 @@ import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, Ge
     MatInputModule,
     MatButtonModule,
     MatRadioModule,
-    MatCheckboxModule,
+    CheckboxComponent,
+    FormFieldComponent,
     MatProgressSpinnerModule,
-    MatExpansionModule,
     MatTooltipModule,
     MatSnackBarModule,
     TranslateModule,
     HeaderComponent,
-    ReferenceItemListComponent
+    ReferenceItemListComponent,
+    AccordionComponent,
   ],
   templateUrl: './enjeu-form.component.html',
   styleUrl: './enjeu-form.component.scss'
@@ -463,7 +465,7 @@ export class EnjeuFormComponent implements OnInit {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      const invalid = this.elRef.nativeElement.querySelector('input.ng-invalid, textarea.ng-invalid, mat-form-field.ng-invalid');
       invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }

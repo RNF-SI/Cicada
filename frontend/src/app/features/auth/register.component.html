@@ -7,6 +7,9 @@
     </div>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      <!-- Accessibilité (revue design #305) -->
+      <p class="required-fields-note">{{ 'common.requiredFields' | translate }}</p>
+
       @if (errorMessage()) {
         <div class="error-banner">
           <i class="fi fi-rr-exclamation"></i>
@@ -15,84 +18,78 @@
       }
 
       <div class="form-row">
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>{{ 'auth.register.firstName' | translate }}</mat-label>
-          <input
-            matInput
+        <app-form-field [label]="'auth.register.firstName' | translate" [required]="true">
+  <i prefixSlot class="fi fi-rr-user"></i>
+  <input
             type="text"
             formControlName="prenom"
             [placeholder]="'auth.register.firstNamePlaceholder' | translate"
             autocomplete="given-name"
           >
-          <mat-icon matPrefix class="field-icon">
-            <i class="fi fi-rr-user"></i>
-          </mat-icon>
+          
           @if (registerForm.get('prenom')?.hasError('required') && registerForm.get('prenom')?.touched) {
-            <mat-error>{{ 'auth.register.errors.firstNameRequired' | translate }}</mat-error>
+            
           }
           @if (registerForm.get('prenom')?.hasError('maxlength')) {
-            <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</mat-error>
+            
           }
-        </mat-form-field>
+</app-form-field>
 
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>{{ 'auth.register.lastName' | translate }}</mat-label>
-          <input
-            matInput
+        <app-form-field [label]="'auth.register.lastName' | translate" [required]="true">
+  <input
             type="text"
             formControlName="nom"
             [placeholder]="'auth.register.lastNamePlaceholder' | translate"
             autocomplete="family-name"
           >
           @if (registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched) {
-            <mat-error>{{ 'auth.register.errors.lastNameRequired' | translate }}</mat-error>
+            
           }
           @if (registerForm.get('nom')?.hasError('maxlength')) {
-            <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</mat-error>
+            
           }
-        </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.lastNameRequired' | translate }}</p>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</p>
+  </ng-container>
+</app-form-field>
       </div>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.email' | translate }}</mat-label>
-        <input
-          matInput
+      <app-form-field [label]="'auth.register.email' | translate" [required]="true">
+  <i prefixSlot class="fi fi-rr-envelope"></i>
+  <input
           type="email"
           formControlName="email"
           [placeholder]="'auth.register.emailPlaceholder' | translate"
           autocomplete="email"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-envelope"></i>
-        </mat-icon>
+        
         @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
-          <mat-error>{{ 'auth.register.errors.emailRequired' | translate }}</mat-error>
+          
         }
         @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
-          <mat-error>{{ 'auth.register.errors.emailInvalid' | translate }}</mat-error>
+          
         }
-      </mat-form-field>
+</app-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.identifiant' | translate }}</mat-label>
-        <input
-          matInput
+      <app-form-field [label]="'auth.register.identifiant' | translate" [helpText]="'auth.register.identifiantHint' | translate">
+  <i prefixSlot class="fi fi-rr-id-badge"></i>
+  <input
           type="text"
           formControlName="identifiant"
           [placeholder]="'auth.register.identifiantPlaceholder' | translate"
           autocomplete="username"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-id-badge"></i>
-        </mat-icon>
-        <mat-hint>{{ 'auth.register.identifiantHint' | translate }}</mat-hint>
+        
+        
         @if (registerForm.get('identifiant')?.hasError('maxlength')) {
-          <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 100 } }}</mat-error>
+          
         }
-      </mat-form-field>
+</app-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.organisme' | translate }}</mat-label>
+      <label class="app-mat-label">{{ 'auth.register.organisme' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+        <mat-label></mat-label>
         <input
           matInput
           type="text"
@@ -118,77 +115,72 @@
         }
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.password' | translate }}</mat-label>
-        <input
-          matInput
+      <app-form-field [label]="'auth.register.password' | translate" [required]="true">
+  <i prefixSlot class="fi fi-rr-lock"></i>
+  <input
           [type]="hidePassword() ? 'password' : 'text'"
           formControlName="password"
           [placeholder]="'auth.register.passwordPlaceholder' | translate"
           autocomplete="new-password"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-lock"></i>
-        </mat-icon>
-        <button
-          mat-icon-button
-          matSuffix
+        
+        
+        @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
+          
+        }
+        @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
+          
+        }
+  <button suffixSlot
           type="button"
+          class="password-toggle"
           (click)="togglePasswordVisibility()"
           [attr.aria-label]="(hidePassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
           <i class="fi" [class.fi-rr-eye]="hidePassword()" [class.fi-rr-eye-crossed]="!hidePassword()"></i>
         </button>
-        @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
-          <mat-error>{{ 'auth.register.errors.passwordRequired' | translate }}</mat-error>
-        }
-        @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
-          <mat-error>{{ 'auth.register.errors.passwordMinLength' | translate }}</mat-error>
-        }
-      </mat-form-field>
+</app-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.confirmPassword' | translate }}</mat-label>
-        <input
-          matInput
+      <app-form-field [label]="'auth.register.confirmPassword' | translate" [required]="true">
+  <i prefixSlot class="fi fi-rr-lock"></i>
+  <input
           [type]="hideConfirmPassword() ? 'password' : 'text'"
           formControlName="confirmPassword"
           [placeholder]="'auth.register.confirmPasswordPlaceholder' | translate"
           autocomplete="new-password"
         >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-lock"></i>
-        </mat-icon>
-        <button
-          mat-icon-button
-          matSuffix
+        
+        
+        @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
+          
+        }
+        @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+          
+        }
+  <button suffixSlot
           type="button"
+          class="password-toggle"
           (click)="toggleConfirmPasswordVisibility()"
           [attr.aria-label]="(hideConfirmPassword() ? 'auth.login.showPassword' : 'auth.login.hidePassword') | translate"
         >
           <i class="fi" [class.fi-rr-eye]="hideConfirmPassword()" [class.fi-rr-eye-crossed]="!hideConfirmPassword()"></i>
         </button>
-        @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
-          <mat-error>{{ 'auth.register.errors.confirmPasswordRequired' | translate }}</mat-error>
-        }
-        @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
-          <mat-error>{{ 'auth.register.errors.passwordMismatch' | translate }}</mat-error>
-        }
-      </mat-form-field>
+</app-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'auth.register.justification' | translate }}</mat-label>
-        <textarea
-          matInput
+      <app-form-field [label]="'auth.register.justification' | translate" [helpText]="'auth.register.justificationHint' | translate">
+  <textarea
           formControlName="justification"
           rows="3"
           [placeholder]="'auth.register.justificationPlaceholder' | translate"
         ></textarea>
-        <mat-hint>{{ 'auth.register.justificationHint' | translate }}</mat-hint>
+        
         @if (registerForm.get('justification')?.hasError('maxlength')) {
-          <mat-error>{{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</mat-error>
+          
         }
-      </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</p>
+  </ng-container>
+</app-form-field>
 
       <div class="info-box">
         <i class="fi fi-rr-info"></i>

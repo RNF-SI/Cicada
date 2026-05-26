@@ -104,20 +104,13 @@
 
             <!-- Barre de recherche -->
             @if (scopedSites().length > 0) {
-              <div class="search-bar">
-                <i class="fi fi-rr-search search-icon"></i>
-                <input
-                  type="text"
-                  class="search-input"
-                  [value]="searchTerm()"
-                  (input)="onSearchChange($event)"
-                  [placeholder]="'sites.mySites.searchPlaceholder' | translate">
-                @if (searchTerm()) {
-                  <button class="search-clear" (click)="clearSearch()">
-                    <i class="fi fi-rr-cross-small"></i>
-                  </button>
-                }
-              </div>
+              <app-search-bar
+                [value]="searchTerm()"
+                [placeholder]="'sites.mySites.searchPlaceholder' | translate"
+                [ariaLabel]="'sites.mySites.searchPlaceholder' | translate"
+                (valueChange)="searchTerm.set($event)"
+                (cleared)="clearSearch()">
+              </app-search-bar>
             }
           </div>
 
@@ -163,7 +156,10 @@
                 </thead>
                 <tbody>
                   @for (site of paginatedMySites(); track site.id_site; let i = $index) {
-                    <tr [class.odd]="i % 2 === 1">
+                    <!-- Clic ligne → focus carte + bouton Accéder (revue design Amandine) -->
+                    <tr [class.odd]="i % 2 === 1"
+                        [class.row-focused]="focusedSiteId() === site.id_site"
+                        (click)="selectSiteRow(site)">
                       <td class="col-name">
                         <span class="site-name">{{ site.nom_site }}</span>
                       </td>
@@ -175,29 +171,41 @@
                         @if (site.organismes && site.organismes.length > 0) {
                           {{ site.organismes[0].nom_organisme }}
                           @if (site.organismes.length > 1) {
-                            <span class="others">+{{ site.organismes.length - 1 }}</span>
+                            <!-- Tooltip listant les organismes supplémentaires (revue design #310) -->
+                            <span class="others"
+                                  [matTooltip]="getOtherOrganismesNames(site)"
+                                  matTooltipPosition="above">
+                              +{{ site.organismes.length - 1 }}
+                            </span>
                           }
                         } @else {
                           -
                         }
                       </td>
                       <td class="col-status">
+                        <!-- Tag référent : étoile retirée (revue design #310) -->
                         @if (site.isReferent) {
                           <mat-chip class="status-success">
-                            <i class="fi fi-rr-star chip-icon"></i>
                             {{ 'sites.mySites.referent' | translate }}
                           </mat-chip>
                         } @else {
                           <mat-chip class="status-info">
-                            <i class="fi fi-rr-check chip-icon"></i>
                             {{ 'sites.mySites.access' | translate }}
                           </mat-chip>
                         }
                       </td>
                       <td class="col-actions">
-                        <button class="btn-action" (click)="viewSite(site)">
-                          <span>{{ 'common.actions.view' | translate }}</span>
-                          <i class="fi fi-rr-eye"></i>
+                        <!-- Bouton secondaire par défaut, devient « Accéder » primaire si ligne sélectionnée -->
+                        <button class="btn-action"
+                                [class.btn-access]="focusedSiteId() === site.id_site"
+                                (click)="viewSite(site); $event.stopPropagation()">
+                          @if (focusedSiteId() === site.id_site) {
+                            <span>{{ 'sites.mySites.access' | translate }}</span>
+                            <i class="fi fi-rr-arrow-right"></i>
+                          } @else {
+                            <span>{{ 'common.actions.view' | translate }}</span>
+                            <i class="fi fi-rr-eye"></i>
+                          }
                         </button>
                       </td>
                     </tr>
@@ -366,8 +374,8 @@
             <p class="section-description">{{ 'sites.findOrCreate.description' | translate }}</p>
 
             <div class="action-buttons">
+              <!-- Icône retirée (revue design #310 : double l'icône du titre de section) -->
               <button class="btn-request" (click)="openFindOrCreateSiteDialog()">
-                <i class="fi fi-rr-search"></i>
                 {{ 'sites.findOrCreate.button' | translate }}
               </button>
 

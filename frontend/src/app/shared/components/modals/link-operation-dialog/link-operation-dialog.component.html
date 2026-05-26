@@ -32,13 +32,12 @@
     </div>
   } @else {
     <!-- Phase 2 : Recherche et sélection d'une action existante -->
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>{{ 'enjeux.operations.linkDialog.searchPlaceholder' | translate }}</mat-label>
-      <input matInput
+    <app-form-field [label]="'enjeux.operations.linkDialog.searchPlaceholder' | translate">
+  <input
              [ngModel]="searchTerm()"
              (ngModelChange)="onSearchChange($event)">
       <i matPrefix class="fi fi-rr-search search-icon"></i>
-    </mat-form-field>
+</app-form-field>
 
     @if (isLoading()) {
       <div class="loading-container">

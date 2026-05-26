@@ -16,15 +16,13 @@
 
   <!-- Filters -->
   <div class="filters-bar">
-    <div class="search-box">
-      <i class="fi fi-rr-search"></i>
-      <input
-        type="text"
-        [placeholder]="'admin.users.search' | translate"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange()"
-      />
-    </div>
+    <app-search-bar
+      class="filters-search"
+      [(value)]="searchQuery"
+      [placeholder]="'admin.users.search' | translate"
+      [ariaLabel]="'admin.users.search' | translate"
+      (valueChange)="onSearchChange()">
+    </app-search-bar>
 
     <div class="filters">
       <select [(ngModel)]="filterRole" (ngModelChange)="onFilterChange()">

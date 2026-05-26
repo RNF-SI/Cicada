@@ -12,12 +12,11 @@
       @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteIntro' | translate }} }
     </p>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>
-        @if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnDateLabel' | translate }} }
+    <label class="app-mat-label">@if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnDateLabel' | translate }} }
         @if (data.step === 'comite') { {{ 'plans.lifecycle.csrpnStep.comiteDateLabel' | translate }} }
-        @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteDateLabel' | translate }} }
-      </mat-label>
+        @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteDateLabel' | translate }} }</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+      <mat-label></mat-label>
       <input matInput [matDatepicker]="picker" formControlName="date" required>
       <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
       <mat-datepicker #picker></mat-datepicker>
@@ -31,17 +30,21 @@
     }
 
     @if (data.step === 'arrete') {
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'plans.lifecycle.csrpnStep.arreteNumeroLabel' | translate }}</mat-label>
-        <input matInput formControlName="numeroArrete" required>
-        <mat-hint>{{ 'plans.lifecycle.csrpnStep.arreteNumeroHint' | translate }}</mat-hint>
-      </mat-form-field>
+      <app-form-field
+        class="full-width"
+        [label]="'plans.lifecycle.csrpnStep.arreteNumeroLabel' | translate"
+        [required]="true"
+        [helpText]="'plans.lifecycle.csrpnStep.arreteNumeroHint' | translate">
+        <input formControlName="numeroArrete" required>
+      </app-form-field>
     }
 
     @if (showMiParcoursToggle) {
-      <mat-checkbox formControlName="isMiParcours" class="mi-parcours-toggle">
-        {{ 'plans.lifecycle.csrpnStep.miParcoursLabel' | translate }}
-      </mat-checkbox>
+      <app-checkbox
+        formControlName="isMiParcours"
+        class="mi-parcours-toggle"
+        [label]="'plans.lifecycle.csrpnStep.miParcoursLabel' | translate">
+      </app-checkbox>
     }
   </mat-dialog-content>
 

@@ -6,7 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +22,8 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { OrganismeFormModalComponent } from '../organisme-form-modal/organisme-form-modal.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 import {
   AdminPlan,
   PlanCreatePayload,
@@ -78,7 +79,7 @@ interface OrganismeEntry {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatCheckboxModule,
+    CheckboxComponent,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatIconModule,
@@ -90,7 +91,8 @@ interface OrganismeEntry {
     MatSnackBarModule,
     TranslateModule,
     RouterModule,
-    ViewScopeToggleComponent
+    ViewScopeToggleComponent,
+    FormFieldComponent,
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'

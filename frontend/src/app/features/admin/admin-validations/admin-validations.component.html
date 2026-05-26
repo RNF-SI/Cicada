@@ -6,8 +6,9 @@
 
   <!-- Filtres -->
   <div class="filters-bar">
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Statut</mat-label>
+    <label class="app-mat-label">Statut</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
         @for (option of statusOptions(); track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
@@ -15,8 +16,9 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Type de demande</mat-label>
+    <label class="app-mat-label">Type de demande</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
+      <mat-label></mat-label>
       <mat-select [(ngModel)]="typeFilter" (selectionChange)="applyFilters()">
         @for (option of typeOptions(); track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>

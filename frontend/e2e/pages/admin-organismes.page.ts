@@ -13,7 +13,7 @@ export class AdminOrganismesPage {
   constructor(page: Page) {
     this.page = page;
     this.pageTitle = page.locator('.page-header h1');
-    this.searchInput = page.locator('.search-box input[type="text"]');
+    this.searchInput = page.locator('app-search-bar input');
     this.addOrganismeButton = page.locator('button.btn-primary');
     this.organismeCards = page.locator('.organisme-card');
     this.organismeDetail = page.locator('.organisme-detail');

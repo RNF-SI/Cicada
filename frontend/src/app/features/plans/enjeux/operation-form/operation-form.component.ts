@@ -14,7 +14,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -27,6 +26,9 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
@@ -57,7 +59,7 @@ import {
     MatButtonModule,
     MatButtonToggleModule,
     MatSelectModule,
-    MatCheckboxModule,
+    CheckboxComponent,
     MatRadioModule,
     MatProgressSpinnerModule,
     MatDatepickerModule,
@@ -67,7 +69,9 @@ import {
     MatTooltipModule,
     TranslateModule,
     HeaderComponent,
-    ReferenceItemListComponent
+    ReferenceItemListComponent,
+    AccordionComponent,
+    FormFieldComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'

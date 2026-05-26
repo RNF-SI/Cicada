@@ -8,15 +8,6 @@
 
   <!-- Boutons de contrôle personnalisés -->
   <div class="map-controls">
-    <!-- Bouton recentrer -->
-    <button
-      type="button"
-      class="map-control-btn"
-      (click)="recenter()"
-      title="Recentrer la carte">
-      <i class="fi fi-rr-expand-arrows-alt"></i>
-    </button>
-
     <!-- Bouton plein écran (si activé) -->
     @if (showFullscreen) {
       <button
@@ -25,13 +16,25 @@
         (click)="toggleFullscreen()"
         [title]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'">
         @if (isFullscreen()) {
-          <i class="fi fi-rr-compress"></i>
+          <i class="fi fi-rr-compress-alt"></i>
         } @else {
-          <i class="fi fi-rr-expand"></i>
+          <i class="fi fi-rr-expand-arrows-alt"></i>
         }
       </button>
     }
   </div>
+
+  <!-- Bouton "Recentrer la carte" affiché uniquement après déplacement (revue design #310) -->
+  @if (userHasMoved()) {
+    <button
+      type="button"
+      class="map-recenter-btn"
+      (click)="recenter()"
+      title="Recentrer la carte">
+      <i class="fi fi-rr-marker"></i>
+      <span>Recentrer la carte</span>
+    </button>
+  }
 
   <!-- Message si pas de données -->
   @if (!geojsonData) {

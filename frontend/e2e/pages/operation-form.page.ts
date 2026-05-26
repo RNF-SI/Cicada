@@ -106,12 +106,12 @@ export class OperationFormPage {
     this.intituleSuiviInput = page.locator('input[formControlName="intitule_suivi"]');
 
     // Section headers
-    this.sectionDetailsSuivi = page.locator('.section-header').filter({ hasText: /inventaire|suivi/i }).first();
-    this.sectionProtocole = page.locator('.section-header').filter({ hasText: /protocole/i }).first();
-    this.sectionBancarisation = page.locator('.section-header').filter({ hasText: /bancarisation/i });
-    this.sectionProgrammation = page.locator('.section-header').filter({ hasText: /programmation/i });
-    this.sectionDetails = page.locator('.section-header').filter({ hasText: /détail/i }).first();
-    this.sectionEmprise = page.locator('.section-header').filter({ hasText: /emprise/i });
+    this.sectionDetailsSuivi = page.locator('.app-accordion__header').filter({ hasText: /inventaire|suivi/i }).first();
+    this.sectionProtocole = page.locator('.app-accordion__header').filter({ hasText: /protocole/i }).first();
+    this.sectionBancarisation = page.locator('.app-accordion__header').filter({ hasText: /bancarisation/i });
+    this.sectionProgrammation = page.locator('.app-accordion__header').filter({ hasText: /programmation/i });
+    this.sectionDetails = page.locator('.app-accordion__header').filter({ hasText: /détail/i }).first();
+    this.sectionEmprise = page.locator('.app-accordion__header').filter({ hasText: /emprise/i });
 
     // Détails suivi section
     this.objectifPrincipalSelect = page.locator('mat-select[formControlName="objectif_principal"]');
@@ -276,7 +276,7 @@ export class OperationFormPage {
     await this.addFinanceBtn.click();
     await this.page.waitForTimeout(200);
     const lastRow = this.financeRows.last();
-    await lastRow.locator('input[matInput]').fill(libelle);
+    await lastRow.locator('input').fill(libelle);
   }
 
   /** Click Validate to submit the form. */
@@ -311,6 +311,6 @@ export class OperationFormPage {
 
   /** Check if the form contains a validation error for required libelle. */
   async hasLibelleError(): Promise<boolean> {
-    return this.page.locator('mat-error').isVisible().catch(() => false);
+    return this.page.locator('mat-error, .app-form-field__error, .form-error-msg').isVisible().catch(() => false);
   }
 }

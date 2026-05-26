@@ -18,6 +18,7 @@ import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/vie
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminPlan, AdminSite } from '../../core/models/admin.model';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import {
   DuplicatePlanDialogComponent,
   DuplicatePlanDialogData,
@@ -42,6 +43,7 @@ import {
     TranslateModule,
     HeaderComponent,
     ViewScopeToggleComponent,
+    FormFieldComponent,
   ],
   templateUrl: './plan-duplicate.component.html',
   styleUrl: './plan-duplicate.component.scss',

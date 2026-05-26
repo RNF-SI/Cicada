@@ -355,7 +355,7 @@ interface UserWithModuleAccess {
     .subtitle {
       font-family: 'Nunito', sans-serif;
       font-size: 16px;
-      color: #5C5C5C;
+      color: #746F6E;
       margin: 0;
     }
 
@@ -389,7 +389,7 @@ interface UserWithModuleAccess {
       p {
         font-family: 'Nunito', sans-serif;
         font-size: 13px;
-        color: #5C5C5C;
+        color: #746F6E;
         margin: 0;
         line-height: 1.5;
       }
@@ -476,7 +476,7 @@ interface UserWithModuleAccess {
       p {
         font-family: 'Nunito', sans-serif;
         font-size: 13px;
-        color: #5C5C5C;
+        color: #746F6E;
         margin: 0;
         line-height: 1.4;
       }
@@ -492,7 +492,7 @@ interface UserWithModuleAccess {
         align-items: center;
         gap: 6px;
         font-size: 13px;
-        color: #5C5C5C;
+        color: #746F6E;
 
         i {
           font-size: 14px;
@@ -573,7 +573,7 @@ interface UserWithModuleAccess {
       align-items: center;
       gap: 12px;
       padding: 16px;
-      color: #5C5C5C;
+      color: #746F6E;
       font-size: 14px;
     }
 
@@ -632,7 +632,7 @@ interface UserWithModuleAccess {
     .user-email {
       font-family: 'Nunito', sans-serif;
       font-size: 12px;
-      color: #5C5C5C;
+      color: #746F6E;
     }
 
     .user-org {
@@ -714,7 +714,7 @@ interface UserWithModuleAccess {
       p {
         font-family: 'Nunito', sans-serif;
         font-size: 14px;
-        color: #5C5C5C;
+        color: #746F6E;
         margin: 0;
       }
     }
@@ -731,7 +731,7 @@ interface UserWithModuleAccess {
         font-family: 'Nunito', sans-serif;
         font-size: 13px;
         font-weight: 700;
-        color: #5C5C5C;
+        color: #746F6E;
         text-transform: uppercase;
         letter-spacing: 0.02em;
         background-color: #F8F5F1;
@@ -755,7 +755,7 @@ interface UserWithModuleAccess {
 
     .justification {
       font-size: 13px;
-      color: #5C5C5C;
+      color: #746F6E;
       max-width: 300px;
       overflow: hidden;
       text-overflow: ellipsis;

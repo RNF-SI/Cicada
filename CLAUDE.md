@@ -244,6 +244,40 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 - `realized-unplanned`: Cercle + ✗ (réalisée non prévue)
 - `partial-unplanned`: Demi-cercle + ✗ (partiellement réalisée non prévue)
 
+#### `TagComponent` (#296)
+**Sélecteur**: `app-tag`
+**Fichiers**: `tag/`
+**Description**: Tag unifié (pill, sans bordure, padding compact). Remplace `.status-*`, `.score-*`, et les `<mat-chip>` pour les statuts. Issue #296.
+
+```html
+<!-- Statut simple -->
+<app-tag variant="success" label="Validé"></app-tag>
+
+<!-- Avec icône -->
+<app-tag variant="warning" label="En attente" icon="fi-rr-clock"></app-tag>
+
+<!-- Cliquable -->
+<app-tag variant="draft" label="Brouillon" [clickable]="true" (click)="onEdit()"></app-tag>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `variant` | `TagVariant` | `'neutral'` | Voir liste ci-dessous |
+| `label` | `string` | `''` | Texte du tag |
+| `icon` | `string?` | — | Classe Flaticon optionnelle (ex: `'fi-rr-check'`) |
+| `size` | `'sm' \| 'md'` | `'md'` | Taille (sm pour tableaux denses) |
+| `clickable` | `boolean` | `false` | Active curseur pointer + effet hover |
+
+**Variantes disponibles** :
+- Sémantiques (texte blanc, AA) : `success` (vert #04854B), `error` (rouge #E12329), `info`/`primary` (bleu-vert #025359)
+- Décoratives (texte noir, AA) : `warning` (saumon #F5B399), `draft` (jaune #FEC180), `neutral` (vert pâle #C0E3CF), `muted` (gris clair)
+- Scores (texte noir, AA) : `score-very-bad`, `score-bad`, `score-neutral`, `score-good`, `score-very-good`
+
+**Règles** :
+- Pas de bordure par défaut
+- Pas de hover si `clickable=false`
+- Combinaisons WCAG AA respectées — voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
+
 #### `HeaderComponent`
 **Sélecteur**: `app-header`
 **Fichiers**: `header/`
@@ -252,6 +286,192 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 ```html
 <app-header></app-header>
 ```
+
+### Kit UI Components (issues #298-#304)
+
+Composants issus de la revue design 05/2026, à utiliser à la place des composants Material équivalents pour respecter le kit UI.
+
+#### `SearchBarComponent` (#298)
+**Sélecteur**: `app-search-bar` — **Fichiers**: `search-bar/`
+
+Barre de recherche unifiée avec 2 variantes. Texte d'aide AVANT le champ (accessibilité).
+
+```html
+<!-- Auto-filtre (défaut) -->
+<app-search-bar [(value)]="query" placeholder="Rechercher un site..."></app-search-bar>
+
+<!-- Manuel avec bouton -->
+<app-search-bar
+  mode="manual"
+  helpText="Entrez au moins 2 caractères"
+  placeholder="Rechercher un plan..."
+  (search)="onSearch($event)">
+</app-search-bar>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `mode` | `'auto' \| 'manual'` | `'auto'` | `auto` filtre instantané, `manual` avec bouton |
+| `value` | `string` | `''` | Two-way binding |
+| `placeholder` | `string` | `''` | Placeholder du champ |
+| `helpText` | `string?` | — | Texte d'aide AVANT le champ |
+| `ariaLabel` | `string` | `'Rechercher'` | Label lecteur d'écran |
+| `disabled` | `boolean` | `false` | — |
+
+Outputs : `valueChange`, `search` (manuel), `cleared`.
+
+#### `CheckboxComponent` (#299)
+**Sélecteur**: `app-checkbox` — **Fichiers**: `checkbox/`
+
+Checkbox custom (carré arrondi, **sans cercle Material**). Compatible Reactive Forms.
+
+```html
+<app-checkbox [(checked)]="agreed" label="J'accepte"></app-checkbox>
+<app-checkbox [(checked)]="copy" label="Sites associés" mention="Copie les associations site-plan"></app-checkbox>
+<app-checkbox formControlName="active" label="Site actif"></app-checkbox>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `checked` | `boolean` | `false` | Two-way binding |
+| `label` | `string` | `''` | Label principal |
+| `mention` | `string?` | — | Texte mention sous le label |
+| `disabled` | `boolean` | `false` | — |
+
+#### `FormFieldComponent` (#300)
+**Sélecteur**: `app-form-field` — **Fichiers**: `form-field/`
+
+Wrapper pour champs compacts : label **au-dessus** du champ, asterisque rouge si requis, état erreur. Plus dense que Material.
+
+```html
+<app-form-field label="Nom du site" required>
+  <input type="text" formControlName="name" />
+</app-form-field>
+
+<app-form-field
+  label="Surface (ha)"
+  helpText="Saisissez un nombre entier"
+  suffix="ha"
+  [error]="form.controls.surface.touched && form.controls.surface.errors?.['min'] ? 'La surface doit être ≥ 0' : null">
+  <input type="number" formControlName="surface" />
+</app-form-field>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `label` | `string` | `''` | Label au-dessus du champ |
+| `required` | `boolean` | `false` | Ajoute astérisque rouge |
+| `helpText` | `string?` | — | Aide ENTRE label et champ |
+| `error` | `string \| null` | — | Message d'erreur (active l'état erreur) |
+| `suffix` | `string?` | — | Suffixe (ex: 'ha', '€') |
+
+Le `<input>`/`<select>`/`<textarea>` est projeté dans le composant — utiliser `formControlName` ou `ngModel` directement sur l'élément projeté.
+
+#### `StepperComponent` (#301)
+**Sélecteur**: `app-stepper` — **Fichiers**: `stepper/`
+
+Stepper pour processus multi-étapes (import en masse, etc.).
+
+```html
+<app-stepper
+  [steps]="[
+    { id: 1, label: 'Fichier', completed: true },
+    { id: 2, label: 'Correspondance', completed: true },
+    { id: 3, label: 'Vérification' },
+    { id: 4, label: 'Résultats' }
+  ]"
+  [currentStep]="3"
+  (stepClick)="goToStep($event)">
+</app-stepper>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `steps` | `StepperStep[]` | `[]` | `{ id, label, completed? }` |
+| `currentStep` | `string \| number` | `1` | Étape active (ID ou index 1-based) |
+| `allowGoBack` | `boolean` | `true` | Étapes complétées cliquables |
+
+#### `EntityTileComponent` (#302)
+**Sélecteur**: `app-entity-tile` — **Fichiers**: `entity-tile/`
+
+Tuile compacte pour site / utilisateur / organisme (vue d'ensemble plan, modales).
+
+```html
+<app-entity-tile
+  icon="fi-rr-marker"
+  name="Réserve Naturelle du Lac de Remoray"
+  subtitle="Réserves Naturelles de France">
+  <button tileAction class="link-default">Demander l'accès</button>
+</app-entity-tile>
+
+<app-entity-tile icon="fi-rr-user" name="Marie Dupont" subtitle="marie@test.fr" [clickable]="true" (tileClick)="open()">
+  <app-tag tileAction variant="warning" label="Référent" />
+</app-entity-tile>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `icon` | `string` | `'fi-rr-document'` | Classe Flaticon |
+| `name` | `string` | `''` | Nom principal (bold) |
+| `subtitle` | `string?` | — | Sous-info (gris foncé) |
+| `clickable` | `boolean` | `false` | Active hover + cursor + tileClick |
+
+Action à droite via `<element tileAction>` (slot).
+
+#### `AccordionComponent` (#303)
+**Sélecteur**: `app-accordion` — **Fichiers**: `accordion/`
+
+Accordéon générique avec chevron haut/bas conforme #297. 4 variantes (default, enjeu, fcr, subtle), 3 tailles (sm, md, lg).
+
+```html
+<app-accordion title="Détails du protocole">
+  <p>Contenu déplié...</p>
+</app-accordion>
+
+<app-accordion variant="enjeu" title="Enjeu 3 : Préservation" [(expanded)]="isOpen">
+  <i accordionIcon class="fi fi-rr-mountains"></i>
+  <button accordionActions class="icon-btn-flat" (click)="onEdit($event)">
+    <i class="fi fi-rr-pencil"></i>
+  </button>
+  <p>Détails…</p>
+</app-accordion>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `title` | `string` | `''` | Titre header |
+| `variant` | `'default' \| 'enjeu' \| 'fcr' \| 'subtle'` | `'default'` | Style visuel |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Espacement |
+| `expanded` | `boolean` | `false` | État (two-way binding via expandedChange) |
+| `disabled` | `boolean` | `false` | — |
+
+Slots : `[accordionIcon]` (icône à gauche du titre), `[accordionActions]` (boutons à droite, à côté du chevron), corps par défaut.
+
+#### `AnchorNavComponent` (#304)
+**Sélecteur**: `app-anchor-nav` — **Fichiers**: `anchor-nav/`
+
+Navigation interne par ancres : boutons tertiaires bleu-vert séparés par `/`. Scroll smooth automatique vers la section.
+
+```html
+<app-anchor-nav
+  [items]="[
+    { id: 'overview', label: 'Vue d\'ensemble' },
+    { id: 'info', label: 'Informations' },
+    { id: 'organismes', label: 'Organismes' },
+    { id: 'users', label: 'Utilisateurs' },
+    { id: 'plans', label: 'Plans de gestion' }
+  ]"
+  [activeId]="currentSection">
+</app-anchor-nav>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `items` | `AnchorNavItem[]` | `[]` | `{ id, label, icon? }` |
+| `activeId` | `string?` | — | ID de l'item actif (mise en évidence) |
+| `scrollOnClick` | `boolean` | `true` | Scroll smooth automatique vers `#id` |
+
+Les sections cibles doivent avoir un `id` correspondant (ex: `<section id="overview">...`).
 
 ## Common Development Commands
 

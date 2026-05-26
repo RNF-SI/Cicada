@@ -1,0 +1,43 @@
+@if (routerLink && !locked) {
+  <a
+    class="app-entity-tile app-entity-tile--clickable"
+    [routerLink]="routerLink">
+    <ng-container *ngTemplateOutlet="tileContent"></ng-container>
+  </a>
+} @else if (href && !locked) {
+  <a
+    class="app-entity-tile app-entity-tile--clickable"
+    [href]="href">
+    <ng-container *ngTemplateOutlet="tileContent"></ng-container>
+  </a>
+} @else {
+  <div
+    class="app-entity-tile"
+    [class.app-entity-tile--clickable]="isInteractive && !locked"
+    [class.app-entity-tile--locked]="locked"
+    [attr.role]="clickable && !locked ? 'button' : null"
+    [attr.tabindex]="clickable && !locked ? 0 : null"
+    (click)="onClick()"
+    (keydown.enter)="onClick()"
+    (keydown.space)="onClick()">
+    <ng-container *ngTemplateOutlet="tileContent"></ng-container>
+  </div>
+}
+
+<ng-template #tileContent>
+  <div class="app-entity-tile__icon">
+    <i class="fi" [class]="locked ? 'fi-rr-lock' : icon" aria-hidden="true"></i>
+  </div>
+  <div class="app-entity-tile__info">
+    <span class="app-entity-tile__name">{{ name }}</span>
+    @if (subtitle) {
+      <span class="app-entity-tile__subtitle">{{ subtitle }}</span>
+    }
+    <span class="app-entity-tile__body">
+      <ng-content></ng-content>
+    </span>
+  </div>
+  <div class="app-entity-tile__action">
+    <ng-content select="[tileAction]"></ng-content>
+  </div>
+</ng-template>

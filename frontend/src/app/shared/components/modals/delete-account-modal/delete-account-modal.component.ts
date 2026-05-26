@@ -2,10 +2,9 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslateModule } from '@ngx-translate/core';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface DeleteAccountModalData {
   userEmail: string;
@@ -22,10 +21,9 @@ export interface DeleteAccountModalResult {
     CommonModule,
     FormsModule,
     MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './delete-account-modal.component.html',
   styleUrl: './delete-account-modal.component.scss'

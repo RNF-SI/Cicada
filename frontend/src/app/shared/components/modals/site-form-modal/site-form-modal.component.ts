@@ -1,12 +1,12 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +18,8 @@ import { ValidationRequestListItem } from '../../../../core/models/notification.
 import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
+import { CheckboxComponent } from '../../checkbox/checkbox.component';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface SiteFormModalData {
   site?: AdminSite; // If provided, edit mode
@@ -25,6 +27,8 @@ export interface SiteFormModalData {
   principal?: boolean; // If true, set as principal site for the organisme
   existingPolygon?: GeoJSONGeometry | null; // Existing polygon geometry
   existingPoint?: GeoJSONGeometry | null; // Existing point geometry
+  /** Si true, ouvre le formulaire en mode pleine page (revue design #311) */
+  isPageMode?: boolean;
 }
 
 /**
@@ -60,13 +64,15 @@ interface SiteType {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatCheckboxModule,
+    CheckboxComponent,
+    FormFieldComponent,
     MatProgressSpinnerModule,
     MatTabsModule,
     MatIconModule,
     TranslateModule,
     LeafletMapEditComponent,
-    SiteTypeDisplayPipe
+    SiteTypeDisplayPipe,
+    RouterLink,
   ],
   templateUrl: './site-form-modal.component.html',
   styleUrl: './site-form-modal.component.scss'
@@ -79,11 +85,19 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
   private readonly translate = inject(TranslateService);
   readonly data = inject<SiteFormModalData>(MAT_DIALOG_DATA, { optional: true });
 
+  // Référence pour déclencher l'import géométrique depuis un bouton externe (revue design Amandine)
+  @ViewChild(LeafletMapEditComponent) leafletMapEdit?: LeafletMapEditComponent;
+
   form!: FormGroup;
   isLoading = signal(false);
   isLoadingTypes = signal(true);
   errorMessage = signal<string | null>(null);
   siteTypes = signal<SiteType[]>([]);
+
+  /** Déclenche l'import depuis le bouton secondaire externe (revue design Amandine) */
+  triggerGeometryImport(): void {
+    this.leafletMapEdit?.triggerGeometryImport();
+  }
 
   // Geometry signals
   polygonGeometry = signal<GeoJSONGeometry | null>(null);
@@ -106,6 +120,11 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
 
   get isEditMode(): boolean {
     return !!this.data?.site;
+  }
+
+  /** Mode plein page (revue design #311) */
+  get isPageMode(): boolean {
+    return !!this.data?.isPageMode;
   }
 
   /** Check if there's an exact INPN match (blocking) */

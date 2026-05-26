@@ -155,7 +155,7 @@
       transition: background-color 0.2s;
 
       &:hover {
-        background-color: rgba($primary-color, 0.05);
+        background-color: $primary-bg-soft;
       }
 
       &.acknowledged-row {
@@ -208,6 +208,10 @@
   }
 
   mat-chip {
+    // Filet retiré autour des chips de logs (revue design #319 : harmoniser kit UI)
+    --mdc-chip-outline-color: transparent;
+    --mdc-chip-outline-width: 0;
+
     i {
       margin-right: $spacing-xxs;
       font-size: 0.9rem;

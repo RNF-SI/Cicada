@@ -1,10 +1,44 @@
-<h2 mat-dialog-title>
-  @if (isEditMode) {
-    {{ 'modals.siteForm.editTitle' | translate }}
-  } @else {
-    {{ 'modals.siteForm.createTitle' | translate }}
-  }
-</h2>
+<!-- Header en mode plein page (revue design #311) -->
+@if (isPageMode) {
+  <div class="page-header">
+    <nav class="page-breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+        <i class="fi fi-rr-home"></i>
+      </a>
+      <i class="fi fi-rr-angle-small-right"></i>
+      <a routerLink="/sites" class="breadcrumb-link">{{ 'sites.title' | translate }}</a>
+      <i class="fi fi-rr-angle-small-right"></i>
+      <span class="breadcrumb-current">
+        @if (isEditMode) {
+          {{ 'modals.siteForm.editTitle' | translate }}
+        } @else {
+          {{ 'modals.siteForm.createTitle' | translate }}
+        }
+      </span>
+    </nav>
+    <div class="page-title-row">
+      <button type="button" class="btn-back-page" (click)="onCancel()" [title]="'common.actions.back' | translate">
+        <i class="fi fi-rr-arrow-left"></i>
+        <span>{{ 'common.actions.back' | translate }}</span>
+      </button>
+      <h1 class="page-title">
+        @if (isEditMode) {
+          {{ 'modals.siteForm.editTitle' | translate }}
+        } @else {
+          {{ 'modals.siteForm.createTitle' | translate }}
+        }
+      </h1>
+    </div>
+  </div>
+} @else {
+  <h2 mat-dialog-title>
+    @if (isEditMode) {
+      {{ 'modals.siteForm.editTitle' | translate }}
+    } @else {
+      {{ 'modals.siteForm.createTitle' | translate }}
+    }
+  </h2>
+}
 
 <mat-dialog-content>
   @if (errorMessage()) {
@@ -107,10 +141,18 @@
   <div class="site-form-layout" [class.has-suggestions]="showDuplicateWarning() && !isEditMode">
     <!-- Colonne Gauche: Carte unique avec outils polygone + point -->
     <div class="map-column">
-      <h3 class="column-title">
-        <i class="fi fi-rr-map-marker"></i>
-        {{ 'sites.form.geometry.title' | translate }}
-      </h3>
+      <div class="column-header">
+        <h3 class="column-title">
+          <i class="fi fi-rr-map-marker"></i>
+          {{ 'sites.form.geometry.title' | translate }}
+        </h3>
+
+        <!-- Bouton secondaire « Importer un fichier » avant la carte (revue design Amandine) -->
+        <button mat-stroked-button type="button" class="btn-import-geom" (click)="triggerGeometryImport()">
+          <i class="fi fi-rr-folder-upload"></i>
+          {{ 'sites.form.geometry.import.button' | translate }}
+        </button>
+      </div>
 
       <div class="map-container">
         <app-leaflet-map-edit
@@ -190,31 +232,30 @@
       }
 
       <form [formGroup]="form" class="site-form">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.siteForm.fields.name' | translate }} *</mat-label>
-          <input matInput formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue" (input)="onNameInput($event)">
+        <app-form-field [label]="('modals.siteForm.fields.name' | translate) + ' *'" [required]="true">
+  <input formControlName="nom_site" placeholder="Ex: Reserve Naturelle de la Camargue" (input)="onNameInput($event)">
           @if (form.get('nom_site')?.hasError('required') && form.get('nom_site')?.touched) {
-            <mat-error>{{ 'modals.siteForm.errors.nameRequired' | translate }}</mat-error>
+            
           }
-        </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.siteForm.errors.nameRequired' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
         <div class="form-row two-columns">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.localId' | translate }}</mat-label>
-            <input matInput formControlName="id_local" placeholder="Ex: RN13">
-            <mat-hint>{{ 'modals.siteForm.hints.localId' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.siteForm.fields.localId' | translate" [helpText]="'modals.siteForm.hints.localId' | translate">
+  <input formControlName="id_local" placeholder="Ex: RN13">
+</app-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.inpnId' | translate }}</mat-label>
-            <input matInput formControlName="id_inpn" placeholder="Ex: FR3600013" (input)="onInpnInput($event)">
-            <mat-hint>{{ 'modals.siteForm.hints.inpnId' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.siteForm.fields.inpnId' | translate" [helpText]="'modals.siteForm.hints.inpnId' | translate">
+  <input formControlName="id_inpn" placeholder="Ex: FR3600013" (input)="onInpnInput($event)">
+</app-form-field>
         </div>
 
         <div class="form-row two-columns">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.type' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.siteForm.fields.type' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+            <mat-label></mat-label>
             <mat-select formControlName="id_type_site">
               <mat-option [value]="null">-- {{ 'common.actions.select' | translate }} --</mat-option>
               @if (isLoadingTypes()) {
@@ -229,37 +270,38 @@
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'modals.siteForm.fields.surface' | translate }}</mat-label>
-            <input matInput type="number" formControlName="surf_off" placeholder="Ex: 1500">
+          <app-form-field [label]="'modals.siteForm.fields.surface' | translate">
+  <input type="number" formControlName="surf_off" placeholder="Ex: 1500">
             @if (form.get('surf_off')?.hasError('min')) {
-              <mat-error>{{ 'modals.siteForm.errors.surfacePositive' | translate }}</mat-error>
+              
             }
-          </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.siteForm.errors.surfacePositive' | translate }}</p>
+  </ng-container>
+</app-form-field>
         </div>
 
         <!-- Precision field (only shown when type is "Autre") -->
         @if (isTypeAutre) {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.siteForm.fields.typePrecision' | translate }} *</mat-label>
-            <input matInput formControlName="type_site_precision" [placeholder]="'modals.siteForm.hints.typePrecision' | translate">
-            <mat-hint>{{ 'modals.siteForm.hints.typePrecision' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="('modals.siteForm.fields.typePrecision' | translate) + ' *'" [helpText]="'modals.siteForm.hints.typePrecision' | translate">
+  <input formControlName="type_site_precision" [placeholder]="'modals.siteForm.hints.typePrecision' | translate">
+</app-form-field>
         }
 
         <div class="checkbox-row">
-          <mat-checkbox formControlName="marin">{{ 'modals.siteForm.fields.marine' | translate }}</mat-checkbox>
-          <mat-checkbox formControlName="outre_mer">{{ 'modals.siteForm.fields.overseas' | translate }}</mat-checkbox>
-          <mat-checkbox formControlName="active">{{ 'modals.siteForm.fields.active' | translate }}</mat-checkbox>
+          <app-checkbox formControlName="marin" [label]="'modals.siteForm.fields.marine' | translate"></app-checkbox>
+          <app-checkbox formControlName="outre_mer" [label]="'modals.siteForm.fields.overseas' | translate"></app-checkbox>
+          <app-checkbox formControlName="active" [label]="'modals.siteForm.fields.active' | translate"></app-checkbox>
         </div>
 
         <!-- Checkbox for referent request (only in create mode) -->
         @if (!isEditMode) {
           <div class="referent-request-section">
-            <mat-checkbox formControlName="requestAsReferent">
-              {{ 'modals.siteForm.fields.requestAsReferent' | translate }}
-            </mat-checkbox>
-            <p class="help-text">{{ 'modals.siteForm.hints.requestAsReferent' | translate }}</p>
+            <app-checkbox
+              formControlName="requestAsReferent"
+              [label]="'modals.siteForm.fields.requestAsReferent' | translate"
+              [mention]="'modals.siteForm.hints.requestAsReferent' | translate">
+            </app-checkbox>
           </div>
         }
       </form>

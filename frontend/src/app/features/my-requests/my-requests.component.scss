@@ -10,9 +10,9 @@
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  color: #025359;
+  color: $primary-color;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-small;
   font-weight: 600;
   margin-bottom: $spacing-lg;
@@ -30,17 +30,17 @@
   margin-bottom: $spacing-xl;
 
   h1 {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: $font-size-h2;
     font-weight: 700;
-    color: #025359;
+    color: $primary-color;
     margin: 0 0 $spacing-xs;
   }
 
   .subtitle {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: $font-size-base;
-    color: #5C5C5C;
+    color: $gray-dark;
     margin: 0;
   }
 }
@@ -95,17 +95,17 @@
 }
 
 .stat-value {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 25px;
   font-weight: 700;
-  color: #343433;
+  color: $black;
   line-height: 1.2;
 }
 
 .stat-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-small;
-  color: #5C5C5C;
+  color: $gray-dark;
 }
 
 /* Modules section */
@@ -117,22 +117,22 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h4;
   font-weight: 700;
-  color: #343433;
+  color: $black;
   margin: 0 0 $spacing-xs;
 }
 
 .section-icon {
   font-size: $font-size-h3;
-  color: #025359;
+  color: $primary-color;
 }
 
 .section-description {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-small;
-  color: #5C5C5C;
+  color: $gray-dark;
   margin: 0 0 $spacing-md;
 }
 
@@ -169,7 +169,7 @@
 
   i {
     font-size: $font-size-h3;
-    color: #025359;
+    color: $primary-color;
   }
 }
 
@@ -179,17 +179,17 @@
 }
 
 .module-name {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 700;
-  color: #343433;
+  color: $black;
   margin: 0 0 $spacing-xxs;
 }
 
 .module-description {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 12px;
-  color: #5C5C5C;
+  color: $gray-dark;
   margin: 0;
   line-height: 1.4;
 }
@@ -235,22 +235,22 @@
 
 .empty-icon {
   font-size: 58px;
-  color: #DADADA;
+  color: $gray-dark;
   margin-bottom: $spacing-lg;
 }
 
 .empty-state h3 {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h4;
   font-weight: 700;
-  color: #343433;
+  color: $black;
   margin: 0 0 $spacing-xs;
 }
 
 .empty-state p {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
-  color: #5C5C5C;
+  color: $gray-dark;
   margin: 0 0 $spacing-lg;
   max-width: 360px;
 }
@@ -276,19 +276,19 @@
   width: 100%;
 
   th {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: 12px;
     font-weight: 700;
-    color: #5C5C5C;
+    color: $gray-dark;
     text-transform: uppercase;
     letter-spacing: 0.02em;
     background-color: #F8F5F1;
   }
 
   td {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: $font-size-small;
-    color: #343433;
+    color: $black;
   }
 }
 
@@ -304,17 +304,17 @@
 
   i {
     font-size: $font-size-small;
-    color: #025359;
+    color: $primary-color;
   }
 }
 
 .target-name {
   font-weight: 600;
-  color: #025359;
+  color: $primary-color;
 }
 
 .pending-label {
-  color: #949494;
+  color: $gray-dark;
   font-style: italic;
 }
 

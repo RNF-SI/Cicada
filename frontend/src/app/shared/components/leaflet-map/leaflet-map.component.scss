@@ -39,6 +39,38 @@
   gap: $spacing-xs;
 }
 
+// Bouton "Recentrer la carte" affiché après déplacement (revue design #310)
+// Style pill centré en haut comme Google Maps
+.map-recenter-btn {
+  position: absolute;
+  top: $spacing-md;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $white;
+  color: $primary-color;
+  border: 1px solid $primary-bg-medium;
+  border-radius: $border-radius-pill;
+  cursor: pointer;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $primary-color;
+    color: $white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  i { font-size: 14px; }
+}
+
 .map-control-btn {
   display: flex;
   align-items: center;
@@ -46,7 +78,7 @@
   width: 29px;
   height: 29px;
   background-color: $white;
-  border: 2px solid rgba($primary-color, 0.2);
+  border: 2px solid $primary-bg-medium;
   border-radius: $border-radius-sm;
   cursor: pointer;
   transition: all $transition-fast;
@@ -129,10 +161,13 @@
       height: 29px !important;
       line-height: 29px !important;
       font-size: 16px !important;
+      text-decoration: none !important; // Pas de soulignement sur +/- (revue design #310)
+      font-weight: $font-weight-bold;
 
       &:hover {
         background-color: $primary-color !important;
         color: $white !important;
+        text-decoration: none !important;
       }
 
       &.leaflet-disabled {

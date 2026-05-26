@@ -232,7 +232,7 @@ a[mat-raised-button][color="primary"] {
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08) !important;
+    background-color: $primary-bg-subtle !important;
   }
 
   &:active {
@@ -263,7 +263,7 @@ a[mat-raised-button][color="primary"] {
   }
 
   &:hover:not([disabled]) {
-    background-color: rgba($primary-color, 0.08) !important;
+    background-color: $primary-bg-subtle !important;
   }
 
   &:active:not([disabled]) {
@@ -378,6 +378,125 @@ a[mat-raised-button][color="primary"] {
   }
 }
 
+// ============================================
+// FORM FIELD COMPACT (.app-mat-form-field)
+// ============================================
+// Style mat-form-field pour qu'il ressemble à <app-form-field> :
+// - Label au-dessus (pas flottant)
+// - Champ compact (~38px de hauteur)
+// - Suit le kit UI design system
+// À utiliser sur les mat-form-field qui contiennent mat-select/datepicker/autocomplete
+// (ces directives requièrent mat-form-field, donc on ne peut pas migrer vers app-form-field).
+
+.mat-mdc-form-field.app-mat-form-field {
+  // Outline
+  &.mat-form-field-appearance-outline {
+    // On REMPLACE l'outline notched (3 segments avec notch pour label flottant)
+    // par une bordure simple sur le wrapper. Plus robuste qu'essayer de masquer
+    // le notch sans casser la continuité du trait — Material utilise un flex
+    // layout sur les 3 segments qui crée toujours un petit espace dans le bord
+    // top quand le notch a une largeur, et c'est compliqué à éliminer
+    // proprement avec les pseudo-classes Material.
+    .mat-mdc-text-field-wrapper {
+      background-color: $white;
+      border: 1px solid $input-border-color;
+      border-radius: $border-radius-sm !important;
+      padding: 0;
+    }
+
+    // Cache complètement la structure notched-outline (leading, notch, trailing)
+    .mat-mdc-notched-outline,
+    .mdc-notched-outline {
+      display: none !important;
+    }
+
+    // Cache le label flottant Material (qui reste vide dans .app-mat-form-field)
+    .mat-mdc-floating-label,
+    .mdc-floating-label {
+      display: none !important;
+    }
+
+    // États focus / error sur le wrapper (cohérent avec form-field natif)
+    &.mat-focused .mat-mdc-text-field-wrapper {
+      border-color: $input-focus-color;
+      box-shadow: 0 0 0 2px rgba($input-focus-color, 0.12);
+    }
+    &.mat-form-field-invalid .mat-mdc-text-field-wrapper {
+      border-color: $input-error-color;
+    }
+  }
+
+  // Hauteur compacte
+  .mat-mdc-form-field-infix {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    min-height: 34px !important;
+  }
+
+  // Wrapper sans le souscrit (hint/error pris en charge par .form-error-msg / mat-hint séparés)
+  .mat-mdc-form-field-subscript-wrapper {
+    padding: 4px 0 0 0;
+
+    .mat-mdc-form-field-hint-wrapper,
+    .mat-mdc-form-field-error-wrapper {
+      padding: 0;
+    }
+  }
+
+  .mat-mdc-form-field-hint {
+    color: $gray-dark;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
+
+// ============================================
+// FULL-SCREEN DIALOG MODE (revue design #311)
+// Modale ouverte en plein écran qui ressemble à une page
+// (utilisée notamment pour "Nouveau site")
+// ============================================
+
+.cdk-overlay-pane.site-form-page-mode {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  position: relative !important;
+  inset: 0 !important;
+
+  .mat-mdc-dialog-container {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background-color: $beige !important;
+    padding: 0 !important;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background-color: $beige !important;
+      padding: 0 !important;
+    }
+  }
+}
+
+// Label "app-form-field-style" au-dessus du mat-form-field
+.app-mat-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  line-height: 1.3;
+  margin-bottom: 4px;
+
+  .required-star {
+    color: $error-color;
+    font-weight: $font-weight-bold;
+  }
+}
+
 // Select dropdowns
 .mat-mdc-select {
   font-family: $font-family !important;
@@ -412,8 +531,8 @@ a[mat-raised-button][color="primary"] {
   --mat-datepicker-calendar-date-selected-state-text-color: #{$white};
   --mat-datepicker-calendar-date-today-outline-color: #{$primary-color};
   --mat-datepicker-calendar-date-today-selected-state-outline-color: #{$primary-color};
-  --mat-datepicker-calendar-date-focus-state-background-color: #{rgba($primary-color, 0.12)};
-  --mat-datepicker-calendar-date-hover-state-background-color: #{rgba($primary-color, 0.08)};
+  --mat-datepicker-calendar-date-focus-state-background-color: #{$primary-bg-focus};
+  --mat-datepicker-calendar-date-hover-state-background-color: #{$primary-bg-subtle};
   --mat-datepicker-calendar-date-in-range-state-background-color: #{rgba($primary-color, 0.15)};
   --mat-datepicker-calendar-date-text-color: #{$black};
   --mat-datepicker-calendar-body-label-text-color: #{$gray-dark};
@@ -750,6 +869,9 @@ a[mat-raised-button][color="primary"] {
   padding: $spacing-xxs $spacing-sm;
   height: auto;
   min-height: 24px;
+  // Pas de bordure outline sur les tags (revue design #308 : valable pour tous les tags de l'app)
+  --mdc-chip-outline-width: 0 !important;
+  --mdc-chip-outline-color: transparent !important;
 
   &.mat-primary {
     background-color: $primary-color !important;
@@ -1024,6 +1146,26 @@ a[mat-raised-button][color="primary"] {
     color: $white;
     font-weight: $font-weight-bold;
   }
+
+  // Style du snackbar par défaut Cicada (revue design Amandine — durée 6s + bouton fermer plus visible)
+  &.ccd-snackbar {
+    .mdc-snackbar__surface {
+      background-color: $primary-color;
+      min-width: 300px;
+      max-width: 600px;
+    }
+
+    .mat-mdc-button {
+      color: $white;
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+
+      &:hover {
+        background-color: rgba($white, 0.12);
+      }
+    }
+  }
 }
 
 // ============================================
@@ -1249,12 +1391,12 @@ a[mat-raised-button][color="primary"] {
   // Ripple and state layer
   // ============================================
   .mdc-checkbox__ripple {
-    background-color: rgba($primary-color, 0.1) !important;
+    background-color: $primary-bg-light !important;
   }
 
   .mat-mdc-checkbox-ripple,
   .mat-ripple-element {
-    background-color: rgba($primary-color, 0.1) !important;
+    background-color: $primary-bg-light !important;
   }
 
   // ============================================
@@ -1309,8 +1451,8 @@ a[mat-raised-button][color="primary"] {
   --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
 
   // Ripple
-  --mat-radio-checked-ripple-color: #{rgba($primary-color, 0.1)};
-  --mat-radio-ripple-color: #{rgba($primary-color, 0.1)};
+  --mat-radio-checked-ripple-color: #{$primary-bg-light};
+  --mat-radio-ripple-color: #{$primary-bg-light};
 
   // ============================================
   // Direct MDC component styling

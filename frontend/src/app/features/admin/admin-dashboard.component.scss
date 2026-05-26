@@ -118,7 +118,7 @@
   font-size: $font-size-h3;
 
   &.plans {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
   }
 
@@ -205,7 +205,7 @@
 
   &:hover {
     border-color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 
@@ -261,7 +261,7 @@
   }
 
   &.user_added {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
   }
 
@@ -365,7 +365,7 @@
   transition: background-color $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 }
 

@@ -40,12 +40,20 @@
             <i class="fi fi-rr-angle-small-down"></i>
           </button>
 
-          <mat-menu #createMenu="matMenu" class="create-dropdown">
-            <button mat-menu-item routerLink="/plans/nouveau">
-              {{ 'plans.list.newBlankPlan' | translate }}
+          <mat-menu #createMenu="matMenu" class="create-dropdown" xPosition="before">
+            <button mat-menu-item routerLink="/plans/nouveau" class="create-menu-item">
+              <i class="fi fi-rr-document"></i>
+              <span class="menu-item-text">
+                <span class="menu-item-title">{{ 'plans.list.newBlankPlan' | translate }}</span>
+                <span class="menu-item-desc">{{ 'plans.list.newBlankPlanDesc' | translate }}</span>
+              </span>
             </button>
-            <button mat-menu-item routerLink="/plans/dupliquer">
-              {{ 'plans.list.duplicatePlan' | translate }}
+            <button mat-menu-item routerLink="/plans/dupliquer" class="create-menu-item">
+              <i class="fi fi-rr-copy"></i>
+              <span class="menu-item-text">
+                <span class="menu-item-title">{{ 'plans.list.duplicatePlan' | translate }}</span>
+                <span class="menu-item-desc">{{ 'plans.list.duplicatePlanDesc' | translate }}</span>
+              </span>
             </button>
           </mat-menu>
         </div>
@@ -104,15 +112,13 @@
       <section class="content-section my-plans-section">
         <!-- Toolbar: Recherche + Anciennes versions -->
         <div class="toolbar">
-          <div class="search-box">
-            <i class="fi fi-rr-search"></i>
-            <input
-              type="text"
-              [placeholder]="'plans.list.search' | translate"
-              (input)="onMyPlansSearch($event)"
-              data-testid="plans-search-input"
-            />
-          </div>
+          <app-search-bar
+            [value]="myPlansSearchQuery()"
+            [placeholder]="'plans.list.search' | translate"
+            [ariaLabel]="'plans.list.search' | translate"
+            (valueChange)="myPlansSearchQuery.set($event)"
+            data-testid="plans-search-input">
+          </app-search-bar>
           <button class="btn-link" (click)="toggleOldVersions()" [class.active]="showOldVersions()">
             @if (showOldVersions()) {
               <span>{{ 'plans.list.hideOldVersions' | translate }}</span>
@@ -143,14 +149,35 @@
             <table class="plans-table" data-testid="plans-table">
               <thead>
                 <tr>
-                  <th class="col-name">
+                  <th class="col-name sortable" (click)="onSort('name')" [class.sorted]="sortIconDir('name') !== null">
                     {{ 'plans.list.table.name' | translate }}
-                    <i class="fi fi-rr-arrow-small-down"></i>
+                    @if (sortIconDir('name') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('name') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
                   </th>
-                  <th class="col-period">{{ 'plans.list.table.period' | translate }}</th>
-                  <th class="col-status">
+                  <th class="col-period sortable" (click)="onSort('period')" [class.sorted]="sortIconDir('period') !== null">
+                    {{ 'plans.list.table.period' | translate }}
+                    @if (sortIconDir('period') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('period') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
+                  </th>
+                  <th class="col-status sortable" (click)="onSort('status')" [class.sorted]="sortIconDir('status') !== null">
                     {{ 'plans.list.table.status' | translate }}
-                    <i class="fi fi-rr-arrow-small-down"></i>
+                    @if (sortIconDir('status') === 'asc') {
+                      <i class="fi fi-rr-arrow-small-up"></i>
+                    } @else if (sortIconDir('status') === 'desc') {
+                      <i class="fi fi-rr-arrow-small-down"></i>
+                    } @else {
+                      <i class="fi fi-rr-sort sort-idle"></i>
+                    }
                   </th>
                   <th class="col-actions"></th>
                 </tr>
@@ -164,13 +191,20 @@
                         <td class="col-name">
                           <div class="ancestor-indent">
                             <span class="tree-line" [class.first]="first" [class.last]="false"></span>
-                            <span class="ancestor-name">{{ ancestor.nom }}</span>
-                            @if (ancestor.type_document_display) {
-                              <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
-                            }
-                            @if (ancestor.version) {
-                              <span class="ancestor-version">v{{ ancestor.version }}</span>
-                            }
+                            <div class="ancestor-name-block">
+                              <span class="ancestor-name">{{ ancestor.nom }}</span>
+                              <!-- Tags type/version sur une ligne en dessous (revue design #313) -->
+                              @if (ancestor.type_document_display || ancestor.version) {
+                                <div class="ancestor-meta-line">
+                                  @if (ancestor.type_document_display) {
+                                    <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
+                                  }
+                                  @if (ancestor.version) {
+                                    <span class="ancestor-version">v{{ ancestor.version }}</span>
+                                  }
+                                </div>
+                              }
+                            </div>
                           </div>
                         </td>
                         <td class="col-period">
@@ -354,19 +388,12 @@
         <p class="section-description">{{ 'plans.requestAccess.description' | translate }}</p>
 
         <!-- Barre de recherche -->
-        <div class="search-bar">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-icon matPrefix class="search-icon">
-              <i class="fi fi-rr-search"></i>
-            </mat-icon>
-            <input
-              matInput
-              type="text"
-              [placeholder]="'plans.requestAccess.searchPlaceholder' | translate"
-              (input)="onSearch($event)"
-            />
-          </mat-form-field>
-        </div>
+        <app-search-bar
+          [value]="searchQuery()"
+          [placeholder]="'plans.requestAccess.searchPlaceholder' | translate"
+          [ariaLabel]="'plans.requestAccess.searchPlaceholder' | translate"
+          (valueChange)="searchQuery.set($event)">
+        </app-search-bar>
 
         @if (otherPlans().length === 0) {
           <div class="empty-state empty-state--small">

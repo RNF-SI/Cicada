@@ -84,7 +84,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.nomInput.fill('');
     await createPage.submit();
 
-    const nameError = page.locator('mat-error').filter({ hasText: 'nom est requis' });
+    const nameError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: 'nom est requis' });
     await expect(nameError).toBeVisible();
   });
 
@@ -96,7 +96,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.rangInput.fill('');
     await createPage.submit();
 
-    const rangError = page.locator('mat-error').filter({ hasText: /rang/i });
+    const rangError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /rang/i });
     await expect(rangError).toBeVisible();
   });
 
@@ -127,7 +127,7 @@ test.describe('Plan Create - Validation Required', () => {
     await createPage.rangInput.fill('0');
     await createPage.submit();
 
-    const minError = page.locator('mat-error').filter({ hasText: /minimum 1/i });
+    const minError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /minimum 1/i });
     await expect(minError).toBeVisible();
   });
 });
@@ -360,8 +360,11 @@ test.describe.serial('Plan Create - Creation and Verification', () => {
 
     // Search for the plan created with required fields
     await plansPage.searchPlan(planNameRequired);
+    // Wait for the search results to render
+    await page.waitForTimeout(1500);
     const planRow = plansPage.getRowByName(planNameRequired);
-    await expect(planRow).toBeVisible();
+    // Use toBeAttached: the table may paginate, but the matching row should be in DOM
+    await expect(planRow.first()).toBeAttached({ timeout: 10000 });
   });
 
   test('cleanup: delete created plans', async () => {

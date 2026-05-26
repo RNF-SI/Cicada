@@ -44,7 +44,7 @@ $detail-side-margin: $page-gutter;
   width: 60%;
   height: 100%;
   opacity: 0.2;
-  background: radial-gradient(circle at 70% 50%, rgba($primary-color, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 70% 50%, $primary-bg-subtle 0%, transparent 60%);
 }
 
 .hero-content {
@@ -252,7 +252,7 @@ $detail-side-margin: $page-gutter;
   }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -305,10 +305,13 @@ $detail-side-margin: $page-gutter;
   padding: $spacing-xl;
   margin-bottom: $spacing-lg;
 
+  // Bloc détaché du header avec arrondis (revue design #318)
+  // Précédemment "flush" overlay le hero ; maintenant détaché avec marge en haut
   &.detail-card-flush {
-    border-radius: 0;
-    margin-top: -20px; // overlap hero rounded corner
+    border-radius: $border-radius-lg;
+    margin-top: $spacing-md;
     margin-bottom: $spacing-lg;
+    box-shadow: $shadow-light;
   }
 }
 

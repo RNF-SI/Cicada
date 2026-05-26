@@ -270,6 +270,29 @@
   border-top: 1px solid rgba($white, 0.1);
 }
 
+// Retour à l'accueil placé sous le tag rôle (revue design #319)
+.back-link-top {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-md;
+  padding: $spacing-xs 0;
+  color: rgba($white, 0.85);
+  text-decoration: none;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  transition: color $transition-fast;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    color: $white;
+    text-decoration: underline;
+  }
+}
+
 .back-link {
   display: flex;
   align-items: center;

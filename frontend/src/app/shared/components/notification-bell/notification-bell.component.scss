@@ -9,7 +9,7 @@
   border-radius: 50%;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 
   .bell-container {
@@ -58,12 +58,12 @@
   }
 }
 
-// Header du menu
+// Header du menu (revue design #307 : ajouter espace avant le titre - pas collé au header)
 .notification-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-md $spacing-md;
+  padding: $spacing-lg $spacing-md $spacing-md $spacing-md;
 
   .notification-title {
     font-weight: 700;
@@ -118,6 +118,15 @@
     background-color: rgba($info-color, 0.1);
   }
 
+  // Notification sans action_url : pas d'effet de hover (revue design #307)
+  &.no-action {
+    cursor: default !important;
+
+    &:hover {
+      background-color: inherit !important;
+    }
+  }
+
   &.priority-high,
   &.priority-critical {
     border-left: 3px solid $warning-color;
@@ -141,17 +150,18 @@
 }
 
 .notification-icon {
+  // Revue design Amandine — taille harmonisée avec .marker-icon de la page activité
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background-color: $gray-light;
   flex-shrink: 0;
 
   i {
-    font-size: 16px;
+    font-size: 18px;
     color: $primary-color;
   }
 
@@ -212,7 +222,7 @@
 .notification-item-message {
   display: block;
   font-size: $font-size-small;
-  color: $gray-dark;
+  color: $black;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -224,7 +234,7 @@
 .notification-time {
   display: block;
   font-size: $font-size-small;
-  color: $gray;
+  color: $gray-dark;
   margin-top: 5px;
 }
 
@@ -262,8 +272,10 @@
     color: $primary-color;
     text-decoration: none;
 
+    // Hover : fond léger (revue design Amandine — pas de soulignement)
     &:hover {
-      text-decoration: underline;
+      background-color: $primary-bg-subtle;
+      text-decoration: none;
     }
   }
 }
@@ -273,7 +285,13 @@
   width: 540px !important;
   max-width: 95vw !important;
 
+  // Background gris très clair (revue design #307 : meilleur contraste avec items)
+  .mat-mdc-menu-panel {
+    background-color: $gray-lightest !important;
+  }
+
   .mat-mdc-menu-content {
     padding: 0;
+    background-color: $gray-lightest;
   }
 }

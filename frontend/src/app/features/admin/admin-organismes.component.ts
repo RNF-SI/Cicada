@@ -12,6 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminOrganisme } from '../../core/models/admin.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   OrganismeFormModalComponent,
   LinkUserOrganismeModalComponent,
@@ -47,7 +48,8 @@ interface DisplayOrganisme {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
-    PaginationComponent
+    PaginationComponent,
+    SearchBarComponent,
   ],
   templateUrl: './admin-organismes.component.html',
   styleUrl: './admin-organismes.component.scss'

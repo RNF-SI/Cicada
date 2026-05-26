@@ -105,8 +105,9 @@
           </h3>
 
           <div class="add-user-form">
-            <mat-form-field appearance="outline" class="user-search-field">
-              <mat-label>{{ 'modals.linkUserOrganisme.searchUser' | translate }}</mat-label>
+            <label class="app-mat-label">{{ 'modals.linkUserOrganisme.searchUser' | translate }}</label>
+      <mat-form-field class="app-mat-form-field user-search-field" appearance="outline">
+              <mat-label></mat-label>
               <input
                 type="text"
                 matInput
@@ -171,8 +172,9 @@
           </div>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'modals.linkUserOrganisme.organisme' | translate }}</mat-label>
+        <label class="app-mat-label">{{ 'modals.linkUserOrganisme.organisme' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+          <mat-label></mat-label>
           <mat-select [(ngModel)]="selectedOrganismeUuid">
             <mat-option [value]="null">{{ 'modals.linkUserOrganisme.noOrganisme' | translate }}</mat-option>
             @for (org of organismes(); track org.uuid_organisme) {

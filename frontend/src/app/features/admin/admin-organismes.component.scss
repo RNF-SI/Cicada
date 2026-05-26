@@ -67,7 +67,7 @@
   transition: all $transition-fast;
 
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
   }
 }
 
@@ -90,7 +90,7 @@
 
   &:hover {
     border-color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 
@@ -290,7 +290,7 @@
   justify-content: center;
   width: 58px;
   height: 58px;
-  background-color: rgba($primary-color, 0.1);
+  background-color: $primary-bg-light;
   border-radius: $border-radius-round;
   color: $primary-color;
   font-size: 25px;

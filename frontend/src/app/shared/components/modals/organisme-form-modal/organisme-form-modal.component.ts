@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminOrganisme, OrganismeCreatePayload } from '../../../../core/models/admin.model';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface OrganismeFormModalData {
   organisme?: AdminOrganisme; // If provided, edit mode
@@ -28,7 +29,8 @@ export interface OrganismeFormModalData {
     MatButtonModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './organisme-form-modal.component.html',
   styleUrl: './organisme-form-modal.component.scss'

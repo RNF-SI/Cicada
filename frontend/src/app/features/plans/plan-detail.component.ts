@@ -19,6 +19,7 @@ import { ValidationService } from '../../core/services/validation.service';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AdminPlan, PlanFichier, PlanMembre, PlanSite, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { PlanVersionTimelineComponent } from '../../shared/components/plan-version-timeline/plan-version-timeline.component';
+import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { Enjeu } from '../../core/models/enjeu.model';
 import {
@@ -121,6 +122,7 @@ interface SubAccordion {
     SectionTitleComponent,
     PlanSidebarComponent,
     PlanVersionTimelineComponent,
+    EntityTileComponent,
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'

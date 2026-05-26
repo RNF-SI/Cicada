@@ -60,12 +60,6 @@ mat-dialog-content {
   }
 }
 
-.search-hint {
-  font-size: 0.8rem;
-  color: $gray;
-  margin: 0 0 $spacing-md;
-}
-
 // Loading
 .loading-search {
   display: flex;
@@ -87,8 +81,13 @@ mat-dialog-content {
   border-radius: $border-radius-md;
   overflow: hidden;
 
+  // Espace avant chaque catégorie (revue design Amandine)
+  & + & {
+    margin-top: $spacing-xl;
+  }
+
   &.results-category-my-org {
-    border: 1px solid rgba($primary-color, 0.2);
+    border: 1px solid $primary-bg-medium;
     background-color: rgba($primary-color, 0.02);
 
     .category-title {
@@ -233,7 +232,8 @@ mat-dialog-content {
   }
 
   &.site-org-other {
-    color: darken($secondary-orange-salmon, 10%);
+    // Texte en gris foncé (revue design #311 : ne pas écrire en saumon)
+    color: $gray-dark;
   }
 }
 
@@ -314,15 +314,16 @@ mat-dialog-content {
 }
 
 .btn-link-org {
+  // Bouton "Demander à lier" en bleu-vert (revue design #311 : pas en saumon)
   padding: $spacing-xs $spacing-sm;
   font-size: 0.85rem;
   height: auto;
   min-height: 29px;
-  border-color: $secondary-orange-salmon;
-  color: darken($secondary-orange-salmon, 10%);
+  border-color: $primary-color;
+  color: $primary-color;
 
   &:hover:not(:disabled) {
-    background-color: rgba($secondary-orange-salmon, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   i {
@@ -387,14 +388,14 @@ mat-dialog-content {
 
 // Section création
 .create-section {
-  background-color: rgba($primary-color, 0.05);
+  background-color: $primary-bg-soft;
   border: 1px dashed rgba($primary-color, 0.3);
   border-radius: $border-radius-md;
   padding: $spacing-md;
 
   &.create-section-primary {
-    background-color: rgba($primary-color, 0.08);
-    border: 1px solid rgba($primary-color, 0.2);
+    background-color: $primary-bg-subtle;
+    border: 1px solid $primary-bg-medium;
 
     button {
       margin-top: $spacing-xs;

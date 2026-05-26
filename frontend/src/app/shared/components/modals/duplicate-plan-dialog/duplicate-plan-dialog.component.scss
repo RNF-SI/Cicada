@@ -1,21 +1,30 @@
 @import 'variables';
 
+// Kit UI : modale de duplication / switch version (revue design Amandine)
 .dialog-subtitle {
   margin-bottom: $spacing-md;
-  color: $gray-dark;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $black;
+  line-height: 1.5;
 }
 
 .plan-info {
-  background-color: $gray-lighter;
-  border-radius: $border-radius-sm;
-  padding: $spacing-sm $spacing-md;
-  margin-bottom: $spacing-md;
+  // Card border-left primary — cohérent avec status-change-dialog
+  background-color: $gray-lightest;
+  border-left: 3px solid $primary-color;
+  border-radius: $border-radius-md;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-lg;
 
   h4 {
     margin: 0 0 $spacing-xs;
-    font-size: 0.85rem;
+    font-family: $font-family;
+    font-size: $font-size-small;
     color: $gray-dark;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .plan-info-details {
@@ -26,12 +35,15 @@
   }
 
   .plan-name {
-    font-weight: 700;
+    font-family: $font-family;
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
     color: $primary-color;
   }
 
   .plan-meta {
-    font-size: 0.85rem;
+    font-family: $font-family;
+    font-size: $font-size-small;
     color: $gray-dark;
 
     &::before {

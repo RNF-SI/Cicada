@@ -1,0 +1,43 @@
+<div class="search-bar" [class.search-bar--focus]="hasFocus()" [class.search-bar--disabled]="disabled">
+  @if (helpText) {
+    <p class="search-bar__help">{{ helpText }}</p>
+  }
+
+  <div class="search-bar__field">
+    <i class="fi fi-rr-search search-bar__icon" aria-hidden="true"></i>
+
+    <input
+      #input
+      type="text"
+      class="search-bar__input"
+      [ngModel]="value"
+      (ngModelChange)="onInput($event)"
+      [placeholder]="placeholder"
+      [disabled]="disabled"
+      [attr.aria-label]="ariaLabel"
+      (keydown.enter)="onEnter()"
+      (focus)="onFocus()"
+      (blur)="onBlur()"
+    />
+
+    @if (value && !disabled) {
+      <button
+        type="button"
+        class="search-bar__clear"
+        [attr.aria-label]="'common.actions.clear' | translate"
+        (click)="clear()">
+        <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
+      </button>
+    }
+
+    @if (mode === 'manual') {
+      <button
+        type="button"
+        class="search-bar__submit"
+        [disabled]="disabled || !value.trim()"
+        (click)="onSearchClick()">
+        {{ 'common.actions.search' | translate }}
+      </button>
+    }
+  </div>
+</div>

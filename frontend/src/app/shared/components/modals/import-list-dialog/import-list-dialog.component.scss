@@ -1,7 +1,9 @@
 @import 'variables';
 
 .import-dialog-content {
+  // Marges padding pour aérer la modale (revue design #318 : il manque les marges)
   min-width: 500px;
+  padding: $spacing-md $spacing-lg;
 }
 
 .dialog-title {
@@ -26,8 +28,8 @@
 
 // Encadré d'exemples
 .example-box {
-  background-color: rgba($primary-color, 0.05);
-  border: 1px solid rgba($primary-color, 0.2);
+  background-color: $primary-bg-soft;
+  border: 1px solid $primary-bg-medium;
   border-radius: $border-radius-sm;
   padding: $spacing-md;
   margin-bottom: $spacing-md;

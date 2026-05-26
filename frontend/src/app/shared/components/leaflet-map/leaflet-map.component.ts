@@ -61,6 +61,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
   private map: L.Map | null = null;
   private geoJsonLayer: L.GeoJSON | null = null;
   readonly isFullscreen = signal(false);
+  // Suivi du déplacement utilisateur pour afficher le bouton "Recentrer" (revue design #310)
+  readonly userHasMoved = signal(false);
   private readonly renderer = inject(Renderer2);
 
   // Couleurs du design system
@@ -118,6 +120,11 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
       maxZoom: 19
     }).addTo(this.map);
 
+    // Suivre les déplacements utilisateur pour afficher le bouton "Recentrer" (revue design #310)
+    this.map.on('movestart zoomstart', () => {
+      this.userHasMoved.set(true);
+    });
+
     // Ajouter les données GeoJSON si présentes
     if (this.geojsonData) {
       this.updateGeoJSON();
@@ -126,6 +133,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
     // Forcer le rafraîchissement de la carte après le rendu
     setTimeout(() => {
       this.map?.invalidateSize();
+      // Reset le flag : les `setView`/`fitBounds` initiaux ne comptent pas comme déplacement utilisateur
+      this.userHasMoved.set(false);
     }, 100);
   }
 
@@ -220,6 +229,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
     } else if (this.map) {
       this.map.setView(this.center, this.zoom);
     }
+    // Reset l'état "déplacé" pour cacher le bouton (revue design #310)
+    this.userHasMoved.set(false);
   }
 
   /**
@@ -247,5 +258,32 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
    */
   refresh(): void {
     this.map?.invalidateSize();
+  }
+
+  /**
+   * Zoome la carte sur une feature spécifique identifiée par son id (champ properties.id ou id_site).
+   * Utilisé par le tableau Sites pour focuser au clic sur une ligne (revue design Amandine).
+   */
+  focusFeatureById(featureId: number | string | null): void {
+    if (!this.map || !this.geoJsonLayer || featureId == null) return;
+    let targetBounds: L.LatLngBounds | null = null;
+    this.geoJsonLayer.eachLayer((layer: L.Layer) => {
+      const props = (layer as any).feature?.properties || {};
+      const id = props.id_site ?? props.id ?? props.id_espace_protege;
+      if (id === featureId) {
+        const path = layer as L.Path & { getBounds?: () => L.LatLngBounds };
+        if (typeof path.getBounds === 'function') {
+          targetBounds = path.getBounds();
+        } else if ((layer as any).getLatLng) {
+          // Point marker : créer un petit bounds autour
+          const ll = (layer as any).getLatLng() as L.LatLng;
+          targetBounds = L.latLngBounds([ll, ll]);
+        }
+      }
+    });
+    if (targetBounds && (targetBounds as L.LatLngBounds).isValid()) {
+      this.map.fitBounds(targetBounds, { padding: [40, 40], maxZoom: 14 });
+      this.userHasMoved.set(true);
+    }
   }
 }

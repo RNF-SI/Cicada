@@ -31,15 +31,14 @@
     <!-- Justification field -->
     <div class="justification-section">
       <label class="justification-label">{{ 'modals.adminRoleChange.justification.label' | translate }} *</label>
-      <mat-form-field appearance="outline" class="full-width">
+      <app-form-field class="full-width"
+                      [helpText]="'modals.adminRoleChange.justification.hint' | translate:{ count: justification.length }">
         <textarea
-          matInput
           [(ngModel)]="justification"
           [placeholder]="'modals.adminRoleChange.justification.placeholder' | translate"
           rows="3"
         ></textarea>
-        <mat-hint>{{ 'modals.adminRoleChange.justification.hint' | translate:{ count: justification.length } }}</mat-hint>
-      </mat-form-field>
+      </app-form-field>
 
       @if (errorMessage()) {
         <div class="error-message">

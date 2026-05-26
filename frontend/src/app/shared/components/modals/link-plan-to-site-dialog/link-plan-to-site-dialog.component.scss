@@ -13,6 +13,42 @@
   }
 }
 
+// Bloc d'explication en haut de la modale (revue design Amandine)
+.info-block {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background-color: $primary-bg-soft;
+  border-left: 3px solid $primary-color;
+  border-radius: $border-radius-md;
+
+  i {
+    color: $primary-color;
+    font-size: $font-size-h4;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .info-content {
+    flex: 1;
+  }
+
+  .info-title {
+    margin: 0 0 $spacing-xxs;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+
+  .info-text {
+    margin: 0;
+    font-size: $font-size-small;
+    color: $black;
+    line-height: 1.5;
+  }
+}
+
 .site-info {
   display: flex;
   align-items: center;

@@ -24,12 +24,14 @@
 }
 
 .logo {
-  height: 43px;
+  // Nouveau logo CICADA 2026 — agrandi pour meilleure visibilité
+  height: 64px;
+  width: auto;
   margin-bottom: $spacing-lg;
 }
 
 h1 {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 25px;
   font-weight: 700;
   color: #025359;
@@ -38,7 +40,7 @@ h1 {
 
 .subtitle {
   font-size: $font-size-base;
-  color: #6c757d;
+  color: $gray-dark;
   margin: 0;
 }
 
@@ -46,6 +48,13 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+}
+
+.required-fields-note {
+  margin: 0;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
 }
 
 .form-row {
@@ -80,6 +89,39 @@ h1 {
 .field-icon {
   color: #9ca3af;
   margin-right: $spacing-xs;
+}
+
+// Bouton œil afficher/masquer mot de passe — fond transparent, pas de bordure
+:host ::ng-deep .password-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  margin-left: $spacing-xs;
+  background: transparent !important;
+  border: none !important;
+  border-radius: $border-radius-sm;
+  box-shadow: none !important;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: color $transition-fast, background-color $transition-fast;
+
+  i { font-size: 16px; }
+
+  &:hover {
+    color: $primary-color;
+    background-color: $primary-bg-subtle !important;
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: $primary-color;
+    background-color: $primary-bg-subtle !important;
+  }
 }
 
 ::ng-deep .mat-mdc-form-field-icon-prefix {
@@ -131,7 +173,7 @@ h1 {
 
 .login-link {
   font-size: $font-size-small;
-  color: #6c757d;
+  color: $gray-dark;
   margin: 0 0 16px 0;
 
   a {
@@ -149,7 +191,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  color: #6c757d;
+  color: $gray-dark;
   text-decoration: none;
   font-size: $font-size-small;
   transition: color 0.2s;

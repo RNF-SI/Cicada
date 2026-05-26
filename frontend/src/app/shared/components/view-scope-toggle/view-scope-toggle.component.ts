@@ -51,10 +51,8 @@ export interface ViewScopeOption {
             [value]="option.value"
             [matTooltip]="option.tooltip"
             [attr.aria-label]="option.tooltip">
+            <!-- Icône check retirée (revue design #310) : le fond coloré suffit pour indiquer la sélection -->
             <span class="toggle-icons">
-              @if (currentScope === option.value) {
-                <i class="fi fi-rr-check check-icon"></i>
-              }
               <i class="fi {{ option.icon }}"></i>
             </span>
             <span class="toggle-label">{{ option.label }}</span>
@@ -71,6 +69,8 @@ export interface ViewScopeOption {
     /* Groupe principal - MDC et legacy */
     :host ::ng-deep .mat-button-toggle-group,
     :host ::ng-deep .mat-mdc-button-toggle-group {
+      // Background blanc (revue design #314 : fond du switch en blanc, pas en gris)
+      background-color: #FFFFFF !important;
       border: 1px solid #C6C6C6 !important;
       border-radius: 9999px !important;
       overflow: hidden !important;

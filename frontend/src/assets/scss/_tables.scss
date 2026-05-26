@@ -175,7 +175,7 @@
     cursor: pointer;
 
     &:hover {
-      background-color: rgba($primary-color, 0.05);
+      background-color: $primary-bg-soft;
     }
   }
 
@@ -184,7 +184,7 @@
     background-color: rgba($beige, 0.5);
 
     &:hover {
-      background-color: rgba($primary-color, 0.05);
+      background-color: $primary-bg-soft;
     }
   }
 }

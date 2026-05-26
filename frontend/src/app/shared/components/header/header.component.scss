@@ -131,7 +131,7 @@
   border-radius: $border-radius-md;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 
   // Hide on desktop only when on home page
@@ -150,7 +150,8 @@
 }
 
 .logo-img {
-  height: 43px;
+  // Nouveau logo CICADA 2026 — ratio ~2.2:1, légèrement agrandi pour meilleure lisibilité
+  height: 48px;
   width: auto;
 }
 
@@ -180,7 +181,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -212,6 +213,25 @@
 }
 
 // Dropdown menu styles
+// Style librairie (revue design #308) : fond blanc, détaché, aligné sur le bouton
+:host ::ng-deep .user-dropdown-menu {
+  background-color: $white !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  min-width: 220px !important;
+  margin-top: $spacing-xs !important;
+
+  .mat-mdc-menu-content {
+    background-color: $white;
+    padding: $spacing-xs 0;
+  }
+
+  // Survol des items : fond gris-clair (conserver icônes et filets)
+  .mat-mdc-menu-item:hover:not([disabled]) {
+    background-color: rgba($primary-color, 0.06);
+  }
+}
+
 .menu-user-info {
   padding: $spacing-sm $spacing-md;
   display: flex;
@@ -253,7 +273,7 @@
   min-height: 40px;
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -364,18 +384,18 @@
   }
 
   &.active {
-    background-color: rgba($white, 0.15);
-    font-weight: $font-weight-medium;
+    background-color: rgba($white, 0.18);
+    font-weight: $font-weight-bold;
 
-    // Active indicator bar on left
+    // Active indicator bar on left - plus visible (revue design #309)
     &::before {
       content: '';
       position: absolute;
       left: 0;
       top: 0;
       bottom: 0;
-      width: 3px;
-      background-color: $white;
+      width: 4px;
+      background-color: $secondary-yellow;
     }
   }
 

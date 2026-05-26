@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export type AdminRoleChangeType = 'promotion' | 'demotion';
 
@@ -27,10 +28,9 @@ export interface AdminRoleChangeModalResult {
     CommonModule,
     FormsModule,
     MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
-    TranslateModule
+    TranslateModule,
+    FormFieldComponent,
   ],
   templateUrl: './admin-role-change-modal.component.html',
   styleUrl: './admin-role-change-modal.component.scss'

@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MetriqueFormData, MetriqueScoreBlock } from '../../../core/models/enjeu.model';
 import { MetriqueBlockComponent, ScoreBlockData } from '../metrique-block/metrique-block.component';
+import { FormFieldComponent } from '../form-field/form-field.component';
 
 /**
  * Form complet de saisie d'une métrique numérique (#247 + #208 + design Figma).
@@ -49,6 +50,7 @@ export interface FormulaPart {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     DragDropModule,
     MetriqueBlockComponent,
+    FormFieldComponent,
   ],
   templateUrl: './metrique-form.component.html',
   styleUrl: './metrique-form.component.scss',

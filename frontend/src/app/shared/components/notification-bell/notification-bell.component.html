@@ -61,6 +61,7 @@
           mat-menu-item
           class="notification-item"
           [class.unread]="!notification.read"
+          [class.no-action]="!notification.action_url"
           [class]="getPriorityClass(notification.priority)"
           (click)="onNotificationClick(notification)"
         >
@@ -88,7 +89,7 @@
   <div class="notification-footer">
     <button class="see-all-link" mat-menu-item (click)="goToActivity()">
       <i class="fi fi-rr-time-past"></i>
-      Voir toute l'activite
+      Voir toute l'activité
     </button>
   </div>
 </mat-menu>

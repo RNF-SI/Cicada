@@ -230,7 +230,7 @@
   font-weight: $font-weight-bold;
   color: $primary-color;
   background: $white;
-  border: 1px solid rgba($primary-color, 0.2);
+  border: 1px solid $primary-bg-medium;
   cursor: pointer;
   transition: all $transition-fast;
   min-width: 120px;
@@ -308,7 +308,7 @@
 
   &.filter-active {
     font-weight: $font-weight-bold;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 
@@ -327,7 +327,7 @@
   margin-bottom: $spacing-lg;
   background-color: $white;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.08);
+  border: 1px solid $primary-bg-subtle;
 }
 
 .legend-label {
@@ -363,7 +363,7 @@
 .table-wrapper {
   overflow-x: auto;
   border-radius: $border-radius-sm;
-  border: 1px solid rgba($primary-color, 0.12);
+  border: 1px solid $primary-bg-focus;
 }
 
 .tdb-table {
@@ -421,7 +421,7 @@
         padding-left: $spacing-md;
         font-weight: $font-weight-semibold;
         color: $primary-color;
-        border-right: 1px solid rgba($primary-color, 0.08);
+        border-right: 1px solid $primary-bg-subtle;
       }
 
       &.col-indicateur {
@@ -431,6 +431,8 @@
 
       &.col-year {
         min-width: 54px;
+        // Filets entre années (revue design #317)
+        border-right: 1px solid $primary-bg-subtle;
       }
 
       &.col-icons {
@@ -457,14 +459,15 @@
 // Indicator row
 .indicator-row {
   background-color: $white;
-  border-bottom: 1px solid rgba($primary-color, 0.08);
+  border-bottom: 1px solid $primary-bg-subtle;
 
   &.row-alt {
     background-color: rgba($secondary-pale-green, 0.2);
   }
 
+  // Hover plus distinct du background normal (revue design Amandine)
   &:hover {
-    background-color: rgba($primary-color, 0.03);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -489,7 +492,7 @@
 // Metrique row (expanded)
 .metrique-row {
   background-color: rgba($secondary-pale-green, 0.08);
-  border-bottom: 1px solid rgba($primary-color, 0.05);
+  border-bottom: 1px solid $primary-bg-soft;
 
   td {
     padding: $spacing-xs $spacing-xs !important;
@@ -497,7 +500,7 @@
 }
 
 .metrique-ne-cell {
-  border-right: 1px solid rgba($primary-color, 0.08);
+  border-right: 1px solid $primary-bg-subtle;
 }
 
 .metrique-name {
@@ -531,7 +534,7 @@
   i { font-size: 16px; }
 
   &:hover {
-    background-color: rgba($primary-color, 0.08);
+    background-color: $primary-bg-subtle;
   }
 }
 
@@ -544,13 +547,14 @@
 }
 
 .score-trait-icon {
-  width: 20px;
-  height: 20px;
+  // Icônes scores plus grandes (revue design #317)
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 
   &.legend-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -573,13 +577,13 @@
   p {
     font-family: $font-family;
     font-size: $font-size-base;
-    color: $gray-dark;
+    color: $black;
     margin: 0;
   }
 
   .empty-hint {
     font-size: $font-size-small;
-    color: $gray;
+    color: $gray-dark;
     margin-top: $spacing-sm;
   }
 }

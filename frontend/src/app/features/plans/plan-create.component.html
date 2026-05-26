@@ -56,13 +56,15 @@
           }
 
           <!-- Nom du plan * -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.name' | translate }} *</mat-label>
-            <input matInput formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+          <app-form-field [label]="('modals.planForm.fields.name' | translate) + ' *'" [required]="true">
+  <input formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
             @if (form.get('nom')?.hasError('required')) {
-              <mat-error>{{ 'modals.planForm.validation.nameRequired' | translate }}</mat-error>
+              
             }
-          </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.nameRequired' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
           <!-- Choix des sites * -->
           <div class="form-section-box sites-section">
@@ -72,28 +74,25 @@
                 <span class="count-badge">{{ getSelectedSitesCount() }}</span>
               </label>
               @if (showSiteScopeToggle()) {
+                <!-- Switch avec compteurs (revue design #314) -->
                 <app-view-scope-toggle
                   [currentScope]="siteScope()"
                   [showOrganismeOption]="true"
                   [showAllOption]="isSuperAdmin() || isRedacteurPrincipal()"
-                  [mineLabel]="'modals.planForm.sitesScopeMine' | translate"
-                  [organismeLabel]="'modals.planForm.sitesScopeOrg' | translate"
-                  [allLabel]="'modals.planForm.sitesScopeAll' | translate"
+                  [mineLabel]="('modals.planForm.sitesScopeMine' | translate) + ' (' + mineSitesCount() + ')'"
+                  [organismeLabel]="('modals.planForm.sitesScopeOrg' | translate) + ' (' + organismeSitesCount() + ')'"
+                  [allLabel]="('modals.planForm.sitesScopeAll' | translate) + ' (' + allSitesCount() + ')'"
                   (scopeChange)="onSiteScopeChange($event)">
                 </app-view-scope-toggle>
               }
             </div>
 
-            <div class="search-box">
-              <i class="fi fi-rr-search"></i>
-              <input
-                type="text"
-                [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
-                [(ngModel)]="siteSearchQuery"
-                [ngModelOptions]="{standalone: true}"
-                (ngModelChange)="filterSites()"
-              />
-            </div>
+            <app-search-bar
+              [(value)]="siteSearchQuery"
+              [placeholder]="'modals.planForm.placeholders.searchSite' | translate"
+              [ariaLabel]="'modals.planForm.placeholders.searchSite' | translate"
+              (valueChange)="filterSites()">
+            </app-search-bar>
 
             <div class="selection-list">
               @for (site of filteredSites(); track site.id) {
@@ -104,11 +103,11 @@
                   (click)="toggleSite(site.id)"
                 >
                   <div class="item-info">
-                    <mat-checkbox
+                    <app-checkbox
                       [checked]="isSiteSelected(site.id)"
                       (click)="$event.stopPropagation()"
-                      (change)="toggleSite(site.id)"
-                    ></mat-checkbox>
+                      (checkedChange)="toggleSite(site.id)">
+                    </app-checkbox>
                     <span class="item-name">{{ site.nom }}</span>
                     @if (site.type) {
                       <span class="item-type">{{ site.type }}</span>
@@ -146,24 +145,24 @@
 
           <!-- Rang et Surface -->
           <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.rang' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="rang" min="1">
-              <mat-hint>{{ 'modals.planForm.hints.rang' | translate }}</mat-hint>
-              @if (form.get('rang')?.hasError('required')) {
-                <mat-error>{{ 'modals.planForm.validation.rangRequired' | translate }}</mat-error>
-              }
-              @if (form.get('rang')?.hasError('min')) {
-                <mat-error>{{ 'modals.planForm.validation.rangMin' | translate }}</mat-error>
-              }
-            </mat-form-field>
+            <app-form-field [label]="('modals.planForm.fields.rang' | translate) + ' *'" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
+  <input type="number" formControlName="rang" min="1">
+  <ng-container errorSlot>
+    @if (form.get('rang')?.touched && form.get('rang')?.hasError('required')) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
+    }
+    @if (form.get('rang')?.touched && form.get('rang')?.hasError('min')) {
+      <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
+    }
+  </ng-container>
+</app-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.surface' | translate }}</mat-label>
-              <input matInput type="number" formControlName="surface" step="0.01">
-              <span matTextSuffix>ha</span>
-              <mat-hint>{{ 'modals.planForm.hints.surface' | translate }}</mat-hint>
-            </mat-form-field>
+            <app-form-field
+              [label]="'modals.planForm.fields.surface' | translate"
+              [helpText]="'modals.planForm.hints.surface' | translate"
+              suffix="ha">
+              <input type="number" formControlName="surface" step="0.01">
+            </app-form-field>
           </div>
 
           <!-- CT88 (Radio buttons) -->
@@ -177,41 +176,45 @@
 
           <!-- Année début et Année fin -->
           <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.startYear' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="annee_debut" min="1900" max="2100">
+            <app-form-field [label]="('modals.planForm.fields.startYear' | translate) + ' *'" [required]="true">
+  <input type="number" formControlName="annee_debut" min="1900" max="2100">
               @if (form.get('annee_debut')?.hasError('required')) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+  </ng-container>
+</app-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'modals.planForm.fields.endYear' | translate }} *</mat-label>
-              <input matInput type="number" formControlName="annee_fin" min="1900" max="2100">
+            <app-form-field [label]="('modals.planForm.fields.endYear' | translate) + ' *'" [required]="true">
+  <input type="number" formControlName="annee_fin" min="1900" max="2100">
               @if (form.get('annee_fin')?.hasError('required')) {
-                <mat-error>{{ 'common.validation.required' | translate }}</mat-error>
+                
               }
-            </mat-form-field>
+  <ng-container errorSlot>
+    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+  </ng-container>
+</app-form-field>
           </div>
 
           <!-- Date validation CSPN -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.cspnDate' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.planForm.fields.cspnDate' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+            <mat-label></mat-label>
             <input matInput [matDatepicker]="cspnPicker" formControlName="date_avis_csrpn">
             <mat-datepicker-toggle matIconSuffix [for]="cspnPicker"></mat-datepicker-toggle>
             <mat-datepicker #cspnPicker></mat-datepicker>
           </mat-form-field>
 
           <!-- ID Doc'Gestion FCEN -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.docGestion' | translate }}</mat-label>
-            <input matInput formControlName="id_docgestion_fcen">
-            <mat-hint>{{ 'modals.planForm.hints.docGestion' | translate }}</mat-hint>
-          </mat-form-field>
+          <app-form-field [label]="'modals.planForm.fields.docGestion' | translate" [helpText]="'modals.planForm.hints.docGestion' | translate">
+  <input formControlName="id_docgestion_fcen">
+</app-form-field>
 
           <!-- Type organisme rédacteur -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.editorType' | translate }}</mat-label>
+          <label class="app-mat-label">{{ 'modals.planForm.fields.editorType' | translate }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+            <mat-label></mat-label>
             <mat-select formControlName="id_redacteur_type">
               <mat-option [value]="null">{{ 'common.none' | translate }}</mat-option>
               @for (type of redacteurTypes(); track type.id_nomenclature) {
@@ -237,7 +240,7 @@
               </div>
             } @else {
               <!-- Input avec autocomplete -->
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="full-width app-mat-form-field">
                 <input
                   matInput
                   #organismeInput
@@ -269,41 +272,33 @@
           </div>
 
           <!-- Rédacteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.redacteurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.redacteurs' | translate" [helpText]="'modals.planForm.hints.redacteurs' | translate">
+  <textarea
               formControlName="redacteurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.redacteurs' | translate"
               data-testid="redacteurs-input"
             ></textarea>
-            <mat-hint>{{ 'modals.planForm.hints.redacteurs' | translate }}</mat-hint>
-          </mat-form-field>
+</app-form-field>
 
           <!-- Relecteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.relecteurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.relecteurs' | translate" [helpText]="'modals.planForm.hints.relecteurs' | translate">
+  <textarea
               formControlName="relecteurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.relecteurs' | translate"
               data-testid="relecteurs-input"
             ></textarea>
-            <mat-hint>{{ 'modals.planForm.hints.relecteurs' | translate }}</mat-hint>
-          </mat-form-field>
+</app-form-field>
 
           <!-- Autres rédacteurs (texte libre) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'modals.planForm.fields.autresContributeurs' | translate }}</mat-label>
-            <textarea
-              matInput
+          <app-form-field [label]="'modals.planForm.fields.autresContributeurs' | translate">
+  <textarea
               formControlName="autres_contributeurs"
               rows="2"
               [placeholder]="'modals.planForm.placeholders.autresContributeurs' | translate"
             ></textarea>
-          </mat-form-field>
+</app-form-field>
         </form>
       </div>
     }

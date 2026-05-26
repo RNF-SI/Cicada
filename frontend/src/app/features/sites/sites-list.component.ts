@@ -3,7 +3,7 @@
  * Affiche les sites avec hero section, carte Leaflet, tableau et pagination.
  * Design inspiré de plans-list.component.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -32,6 +32,7 @@ import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
 import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
@@ -77,7 +78,8 @@ interface SiteWithAccess extends SiteWithUsers {
     HeaderComponent,
     LeafletMapComponent,
     ViewScopeToggleComponent,
-    SiteTypeDisplayPipe
+    SiteTypeDisplayPipe,
+    SearchBarComponent,
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'
@@ -406,13 +408,31 @@ export class SitesListComponent implements OnInit {
     }
   }
 
+  // Référence carte pour focus programmatique au clic sur une ligne (revue design Amandine)
+  @ViewChild(LeafletMapComponent) leafletMap?: LeafletMapComponent;
+
+  /** Id du site sélectionné dans le tableau (focus carte + ligne mise en avant) */
+  readonly focusedSiteId = signal<number | null>(null);
+
   /**
    * Clic sur une feature de la carte.
    * Affiche le popup avec le nom du site (gere par LeafletMapComponent).
    */
   onMapFeatureClick(feature: any): void {
-    // Le popup est automatiquement affiche par LeafletMapComponent
-    // Pas de navigation automatique
+    // Synchronisation : marquer la ligne correspondante comme sélectionnée
+    const id = feature?.properties?.id_site ?? feature?.properties?.id;
+    if (typeof id === 'number') {
+      this.focusedSiteId.set(id);
+    }
+  }
+
+  /**
+   * Clic sur une ligne du tableau → zoome la carte sur le site + sélectionne la ligne
+   * (revue design Amandine). Le bouton « Accéder » apparaît sur la ligne sélectionnée.
+   */
+  selectSiteRow(site: SiteWithAccess): void {
+    this.focusedSiteId.set(site.id_site);
+    this.leafletMap?.focusFeatureById(site.id_site);
   }
 
   /**
@@ -462,6 +482,15 @@ export class SitesListComponent implements OnInit {
   }
 
   /**
+   * Tooltip listant les organismes supplémentaires d'un site (revue design #310).
+   */
+  getOtherOrganismesNames(site: { organismes?: Array<{ nom_organisme: string }> }): string {
+    const orgs = site.organismes || [];
+    if (orgs.length <= 1) return '';
+    return orgs.slice(1).map(o => o.nom_organisme).join(', ');
+  }
+
+  /**
    * Verifie si une page est un nombre.
    */
   isPageNumber(page: number | string): boolean {
@@ -483,13 +512,19 @@ export class SitesListComponent implements OnInit {
       return;
     }
 
+    // Nouveau site en plein écran (revue design #311 : page plutôt que modale)
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
-      width: '1300px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      width: '100vw',
+      maxWidth: '100vw',
+      height: '100vh',
+      maxHeight: '100vh',
+      panelClass: 'site-form-page-mode',
+      hasBackdrop: false,
+      autoFocus: false,
       data: {
         organismeId: currentUser.organisme.id_organisme,
-        principal: false
+        principal: false,
+        isPageMode: true,
       } as SiteFormModalData
     });
 

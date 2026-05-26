@@ -1,0 +1,38 @@
+<section
+  class="app-accordion"
+  [class]="'app-accordion--' + variant + ' app-accordion--' + size"
+  [class.app-accordion--expanded]="expanded"
+  [class.app-accordion--disabled]="disabled">
+  <header
+    class="app-accordion__header"
+    [attr.role]="disabled ? null : 'button'"
+    [attr.tabindex]="disabled ? null : 0"
+    [attr.aria-expanded]="expanded"
+    (click)="toggle()"
+    (keydown.enter)="toggle(); $event.preventDefault()"
+    (keydown.space)="toggle(); $event.preventDefault()">
+    <div class="app-accordion__heading">
+      <span class="app-accordion__icon-slot">
+        <ng-content select="[accordionIcon]"></ng-content>
+      </span>
+      <span class="app-accordion__title">{{ title }}</span>
+    </div>
+    <div class="app-accordion__header-actions" (click)="$event.stopPropagation()">
+      <ng-content select="[accordionActions]"></ng-content>
+      <button
+        type="button"
+        class="app-accordion__toggle"
+        [disabled]="disabled"
+        [attr.aria-label]="expanded ? 'Replier' : 'Déplier'"
+        (click)="toggle(); $event.stopPropagation()">
+        <i class="fi" [class.fi-rr-angle-up]="expanded" [class.fi-rr-angle-down]="!expanded"></i>
+      </button>
+    </div>
+  </header>
+
+  @if (expanded) {
+    <div class="app-accordion__body">
+      <ng-content></ng-content>
+    </div>
+  }
+</section>

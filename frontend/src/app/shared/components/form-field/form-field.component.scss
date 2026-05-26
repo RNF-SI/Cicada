@@ -1,0 +1,248 @@
+@import 'variables';
+
+// FormField compact (issue #300)
+// Label au-dessus du champ, hauteur réduite vs Material
+
+// IMPORTANT : par défaut un composant Angular a le display:inline du host.
+// Sans cette règle, le wrapper interne (width:100%) n'a pas la largeur attendue
+// dans les contextes non-flex. Cf bug visible operation-form / inventaire-form.
+:host {
+  display: block;
+  width: 100%;
+}
+
+// NB : L'espacement vertical entre champs successifs (Figma : 24px) est défini
+// globalement dans `styles.scss` via `app-form-field + app-form-field` (et autres
+// combinaisons avec mat-form-field/labels). On évite ainsi les soucis de matching
+// de `:host + :host` quand Angular insère des comments de @if/@else entre les
+// éléments.
+
+.app-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; // Figma : label/help → input à 6px
+  font-family: $font-family;
+  width: 100%;
+
+  &__label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    line-height: 1.3;
+  }
+
+  &__required {
+    color: $error-color;
+    font-weight: $font-weight-bold;
+  }
+
+  &__help {
+    margin: 0;
+    font-size: 12px;
+    color: $gray-dark;
+    line-height: 1.3;
+  }
+
+  &__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    // IMPORTANT : les <input>/<select>/<textarea> sont PROJETÉS via <ng-content>
+    // Angular ViewEncapsulation.Emulated ne style PAS le contenu projeté avec
+    // des sélecteurs scopés normaux (l'attribut [_ngcontent-xyz] n'est ajouté
+    // qu'aux éléments du template du composant, pas aux projetés). Il faut
+    // utiliser ::ng-deep pour cibler les éléments projetés.
+    ::ng-deep input,
+    ::ng-deep select,
+    ::ng-deep textarea {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: $spacing-xs $spacing-sm;
+      background-color: $white;
+      border: 1px solid $gray-light;
+      border-radius: $border-radius-sm;
+      font-family: $font-family;
+      font-size: $font-size-base;
+      color: $black;
+      line-height: 1.4;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+      min-height: 38px;
+      box-sizing: border-box;
+    }
+
+    ::ng-deep input::placeholder,
+    ::ng-deep textarea::placeholder {
+      color: $gray-dark;
+      opacity: 0.6;
+    }
+
+    // Neutralise le fond bleu/jaune Chrome/Edge sur l'autofill
+    ::ng-deep input:-webkit-autofill,
+    ::ng-deep input:-webkit-autofill:hover,
+    ::ng-deep input:-webkit-autofill:focus,
+    ::ng-deep input:-webkit-autofill:active {
+      -webkit-text-fill-color: $black !important;
+      -webkit-box-shadow: 0 0 0 30px $white inset !important;
+      box-shadow: 0 0 0 30px $white inset !important;
+      transition: background-color 9999s ease-out 0s;
+      caret-color: $black;
+    }
+
+    ::ng-deep input:hover:not(:disabled):not(:focus),
+    ::ng-deep select:hover:not(:disabled):not(:focus),
+    ::ng-deep textarea:hover:not(:disabled):not(:focus) {
+      border-color: $gray;
+    }
+
+    ::ng-deep input:focus,
+    ::ng-deep input:focus-visible,
+    ::ng-deep select:focus,
+    ::ng-deep select:focus-visible,
+    ::ng-deep textarea:focus,
+    ::ng-deep textarea:focus-visible {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px $primary-bg-focus;
+    }
+
+    ::ng-deep input:disabled,
+    ::ng-deep select:disabled,
+    ::ng-deep textarea:disabled {
+      background-color: $beige;
+      color: $gray-dark;
+      cursor: not-allowed;
+    }
+
+    ::ng-deep textarea {
+      resize: vertical;
+      min-height: 70px;
+      padding: $spacing-sm;
+      font-family: $font-family;
+    }
+
+    ::ng-deep select {
+      cursor: pointer;
+      appearance: none;
+      padding-right: $spacing-xl;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23746F6E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right $spacing-sm center;
+      background-size: 12px;
+    }
+  }
+
+  &__suffix {
+    position: absolute;
+    right: $spacing-sm;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-dark;
+    font-size: $font-size-small;
+    pointer-events: none;
+    background-color: $white;
+    padding-left: $spacing-xxs;
+  }
+
+  // Slots prefix / suffix (icônes, boutons projetés)
+  &__prefix,
+  &__suffix-slot {
+    display: inline-flex;
+    align-items: center;
+    color: $gray-dark;
+
+    &:empty {
+      display: none;
+    }
+
+    // Boutons projetés : style compact transparent
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: $gray-dark;
+      border-radius: 50%;
+
+      &:hover {
+        background-color: $primary-bg-subtle;
+        color: $primary-color;
+      }
+
+      i { font-size: 14px; }
+    }
+
+    i.fi {
+      font-size: 14px;
+    }
+  }
+
+  &__prefix {
+    margin-left: $spacing-xs;
+    margin-right: $spacing-xxs;
+
+    &:empty {
+      margin: 0;
+    }
+  }
+
+  &__suffix-slot {
+    margin-right: $spacing-xs;
+    margin-left: $spacing-xxs;
+
+    &:empty {
+      margin: 0;
+    }
+  }
+
+  &--with-suffix {
+    .app-form-field__control ::ng-deep input {
+      padding-right: $spacing-xl;
+    }
+  }
+
+  &__error {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    font-size: $font-size-small;
+    color: $error-color;
+    line-height: 1.3;
+
+    i { font-size: 12px; }
+  }
+
+  // Slot pour erreurs personnalisées projetées
+  &__error-slot {
+    color: $error-color;
+    font-size: $font-size-small;
+    line-height: 1.3;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  // État erreur (sur contenu projeté → ::ng-deep)
+  &--error &__control {
+    ::ng-deep input,
+    ::ng-deep select,
+    ::ng-deep textarea {
+      border-color: $error-color;
+
+      &:focus, &:focus-visible {
+        box-shadow: 0 0 0 2px rgba($error-color, 0.15);
+      }
+    }
+  }
+}

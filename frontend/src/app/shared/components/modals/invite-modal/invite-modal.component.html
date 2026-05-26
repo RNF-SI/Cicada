@@ -33,13 +33,22 @@
   }
 
   <!-- Autocomplete search -->
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ getPlaceholder() }}</mat-label>
+  <label class="app-mat-label">{{ getPlaceholder() }}</label>
+      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+    <mat-label></mat-label>
     <input
       matInput
       [formControl]="searchControl"
       [matAutocomplete]="auto"
       [placeholder]="getPlaceholder()">
+    <!-- Bouton clear quand un item est sélectionné (revue design #312 : remplace la tuile redondante) -->
+    @if (selectedItem()) {
+      <button matSuffix mat-icon-button type="button"
+              (click)="selectedItem.set(null); searchControl.setValue('')"
+              [attr.aria-label]="'common.actions.clear' | translate">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    }
     <mat-autocomplete
       #auto="matAutocomplete"
       [displayWith]="displayFn.bind(this)"
@@ -77,28 +86,21 @@
     </mat-autocomplete>
   </mat-form-field>
 
-  <!-- Selection affichee -->
-  @if (selectedItem()) {
-    <div class="selected-item">
-      <i class="fi" [class.fi-rr-building]="data.mode === 'organisme'" [class.fi-rr-user]="data.mode === 'user'"></i>
-      <span>{{ displayFn(selectedItem()) }}</span>
-      <button mat-icon-button (click)="selectedItem.set(null); searchControl.setValue('')">
-        <i class="fi fi-rr-cross-small"></i>
-      </button>
-    </div>
-  }
+  <!-- Tuile sélection retirée (revue design #312 : redondante avec le champ rempli) -->
+  <!-- L'état "sélectionné" est désormais reflété par le contenu du champ d'autocomplete et le bouton clear (X) du champ -->
+
 
   <!-- Justification (optionnel) -->
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ 'modals.invite.justification' | translate }}</mat-label>
+  <app-form-field
+    class="full-width"
+    [label]="'modals.invite.justification' | translate"
+    [helpText]="'modals.invite.justificationHint' | translate">
     <textarea
-      matInput
       [formControl]="justificationControl"
       [placeholder]="'modals.invite.justificationPlaceholder' | translate"
       rows="3">
     </textarea>
-    <mat-hint>{{ 'modals.invite.justificationHint' | translate }}</mat-hint>
-  </mat-form-field>
+  </app-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

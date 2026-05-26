@@ -21,12 +21,14 @@
 }
 
 .logo-large {
-  width: 212px;
-  height: 86px;
+  // Nouveau logo CICADA 2026 — viewBox 284.25 × 128.8 (ratio ~2.2:1)
+  width: 320px;
+  height: auto;
+  display: block;
 }
 
 .hero-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h1;
   font-weight: 700;
   line-height: $line-height-h1;
@@ -35,7 +37,7 @@
 }
 
 .hero-subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h3;
   font-weight: 400;
   line-height: $line-height-h3;
@@ -85,15 +87,17 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
   position: relative;
   margin-top: $bar-top-offset;
   background-color: #025359;
-  // Coins asymétriques selon Kit UI: bas-gauche 20px, haut-droit 48px
-  border-radius: 0 48px 20px 0;
+  // Arrondi bas-gauche + arrondi haut-droit pour harmonie avec autres blocs (revue design #306)
+  // top-left, top-right, bottom-right, bottom-left
+  border-radius: 0 48px 0 20px;
   padding: 24px $spacing-xl;
   padding-right: 108px; // Espace pour le corner
   display: flex;
   align-items: center;
   gap: $spacing-lg;
   overflow: hidden;
-  box-shadow: -1px 1px 4px 0px rgba(0, 0, 0, 0.1);
+  // Ombre légère (revue design #306 : cohérence avec autres blocs)
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
   transition: box-shadow 200ms ease-out, transform 200ms ease-out;
   min-height: 115px;
 }
@@ -105,7 +109,7 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
 }
 
 .search-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h4;
   font-weight: 700;
   line-height: $line-height-h4;
@@ -121,7 +125,7 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
 }
 
 .search-description {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 400;
   line-height: 22px;
@@ -198,9 +202,9 @@ $corner-size: 94px;
   min-height: 180px;
 
   .loading-text {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: $font-size-base;
-    color: #949494;
+    color: $gray-dark;
     animation: pulse 1.5s ease-in-out infinite;
   }
 }
@@ -235,19 +239,26 @@ $corner-size: 94px;
 }
 
 .referentials-link {
-  display: flex;
+  // Lien tertiaire avec hover de la librairie (revue design #306)
+  display: inline-flex;
   align-items: center;
   gap: $spacing-sm;
   padding: 16px $spacing-lg;
   color: #025359;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 600;
-  transition: opacity 150ms ease-in-out;
+  border-radius: $border-radius-pill;
+  transition: background-color 150ms ease-in-out, color 150ms ease-in-out;
 
   &:hover {
-    opacity: 0.8;
+    background-color: rgba(#025359, 0.08);
+    text-decoration: underline;
+
+    .arrow {
+      transform: translateX(2px);
+    }
   }
 
   i {
@@ -256,6 +267,7 @@ $corner-size: 94px;
 
   .arrow {
     margin-left: $spacing-xxs;
+    transition: transform 150ms ease-in-out;
   }
 }
 
@@ -275,6 +287,8 @@ $corner-size: 94px;
   flex-direction: column;
   gap: $spacing-md;
   width: 100%;
+  // Largeur 960 max pour meilleure lecture (revue design #305)
+  max-width: 960px;
 }
 
 .guest-hero__logo {
@@ -288,7 +302,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 39px;
   font-weight: 700;
   line-height: $line-height-h1;
@@ -298,13 +312,21 @@ $corner-size: 94px;
 }
 
 .guest-hero__subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h3;
   font-weight: 400;
   line-height: $line-height-h3;
   color: #343433;
   margin: 0;
   width: 100%;
+}
+
+// Retire le logo du header sur la page d'accueil connectée (revue design #306)
+// Pour éviter le doublon avec le logo CICADA déjà affiché dans le hero
+:host ::ng-deep app-header.home-header-auth {
+  .header-logo {
+    display: none;
+  }
 }
 
 .guest-hero__actions {
@@ -316,7 +338,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 700;
   padding: $spacing-md $spacing-xl;
@@ -337,10 +359,27 @@ $corner-size: 94px;
       box-shadow: 0 4px 12px rgba(2, 83, 89, 0.25);
     }
   }
+
+  // Bouton secondaire "Se connecter" (revue design #305)
+  &--secondary {
+    background-color: transparent;
+    color: $primary-color;
+    border: 1.5px solid $primary-color;
+
+    i {
+      font-size: 14px;
+    }
+
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .guest-hero__link {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 600;
   color: #025359;

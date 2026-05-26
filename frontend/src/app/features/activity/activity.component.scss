@@ -1,12 +1,19 @@
 @import 'variables';
 
+// Header blanc en haut (revue design Amandine — aligné avec les pages admin)
+:host {
+  display: block;
+  background-color: $white;
+  min-height: calc(100vh - #{$nav-height});
+}
+
 .activity-page {
   padding: $spacing-lg;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-// Back link
+// Back link — rapproché du titre (revue design Amandine)
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -15,7 +22,7 @@
   text-decoration: none;
   font-size: $font-size-base;
   font-weight: 500;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-xs;
   transition: opacity 0.2s;
 
   i {
@@ -76,9 +83,21 @@
       padding: 0 $spacing-md;
     }
 
-    .mdc-tab--active .tab-badge {
-      background-color: $secondary-yellow;
-      color: $black;
+    // Onglet actif : texte + icône en bleu-vert + bold (revue design #307)
+    .mdc-tab--active {
+      .mdc-tab__text-label {
+        color: $primary-color !important;
+        font-weight: $font-weight-bold !important;
+      }
+
+      .tab-label i {
+        color: $primary-color !important;
+      }
+
+      .tab-badge {
+        background-color: $secondary-yellow;
+        color: $black;
+      }
     }
   }
 }
@@ -147,9 +166,12 @@
     margin-bottom: $spacing-xl;
 
     .group-header {
+      // Style sous-titre librairie (revue design #307 : "Avril 2026" en typo sous-titre)
       color: $primary-color;
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: $font-size-small;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       margin-bottom: $spacing-md;
       padding-bottom: $spacing-xs;
       border-bottom: 2px solid $gray-lighter;
@@ -181,8 +203,9 @@
     flex-shrink: 0;
 
     .marker-icon {
-      width: 32px;
-      height: 32px;
+      // Revue design Amandine — taille harmonisée avec .notification-icon du panel
+      width: 36px;
+      height: 36px;
       border-radius: $border-radius-round;
       display: flex;
       align-items: center;
@@ -191,7 +214,7 @@
       color: $gray-dark;
 
       i {
-        font-size: 1rem;
+        font-size: 18px;
       }
     }
 

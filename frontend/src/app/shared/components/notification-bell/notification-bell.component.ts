@@ -110,26 +110,12 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtient l'icone selon le type de notification.
+   * Icône unique pour toutes les notifications (revue design Amandine — harmonisation
+   * panel/page : une seule icône générique partout). La couleur de fond (.notification-icon
+   * + classe du type) reste différenciante.
    */
-  getNotificationIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'welcome': 'fi-rr-hand-wave',
-      'validation_request': 'fi-rr-check-circle',
-      'validation_approved': 'fi-rr-check',
-      'validation_rejected': 'fi-rr-cross',
-      'user_associated_site': 'fi-rr-marker',
-      'user_associated_plan': 'fi-rr-document',
-      'user_removed_site': 'fi-rr-marker',
-      'user_removed_plan': 'fi-rr-document',
-      'account_deactivated': 'fi-rr-user-slash',
-      'account_activated': 'fi-rr-user-check',
-      'site_orphaned': 'fi-rr-exclamation',
-      'organisme_no_admin': 'fi-rr-exclamation',
-      'system_alert': 'fi-rr-bell',
-      'info': 'fi-rr-info',
-    };
-    return icons[type] || 'fi-rr-bell';
+  getNotificationIcon(_type: string): string {
+    return 'fi-rr-bell';
   }
 
   /**

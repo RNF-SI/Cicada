@@ -63,7 +63,7 @@
   gap: $spacing-md;
   margin-bottom: $spacing-md;
   padding: $spacing-sm $spacing-md;
-  background-color: rgba($primary-color, 0.05);
+  background-color: $primary-bg-soft;
   border-radius: $border-radius-md;
   border-left: 3px solid $primary-color;
 
@@ -145,7 +145,7 @@
     display: inline-block;
     margin-left: $spacing-xs;
     padding: 2px $spacing-xs;
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     color: $primary-color;
     border-radius: $border-radius-sm;
     font-size: 0.7rem;
@@ -292,7 +292,7 @@
   justify-content: center;
   width: 29px;
   height: 29px;
-  background-color: rgba($primary-color, 0.1);
+  background-color: $primary-bg-light;
   border-radius: $border-radius-round;
   flex-shrink: 0;
 
@@ -330,7 +330,7 @@
     font-size: 0.75rem;
     color: $primary-color;
     font-weight: 500;
-    background-color: rgba($primary-color, 0.1);
+    background-color: $primary-bg-light;
     padding: 1px $spacing-xs;
     border-radius: $border-radius-sm;
   }
@@ -386,11 +386,12 @@
 }
 
 .btn-restore {
-  background-color: rgba($info-color, 0.1);
-  color: $info-color;
+  // Couleur primaire bleu-vert (revue design Amandine)
+  background-color: $primary-bg-light;
+  color: $primary-color;
 
   &:hover {
-    background-color: $info-color;
+    background-color: $primary-color;
     color: $white;
   }
 }

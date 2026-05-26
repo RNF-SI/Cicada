@@ -23,7 +23,8 @@
       "select": "Sélectionner",
       "moveUp": "Monter",
       "moveDown": "Descendre",
-      "collapse": "Replier"
+      "collapse": "Replier",
+      "clear": "Effacer"
     },
     "status": {
       "active": "Actif",
@@ -41,6 +42,10 @@
     "none": "Aucun",
     "createdAt": "Créé le",
     "by": "par",
+    "cascadeDelete": {
+      "impactTitle": "Cette action supprimera également :",
+      "warning": "Cette suppression est définitive et ne peut pas être annulée."
+    },
     "retry": "Réessayer",
     "messages": {
       "loading": "Chargement...",
@@ -326,7 +331,12 @@
       },
       "status": {
         "draft": "Brouillon",
-        "valide": "Valide",
+        "avis_csrpn": "Envoyé pour avis CSRPN",
+        "comite_consultatif": "En comité consultatif",
+        "arrete_pref": "En attente arrêté préfectoral",
+        "valide": "Validé",
+        "modifie": "Modifié",
+        "mi_parcours": "Évaluation mi-parcours",
         "archive": "Archivé"
       },
       "periode": {
@@ -841,6 +851,8 @@
     },
     "linkPlanToSite": {
       "title": "Lier un plan de gestion",
+      "explanation": "Sélectionnez un plan de gestion existant pour le rattacher à ce site. Le plan apparaîtra alors dans la liste des plans associés au site et son équipe pourra y accéder.",
+      "explanationLabel": "À propos de cette liaison",
       "search": "Rechercher un plan...",
       "noResults": "Aucun plan disponible",
       "success": "Plan lié au site avec succès",
@@ -1268,7 +1280,9 @@
       "empty": "Aucun plan de gestion",
       "createPlan": "Créer un plan de gestion",
       "newBlankPlan": "À partir d'une base vierge",
+      "newBlankPlanDesc": "Créer un nouveau plan de gestion depuis le début",
       "duplicatePlan": "Sur la base d'un PG existant",
+      "duplicatePlanDesc": "Dupliquer un plan déjà existant comme modèle",
       "oldVersions": "Voir les anciennes versions",
       "hideOldVersions": "Masquer les anciennes versions",
       "multisites": "multisites",
@@ -1527,7 +1541,7 @@
         "actions": "Actions et suivis"
       },
       "actions": {
-        "editMetadata": "Modifier les métadonnées"
+        "editMetadata": "Modifier le plan de gestion"
       },
       "organismesRedacteurs": "Organismes rédacteurs",
       "organismesRedacteursHint": "(peuvent consulter et modifier ce plan)",
@@ -1569,7 +1583,7 @@
         }
       },
       "sidebar": {
-        "title": "PLAN DE GESTION",
+        "title": "PLANS DE GESTION",
         "overview": "Vue d'ensemble",
         "detailsEntry": "Détails et saisie",
         "generalInfo": "Informations générales",
@@ -1652,8 +1666,11 @@
       "clickHint": "Cliquez sur un élément pour explorer sa hiérarchie",
       "resetZoom": "Recentrer",
       "resetZoomPlan": "Recentrer sur le plan",
-      "focusEnjeu": "Recentrer sur l'enjeu",
-      "focusOperation": "Recentrer sur l'opération",
+      "resetZoomPlanTooltip": "Affiche l'arborescence complète du plan (tous les enjeux et toutes les actions).",
+      "focusEnjeu": "Centrer la vue",
+      "focusEnjeuTooltip": "Zoome sur l'élément actuellement sélectionné pour mieux le visualiser dans l'arborescence.",
+      "focusOperation": "Centrer la vue",
+      "focusOperationTooltip": "Zoome sur l'action actuellement sélectionnée pour mieux la visualiser dans l'arborescence inversée.",
       "loading": "Chargement du tableau d'arborescence...",
       "empty": "Aucune donnée à afficher"
     },
@@ -1879,7 +1896,7 @@
       "title": "Accéder ou créer un site",
       "description": "Recherchez un site existant pour demander l'accès, ou créez-en un nouveau.",
       "button": "Rechercher ou créer",
-      "dialogTitle": "Gérer mes sites",
+      "dialogTitle": "Rechercher un site ou en créer un nouveau",
       "searchTitle": "Rechercher un site existant",
       "searchLabel": "Nom du site",
       "searchPlaceholder": "Rechercher un site...",
@@ -2023,6 +2040,7 @@
         "clearAll": "Effacer tout",
         "recenter": "Recentrer la carte",
         "import": {
+          "button": "Importer un fichier",
           "tooltip": "Importer un fichier géographique\n\n• GeoJSON (.geojson, .json)\n• Shapefile : fichier ZIP contenant\n  .shp, .shx, .dbf et .prj\n\n⚠ Format WGS84 (EPSG:4326) uniquement",
           "success": "Géométrie importée avec succès",
           "error": "Erreur lors de l'import. Vérifiez le format du fichier.",
@@ -2175,6 +2193,15 @@
     "network": "Erreur de connexion. Vérifiez votre connexion internet."
   },
   "enjeux": {
+    "cascade": {
+      "facteurs": "Facteur(s) d'influence",
+      "pressions": "Pression(s)",
+      "olt": "Objectif(s) à long terme",
+      "ne": "Niveau(x) d'exigence",
+      "oo": "Objectif(s) opérationnel(s)",
+      "ra": "Résultat(s) attendu(s)",
+      "indicateurs": "Indicateur(s) (avec leurs métriques et opérations)"
+    },
     "title": "Enjeux et facteurs clés de réussite",
     "subtitle": "Plan de gestion",
     "empty": {
@@ -2206,6 +2233,10 @@
       "required": "Les champs avec * sont obligatoires",
       "requiredBefore": "Les champs avec",
       "requiredAfter": "sont obligatoires",
+      "errors": {
+        "libelleRequired": "L'intitulé de l'enjeu est obligatoire",
+        "libelleMaxLength": "L'intitulé est trop long"
+      },
       "libelle": "Intitulé de l'enjeu",
       "libellePlaceholder": "Saisissez l'intitulé de l'enjeu",
       "intituleCourt": "Intitulé court de l'enjeu",

@@ -15,7 +15,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -31,6 +30,9 @@ import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
+import { CheckboxComponent } from '../../shared/components/checkbox/checkbox.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
@@ -74,7 +76,6 @@ interface OrganismeEntry {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
     MatRadioModule,
     MatDatepickerModule,
@@ -87,7 +88,10 @@ interface OrganismeEntry {
     MatSnackBarModule,
     TranslateModule,
     HeaderComponent,
-    ViewScopeToggleComponent
+    ViewScopeToggleComponent,
+    SearchBarComponent,
+    CheckboxComponent,
+    FormFieldComponent,
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'
@@ -156,6 +160,15 @@ export class PlanCreateComponent implements OnInit {
       (site.type && site.type.toLowerCase().includes(query))
     );
   });
+
+  // Compteurs par scope pour les libellés du switch (revue design #314)
+  mineSitesCount = computed(() =>
+    this.availableSites().filter(s => s.accessType && this.directAccessTypes.has(s.accessType)).length
+  );
+  organismeSitesCount = computed(() =>
+    this.availableSites().filter(s => s.accessType && s.accessType !== 'super_admin').length
+  );
+  allSitesCount = computed(() => this.availableSites().length);
 
   // Current year for validation
   currentYear = new Date().getFullYear();
@@ -521,8 +534,9 @@ export class PlanCreateComponent implements OnInit {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
-      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Cherche le premier champ invalide : input/textarea natif (dans app-form-field) ou mat-form-field
+      const invalidNative = this.elRef.nativeElement.querySelector('input.ng-invalid, textarea.ng-invalid, mat-form-field.ng-invalid');
+      invalidNative?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 

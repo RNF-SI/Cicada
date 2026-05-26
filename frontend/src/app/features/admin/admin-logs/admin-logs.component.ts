@@ -12,6 +12,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -42,6 +44,8 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    FormFieldComponent,
+    SearchBarComponent,
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,

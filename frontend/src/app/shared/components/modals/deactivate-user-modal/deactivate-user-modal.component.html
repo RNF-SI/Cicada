@@ -24,16 +24,17 @@
 
     <!-- Reason field -->
     <div class="reason-section">
-      <label class="reason-label">{{ 'modals.deactivateUser.reason.label' | translate }} *</label>
-      <mat-form-field appearance="outline" class="full-width">
+      <app-form-field
+        class="full-width"
+        [label]="'modals.deactivateUser.reason.label' | translate"
+        [required]="true"
+        [helpText]="'modals.deactivateUser.reason.hint' | translate:{ count: reason.length }">
         <textarea
-          matInput
           [(ngModel)]="reason"
           [placeholder]="'modals.deactivateUser.reason.placeholder' | translate"
           rows="3"
         ></textarea>
-        <mat-hint>{{ 'modals.deactivateUser.reason.hint' | translate:{ count: reason.length } }}</mat-hint>
-      </mat-form-field>
+      </app-form-field>
 
       @if (errorMessage()) {
         <div class="error-message">

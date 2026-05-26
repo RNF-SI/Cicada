@@ -153,7 +153,7 @@
   text-align: center;
   font-family: $font-family;
   font-size: 14px;
-  background: #f6f6f6;
+  background: $gray-lightest;
   color: $black;
   min-width: 90px;
   font-weight: $font-weight-regular;
@@ -185,7 +185,7 @@
 
 .boundary-cell {
   padding: 12px 8px;
-  background: #f6f6f6;
+  background: $gray-lightest;
   text-align: center;
   vertical-align: middle;
   min-width: 90px;

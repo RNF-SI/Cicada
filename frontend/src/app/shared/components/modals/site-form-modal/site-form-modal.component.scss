@@ -1,6 +1,102 @@
 @import 'variables';
 
 // ============================================
+// PAGE HEADER (revue design #311 : mode plein page)
+// ============================================
+
+.page-header {
+  background-color: $sites-accent;
+  padding: $spacing-md $spacing-xxl;
+  border-radius: 0 0 $border-radius-lg $border-radius-lg;
+  margin: 0 $spacing-xxl $spacing-lg $spacing-xxl;
+}
+
+.page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+
+  .breadcrumb-home {
+    color: $primary-color;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover { opacity: 0.8; }
+
+    i { font-size: 14px; }
+  }
+
+  .breadcrumb-link {
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .breadcrumb-current {
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+  }
+
+  i.fi-rr-angle-small-right {
+    font-size: 12px;
+    color: $primary-color;
+  }
+}
+
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.page-title {
+  margin: 0;
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.btn-back-page {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+
+  &:hover {
+    background-color: $primary-bg-light;
+  }
+
+  i { font-size: 14px; }
+}
+
+// Dans le mode page : le contenu prend toute la largeur
+:host-context(.site-form-page-mode) {
+  ::ng-deep mat-dialog-content {
+    padding: 0 $spacing-xxl $spacing-xl $spacing-xxl;
+    max-height: none;
+    overflow-y: auto;
+  }
+  ::ng-deep mat-dialog-actions {
+    padding: $spacing-md $spacing-xxl;
+    background-color: $white;
+    border-top: 1px solid $gray-lighter;
+  }
+}
+
+// ============================================
 // THREE-COLUMN LAYOUT (conditional)
 // ============================================
 
@@ -134,23 +230,48 @@
 
     &:hover {
       color: $primary-color;
-      background-color: rgba($primary-color, 0.05);
+      background-color: $primary-bg-soft;
     }
   }
 }
 
+// Header de colonne carte : titre + bouton « Importer un fichier » sur la même ligne
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin: 0 0 $spacing-md;
+  flex-wrap: wrap;
+
+  .column-title {
+    margin: 0;
+  }
+}
+
+.btn-import-geom {
+  display: inline-flex !important;
+  align-items: center;
+  gap: $spacing-xs;
+
+  i {
+    font-size: $font-size-base;
+  }
+}
+
 .column-title {
+  // Titres "Localisation" et "Informations du site" en style H4 (revue design #311)
   display: flex;
   align-items: center;
   gap: $spacing-sm;
   font-family: $font-family;
-  font-size: $font-size-base;
+  font-size: $font-size-h4;
   font-weight: $font-weight-bold;
   color: $primary-color;
   margin: 0 0 $spacing-md;
 
   i {
-    font-size: $font-size-base;
+    font-size: $font-size-h4;
   }
 }
 
@@ -291,13 +412,14 @@
   }
 
   .site-type-badge {
+    // Tag plus discret (revue design #311 : ressemble trop à un bouton)
     display: inline-flex;
     align-items: center;
     padding: 2px $spacing-xs;
-    background-color: $primary-color;
-    color: $white;
+    background-color: $primary-bg-light;
+    color: $primary-color;
     font-size: 9px;
-    font-weight: $font-weight-bold;
+    font-weight: $font-weight-semibold;
     text-transform: uppercase;
     border-radius: $border-radius-pill;
   }
@@ -352,7 +474,7 @@
 
   &:hover {
     border-color: $primary-color;
-    box-shadow: 0 2px 8px rgba($primary-color, 0.1);
+    box-shadow: 0 2px 8px $primary-bg-light;
   }
 
   // Compact mode for suggestions column
@@ -406,13 +528,14 @@
   }
 
   .site-type {
+    // Tag plus discret (revue design #311 : ressemble trop à un bouton)
     display: inline-flex;
     align-items: center;
     gap: $spacing-xxs;
-    color: $white;
-    background-color: $primary-color;
+    color: $primary-color;
+    background-color: $primary-bg-light;
     font-size: 9px;
-    font-weight: $font-weight-bold;
+    font-weight: $font-weight-semibold;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 2px 5px;

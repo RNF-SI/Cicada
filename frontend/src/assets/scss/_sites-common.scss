@@ -60,20 +60,24 @@
 }
 
 @mixin sites-breadcrumb-home {
+  // Pastille bleu-vert avec icône blanche (revue design Amandine)
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  background-color: $white;
+  background-color: $primary-color;
   border-radius: 50%;
-  color: $primary-color;
+  color: $white;
   text-decoration: none;
-  transition: transform $transition-fast;
+  transition: transform $transition-fast, background-color $transition-fast;
   flex-shrink: 0;
   z-index: 2;
-  i { font-size: 24px; }
-  &:hover { transform: scale(1.05); }
+  i { font-size: 24px; color: $white; }
+  &:hover {
+    transform: scale(1.05);
+    background-color: $primary-hover;
+  }
 }
 
 // Lignes horizontales décoratives (design Figma)
@@ -143,10 +147,11 @@
 }
 
 @mixin sites-subtitle {
+  // Texte en bleu-vert (revue design #310 : titres header en primary color)
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  color: $black;
+  color: $primary-color;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -156,7 +161,8 @@
 }
 
 @mixin sites-h1 {
-  color: $black;
+  // Titre H1 en bleu-vert (revue design #310)
+  color: $primary-color;
   font-size: $font-size-h1;
   font-weight: $font-weight-bold;
   font-family: $font-family;
@@ -341,14 +347,16 @@
 }
 
 // Card base
+// Revue design Amandine :
+// - Pas d'effet hover sur tuile non cliquable (Organismes/Utilisateurs en lecture seule)
+// - Fond gris TRÈS clair ($gray-lightest) au lieu du $gray-lighter (#E4E4E4)
 @mixin sites-card-base {
   display: flex;
   align-items: center;
   gap: $spacing-md;
   padding: $spacing-md;
-  background-color: $gray-lighter;
+  background-color: $gray-lightest;
   border-radius: $border-radius-sm;
-  &:hover { background-color: rgba($primary-color, 0.05); }
 }
 
 // Avatar circle

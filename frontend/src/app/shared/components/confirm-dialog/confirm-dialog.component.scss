@@ -1,0 +1,118 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-width: 400px;
+  max-width: 560px;
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin: 0;
+  font-family: $font-family;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+
+  .title-icon {
+    color: $error-color;
+    font-size: $font-size-h3;
+  }
+}
+
+mat-dialog-content {
+  padding: $spacing-md 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  .message {
+    margin: 0;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    white-space: pre-line;
+    line-height: 1.5;
+  }
+}
+
+// Liste d'impact pour suppression cascade (revue design Amandine)
+.impact-block {
+  padding: $spacing-md $spacing-lg;
+  background-color: rgba($error-color, 0.05);
+  border-left: 3px solid $error-color;
+  border-radius: $border-radius-md;
+
+  .impact-title {
+    margin: 0 0 $spacing-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $error-color;
+  }
+
+  .impact-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .impact-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+
+    i {
+      color: $primary-color;
+      font-size: $font-size-base;
+      flex-shrink: 0;
+      width: 18px;
+    }
+
+    .impact-count {
+      font-weight: $font-weight-bold;
+      color: $error-color;
+      min-width: 28px;
+      text-align: right;
+    }
+
+    .impact-label {
+      flex: 1;
+    }
+  }
+}
+
+.warning-text {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin: 0;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($warning-color, 0.1);
+  border-radius: $border-radius-md;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: darken($warning-color, 20%);
+  font-style: italic;
+  line-height: 1.4;
+
+  i {
+    color: $warning-color;
+    font-size: $font-size-base;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+mat-dialog-actions {
+  padding-top: $spacing-md;
+  gap: $spacing-sm;
+}

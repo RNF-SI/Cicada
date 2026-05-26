@@ -30,8 +30,9 @@
   }
 
   <!-- Autocomplete search -->
-  <mat-form-field appearance="outline" class="search-field">
-    <mat-label>{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxon' : type === 'habitat' ? 'enjeux.referenceList.searchHabitat' : 'enjeux.referenceList.searchGeology') | translate }}</mat-label>
+  <label class="app-mat-label">{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxon' : type === 'habitat' ? 'enjeux.referenceList.searchHabitat' : 'enjeux.referenceList.searchGeology') | translate }}</label>
+      <mat-form-field class="app-mat-form-field search-field" appearance="outline">
+    <mat-label></mat-label>
     <input matInput
            [formControl]="searchControl"
            [matAutocomplete]="auto"

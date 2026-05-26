@@ -11,15 +11,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
+import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu, FcrCreatePayload, EnjeuUpdatePayload } from '../../../../core/models/enjeu.model';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 
 interface FcrCategorieOption {
   id: number;
@@ -39,11 +40,12 @@ interface FcrCategorieOption {
     MatButtonModule,
     MatRadioModule,
     MatProgressSpinnerModule,
-    MatExpansionModule,
+    AccordionComponent,
     MatTooltipModule,
     MatSnackBarModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    FormFieldComponent,
   ],
   templateUrl: './fcr-form.component.html',
   styleUrl: './fcr-form.component.scss'
@@ -312,7 +314,7 @@ export class FcrFormComponent implements OnInit {
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      const invalid = this.elRef.nativeElement.querySelector('mat-form-field.ng-invalid');
+      const invalid = this.elRef.nativeElement.querySelector('input.ng-invalid, textarea.ng-invalid, mat-form-field.ng-invalid');
       invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }

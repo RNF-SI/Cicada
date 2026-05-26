@@ -31,14 +31,18 @@
 
   <!-- Filters -->
   <div class="filters-bar">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>{{ 'common.actions.search' | translate }}</mat-label>
-        <input matInput [(ngModel)]="searchQuery" (keyup.enter)="applyFilters()">
-        <i class="fi-rr-search" matSuffix></i>
-      </mat-form-field>
+      <app-search-bar
+        class="search-field"
+        mode="manual"
+        [(value)]="searchQuery"
+        [placeholder]="'common.actions.search' | translate"
+        [ariaLabel]="'common.actions.search' | translate"
+        (search)="applyFilters()">
+      </app-search-bar>
 
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>{{ 'activity.filters.entityType' | translate }}</mat-label>
+      <label class="app-mat-label">{{ 'activity.filters.entityType' | translate }}</label>
+      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
+        <mat-label></mat-label>
         <mat-select [(ngModel)]="entityTypeFilter" (selectionChange)="applyFilters()">
           <mat-option value="">{{ 'common.all' | translate }}</mat-option>
           <mat-option value="site">{{ 'activity.entityTypes.site' | translate }}</mat-option>

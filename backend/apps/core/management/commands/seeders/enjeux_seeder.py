@@ -5205,6 +5205,139 @@ class EnjeuxSeeder(BaseSeeder):
             standalone_suivis_created += 1
             self.log_item('créé', f'Standalone suivi: {suivi.intitule[:50]}')
 
+        # =====================================================================
+        # Brouillon Camargue eval mi-parcours 2025 — chaîne minimale
+        # (#329 E2E) : enjeu → OLT → NE → OO → RA → indicateur → métrique
+        # → opération → suivi. Le helper findPlan('Camargue') sélectionne ce
+        # plan (draft + name match) ; sans contenu, les tests E2E
+        # operations / enjeux skip massivement.
+        # =====================================================================
+        plan_camargue_brouillon = PlanGestion.objects.filter(
+            nom__icontains='Évaluation mi-parcours 2025 - Camargue',
+            statut='draft',
+        ).first()
+
+        if plan_camargue_brouillon and cat_enjeu and priorite_2:
+            enjeu_brouillon, _ = Enjeu.objects.update_or_create(
+                id_pg=plan_camargue_brouillon,
+                libelle='Évaluation des habitats humides à mi-parcours',
+                defaults={
+                    'id_categorie': cat_enjeu,
+                    'intitule_court': 'Éval hab.',
+                    'rang': 2,
+                    'categorie_ecologique': True,
+                    'habitat': True,
+                    'description': "Évaluation à mi-parcours de l'état des habitats humides du site.",
+                    'etat_enjeu': 'Suivi en cours, premiers résultats encourageants.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            enjeux_created.append(enjeu_brouillon)
+            self.log_item('créé', f'Enjeu brouillon Camargue: {enjeu_brouillon.libelle[:50]}')
+
+            # Facteur d'influence + pression
+            facteur_b, _ = FacteurInfluence.objects.update_or_create(
+                id_enjeu=enjeu_brouillon,
+                libelle='Évolution hydrologique du marais',
+                defaults={'description': "Variations du niveau d'eau.", 'id_utilisateur_ajout': admin},
+            )
+            facteurs_created.append(facteur_b)
+
+            pressref_assec = self._get_pressref('PR_HYDRO_ASSEC') or self._get_pressref('PR_HYDRO_NIVEAU')
+            pression_b, _ = Pression.objects.update_or_create(
+                id_facteur_influence=facteur_b,
+                libelle='Assèchement saisonnier prolongé',
+                defaults={
+                    'id_pressref': pressref_assec,
+                    'description': 'Assèchement précoce de certains marais.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            pressions_created.append(pression_b)
+
+            # OLT + NE
+            olt_b, _ = ObjectifLongTerme.objects.update_or_create(
+                id_enjeu=enjeu_brouillon,
+                libelle='Maintenir des conditions hydriques favorables sur 80 % du site',
+                defaults={
+                    'description': "Garantir un niveau d'eau suffisant en saison.",
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            olts_created.append(olt_b)
+
+            ne_b, _ = NiveauExigence.objects.update_or_create(
+                id_olt=olt_b,
+                libelle='Surface en eau ≥ 80 % d\'avril à septembre',
+                defaults={
+                    'description': 'Surface en eau minimum à respecter.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            nes_created.append(ne_b)
+
+            # OO + RA + indicateur + métrique
+            oo_b, _ = ObjectifOperationnel.objects.update_or_create(
+                libelle='Surveiller et adapter la gestion hydraulique',
+                defaults={
+                    'description': 'Pilotage des ouvrages hydrauliques selon les niveaux observés.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            oo_b.pressions.add(pression_b)
+            oos_created.append(oo_b)
+
+            ra_b, _ = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_b,
+                libelle="Stabilisation du niveau d'eau dans les marais cibles",
+                defaults={
+                    'description': "Maintenir un niveau d'eau opérationnel d'avril à septembre.",
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            ras_created.append(ra_b)
+
+            ind_b, _ = Indicateur.objects.update_or_create(
+                id_ne=ne_b,
+                id_resultat_attendu=ra_b,
+                nom_indicateur='Surface en eau (avril-septembre)',
+                defaults={
+                    'description': "Suivi mensuel de la surface en eau sur 6 marais.",
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            indicateurs_created.append(ind_b)
+
+            met_b, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind_b,
+                nom_metrique='Pourcentage de surface en eau',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': '%',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            metriques_created.append(met_b)
+
+            # Opération + suivi inventaire
+            if prio_op_2 and cat_reserve_cs:
+                op_b, _ = Operation.objects.update_or_create(
+                    code_operation='CAM-EVAL-CS01',
+                    defaults={
+                        'libelle': 'Suivi mensuel de la surface en eau (mi-parcours)',
+                        'id_priorite': prio_op_2,
+                        'id_referentiel_operations': 'CS',
+                        'id_categorie_action_reserve': cat_reserve_cs,
+                        'description': 'Mesures de surface en eau sur 6 marais témoins, 6 fois/an.',
+                        'annee_min': 2025,
+                        'annee_max': 2030,
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                _link_op_to_indicateur(op_b, ind_b)
+                operations_created.append(op_b)
+                self.log_item('créé', f'Opération brouillon Camargue: {op_b.libelle[:50]}')
+
         self.log_summary(annees_created, 'années de programmation')
         self.log_summary(finances_created, 'sources de financement')
         self.log_summary(protocoles_created, 'protocoles')

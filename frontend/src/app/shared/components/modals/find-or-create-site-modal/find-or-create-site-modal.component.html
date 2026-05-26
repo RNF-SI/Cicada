@@ -54,17 +54,15 @@
       {{ 'sites.findOrCreate.searchTitle' | translate }}
     </h4>
 
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>{{ 'sites.findOrCreate.searchLabel' | translate }}</mat-label>
-      <input matInput
-             type="text"
+    <app-form-field class="search-field"
+                    [label]="'sites.findOrCreate.searchLabel' | translate"
+                    [helpText]="'sites.findOrCreate.searchHint' | translate">
+      <input type="text"
              [value]="searchTerm()"
              (input)="onSearchChange($event)"
              [placeholder]="'sites.findOrCreate.searchPlaceholder' | translate">
-      <i matSuffix class="fi fi-rr-search search-icon"></i>
-    </mat-form-field>
-
-    <p class="search-hint">{{ 'sites.findOrCreate.searchHint' | translate }}</p>
+      <i suffixSlot class="fi fi-rr-search search-icon"></i>
+    </app-form-field>
 
     <!-- Spinner de recherche -->
     @if (isSearching()) {
@@ -116,12 +114,12 @@
                       </div>
                     } @else if (site.canRequestAccess) {
                       <div class="access-request-options">
-                        <mat-checkbox
+                        <app-checkbox
                           [checked]="isReferentRequest(site)"
-                          (change)="onReferentChange(site, $event.checked)"
-                          class="referent-checkbox">
-                          {{ 'sites.findOrCreate.asReferent' | translate }}
-                        </mat-checkbox>
+                          (checkedChange)="onReferentChange(site, $event)"
+                          class="referent-checkbox"
+                          [label]="'sites.findOrCreate.asReferent' | translate">
+                        </app-checkbox>
                         <button mat-flat-button
                                 color="primary"
                                 class="btn-request-access"
@@ -195,28 +193,27 @@
                   <!-- Formulaire de demande pleine largeur -->
                   @if (expandedOrgLinkSite() === site.id_site && site.canRequestOrgLink) {
                     <div class="org-link-form">
-                      <mat-form-field appearance="outline" class="justification-field">
-                        <mat-label>{{ 'sites.findOrCreate.orgLinkJustificationLabel' | translate }}</mat-label>
-                        <textarea matInput
+                      <app-form-field [label]="'sites.findOrCreate.orgLinkJustificationLabel' | translate">
+  <textarea
                                   rows="2"
                                   [value]="orgLinkJustification()"
                                   (input)="onOrgLinkJustificationChange($event)"
                                   [placeholder]="'sites.findOrCreate.orgLinkJustificationPlaceholder' | translate"></textarea>
-                      </mat-form-field>
+</app-form-field>
                       <div class="org-link-checkboxes">
-                        <mat-checkbox
+                        <app-checkbox
                           [checked]="orgLinkWithAccess()"
-                          (change)="orgLinkWithAccess.set($event.checked)"
-                          class="org-link-access-checkbox">
-                          {{ 'sites.findOrCreate.orgLinkWithAccess' | translate }}
-                        </mat-checkbox>
+                          (checkedChange)="orgLinkWithAccess.set($event)"
+                          class="org-link-access-checkbox"
+                          [label]="'sites.findOrCreate.orgLinkWithAccess' | translate">
+                        </app-checkbox>
                         @if (orgLinkWithAccess()) {
-                          <mat-checkbox
+                          <app-checkbox
                             [checked]="orgLinkAsReferent()"
-                            (change)="orgLinkAsReferent.set($event.checked)"
-                            class="org-link-referent-checkbox">
-                            {{ 'sites.findOrCreate.asReferent' | translate }}
-                          </mat-checkbox>
+                            (checkedChange)="orgLinkAsReferent.set($event)"
+                            class="org-link-referent-checkbox"
+                            [label]="'sites.findOrCreate.asReferent' | translate">
+                          </app-checkbox>
                         }
                       </div>
                       <div class="org-link-form-actions">

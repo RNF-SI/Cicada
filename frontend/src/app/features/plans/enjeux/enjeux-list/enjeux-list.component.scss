@@ -10,6 +10,18 @@
   background-color: $beige;
 }
 
+// Menu dropdown Ajouter Enjeu/FCR : gap entre icône et texte (revue design #316)
+::ng-deep {
+  .mat-mdc-menu-item .mdc-list-item__primary-text {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+  .mat-mdc-menu-item i.fi {
+    margin-right: $spacing-xs;
+  }
+}
+
 .enjeux-layout {
   display: flex;
   min-height: calc(100vh - 58px);
@@ -470,7 +482,7 @@
 
   &:hover {
     color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 
   // Variante "action" pour les icônes d'édition/expand dans les cartes enjeu/facteur/pression
@@ -479,7 +491,7 @@
 
     &:hover {
       color: darken($primary-color, 10%);
-      background-color: rgba($primary-color, 0.08);
+      background-color: $primary-bg-subtle;
     }
   }
 }
@@ -736,9 +748,10 @@
 }
 
 .pression-card-title-block {
+  // Plus d'air entre l'intitulé et le type (revue design Amandine)
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $spacing-xs;
 }
 
 .pression-card-title {
@@ -1106,7 +1119,7 @@
   cursor: grab;
 
   &:active { cursor: grabbing; }
-  &:hover  { background-color: rgba($primary-color, 0.1); }
+  &:hover  { background-color: $primary-bg-light; }
 }
 
 .olt-header-actions {
@@ -1750,14 +1763,14 @@
   margin-right: $spacing-xs;
   flex-shrink: 0;
   color: $primary-color;
-  &:hover { background-color: rgba($primary-color, 0.1); }
+  &:hover { background-color: $primary-bg-light; }
 }
 
 .operation-code {
   display: inline-block;
   padding: 2px 8px;
   margin-right: $spacing-xs;
-  background-color: rgba($primary-color, 0.1);
+  background-color: $primary-bg-light;
   color: $primary-color;
   border-radius: $border-radius-sm;
   font-weight: 600;
@@ -2081,7 +2094,7 @@
       color: $black;
 
       .mat-button-toggle-label-content {
-        font-family: 'Nunito', sans-serif;
+        font-family: $font-family;
         font-size: $font-size-small;
         font-weight: $font-weight-medium;
         line-height: 32px;
@@ -2117,7 +2130,7 @@
 // Optional bound checkbox — keep Material defaults intact for click behavior
 .optional-bound-checkbox {
   ::ng-deep .mdc-label {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: 11px;
     color: $gray-dark;
   }
@@ -2150,7 +2163,7 @@
   &.inclusive {
     color: $primary-color;
     border-color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    background-color: $primary-bg-soft;
   }
 }
 

@@ -12,6 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminSite as ApiSite, AdminOrganisme } from '../../core/models/admin.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   LinkUserSiteModalComponent,
   LinkSiteOrganismeModalComponent,
@@ -66,7 +67,8 @@ interface DisplayOrganisme {
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
-    PaginationComponent
+    PaginationComponent,
+    SearchBarComponent,
   ],
   templateUrl: './admin-sites.component.html',
   styleUrl: './admin-sites.component.scss'

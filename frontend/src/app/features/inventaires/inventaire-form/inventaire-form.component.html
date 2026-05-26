@@ -52,18 +52,18 @@
 
           <div class="form-grid">
             <!-- Intitulé -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.intitule' | translate }} <span class="required-star">*</span></mat-label>
-              <input matInput formControlName="intitule"
+            <app-form-field [label]="'inventaires.form.intitule' | translate" [required]="true">
+  <input formControlName="intitule"
                 [placeholder]="'inventaires.form.intitulePlaceholder' | translate">
               @if (shouldShowError('intitule')) {
-                <mat-error>{{ getErrorMessage('intitule') }}</mat-error>
+                
               }
-            </mat-form-field>
+</app-form-field>
 
             <!-- Type (codes CS - autocomplete groupé) -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.type' | translate }}</mat-label>
+            <label class="app-mat-label">{{ 'inventaires.form.type' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+              <mat-label></mat-label>
               <input matInput
                 [formControl]="typeActionSearchCtrl"
                 [matAutocomplete]="autoTypeActionInv"
@@ -118,8 +118,9 @@
 
             <!-- Type d'indicateur (conditional: only if suit_indicateur == true) -->
             @if (showTypeIndicateur) {
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.typeIndicateur' | translate }} <span class="required-star">*</span></mat-label>
+              <label class="app-mat-label">{{ 'inventaires.form.typeIndicateur' | translate }} <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                <mat-label></mat-label>
                 <mat-select formControlName="type_indicateur">
                   <mat-option value="">—</mat-option>
                   @for (opt of typeIndicateurOptions(); track opt.id_nomenclature) {
@@ -133,8 +134,9 @@
             }
 
             <!-- Objectif principal (grouped select) -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.objectifPrincipal' | translate }} <span class="required-star">*</span></mat-label>
+            <label class="app-mat-label">{{ 'inventaires.form.objectifPrincipal' | translate }} <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+              <mat-label></mat-label>
               <mat-select formControlName="objectif_principal">
                 <mat-select-trigger>
                   {{ getObjectifDisplayLabel(form.get('objectif_principal')?.value) }}
@@ -162,8 +164,9 @@
 
             <!-- Objectif secondaire (conditional: only if objectif principal is set) -->
             @if (hasObjectifPrincipal) {
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.objectifSecondaire' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'inventaires.form.objectifSecondaire' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                <mat-label></mat-label>
                 <mat-select formControlName="objectif_secondaire">
                   <mat-select-trigger>
                     {{ getObjectifDisplayLabel(form.get('objectif_secondaire')?.value) }}
@@ -187,8 +190,9 @@
             }
 
             <!-- Cible principale -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.ciblesPrincipales' | translate }} <span class="required-star">*</span></mat-label>
+            <label class="app-mat-label">{{ 'inventaires.form.ciblesPrincipales' | translate }} <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+              <mat-label></mat-label>
               <mat-select formControlName="cibles_principales">
                 <mat-option [value]="null">—</mat-option>
                 @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
@@ -226,8 +230,9 @@
 
             <!-- Cible secondaire (conditional: only if cible principale is set) -->
             @if (hasCiblePrincipale) {
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'inventaires.form.cibleSecondaire' | translate }}</mat-label>
+              <label class="app-mat-label">{{ 'inventaires.form.cibleSecondaire' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                <mat-label></mat-label>
                 <mat-select formControlName="cible_secondaire">
                   <mat-option value="">—</mat-option>
                   @for (opt of cibleSuiviOptions(); track opt.id_nomenclature) {
@@ -239,8 +244,9 @@
             }
 
             <!-- Date de lancement du suivi (date picker) -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></mat-label>
+            <label class="app-mat-label">{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+              <mat-label></mat-label>
               <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
                 [placeholder]="'inventaires.form.dateLancementPlaceholder' | translate">
               <mat-datepicker-toggle matSuffix [for]="dateLancementPicker"></mat-datepicker-toggle>
@@ -251,8 +257,9 @@
             </mat-form-field>
 
             <!-- Statut -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.statut' | translate }}</mat-label>
+            <label class="app-mat-label">{{ 'inventaires.form.statut' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+              <mat-label></mat-label>
               <mat-select formControlName="id_statut">
                 <mat-option [value]="null">—</mat-option>
                 @for (opt of statutSuiviOptions(); track opt.id_nomenclature) {
@@ -262,30 +269,18 @@
             </mat-form-field>
 
             <!-- Année de fin -->
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'inventaires.form.anneeFin' | translate }}</mat-label>
-              <input matInput type="number" formControlName="annee_fin_suivi">
-            </mat-form-field>
+            <app-form-field [label]="'inventaires.form.anneeFin' | translate">
+        <input type="number" formControlName="annee_fin_suivi">
+      </app-form-field>
           </div>
         </div>
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Protocole                      -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('protocole')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.protocole' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['protocole']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['protocole']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['protocole']) {
-            <div class="section-content">
-              <div class="form-grid">
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+  <div class="section-content">
+<div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
                 <div class="radio-field-row" [class.has-error]="shouldShowError('protocole_dans_campanule')">
                   <span class="radio-field-label">
@@ -304,11 +299,10 @@
                 <!-- ═══ MODE CAMPANULE (Oui) ═══ -->
                 @if (isCampanule) {
                   <!-- Autocomplete Protocole Campanule -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>
-                      {{ 'inventaires.form.protocoleCampanuleNom' | translate }}
-                      <span class="required-star">*</span>
-                    </mat-label>
+                  <label class="app-mat-label">{{ 'inventaires.form.protocoleCampanuleNom' | translate }}
+                      <span class="required-star">*</span></label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                    <mat-label></mat-label>
                     <input matInput
                       [formControl]="campanuleSearchCtrl"
                       [matAutocomplete]="campanuleAuto"
@@ -346,16 +340,12 @@
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
                 @if (isNotCampanule) {
                   <!-- Nom du protocole (libre) -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>
-                      {{ 'inventaires.form.nomProtocole' | translate }}
-                      <span class="required-star">*</span>
-                    </mat-label>
-                    <input matInput formControlName="nom_protocole">
+                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [required]="true">
+  <input formControlName="nom_protocole">
                     @if (shouldShowError('nom_protocole')) {
-                      <mat-error>{{ getErrorMessage('nom_protocole') }}</mat-error>
+                      
                     }
-                  </mat-form-field>
+</app-form-field>
                 }
 
                 <!-- Fréquence de mise en oeuvre (both modes) -->
@@ -372,7 +362,7 @@
                         <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
                       </div>
                       <span class="frequence-separator">{{ 'inventaires.form.frequenceFoisPar' | translate }}</span>
-                      <mat-form-field appearance="outline" class="frequence-unite-field">
+                      <mat-form-field appearance="outline" class="frequence-unite-field app-mat-form-field">
                         <mat-select formControlName="frequence_unite">
                           <mat-option value="">—</mat-option>
                           @for (opt of frequenceEmboitementOptions(); track opt.id_nomenclature) {
@@ -389,11 +379,10 @@
                     }
                     <!-- Precision for "Autre" -->
                     @if (showFrequencePrecision) {
-                      <mat-form-field appearance="outline" class="frequence-precision-field">
-                        <mat-label>{{ 'inventaires.form.frequencePrecision' | translate }}</mat-label>
-                        <input matInput formControlName="frequence_unite_precision"
+                      <app-form-field [label]="'inventaires.form.frequencePrecision' | translate">
+        <input formControlName="frequence_unite_precision"
                           [placeholder]="'inventaires.form.frequencePrecisionPlaceholder' | translate">
-                      </mat-form-field>
+      </app-form-field>
                     }
                   </div>
                 }
@@ -401,8 +390,9 @@
                 <!-- ═══ NON-CAMPANULE only fields ═══ -->
                 @if (isNotCampanule) {
                   <!-- Période de suivi (multi-mois) -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.periodeSuivi' | translate }}</mat-label>
+                  <label class="app-mat-label">{{ 'inventaires.form.periodeSuivi' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                    <mat-label></mat-label>
                     <mat-select formControlName="periode_suivi" multiple>
                       @for (opt of periodeSuiviOptions(); track opt.id_nomenclature) {
                         <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
@@ -428,31 +418,25 @@
 
                   <!-- URL de la documentation (conditional) -->
                   @if (showDocumentationUrl) {
-                    <mat-form-field appearance="outline">
-                      <mat-label>{{ 'inventaires.form.urlDocumentation' | translate }}</mat-label>
-                      <input matInput formControlName="url_documentation"
+                    <app-form-field [label]="'inventaires.form.urlDocumentation' | translate">
+        <input formControlName="url_documentation"
                         [placeholder]="'inventaires.form.urlDocumentationPlaceholder' | translate">
-                    </mat-form-field>
+      </app-form-field>
                   }
 
                   <!-- Nombre d'ETP par cycle de collecte -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>
-                      {{ 'inventaires.form.nbEtpCycle' | translate }}
-                      <span class="required-star">*</span>
-                    </mat-label>
-                    <input matInput type="number" formControlName="nb_etp_cycle">
-                    <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
+                  <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [required]="true" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
+  <input type="number" formControlName="nb_etp_cycle">
+                    
                     @if (shouldShowError('nb_etp_cycle')) {
-                      <mat-error>{{ getErrorMessage('nb_etp_cycle') }}</mat-error>
+                      
                     }
-                  </mat-form-field>
+</app-form-field>
 
                   <!-- Descriptif du protocole -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.descriptionProtocole' | translate }}</mat-label>
-                    <textarea matInput formControlName="description_protocole" rows="3"></textarea>
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.descriptionProtocole' | translate">
+        <textarea formControlName="description_protocole" rows="3"></textarea>
+      </app-form-field>
                 }
 
                 <!-- ═══ CAMPANULE readonly fields ═══ -->
@@ -484,21 +468,18 @@
 
                 <!-- ═══ NON-CAMPANULE: Objectif du protocole + Période d'échantillonnage ═══ -->
                 @if (isNotCampanule) {
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.objectifProtocole' | translate }}</mat-label>
-                    <textarea matInput formControlName="objectif_protocole" rows="2"></textarea>
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.objectifProtocole' | translate">
+        <textarea formControlName="objectif_protocole" rows="2"></textarea>
+      </app-form-field>
 
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.periodeEchantillonnage' | translate }}</mat-label>
-                    <input matInput formControlName="periode_echantillonnage">
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.periodeEchantillonnage' | translate">
+        <input formControlName="periode_echantillonnage">
+      </app-form-field>
 
                   <!-- Mode et champ de validation -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.modeValidation' | translate }}</mat-label>
-                    <input matInput formControlName="mode_validation">
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.modeValidation' | translate">
+        <input formControlName="mode_validation">
+      </app-form-field>
                 }
 
                 <!-- Respect strict du protocole + Consulter le protocole -->
@@ -526,49 +507,34 @@
 
                 <!-- Conditional: non-respect fields -->
                 @if (isNonRespect) {
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.justificationNonRespect' | translate }}</mat-label>
-                    <textarea matInput formControlName="justification_non_respect" rows="2"></textarea>
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
+        <textarea formControlName="justification_non_respect" rows="2"></textarea>
+      </app-form-field>
 
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.differencesProtocole' | translate }}</mat-label>
-                    <textarea matInput formControlName="differences_protocole" rows="2"></textarea>
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.differencesProtocole' | translate">
+        <textarea formControlName="differences_protocole" rows="2"></textarea>
+      </app-form-field>
                 }
 
                 <!-- Nombre d'ETP (campanule mode) -->
                 @if (isCampanule) {
-                  <mat-form-field appearance="outline">
-                    <mat-label>{{ 'inventaires.form.nbEtpCycle' | translate }}</mat-label>
-                    <input matInput type="number" formControlName="nb_etp_cycle">
-                    <mat-hint>{{ 'inventaires.form.nbEtpCycleHint' | translate }}</mat-hint>
-                  </mat-form-field>
+                  <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
+        <input type="number" formControlName="nb_etp_cycle">
+      </app-form-field>
                 }
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage      -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('bancarisation')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.bancarisation' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['bancarisation']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['bancarisation']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['bancarisation']) {
-            <div class="section-content">
-              <div class="form-grid">
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'inventaires.form.outilBancarisation' | translate }}</mat-label>
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+  <div class="section-content">
+<div class="form-grid">
+                <label class="app-mat-label">{{ 'inventaires.form.outilBancarisation' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                  <mat-label></mat-label>
                   <mat-select formControlName="outil_bancarisation">
                     <mat-option [value]="''">—</mat-option>
                     @for (opt of bancarisationOptions(); track opt.mnemonique) {
@@ -577,8 +543,9 @@
                   </mat-select>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'inventaires.form.outilSaisie' | translate }}</mat-label>
+                <label class="app-mat-label">{{ 'inventaires.form.outilSaisie' | translate }}</label>
+      <mat-form-field class="app-mat-form-field" appearance="outline">
+                  <mat-label></mat-label>
                   <mat-select formControlName="outil_saisie">
                     <mat-option [value]="''">—</mat-option>
                     @for (opt of outilSaisieOptions(); track opt.mnemonique) {
@@ -595,36 +562,22 @@
                   </mat-radio-group>
                 </div>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Détails                        -->
         <!-- ═══════════════════════════════════════ -->
-        <div class="form-card">
-          <div class="section-header" (click)="toggleSection('details')">
-            <div class="section-title-row">
-              <span class="section-label">{{ 'inventaires.form.sections.details' | translate }}</span>
-            </div>
-            <i class="fi section-chevron"
-              [class.fi-rr-angle-small-down]="sectionsOpen['details']"
-              [class.fi-rr-angle-small-right]="!sectionsOpen['details']"></i>
-          </div>
-          <div class="section-underline"></div>
-
-          @if (sectionsOpen['details']) {
-            <div class="section-content">
-              <div class="form-grid">
+        <app-accordion variant="subtle" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+  <div class="section-content">
+<div class="form-grid">
                 <!-- Commentaires -->
-                <mat-form-field appearance="outline">
-                  <mat-label>{{ 'inventaires.form.commentaires' | translate }}</mat-label>
-                  <textarea matInput formControlName="commentaires" rows="4"></textarea>
-                </mat-form-field>
+                <app-form-field [label]="'inventaires.form.commentaires' | translate">
+        <textarea formControlName="commentaires" rows="4"></textarea>
+      </app-form-field>
               </div>
-            </div>
-          }
-        </div>
+  </div>
+</app-accordion>
       </form>
     </div>
 
