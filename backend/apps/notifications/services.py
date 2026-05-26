@@ -1000,23 +1000,25 @@ class NotificationService:
         """#277 — Notifie les référents d'un plan d'une transition du workflow CSRPN.
 
         Une notification + email est envoyée à chaque référent du plan pour
-        chaque transition CSRPN (entrée/sortie d'un statut intermédiaire).
-        L'utilisateur qui a déclenché la transition n'est pas notifié.
+        chaque transition CSRPN (entrée/sortie / changement d'étape). Reçoit
+        des valeurs de `validation_step` (incluant None pour signaler la
+        sortie du workflow). L'utilisateur déclencheur n'est pas notifié.
         """
         from apps.plans.models import PlanGestion
 
-        # Ne notifier que pour les transitions impliquant un statut CSRPN ou
-        # une finalisation depuis un statut CSRPN.
-        csrpn = PlanGestion.CSRPN_WORKFLOW_STATUSES
+        # Ne notifier que pour les transitions impliquant une étape CSRPN.
+        # Sortie du workflow (None → None) ignorée.
+        steps = PlanGestion.VALIDATION_STEPS
         is_csrpn_transition = (
-            new_status in csrpn or old_status in csrpn
+            (new_status in steps) or (old_status in steps)
         )
         if not is_csrpn_transition:
             return
 
-        labels = dict(PlanGestion.STATUT_CHOICES)
-        old_label = labels.get(old_status, old_status)
-        new_label = labels.get(new_status, new_status)
+        labels = dict(PlanGestion.VALIDATION_STEP_CHOICES)
+        labels[None] = "Aucune étape CSRPN"
+        old_label = labels.get(old_status, old_status or "Aucune étape CSRPN")
+        new_label = labels.get(new_status, new_status or "Aucune étape CSRPN")
         triggered_by_name = (
             triggered_by.get_full_name() if triggered_by else "Système"
         )

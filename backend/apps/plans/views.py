@@ -35,6 +35,10 @@ from apps.users.pagination import StandardPagination
 from .permissions import CanModifyOnlyDraftPlan
 
 
+# Sentinel pour distinguer "step manquant" de "step=null" dans csrpn_step.
+_MISSING = object()
+
+
 class PlanGestionViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour les Plans de Gestion.
@@ -996,13 +1000,21 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         Changer le statut d'un plan de gestion.
 
         POST /api/plans/plans/{id}/change-status/
-        Body: {"new_status": "valide"}
+        Body: {"new_status": "valide", "is_mi_parcours": false}
 
-        Transitions autorisées (référent du plan, admin_og+):
-        - draft → valide
-        - valide → draft
-        - valide → archive
+        Statuts gérés (depuis #277 refactor) : draft, valide, modifie, archive.
+        Le workflow CSRPN (avis_csrpn → comite_consultatif → arrete_pref) est
+        désormais un attribut orthogonal `validation_step` exposé via l'action
+        `csrpn-step`.
+
+        Transitions autorisées (référent du plan, admin_og+) :
+        - draft → valide / modifie (selon plan_parent et is_mi_parcours)
+        - valide / modifie → draft (seulement sur feuille de chaîne)
+        - valide / modifie → archive
         - archive → valide
+
+        Note : si le plan est dans le workflow CSRPN (validation_step non NULL)
+        et que la cible est `valide`/`modifie`, on remet validation_step à NULL.
         """
         plan = self.get_object()
 
@@ -1016,11 +1028,6 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         new_status = request.data.get('new_status')
         is_mi_parcours = bool(request.data.get('is_mi_parcours', False))
-        # #277 — Métadonnées éventuellement renseignées à la transition.
-        date_avis_csrpn = request.data.get('date_avis_csrpn')
-        date_validation_comite = request.data.get('date_validation_comite')
-        date_arrete_pref = request.data.get('date_arrete_pref')
-        numero_arrete_pref = request.data.get('numero_arrete_pref')
 
         if not new_status:
             return Response({'error': 'new_status requis'},
@@ -1031,24 +1038,12 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return Response({'error': f'Statut invalide. Choix: {", ".join(valid_statuses)}'},
                           status=status.HTTP_400_BAD_REQUEST)
 
-        # Vérifier les transitions autorisées
-        # Note : l'extension de durée (#250) et la mise en révision (#278)
-        # sont des attributs orthogonaux (`annees_extension`, `en_revision`),
-        # gérés par les endpoints `extend-duration`/`remove-extension` et
-        # `start-revision`/`end-revision`. Ils ne changent pas le statut.
-        # #275 / #276 — `modifie` et `mi_parcours` sont des cibles dérivées de
-        # `valide` selon `is_modification` et le flag `is_mi_parcours`.
-        # #277 — Workflow CSRPN (`avis_csrpn` → `comite_consultatif` →
-        # éventuellement `arrete_pref` si RNN → `valide`/`modifie`/`mi_parcours`).
         current = plan.statut
-        validated_set = ['archive', 'draft', 'avis_csrpn']
-        # Le retour en `draft` est autorisé depuis tout statut CSRPN (annulation).
-        csrpn_back = ['draft']
+        # Transitions simplifiées : 4 statuts uniquement. Les étapes CSRPN sont
+        # gérées par l'action `csrpn-step` (attribut validation_step orthogonal).
+        validated_set = ['archive', 'draft']
         allowed_transitions = {
-            'draft': ['valide', 'avis_csrpn'],
-            'avis_csrpn': csrpn_back + ['comite_consultatif'],
-            'comite_consultatif': csrpn_back + ['arrete_pref', 'valide'],
-            'arrete_pref': csrpn_back + ['valide'],
+            'draft': ['valide'],
             'valide': validated_set,
             'modifie': validated_set,
             'archive': ['valide'],
@@ -1057,22 +1052,6 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if new_status not in allowed_transitions.get(current, []):
             return Response(
                 {'error': f'Transition {current} → {new_status} non autorisée'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # #277 — Garde-fous propres au workflow CSRPN.
-        # 1) `comite_consultatif → arrete_pref` réservé aux RNN. Les autres
-        #    types d'aires passent directement à `valide`.
-        if current == 'comite_consultatif' and new_status == 'arrete_pref' and not plan.is_rnn():
-            return Response(
-                {'error': "L'étape arrêté préfectoral est réservée aux RNN."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        # 2) Inversement, pour les RNN on impose le passage par `arrete_pref`
-        #    avant `valide` (sécurité ; les non-RNN peuvent `comite_consultatif → valide`).
-        if current == 'comite_consultatif' and new_status == 'valide' and plan.is_rnn():
-            return Response(
-                {'error': "Pour une RNN, la validation finale nécessite d'enregistrer l'arrêté préfectoral (arrete_pref → valide)."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1091,13 +1070,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             )
 
         # #275 / #276 — Routage du `valide` cible selon la position dans la
-        # chaîne plan_parent et le flag `is_mi_parcours`. Ce routage s'applique
-        # quelle que soit la source : `draft → valide`, `comite_consultatif → valide`
-        # ou `arrete_pref → valide`.
-        # Depuis #276 (refonte) : `mi_parcours` n'est plus un statut, c'est un
-        # attribut bool `is_mi_parcours` qui s'ajoute à `statut='modifie'`.
+        # chaîne plan_parent et le flag `is_mi_parcours`. Depuis #276 (refonte) :
+        # `mi_parcours` n'est plus un statut, c'est un attribut bool
+        # `is_mi_parcours` qui s'ajoute à `statut='modifie'`.
         set_mi_parcours_flag = False
-        if new_status == 'valide' and current in ('draft', 'comite_consultatif', 'arrete_pref') and plan.is_modification():
+        if new_status == 'valide' and current == 'draft' and plan.is_modification():
             if is_mi_parcours:
                 if plan.chain_has_mi_parcours():
                     return Response(
@@ -1118,25 +1095,18 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         plan.statut = new_status
         plan.id_utilisateur_maj = request.user
 
-        # #277 — Persister les métadonnées CSRPN éventuellement transmises.
         update_fields = ['statut', 'id_utilisateur_maj', 'date_maj']
 
         # #276 — Poser le drapeau is_mi_parcours si demandé à la validation.
         if set_mi_parcours_flag:
             plan.is_mi_parcours = True
             update_fields.append('is_mi_parcours')
-        if date_avis_csrpn is not None:
-            plan.date_avis_csrpn = date_avis_csrpn or None
-            update_fields.append('date_avis_csrpn')
-        if date_validation_comite is not None:
-            plan.date_validation_comite = date_validation_comite or None
-            update_fields.append('date_validation_comite')
-        if date_arrete_pref is not None:
-            plan.date_arrete_pref = date_arrete_pref or None
-            update_fields.append('date_arrete_pref')
-        if numero_arrete_pref is not None:
-            plan.numero_arrete_pref = numero_arrete_pref or None
-            update_fields.append('numero_arrete_pref')
+
+        # #277 — Si le plan était dans le workflow CSRPN et qu'il est validé,
+        # on remet validation_step à NULL (sortie du workflow).
+        if new_status in ('valide', 'modifie') and plan.validation_step:
+            plan.validation_step = None
+            update_fields.append('validation_step')
 
         plan.save(update_fields=update_fields)
 
@@ -1186,15 +1156,126 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
 
-        # #277 — Notifier les référents pour les transitions du workflow CSRPN
-        # (entrée/sortie d'un statut intermédiaire). Notification high priority
-        # avec email automatique pour la visibilité demandée.
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='csrpn-step',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def csrpn_step(self, request, pk=None):
+        """
+        Gérer le workflow CSRPN d'un plan (attribut orthogonal `validation_step`).
+
+        POST /api/plans/plans/{id}/csrpn-step/
+        Body: {
+            "step": "avis_csrpn" | "comite_consultatif" | "arrete_pref" | null,
+            "date_avis_csrpn"?: "YYYY-MM-DD",
+            "date_validation_comite"?: "YYYY-MM-DD",
+            "date_arrete_pref"?: "YYYY-MM-DD",
+            "numero_arrete_pref"?: string
+        }
+
+        Séquence métier (draft uniquement) :
+        - null → avis_csrpn         : lancer le workflow
+        - avis_csrpn → comite_consultatif
+        - comite_consultatif → arrete_pref  (RNN uniquement)
+        - * → null                  : annuler le workflow (retour au brouillon simple)
+
+        La validation finale (transition vers `valide`/`modifie`) reste sur
+        l'action `change-status` ; elle remet automatiquement `validation_step`
+        à NULL.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': "Vous devez être référent de ce plan pour gérer le workflow CSRPN."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if plan.statut != 'draft':
+            return Response(
+                {'error': "Le workflow CSRPN s'applique uniquement aux plans en brouillon."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # `step` peut être None (annulation du workflow).
+        new_step = request.data.get('step') if 'step' in request.data else _MISSING
+        if new_step is _MISSING:
+            return Response({'error': 'step requis'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        valid_steps = dict(PlanGestion.VALIDATION_STEP_CHOICES).keys()
+        if new_step is not None and new_step not in valid_steps:
+            return Response(
+                {'error': f"Étape invalide. Choix: {', '.join(valid_steps)} ou null"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        current_step = plan.validation_step
+        # Transitions autorisées du workflow CSRPN. None = pas dans le workflow.
+        allowed_step_transitions = {
+            None: ['avis_csrpn'],
+            'avis_csrpn': [None, 'comite_consultatif'],
+            'comite_consultatif': [None, 'arrete_pref'],
+            'arrete_pref': [None],
+        }
+
+        if new_step not in allowed_step_transitions.get(current_step, []):
+            return Response(
+                {'error': f"Transition CSRPN {current_step} → {new_step} non autorisée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # `comite_consultatif → arrete_pref` réservé aux RNN.
+        if current_step == 'comite_consultatif' and new_step == 'arrete_pref' and not plan.is_rnn():
+            return Response(
+                {'error': "L'étape arrêté préfectoral est réservée aux RNN."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_step = plan.validation_step
+        plan.validation_step = new_step
+        plan.id_utilisateur_maj = request.user
+
+        update_fields = ['validation_step', 'id_utilisateur_maj', 'date_maj']
+
+        # Persister les métadonnées CSRPN éventuellement transmises.
+        for field, payload_key in (
+            ('date_avis_csrpn', 'date_avis_csrpn'),
+            ('date_validation_comite', 'date_validation_comite'),
+            ('date_arrete_pref', 'date_arrete_pref'),
+            ('numero_arrete_pref', 'numero_arrete_pref'),
+        ):
+            if payload_key in request.data:
+                value = request.data.get(payload_key) or None
+                setattr(plan, field, value)
+                update_fields.append(field)
+
+        plan.save(update_fields=update_fields)
+
+        # Log activity
+        try:
+            from apps.core.services import ActivityService
+            ActivityService.log(
+                user=request.user,
+                action='status_change',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Étape CSRPN changée de {old_step or 'aucune'} à {new_step or 'aucune'}",
+            )
+        except Exception:
+            pass
+
+        # Notifier les référents de la transition CSRPN (entrée / changement /
+        # sortie du workflow). Notification high priority avec email auto.
         try:
             from apps.notifications.services import NotificationService
             NotificationService.notify_csrpn_transition(
                 plan=plan,
-                old_status=old_status,
-                new_status=new_status,
+                old_status=old_step,
+                new_status=new_step,
                 triggered_by=request.user,
             )
         except Exception:

@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -79,7 +80,7 @@ import {
   CsrpnStepDialogResult,
   CsrpnStep,
 } from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
-import { getExtensionBadgeKey, getPlanStatusKey } from '../../shared/utils/plan-status.utils';
+import { getExtensionBadgeKey, getPlanStatusKey, getPlanStatusTooltipKey } from '../../shared/utils/plan-status.utils';
 
 interface SyntheseAccordion {
   id: string;
@@ -123,6 +124,7 @@ interface SubAccordion {
     PlanSidebarComponent,
     PlanVersionTimelineComponent,
     EntityTileComponent,
+    StatusChipComponent,
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -183,6 +185,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const p = this.plan();
     if (!p) return 'plans.status.draft';
     return getPlanStatusKey(p.statut);
+  });
+
+  // Tooltip pédagogique du chip statut (draft / valide / modifie / archive).
+  statusTooltipKey = computed<string>(() => {
+    const p = this.plan();
+    if (!p) return 'plans.status.draftTooltip';
+    return getPlanStatusTooltipKey(p.statut);
   });
 
   // #250 / #281 — Indique si le plan est étendu (annees_extension > 0) et
@@ -854,14 +863,15 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    *  par l'étape arrêté préfectoral après la validation comité. */
   isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
 
-  /** Étape 1 : `draft → avis_csrpn`. Pas de saisie nécessaire. */
+  /** Étape 1 : lancer le workflow CSRPN (`validation_step` null → avis_csrpn).
+   *  Le plan reste en `draft`. */
   submitForCsrpn(): void {
     this.openLifecycleConfirm({
       title: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
       message: this.translate.instant('plans.lifecycle.actions.submitForCsrpnDesc'),
       confirmText: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
       confirmColor: 'primary',
-      onConfirm: () => this.changeStatus('avis_csrpn'),
+      onConfirm: () => this.changeCsrpnStep('avis_csrpn'),
     });
   }
 
@@ -869,7 +879,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   recordCsrpnOpinion(): void {
     this.openCsrpnStepDialog('csrpn').subscribe(result => {
       if (!result) return;
-      this.changeStatus('comite_consultatif', { dateAvisCsrpn: result.date });
+      this.changeCsrpnStep('comite_consultatif', { dateAvisCsrpn: result.date });
     });
   }
 
@@ -879,11 +889,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     this.openCsrpnStepDialog('comite').subscribe(result => {
       if (!result) return;
       const isRnn = this.isRnn();
-      const target: PlanStatut = isRnn ? 'arrete_pref' : 'valide';
-      this.changeStatus(target, {
-        dateValidationComite: result.date,
-        isMiParcours: result.isMiParcours,
-      });
+      if (isRnn) {
+        this.changeCsrpnStep('arrete_pref', { dateValidationComite: result.date });
+      } else {
+        // Non-RNN : la validation finale sort du workflow CSRPN et passe en
+        // `valide` (`change-status` remet validation_step à NULL côté backend).
+        this.changeStatus('valide', { isMiParcours: result.isMiParcours });
+      }
     });
   }
 
@@ -891,22 +903,49 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   recordArretePref(): void {
     this.openCsrpnStepDialog('arrete').subscribe(result => {
       if (!result) return;
-      this.changeStatus('valide', {
-        dateArretePref: result.date,
-        numeroArretePref: result.numeroArrete,
-        isMiParcours: result.isMiParcours,
-      });
+      this.changeStatus('valide', { isMiParcours: result.isMiParcours });
     });
   }
 
-  /** Annule l'étape CSRPN en cours : retour en `draft`. */
+  /** Annule le workflow CSRPN en cours : retour en `draft` simple
+   *  (`validation_step` → null), sans changement de statut. */
   cancelCsrpn(): void {
     this.openLifecycleConfirm({
       title: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
       message: this.translate.instant('plans.lifecycle.actions.cancelCsrpnDesc'),
       confirmText: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
       confirmColor: 'warn',
-      onConfirm: () => this.changeStatus('draft'),
+      onConfirm: () => this.changeCsrpnStep(null),
+    });
+  }
+
+  private changeCsrpnStep(
+    step: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref' | null,
+    options: {
+      dateAvisCsrpn?: string;
+      dateValidationComite?: string;
+      dateArretePref?: string;
+      numeroArretePref?: string;
+    } = {},
+  ): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.changeCsrpnStep(p.id_pg, step, options).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.statusChanged'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlan();
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.statusError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
     });
   }
 
@@ -1009,10 +1048,6 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     newStatus: PlanStatut,
     options: {
       isMiParcours?: boolean;
-      dateAvisCsrpn?: string;
-      dateValidationComite?: string;
-      dateArretePref?: string;
-      numeroArretePref?: string;
     } = {},
   ): void {
     const p = this.plan();

@@ -8,7 +8,7 @@
       @if (item.icon) {
         <i class="fi" [class]="item.icon" aria-hidden="true"></i>
       }
-      <span>{{ item.label }}</span>
+      <span>{{ item.label | translate }}</span>
     </a>
     @if (!isLast) {
       <span class="app-anchor-nav__separator" aria-hidden="true">/</span>

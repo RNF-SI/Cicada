@@ -44,10 +44,11 @@
                 </mat-chip>
               }
               @if (site()!.current_user_access) {
-                <mat-chip [class]="isReferent() ? 'status-referent' : 'status-user'">
-                  <i class="fi" [class.fi-rr-star]="isReferent()" [class.fi-rr-user]="!isReferent()"></i>
-                  {{ site()!.current_user_access!.role_label }}
-                </mat-chip>
+                <app-tag
+                  [variant]="isReferent() ? 'warning' : 'muted'"
+                  [icon]="isReferent() ? 'fi-rr-star' : 'fi-rr-user'"
+                  [label]="site()!.current_user_access!.role_label">
+                </app-tag>
               }
             </div>
           </div>
@@ -231,9 +232,11 @@
                       @if (ua.user.organisme) {
                         <span class="user-org">{{ ua.user.organisme }}</span>
                       }
-                      <span tileAction class="user-role-tag" [class]="getUserRoleClass(ua)">
-                        {{ getUserRoleLabel(ua) }}
-                      </span>
+                      <app-tag tileAction
+                        [variant]="getUserRoleVariant(ua)"
+                        [label]="getUserRoleLabel(ua)"
+                        size="sm">
+                      </app-tag>
                     </app-entity-tile>
                   }
                 </div>
@@ -277,9 +280,7 @@
                         <span class="plan-period">{{ formatPlanPeriod(plan) }}</span>
                       </div>
                       <div class="plan-actions">
-                        <mat-chip [class]="getPlanStatusClass(plan.statut)">
-                          {{ getPlanStatusLabel(plan.statut) }}
-                        </mat-chip>
+                        <app-status-chip [statut]="plan.statut"></app-status-chip>
                         <i class="fi fi-rr-angle-right"></i>
                       </div>
                     </div>

@@ -443,9 +443,14 @@ def plan_revise_nomenclature(db):
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestPlanGestionChangeStatus:
-    """Tests for POST /api/plans/plans/{id}/change-status/ endpoint."""
+    """Tests for POST /api/plans/plans/{id}/change-status/ endpoint.
+
+    Depuis #277 (refactor) : le workflow CSRPN est sur l'endpoint dédié
+    `csrpn-step/` (cf. {@link CSRPN_STEP_URL_TEMPLATE}).
+    """
 
     URL_TEMPLATE = '/api/plans/plans/{}/change-status/'
+    CSRPN_STEP_URL_TEMPLATE = '/api/plans/plans/{}/csrpn-step/'
 
     # ---------- Permissions ----------
 
@@ -905,63 +910,65 @@ class TestPlanGestionChangeStatus:
         return site
 
     def test_draft_to_avis_csrpn(self, api_client):
-        """`draft → avis_csrpn` autorisé (envoi pour avis)."""
+        """`csrpn-step/` : draft + step=null → step=avis_csrpn (lancement workflow)."""
         admin = SuperAdminFactory()
         plan = PlanGestionFactory(statut='draft')
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'avis_csrpn'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'avis_csrpn'},
         )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
-        assert plan.statut == 'avis_csrpn'
+        assert plan.statut == 'draft'
+        assert plan.validation_step == 'avis_csrpn'
 
     def test_avis_csrpn_to_comite_with_date(self, api_client):
-        """`avis_csrpn → comite_consultatif` enregistre la date d'avis."""
+        """`csrpn-step/` : avis_csrpn → comite_consultatif enregistre la date d'avis."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='avis_csrpn')
+        plan = PlanGestionFactory(statut='draft', validation_step='avis_csrpn')
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'comite_consultatif', 'date_avis_csrpn': '2026-03-15'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'comite_consultatif', 'date_avis_csrpn': '2026-03-15'},
         )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
-        assert plan.statut == 'comite_consultatif'
+        assert plan.validation_step == 'comite_consultatif'
         assert str(plan.date_avis_csrpn) == '2026-03-15'
 
     def test_comite_to_arrete_pref_only_for_rnn(self, api_client):
-        """`comite_consultatif → arrete_pref` autorisé uniquement pour les RNN."""
+        """`csrpn-step/` : comite → arrete_pref autorisé uniquement pour les RNN."""
         admin = SuperAdminFactory()
         rnn_site = self._make_typed_site('RNN')
-        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        plan = PlanGestionFactory(statut='draft', validation_step='comite_consultatif', sites=[rnn_site])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'arrete_pref'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'arrete_pref'},
         )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
-        assert plan.statut == 'arrete_pref'
+        assert plan.validation_step == 'arrete_pref'
 
     def test_comite_to_arrete_pref_rejected_for_non_rnn(self, api_client):
         """Un plan PNR ne passe pas par `arrete_pref` (ne concerne que les RNN)."""
         admin = SuperAdminFactory()
         pnr_site = self._make_typed_site('PNR')
-        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        plan = PlanGestionFactory(statut='draft', validation_step='comite_consultatif', sites=[pnr_site])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'arrete_pref'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'arrete_pref'},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_comite_to_valide_for_non_rnn(self, api_client):
-        """Pour un plan PNR, `comite_consultatif → valide` direct (sans arrêté)."""
+        """Pour un plan PNR, `change-status` valide depuis draft+comite_consultatif
+        sort directement du workflow (validation_step → NULL)."""
         admin = SuperAdminFactory()
         pnr_site = self._make_typed_site('PNR')
-        plan = PlanGestionFactory(statut='comite_consultatif', sites=[pnr_site])
+        plan = PlanGestionFactory(statut='draft', validation_step='comite_consultatif', sites=[pnr_site])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.URL_TEMPLATE.format(plan.id_pg),
@@ -970,59 +977,47 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
+        assert plan.validation_step is None
 
-    def test_comite_to_valide_rejected_for_rnn(self, api_client):
-        """Pour une RNN, on impose le passage par `arrete_pref` (pas de bypass)."""
+    def test_arrete_pref_to_valide_clears_validation_step(self, api_client):
+        """`change-status` depuis draft+arrete_pref → valide remet
+        validation_step à NULL."""
         admin = SuperAdminFactory()
         rnn_site = self._make_typed_site('RNN')
-        plan = PlanGestionFactory(statut='comite_consultatif', sites=[rnn_site])
+        plan = PlanGestionFactory(statut='draft', validation_step='arrete_pref', sites=[rnn_site])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.URL_TEMPLATE.format(plan.id_pg),
             {'new_status': 'valide'},
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_arrete_pref_to_valide_with_metadata(self, api_client):
-        """`arrete_pref → valide` enregistre date + numéro de l'arrêté."""
-        admin = SuperAdminFactory()
-        rnn_site = self._make_typed_site('RNN')
-        plan = PlanGestionFactory(statut='arrete_pref', sites=[rnn_site])
-        api_client.force_authenticate(user=admin)
-        response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {
-                'new_status': 'valide',
-                'date_arrete_pref': '2026-04-12',
-                'numero_arrete_pref': 'AP-2026-042',
-            },
-        )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
-        assert str(plan.date_arrete_pref) == '2026-04-12'
-        assert plan.numero_arrete_pref == 'AP-2026-042'
+        assert plan.validation_step is None
 
     def test_csrpn_back_to_draft(self, api_client):
-        """Tout statut CSRPN peut revenir en `draft` (annulation)."""
+        """`csrpn-step/` : step=null annule le workflow (validation_step → NULL)."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='avis_csrpn')
+        plan = PlanGestionFactory(statut='draft', validation_step='avis_csrpn')
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'draft'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': None},
         )
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'draft'
+        assert plan.validation_step is None
 
     def test_csrpn_validation_routes_modification_to_modifie(self, api_client):
-        """`arrete_pref → valide` route vers `modifie` si plan_parent validé."""
+        """`change-status` depuis brouillon en workflow CSRPN d'un enfant de
+        plan validé → `modifie` (validation_step remis à NULL)."""
         admin = SuperAdminFactory()
         parent = PlanGestionFactory(statut='valide')
         rnn_site = self._make_typed_site('RNN')
         child = PlanGestionFactory(
-            statut='arrete_pref',
+            statut='draft',
+            validation_step='arrete_pref',
             plan_parent=parent,
             sites=[rnn_site],
         )
@@ -1034,14 +1029,17 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         child.refresh_from_db()
         assert child.statut == 'modifie'
+        assert child.validation_step is None
 
     def test_csrpn_validation_with_is_mi_parcours(self, api_client):
-        """`comite_consultatif → valide` + is_mi_parcours → `modifie` + drapeau (non-RNN)."""
+        """Validation finale + is_mi_parcours sur un enfant en workflow CSRPN →
+        `modifie` + drapeau is_mi_parcours."""
         admin = SuperAdminFactory()
         parent = PlanGestionFactory(statut='valide')
         pnr_site = self._make_typed_site('PNR')
         child = PlanGestionFactory(
-            statut='comite_consultatif',
+            statut='draft',
+            validation_step='comite_consultatif',
             plan_parent=parent,
             sites=[pnr_site],
         )
@@ -1063,7 +1061,7 @@ class TestPlanGestionChangeStatus:
         assert not hasattr(plan, 'date_validation_cspn')
 
     def test_csrpn_transition_notifies_referents(self, api_client):
-        """Une transition CSRPN crée une notification pour les référents (sauf déclencheur)."""
+        """Une transition `csrpn-step` notifie les référents (sauf déclencheur)."""
         from apps.notifications.models import Notification
         admin = SuperAdminFactory()
         referent = ReferentFactory()
@@ -1071,8 +1069,8 @@ class TestPlanGestionChangeStatus:
         plan = PlanGestionFactory(statut='draft', referents=[referent, other_admin])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'avis_csrpn'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'avis_csrpn'},
         )
         assert response.status_code == status.HTTP_200_OK
         # Le déclencheur (admin) ne reçoit pas de notif ; les 2 référents oui.
@@ -1100,18 +1098,21 @@ class TestPlanGestionChangeStatus:
         ).exists()
 
     def test_csrpn_to_valide_notifies(self, api_client):
-        """La transition finale CSRPN (sortie d'un statut workflow) notifie aussi."""
+        """L'annulation du workflow via `csrpn-step` step=null notifie aussi."""
         from apps.notifications.models import Notification
         admin = SuperAdminFactory()
         referent = ReferentFactory()
         rnn_site = self._make_typed_site('RNN')
         plan = PlanGestionFactory(
-            statut='arrete_pref', sites=[rnn_site], referents=[referent]
+            statut='draft',
+            validation_step='arrete_pref',
+            sites=[rnn_site],
+            referents=[referent],
         )
         api_client.force_authenticate(user=admin)
         response = api_client.post(
-            self.URL_TEMPLATE.format(plan.id_pg),
-            {'new_status': 'valide'},
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': None},
         )
         assert response.status_code == status.HTTP_200_OK
         assert Notification.objects.filter(

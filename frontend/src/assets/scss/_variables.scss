@@ -231,3 +231,44 @@ $sites-page-bg: $module-bg-salmon;
 $sites-accent: $module-accent-salmon;
 $sites-hero-bg: $sites-accent;
 $sites-badge-bg: $sites-accent;
+
+// ============================================================================
+// MIXINS — Plan page hero (Figma node 50:11287)
+// ============================================================================
+// Hero header utilisé en haut des pages d'un plan de gestion (plan-detail,
+// enjeux-list, plan-suivi-actions, plan-tableau-de-bord, plan-mindmap,
+// plan-bilan). Définis ici (et non dans _components.scss) car tous les SCSS
+// composants importent déjà `variables`.
+
+@mixin plan-page-hero($min-height: 280px) {
+  position: relative;
+  background-color: $primary-color;
+  border-radius: 0 0 $border-radius-xl $border-radius-xl;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: $min-height;
+  overflow: hidden;
+}
+
+@mixin plan-page-hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+@mixin plan-page-hero-pattern {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background-image: url('/assets/images/banner-waves.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: right center;
+  opacity: 1;
+}
+
+@mixin plan-page-hero-content {
+  position: relative;
+  z-index: 1;
+}

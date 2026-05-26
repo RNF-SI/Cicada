@@ -5217,7 +5217,24 @@ class EnjeuxSeeder(BaseSeeder):
             statut='draft',
         ).first()
 
-        if plan_camargue_brouillon and cat_enjeu and priorite_2:
+        if plan_camargue_brouillon and cat_enjeu and cat_fcr and priorite_2:
+            # FCR (facteur clé de réussite) sur le brouillon Camargue — sert
+            # aux tests E2E qui exigent au moins 1 FCR (cf. enjeux.spec.ts:88,
+            # enjeu-forms.spec.ts FCR Form - Edit).
+            fcr_brouillon, _ = Enjeu.objects.update_or_create(
+                id_pg=plan_camargue_brouillon,
+                libelle='Animation territoriale et gouvernance partagée',
+                defaults={
+                    'id_categorie': cat_fcr,
+                    'id_categorie_fcr': fcr_ancrage,
+                    'intitule_court': 'Gouv. partagée',
+                    'description': 'Maintenir une dynamique partenariale active pour la mise en œuvre de l\'évaluation.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            fcr_created.append(fcr_brouillon)
+            self.log_item('créé', f'FCR brouillon Camargue: {fcr_brouillon.libelle[:50]}')
+
             enjeu_brouillon, _ = Enjeu.objects.update_or_create(
                 id_pg=plan_camargue_brouillon,
                 libelle='Évaluation des habitats humides à mi-parcours',

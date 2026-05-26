@@ -19,6 +19,35 @@ export function getPlanStatusKey(statut: PlanStatut | string): string {
 }
 
 /**
+ * Clé i18n du tooltip pédagogique du chip statut. Explique à l'utilisateur
+ * la signification de chaque statut. Disponible pour les 4 statuts :
+ * draft / valide / modifie / archive.
+ */
+export function getPlanStatusTooltipKey(statut: PlanStatut | string): string {
+  return `plans.status.${statut}Tooltip`;
+}
+
+/**
+ * Classe CSS du chip statut. Aligné sur les chips globaux Material
+ * (`_material-overrides.scss`). Source de vérité unique pour l'affichage
+ * du statut d'un plan partout dans l'application.
+ *
+ * - draft   → status-warning (orange)
+ * - valide  → status-success (vert)
+ * - modifie → status-info (bleu ciel)
+ * - archive → status-neutre (terra-cotta)
+ */
+export function getPlanStatusClass(statut: PlanStatut | string): string {
+  const map: Record<string, string> = {
+    draft: 'status-warning',
+    valide: 'status-success',
+    modifie: 'status-info',
+    archive: 'status-neutre',
+  };
+  return map[statut] || '';
+}
+
+/**
  * Clé i18n du badge "Étendu" affiché en complément du statut, lorsque
  * `annees_extension > 0`. Le libellé est contextualisé selon le type de site
  * principal du plan (#281) :

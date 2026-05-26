@@ -15,6 +15,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AnchorNavComponent, AnchorNavItem } from '../../shared/components/anchor-nav/anchor-nav.component';
 import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { TagComponent, TagVariant } from '../../shared/components/tag/tag.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -23,6 +25,11 @@ import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AdminSite, GeoJSONFeature, AdminPlan } from '../../core/models/admin.model';
+import {
+  getPlanStatusClass as planStatusClass,
+  getPlanStatusKey,
+  getPlanStatusTooltipKey,
+} from '../../shared/utils/plan-status.utils';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
@@ -74,6 +81,8 @@ interface SiteUserAssignment {
     SiteTypeDisplayPipe,
     AnchorNavComponent,
     EntityTileComponent,
+    StatusChipComponent,
+    TagComponent,
   ],
   templateUrl: './site-detail.component.html',
   styleUrl: './site-detail.component.scss'
@@ -252,27 +261,25 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Obtient la classe CSS du statut d'un plan.
+   * Classe CSS du chip statut d'un plan (centralisé dans plan-status.utils).
+   * Couvre les 4 statuts : draft / valide / modifie / archive.
    */
   getPlanStatusClass(statut: string): string {
-    switch (statut) {
-      case 'valide': return 'status-success';
-      case 'draft': return 'status-warning';
-      case 'archive': return 'status-neutre';
-      default: return 'status-neutre';
-    }
+    return planStatusClass(statut);
   }
 
   /**
-   * Obtient le label du statut d'un plan.
+   * Clé i18n du label du statut d'un plan (centralisé dans plan-status.utils).
    */
-  getPlanStatusLabel(statut: string): string {
-    switch (statut) {
-      case 'valide': return 'Valide';
-      case 'draft': return 'Brouillon';
-      case 'archive': return 'Archive';
-      default: return statut;
-    }
+  getPlanStatusKey(statut: string): string {
+    return getPlanStatusKey(statut);
+  }
+
+  /**
+   * Clé i18n du tooltip pédagogique du statut (centralisé).
+   */
+  getPlanStatusTooltip(statut: string): string {
+    return getPlanStatusTooltipKey(statut);
   }
 
   /**
@@ -443,21 +450,22 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Obtient le role label d'un utilisateur dans le site.
+   * Label i18n du rôle d'un utilisateur dans le site.
    */
   getUserRoleLabel(ua: SiteUserAssignment): string {
-    if (ua.conservateur) return 'Conservateur';
-    if (ua.referent && ua.referent_valid) return 'Referent';
-    return 'Utilisateur';
+    if (ua.conservateur) return this.translate.instant('sites.detail.roles.conservateur');
+    if (ua.referent && ua.referent_valid) return this.translate.instant('sites.detail.roles.referent');
+    return this.translate.instant('sites.detail.roles.user');
   }
 
   /**
-   * Obtient la classe CSS du role.
+   * Variante du composant Kit UI `<app-tag>` pour afficher le rôle.
+   * Aligné sur les couleurs des chips statut pour cohérence visuelle.
    */
-  getUserRoleClass(ua: SiteUserAssignment): string {
-    if (ua.conservateur) return 'role-conservateur';
-    if (ua.referent && ua.referent_valid) return 'role-referent';
-    return 'role-user';
+  getUserRoleVariant(ua: SiteUserAssignment): TagVariant {
+    if (ua.conservateur) return 'success';                            // Vert — rôle principal
+    if (ua.referent && ua.referent_valid) return 'warning';           // Salmon — référent (distinctif)
+    return 'muted';                                                   // Gris — utilisateur standard
   }
 
   // ===================

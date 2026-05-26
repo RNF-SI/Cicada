@@ -141,9 +141,10 @@ h1 { @include sites-h1; }
 .plan-name { font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold; color: $black; }
 .plan-period { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .plan-actions { display: flex; align-items: center; gap: $spacing-md; i { font-size: 14px; color: $primary-color; } }
-.status-success { @include sites-status-success; }
-.status-warning { @include sites-status-warning; }
-.status-neutre { @include sites-status-neutre; }
+// Note : les chips statut utilisent désormais les classes globales Material
+// (.status-success, .status-warning, .status-info, .status-neutre) définies
+// dans _material-overrides.scss — pas d'override local pour rester cohérent
+// avec plan-detail et plans-list.
 
 // Pending plans
 .pending-plans-section { margin-top: $spacing-sm; }

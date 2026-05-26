@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 
 export interface AnchorNavItem {
   /** ID de l'ancre (correspondant à l'id de la section à scroller) */
@@ -36,7 +37,7 @@ export interface AnchorNavItem {
 @Component({
   selector: 'app-anchor-nav',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   templateUrl: './anchor-nav.component.html',
   styleUrl: './anchor-nav.component.scss',
 })

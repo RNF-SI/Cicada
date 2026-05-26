@@ -119,13 +119,14 @@ class PlansSeeder(BaseSeeder):
                 ]
             },
             # Plan Grand-Voyeux: admin.cen referent, user.cen membre.
-            # #277 — Statut `avis_csrpn` pour exposer le workflow CSRPN
-            # côté testeur. Site = RNR → non-RNN, bypass arrête après comité.
+            # #277 — Brouillon en cours de workflow CSRPN (validation_step=avis_csrpn).
+            # Site = RNR → non-RNN, bypass arrête après comité.
             {
                 'nom': 'Plan de gestion 2022-2032 - Grand-Voyeux',
                 'annee_debut': 2022,
                 'annee_fin': 2032,
-                'statut': 'avis_csrpn',
+                'statut': 'draft',
+                'validation_step': 'avis_csrpn',
                 'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
@@ -355,15 +356,16 @@ class PlansSeeder(BaseSeeder):
             'sites': [sites[6]],  # Lac de Remoray
             'membres': []
         })
-        # #277 — Plan en statut `comite_consultatif` sur une RNN (Aiguilles
-        # Rouges) pour tester l'étape arrêté préfectoral du workflow CSRPN.
+        # #277 — Brouillon en cours de workflow CSRPN, étape `comite_consultatif`
+        # sur une RNN (Aiguilles Rouges) pour tester l'étape arrêté préfectoral.
         plans.append({
             'nom': 'Plan de gestion 2027-2037 - Aiguilles Rouges (workflow CSRPN)',
             'annee_debut': 2027,
             'annee_fin': 2037,
             'rang': 3,
             'surface': 3279,
-            'statut': 'comite_consultatif',
+            'statut': 'draft',
+            'validation_step': 'comite_consultatif',
             'version': '1',
             'gestion_partagee': False,
             'ct88': False,
@@ -988,7 +990,8 @@ class PlansSeeder(BaseSeeder):
                         defaults={
                             'plan_parent': lr_parent,
                             'id_type_document': eval_mi_type,
-                            'statut': 'avis_csrpn',
+                            'statut': 'draft',
+                            'validation_step': 'avis_csrpn',
                             'version': '2',
                             'annee_debut': 2017,
                             'annee_fin': 2026,
@@ -1032,7 +1035,8 @@ class PlansSeeder(BaseSeeder):
                         defaults={
                             'plan_parent': vc_parent,
                             'id_type_document': eval_mi_type,
-                            'statut': 'comite_consultatif',
+                            'statut': 'draft',
+                            'validation_step': 'comite_consultatif',
                             'version': '2',
                             'annee_debut': 2014,
                             'annee_fin': 2024,
