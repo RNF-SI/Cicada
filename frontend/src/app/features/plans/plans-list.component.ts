@@ -23,6 +23,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -78,6 +79,7 @@ interface PlanWithAccess extends AdminPlan {
     PlanGaugeComponent,
     ViewScopeToggleComponent,
     SearchBarComponent,
+    StatusChipComponent,
   ],
   templateUrl: './plans-list.component.html',
   styleUrl: './plans-list.component.scss'

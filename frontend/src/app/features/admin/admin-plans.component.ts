@@ -18,6 +18,7 @@ import { LinkPlanReferentModalComponent } from '../../shared/components/modals/l
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 
 // Interface for linked site display
 interface DisplaySiteLie {
@@ -93,6 +94,7 @@ interface DisplayOrganisme {
     TranslateModule,
     PaginationComponent,
     SearchBarComponent,
+    StatusChipComponent,
   ],
   templateUrl: './admin-plans.component.html',
   styleUrl: './admin-plans.component.scss'

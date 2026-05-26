@@ -1999,6 +1999,11 @@
         "plans": "Plans de gestion",
         "documents": "Documents"
       },
+      "roles": {
+        "conservateur": "Conservateur",
+        "referent": "Référent",
+        "user": "Utilisateur"
+      },
       "fields": {
         "type": "Type",
         "surface": "Surface",

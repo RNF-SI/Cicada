@@ -211,10 +211,7 @@
                           <span class="ancestor-text">{{ formatPeriod(ancestor) }}</span>
                         </td>
                         <td class="col-status">
-                          <span class="status-tag has-tooltip" [class]="getStatutClass(ancestor.statut)"
-                                [matTooltip]="getStatutTooltip(ancestor.statut) | translate" matTooltipPosition="above">
-                            {{ getStatutLabel(ancestor.statut) }}
-                          </span>
+                          <app-status-chip [statut]="ancestor.statut"></app-status-chip>
                         </td>
                         <td class="col-actions">
                           <button class="btn-action" (click)="viewPlan(ancestor)">
@@ -259,10 +256,7 @@
                     </td>
                     <td class="col-status">
                       <div class="status-content">
-                        <span class="status-tag has-tooltip" [class]="getStatutClass(plan.statut)"
-                              [matTooltip]="getStatutTooltip(plan.statut) | translate" matTooltipPosition="above">
-                          {{ getStatutLabel(plan.statut) }}
-                        </span>
+                        <app-status-chip [statut]="plan.statut"></app-status-chip>
                         @if (!isRedacteurPrincipal()) {
                           <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
                             <i class="fi fi-rr-pencil"></i>

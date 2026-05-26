@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -123,6 +124,7 @@ interface SubAccordion {
     PlanSidebarComponent,
     PlanVersionTimelineComponent,
     EntityTileComponent,
+    StatusChipComponent,
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'

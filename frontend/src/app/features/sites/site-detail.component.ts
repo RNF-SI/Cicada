@@ -15,6 +15,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AnchorNavComponent, AnchorNavItem } from '../../shared/components/anchor-nav/anchor-nav.component';
 import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
+import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { TagComponent, TagVariant } from '../../shared/components/tag/tag.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -79,6 +81,8 @@ interface SiteUserAssignment {
     SiteTypeDisplayPipe,
     AnchorNavComponent,
     EntityTileComponent,
+    StatusChipComponent,
+    TagComponent,
   ],
   templateUrl: './site-detail.component.html',
   styleUrl: './site-detail.component.scss'
@@ -446,21 +450,22 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Obtient le role label d'un utilisateur dans le site.
+   * Label i18n du rôle d'un utilisateur dans le site.
    */
   getUserRoleLabel(ua: SiteUserAssignment): string {
-    if (ua.conservateur) return 'Conservateur';
-    if (ua.referent && ua.referent_valid) return 'Referent';
-    return 'Utilisateur';
+    if (ua.conservateur) return this.translate.instant('sites.detail.roles.conservateur');
+    if (ua.referent && ua.referent_valid) return this.translate.instant('sites.detail.roles.referent');
+    return this.translate.instant('sites.detail.roles.user');
   }
 
   /**
-   * Obtient la classe CSS du role.
+   * Variante du composant Kit UI `<app-tag>` pour afficher le rôle.
+   * Aligné sur les couleurs des chips statut pour cohérence visuelle.
    */
-  getUserRoleClass(ua: SiteUserAssignment): string {
-    if (ua.conservateur) return 'role-conservateur';
-    if (ua.referent && ua.referent_valid) return 'role-referent';
-    return 'role-user';
+  getUserRoleVariant(ua: SiteUserAssignment): TagVariant {
+    if (ua.conservateur) return 'success';                            // Vert — rôle principal
+    if (ua.referent && ua.referent_valid) return 'warning';           // Salmon — référent (distinctif)
+    return 'muted';                                                   // Gris — utilisateur standard
   }
 
   // ===================

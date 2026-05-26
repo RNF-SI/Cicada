@@ -123,20 +123,7 @@
 
               <!-- Statut -->
               <td>
-                <span class="statut-badge" [ngClass]="getStatutClass(plan.statut)">
-                  @switch (plan.statut) {
-                    @case ('draft') {
-                      <i class="fi fi-rr-edit"></i>
-                    }
-                    @case ('valide') {
-                      <i class="fi fi-rr-check"></i>
-                    }
-                    @case ('archive') {
-                      <i class="fi fi-rr-archive"></i>
-                    }
-                  }
-                  {{ plan.statutLabel }}
-                </span>
+                <app-status-chip [statut]="plan.statut" size="sm"></app-status-chip>
                 @if (plan.annees_extension && plan.annees_extension > 0) {
                   <span class="extension-badge">
                     <i class="fi fi-rr-time-add"></i>
