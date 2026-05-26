@@ -198,6 +198,8 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     """
 
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
+    validation_step_display = serializers.CharField(source='get_validation_step_display', read_only=True, allow_null=True)
+    is_in_csrpn_workflow = serializers.SerializerMethodField()
     is_extended = serializers.SerializerMethodField()
     is_in_revision = serializers.SerializerMethodField()
     is_mid_term = serializers.SerializerMethodField()
@@ -221,6 +223,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
         model = PlanGestion
         fields = [
             'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
+            'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
             'annee_debut', 'annee_fin', 'annees_extension', 'is_extended',
             'en_revision', 'is_in_revision',
             'is_mi_parcours', 'is_mid_term',
@@ -238,6 +241,9 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
 
     def get_is_mid_term(self, obj):
         return obj.is_mid_term()
+
+    def get_is_in_csrpn_workflow(self, obj):
+        return obj.is_in_csrpn_workflow()
 
     def get_has_draft_child(self, obj):
         return obj.has_draft_child()
@@ -296,6 +302,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     is_extended = serializers.SerializerMethodField()
     is_in_revision = serializers.SerializerMethodField()
     is_mid_term = serializers.SerializerMethodField()
+    is_in_csrpn_workflow = serializers.SerializerMethodField()
     has_draft_child = serializers.SerializerMethodField()
     can_create_modification = serializers.SerializerMethodField()
     next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
@@ -304,6 +311,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
 
     # Champs display
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
+    validation_step_display = serializers.CharField(source='get_validation_step_display', read_only=True, allow_null=True)
     evaluation_display = serializers.CharField(source='id_evaluation.label', read_only=True)
     redacteur_type_display = serializers.CharField(source='id_redacteur_type.label', read_only=True)
 
@@ -359,6 +367,10 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     def get_is_mid_term(self, obj):
         """#276 — Vrai si cette version est l'évaluation mi-parcours du plan."""
         return obj.is_mid_term()
+
+    def get_is_in_csrpn_workflow(self, obj):
+        """#277 — Vrai si le plan est dans le workflow CSRPN (validation_step renseigné)."""
+        return obj.is_in_csrpn_workflow()
 
     def get_has_draft_child(self, obj):
         """Vrai si le plan a déjà au moins un brouillon enfant.
@@ -428,6 +440,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'annees_extension', 'peut_etre_etendu', 'annee_fin_effective', 'is_extended',
             'en_revision', 'is_in_revision',
             'is_mi_parcours', 'is_mid_term',
+            'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
+            'date_validation_comite', 'date_arrete_pref', 'numero_arrete_pref',
             'has_draft_child', 'can_create_modification',
             'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',

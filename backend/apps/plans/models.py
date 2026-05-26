@@ -51,16 +51,19 @@ class PlanGestion(models.Model):
     """
 
     # Statuts possibles. Cf. note interne "Cycle de vie plan de gestion".
+    # - `draft`               : brouillon (éditable).
     # - `valide`              : original validé (plan_parent IS NULL).
     # - `modifie`             : modification d'un plan validé (#275). Le drapeau
     #                           `is_mi_parcours` indique si cette modification
     #                           est l'évaluation mi-parcours du plan.
-    # - `avis_csrpn`          : envoyé pour avis CSRPN (workflow #277).
-    # - `comite_consultatif`  : avis CSRPN rendu, attente validation comité.
-    # - `arrete_pref`         : validé par comité, attente arrêté (RNN).
     # - `archive`             : terminé, conservé pour historique.
     #
-    # Attributs ORTHOGONAUX au statut (un plan validé peut les cumuler) :
+    # Le workflow CSRPN (#277, anciennement statuts avis_csrpn / comite_consultatif /
+    # arrete_pref) est désormais un attribut ORTHOGONAL `validation_step` rattaché
+    # au statut `draft` : un plan en cours de validation reste un brouillon avec
+    # une étape de validation en cours.
+    #
+    # Autres attributs orthogonaux au statut (un plan validé peut les cumuler) :
     # - « Étendu » (#250) : `annees_extension > 0`.
     # - « En cours de révision » (#278) : `en_revision = True`. Indique
     #   qu'on rédige le rang suivant ; le plan reste fonctionnellement validé.
@@ -72,18 +75,22 @@ class PlanGestion(models.Model):
     # Tous les statuts hors `draft` verrouillent l'édition (#248).
     STATUT_CHOICES = [
         ('draft', _('Brouillon')),
-        ('avis_csrpn', _('Avis CSRPN demandé')),
-        ('comite_consultatif', _('Validation comité consultatif')),
-        ('arrete_pref', _('Arrêté préfectoral')),
         ('valide', _('Validé')),
         ('modifie', _('Modifié')),
         ('archive', _('Archivé')),
     ]
 
-    # #277 — Statuts intermédiaires du workflow de validation CSRPN.
-    CSRPN_WORKFLOW_STATUSES = frozenset({
-        'avis_csrpn', 'comite_consultatif', 'arrete_pref',
-    })
+    # #277 — Étapes du workflow de validation CSRPN. Attribut orthogonal au
+    # statut : ne peut être présent que sur un plan `draft`. La séquence
+    # avis_csrpn → comite_consultatif → [arrete_pref si RNN] → valide(modifie/mi_parcours)
+    # se déroule via l'action API `csrpn-step`. Au passage en `valide`/`modifie`/
+    # `mi_parcours`, le champ est remis à NULL.
+    VALIDATION_STEP_CHOICES = [
+        ('avis_csrpn', _('Avis CSRPN demandé')),
+        ('comite_consultatif', _('Validation comité consultatif')),
+        ('arrete_pref', _('Arrêté préfectoral')),
+    ]
+    VALIDATION_STEPS = frozenset({'avis_csrpn', 'comite_consultatif', 'arrete_pref'})
     
     id_pg = models.AutoField(primary_key=True)
     id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
@@ -226,6 +233,18 @@ class PlanGestion(models.Model):
         choices=STATUT_CHOICES,
         default='draft'
     )
+
+    # #277 — Étape du workflow CSRPN (orthogonale au statut). NULL = pas dans
+    # le workflow. Renseignée uniquement sur les plans `draft` au moment où
+    # le workflow CSRPN est lancé.
+    validation_step = models.CharField(
+        _("Étape de validation CSRPN"),
+        max_length=30,
+        choices=VALIDATION_STEP_CHOICES,
+        null=True, blank=True,
+        help_text=_("Étape du workflow CSRPN en cours (avis CSRPN, comité consultatif, arrêté préfectoral).")
+    )
+
     version = models.CharField(
         _("Version"),
         max_length=20,
@@ -517,6 +536,10 @@ class PlanGestion(models.Model):
     def is_mid_term(self):
         """#276 — Vrai si cette version est l'évaluation mi-parcours du plan."""
         return bool(self.is_mi_parcours)
+
+    def is_in_csrpn_workflow(self):
+        """#277 — Vrai si le plan est dans le workflow CSRPN (validation_step non NULL)."""
+        return bool(self.validation_step)
 
     def has_draft_child(self):
         """Vrai si ce plan a déjà au moins un enfant direct en brouillon.
