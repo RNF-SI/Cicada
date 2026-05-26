@@ -114,6 +114,16 @@
                         matTooltipPosition="above">
                     {{ statusLabelKey() | translate }}
                   </span>
+                  <!-- #277 — Sous-chip workflow CSRPN. Affiché en complément du statut
+                       (brouillon) pour visualiser l'étape de validation en cours. -->
+                  @if (p.validation_step) {
+                    <span class="meta-value status-chip status-chip--csrpn"
+                          [matTooltip]="'plans.validationStep.tooltip' | translate"
+                          matTooltipPosition="above">
+                      <i class="fi fi-rr-paper-plane"></i>
+                      {{ ('plans.validationStep.' + p.validation_step) | translate }}
+                    </span>
+                  }
                   @if (isPlanExtended()) {
                     <span class="meta-separator">|</span>
                     <span class="meta-value extension-badge">

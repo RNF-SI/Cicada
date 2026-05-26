@@ -304,6 +304,18 @@
       background-color: $gray-dark;
       color: $white !important;
     }
+    // #277 — Sous-chip pour l'étape CSRPN (validation_step) en complément
+    // du chip statut brouillon. Couleur info pour distinguer du statut.
+    &--csrpn {
+      background-color: rgba($info-color, 0.15);
+      color: darken($info-color, 15%) !important;
+      margin-left: $spacing-xxs;
+      gap: $spacing-xxs;
+
+      i {
+        font-size: 11px;
+      }
+    }
   }
 
   // #250 / #278 — badges affichés à côté du chip de statut quand le plan

@@ -1250,15 +1250,18 @@
     },
     "status": {
       "draft": "Brouillon",
-      "avis_csrpn": "Avis CSRPN demandé",
-      "comite_consultatif": "Validation comité consultatif",
-      "arrete_pref": "Arrêté préfectoral",
       "valide": "Valide",
       "modifie": "Modifié",
       "modifieTooltip": "Plan validé puis modifié au moins une fois. Une nouvelle version a été créée et validée à partir d'une version antérieure de la même chaîne.",
       "archive": "Archivé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours"
+    },
+    "validationStep": {
+      "avis_csrpn": "Avis CSRPN demandé",
+      "comite_consultatif": "Validation comité consultatif",
+      "arrete_pref": "Arrêté préfectoral",
+      "tooltip": "Étape du workflow de validation CSRPN en cours sur ce brouillon."
     },
     "extension": {
       "badge": "Étendu",
