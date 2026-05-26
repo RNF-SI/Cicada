@@ -28,7 +28,7 @@ import { AdminService } from '../../../core/services/admin.service';
               </a>
               <div class="breadcrumb-lines"></div>
               <div class="breadcrumb-text">
-                <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.detail.sidebar.title' | translate }}</a>
+                <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
                 <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
