@@ -31,7 +31,7 @@
 }
 
 h1 {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 25px;
   font-weight: 700;
   color: #025359;
@@ -40,7 +40,7 @@ h1 {
 
 .subtitle {
   font-size: $font-size-base;
-  color: #6c757d;
+  color: $gray-dark;
   margin: 0;
 }
 
@@ -173,7 +173,7 @@ h1 {
 
 .login-link {
   font-size: $font-size-small;
-  color: #6c757d;
+  color: $gray-dark;
   margin: 0 0 16px 0;
 
   a {
@@ -191,7 +191,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  color: #6c757d;
+  color: $gray-dark;
   text-decoration: none;
   font-size: $font-size-small;
   transition: color 0.2s;

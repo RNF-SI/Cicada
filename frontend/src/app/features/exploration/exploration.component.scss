@@ -21,7 +21,7 @@
   gap: $spacing-xs;
   color: $primary-color;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-small;
   font-weight: 600;
   transition: opacity 200ms ease-out;
@@ -40,7 +40,7 @@
 }
 
 .exploration-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 32px;
   font-weight: 700;
   color: $primary-color;
@@ -56,7 +56,7 @@
 }
 
 .exploration-subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 16px;
   font-weight: 400;
   color: $gray-dark;
@@ -78,7 +78,7 @@
 }
 
 .stats-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h3;
   font-weight: 700;
   color: $primary-color;
@@ -86,7 +86,7 @@
 }
 
 .stats-subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;
@@ -141,7 +141,7 @@
 }
 
 .stat-value {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h1;
   font-weight: 700;
   color: $primary-color;
@@ -150,7 +150,7 @@
 }
 
 .stat-label {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 600;
   color: $gray-dark;
@@ -193,7 +193,7 @@
 }
 
 .coming-soon-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h4;
   font-weight: 700;
   color: $primary-color;
@@ -201,7 +201,7 @@
 }
 
 .coming-soon-message {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;

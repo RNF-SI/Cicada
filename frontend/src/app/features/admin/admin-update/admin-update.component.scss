@@ -10,7 +10,7 @@
 }
 
 .page-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 25px;
   font-weight: 700;
   color: $primary-color;
@@ -18,7 +18,7 @@
 }
 
 .page-subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 400;
   color: $gray-dark;
@@ -44,7 +44,7 @@
 }
 
 .section-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 18px;
   font-weight: 600;
   color: $gray-dark;

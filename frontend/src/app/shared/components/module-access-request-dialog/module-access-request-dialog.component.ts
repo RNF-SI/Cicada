@@ -93,7 +93,7 @@ export interface ModuleAccessRequestDialogData {
 
     .module-label {
       font-size: 12px;
-      color: #5C5C5C;
+      color: #746F6E;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }

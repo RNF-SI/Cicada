@@ -244,6 +244,40 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 - `realized-unplanned`: Cercle + ✗ (réalisée non prévue)
 - `partial-unplanned`: Demi-cercle + ✗ (partiellement réalisée non prévue)
 
+#### `TagComponent` (#296)
+**Sélecteur**: `app-tag`
+**Fichiers**: `tag/`
+**Description**: Tag unifié (pill, sans bordure, padding compact). Remplace `.status-*`, `.score-*`, et les `<mat-chip>` pour les statuts. Issue #296.
+
+```html
+<!-- Statut simple -->
+<app-tag variant="success" label="Validé"></app-tag>
+
+<!-- Avec icône -->
+<app-tag variant="warning" label="En attente" icon="fi-rr-clock"></app-tag>
+
+<!-- Cliquable -->
+<app-tag variant="draft" label="Brouillon" [clickable]="true" (click)="onEdit()"></app-tag>
+```
+
+| Input | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `variant` | `TagVariant` | `'neutral'` | Voir liste ci-dessous |
+| `label` | `string` | `''` | Texte du tag |
+| `icon` | `string?` | — | Classe Flaticon optionnelle (ex: `'fi-rr-check'`) |
+| `size` | `'sm' \| 'md'` | `'md'` | Taille (sm pour tableaux denses) |
+| `clickable` | `boolean` | `false` | Active curseur pointer + effet hover |
+
+**Variantes disponibles** :
+- Sémantiques (texte blanc, AA) : `success` (vert #04854B), `error` (rouge #E12329), `info`/`primary` (bleu-vert #025359)
+- Décoratives (texte noir, AA) : `warning` (saumon #F5B399), `draft` (jaune #FEC180), `neutral` (vert pâle #C0E3CF), `muted` (gris clair)
+- Scores (texte noir, AA) : `score-very-bad`, `score-bad`, `score-neutral`, `score-good`, `score-very-good`
+
+**Règles** :
+- Pas de bordure par défaut
+- Pas de hover si `clickable=false`
+- Combinaisons WCAG AA respectées — voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
+
 #### `HeaderComponent`
 **Sélecteur**: `app-header`
 **Fichiers**: `header/`

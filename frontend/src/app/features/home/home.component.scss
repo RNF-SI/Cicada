@@ -28,7 +28,7 @@
 }
 
 .hero-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h1;
   font-weight: 700;
   line-height: $line-height-h1;
@@ -37,7 +37,7 @@
 }
 
 .hero-subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h3;
   font-weight: 400;
   line-height: $line-height-h3;
@@ -109,7 +109,7 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
 }
 
 .search-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h4;
   font-weight: 700;
   line-height: $line-height-h4;
@@ -125,7 +125,7 @@ $bar-top-offset: 20px; // Plus d'espace au-dessus pour l'ellipse
 }
 
 .search-description {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 400;
   line-height: 22px;
@@ -202,9 +202,9 @@ $corner-size: 94px;
   min-height: 180px;
 
   .loading-text {
-    font-family: 'Nunito', sans-serif;
+    font-family: $font-family;
     font-size: $font-size-base;
-    color: #949494;
+    color: $gray-dark;
     animation: pulse 1.5s ease-in-out infinite;
   }
 }
@@ -246,7 +246,7 @@ $corner-size: 94px;
   padding: 16px $spacing-lg;
   color: #025359;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 600;
   border-radius: $border-radius-pill;
@@ -302,7 +302,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__title {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 39px;
   font-weight: 700;
   line-height: $line-height-h1;
@@ -312,7 +312,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__subtitle {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-h3;
   font-weight: 400;
   line-height: $line-height-h3;
@@ -338,7 +338,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 700;
   padding: $spacing-md $spacing-xl;
@@ -379,7 +379,7 @@ $corner-size: 94px;
 }
 
 .guest-hero__link {
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 600;
   color: #025359;

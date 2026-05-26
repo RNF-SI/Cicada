@@ -50,11 +50,16 @@
 // Error: Rouge (#E12329)
 
 // Use cyan palette as base (closest to our teal #025359)
+// Typography: Nunito everywhere — design review #294
 $theme: mat.define-theme((
   color: (
     theme-type: light,
     primary: mat.$cyan-palette,
     tertiary: mat.$orange-palette,
+  ),
+  typography: (
+    plain-family: 'Nunito, sans-serif',
+    brand-family: 'Nunito, sans-serif',
   ),
 ));
 
