@@ -47,5 +47,6 @@
 </div>
 <!-- Ligne de séparation sous le titre avec couleur -->
 @if (showLine) {
-  <div class="section-title-line" [ngClass]="'line-' + ellipseColor"></div>
+  <div class="section-title-line"
+       [ngClass]="['line-' + ellipseColor, 'line-size-' + size]"></div>
 }

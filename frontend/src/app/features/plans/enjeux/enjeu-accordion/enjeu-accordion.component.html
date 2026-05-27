@@ -1,35 +1,21 @@
 <div class="accordion" [id]="id" [class.expanded]="expanded()" [class.fcr]="isFcr">
   <!-- Header -->
   <div class="accordion-header" (click)="toggle()">
-    <div class="header-content">
-      <!-- Ellipse icon -->
-      <div class="header-icon" [class.fcr-icon]="isFcr">
-        <img [src]="isFcr ? 'assets/images/ellipses/ellipse-salmon.png' : 'assets/images/ellipses/ellipse-terra-cotta.png'"
-             alt="" class="header-ellipse-img">
-        @if (isFcr) {
-          <i class="fi fi-rr-key header-ellipse-icon"></i>
-        } @else {
-          <i class="fi fi-rr-mountains header-ellipse-icon"></i>
-        }
+    <app-section-title
+      class="accordion-section-title"
+      [title]="(isFcr ? ('enjeux.types.fcr' | translate) : ('enjeux.types.enjeu' | translate)) + ' ' + displayIndex + ' : ' + enjeu.libelle"
+      [icon]="isFcr ? 'fi-rr-key' : 'fi-rr-mountains'"
+      [ellipseColor]="isFcr ? 'salmon' : 'terra-cotta'"
+      size="md"
+      titleColor="primary"
+      [showLine]="true">
+      <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
+      <div sectionActions class="header-actions">
+        <button mat-icon-button class="expand-btn">
+          <i class="fi" [ngClass]="expanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
+        </button>
       </div>
-
-      <!-- Title -->
-      <h3 class="accordion-title">
-        @if (isFcr) {
-          {{ 'enjeux.types.fcr' | translate }} {{ displayIndex }} : {{ enjeu.libelle }}
-        } @else {
-          {{ 'enjeux.types.enjeu' | translate }} {{ displayIndex }} : {{ enjeu.libelle }}
-        }
-      </h3>
-    </div>
-
-    <!-- Header actions -->
-    <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
-    <div class="header-actions">
-      <button mat-icon-button class="expand-btn">
-        <i class="fi" [ngClass]="expanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
-      </button>
-    </div>
+    </app-section-title>
   </div>
 
   <!-- Body (expanded) -->

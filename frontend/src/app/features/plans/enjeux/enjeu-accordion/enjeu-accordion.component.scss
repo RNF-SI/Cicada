@@ -1,40 +1,24 @@
 @import 'variables';
 
+// Pas de card chrome sur l'item de liste : juste l'icône + titre + trait.
+// Le trait est fourni par <app-section-title showLine>, l'écart entre items
+// vient de .enjeux-flat-list { gap }. Le fond du body (expanded) reste géré
+// par .accordion-body ci-dessous.
 .accordion {
-  background-color: $white;
-  border-left: 3px solid $secondary-terra-cotta;
-  border-radius: 0 $border-radius-lg $border-radius-lg 0;
+  background-color: transparent;
   overflow: hidden;
-  transition: all $transition-fast;
-
-  &.fcr {
-    border-left-color: $secondary-orange-salmon;
-  }
-
-  &.expanded {
-    background-color: transparent;
-    border-left: none;
-    border-radius: 0;
-    box-shadow: none;
-  }
 }
 
-// Header
+// Header — utilise <app-section-title> qui gère ellipse + titre + trait sous le titre
+// Note : la ligne du section-title a déjà un margin-bottom de $spacing-md, donc on
+// retire le padding-bottom du header pour éviter un double espacement.
 .accordion-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-md $spacing-lg 0;
   cursor: pointer;
   transition: background-color $transition-fast;
-  border-bottom: 2px solid $secondary-terra-cotta;
 
   &:hover {
     background-color: rgba($secondary-terra-cotta, 0.03);
-  }
-
-  .fcr & {
-    border-bottom-color: $secondary-orange-salmon;
   }
 
   .fcr &:hover {
@@ -42,44 +26,9 @@
   }
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  flex: 1;
-  min-width: 0;
-}
-
-// Ellipse icon in header
-.header-icon {
-  width: 48px;
-  height: 48px;
-  position: relative;
-  flex-shrink: 0;
-
-  .header-ellipse-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transform: rotate(-90deg) scaleY(-1);
-  }
-
-  .header-ellipse-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 20px;
-    color: $white;
-  }
-}
-
-.accordion-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-  line-height: 22px;
+// Le wrapper section-title doit occuper toute la largeur du header
+.accordion-section-title {
+  display: block;
 }
 
 // Header actions
@@ -122,7 +71,7 @@
 .accordion-body {
   background-color: rgba($secondary-terra-cotta, 0.08);
   border: 1px solid $secondary-terra-cotta;
-  border-radius: 0 20px 0 20px;
+  border-radius: 0 20px 0 20px; // TR + BL arrondis (kit UI)
   padding: $spacing-lg;
 
   .fcr & {
@@ -289,15 +238,6 @@
 
 // Responsive
 @media (max-width: $breakpoint-tablet) {
-  .accordion-header {
-    flex-wrap: wrap;
-    gap: $spacing-sm;
-  }
-
-  .header-content {
-    flex-wrap: wrap;
-  }
-
   .body-sub-header {
     flex-wrap: wrap;
     gap: $spacing-sm;

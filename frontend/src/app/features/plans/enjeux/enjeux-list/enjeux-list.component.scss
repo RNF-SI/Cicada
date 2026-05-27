@@ -381,58 +381,12 @@
 }
 
 // ============================================
-// ENJEU HEADER (vue détail)
+// ENJEU HEADER (vue détail) — utilise <app-section-title>
 // ============================================
 
-.enjeu-header-section {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  margin-bottom: $spacing-md;
-}
-
-.enjeu-icon-wrapper {
-  width: 68px;
-  height: 68px;
-  position: relative;
-  flex-shrink: 0;
-
-  .enjeu-ellipse-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transform: rotate(-90deg) scaleY(-1);
-  }
-
-  .enjeu-ellipse-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 24px;
-    color: $white;
-  }
-}
-
-.enjeu-header-middle {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-}
-
-.enjeu-main-title {
-  margin: 0;
-  font-size: 24px;
-  line-height: 36px;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+.enjeu-main-header {
+  display: block;
+  margin-bottom: $spacing-lg;
 }
 
 .enjeu-header-actions {
@@ -440,13 +394,6 @@
   align-items: center;
   gap: $spacing-xs;
   flex-shrink: 0;
-}
-
-.enjeu-header-divider {
-  width: 100%;
-  height: 2px;
-  background-color: $secondary-terra-cotta;
-  margin-bottom: $spacing-lg;
 }
 
 // Icon button flat (utilisé dans le header et les cartes)
@@ -490,7 +437,7 @@
 .enjeu-detail-card {
   background-color: rgba($secondary-terra-cotta, 0.08);
   border: 1px solid $secondary-terra-cotta;
-  border-radius: 0 20px 20px 0;
+  border-radius: 0 20px 0 20px; // TR + BL arrondis (kit UI)
   overflow: hidden;
 }
 
@@ -635,7 +582,7 @@
 .facteur-influence-card {
   background-color: $white;
   border-left: 3px solid $secondary-terra-cotta;
-  border-radius: 0 20px 0 20px;
+  border-radius: 0 20px 0 20px; // TR + BL arrondis (kit UI)
   overflow: hidden;
   transition: box-shadow $transition-fast;
 
@@ -700,7 +647,7 @@
 .pression-card {
   background-color: $white;
   border: 1px solid $secondary-orange-salmon;
-  border-radius: 0 20px 0 20px;
+  border-radius: 0 20px 0 20px; // TR + BL arrondis (kit UI)
   margin-top: $spacing-sm;
   overflow: hidden;
 }
@@ -931,7 +878,7 @@
   padding: $spacing-sm $spacing-md;
   background-color: rgba($info-color, 0.08);
   border-left: 3px solid $info-color;
-  border-radius: 0 $border-radius-md $border-radius-md 0;
+  border-radius: 0 $border-radius-md 0 $border-radius-md; // TR + BL arrondis (kit UI)
   margin-bottom: $spacing-xs;
 
   i {
@@ -968,7 +915,7 @@
 .etat-actuel-card {
   background-color: rgba($secondary-pale-green, 0.15);
   border-left: 3px solid $secondary-pale-green;
-  border-radius: 0 20px 20px 0;
+  border-radius: 0 20px 0 20px; // TR + BL arrondis (kit UI)
   overflow: hidden;
   margin-bottom: $spacing-sm;
 }
@@ -1743,6 +1690,10 @@
 .ra-droplist,
 .operations-droplist {
   @extend %dnd-droplist;
+}
+
+.facteurs-droplist {
+  gap: $spacing-md;
 }
 
 .operation-drag-handle {
@@ -2617,14 +2568,6 @@
   .tab-item {
     white-space: nowrap;
     padding: $spacing-sm $spacing-md;
-  }
-
-  .enjeu-header-section {
-    flex-wrap: wrap;
-  }
-
-  .enjeu-header-middle {
-    flex-wrap: wrap;
   }
 
   .card-section-header {

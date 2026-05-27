@@ -223,7 +223,7 @@ export class EnjeuxPage {
    * Get accordion title text by index.
    */
   async getAccordionTitle(index: number): Promise<string> {
-    return this.page.locator('app-enjeu-accordion').nth(index).locator('.accordion-title').innerText();
+    return this.page.locator('app-enjeu-accordion').nth(index).locator('.section-title-text').innerText();
   }
 
   /**

@@ -12,6 +12,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { Enjeu } from '../../../../core/models/enjeu.model';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
 
 @Component({
   selector: 'app-enjeu-accordion',
@@ -22,7 +23,8 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     MatIconModule,
     MatTooltipModule,
     MatDialogModule,
-    TranslateModule
+    TranslateModule,
+    SectionTitleComponent
   ],
   templateUrl: './enjeu-accordion.component.html',
   styleUrl: './enjeu-accordion.component.scss'

@@ -157,36 +157,25 @@
           @if (activeTab() === 'detail') {
             <div class="enjeux-content">
               <!-- H2 Enjeu title section -->
-              <div class="enjeu-header-section">
-                <div class="enjeu-icon-wrapper">
-                  <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="enjeu-ellipse-img">
-                  @if (isSelectedFcr()) {
-                    <i class="fi fi-rr-key enjeu-ellipse-icon"></i>
-                  } @else {
-                    <i class="fi fi-rr-mountains enjeu-ellipse-icon"></i>
-                  }
-                </div>
-                <div class="enjeu-header-middle">
-                  <h2 class="enjeu-main-title">
-                    @if (isSelectedFcr()) {
-                      {{ 'enjeux.types.fcr' | translate }} {{ selectedDisplayIndex() }} : {{ enjeu.libelle }}
-                    } @else {
-                      {{ 'enjeux.types.enjeu' | translate }} {{ selectedDisplayIndex() }} : {{ enjeu.libelle }}
-                    }
-                  </h2>
-                  @if (canEditPlan()) {
-                    <div class="enjeu-header-actions">
-                      <button class="icon-btn-flat" (click)="navigateToEdit(enjeu)" [title]="'common.actions.edit' | translate">
-                        <i class="fi fi-rr-pencil"></i>
-                      </button>
-                      <button class="icon-btn-flat" (click)="onEnjeuDelete(enjeu)" [title]="'common.actions.delete' | translate">
-                        <i class="fi fi-rr-trash"></i>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-              <div class="enjeu-header-divider"></div>
+              <app-section-title
+                class="enjeu-main-header"
+                [title]="(isSelectedFcr() ? ('enjeux.types.fcr' | translate) : ('enjeux.types.enjeu' | translate)) + ' ' + selectedDisplayIndex() + ' : ' + enjeu.libelle"
+                [icon]="isSelectedFcr() ? 'fi-rr-key' : 'fi-rr-mountains'"
+                ellipseColor="terra-cotta"
+                size="lg"
+                titleColor="primary"
+                [showLine]="true">
+                @if (canEditPlan()) {
+                  <div sectionActions class="enjeu-header-actions">
+                    <button class="icon-btn-flat" (click)="navigateToEdit(enjeu)" [title]="'common.actions.edit' | translate">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="icon-btn-flat" (click)="onEnjeuDelete(enjeu)" [title]="'common.actions.delete' | translate">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                }
+              </app-section-title>
 
               <!-- Note contextuelle facteurs d'influence -->
               @if (!isSelectedFcr()) {
