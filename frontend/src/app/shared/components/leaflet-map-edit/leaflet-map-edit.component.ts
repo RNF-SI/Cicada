@@ -49,6 +49,15 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   /** Géométrie existante à éditer (GeoJSON) - polygone */
   @Input() existingGeometry: any = null;
 
+  /**
+   * Géométrie d'arrière-plan affichée en lecture seule (style pointillé,
+   * couleur secondaire). Utile pour garder visible l'emprise précédente
+   * pendant qu'on dessine une nouvelle emprise par-dessus (ex. saisie de
+   * l'emprise réalisée pour un suivi d'opération : la dernière emprise
+   * prévue reste visible comme repère).
+   */
+  @Input() backgroundGeometry: any = null;
+
   /** Géométrie point existante (pour mode 'both') */
   @Input() existingPointGeometry: any = null;
 
@@ -67,6 +76,15 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   /** Activer l'import de fichiers géographiques (GeoJSON, Shapefile) */
   @Input() enableGeometryImport: boolean = false;
 
+  /**
+   * Mode lecture seule : la carte affiche `existingGeometry` (et
+   * éventuellement `backgroundGeometry`) sans afficher la barre d'outils
+   * de dessin. Pratique pour partager le même composant entre prévisualisation
+   * et édition tout en gardant un rendu visuel cohérent (notamment
+   * l'arrière-plan terra-cotta pointillé).
+   */
+  @Input() readOnly: boolean = false;
+
   /** État de l'import shapefile */
   readonly isImporting = signal(false);
 
@@ -79,12 +97,18 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   private map: L.Map | null = null;
   private drawnItems: L.FeatureGroup | null = null;
   private pointItems: L.FeatureGroup | null = null; // Groupe séparé pour les points en mode 'both'
+  /** Calque non éditable pour `backgroundGeometry` (style pointillé). */
+  private backgroundLayer: L.GeoJSON | null = null;
   private drawControl: L.Control.Draw | null = null;
 
   // Couleurs du design system
   private readonly primaryColor = '#025359';
   private readonly secondaryColor = '#FEC180';
   private readonly fillColor = 'rgba(2, 83, 89, 0.3)';
+  // Style d'arrière-plan : terra-cotta pointillé (utilisé pour distinguer
+  // l'emprise précédente de celle qu'on est en train d'éditer).
+  private readonly backgroundColor = '#B74D5D';
+  private readonly backgroundFillColor = 'rgba(183, 77, 93, 0.12)';
 
   ngOnInit(): void {
     // Note: Leaflet icons fix is applied in main.ts at app startup
@@ -97,6 +121,9 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['existingGeometry'] && !changes['existingGeometry'].firstChange) {
       this.loadExistingGeometry();
+    }
+    if (changes['backgroundGeometry'] && !changes['backgroundGeometry'].firstChange) {
+      this.loadBackgroundGeometry();
     }
     if (changes['geometryType'] && !changes['geometryType'].firstChange) {
       this.updateDrawControl();
@@ -148,6 +175,9 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     this.setupDrawControl();
 
     // Charger les géométries existantes
+    if (this.backgroundGeometry) {
+      this.loadBackgroundGeometry();
+    }
     if (this.existingGeometry) {
       this.loadExistingGeometry();
     }
@@ -187,7 +217,10 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     // Supprimer l'ancien contrôle si présent
     if (this.drawControl) {
       this.map.removeControl(this.drawControl);
+      this.drawControl = null;
     }
+    // En lecture seule on n'ajoute simplement aucun contrôle de dessin.
+    if (this.readOnly) return;
 
     // Configuration des textes en français pour leaflet-draw
     this.configureDrawLocale();
@@ -443,15 +476,69 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
       console.log('loadExistingGeometry:', layerCount, 'layers ajoutés');
 
-      // Ajuster la vue
-      if (this.drawnItems.getBounds().isValid()) {
-        this.map.fitBounds(this.drawnItems.getBounds(), {
+      // Ajuster la vue : on inclut aussi l'éventuelle géométrie d'arrière-plan
+      // pour ne pas la cadrer hors-écran.
+      const bounds = this.drawnItems.getBounds();
+      if (this.backgroundLayer && this.backgroundLayer.getBounds().isValid()) {
+        bounds.extend(this.backgroundLayer.getBounds());
+      }
+      if (bounds.isValid()) {
+        this.map.fitBounds(bounds, {
           padding: [50, 50],
           maxZoom: 15
         });
       }
     } catch (error) {
       console.error('Erreur lors du chargement de la géométrie:', error);
+    }
+  }
+
+  /**
+   * Charge la géométrie d'arrière-plan (non éditable, style pointillé).
+   * Sert à conserver une empreinte de référence visible (par exemple
+   * l'emprise prévue) pendant qu'on dessine une nouvelle emprise réalisée.
+   */
+  private loadBackgroundGeometry(): void {
+    if (!this.map) return;
+
+    // Retirer l'ancien layer s'il existe
+    if (this.backgroundLayer) {
+      this.map.removeLayer(this.backgroundLayer);
+      this.backgroundLayer = null;
+    }
+    if (!this.backgroundGeometry) return;
+
+    try {
+      let geojsonData = this.backgroundGeometry;
+      if (geojsonData.type && !geojsonData.geometry && geojsonData.coordinates) {
+        geojsonData = { type: 'Feature', properties: {}, geometry: geojsonData };
+      }
+      this.backgroundLayer = L.geoJSON(geojsonData, {
+        interactive: false, // non cliquable, juste un repère visuel
+        style: {
+          color: this.backgroundColor,
+          weight: 2,
+          dashArray: '6,4',
+          fillColor: this.backgroundFillColor,
+          fillOpacity: 0.4,
+        },
+      });
+      // Le layer d'arrière-plan est ajouté DERRIÈRE le drawnItems (Leaflet
+      // empile dans l'ordre d'ajout — comme drawnItems est ajouté plus tôt,
+      // on utilise bringToBack() pour s'assurer du z-order).
+      this.backgroundLayer.addTo(this.map);
+      this.backgroundLayer.bringToBack();
+
+      // Si rien n'est encore dessiné, on cadre sur le repère.
+      if ((!this.drawnItems || this.drawnItems.getLayers().length === 0)
+          && this.backgroundLayer.getBounds().isValid()) {
+        this.map.fitBounds(this.backgroundLayer.getBounds(), {
+          padding: [50, 50],
+          maxZoom: 15,
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de la géométrie d\'arrière-plan:', error);
     }
   }
 

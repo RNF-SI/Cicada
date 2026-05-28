@@ -5,11 +5,14 @@
   display: flex;
   min-height: calc(100vh - 80px);
   background: $beige;
+  gap: $spacing-lg; // Écart entre sidebar et contenu (aligné Figma node 50:11287)
 }
 
 .plan-main {
   flex: 1;
   padding: 0;
+  padding-right: $spacing-lg; // Marge droite (cohérent Figma)
+  min-width: 0;
   overflow-x: hidden;
 }
 
@@ -30,68 +33,109 @@
 }
 
 // =============================================================================
-// Hero (réutilise les conventions de plan-suivi-actions)
+// Hero — couleur unie pale-green Kit UI (Figma 4290-22253) + pattern
+// d'ellipses (banner-waves) sur la droite, comme les pages d'enjeux.
 // =============================================================================
 
 .hero-section {
-  @include plan-page-hero-suivi(280px);
+  // On n'utilise PAS le mixin `plan-page-hero-suivi` (qui applique un dégradé
+  // jaune→saumon) : la maquette demande ici une couleur unique pale-green.
+  position: relative;
+  background-color: $secondary-pale-green;
+  border-radius: 0 0 $border-radius-xl $border-radius-xl;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: 280px;
+  overflow: hidden;
+  color: $primary-color;
 
   .hero-background {
-    position: absolute;
-    inset: 0;
-    opacity: 0.15;
+    @include plan-page-hero-background;
+  }
 
-    .hero-pattern {
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
-    }
+  // Vagues/ellipses décoratives à droite — même asset et même positionnement
+  // que les pages enjeux (mixin partagé `plan-page-hero-pattern`).
+  .hero-pattern {
+    @include plan-page-hero-pattern;
+    opacity: 0.35;
   }
 
   .hero-content {
     position: relative;
     z-index: 1;
-    max-width: 1400px;
-    margin: 0 auto;
   }
 
+  // Fil d'Ariane : exactement la même structure que plan-suivi-actions
+  // (rond bleu-vert + lignes horizontales + chevrons).
   .breadcrumb {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: $spacing-sm;
-    margin-bottom: $spacing-md;
+    gap: $spacing-md;
+    margin-bottom: $spacing-xl;
+    height: 48px;
+    background-color: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
 
-    .breadcrumb-home {
-      display: inline-flex;
-      align-items: center;
+  .breadcrumb-home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background-color: $primary-color;
+    border-radius: 50%;
+    color: $white;
+    text-decoration: none;
+    flex-shrink: 0;
+    z-index: 2;
+    padding: 12px;
+
+    i { font-size: 20px; }
+    &:hover { transform: scale(1.05); }
+  }
+
+  .breadcrumb-lines {
+    position: absolute;
+    left: 24px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 0;
+
+    &::before,
+    &::after {
+      content: '';
+      display: block;
+      width: 100%;
+      height: 1px;
+      background-color: $primary-color;
+    }
+  }
+
+  .breadcrumb-text {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: 0.9rem;
+    color: $primary-color;
+
+    .breadcrumb-link {
       color: $primary-color;
       text-decoration: none;
+      font-weight: 600;
       &:hover { color: $secondary-terra-cotta; }
     }
-
-    .breadcrumb-lines {
-      width: 24px;
-      height: 1px;
-      background: $primary-color;
-    }
-
-    .breadcrumb-text {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: $spacing-xxs;
-      font-size: 0.85rem;
-      color: $primary-color;
-
-      .breadcrumb-link {
-        color: $primary-color;
-        text-decoration: none;
-        font-weight: 600;
-        &:hover { color: $secondary-terra-cotta; }
-      }
-      .breadcrumb-chevron { font-size: 0.7rem; }
-      .breadcrumb-current { font-weight: 600; }
-    }
+    .breadcrumb-chevron { font-size: 0.7rem; }
+    .breadcrumb-current { font-weight: 700; }
   }
 
   .plan-header {
@@ -141,23 +185,28 @@
 // Year selector tabs
 // =============================================================================
 
+// Bandeau d'années : distribué uniformément sur toute la largeur du contenu.
+// Aligné avec le hero et le contenu (même padding $spacing-xl).
 .year-tabs {
   display: flex;
-  gap: $spacing-md;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-xs;
   padding: $spacing-md $spacing-xl 0;
-  flex-wrap: wrap;
   background: $beige;
 
   .year-tab {
+    flex: 1 1 0;
     background: transparent;
     border: none;
-    padding: $spacing-xs $spacing-sm;
+    padding: $spacing-xs $spacing-xxs;
     cursor: pointer;
     font-family: 'Nunito', sans-serif;
     font-size: 1rem;
     font-weight: 600;
     color: $gray-dark;
     border-bottom: 2px solid transparent;
+    text-align: center;
     transition: color 0.2s, border-color 0.2s;
 
     &:hover { color: $primary-color; }
@@ -173,10 +222,11 @@
 // Form layout
 // =============================================================================
 
+// Form : mêmes marges horizontales que le hero ($spacing-xl), sans max-width.
+// Les cards remplissent l'espace dispo et leurs bords alignent visuellement
+// avec le bord intérieur du hero.
 .saisie-form {
   padding: $spacing-md $spacing-xl $spacing-xxl;
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
@@ -194,9 +244,13 @@
     gap: $spacing-sm;
     margin-bottom: $spacing-md;
 
-    .card-icon {
-      color: $secondary-orange-salmon;
-      font-size: 1.1rem;
+    // Pastille ellipse (cohérent avec operation-form et autres pages
+    // Figma : ellipse jaune par défaut, cf. node 4290-22359).
+    .card-ellipse {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      flex-shrink: 0;
     }
     .card-title {
       margin: 0;
@@ -242,16 +296,25 @@ textarea.full-width {
 }
 
 // =============================================================================
-// Realisation table
+// Realisation table (Figma 4290-22241)
 // =============================================================================
+// Un seul tableau avec coins arrondis. Les en-têtes d'organisme sont des
+// `<tr class="org-header-row">` inline (pas de bloc séparé). Pas de bordure
+// gauche colorée sur les organismes : seul l'arrière-plan vert pâle distingue
+// les en-têtes.
 
-// Matrice Champs × Années (Figma 161-20144 / 4290-22241)
 .realisation-matrix {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: $spacing-md;
   table-layout: auto;
   font-size: 0.85rem;
+  // Coins arrondis : on coupe ce qui dépasse du conteneur.
+  border-radius: $border-radius-md;
+  overflow: hidden;
+  // Léger contour autour du tableau pour matérialiser ses bords.
+  box-shadow: 0 0 0 1px $gray-lighter;
 
   thead {
     background: $primary-color;
@@ -273,12 +336,12 @@ textarea.full-width {
 
   tbody tr {
     border-bottom: 1px solid $gray-lighter;
-    &:nth-child(odd) { background: $gray-lighter; }
 
     td {
       padding: $spacing-xs $spacing-sm;
       text-align: center;
       vertical-align: middle;
+      background: white;
 
       &.col-field { text-align: left; font-weight: 500; color: $black; }
 
@@ -289,6 +352,12 @@ textarea.full-width {
         border-right: 2px solid $secondary-terra-cotta;
         position: relative;
       }
+    }
+
+    // Zebra : on alterne uniquement sur les lignes de données (pas sur les
+    // org-header-row) pour éviter les "trous" visuels.
+    &:not(.org-header-row):nth-of-type(odd) td:not(.active) {
+      background: $gray-lighter;
     }
 
     input[type='number'] {
@@ -305,56 +374,44 @@ textarea.full-width {
 
     input[type='checkbox'] { accent-color: $primary-color; }
   }
-}
 
-// Pastille pour périodicité (prévue / réalisée)
-.cell-dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-
-  &.prev {
-    background: transparent;
-    border: 2px dashed $primary-color;
-  }
-  &.real {
-    background: $primary-color;
-  }
-}
-
-// =============================================================================
-// Organisme ventilation (modes by_org / by_org_type)
-// =============================================================================
-
-.org-section {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-lg;
-  margin-top: $spacing-lg;
-}
-
-.org-block {
-  .org-title {
-    margin: 0 0 $spacing-xs;
-    padding: $spacing-xs $spacing-sm;
-    background: $secondary-pale-green;
+  // Ligne d'en-tête organisme : fond vert pâle Kit UI (#C0E3CF), texte
+  // primaire, à gauche, en casse normale (cf. Figma 4290-24416). Pas de
+  // bordure gauche, pas d'écart vertical autour pour rester dans le flux
+  // continu du tableau.
+  tr.org-header-row td {
+    background: $secondary-pale-green !important;
     color: $primary-color;
-    font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: $border-radius-sm;
-    border-left: 3px solid $primary-color;
+    font-weight: 700;
+    text-align: left !important;
+    padding: $spacing-sm $spacing-md;
+    letter-spacing: 0;
+    font-size: 0.9rem;
   }
 
-  &.total-block .org-title.total {
-    background: $primary-color;
+  // Ligne TOTAL : fond bleu-vert foncé Kit UI (#025359), texte blanc en
+  // majuscules, aligné à gauche (cf. Figma 4290-26864).
+  tr.total-header-row td {
+    background: $primary-color !important;
     color: white;
-    border-left-color: $secondary-terra-cotta;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+}
 
-  .realisation-table { margin-top: 0; }
+// Icône statut programmation (mêmes assets que plan-suivi-actions).
+.action-status-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.cell-check {
+  display: inline-block;
+  color: $primary-color;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
 // =============================================================================
@@ -393,9 +450,40 @@ textarea.full-width {
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
-  padding-top: $spacing-md;
+  padding-top: $spacing-sm;
+}
+
+.emprise-legend {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  font-size: 0.85rem;
+  color: $gray-dark;
+  margin-bottom: $spacing-xs;
+
+  .emprise-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  .legend-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 10px;
+    border-radius: 2px;
+
+    &.legend-prevu {
+      background: rgba(2, 83, 89, 0.15);
+      border: 2px dashed $primary-color;
+    }
+    &.legend-realise {
+      background: rgba(183, 77, 93, 0.25);
+      border: 2px solid $secondary-terra-cotta;
+    }
+  }
 }
 
 .btn-emprise-import {
@@ -423,8 +511,12 @@ textarea.full-width {
 }
 
 // =============================================================================
-// Indicateurs de réponse
+// Indicateurs de réponse (Figma 4290-22367)
 // =============================================================================
+// Disposition verticale : Intitulé indicateur + Valeur cible empilés
+// au-dessus du champ de saisie. Le label du champ reflète le nom de la
+// métrique (ex. « Nombre d'enquête PG ») qui peut varier d'une métrique
+// à l'autre.
 
 .indic-list {
   display: flex;
@@ -433,26 +525,33 @@ textarea.full-width {
 }
 
 .indic-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-md;
-  align-items: end;
-  padding-top: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding-top: $spacing-md;
   border-top: 1px solid $gray-lighter;
 
   &:first-child { border-top: none; padding-top: 0; }
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+  app-form-field {
+    margin-top: $spacing-xs;
+    max-width: 320px;
   }
 }
 
-.indic-meta {
+.indic-info {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
   font-size: 0.9rem;
-  color: $gray-dark;
 
-  .indic-label strong { color: $black; }
-  .indic-sub { font-size: 0.85rem; margin-top: $spacing-xxs; }
+  .indic-info-label {
+    color: $gray-dark;
+  }
+  .indic-info-value {
+    color: $black;
+    font-weight: 600;
+  }
 }
 
 // =============================================================================

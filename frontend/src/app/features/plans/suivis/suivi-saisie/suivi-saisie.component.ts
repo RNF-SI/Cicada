@@ -27,7 +27,7 @@ import { forkJoin, of } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
-import { LeafletMapComponent } from '../../../../shared/components/leaflet-map/leaflet-map.component';
+import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
@@ -46,6 +46,9 @@ interface Niveau {
   label: string;
 }
 
+/** Mêmes statuts que plan-suivi-actions, partagés pour cohérence visuelle. */
+type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realized-unplanned' | 'partial-unplanned';
+
 @Component({
   selector: 'app-suivi-saisie',
   standalone: true,
@@ -53,7 +56,8 @@ interface Niveau {
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     TranslateModule,
-    HeaderComponent, PlanSidebarComponent, FormFieldComponent, LeafletMapComponent,
+    HeaderComponent, PlanSidebarComponent, FormFieldComponent,
+    LeafletMapEditComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
   styleUrl: './suivi-saisie.component.scss',
@@ -81,6 +85,21 @@ export class SuiviSaisieComponent implements OnInit {
   isLoading = signal(true);
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
+
+  /**
+   * Mode édition de l'emprise réalisée. Quand `true`, on remplace la
+   * `app-leaflet-map` (lecture seule) par `app-leaflet-map-edit`
+   * (avec outils de dessin Leaflet-Draw). L'emprise prévue de l'opération
+   * reste affichée en arrière-plan (pointillés terra-cotta) comme repère.
+   */
+  isEditingGeom = signal(false);
+
+  /**
+   * Emprise réalisée en cours d'édition (avant sauvegarde).
+   * `undefined` = pas de modification locale, on utilise la valeur serveur.
+   * `null` = l'utilisateur a effacé la géométrie.
+   */
+  pendingGeomRealisee = signal<any | undefined>(undefined);
 
   // -------- Form --------
   form: FormGroup = this.fb.group({
@@ -138,6 +157,34 @@ export class SuiviSaisieComponent implements OnInit {
     return op?.operation_annees?.find(oa => oa.annee === year) ?? null;
   });
 
+  /** Emprise prévue (operation.geom). Affichée en arrière-plan/repère. */
+  plannedGeom = computed<any>(() => this.operation()?.geom_geojson ?? null);
+
+  /**
+   * Emprise réalisée à afficher/éditer : priorité aux modifications locales
+   * (`pendingGeomRealisee`), sinon valeur du serveur pour l'année active.
+   */
+  realisedGeom = computed<any>(() => {
+    const pending = this.pendingGeomRealisee();
+    if (pending !== undefined) return pending;
+    return this.currentOperationAnnee()?.realisation?.geom_realisee ?? null;
+  });
+
+  // (Plus de FeatureCollection : on partage le même composant
+  // `app-leaflet-map-edit` entre lecture et écriture, ce qui permet
+  // d'utiliser `backgroundGeometry` pour l'emprise prévue dans les deux
+  // modes — pas besoin d'aplatir en FeatureCollection.)
+
+  /** Toggle entre vue carte (lecture) et édition (dessin). */
+  toggleEditGeom(): void {
+    this.isEditingGeom.update(v => !v);
+  }
+
+  /** Capture les modifications de l'éditeur Leaflet-Draw. */
+  onGeomRealiseeChange(geom: any): void {
+    this.pendingGeomRealisee.set(geom);
+  }
+
   /** Retourne l'OperationAnnee pour une année donnée (ou null). */
   getOaForYear(year: number): OperationAnnee | null {
     return this.operation()?.operation_annees?.find(oa => oa.annee === year) ?? null;
@@ -162,6 +209,38 @@ export class SuiviSaisieComponent implements OnInit {
   getOaoForYearOrg(year: number, orgId: number) {
     const oa = this.getOaForYear(year);
     return oa?.organismes?.find(o => o.id_organisme === orgId) ?? null;
+  }
+
+  // -------- Icônes statut programmation (mêmes que plan-suivi-actions) --------
+  private readonly actionIconMap: Record<ActionStatus, string> = {
+    'planned': 'assets/images/icons/prevu.png',
+    'planned-realized': 'assets/images/icons/prevu-realise.png',
+    'planned-partial': 'assets/images/icons/prevu-partiellement-realise.png',
+    'realized-unplanned': 'assets/images/icons/realise.png',
+    'partial-unplanned': 'assets/images/icons/partiellement-realise.png',
+  };
+
+  /** Statut d'une cellule (operation, année). Utilise les mêmes règles que plan-suivi-actions. */
+  getCellStatus(oa: OperationAnnee | null): ActionStatus | null {
+    if (!oa) return null;
+    const prevu = !!oa.periodicite;
+    const niveau = oa.realisation?.niveau_realisation_mnemonique ?? null;
+    const realiseTotal = niveau === 'TERMINE';
+    const realisePartiel = niveau === 'PARTIEL';
+    if (prevu) {
+      if (realiseTotal) return 'planned-realized';
+      if (realisePartiel) return 'planned-partial';
+      return 'planned';
+    }
+    if (realiseTotal) return 'realized-unplanned';
+    if (realisePartiel) return 'partial-unplanned';
+    return null;
+  }
+
+  /** URL de l'icône pour un statut donné (ou chaîne vide si null). */
+  getCellIcon(oa: OperationAnnee | null): string {
+    const st = this.getCellStatus(oa);
+    return st ? this.actionIconMap[st] : '';
   }
 
   /** Helper d'affichage pour les cellules numériques (€/jours). */
@@ -283,6 +362,9 @@ export class SuiviSaisieComponent implements OnInit {
         id_metrique: [met.id_metrique],
         nom_metrique: [met.nom_metrique],
         indicateur_nom: [met.indicateur_nom],
+        // « Valeur cible » stockée dans etat_reference côté Metrique
+        // (cf. operation-form, accordéon « Indicateur(s) de réponse »).
+        valeur_cible: [met.etat_reference ?? ''],
         id_mesure: [existing?.id_mesure ?? null],
         valeur: [existing?.valeur ?? ''],
       }));
@@ -347,6 +429,10 @@ export class SuiviSaisieComponent implements OnInit {
   selectYear(year: number): void {
     this.selectedYear.set(year);
     this.hydrateFormFromCurrentYear();
+    // Réinitialiser l'emprise en cours d'édition (chaque année a sa propre
+    // emprise réalisée).
+    this.pendingGeomRealisee.set(undefined);
+    this.isEditingGeom.set(false);
   }
 
   goBack(): void {
@@ -393,6 +479,13 @@ export class SuiviSaisieComponent implements OnInit {
       } else {
         annualPayload.budget_realise = v.budget_realise ?? null;
       }
+    }
+    // Emprise réalisée : on n'inclut le champ dans le payload que si
+    // l'utilisateur l'a modifié localement (sinon on ne touche pas au
+    // serveur). `null` est une valeur valide (effacement explicite).
+    const pendingGeom = this.pendingGeomRealisee();
+    if (pendingGeom !== undefined) {
+      annualPayload.geom_realisee = pendingGeom;
     }
 
     // 2) Payloads par organisme (mode by_org / by_org_type).
@@ -465,6 +558,10 @@ export class SuiviSaisieComponent implements OnInit {
             this.operation.set({ ...op });
           }
         }
+        // Emprise sauvegardée : on revient en lecture seule et on purge le
+        // brouillon (le serveur fait foi maintenant).
+        this.pendingGeomRealisee.set(undefined);
+        this.isEditingGeom.set(false);
       },
       error: () => {
         this.isSaving.set(false);

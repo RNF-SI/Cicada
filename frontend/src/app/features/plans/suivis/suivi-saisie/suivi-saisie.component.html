@@ -27,6 +27,8 @@
       <section class="hero-section">
         <div class="hero-background"><div class="hero-pattern"></div></div>
         <div class="hero-content">
+          <!-- Fil d'Ariane (même structure visuelle que plan-suivi-actions :
+               rond bleu-vert + lignes horizontales + chevrons) -->
           <nav class="breadcrumb" aria-label="Fil d'Ariane">
             <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
               <i class="fi fi-rr-home"></i>
@@ -97,7 +99,7 @@
         <!-- Réalisation -->
         <section class="saisie-card">
           <div class="card-header">
-            <i class="fi fi-rr-folder card-icon"></i>
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.realisation' | translate }}</h2>
           </div>
 
@@ -128,21 +130,22 @@
                 </tr>
               </thead>
               <tbody>
-                <!-- Périodicité prévue -->
+                <!-- Statut (prévu / prévu-réalisé / prévu-partiel / réalisé-non-prévu)
+                     mêmes icônes que page Suivi des actions. -->
                 <tr>
-                  <td class="col-field">{{ 'plans.suivis.saisie.table.periodicitePrevue' | translate }}</td>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.periodiciteStatut' | translate }}</td>
                   @for (y of years(); track y) {
                     @let oa = getOaForYear(y);
                     <td [class.active]="y === selectedYear()">
-                      @if (oa?.periodicite) {
-                        <span class="cell-dot prev"></span>
+                      @if (getCellIcon(oa); as src) {
+                        <img [src]="src" class="action-status-icon" alt="" />
                       } @else {
                         —
                       }
                     </td>
                   }
                 </tr>
-                <!-- Périodicité réalisée -->
+                <!-- Périodicité réalisée — case à cocher pour l'année active -->
                 <tr>
                   <td class="col-field">{{ 'plans.suivis.saisie.table.periodiciteRealisee' | translate }}</td>
                   @for (y of years(); track y) {
@@ -151,7 +154,7 @@
                       @if (y === selectedYear()) {
                         <input type="checkbox" formControlName="periodicite_realisee" />
                       } @else if (oa?.realisation?.periodicite_realisee) {
-                        <span class="cell-dot real"></span>
+                        <span class="cell-check">✓</span>
                       } @else {
                         —
                       }
@@ -246,196 +249,172 @@
 
           } @else {
 
-            <!-- Mode by_org / by_org_type : une matrice par organisme + TOTAL -->
-            <div class="org-section">
-              <!-- Périodicité (commune à tous les organismes, dérive de l'année) -->
-              <table class="realisation-matrix">
-                <thead>
-                  <tr>
-                    <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
-                    @for (y of years(); track y) {
-                      <th [class.active]="y === selectedYear()">{{ y }}</th>
-                    }
+            <!-- Mode by_org / by_org_type : un seul tableau avec lignes d'en-tête organisme.
+                 (Inspiré de plan-suivi-actions.component.html : .org-header-row inline,
+                 puis lignes de l'organisme, puis bloc TOTAL en bas.) -->
+            <table class="realisation-matrix" formArrayName="organismes">
+              <thead>
+                <tr>
+                  <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
+                  @for (y of years(); track y) {
+                    <th [class.active]="y === selectedYear()">{{ y }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Périodicité (commune à tous les organismes) -->
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.periodiciteStatut' | translate }}</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">
+                      @if (getCellIcon(getOaForYear(y)); as src) {
+                        <img [src]="src" class="action-status-icon" alt="" />
+                      } @else { — }
+                    </td>
+                  }
+                </tr>
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.periodiciteRealisee' | translate }}</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">
+                      @if (y === selectedYear()) {
+                        <input type="checkbox" formControlName="periodicite_realisee" />
+                      } @else if (getOaForYear(y)?.realisation?.periodicite_realisee) {
+                        <span class="cell-check">✓</span>
+                      } @else { — }
+                    </td>
+                  }
+                </tr>
+
+                <!-- Lignes par organisme -->
+                @for (org of organismesList(); track org.id_organisme; let orgIdx = $index) {
+                  <tr class="org-header-row">
+                    <td [attr.colspan]="years().length + 1">{{ org.nom }}</td>
                   </tr>
-                </thead>
-                <tbody>
                   <tr>
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.periodicitePrevue' | translate }}</td>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">
-                        @if (getOaForYear(y)?.periodicite) { <span class="cell-dot prev"></span> } @else { — }
+                        {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_fonctionnement, ' €') }}
                       </td>
                     }
                   </tr>
                   <tr>
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.periodiciteRealisee' | translate }}</td>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (réalisé)</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">
                         @if (y === selectedYear()) {
-                          <input type="checkbox" formControlName="periodicite_realisee" />
-                        } @else if (getOaForYear(y)?.realisation?.periodicite_realisee) {
-                          <span class="cell-dot real"></span>
-                        } @else { — }
+                          <ng-container [formGroupName]="orgIdx">
+                            <input type="number" min="0" step="0.01"
+                                   formControlName="budget_fonctionnement_realise" placeholder="€" />
+                          </ng-container>
+                        } @else {
+                          {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_fonctionnement_realise, ' €') }}
+                        }
                       </td>
                     }
                   </tr>
-                </tbody>
-              </table>
-
-              <!-- Une matrice par organisme -->
-              <div formArrayName="organismes">
-                @for (org of organismesList(); track org.id_organisme; let orgIdx = $index) {
-                  <div class="org-block">
-                    <h3 class="org-title">{{ org.nom }}</h3>
-                    <table class="realisation-matrix">
-                      <thead>
-                        <tr>
-                          <th class="col-field"></th>
-                          @for (y of years(); track y) {
-                            <th [class.active]="y === selectedYear()">{{ y }}</th>
-                          }
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
-                          @for (y of years(); track y) {
-                            <td [class.active]="y === selectedYear()">
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_fonctionnement, ' €') }}
-                            </td>
-                          }
-                        </tr>
-                        <tr>
-                          <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (réalisé)</td>
-                          @for (y of years(); track y) {
-                            <td [class.active]="y === selectedYear()">
-                              @if (y === selectedYear()) {
-                                <ng-container [formGroupName]="orgIdx">
-                                  <input type="number" min="0" step="0.01"
-                                         formControlName="budget_fonctionnement_realise" placeholder="€" />
-                                </ng-container>
-                              } @else {
-                                {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_fonctionnement_realise, ' €') }}
-                              }
-                            </td>
-                          }
-                        </tr>
-                        @if (ventilationMode() === 'by_org_type') {
-                          <tr>
-                            <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
-                            @for (y of years(); track y) {
-                              <td [class.active]="y === selectedYear()">
-                                {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_investissement, ' €') }}
-                              </td>
-                            }
-                          </tr>
-                          <tr>
-                            <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (réalisé)</td>
-                            @for (y of years(); track y) {
-                              <td [class.active]="y === selectedYear()">
-                                @if (y === selectedYear()) {
-                                  <ng-container [formGroupName]="orgIdx">
-                                    <input type="number" min="0" step="0.01"
-                                           formControlName="budget_investissement_realise" placeholder="€" />
-                                  </ng-container>
-                                } @else {
-                                  {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_investissement_realise, ' €') }}
-                                }
-                              </td>
-                            }
-                          </tr>
-                        }
-                        <tr>
-                          <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
-                          @for (y of years(); track y) {
-                            <td [class.active]="y === selectedYear()">
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.etp, ' j') }}
-                            </td>
-                          }
-                        </tr>
-                        <tr>
-                          <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
-                          @for (y of years(); track y) {
-                            <td [class.active]="y === selectedYear()">
-                              @if (y === selectedYear()) {
-                                <ng-container [formGroupName]="orgIdx">
-                                  <input type="number" min="0" step="0.25"
-                                         formControlName="etp_realise" placeholder="j" />
-                                </ng-container>
-                              } @else {
-                                {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.etp_realise, ' j') }}
-                              }
-                            </td>
-                          }
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                }
-              </div>
-
-              <!-- TOTAL : somme des organismes par année -->
-              <div class="org-block total-block">
-                <h3 class="org-title total">{{ 'plans.suivis.saisie.table.total' | translate }}</h3>
-                <table class="realisation-matrix">
-                  <thead>
+                  @if (ventilationMode() === 'by_org_type') {
                     <tr>
-                      <th class="col-field"></th>
+                      <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                       @for (y of years(); track y) {
-                        <th [class.active]="y === selectedYear()">{{ y }}</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
-                      @for (y of years(); track y) {
-                        <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_fonct'), ' €') }}</td>
+                        <td [class.active]="y === selectedYear()">
+                          {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_investissement, ' €') }}
+                        </td>
                       }
                     </tr>
                     <tr>
-                      <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (réalisé)</td>
+                      <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (réalisé)</td>
                       @for (y of years(); track y) {
-                        <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_fonct'), ' €') }}</td>
+                        <td [class.active]="y === selectedYear()">
+                          @if (y === selectedYear()) {
+                            <ng-container [formGroupName]="orgIdx">
+                              <input type="number" min="0" step="0.01"
+                                     formControlName="budget_investissement_realise" placeholder="€" />
+                            </ng-container>
+                          } @else {
+                            {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_investissement_realise, ' €') }}
+                          }
+                        </td>
                       }
                     </tr>
-                    @if (ventilationMode() === 'by_org_type') {
-                      <tr>
-                        <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
-                        @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_invest'), ' €') }}</td>
-                        }
-                      </tr>
-                      <tr>
-                        <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (réalisé)</td>
-                        @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_invest'), ' €') }}</td>
-                        }
-                      </tr>
+                  }
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.etp, ' j') }}
+                      </td>
                     }
-                    <tr>
-                      <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
-                      @for (y of years(); track y) {
-                        <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_etp'), ' j') }}</td>
-                      }
-                    </tr>
-                    <tr>
-                      <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
-                      @for (y of years(); track y) {
-                        <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_etp'), ' j') }}</td>
-                      }
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <ng-container [formGroupName]="orgIdx">
+                            <input type="number" min="0" step="0.25"
+                                   formControlName="etp_realise" placeholder="j" />
+                          </ng-container>
+                        } @else {
+                          {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.etp_realise, ' j') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                }
+
+                <!-- TOTAL : somme des organismes par année -->
+                <tr class="org-header-row total-header-row">
+                  <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.total' | translate }}</td>
+                </tr>
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_fonct'), ' €') }}</td>
+                  }
+                </tr>
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (réalisé)</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_fonct'), ' €') }}</td>
+                  }
+                </tr>
+                @if (ventilationMode() === 'by_org_type') {
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_invest'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (réalisé)</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_invest'), ' €') }}</td>
+                    }
+                  </tr>
+                }
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_etp'), ' j') }}</td>
+                  }
+                </tr>
+                <tr>
+                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
+                  @for (y of years(); track y) {
+                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_etp'), ' j') }}</td>
+                  }
+                </tr>
+              </tbody>
+            </table>
           }
         </section>
 
         <!-- Détails -->
         <section class="saisie-card">
           <div class="card-header">
-            <i class="fi fi-rr-comment card-icon"></i>
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.details' | translate }}</h2>
           </div>
           <textarea
@@ -449,28 +428,47 @@
         <!-- Emprise spatiale réalisée -->
         <section class="saisie-card">
           <div class="card-header">
-            <i class="fi fi-rr-folder card-icon"></i>
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.emprise' | translate }}</h2>
           </div>
           <div class="emprise-row">
             <div class="emprise-map">
-              <app-leaflet-map
-                [geojsonData]="operation()?.geom_geojson || null"
-                height="280px"
-                [showControls]="true"
-                [interactive]="true"
-                [fitBounds]="true">
-              </app-leaflet-map>
-              @if (!operation()?.geom_geojson) {
+              <!-- Même composant en lecture et en écriture pour garder un
+                   rendu visuel cohérent : l'emprise prévue est affichée en
+                   arrière-plan (pointillés terra-cotta) et l'emprise réalisée
+                   par-dessus. Les outils de dessin Leaflet-Draw apparaissent
+                   uniquement quand `isEditingGeom()` est vrai. -->
+              <app-leaflet-map-edit
+                [existingGeometry]="realisedGeom()"
+                [backgroundGeometry]="plannedGeom()"
+                [readOnly]="!isEditingGeom()"
+                height="320px"
+                geometryType="polygon"
+                [enableGeometryImport]="isEditingGeom()"
+                (geometryChange)="onGeomRealiseeChange($event)">
+              </app-leaflet-map-edit>
+              @if (!isEditingGeom() && !plannedGeom() && !realisedGeom()) {
                 <p class="text-mention emprise-empty">{{ 'plans.suivis.saisie.fields.empriseEmpty' | translate }}</p>
               }
             </div>
             <div class="emprise-actions">
-              <button type="button" class="btn-emprise-import" disabled>
-                <i class="fi fi-rr-download"></i>
-                <span>{{ 'plans.suivis.saisie.fields.importSig' | translate }}</span>
+              <div class="emprise-legend">
+                <div class="emprise-legend-item">
+                  <span class="legend-swatch legend-prevu"></span>
+                  {{ 'plans.suivis.saisie.fields.empriseLegendPrevu' | translate }}
+                </div>
+                <div class="emprise-legend-item">
+                  <span class="legend-swatch legend-realise"></span>
+                  {{ 'plans.suivis.saisie.fields.empriseLegendRealise' | translate }}
+                </div>
+              </div>
+              <button type="button" class="btn-emprise-import" (click)="toggleEditGeom()">
+                <i class="fi" [class.fi-rr-pencil]="!isEditingGeom()" [class.fi-rr-eye]="isEditingGeom()"></i>
+                <span>{{ (isEditingGeom() ? 'plans.suivis.saisie.fields.empriseStopDraw' : 'plans.suivis.saisie.fields.empriseStartDraw') | translate }}</span>
               </button>
-              <p class="text-mention">{{ 'plans.suivis.saisie.fields.importSigSoon' | translate }}</p>
+              @if (isEditingGeom()) {
+                <p class="text-mention">{{ 'plans.suivis.saisie.fields.empriseDrawHint' | translate }}</p>
+              }
             </div>
           </div>
         </section>
@@ -478,24 +476,26 @@
         <!-- Indicateurs de réponse -->
         <section class="saisie-card">
           <div class="card-header">
-            <i class="fi fi-rr-folder card-icon"></i>
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.indicateurs' | translate }}</h2>
           </div>
           @if (indicateursFA.length === 0) {
             <p class="text-mention">{{ 'plans.suivis.saisie.fields.noIndicateurs' | translate }}</p>
           } @else {
+            <!-- Figma 4290-22367 : disposition verticale.
+                 Le label du champ de saisie reflète le nom de la métrique
+                 (ex. « Nombre d'enquête PG ») car la valeur saisie est la
+                 valeur réalisée pour cette métrique. -->
             <div formArrayName="indicateurs" class="indic-list">
               @for (ind of indicateursFA.controls; track ind.value.id_metrique; let i = $index) {
                 <div [formGroupName]="i" class="indic-row">
-                  <div class="indic-meta">
-                    <div class="indic-label">
-                      {{ 'plans.suivis.saisie.fields.indicateurNom' | translate }} :
-                      <strong>{{ ind.value.indicateur_nom }}</strong>
-                    </div>
-                    <div class="indic-sub">
-                      {{ 'plans.suivis.saisie.fields.metriqueNom' | translate }} :
-                      {{ ind.value.nom_metrique }}
-                    </div>
+                  <div class="indic-info">
+                    <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.indicateurNom' | translate }} :</span>
+                    <span class="indic-info-value">{{ ind.value.indicateur_nom }}</span>
+                  </div>
+                  <div class="indic-info">
+                    <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.valeurCible' | translate }} :</span>
+                    <span class="indic-info-value">{{ ind.value.valeur_cible || '—' }}</span>
                   </div>
                   <app-form-field [label]="ind.value.nom_metrique || ('plans.suivis.saisie.fields.valeurRealisee' | translate)">
                     <input type="text" formControlName="valeur"

@@ -559,6 +559,8 @@ export interface RealisationUpsertPayload {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  /** Emprise spatiale réalisée (GeoJSON), null pour effacer. */
+  geom_realisee?: GeoJSONGeometry | null;
 }
 
 /**

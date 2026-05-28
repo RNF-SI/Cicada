@@ -177,6 +177,34 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_realisation_op_annee_organisme', 'date_ajout', 'date_maj']
 
 
+class GeoJSONGeometryField(serializers.Field):
+    """
+    Champ DRF pour les `GeometryField` exposés et acceptés en GeoJSON.
+    Sérialise la géométrie en GeoJSON (dict) ; accepte en entrée soit un
+    dict GeoJSON, soit une string GeoJSON / WKT.
+    """
+
+    def to_representation(self, value):
+        if not value:
+            return None
+        import json as _json
+        try:
+            return _json.loads(value.geojson)
+        except (AttributeError, ValueError, TypeError):
+            return None
+
+    def to_internal_value(self, data):
+        if data is None:
+            return None
+        import json as _json
+        from django.contrib.gis.geos import GEOSGeometry
+        try:
+            data_str = data if isinstance(data, str) else _json.dumps(data)
+            return GEOSGeometry(data_str)
+        except Exception as e:
+            raise serializers.ValidationError(f"GeoJSON invalide: {e}")
+
+
 class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
     """Réalisation annuelle d'une opération (1-1 avec OperationAnnee)."""
     niveau_realisation_label = serializers.CharField(
@@ -185,6 +213,9 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
     niveau_realisation_mnemonique = serializers.CharField(
         source='id_niveau_realisation.mnemonique', read_only=True
     )
+    # Emprise réalisée exposée et acceptée en GeoJSON (cohérent avec
+    # `OperationSerializer.geom_geojson`). Lecture + écriture.
+    geom_realisee = GeoJSONGeometryField(required=False, allow_null=True)
 
     class Meta:
         model = RealisationOperationAnnee
