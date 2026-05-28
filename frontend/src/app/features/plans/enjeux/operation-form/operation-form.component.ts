@@ -27,6 +27,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { LeafletMapComponent } from '../../../../shared/components/leaflet-map/leaflet-map.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
@@ -72,6 +73,7 @@ import {
     ReferenceItemListComponent,
     AccordionComponent,
     FormFieldComponent,
+    LeafletMapComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
@@ -103,6 +105,8 @@ export class OperationFormComponent implements OnInit {
   /** Mode lecture seule : la route `operations/:id` (sans /modifier) définit data.readOnly = true */
   isReadOnly = signal(false);
   existingOperation = signal<Operation | null>(null);
+  /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
+  typeMetriqueOptions = signal<{ id_nomenclature: number; label: string }[]>([]);
 
   // Query params
   prelinkedMetriqueId = signal<number | null>(null);
@@ -511,6 +515,12 @@ export class OperationFormComponent implements OnInit {
       error: () => this.categorieActionReserveOptions.set([])
     });
 
+    // Types de métriques pour la section Indicateurs de réponse.
+    this.adminService.getNomenclaturesByType('TYPE_METRIQUE').subscribe({
+      next: (options) => this.typeMetriqueOptions.set(options),
+      error: () => this.typeMetriqueOptions.set([]),
+    });
+
 
 
     this.adminService.getNomenclaturesByType('CATEGORIE_FINANCE').subscribe({
@@ -854,6 +864,118 @@ export class OperationFormComponent implements OnInit {
    */
   saveDraft(): void {
     this.submitToApi(this.buildPayload(), { stayOnForm: true, statut: 'draft' });
+  }
+
+  // ===========================================================================
+  // Section Indicateurs de réponse — CRUD inline
+  // ===========================================================================
+
+  /**
+   * Met à jour le signal `existingOperation` en patchant la métrique passée.
+   * Utilisé pour appliquer immédiatement les changements locaux après un PATCH
+   * API réussi, sans avoir à refetch l'opération complète.
+   */
+  private patchLocalMetrique(metriqueId: number, patch: Partial<{
+    nom_metrique: string; indicateur_nom: string; etat_reference: string;
+    type_metrique_id: number | null; type_metrique_label: string | null;
+  }>): void {
+    const op = this.existingOperation();
+    if (!op?.metriques) return;
+    const updated = op.metriques.map(m =>
+      m.id_metrique === metriqueId ? { ...m, ...patch } : m,
+    );
+    this.existingOperation.set({ ...op, metriques: updated });
+  }
+
+  /** Bouton "+ Ajouter un indicateur de réponse" : crée Indicateur + Métrique côté backend. */
+  addResponseIndicator(): void {
+    const opId = this.operationId();
+    if (!opId) return;
+    const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
+    this.enjeuService.createOperationResponseIndicator(opId, {
+      nom_indicateur: defaultNom,
+      nom_metrique: defaultNom,
+    }).subscribe({
+      next: (created) => {
+        const op = this.existingOperation();
+        if (!op) return;
+        const newRef = {
+          id_metrique: created.id_metrique,
+          nom_metrique: created.nom_metrique,
+          indicateur_id: created.id_indicateur,
+          indicateur_nom: created.nom_indicateur,
+          etat_reference: created.etat_reference,
+          type_metrique_id: created.type_metrique,
+          type_metrique_label: null,
+        };
+        this.existingOperation.set({
+          ...op,
+          metriques: [...(op.metriques || []), newRef],
+        });
+      },
+      error: (err) => {
+        const msg = err?.error?.detail
+          || this.translate.instant('enjeux.operations.indicateursAddError');
+        this.snackBar.open(msg, this.translate.instant('common.actions.close'), { duration: 4000 });
+      },
+    });
+  }
+
+  /** Bouton corbeille : retire le lien op ↔ métrique (n'efface pas l'indicateur sous-jacent). */
+  removeResponseIndicator(metriqueId: number): void {
+    const opId = this.operationId();
+    if (!opId) return;
+    this.enjeuService.unlinkOperationMetrique(opId, metriqueId).subscribe({
+      next: () => {
+        const op = this.existingOperation();
+        if (!op?.metriques) return;
+        this.existingOperation.set({
+          ...op,
+          metriques: op.metriques.filter(m => m.id_metrique !== metriqueId),
+        });
+      },
+      error: () => this.snackBar.open(
+        this.translate.instant('enjeux.operations.indicateursRemoveError'),
+        this.translate.instant('common.actions.close'),
+        { duration: 4000 },
+      ),
+    });
+  }
+
+  /** Sauvegarde le titre de l'indicateur (on blur de l'input). */
+  saveIndicatorName(indicateurId: number, metriqueId: number, value: string): void {
+    if (!indicateurId) return;
+    const trimmed = (value || '').trim();
+    this.enjeuService.updateIndicateur(indicateurId, { nom_indicateur: trimmed }).subscribe({
+      next: () => this.patchLocalMetrique(metriqueId, { indicateur_nom: trimmed }),
+    });
+  }
+
+  /** Sauvegarde le nom de la métrique. */
+  saveMetricName(metriqueId: number, value: string): void {
+    const trimmed = (value || '').trim();
+    this.enjeuService.updateMetrique(metriqueId, { nom_metrique: trimmed }).subscribe({
+      next: () => this.patchLocalMetrique(metriqueId, { nom_metrique: trimmed }),
+    });
+  }
+
+  /** Sauvegarde le type de métrique (dropdown). */
+  saveMetricType(metriqueId: number, typeId: number | null): void {
+    const payload = { type_metrique: typeId ?? undefined } as any;
+    this.enjeuService.updateMetrique(metriqueId, payload).subscribe({
+      next: () => {
+        const label = this.typeMetriqueOptions().find(o => o.id_nomenclature === typeId)?.label || null;
+        this.patchLocalMetrique(metriqueId, { type_metrique_id: typeId, type_metrique_label: label });
+      },
+    });
+  }
+
+  /** Sauvegarde la valeur cible (mappée sur Metrique.etat_reference). */
+  saveMetricTarget(metriqueId: number, value: string): void {
+    const trimmed = (value || '').trim();
+    this.enjeuService.updateMetrique(metriqueId, { etat_reference: trimmed }).subscribe({
+      next: () => this.patchLocalMetrique(metriqueId, { etat_reference: trimmed }),
+    });
   }
 
   private buildPayload(): OperationCreatePayload {

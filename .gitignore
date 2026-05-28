@@ -6,6 +6,12 @@ DEPLOY_SERVERS.md
 .env.test.local
 .env.production.local
 
+# Stack parallèle "données réelles" (config locale, non versionnée)
+docs/PARALLEL_REALDATA_STACK.md
+docker-compose.realdata.yml
+.env.realdata
+scripts/restore_real_data.sh
+
 # Django
 backend/__pycache__/
 backend/*.pyc

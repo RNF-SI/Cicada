@@ -193,7 +193,7 @@
         <!-- (visible uniquement pour les actions CS)        -->
         <!-- ═══════════════════════════════════════════════ -->
         @if (isCSAction()) {
-        <app-accordion variant="subtle" [title]="'enjeux.operations.detailsSuiviTitle' | translate" [expanded]="sectionsOpen['details_suivi']" (expandedChange)="sectionsOpen['details_suivi'] = $event" [class.readonly-section]="estSuiviExistant()">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.detailsSuiviTitle' | translate" [expanded]="sectionsOpen['details_suivi']" (expandedChange)="sectionsOpen['details_suivi'] = $event" [class.readonly-section]="estSuiviExistant()">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- Objectif principal (grouped select) -->
@@ -313,7 +313,7 @@
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Protocole                             -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.protocoleTitle' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event" [class.readonly-section]="estSuiviExistant()">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.protocoleTitle' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event" [class.readonly-section]="estSuiviExistant()">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- Protocole répertorié dans Campanule -->
@@ -481,7 +481,7 @@
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage             -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.bancarisationTitle' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event" [class.readonly-section]="estSuiviExistant()">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.bancarisationTitle' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event" [class.readonly-section]="estSuiviExistant()">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- Outil de bancarisation -->
@@ -523,7 +523,7 @@
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Programmation                         -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.programmationTitle' | translate" [expanded]="sectionsOpen['programmation']" (expandedChange)="sectionsOpen['programmation'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.programmationTitle' | translate" [expanded]="sectionsOpen['programmation']" (expandedChange)="sectionsOpen['programmation'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <!-- L'action est liée au/aux (masqué si plan mono-site) -->
@@ -919,20 +919,20 @@
               <div class="finances-section">
                 @for (finance of finances; track $index) {
                   <div class="finance-row">
-                    <app-form-field [label]="'enjeux.operations.financeLibelleLabel' | translate">
+                    <app-form-field class="finance-libelle" [label]="'enjeux.operations.financeLibelleLabel' | translate">
   <input [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
 </app-form-field>
-                    <label class="app-mat-label">{{ 'enjeux.operations.categorieFinanceLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field finance-categorie" appearance="outline">
-                      <mat-label></mat-label>
-                      <mat-select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
-                        <mat-option [value]="null">—</mat-option>
+                    <app-form-field class="finance-categorie" [label]="'enjeux.operations.categorieFinanceLabel' | translate">
+                      <select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
+                        <option [ngValue]="null">—</option>
                         @for (cat of categorieFinanceOptions(); track cat.id_nomenclature) {
-                          <mat-option [value]="cat.id_nomenclature">{{ cat.label }}</mat-option>
+                          <option [ngValue]="cat.id_nomenclature">{{ cat.label }}</option>
                         }
-                      </mat-select>
-                    </mat-form-field>
-                    <button type="button" class="finance-remove-btn" (click)="removeFinance($index)">
+                      </select>
+                    </app-form-field>
+                    <button type="button" class="finance-remove-btn" (click)="removeFinance($index)"
+                            [title]="'common.actions.delete' | translate"
+                            [attr.aria-label]="'common.actions.delete' | translate">
                       <i class="fi fi-rr-trash"></i>
                     </button>
                   </div>
@@ -947,7 +947,7 @@
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Détails                               -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.detailsLabel' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.detailsLabel' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <app-form-field [label]="'enjeux.operations.detailsCommentaires' | translate">
@@ -959,24 +959,108 @@
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Emprise spatiale                      -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-<button type="button" class="add-link-btn">
-                + {{ 'enjeux.operations.ajouterEmprise' | translate }}
-              </button>
+    @if (existingOperation()?.geom_geojson; as gj) {
+      <div class="op-emprise-row">
+        <div class="op-emprise-map">
+          <app-leaflet-map
+            [geojsonData]="gj"
+            height="280px"
+            [showControls]="true"
+            [interactive]="true"
+            [fitBounds]="true">
+          </app-leaflet-map>
+        </div>
+        <div class="op-emprise-actions">
+          <button type="button" class="btn-outlined-pill" disabled
+                  [matTooltip]="'enjeux.operations.importSigSoon' | translate">
+            <i class="fi fi-rr-download"></i>
+            {{ 'enjeux.operations.importSig' | translate }}
+          </button>
+        </div>
+      </div>
+    } @else {
+      <p class="text-mention">{{ 'enjeux.operations.empriseEmpty' | translate }}</p>
+      <button type="button" class="add-link-btn" disabled>
+        + {{ 'enjeux.operations.ajouterEmprise' | translate }}
+      </button>
+    }
   </div>
 </app-accordion>
 
         <!-- ═══════════════════════════════════════════════ -->
         <!-- SECTION: Indicateur(s) de réponse              -->
         <!-- ═══════════════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-<button type="button" class="add-link-btn">
-                + {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
-              </button>
+    @let opMetriques = existingOperation()?.metriques || [];
+    @if (opMetriques.length > 0) {
+      <div class="op-indic-editor">
+        @for (m of opMetriques; track m.id_metrique; let last = $last) {
+          <div class="op-indic-edit-row" [class.with-separator]="!last">
+            <!-- Ligne 1 : Intitulé indicateur (required) + corbeille -->
+            <div class="op-indic-line op-indic-line-title">
+              <app-form-field
+                [label]="'enjeux.operations.intituleIndicateurReponse' | translate"
+                [required]="true">
+                <input type="text"
+                       [value]="m.indicateur_nom"
+                       [disabled]="isReadOnly()"
+                       (blur)="saveIndicatorName(m.indicateur_id, m.id_metrique, $any($event.target).value)" />
+              </app-form-field>
+              @if (!isReadOnly()) {
+                <button type="button" class="op-indic-delete"
+                        (click)="removeResponseIndicator(m.id_metrique)"
+                        [title]="'enjeux.operations.indicateurRemove' | translate"
+                        [attr.aria-label]="'enjeux.operations.indicateurRemove' | translate">
+                  <i class="fi fi-rr-trash"></i>
+                </button>
+              }
+            </div>
+            <!-- Ligne 2 : Métrique + Type métrique -->
+            <div class="op-indic-line op-indic-line-grid">
+              <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
+                <input type="text"
+                       [value]="m.nom_metrique || ''"
+                       [disabled]="isReadOnly()"
+                       (blur)="saveMetricName(m.id_metrique, $any($event.target).value)" />
+              </app-form-field>
+              <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
+                <select
+                  [value]="m.type_metrique_id ?? ''"
+                  [disabled]="isReadOnly()"
+                  (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
+                  <option [ngValue]="''">—</option>
+                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                    <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                  }
+                </select>
+              </app-form-field>
+            </div>
+            <!-- Ligne 3 : Valeur cible -->
+            <div class="op-indic-line">
+              <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
+                <input type="text"
+                       [value]="m.etat_reference || ''"
+                       [disabled]="isReadOnly()"
+                       (blur)="saveMetricTarget(m.id_metrique, $any($event.target).value)" />
+              </app-form-field>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="text-mention">{{ 'enjeux.operations.indicateursEmpty' | translate }}</p>
+    }
+    @if (!isReadOnly()) {
+      <button type="button" class="btn-outlined-pill" (click)="addResponseIndicator()">
+        <i class="fi fi-rr-plus"></i>
+        {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
+      </button>
+    }
   </div>
 </app-accordion>
 

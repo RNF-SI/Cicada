@@ -2191,6 +2191,30 @@
   cursor: default;
 }
 
+// Badges discrets indiquant la présence d'emprise / indicateurs de réponse
+// sur une action (cohérence avec ce qui est saisissable dans le formulaire).
+.op-trace-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin-left: $spacing-xs;
+  border-radius: $border-radius-pill;
+  background: rgba(2, 83, 89, 0.08);
+  color: $primary-color;
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  cursor: default;
+
+  i { font-size: 0.85rem; }
+
+  &.op-trace-emprise {
+    background: rgba(254, 193, 128, 0.25);
+    color: darken(#FEC180, 30%);
+  }
+}
+
 .operation-header-right {
   display: flex;
   align-items: center;

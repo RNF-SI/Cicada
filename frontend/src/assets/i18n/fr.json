@@ -2812,7 +2812,7 @@
       "financeTitle": "Sources de financement",
       "financeLibelleLabel": "Libellé",
       "categorieFinanceLabel": "Catégorie",
-      "addFinance": "+ Ajouter un financeur",
+      "addFinance": "Ajouter un financeur",
       "recurringHint": "Les mois cochés ci-dessous seront appliqués à toutes les années sélectionnées.",
       "estSuiviExistantLabel": "Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?",
       "intituleSuiviLabel": "Intitulé de l'inventaire ou suivi",

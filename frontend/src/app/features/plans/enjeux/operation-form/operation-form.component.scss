@@ -516,40 +516,36 @@ $form-side-margin: $spacing-xxl;
 
 .finance-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: $spacing-md;
   margin-bottom: $spacing-sm;
 }
 
-.finance-libelle {
-  flex: 2;
-
-  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-    display: none;
-  }
+app-form-field.finance-libelle {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
 }
 
-.finance-categorie {
-  flex: 1;
-
-  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-    display: none;
-  }
+app-form-field.finance-categorie {
+  flex: 0 0 240px;
+  min-width: 0;
+  width: auto;
 }
 
 .finance-remove-btn {
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
   border: none;
   background: none;
   color: $error-color;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: $border-radius-round;
   transition: background-color $transition-fast;
-  flex-shrink: 0;
 
   &:hover {
     background-color: rgba($error-color, 0.1);
@@ -557,6 +553,7 @@ $form-side-margin: $spacing-xxl;
 
   i {
     font-size: 16px;
+    line-height: 1;
   }
 }
 
@@ -1049,7 +1046,7 @@ $form-side-margin: $spacing-xxl;
 .op-indic-editor {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-xl;
   margin-bottom: $spacing-md;
 }
 
@@ -1057,7 +1054,7 @@ $form-side-margin: $spacing-xxl;
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-  padding-bottom: $spacing-md;
+  padding-bottom: $spacing-lg;
 
   &.with-separator {
     border-bottom: 1px solid $gray-lighter;

@@ -1193,6 +1193,21 @@
                                                     <span class="operation-code">{{ op.code_affichage }}</span>
                                                   }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                  @if (op.geom_geojson) {
+                                                    <span class="op-trace-badge op-trace-emprise"
+                                                          [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate"
+                                                          (click)="$event.stopPropagation()">
+                                                      <i class="fi fi-rr-marker"></i>
+                                                    </span>
+                                                  }
+                                                  @if (op.metriques?.length) {
+                                                    <span class="op-trace-badge op-trace-indicateurs"
+                                                          [matTooltip]="'enjeux.operations.indicateursBadge' | translate:{ count: op.metriques!.length }"
+                                                          (click)="$event.stopPropagation()">
+                                                      <i class="fi fi-rr-chart-histogram"></i>
+                                                      {{ op.metriques!.length }}
+                                                    </span>
+                                                  }
                                                   @if (op.statut === 'draft') {
                                                     <mat-chip class="operation-draft-chip status-warning"
                                                               [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
