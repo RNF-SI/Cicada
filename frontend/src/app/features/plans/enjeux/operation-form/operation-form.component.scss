@@ -101,7 +101,7 @@ $form-side-margin: $spacing-xxl;
 .form-card {
   background-color: $white;
   border-radius: $border-radius-lg;
-  padding: $spacing-xl;
+  padding: $spacing-xl $spacing-xxl;
   margin-bottom: $spacing-lg;
 
   &.form-card-flush {
@@ -112,7 +112,6 @@ $form-side-margin: $spacing-xxl;
 
 .full-width {
   width: 100%;
-  margin-bottom: $spacing-lg;
 }
 
 // ═══════════════════════════════════════════════
@@ -164,6 +163,16 @@ $form-side-margin: $spacing-xxl;
 
 .section-content {
   margin-top: $spacing-lg;
+
+  // Espacement uniforme entre TOUTES les questions d'une section, peu importe leur
+  // nature (radio-row, frequence-row, mat-form-field, app-form-field, label, etc.).
+  // Une seule règle factorise ce qui était auparavant éparpillé en `margin-bottom`
+  // sur chaque conteneur. Margin collapse fait que la marge effective reste 22px
+  // même si certains enfants ont déjà un `margin-bottom` (sites-selection,
+  // programmation-section, readonly-field, etc.).
+  > * + * {
+    margin-top: $spacing-lg;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -173,8 +182,6 @@ $form-side-margin: $spacing-xxl;
   display: flex;
   align-items: center;
   gap: $spacing-lg;
-  margin-bottom: $spacing-md;
-  padding: $spacing-sm 0;
 
   .priorite-label {
     font-size: $font-size-base;
@@ -195,8 +202,6 @@ $form-side-margin: $spacing-xxl;
   display: flex;
   align-items: center;
   gap: $spacing-lg;
-  margin-bottom: $spacing-md;
-  padding: $spacing-sm 0;
 
   .radio-field-label {
     font-size: $font-size-base;
@@ -559,8 +564,6 @@ $form-side-margin: $spacing-xxl;
 // Fréquence Controls
 // ═══════════════════════════════════════════════
 .frequence-row {
-  margin-bottom: $spacing-md;
-
   .field-label {
     display: block;
     font-size: $font-size-base;
@@ -955,6 +958,7 @@ $form-side-margin: $spacing-xxl;
   flex-direction: column;
   gap: $spacing-xxs;
   padding: $spacing-sm $spacing-md;
+  margin-top: $spacing-lg;
   margin-bottom: $spacing-md;
   background-color: $primary-bg-soft;
   border-left: 3px solid $primary-color;
@@ -977,3 +981,210 @@ $form-side-margin: $spacing-xxl;
 }
 
 // Styles type-action-autocomplete : voir styles.scss (global, car l'overlay CDK est hors du composant)
+
+// =============================================================================
+// Emprise spatiale + Indicateurs de réponse (sections operation-form)
+// =============================================================================
+
+.op-emprise-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: $spacing-md;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.op-emprise-map {
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+}
+
+.op-emprise-actions {
+  padding-top: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  align-items: flex-start;
+}
+
+.op-indic-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.op-indic-row {
+  padding: $spacing-sm;
+  background: $beige;
+  border-radius: $border-radius-sm;
+  border-left: 3px solid $primary-color;
+
+  .op-indic-label {
+    font-size: 0.95rem;
+    color: $black;
+    strong { color: $primary-color; }
+  }
+  .op-indic-sub {
+    font-size: 0.85rem;
+    color: $gray-dark;
+    margin-top: $spacing-xxs;
+  }
+  .op-indic-meta {
+    color: $gray-dark;
+    font-size: 0.85rem;
+    margin-right: $spacing-xxs;
+  }
+}
+
+// =============================================================================
+// Indicateurs de réponse — éditeur inline (Figma 161-36550)
+// =============================================================================
+
+.op-indic-editor {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.op-indic-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding-bottom: $spacing-md;
+
+  &.with-separator {
+    border-bottom: 1px solid $gray-lighter;
+  }
+}
+
+.op-indic-line {
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-end;
+
+  &.op-indic-line-title app-form-field { flex: 1; }
+  &.op-indic-line-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Bouton corbeille rond avec bordure terra-cotta (cf. maquette)
+.op-indic-delete {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid $secondary-terra-cotta;
+  background: transparent;
+  color: $secondary-terra-cotta;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  i { font-size: 1rem; }
+
+  &:hover {
+    background: $secondary-terra-cotta;
+    color: white;
+  }
+}
+
+// =============================================================================
+// Bouton pill outlined primary (utilisé pour Importer SIG + Ajouter indicateur)
+// Conforme à la maquette Figma 161-36548.
+// =============================================================================
+.btn-outlined-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background: transparent;
+  color: $primary-color;
+  border: 1.5px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  i { font-size: 0.95rem; }
+
+  &:not(:disabled):hover {
+    background: $primary-color;
+    color: white;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// =============================================================================
+// Cards d'accordéon dans le formulaire d'action (Figma 154-10720)
+//
+// Override local du <app-accordion variant="default">: pas de bordure,
+// soulignement orange UNIQUEMENT sous l'icône + titre du header,
+// gros espace vertical entre cards.
+// =============================================================================
+
+.form-container {
+  ::ng-deep app-accordion {
+    display: block;
+    margin-bottom: $spacing-xl; // gros espace entre les cards
+  }
+
+  ::ng-deep .app-accordion.app-accordion--default {
+    border: none;
+    background: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+    .app-accordion__header {
+      // Inset card conforme Figma 154-18949 : ~32px haut/bas, ~40px latéral.
+      padding: $spacing-xl $spacing-xxl $spacing-md;
+    }
+
+    .app-accordion__heading {
+      // Override du `flex: 1` du style de base : sans ça, le heading s'étire
+      // sur toute la largeur dispo et l'underline orange aussi.
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      // Soulignement orange uniquement sous l'icône + le titre,
+      // pas full-width comme un border-bottom de header.
+      border-bottom: 2px solid $secondary-yellow;
+      padding-bottom: $spacing-xxs;
+      gap: $spacing-sm;
+    }
+
+    .app-accordion__title {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: $primary-color;
+      font-weight: 700;
+    }
+
+    .app-accordion__body {
+      border-top: none; // le border-top par défaut casserait l'effet "card propre"
+      // Pas de padding-top : le titre + underline jaune servent de séparation visuelle,
+      // pas besoin d'espace en plus avant la 1ère question (cf. retour utilisateur).
+      padding: 0 $spacing-xxl $spacing-xl;
+    }
+  }
+}

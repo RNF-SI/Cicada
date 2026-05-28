@@ -185,7 +185,7 @@
   }
 
   &--lg {
-    .app-accordion__header { padding: $spacing-md $spacing-lg; }
+    .app-accordion__header { padding: $spacing-xl $spacing-lg; }
     .app-accordion__title { font-size: $font-size-h4; }
     .app-accordion__body { padding: $spacing-lg; }
   }

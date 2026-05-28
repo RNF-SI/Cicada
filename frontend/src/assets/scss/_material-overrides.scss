@@ -440,7 +440,16 @@ a[mat-raised-button][color="primary"] {
     .mat-mdc-form-field-hint-wrapper,
     .mat-mdc-form-field-error-wrapper {
       padding: 0;
+      // Push content when hint/error visible au lieu de superposer (consistant avec subscript collapsé).
+      position: static;
     }
+  }
+
+  // Supprime les 16px réservés par Material sous chaque mat-form-field (`::before` de
+  // `.mat-mdc-form-field-bottom-align`) — c'est lui qui forçait l'écart vertical
+  // résiduel entre 2 champs, en plus de la règle globale `app-form-field + ...`.
+  .mat-mdc-form-field-bottom-align::before {
+    display: none;
   }
 
   .mat-mdc-form-field-hint {
@@ -480,8 +489,10 @@ a[mat-raised-button][color="primary"] {
 }
 
 // Label "app-form-field-style" au-dessus du mat-form-field
+// `display: flex` (et non inline-flex) pour que le mat-form-field suivant tombe
+// systématiquement à la ligne, même sans `.full-width` (ex. Date de lancement du suivi).
 .app-mat-label {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 4px;
   font-family: $font-family;
